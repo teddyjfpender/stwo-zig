@@ -57,20 +57,19 @@ kernel void stwo_zig_blake2s_pow_search(
     // computes it once per proof instead of every candidate thread.
     for (uint word = 0u; word < 16u; ++word)
         compression_state[word] = round_zero_columns[word];
-    blake2s_g(message, 0u, 4u, compression_state[0], compression_state[5], compression_state[10], compression_state[15]);
-    blake2s_g(message, 0u, 5u, compression_state[1], compression_state[6], compression_state[11], compression_state[12]);
-    blake2s_g(message, 0u, 6u, compression_state[2], compression_state[7], compression_state[8], compression_state[13]);
-    blake2s_g(message, 0u, 7u, compression_state[3], compression_state[4], compression_state[9], compression_state[14]);
-    for (uint round = 1u; round < 10u; ++round) {
-        blake2s_g(message, round, 0u, compression_state[0], compression_state[4], compression_state[8], compression_state[12]);
-        blake2s_g(message, round, 1u, compression_state[1], compression_state[5], compression_state[9], compression_state[13]);
-        blake2s_g(message, round, 2u, compression_state[2], compression_state[6], compression_state[10], compression_state[14]);
-        blake2s_g(message, round, 3u, compression_state[3], compression_state[7], compression_state[11], compression_state[15]);
-        blake2s_g(message, round, 4u, compression_state[0], compression_state[5], compression_state[10], compression_state[15]);
-        blake2s_g(message, round, 5u, compression_state[1], compression_state[6], compression_state[11], compression_state[12]);
-        blake2s_g(message, round, 6u, compression_state[2], compression_state[7], compression_state[8], compression_state[13]);
-        blake2s_g(message, round, 7u, compression_state[3], compression_state[4], compression_state[9], compression_state[14]);
-    }
+    blake2s_g_words(message[8], message[9], compression_state[0], compression_state[5], compression_state[10], compression_state[15]);
+    blake2s_g_words(message[10], message[11], compression_state[1], compression_state[6], compression_state[11], compression_state[12]);
+    blake2s_g_words(message[12], message[13], compression_state[2], compression_state[7], compression_state[8], compression_state[13]);
+    blake2s_g_words(message[14], message[15], compression_state[3], compression_state[4], compression_state[9], compression_state[14]);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 14, 10, 4, 8, 9, 15, 13, 6, 1, 12, 0, 2, 11, 7, 5, 3);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 11, 8, 12, 0, 5, 2, 15, 13, 10, 14, 3, 6, 7, 1, 9, 4);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 7, 9, 3, 1, 13, 12, 11, 14, 2, 6, 5, 10, 4, 0, 15, 8);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 9, 0, 5, 7, 2, 4, 10, 15, 14, 1, 11, 12, 6, 8, 3, 13);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 2, 12, 6, 10, 0, 11, 8, 3, 4, 13, 7, 5, 15, 14, 1, 9);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 12, 5, 1, 15, 14, 13, 4, 10, 0, 7, 6, 3, 9, 2, 8, 11);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 13, 11, 7, 14, 12, 1, 3, 9, 5, 0, 15, 4, 8, 6, 2, 10);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 6, 15, 14, 9, 11, 3, 0, 8, 12, 2, 13, 7, 1, 4, 10, 5);
+    STWO_ZIG_BLAKE2S_ROUND(compression_state, message, 10, 2, 8, 4, 7, 6, 1, 5, 15, 11, 9, 14, 3, 12, 13, 0);
     blake2s_init_hash(state);
     for (uint word = 0u; word < 8u; ++word)
         state[word] ^= compression_state[word] ^ compression_state[word + 8u];
