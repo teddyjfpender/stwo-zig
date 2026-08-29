@@ -9,6 +9,7 @@ const heterogeneous_commit = @import("runtime/heterogeneous_commit.zig");
 const host_primitives = @import("host_primitives.zig");
 const merkle = @import("stwo_prover_engine").vcs_lifted.prover;
 const metal_merkle = @import("merkle_tree.zig");
+const metal_runtime = @import("runtime.zig");
 const ownership_testing = @import("runtime/ownership_testing.zig");
 const quadratic_trace = @import("runtime/quadratic_trace_backend.zig");
 const resident_fri_transaction = @import("runtime/resident_fri_transaction.zig");
@@ -57,6 +58,37 @@ pub const MetalCommitBackend = struct {
     // Apple-silicon pages are 16 KiB; this is also a multiple of Intel macOS's
     // 4 KiB pages, so `newBufferWithBytesNoCopy` can bind either target.
     pub const resident_column_arena_alignment = std.mem.Alignment.fromByteUnits(16 * 1024);
+
+    /// Holds the shared runtime lease and one command containing every direct
+    /// circle-LDE group for a generic commitment. The prover explicitly
+    /// finishes this owner before consuming transformed columns; unfinished
+    /// error-path destruction releases the uncommitted command before borrowed
+    /// host arenas unwind.
+    pub const CircleLdeBatch = struct {
+        lease: shared_runtime.CallLease,
+        runtime_batch: metal_runtime.CircleLdeBatch,
+
+        pub fn init() !CircleLdeBatch {
+            var lease = try shared_runtime.acquire();
+            errdefer lease.deinit();
+            const runtime_batch = try lease.runtime.beginCircleLdeBatch();
+            return .{ .lease = lease, .runtime_batch = runtime_batch };
+        }
+
+        pub fn deinit(self: *CircleLdeBatch) void {
+            self.lease.runtime.destroyCircleLdeBatch(&self.runtime_batch);
+            self.lease.deinit();
+            self.* = undefined;
+        }
+
+        pub fn finish(self: *CircleLdeBatch) !void {
+            const stats = try self.lease.runtime.finishCircleLdeBatch(&self.runtime_batch);
+            std.log.debug(
+                "Metal circle LDE batch: {} direct groups, {d:.3}ms GPU",
+                .{ stats.encoded_operations, stats.gpu_milliseconds },
+            );
+        }
+    };
     pub const lazyFriFoldInverseWorkspace = true;
     // Every resident parent-chain route dispatches the complete binary-tree
     // cardinality at each level.  This is deliberately distinct from the host
@@ -541,6 +573,66 @@ pub const MetalCommitBackend = struct {
         extended_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
         extended_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
     ) !work_profile.M31CircleLdeExecution {
+        return interpolateAndEvaluateCircleBuffersImpl(
+            null,
+            allocator,
+            source_values,
+            base_values,
+            extended_values,
+            transform_buffer,
+            extended_start,
+            extended_stride,
+            base_domain,
+            base_twiddles,
+            extended_domain,
+            extended_twiddles,
+        );
+    }
+
+    pub fn interpolateAndEvaluateCircleBuffersBatched(
+        batch: *CircleLdeBatch,
+        allocator: std.mem.Allocator,
+        source_values: []const []const @import("stwo_core").fields.m31.M31,
+        base_values: []const []@import("stwo_core").fields.m31.M31,
+        extended_values: []const []@import("stwo_core").fields.m31.M31,
+        transform_buffer: []@import("stwo_core").fields.m31.M31,
+        extended_start: usize,
+        extended_stride: usize,
+        base_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+        base_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        extended_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+        extended_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+    ) !work_profile.M31CircleLdeExecution {
+        return interpolateAndEvaluateCircleBuffersImpl(
+            batch,
+            allocator,
+            source_values,
+            base_values,
+            extended_values,
+            transform_buffer,
+            extended_start,
+            extended_stride,
+            base_domain,
+            base_twiddles,
+            extended_domain,
+            extended_twiddles,
+        );
+    }
+
+    fn interpolateAndEvaluateCircleBuffersImpl(
+        batch: ?*CircleLdeBatch,
+        allocator: std.mem.Allocator,
+        source_values: []const []const @import("stwo_core").fields.m31.M31,
+        base_values: []const []@import("stwo_core").fields.m31.M31,
+        extended_values: []const []@import("stwo_core").fields.m31.M31,
+        transform_buffer: []@import("stwo_core").fields.m31.M31,
+        extended_start: usize,
+        extended_stride: usize,
+        base_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+        base_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+        extended_domain: @import("stwo_core").poly.circle.domain.CircleDomain,
+        extended_twiddles: @import("stwo_prover_engine").poly.twiddles.TwiddleTree([]const @import("stwo_core").fields.m31.M31),
+    ) !work_profile.M31CircleLdeExecution {
         if (source_values.len == 0 or source_values.len != base_values.len or
             base_values.len != extended_values.len)
         {
@@ -576,21 +668,38 @@ pub const MetalCommitBackend = struct {
                 },
             };
         }
-        var lease = try shared_runtime.acquire();
-        defer lease.deinit();
-        const result = try lease.runtime.transformCircleLdeInto(
-            allocator,
-            source_values,
-            base_values,
-            extended_values,
-            transform_buffer,
-            extended_start,
-            extended_stride,
-            base_twiddles.itwiddles,
-            extended_twiddles.twiddles,
-            base_domain.logSize(),
-            extended_domain.logSize(),
-        );
+        const result = if (batch) |active|
+            try active.lease.runtime.transformCircleLdeIntoBatch(
+                &active.runtime_batch,
+                allocator,
+                source_values,
+                base_values,
+                extended_values,
+                transform_buffer,
+                extended_start,
+                extended_stride,
+                base_twiddles.itwiddles,
+                extended_twiddles.twiddles,
+                base_domain.logSize(),
+                extended_domain.logSize(),
+            )
+        else blk: {
+            var lease = try shared_runtime.acquire();
+            defer lease.deinit();
+            break :blk try lease.runtime.transformCircleLdeInto(
+                allocator,
+                source_values,
+                base_values,
+                extended_values,
+                transform_buffer,
+                extended_start,
+                extended_stride,
+                base_twiddles.itwiddles,
+                extended_twiddles.twiddles,
+                base_domain.logSize(),
+                extended_domain.logSize(),
+            );
+        };
         telemetry.record(.metal_circle_lde_dispatch);
         std.log.debug("Metal circle IFFT+RFFT: {d:.3}ms", .{result.gpu_milliseconds});
         return result.execution;

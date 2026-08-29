@@ -115,6 +115,19 @@ pub const LdeCommitResult = struct {
     work: LdeCommitWorkReceipt,
 };
 
+/// Opaque commitment-scoped owner for direct shared-memory circle-LDE work.
+/// It is deliberately separate from `CommandEpoch`: every log group keeps its
+/// tuned buffer geometry and kernels while one command buffer removes both the
+/// redundant submissions and completion fences between independent groups.
+pub const CircleLdeBatch = struct {
+    handle: *anyopaque,
+};
+
+pub const CircleLdeBatchStats = struct {
+    encoded_operations: u64,
+    gpu_milliseconds: f64,
+};
+
 /// Counts written by the combined device epoch only after its command buffer
 /// and complete Merkle parent chain succeed.
 pub const LdeCommitWorkReceipt = struct {
@@ -277,6 +290,10 @@ pub const Runtime = struct {
     pub const transformCircleResident = polynomial_ops.transformCircleResident;
     pub const transformCircleLde = polynomial_ops.transformCircleLde;
     pub const transformCircleLdeInto = polynomial_ops.transformCircleLdeInto;
+    pub const beginCircleLdeBatch = polynomial_ops.beginCircleLdeBatch;
+    pub const destroyCircleLdeBatch = polynomial_ops.destroyCircleLdeBatch;
+    pub const finishCircleLdeBatch = polynomial_ops.finishCircleLdeBatch;
+    pub const transformCircleLdeIntoBatch = polynomial_ops.transformCircleLdeIntoBatch;
     pub const evaluateRecurrenceComposition = polynomial_ops.evaluateRecurrenceComposition;
     pub const transformCircleLdeAndCommit = combined_commit_ops.transformCircleLdeAndCommit;
     pub const transformCircleLdeAndCommitPrepared = combined_commit_ops.transformCircleLdeAndCommitPrepared;

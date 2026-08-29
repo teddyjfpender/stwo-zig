@@ -726,6 +726,41 @@ pub extern fn stwo_zig_metal_circle_transform(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_circle_lde_batch_create(
+    runtime: *anyopaque,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_circle_lde_batch_destroy(batch: ?*anyopaque) void;
+pub extern fn stwo_zig_metal_circle_lde_batch_finish(
+    batch: *anyopaque,
+    encoded_operations: *u64,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_circle_lde_batch_enqueue(
+    runtime: *anyopaque,
+    batch: *anyopaque,
+    source_columns: [*]const [*]const u32,
+    base_columns: [*]const [*]u32,
+    transform_words: [*]u32,
+    transform_word_count: usize,
+    extended_start: u32,
+    extended_stride: u32,
+    column_count: u32,
+    base_log_size: u32,
+    extended_log_size: u32,
+    inverse_twiddles: [*]const u32,
+    forward_twiddles: [*]const u32,
+    scale_factor: u32,
+    source_binding: *u32,
+    normalization_batch_count: *u32,
+    forward_skipped_layers: *u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_circle_lde(
     runtime: *anyopaque,
     source_columns: [*]const [*]const u32,

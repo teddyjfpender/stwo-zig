@@ -172,6 +172,20 @@
 @implementation StwoZigCircleLdePlan
 @end
 
+/// Owns one command buffer for all direct shared-memory circle-LDE groups in a
+/// commitment. Only operations whose coefficient and evaluation buffers are
+/// both bound with `newBufferWithBytesNoCopy` enter it, so no deferred host
+/// copy or extra private working set is hidden here.
+@interface StwoZigCircleLdeBatch : NSObject
+@property(nonatomic, strong) StwoZigMetalRuntime *runtime;
+@property(nonatomic, strong) id<MTLCommandBuffer> command;
+@property(nonatomic) NSUInteger encodedOperations;
+@property(nonatomic) BOOL finished;
+@end
+
+@implementation StwoZigCircleLdeBatch
+@end
+
 @interface StwoZigCircleIfftPlan : NSObject
 @property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
 @property(nonatomic, strong) id<MTLBuffer> destinationOffsets;

@@ -8,6 +8,8 @@ const work_profile = @import("stwo_prover_api").work_profile;
 
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;
+const CircleLdeBatch = runtime.CircleLdeBatch;
+const CircleLdeBatchStats = runtime.CircleLdeBatchStats;
 pub const CircleLdeExecutionResult = struct {
     gpu_milliseconds: f64,
     execution: work_profile.M31CircleLdeExecution,
@@ -132,8 +134,113 @@ pub fn transformCircleResident(
     return gpu_ms;
 }
 
+pub fn beginCircleLdeBatch(self: *Runtime) MetalError!CircleLdeBatch {
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    const handle = ffi.stwo_zig_metal_circle_lde_batch_create(
+        self.handle,
+        &message,
+        message.len,
+    ) orelse {
+        std.log.err("Metal circle LDE batch creation failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.CircleTransformFailed;
+    };
+    return .{ .handle = handle };
+}
+
+pub fn destroyCircleLdeBatch(_: *Runtime, batch: *CircleLdeBatch) void {
+    ffi.stwo_zig_metal_circle_lde_batch_destroy(batch.handle);
+    batch.* = undefined;
+}
+
+pub fn finishCircleLdeBatch(
+    _: *Runtime,
+    batch: *CircleLdeBatch,
+) MetalError!CircleLdeBatchStats {
+    var encoded_operations: u64 = 0;
+    var gpu_milliseconds: f64 = 0;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    if (!ffi.stwo_zig_metal_circle_lde_batch_finish(
+        batch.handle,
+        &encoded_operations,
+        &gpu_milliseconds,
+        &message,
+        message.len,
+    )) {
+        std.log.err("Metal circle LDE batch completion failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.CircleTransformFailed;
+    }
+    return .{
+        .encoded_operations = encoded_operations,
+        .gpu_milliseconds = gpu_milliseconds,
+    };
+}
+
 pub fn transformCircleLdeInto(
     self: *Runtime,
+    allocator: std.mem.Allocator,
+    source_columns: []const []const @import("stwo_core").fields.m31.M31,
+    base_columns: []const []@import("stwo_core").fields.m31.M31,
+    extended_columns: []const []@import("stwo_core").fields.m31.M31,
+    transform_buffer: []@import("stwo_core").fields.m31.M31,
+    extended_start: usize,
+    extended_stride: usize,
+    inverse_twiddles: []const @import("stwo_core").fields.m31.M31,
+    forward_twiddles: []const @import("stwo_core").fields.m31.M31,
+    base_log_size: u32,
+    extended_log_size: u32,
+) (MetalError || std.mem.Allocator.Error)!CircleLdeExecutionResult {
+    return transformCircleLdeIntoConfigured(
+        self,
+        null,
+        allocator,
+        source_columns,
+        base_columns,
+        extended_columns,
+        transform_buffer,
+        extended_start,
+        extended_stride,
+        inverse_twiddles,
+        forward_twiddles,
+        base_log_size,
+        extended_log_size,
+    );
+}
+
+pub fn transformCircleLdeIntoBatch(
+    self: *Runtime,
+    batch: *CircleLdeBatch,
+    allocator: std.mem.Allocator,
+    source_columns: []const []const @import("stwo_core").fields.m31.M31,
+    base_columns: []const []@import("stwo_core").fields.m31.M31,
+    extended_columns: []const []@import("stwo_core").fields.m31.M31,
+    transform_buffer: []@import("stwo_core").fields.m31.M31,
+    extended_start: usize,
+    extended_stride: usize,
+    inverse_twiddles: []const @import("stwo_core").fields.m31.M31,
+    forward_twiddles: []const @import("stwo_core").fields.m31.M31,
+    base_log_size: u32,
+    extended_log_size: u32,
+) (MetalError || std.mem.Allocator.Error)!CircleLdeExecutionResult {
+    return transformCircleLdeIntoConfigured(
+        self,
+        batch,
+        allocator,
+        source_columns,
+        base_columns,
+        extended_columns,
+        transform_buffer,
+        extended_start,
+        extended_stride,
+        inverse_twiddles,
+        forward_twiddles,
+        base_log_size,
+        extended_log_size,
+    );
+}
+
+fn transformCircleLdeIntoConfigured(
+    self: *Runtime,
+    batch: ?*CircleLdeBatch,
     allocator: std.mem.Allocator,
     source_columns: []const []const @import("stwo_core").fields.m31.M31,
     base_columns: []const []@import("stwo_core").fields.m31.M31,
@@ -176,27 +283,52 @@ pub fn transformCircleLdeInto(
     var normalization_batch_count: u32 = 0;
     var forward_skipped_layers: u32 = 0;
     var message: [1024]u8 = [_]u8{0} ** 1024;
-    if (!ffi.stwo_zig_metal_circle_lde(
-        self.handle,
-        source_ptrs.ptr,
-        base_ptrs.ptr,
-        transform_words.ptr,
-        transform_words.len,
-        @intCast(extended_start),
-        @intCast(extended_stride),
-        @intCast(base_columns.len),
-        base_log_size,
-        extended_log_size,
-        inverse_words.ptr,
-        forward_words.ptr,
-        scale_factor,
-        &source_binding,
-        &normalization_batch_count,
-        &forward_skipped_layers,
-        &gpu_ms,
-        &message,
-        message.len,
-    )) {
+    const succeeded = if (batch) |active|
+        ffi.stwo_zig_metal_circle_lde_batch_enqueue(
+            self.handle,
+            active.handle,
+            source_ptrs.ptr,
+            base_ptrs.ptr,
+            transform_words.ptr,
+            transform_words.len,
+            @intCast(extended_start),
+            @intCast(extended_stride),
+            @intCast(base_columns.len),
+            base_log_size,
+            extended_log_size,
+            inverse_words.ptr,
+            forward_words.ptr,
+            scale_factor,
+            &source_binding,
+            &normalization_batch_count,
+            &forward_skipped_layers,
+            &gpu_ms,
+            &message,
+            message.len,
+        )
+    else
+        ffi.stwo_zig_metal_circle_lde(
+            self.handle,
+            source_ptrs.ptr,
+            base_ptrs.ptr,
+            transform_words.ptr,
+            transform_words.len,
+            @intCast(extended_start),
+            @intCast(extended_stride),
+            @intCast(base_columns.len),
+            base_log_size,
+            extended_log_size,
+            inverse_words.ptr,
+            forward_words.ptr,
+            scale_factor,
+            &source_binding,
+            &normalization_batch_count,
+            &forward_skipped_layers,
+            &gpu_ms,
+            &message,
+            message.len,
+        );
+    if (!succeeded) {
         std.log.err("Metal circle LDE failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CircleTransformFailed;
     }

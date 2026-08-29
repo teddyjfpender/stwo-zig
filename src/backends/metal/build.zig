@@ -57,6 +57,10 @@ pub fn build(b: *std.Build) void {
         "test-proof-of-work",
         "Run deterministic Metal proof-of-work parity",
     );
+    const circle_lde_batch_step = b.step(
+        "test-circle-lde-batch",
+        "Run focused Metal multi-group circle-LDE command parity",
+    );
     const precommitted_unit_root = b.createModule(.{
         .root_source_file = b.path("runtime/precommitted_work.zig"),
         .target = target,
@@ -76,6 +80,7 @@ pub fn build(b: *std.Build) void {
         fri_receipt_step.dependOn(&unsupported.step);
         precommitted_runtime_step.dependOn(&unsupported.step);
         proof_of_work_step.dependOn(&unsupported.step);
+        circle_lde_batch_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = backend });
@@ -118,6 +123,18 @@ pub fn build(b: *std.Build) void {
     run_proof_of_work_tests.has_side_effects = true;
     proof_of_work_step.dependOn(&run_proof_of_work_tests.step);
     linkRuntime(b, deep_tests);
+
+    const circle_lde_batch_root = b.createModule(.{
+        .root_source_file = b.path("circle_lde_batch_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(circle_lde_batch_root, core, backend_contracts, prover_api, prover);
+    const circle_lde_batch_tests = b.addTest(.{ .root_module = circle_lde_batch_root });
+    linkRuntime(b, circle_lde_batch_tests);
+    const run_circle_lde_batch_tests = b.addRunArtifact(circle_lde_batch_tests);
+    run_circle_lde_batch_tests.has_side_effects = true;
+    circle_lde_batch_step.dependOn(&run_circle_lde_batch_tests.step);
 
     const lookup_v2_root = b.createModule(.{
         .root_source_file = b.path("runtime/lookup_polynomial_v2_owner.zig"),

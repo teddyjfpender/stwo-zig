@@ -449,3 +449,52 @@ Every Keccak arm decoded to the same 827,978-byte proof with SHA-256
 `b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.
 The ECDSA candidate passed a fresh-process verifier with the unchanged
 statement and transcript identities above.
+
+### Retained: commitment-scoped circle-LDE command batching
+
+The post-gather profile contained 40 independent generic circle-LDE command
+buffers. Their kernels were already specialized per log-size group, but each
+group still paid a submission and completion fence before the next independent
+group could be encoded. A first experiment submitted every group separately
+and delayed only the waits. Two reverse-balanced confirmations were neutral
+against the retained product, so that weaker queued-command variant was not
+retained.
+
+The retained design instead gives each generic polynomial commitment one
+explicit circle-LDE batch owner. Page-aligned no-copy groups keep their existing
+buffer geometry and tuned kernels but encode into a single command buffer;
+groups requiring host copyback retain the synchronous path. The prover closes
+the batch before consuming any transformed column. An unfinished error path
+releases an uncommitted command before its borrowed arenas unwind. No shader,
+transform schedule, column layout, proof, transcript, or work receipt changes.
+
+Across two complementary three-way reverse-balanced experiments, the pooled
+means were:
+
+| implementation | ECDSA CSP `proof_duration` | complete request |
+|---|---:|---:|
+| retained resident gather | 2.071718 s | 2.240445 s |
+| queued commands / one fence | 2.060517 s | 2.207672 s |
+| one command per commitment | 2.058643 s | 2.216234 s |
+
+The single-command path improves the official ECDSA boundary by 0.63% and the
+complete request by 1.08% versus the retained baseline. It is only 0.09% faster
+than the queued-command experiment at the CSP boundary; the queued variant is
+0.39% faster on the noisier complete-request guardrail, while the retained path
+has the smaller submission surface. A Keccak/128
+B/C/C/B guard measured 0.509543 s retained versus 0.502968 s candidate (-1.29%);
+complete requests were 0.579876/0.569975 s (-1.71%).
+
+The new profile has 35 command buffers instead of 70 while preserving all 366
+encoder boundaries. Four commitment-scoped circle commands account for 178.39
+ms GPU and 229.64 ms host wait; total command wait is 682.00 ms. This is a
+submission/fence improvement, not a claim that the transform kernels are
+saturated: circle LDE and Merkle now remain the two largest device phases.
+
+A focused actual-device gate places two independent direct LDE operations in
+one command and compares coefficients, extended evaluations, and execution
+receipts byte-for-byte with the synchronous route. The complete ECDSA proof
+freshly verifies, decodes to SHA-256
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`,
+and retains the statement/transcript identities above. All Keccak arms decode
+to `b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.

@@ -183,8 +183,79 @@ bool stwo_zig_metal_circle_transform(
     }
 }
 
-bool stwo_zig_metal_circle_lde(
+void *stwo_zig_metal_circle_lde_batch_create(
+    void *runtime_ptr, char *error_message, size_t error_message_len
+) {
+    if (runtime_ptr == NULL) return NULL;
+    @autoreleasepool {
+        StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        StwoZigCircleLdeBatch *batch = [StwoZigCircleLdeBatch new];
+        batch.runtime = runtime;
+        batch.command = [runtime.queue commandBuffer];
+        batch.encodedOperations = 0u;
+        batch.finished = NO;
+        if (batch.command == nil) {
+            write_error(error_message, error_message_len, @"Metal circle LDE batch allocation failed");
+            return NULL;
+        }
+        return (__bridge_retained void *)batch;
+    }
+}
+
+void stwo_zig_metal_circle_lde_batch_destroy(void *batch_ptr) {
+    if (batch_ptr == NULL) return;
+    @autoreleasepool {
+        StwoZigCircleLdeBatch *batch = (__bridge_transfer StwoZigCircleLdeBatch *)batch_ptr;
+        // An unfinished batch has never been committed; releasing the command
+        // buffer cancels the encoded work before borrowed host arenas unwind.
+        batch.command = nil;
+    }
+}
+
+bool stwo_zig_metal_circle_lde_batch_finish(
+    void *batch_ptr, uint64_t *encoded_operations, double *gpu_milliseconds,
+    char *error_message, size_t error_message_len
+) {
+    if (encoded_operations != NULL) *encoded_operations = 0u;
+    if (gpu_milliseconds != NULL) *gpu_milliseconds = 0.0;
+    if (batch_ptr == NULL) return false;
+    @autoreleasepool {
+        StwoZigCircleLdeBatch *batch = (__bridge StwoZigCircleLdeBatch *)batch_ptr;
+        if (batch.finished) {
+            write_error(error_message, error_message_len, @"Metal circle LDE batch already finished");
+            return false;
+        }
+        const NSUInteger count = batch.encodedOperations;
+        double total_gpu_ms = 0.0;
+        if (count != 0u) {
+            [batch.command commit];
+            [batch.command waitUntilCompleted];
+            if (batch.command.status == MTLCommandBufferStatusError) {
+                write_error(error_message, error_message_len,
+                            batch.command.error.localizedDescription ?: @"Metal circle LDE batch failed");
+                batch.finished = YES;
+                batch.command = nil;
+                return false;
+            }
+            if (batch.command.status != MTLCommandBufferStatusCompleted) {
+                write_error(error_message, error_message_len, @"Metal circle LDE batch did not complete");
+                batch.finished = YES;
+                batch.command = nil;
+                return false;
+            }
+            total_gpu_ms = (batch.command.GPUEndTime - batch.command.GPUStartTime) * 1000.0;
+        }
+        if (encoded_operations != NULL) *encoded_operations = (uint64_t)count;
+        if (gpu_milliseconds != NULL) *gpu_milliseconds = total_gpu_ms;
+        batch.finished = YES;
+        batch.command = nil;
+        return true;
+    }
+}
+
+static bool circle_lde_impl(
     void *runtime_ptr,
+    void *batch_ptr,
     const uint32_t *const *source_columns,
     uint32_t *const *base_columns,
     uint32_t *extended_words,
@@ -207,11 +278,19 @@ bool stwo_zig_metal_circle_lde(
     if (source_binding != NULL) *source_binding = 0u;
     if (normalization_batch_count != NULL) *normalization_batch_count = 0u;
     if (forward_skipped_layers != NULL) *forward_skipped_layers = 0u;
+    if (gpu_milliseconds != NULL) *gpu_milliseconds = 0.0;
     if (runtime_ptr == NULL || source_columns == NULL || base_columns == NULL || extended_words == NULL ||
         inverse_twiddles == NULL || forward_twiddles == NULL || column_count == 0u ||
         base_log_size < 3u || extended_log_size <= base_log_size || extended_log_size >= 31u) return false;
     @autoreleasepool {
         StwoZigMetalRuntime *runtime = (__bridge StwoZigMetalRuntime *)runtime_ptr;
+        StwoZigCircleLdeBatch *batch = batch_ptr == NULL
+            ? nil
+            : (__bridge StwoZigCircleLdeBatch *)batch_ptr;
+        if (batch != nil && (batch.finished || batch.runtime != runtime)) {
+            write_error(error_message, error_message_len, @"Metal circle LDE batch authority mismatch");
+            return false;
+        }
         uint32_t base_len = 1u << base_log_size;
         uint32_t extended_len = 1u << extended_log_size;
         uint32_t base_pairs = base_len >> 1u;
@@ -273,7 +352,10 @@ bool stwo_zig_metal_circle_lde(
             extended_offset_words[column] = extended_start + column * extended_stride;
         }
 
-        id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        const bool batched_direct = batch != nil && direct_base && direct_extended;
+        id<MTLCommandBuffer> command = batched_direct
+            ? batch.command
+            : [runtime.queue commandBuffer];
         NSMutableArray<id<MTLBuffer>> *input_sources = [NSMutableArray array];
         // The compute encoder amortizes only on large domains. Below log 16,
         // the established blit plus fused tail is faster and less variable.
@@ -515,6 +597,15 @@ bool stwo_zig_metal_circle_lde(
             [last endEncoding];
         }
 
+        // Direct unified-memory bindings need neither deferred copyback nor
+        // private-buffer retention. Keep their tuned per-log encoders in one
+        // commitment-owned command buffer and submit/fence it exactly once.
+        if (batched_direct) {
+            batch.encodedOperations += 1u;
+            if (normalization_batch_count != NULL) *normalization_batch_count = 1u;
+            if (forward_skipped_layers != NULL) *forward_skipped_layers = fuse_top_two != 0u ? 1u : 0u;
+            return true;
+        }
         [command commit];
         [command waitUntilCompleted];
         if (command.status == MTLCommandBufferStatusError) {
@@ -539,4 +630,66 @@ bool stwo_zig_metal_circle_lde(
         if (gpu_milliseconds != NULL) *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         return true;
     }
+}
+
+bool stwo_zig_metal_circle_lde(
+    void *runtime_ptr,
+    const uint32_t *const *source_columns,
+    uint32_t *const *base_columns,
+    uint32_t *extended_words,
+    size_t extended_word_count,
+    uint32_t extended_start,
+    uint32_t extended_stride,
+    uint32_t column_count,
+    uint32_t base_log_size,
+    uint32_t extended_log_size,
+    const uint32_t *inverse_twiddles,
+    const uint32_t *forward_twiddles,
+    uint32_t scale_factor,
+    uint32_t *source_binding,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    return circle_lde_impl(
+        runtime_ptr, NULL, source_columns, base_columns, extended_words,
+        extended_word_count, extended_start, extended_stride, column_count,
+        base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
+        scale_factor, source_binding, normalization_batch_count,
+        forward_skipped_layers, gpu_milliseconds, error_message,
+        error_message_len);
+}
+
+bool stwo_zig_metal_circle_lde_batch_enqueue(
+    void *runtime_ptr,
+    void *batch_ptr,
+    const uint32_t *const *source_columns,
+    uint32_t *const *base_columns,
+    uint32_t *extended_words,
+    size_t extended_word_count,
+    uint32_t extended_start,
+    uint32_t extended_stride,
+    uint32_t column_count,
+    uint32_t base_log_size,
+    uint32_t extended_log_size,
+    const uint32_t *inverse_twiddles,
+    const uint32_t *forward_twiddles,
+    uint32_t scale_factor,
+    uint32_t *source_binding,
+    uint32_t *normalization_batch_count,
+    uint32_t *forward_skipped_layers,
+    double *gpu_milliseconds,
+    char *error_message,
+    size_t error_message_len
+) {
+    if (batch_ptr == NULL) return false;
+    return circle_lde_impl(
+        runtime_ptr, batch_ptr, source_columns, base_columns, extended_words,
+        extended_word_count, extended_start, extended_stride, column_count,
+        base_log_size, extended_log_size, inverse_twiddles, forward_twiddles,
+        scale_factor, source_binding, normalization_batch_count,
+        forward_skipped_layers, gpu_milliseconds, error_message,
+        error_message_len);
 }
