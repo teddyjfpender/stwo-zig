@@ -53,6 +53,10 @@ pub fn build(b: *std.Build) void {
         "test-precommitted-work-runtime",
         "Run the Metal precommitted exact-work transaction test",
     );
+    const proof_of_work_step = b.step(
+        "test-proof-of-work",
+        "Run deterministic Metal proof-of-work parity",
+    );
     const precommitted_unit_root = b.createModule(.{
         .root_source_file = b.path("runtime/precommitted_work.zig"),
         .target = target,
@@ -71,6 +75,7 @@ pub fn build(b: *std.Build) void {
         composition_profile_step.dependOn(&unsupported.step);
         fri_receipt_step.dependOn(&unsupported.step);
         precommitted_runtime_step.dependOn(&unsupported.step);
+        proof_of_work_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = backend });
@@ -105,6 +110,13 @@ pub fn build(b: *std.Build) void {
     });
     addImports(deep_root, core, backend_contracts, prover_api, prover);
     const deep_tests = b.addTest(.{ .root_module = deep_root });
+    const proof_of_work_tests = b.addTest(.{
+        .root_module = backend,
+        .filters = &.{"metal proof of work returns the protocol lowest nonce"},
+    });
+    const run_proof_of_work_tests = b.addRunArtifact(proof_of_work_tests);
+    run_proof_of_work_tests.has_side_effects = true;
+    proof_of_work_step.dependOn(&run_proof_of_work_tests.step);
     linkRuntime(b, deep_tests);
 
     const lookup_v2_root = b.createModule(.{

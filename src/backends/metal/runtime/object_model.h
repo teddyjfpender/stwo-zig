@@ -11,6 +11,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceTrace;
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceIfftWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> leaves;
+@property(nonatomic, strong) id<MTLComputePipelineState> proofOfWork;
 @property(nonatomic, strong) id<MTLComputePipelineState> parents;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotients;
 @property(nonatomic, strong) id<MTLComputePipelineState> rawQuotients;

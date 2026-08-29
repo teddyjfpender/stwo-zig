@@ -31,8 +31,27 @@ pub fn grind(channel: anytype, pow_bits: u32) u64 {
     }
 }
 
+/// Uses a backend-owned deterministic search when one is available. The
+/// returned nonce is always revalidated through the channel's protocol
+/// implementation before it can enter the transcript.
+pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) !u64 {
+    if (pow_bits == 0) return 0;
+    if (comptime @TypeOf(channel.*) == Blake2sChannel) {
+        const prefix = computePowPrefix(channel.*, pow_bits);
+        const nonce = if (comptime @hasDecl(Backend, "grindBlake2sProofOfWork"))
+            try Backend.grindBlake2sProofOfWork(prefix, pow_bits)
+        else
+            grind(channel, pow_bits);
+        if (!channel.verifyPowNonce(pow_bits, nonce))
+            return error.InvalidBackendProofOfWorkNonce;
+        return nonce;
+    }
+    return grind(channel, pow_bits);
+}
+
 const PowWork = struct {
     prefix: [32]u8,
+    prepared_prefix: Blake2sHasher.Fixed40NoncePrefix,
     pow_bits: u32,
     start: u64,
     stride: u64,
@@ -52,6 +71,7 @@ const PowWork = struct {
             }
             if (firstValidNonceWithPrefix8(
                 self.prefix,
+                &self.prepared_prefix,
                 nonces,
                 self.pow_bits,
             )) |valid| {
@@ -83,11 +103,13 @@ fn grindBlake2sInPool(
     std.debug.assert(worker_count <= work_pool_mod.MAX_WORKERS);
 
     const prefix = computePowPrefix(channel, pow_bits);
+    const prepared_prefix = Blake2sHasher.prepareFixed40NoncePrefix(&prefix);
     var found = std.atomic.Value(u64).init(std.math.maxInt(u64));
     var jobs: [work_pool_mod.MAX_WORKERS]PowWork = undefined;
     for (jobs[0..worker_count], 0..) |*job, worker_index| {
         job.* = .{
             .prefix = prefix,
+            .prepared_prefix = prepared_prefix,
             .pow_bits = pow_bits,
             .start = @intCast(worker_index),
             .stride = @intCast(worker_count),
@@ -114,9 +136,29 @@ fn computePowPrefix(channel: Blake2sChannel, pow_bits: u32) [32]u8 {
 
 fn firstValidNonceWithPrefix8(
     prefix: [32]u8,
+    prepared_prefix: *const Blake2sHasher.Fixed40NoncePrefix,
     nonces: [8]u64,
     pow_bits: u32,
 ) ?u64 {
+    if (pow_bits <= 32) {
+        const first_words = Blake2sHasher.hashFixed40NonceFirstWords8(
+            prepared_prefix,
+            &nonces,
+        );
+        const mask: u32 = if (pow_bits == 32)
+            std.math.maxInt(u32)
+        else
+            (@as(u32, 1) << @intCast(pow_bits)) - 1;
+        const Words = @Vector(8, u32);
+        const vector: Words = first_words;
+        const matches = (vector & @as(Words, @splat(mask))) == @as(Words, @splat(0));
+        if (!@reduce(.Or, matches)) return null;
+        for (first_words, nonces) |word, nonce| {
+            if (word & mask == 0) return nonce;
+        }
+        return null;
+    }
+
     var inputs: [8][40]u8 = undefined;
     for (&inputs, nonces) |*input, nonce| {
         @memcpy(input[0..32], prefix[0..]);
@@ -148,10 +190,12 @@ fn grindBlake2sResiduesForTest(
     worker_count: usize,
 ) u64 {
     const prefix = computePowPrefix(channel, pow_bits);
+    const prepared_prefix = Blake2sHasher.prepareFixed40NoncePrefix(&prefix);
     var found = std.atomic.Value(u64).init(std.math.maxInt(u64));
     for (0..worker_count) |worker_index| {
         const job = PowWork{
             .prefix = prefix,
+            .prepared_prefix = prepared_prefix,
             .pow_bits = pow_bits,
             .start = @intCast(worker_index),
             .stride = @intCast(worker_count),

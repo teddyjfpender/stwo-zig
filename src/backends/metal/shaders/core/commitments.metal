@@ -32,6 +32,62 @@ inline void fri_store_coordinates_and_leaf(
     for (uint word = 0u; word < 8u; ++word) leaves[index * 8u + word] = state[word];
 }
 
+// Exhaustively checks one host-selected nonce interval. The host advances to
+// the next interval only after this dispatch completes with no match, so the
+// result is the protocol's exact lowest nonce rather than merely any nonce.
+kernel void stwo_zig_blake2s_pow_search(
+    constant uint *prefix [[buffer(0)]],
+    constant uint *round_zero_columns [[buffer(1)]],
+    constant ulong &nonce_base [[buffer(2)]],
+    constant uint &nonce_count [[buffer(3)]],
+    constant uint &pow_bits [[buffer(4)]],
+    device atomic_uint &first_match [[buffer(5)]],
+    uint local_nonce [[thread_position_in_grid]]
+) {
+    if (local_nonce >= nonce_count) return;
+
+    ulong nonce = nonce_base + (ulong)local_nonce;
+    uint state[8], message[16], compression_state[16];
+    for (uint word = 0u; word < 8u; ++word) message[word] = prefix[word];
+    message[8] = (uint)nonce;
+    message[9] = (uint)(nonce >> 32u);
+    for (uint word = 10u; word < 16u; ++word) message[word] = 0u;
+
+    // Round zero's column half consumes only prefix words 0..7. The host
+    // computes it once per proof instead of every candidate thread.
+    for (uint word = 0u; word < 16u; ++word)
+        compression_state[word] = round_zero_columns[word];
+    blake2s_g(message, 0u, 4u, compression_state[0], compression_state[5], compression_state[10], compression_state[15]);
+    blake2s_g(message, 0u, 5u, compression_state[1], compression_state[6], compression_state[11], compression_state[12]);
+    blake2s_g(message, 0u, 6u, compression_state[2], compression_state[7], compression_state[8], compression_state[13]);
+    blake2s_g(message, 0u, 7u, compression_state[3], compression_state[4], compression_state[9], compression_state[14]);
+    for (uint round = 1u; round < 10u; ++round) {
+        blake2s_g(message, round, 0u, compression_state[0], compression_state[4], compression_state[8], compression_state[12]);
+        blake2s_g(message, round, 1u, compression_state[1], compression_state[5], compression_state[9], compression_state[13]);
+        blake2s_g(message, round, 2u, compression_state[2], compression_state[6], compression_state[10], compression_state[14]);
+        blake2s_g(message, round, 3u, compression_state[3], compression_state[7], compression_state[11], compression_state[15]);
+        blake2s_g(message, round, 4u, compression_state[0], compression_state[5], compression_state[10], compression_state[15]);
+        blake2s_g(message, round, 5u, compression_state[1], compression_state[6], compression_state[11], compression_state[12]);
+        blake2s_g(message, round, 6u, compression_state[2], compression_state[7], compression_state[8], compression_state[13]);
+        blake2s_g(message, round, 7u, compression_state[3], compression_state[4], compression_state[9], compression_state[14]);
+    }
+    blake2s_init_hash(state);
+    for (uint word = 0u; word < 8u; ++word)
+        state[word] ^= compression_state[word] ^ compression_state[word + 8u];
+
+    uint zero_bits = 0u;
+    for (uint word = 0u; word < 8u; ++word) {
+        if (state[word] == 0u) {
+            zero_bits += 32u;
+            continue;
+        }
+        zero_bits += ctz(state[word]);
+        break;
+    }
+    if (zero_bits >= pow_bits)
+        atomic_fetch_min_explicit(&first_match, local_nonce, memory_order_relaxed);
+}
+
 kernel void stwo_zig_qm31_to_coordinates(
     device const Qm31Value *source [[buffer(0)]],
     device uint *coordinates [[buffer(1)]],

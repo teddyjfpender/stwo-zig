@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 12;
+pub const core_shader_abi: u32 = 14;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -51,6 +51,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_transcript_draw_secure_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .owner = .transcript },
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },
+    .{ .name = "stwo_zig_blake2s_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_compact_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents", .owner = .commitments },

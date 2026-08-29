@@ -93,6 +93,19 @@ pub const MetalCommitBackend = struct {
         defer lease.deinit();
     }
 
+    /// Searches the exact BLAKE2s nonce space on the authenticated Metal
+    /// runtime. The generic PCS layer revalidates the returned nonce against
+    /// its transcript before publication.
+    pub fn grindBlake2sProofOfWork(prefix: [32]u8, pow_bits: u32) !u64 {
+        var prefix_words: [8]u32 = undefined;
+        for (&prefix_words, 0..) |*word, index| {
+            word.* = std.mem.readInt(u32, prefix[index * 4 ..][0..4], .little);
+        }
+        var lease = try shared_runtime.acquire();
+        defer lease.deinit();
+        return (try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits)).nonce;
+    }
+
     pub fn initializeRuntime(
         allocator: std.mem.Allocator,
         policy: RuntimeInitializationPolicy,
@@ -600,6 +613,29 @@ pub const MetalCommitBackend = struct {
     pub const foldLine = host_primitives.foldLine;
     pub const foldLineN = host_primitives.foldLineN;
 };
+
+test "metal proof of work returns the protocol lowest nonce" {
+    const core = @import("stwo_core");
+    const Channel = core.channel.blake2s.Blake2sChannel;
+    const Hasher = core.crypto.blake2s_backend.Blake2sHasher;
+
+    try MetalCommitBackend.initializeRuntime(std.testing.allocator, .source_jit);
+    defer MetalCommitBackend.shutdown() catch unreachable;
+
+    var channel = Channel{};
+    channel.mixU32s(&.{ 0x1234_5678, 0x9abc_def0 });
+    const pow_bits: u32 = 12;
+    var prefix_input: [52]u8 = [_]u8{0} ** 52;
+    std.mem.writeInt(u32, prefix_input[0..4], Channel.POW_PREFIX, .little);
+    @memcpy(prefix_input[16..48], channel.digestBytes()[0..]);
+    std.mem.writeInt(u32, prefix_input[48..52], pow_bits, .little);
+    const prefix = Hasher.hashFixedSingleBlock(prefix_input.len, &prefix_input);
+
+    const expected = channel.grind(pow_bits);
+    const actual = try MetalCommitBackend.grindBlake2sProofOfWork(prefix, pow_bits);
+    try std.testing.expectEqual(expected, actual);
+    try std.testing.expect(channel.verifyPowNonce(pow_bits, actual));
+}
 
 test "Metal commit backend exposes telemetry without constructing a runtime" {
     _ = MetalCommitBackend.TelemetrySnapshot;

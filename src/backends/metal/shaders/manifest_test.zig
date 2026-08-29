@@ -48,7 +48,7 @@ const countKernelDeclarations = manifest.testing.countKernelDeclarations;
 const kernelDeclaration = manifest.testing.kernelDeclaration;
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 135), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 136), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -98,8 +98,8 @@ test "metal shader manifest exactly covers source and runtime exports" {
     }
 }
 
-test "commitment shader bindings match core ABI version 12" {
-    try std.testing.expectEqual(@as(u32, 12), core_shader_abi);
+test "commitment shader bindings match core ABI version 14" {
+    try std.testing.expectEqual(@as(u32, 14), core_shader_abi);
     const bindings = [_]struct { kernel: []const u8, argument: []const u8 }{
         .{ .kernel = "stwo_zig_blake2s_leaves", .argument = "prefix_bytes [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents", .argument = "prefix_bytes [[buffer(4)]]" },

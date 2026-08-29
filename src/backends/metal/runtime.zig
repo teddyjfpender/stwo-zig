@@ -8,7 +8,7 @@ const command_epoch = @import("command_epoch.zig");
 const shader_manifest = @import("shaders/manifest.zig");
 
 comptime {
-    if (shader_manifest.core_shader_abi != 12) @compileError("Metal core shader ABI drift");
+    if (shader_manifest.core_shader_abi != 14) @compileError("Metal core shader ABI drift");
 }
 
 pub const CommandEpoch = command_epoch.CommandEpoch;
@@ -39,6 +39,7 @@ pub const MetalError = error{
     WitnessFeedFailed,
     TraceGenerationFailed,
     CommandEpochFailed,
+    ProofOfWorkFailed,
 };
 
 const resource_plans = @import("runtime/resource_plans.zig").ResourcePlans(MetalError);
@@ -137,6 +138,7 @@ const opening_ops = @import("runtime/opening_operations.zig");
 const resident_ops = @import("runtime/resident_operations.zig");
 const polynomial_ops = @import("runtime/polynomial_operations.zig");
 const combined_commit_ops = @import("runtime/combined_commit_operations.zig");
+const proof_of_work_ops = @import("runtime/proof_of_work.zig");
 
 pub const Runtime = struct {
     handle: *anyopaque,
@@ -278,6 +280,7 @@ pub const Runtime = struct {
     pub const evaluateRecurrenceComposition = polynomial_ops.evaluateRecurrenceComposition;
     pub const transformCircleLdeAndCommit = combined_commit_ops.transformCircleLdeAndCommit;
     pub const transformCircleLdeAndCommitPrepared = combined_commit_ops.transformCircleLdeAndCommitPrepared;
+    pub const grindBlake2sProofOfWork = proof_of_work_ops.grindBlake2sProofOfWork;
 };
 
 /// Deferred compatibility hooks that deliberately bypass production admission.

@@ -46,6 +46,59 @@ pub fn stateToDigest(comptime Hash: type, h: [8]u32) Hash {
     return out;
 }
 
+/// Request-local authority for 40-byte messages whose first 32 bytes are
+/// fixed and whose final eight bytes are a changing little-endian nonce.
+/// Seven of BLAKE2s round zero's eight G functions are prefix-only.
+pub const Fixed40NoncePrefix = struct {
+    words: [8]u32,
+    round_zero: [16]u32,
+};
+
+fn gScalar(
+    state: *[16]u32,
+    a: usize,
+    b: usize,
+    c: usize,
+    d: usize,
+    x: u32,
+    y: u32,
+) void {
+    state[a] +%= state[b] +% x;
+    state[d] = std.math.rotr(u32, state[d] ^ state[a], 16);
+    state[c] +%= state[d];
+    state[b] = std.math.rotr(u32, state[b] ^ state[c], 12);
+    state[a] +%= state[b] +% y;
+    state[d] = std.math.rotr(u32, state[d] ^ state[a], 8);
+    state[c] +%= state[d];
+    state[b] = std.math.rotr(u32, state[b] ^ state[c], 7);
+}
+
+pub fn prepareFixed40NoncePrefix(
+    prefix: *const [32]u8,
+    initial_state: [8]u32,
+    comptime initial_vector: [8]u32,
+) Fixed40NoncePrefix {
+    var words: [8]u32 = undefined;
+    inline for (0..8) |word| {
+        const start = word * @sizeOf(u32);
+        words[word] = std.mem.readInt(u32, prefix[start..][0..4], .little);
+    }
+
+    var state: [16]u32 = undefined;
+    @memcpy(state[0..8], initial_state[0..]);
+    @memcpy(state[8..16], initial_vector[0..]);
+    state[12] ^= 40;
+    state[14] ^= std.math.maxInt(u32);
+    gScalar(&state, 0, 4, 8, 12, words[0], words[1]);
+    gScalar(&state, 1, 5, 9, 13, words[2], words[3]);
+    gScalar(&state, 2, 6, 10, 14, words[4], words[5]);
+    gScalar(&state, 3, 7, 11, 15, words[6], words[7]);
+    gScalar(&state, 1, 6, 11, 12, 0, 0);
+    gScalar(&state, 2, 7, 8, 13, 0, 0);
+    gScalar(&state, 3, 4, 9, 14, 0, 0);
+    return .{ .words = words, .round_zero = state };
+}
+
 fn hashScalarBatch(
     comptime lanes: usize,
     comptime Hasher: type,
@@ -226,6 +279,77 @@ fn rotr8(x: V8, comptime bits: u5) V8 {
     return @bitCast([2]V4{ rotr4(halves[0], bits), rotr4(halves[1], bits) });
 }
 
+inline fn gOne8(
+    v: *[16]V8,
+    comptime a: usize,
+    comptime b: usize,
+    comptime c: usize,
+    comptime d: usize,
+    x: V8,
+    y: V8,
+) void {
+    v[a] = v[a] +% v[b] +% x;
+    v[d] = rotr8(v[d] ^ v[a], 16);
+    v[c] +%= v[d];
+    v[b] = rotr8(v[b] ^ v[c], 12);
+    v[a] = v[a] +% v[b] +% y;
+    v[d] = rotr8(v[d] ^ v[a], 8);
+    v[c] +%= v[d];
+    v[b] = rotr8(v[b] ^ v[c], 7);
+}
+
+inline fn round8(v: *[16]V8, m: *const [16]V8, comptime s: [16]u8) void {
+    parallel4.g4Interleaved(
+        V8,
+        rotr8,
+        v,
+        .{ 0, 1, 2, 3 },
+        .{ 4, 5, 6, 7 },
+        .{ 8, 9, 10, 11 },
+        .{ 12, 13, 14, 15 },
+        .{ m[s[0]], m[s[2]], m[s[4]], m[s[6]] },
+        .{ m[s[1]], m[s[3]], m[s[5]], m[s[7]] },
+    );
+    parallel4.g4Interleaved(
+        V8,
+        rotr8,
+        v,
+        .{ 0, 1, 2, 3 },
+        .{ 5, 6, 7, 4 },
+        .{ 10, 11, 8, 9 },
+        .{ 15, 12, 13, 14 },
+        .{ m[s[8]], m[s[10]], m[s[12]], m[s[14]] },
+        .{ m[s[9]], m[s[11]], m[s[13]], m[s[15]] },
+    );
+}
+
+/// Returns only digest word zero for eight fixed-prefix nonce messages. PoW
+/// difficulties up to 32 bits depend exclusively on this word.
+pub fn hashFixed40NonceFirstWords8(
+    prepared: *const Fixed40NoncePrefix,
+    nonces: *const [8]u64,
+    initial_state: [8]u32,
+    comptime message_schedule: [10][16]u8,
+) [8]u32 {
+    var messages: [16]V8 = undefined;
+    inline for (0..8) |word| messages[word] = @splat(prepared.words[word]);
+    var low: [8]u32 = undefined;
+    var high: [8]u32 = undefined;
+    inline for (0..8) |lane| {
+        low[lane] = @truncate(nonces[lane]);
+        high[lane] = @truncate(nonces[lane] >> 32);
+    }
+    messages[8] = @bitCast(low);
+    messages[9] = @bitCast(high);
+    inline for (10..16) |word| messages[word] = @splat(0);
+
+    var state: [16]V8 = undefined;
+    inline for (0..16) |word| state[word] = @splat(prepared.round_zero[word]);
+    gOne8(&state, 0, 5, 10, 15, messages[8], messages[9]);
+    inline for (message_schedule[1..]) |s| round8(&state, &messages, s);
+    return @bitCast(@as(V8, @splat(initial_state[0])) ^ state[0] ^ state[8]);
+}
+
 fn compress8(
     h: *[8]V8,
     m: *const [16]V8,
@@ -244,30 +368,7 @@ fn compress8(
     v[13] ^= @as(V8, @splat(t1));
     v[14] ^= @as(V8, @splat(f0));
 
-    inline for (message_schedule) |s| {
-        parallel4.g4Interleaved(
-            V8,
-            rotr8,
-            &v,
-            .{ 0, 1, 2, 3 },
-            .{ 4, 5, 6, 7 },
-            .{ 8, 9, 10, 11 },
-            .{ 12, 13, 14, 15 },
-            .{ m[s[0]], m[s[2]], m[s[4]], m[s[6]] },
-            .{ m[s[1]], m[s[3]], m[s[5]], m[s[7]] },
-        );
-        parallel4.g4Interleaved(
-            V8,
-            rotr8,
-            &v,
-            .{ 0, 1, 2, 3 },
-            .{ 5, 6, 7, 4 },
-            .{ 10, 11, 8, 9 },
-            .{ 15, 12, 13, 14 },
-            .{ m[s[8]], m[s[10]], m[s[12]], m[s[14]] },
-            .{ m[s[9]], m[s[11]], m[s[13]], m[s[15]] },
-        );
-    }
+    inline for (message_schedule) |s| round8(&v, m, s);
 
     for (0..8) |i| h[i] ^= v[i] ^ v[i + 8];
 }

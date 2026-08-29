@@ -170,6 +170,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
                                                             error_message, error_message_len);
         runtime.leaves = make_pipeline(device, library, @"stwo_zig_blake2s_leaves",
                                        error_message, error_message_len);
+        runtime.proofOfWork = make_pipeline(device, library, @"stwo_zig_blake2s_pow_search",
+                                           error_message, error_message_len);
         runtime.parents = make_pipeline(device, library, @"stwo_zig_blake2s_parents",
                                         error_message, error_message_len);
         runtime.quotients = make_pipeline(device, library, @"stwo_zig_quotient_rows",
@@ -485,6 +487,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.decommitNormalizeQueriesResident == nil || runtime.decommitPrepareFriQueriesResident == nil ||
             runtime.decommitGatherFriValuesResident == nil || runtime.decommitPrepareTraceQueriesResident == nil ||
             runtime.decommitGatherTraceValuesResident == nil || runtime.qm31ToCoordinates == nil ||
+            runtime.proofOfWork == nil ||
             runtime.decommitAssembleFriResident == nil ||
             runtime.decommitSparseParentResident == nil || runtime.decommitAssembleTraceResident == nil ||
             runtime.decommitSparseLeavesResident == nil ||
@@ -591,6 +594,7 @@ static void encode_fri_inverse_domain(
 
 // One translation unit keeps plan types and encoder helpers private to the stable C ABI.
 #import "runtime/runtime_queries.m"
+#import "runtime/proof_of_work.m"
 #import "runtime/fri_fold_commit.m"
 #import "runtime/fri_plans.m"
 #import "runtime/transcript_decommitment.m"

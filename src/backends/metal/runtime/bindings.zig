@@ -39,6 +39,17 @@ pub extern fn stwo_zig_metal_runtime_identity(
     output: ?[*]u8,
     output_len: usize,
 ) usize;
+pub extern fn stwo_zig_metal_blake2s_pow_search(
+    runtime: *anyopaque,
+    prefix_words: *const [8]u32,
+    round_zero_columns: *const [16]u32,
+    pow_bits: u32,
+    nonce: *u64,
+    gpu_milliseconds: *f64,
+    dispatch_count: *u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_pipeline_cache_stats(
     runtime: *anyopaque,
     stats: *PipelineCacheStats,

@@ -483,7 +483,11 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = pow_search.grind(channel, scheme.config.pow_bits);
+                const nonce = try pow_search.grindForBackend(
+                    B,
+                    channel,
+                    scheme.config.pow_bits,
+                );
                 channel.mixU64(nonce);
                 break :blk nonce;
             };
