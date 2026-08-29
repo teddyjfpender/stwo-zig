@@ -3,8 +3,11 @@
 - Date: 2026-08-29
 - Starting commit: `d3e88a653d03fc7e708cf345a33481d26b8410c6`
 - Host: Apple M5 Max, arm64 macOS, Zig 0.15.2
-- Primary boundary: complete secure ECDSA/32 CSP request, including execution,
-  witness generation, proving, and in-process verification
+- Primary boundary: the upstream EthProofs CSP `proof_duration`, which times
+  execution, witness generation, and cryptographic proving while excluding
+  preparation and verification
+- Regression guardrail: the complete secure ECDSA/32 request, including
+  in-process verification and request overhead
 - Stretch target: less than 1.000 second without benchmark-specific behavior or
   changes to proof/security/statement/transcript semantics
 
@@ -324,3 +327,77 @@ result rejected it: 2.30853 seconds retained versus 2.32788 seconds candidate
 proof, statement, and transcript remained exact. The scheduler changes were
 reverted; the benchmark remains because it correctly distinguishes isolated
 transform work from system-level value.
+
+### Rejected: activate the planned Tree-1/Tree-2 authority in the product
+
+The existing planned main-trace path writes commitment storage directly and
+retains opcode, clock, and counter authority for Tree 2. Focused ReleaseFast
+main-trace and full integration gates passed after routing the ordinary product
+through that explicit execution API, so the experiment reached a real secure
+Metal proof rather than stopping at a unit surrogate.
+
+The official CSP boundary was corrected before scoring this experiment. The
+upstream harness times the full `prove(prepared)` call, which maps here to
+execution + witness generation + cryptographic proving; verification is a
+separate metric. The retained reverse-balanced baseline is therefore
+2.149402 seconds on this host, not the roughly 1.47-second cryptographic
+subphase. Its six-sample complete-request guardrail is 2.308526 seconds.
+
+A fresh reverse-balanced B/A/A/B comparison decisively rejected activating the
+planned path:
+
+| path | CSP `proof_duration` | complete request | peak memory |
+|---|---:|---:|---:|
+| retained legacy | 2.119948 s | 2.285485 s | 8.22 GB mean |
+| planned Tree-1/Tree-2 | 2.372238 s | 2.529968 s | 8.41 GB mean |
+
+The planned route regressed the official score by 11.9% and the complete
+request by 10.7%. It reported no separate witness interval because the work is
+absorbed into the planned proving path, but total proof work grew by about
+252 ms rather than disappearing. Statement
+`1449ccca36b95b3ea979c7f567b14720c229f51310836ed093deda2f5d719268`
+and transcript
+`79ff8e7d790b605f392176a22fbf3d09d3d82f461b8b530f5b9bc56b59bd481f`
+remained exact. The product-routing experiment was reverted completely.
+
+This falsifies direct activation, not reuse-aware materialization itself. A
+future attempt must preserve the legacy scheduler's low overhead and transfer
+only a narrowly owned prepared shard or row authority across the Tree-1/Tree-2
+boundary; rebuilding the entire proof-scoped execution regime costs more than
+the duplicate copy/reconstruction it removes.
+
+Activating only the planned Tree-2 executor was also rejected. Its focused
+production-shaped synthetic benchmark was healthy—N=4 was 3.98x faster than
+serial and N=1 was within 4.6%—but its allocation, preparation, graph, and
+publication overhead dominated inside the real proof. A second B/A/A/B run
+measured 2.317521 seconds CSP duration for planned Tree 2 versus 2.121053
+seconds retained (+9.3%); complete requests were 2.473382 versus 2.280381
+seconds (+8.5%). Witness generation itself stayed effectively flat near
+346 ms, while the proving interval grew by about 198 ms. The one-source change
+was reverted. Both results show that a reusable authority must be a cheap data
+handoff inside the legacy schedule, not another general task-graph epoch.
+
+### Retained: Mersenne-field inverse addition chain
+
+Whole-process sampling placed `M31.powPMinus2` among the hottest arithmetic
+symbols across interaction generation, composition, and FRI. The original
+fixed exponentiation for `p-2 = 2^31-3` used the ordinary bit schedule: 30
+squarings plus 29 general field multiplies. The retained chain constructs
+`2^k-1` blocks at k=2/4/8/16/24/28/29, then performs the final two squarings
+and multiply. It preserves the 30 mathematically required squarings while
+reducing general multiplies to eight.
+
+A same-binary ReleaseFast microbenchmark over 262,144 independently generated
+nonzero elements measured 17,570,250 ns for the old chain and 9,947,292 ns for
+the new chain, a 43.4% reduction. The complete randomized field suite remained
+green.
+
+The end-to-end effect is smaller because inversion is only one CPU slice. An
+initial six-sample-per-side B/A/A/B ECDSA screen measured 2.108515 seconds CSP
+duration candidate versus 2.121102 seconds baseline (-0.59%), and 2.267150
+versus 2.281494 seconds complete request (-0.63%). A higher-sample confirmation
+under a strong monotonic thermal drift measured 2.154548 versus 2.157597
+seconds (-0.14%) and 2.311612 versus 2.319881 seconds (-0.36%). Keccak/128 was
+neutral within 0.1% (0.522405 versus 0.522044 seconds CSP duration), establishing
+that the chain does not specialize ECDSA geometry. The ECDSA proof freshly
+verified with the exact statement and transcript identities above.
