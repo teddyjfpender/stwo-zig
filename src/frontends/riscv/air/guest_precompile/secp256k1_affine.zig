@@ -613,11 +613,32 @@ fn buildSignedTable(
     return result;
 }
 
-pub fn fixedSignedTable(kind: TableKind) ?SignedTable {
+const fixed_generator_signed_table: SignedTable = blk: {
+    @setEvalBranchQuota(2_000_000);
+    break :blk computeFixedSignedTable(.generator);
+};
+
+const fixed_generator_endomorphism_signed_table: SignedTable = blk: {
+    @setEvalBranchQuota(2_000_000);
+    break :blk computeFixedSignedTable(.generator_endomorphism);
+};
+
+/// Returns verifier-known fixed tables by reference. Constructing these tables
+/// performs affine inversions, so they are folded once at compile time instead
+/// of being rebuilt for every quotient-domain evaluation row.
+pub fn fixedSignedTable(kind: TableKind) ?*const SignedTable {
+    return switch (kind) {
+        .generator => &fixed_generator_signed_table,
+        .generator_endomorphism => &fixed_generator_endomorphism_signed_table,
+        else => null,
+    };
+}
+
+fn computeFixedSignedTable(comptime kind: TableKind) SignedTable {
     const positive = switch (kind) {
         .generator => fixedGeneratorOddTable(),
         .generator_endomorphism => fixedGeneratorEndomorphismOddTable(),
-        else => return null,
+        else => @compileError("fixed secp256k1 tables exist only for generator kinds"),
     };
     var result: SignedTable = undefined;
     result[0] = .{};

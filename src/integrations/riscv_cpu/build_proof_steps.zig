@@ -132,6 +132,10 @@ pub fn add(ctx: anytype) void {
         cpu_backend,
         frontend,
     );
+    keccakf_proof_root.addImport(
+        "keccakf_proof_harness",
+        ctx.keccakf_proof_harness,
+    );
     const keccakf_proof_compile = b.addTest(.{
         .root_module = keccakf_proof_root,
         .filters = &.{"Keccak-f typed shard and lookup tables prove and independently verify"},

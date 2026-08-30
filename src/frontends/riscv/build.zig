@@ -94,6 +94,14 @@ pub fn build(b: *std.Build) void {
     secp256k1_proof_harness.addImport("stwo_core", core);
     secp256k1_proof_harness.addImport("stwo_prover_engine", prover);
     secp256k1_proof_harness.addImport("stwo_riscv_frontend", frontend);
+    const keccakf_proof_harness = b.addModule("keccakf_proof_harness", .{
+        .root_source_file = b.path("testing/keccakf_proof_harness.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    keccakf_proof_harness.addImport("stwo_core", core);
+    keccakf_proof_harness.addImport("stwo_prover_engine", prover);
+    keccakf_proof_harness.addImport("stwo_riscv_frontend", frontend);
 
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);

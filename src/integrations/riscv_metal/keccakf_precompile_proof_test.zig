@@ -1,17 +1,15 @@
-//! Metal instantiation of the backend-generic compact secp256k1 proof harness.
+//! Metal instantiation of the backend-generic typed Keccak-f proof harness.
 
 const std = @import("std");
 const MetalBackend = @import("stwo_metal_backend");
 const frontend = @import("stwo_riscv_frontend");
-const proof_harness = @import("secp256k1_proof_harness");
+const proof_harness = @import("keccakf_proof_harness");
 
-// The commitment backend changes; the production RISC-V transcript and proof
-// type do not. CPU and Metal therefore exercise the same protocol statement.
 const Engine = frontend.prover_mod.ProverEngineForBackend(
     MetalBackend.MetalCommitBackend,
 );
 
-test "secp256k1 typed ECDSA bundle proves on Metal and independently verifies" {
+test "Keccak-f typed shard proves on Metal and independently verifies" {
     const allocator = std.heap.smp_allocator;
     const bundle_path = try std.process.getEnvVarOwned(
         allocator,
@@ -33,12 +31,12 @@ test "secp256k1 typed ECDSA bundle proves on Metal and independently verifies" {
     defer if (owns_runtime) Engine.Backend.shutdown() catch unreachable;
 
     const before = try Engine.telemetrySnapshot();
-    const timings = try proof_harness.Harness(Engine).run(allocator);
+    const timings = try proof_harness.run(Engine, allocator);
     const delta = (try Engine.telemetrySnapshot()).delta(before);
     try delta.requireMetalDispatch();
 
     std.debug.print(
-        "secp256k1 Metal total: prove={d:.3}ms fresh-verify={d:.3}ms total={d:.3}ms " ++
+        "Keccak-f Metal total: prove={d:.3}ms fresh-verify={d:.3}ms total={d:.3}ms " ++
             "dispatches={d} fallbacks={d}\n",
         .{
             milliseconds(timings.proveProductionNs()),

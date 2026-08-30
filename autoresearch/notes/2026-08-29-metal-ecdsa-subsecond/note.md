@@ -1178,7 +1178,7 @@ The focused Debug closure receipt is
 ReleaseFast proof/fresh-verifier receipt is
 `.git/typed-air-zig-gates/runs/1788104781874948000-94257.json`.
 
-### Retained: production commitment suite and Metal parity
+### Retained: production commitment suite, real allocator, and Metal parity
 
 The first closed proof deliberately used the recursion Poseidon commitment
 suite because it was the shortest route to a fresh-verifier soundness gate.
@@ -1186,30 +1186,111 @@ That is not the production RISC-V commitment protocol.  The proof harness is
 now backend-generic and instantiates the ordinary Blake-based RISC-V prover
 engine unchanged on CPU and Metal.  Both backends prove the same ten-component
 trace, public ECDSA counterpart, interaction closure, transcript, and fresh
-verifier statement.
+verifier statement.  The Keccak proof harness was extracted through the same
+backend-generic boundary so that CPU and Metal use identical proof logic.
 
-| ReleaseFast production-suite phase | CPU | Metal |
+#### Benchmark-harness correction
+
+The first production-suite proof wrappers used `std.testing.allocator`.
+ReleaseFast does not make that allocator representative of the product: its
+DebugAllocator retains stack-trace bookkeeping for each allocation.  Xcode
+Time Profiler attributed 131 of 153 fresh-verifier samples to that bookkeeping,
+mostly `msync`, allocation-stack capture, and free-time unwinding.  The CPU and
+Metal products use `std.heap.smp_allocator`; the proof wrappers now do too.
+
+Consequently the previously recorded 151--193 ms verification values were a
+test-harness artifact and are superseded.  No cryptographic check was removed:
+the same proof is still decoded, its statement and transcript are replayed in
+a fresh verifier scheme, and all negative/identity guards remain.  Correct
+fresh verification is 2.8--5.0 ms across the retained ECDSA and Keccak gates.
+
+The production-allocator baseline before the two prover optimizations was:
+
+| ReleaseFast ECDSA phase | CPU baseline | Metal baseline |
 |---|---:|---:|
-| witness and bundle materialization | 23.028 ms | 14.687 ms |
-| preprocessed commitment | 1.928 ms | 8.866 ms |
-| main commitment | 49.360 ms | 9.497 ms |
-| interaction generation | 21.171 ms | 22.238 ms |
-| interaction commitment | 32.493 ms | 8.120 ms |
-| quotient/FRI proof after commitments | 323.617 ms | 303.442 ms |
-| **proof production total** | **451.597 ms** | **366.850 ms** |
-| fresh verification | 151.885 ms | 168.351 ms |
-| prove plus fresh verify | 603.482 ms | 535.201 ms |
+| witness and bundle materialization | 23.866 ms | 15.468 ms |
+| preprocessed commitment | 0.974 ms | 7.592 ms |
+| main commitment | 17.317 ms | 8.590 ms |
+| interaction generation | 19.583 ms | 17.689 ms |
+| interaction commitment | 18.468 ms | 6.820 ms |
+| quotient/FRI proof after commitments | 166.681 ms | 173.652 ms |
+| **proof production total** | **246.889 ms** | **229.811 ms** |
+| fresh verification | 3.205 ms | 3.161 ms |
+| **prove plus fresh verify** | **250.094 ms** | **232.972 ms** |
 
-The production-suite result is 77.1% below the retained 1.972313-second
-software CSP proof duration on CPU and 81.4% below it on Metal.  Metal records
-32 authenticated device dispatches and three CPU fallbacks.  The retained CPU
-receipt is `.git/typed-air-zig-gates/runs/1788106051566937000-96379.json`; the
-real-device Metal AOT receipt is
-`.git/typed-air-zig-gates/runs/1788106085386971000-96448.json`.
+The corresponding receipts are
+`.git/typed-air-zig-gates/runs/1788107582290606000-99010.json` and
+`.git/typed-air-zig-gates/runs/1788107615945119000-99110.json`.
+
+The same correction gives an honest small-Keccak routing result:
+
+| ReleaseFast one-call Keccak proof | CPU | Metal |
+|---|---:|---:|
+| proof production | 54.409 ms | 79.486 ms |
+| fresh verification | 4.677 ms | 5.008 ms |
+| **total** | **59.086 ms** | **84.494 ms** |
+| authenticated Metal dispatches | -- | 31 |
+| CPU fallbacks | -- | 0 |
+
+Receipts:
+`.git/typed-air-zig-gates/runs/1788107557713286000-98950.json` and
+`.git/typed-air-zig-gates/runs/1788108023050479000-99771.json`.  One tiny
+Keccak call should remain on CPU because fixed Metal dispatch costs dominate;
+larger Ethereum batches should be measured before selecting the crossover.
+
+#### Retained prover optimizations
+
+`buildCombinedContributionPlan` previously zero-filled every coordinate and
+then performed scalar coefficient accumulation.  It now scales the first
+contribution directly into uninitialized storage and uses the audited four-lane
+M31 SIMD kernels for subsequent contributions, with scalar tail handling.  The
+real ECDSA proof and Keccak guard stayed green, and a focused length-0-through-9
+test covers every vector boundary.  This moved CPU proof production from
+246.889 ms to 221.939 ms (10.1%); receipt
+`.git/typed-air-zig-gates/runs/1788108617715201000-975.json`.  Focused quotient
+receipt: `.git/typed-air-zig-gates/runs/1788108776828524000-1420.json`.
+
+The remaining dominant secp-specific profile defect was repeated construction
+of the verifier-known generator and generator-endomorphism signed tables.  AIR
+domain evaluation rebuilt both tables for every row, including affine
+coordinate inversions.  They are now immutable compile-time tables returned by
+reference.  Witness generation and point-level verification consume the same
+bytes; only redundant reconstruction is removed.  The complete secp frontend
+gate is green at
+`.git/typed-air-zig-gates/runs/1788108848155432000-1597.json`.
+
+Final retained results:
+
+| ReleaseFast ECDSA phase | CPU final | Metal final |
+|---|---:|---:|
+| witness and bundle materialization | 16.182 ms | 11.526 ms |
+| preprocessed commitment | 0.888 ms | 8.321 ms |
+| main commitment | 15.795 ms | 8.837 ms |
+| interaction generation | 19.522 ms | 18.506 ms |
+| interaction commitment | 19.247 ms | 7.870 ms |
+| quotient/FRI proof after commitments | 95.277 ms | 121.873 ms |
+| **proof production total** | **166.911 ms** | **176.933 ms** |
+| fresh verification | 2.807 ms | 2.845 ms |
+| **prove plus fresh verify** | **169.718 ms** | **179.778 ms** |
+
+CPU is 32.1% faster end to end than the corrected 250.094 ms baseline; Metal
+is 22.8% faster than its corrected 232.972 ms baseline.  Metal records 32
+authenticated device dispatches and three CPU fallbacks.  Final receipts:
+`.git/typed-air-zig-gates/runs/1788108876182106000-1713.json` and
+`.git/typed-air-zig-gates/runs/1788108921461353000-1803.json`.
+
+One rejected experiment lowered the lazy quotient tile threshold from log 13
+to log 12.  It increased CPU quotient/FRI time from 166.681 ms to 259.654 ms;
+the change was fully reverted.  The post-retention Time Profiler sample is now
+distributed across genuine prepared AIR evaluation (69/153 inclusive
+samples), commitments/FFT/Merkle work, and interaction columns.  There is no
+remaining isolated double-digit-millisecond reconstruction or allocator bug.
+The next plausible tranche is row-vectorized prepared AIR evaluation and
+multi-signature batching, which is broad enough to treat as separate research.
 
 These timings are intentionally scoped to the typed ECDSA provider proof with
 the public relation counterpart supplied directly.  They are not yet the
 end-to-end CSP guest/caller benchmark: caller instruction retirement, memory
 custody, failure semantics, and the final product route still have to be
-composed before replacing the retained CSP row.  The sub-500-millisecond proof
-target is therefore a demonstrated provider floor, not an end-to-end claim.
+composed before replacing the retained CSP row.  The 166.911 ms proof is a
+demonstrated provider floor, not an apples-to-apples Zisk block-proof claim.

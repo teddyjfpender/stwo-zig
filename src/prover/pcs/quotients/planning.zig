@@ -339,6 +339,7 @@ pub fn buildCombinedContributionPlan(
         const column_contributions = contributions[contribution_range.start .. contribution_range.start + contribution_range.len];
         for (column_contributions) |contribution| {
             var view_index: ?usize = null;
+            var created = false;
             for (views.items, 0..) |view, i| {
                 if (view.batch_index == contribution.batch_index and
                     view.coordinates[0].len == column.values.len)
@@ -354,7 +355,6 @@ pub fn buildCombinedContributionPlan(
                 errdefer for (coordinates[0..initialized]) |coordinate| allocator.free(coordinate);
                 inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
                     coordinates[coord] = try allocator.alloc(M31, column.values.len);
-                    @memset(coordinates[coord], M31.zero());
                     initialized += 1;
                 }
                 try views.append(allocator, .{
@@ -364,14 +364,23 @@ pub fn buildCombinedContributionPlan(
                     .is_direct = column.log_size == lifting_log_size,
                 });
                 view_index = views.items.len - 1;
+                created = true;
             }
 
             const coeffs = contribution.value_coeff.toM31Array();
             const view = &views.items[view_index.?];
-            for (column.values, 0..) |base, value_index| {
-                inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
-                    view.coordinates[coord][value_index] = view.coordinates[coord][value_index].add(
-                        base.mul(coeffs[coord]),
+            inline for (0..qm31.SECURE_EXTENSION_DEGREE) |coord| {
+                if (created) {
+                    scaleColumn(
+                        view.coordinates[coord],
+                        column.values,
+                        coeffs[coord],
+                    );
+                } else {
+                    addScaledColumn(
+                        view.coordinates[coord],
+                        column.values,
+                        coeffs[coord],
                     );
                 }
             }
@@ -379,6 +388,70 @@ pub fn buildCombinedContributionPlan(
     }
 
     return .{ .views = try views.toOwnedSlice(allocator) };
+}
+
+fn scaleColumn(destination: []M31, source: []const M31, coefficient: M31) void {
+    std.debug.assert(destination.len == source.len);
+    const coefficient_lanes: m31.Vec4u32 = @splat(coefficient.v);
+    var index: usize = 0;
+    while (index + m31.VEC_WIDTH <= source.len) : (index += m31.VEC_WIDTH) {
+        m31.storeVec4(
+            destination.ptr + index,
+            m31.mulVec4(m31.loadVec4(source.ptr + index), coefficient_lanes),
+        );
+    }
+    while (index < source.len) : (index += 1) {
+        destination[index] = source[index].mul(coefficient);
+    }
+}
+
+fn addScaledColumn(destination: []M31, source: []const M31, coefficient: M31) void {
+    std.debug.assert(destination.len == source.len);
+    const coefficient_lanes: m31.Vec4u32 = @splat(coefficient.v);
+    var index: usize = 0;
+    while (index + m31.VEC_WIDTH <= source.len) : (index += m31.VEC_WIDTH) {
+        const product = m31.mulVec4(
+            m31.loadVec4(source.ptr + index),
+            coefficient_lanes,
+        );
+        m31.storeVec4(
+            destination.ptr + index,
+            m31.addVec4(m31.loadVec4(destination.ptr + index), product),
+        );
+    }
+    while (index < source.len) : (index += 1) {
+        destination[index] = destination[index].add(source[index].mul(coefficient));
+    }
+}
+
+test "combined contribution vector kernels preserve scalar tails" {
+    const source = [_]M31{
+        M31.fromCanonical(1),
+        M31.fromCanonical(2),
+        M31.fromCanonical(3),
+        M31.fromCanonical(4),
+        M31.fromCanonical(5),
+        M31.fromCanonical(6),
+        M31.fromCanonical(7),
+        M31.fromCanonical(8),
+        M31.fromCanonical(9),
+    };
+    const coefficient = M31.fromCanonical(17);
+    const initial = M31.fromCanonical(23);
+
+    for (0..source.len + 1) |len| {
+        var scaled = [_]M31{M31.zero()} ** source.len;
+        scaleColumn(scaled[0..len], source[0..len], coefficient);
+        for (source[0..len], scaled[0..len]) |value, actual| {
+            try std.testing.expectEqual(value.mul(coefficient), actual);
+        }
+
+        var accumulated = [_]M31{initial} ** source.len;
+        addScaledColumn(accumulated[0..len], source[0..len], coefficient);
+        for (source[0..len], accumulated[0..len]) |value, actual| {
+            try std.testing.expectEqual(initial.add(value.mul(coefficient)), actual);
+        }
+    }
 }
 
 /// Builds a lightweight grouping plan without materializing coefficient-weighted
