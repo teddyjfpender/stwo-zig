@@ -731,3 +731,68 @@ Fresh verification reproduced the unchanged ECDSA and Keccak proof, statement,
 and transcript identities. Evidence roots are
 `/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-base-denominator-{bccb,cbbc}-v1`
 and their `table-base-denominator-keccak-*` counterparts.
+
+### Rejected: compact runtime-DAG replay for lookup counters
+
+The post-table profile still showed typed lookup reconstruction beneath the
+opcode-column writer. A reuse prototype evaluated the already-authenticated
+lookup polynomial DAG directly over committed M31 values and registered its
+table-domain roots, avoiding the second typed `List` construction. It produced
+byte-identical counters and passed source-scan and main-trace parity gates, but
+the exact BASE_ALU_REG registration benchmark rejected it before a product
+build: 200,000 canonical typed registrations took 20.446 ms versus 22.502 ms
+for runtime-DAG replay (+10.0%). Dynamic node dispatch costs more here than the
+compiler-specialized typed constructor. The entire production/test prototype
+and timing harness were removed; a worthwhile fusion must share the writer's
+already-decoded intermediates rather than replay either representation.
+
+### Rejected: reuse the global interaction trace as numerator scratch
+
+Opcode interaction generation allocates a chunk-local numerator array before
+batch inversion. A second reuse prototype removed that allocation and staged
+the numerators directly in their eventual slots in the global interaction
+trace, then overwrote each slot with the final numerator/denominator term.
+Although the focused ReleaseFast gate passed, complementary whole-proof orders
+rejected it: pooled ECDSA CSP rose from 2.056561 s to 2.062768 s (+0.30%),
+proving rose from 1.357935 s to 1.364516 s (+0.49%), and verified-request time
+rose from 2.212464 s to 2.217736 s (+0.24%). The saved allocation did not repay
+the poorer locality from writing the much larger global trace during the packed
+evaluation pass. The implementation was reverted; evidence is retained under
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/opcode-numerator-scratch-{bccb,cbbc}-v1`.
+
+### Rejected: zero-copy BaseScalar tuple views
+
+Source ingestion copied each at-most-four-limb `BaseScalar` tuple into M31
+before table indexing. A layout-certified slice view removed that copy and its
+focused ReleaseFast gate passed. A 4,000,000-call microbenchmark was only
+slightly favorable and noisy, so the candidate was taken through complementary
+whole-proof orders. Pooled ECDSA results rejected it: CSP rose from 2.059555 s
+to 2.062444 s (+0.14%), proving rose from 1.363103 s to 1.363802 s (+0.05%),
+and complete request rose from 2.212916 s to 2.217346 s (+0.20%). The compiler
+already scalarizes this tiny copy well enough that removing it does not move the
+proof. The change and its permanent test were removed. Evidence is retained at
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/base-scalar-view-{bccb,cbbc}-v1`.
+
+### Rejected: sparse table-entry registration plans
+
+The generated counter path scans the complete relation list even though only
+the six fixed-table domains contribute. A reviewed per-family index plan was
+cross-checked against all 17 shipped constructors, then used to gather only
+table entries and skip inactive tuples before indexing. The exact focused gate
+passed, but the paired 400,000-row registration microbenchmark rejected it
+before a product build: after warmup the sequential dense loop was about
+29.3 ms while indexed sparse gathers were about 31.8 ms (roughly 8–9% slower).
+The original list is tiny, contiguous, and branch-predictable; indirect gathers
+lose more locality than they save. The plan, benchmark authority, and tests were
+removed.
+
+### Saturation check: packed QM31 inversion width
+
+`batchInverseQM31Packed` remained a large leaf in the post-table sample, so its
+8-, 16-, and 32-element independent-chain schedules were compared directly on
+32,768-element inputs in alternating orders. Results were noisy under dynamic
+frequency scaling, but the median 32-wide run was about 1.20 ms versus roughly
+1.40 ms for both 8 and 16 lanes. The current dispatcher already selects width
+32 for these aligned interaction domains. No source change was retained; this
+hotspot needs a different multiplication/inversion algorithm, not another
+chain-width retune.
