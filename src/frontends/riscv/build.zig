@@ -388,6 +388,12 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-keccakf-precompile",
+        .description = "Run the Keccak-f semantic and paired-witness authority tests",
+        .root = "keccakf_precompile_test_root.zig",
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-interaction-trace-plan",
         .description = "Run the prepared Tree-2 planning and execution tests",
         .root = "interaction_trace_plan_execution_test_root.zig",
