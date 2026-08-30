@@ -445,6 +445,7 @@ test {
     // AIR: memory commitment.
     _ = @import("air/memory_commitment/boundary.zig");
     _ = @import("air/memory_commitment/hash_component_prepared_test.zig");
+    _ = @import("air/memory_commitment/hash_runtime_program.zig");
     _ = @import("air/memory_commitment/interaction.zig");
     _ = @import("air/memory_commitment/merkle_node.zig");
     _ = @import("air/memory_commitment/mod.zig");
