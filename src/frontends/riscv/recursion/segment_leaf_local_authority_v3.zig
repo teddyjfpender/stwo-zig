@@ -16,6 +16,7 @@ const stwo_core = @import("stwo_core");
 const access_clock = @import("../access_clock.zig");
 const memory_state = @import("../runner/memory_state.zig");
 const runner_result = @import("../runner/result.zig");
+const channel = @import("poseidon2_channel.zig");
 const span = @import("span_statement.zig");
 const segment_v2 = @import("segment_statement_v2.zig");
 
@@ -30,6 +31,23 @@ pub const MAX_SPARSE_BOUNDARY_ENTRIES: u32 =
 pub const CLOCK_FRAME: runner_result.SegmentClockFrame = .leaf_local;
 pub const HOT_VALIDATION_HEAP_ALLOCATIONS: usize = 0;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
+pub const METADATA_ID_DOMAIN: u32 = 0x4c33_4d33; // "L3M3"
+const BOUNDARY_IDENTITY_WORDS: usize = 8 + 2 + 1 + (32 * 2) + 8 + 2;
+const POSITION_IDENTITY_WORDS: usize = 2 + 2 + 4 + 4 + 2;
+const COMPLETION_IDENTITY_WORDS: usize = 8;
+pub const METADATA_IDENTITY_WORDS: usize =
+    4 +
+    span.SPAN_STATEMENT_CANONICAL_WORDS +
+    POSITION_IDENTITY_WORDS +
+    (2 * BOUNDARY_IDENTITY_WORDS) +
+    COMPLETION_IDENTITY_WORDS;
+
+comptime {
+    if (METADATA_IDENTITY_WORDS != 608)
+        @compileError("leaf-local V3 metadata identity layout drifted");
+    if (METADATA_ID_DOMAIN >= m31.Modulus)
+        @compileError("leaf-local V3 metadata identity domain is not canonical");
+}
 
 pub const Error = segment_v2.Error || error{
     ClockFrameMismatch,
@@ -133,6 +151,38 @@ pub const MetadataV3 = struct {
         } else if (self.completion != null) {
             return error.CompletionForbidden;
         }
+    }
+
+    /// Canonical Poseidon identity of the complete global projection,
+    /// including both sparse-boundary identities and all local clock custody.
+    pub fn identity(self: *const MetadataV3) Error!segment_v2.Digest {
+        try self.validate();
+        var words: [METADATA_IDENTITY_WORDS]stwo_core.fields.m31.M31 = undefined;
+        var at: usize = 0;
+        putScalar(&words, &at, self.format_version);
+        putScalar(&words, &at, self.schema_version);
+        putScalar(&words, &at, self.flags);
+        putScalar(&words, &at, @intFromEnum(self.clock_frame));
+        putM31s(&words, &at, &self.base_statement_words);
+        putU32(&words, &at, self.segment_index);
+        putU32(&words, &at, self.segment_count);
+        putU64(&words, &at, self.global_cycle_start);
+        putU64(&words, &at, self.global_cycle_end);
+        putU32(&words, &at, self.local_cycle_count);
+        putBoundary(&words, &at, self.entry);
+        putBoundary(&words, &at, self.exit);
+        if (self.completion) |completion| {
+            putScalar(&words, &at, 1);
+            putScalar(&words, &at, @intFromEnum(completion.kind));
+            putU32(&words, &at, completion.address);
+            putU32(&words, &at, completion.value);
+            putU32(&words, &at, completion.clock);
+        } else {
+            putScalar(&words, &at, 0);
+            for (0..7) |_| putScalar(&words, &at, 0);
+        }
+        std.debug.assert(at == words.len);
+        return channel.hashCanonicalWords(&words, METADATA_ID_DOMAIN);
     }
 };
 
@@ -509,4 +559,64 @@ fn validateCompletionMemoryLink(
         return;
     }
     return error.CompletionMismatch;
+}
+
+fn putBoundary(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    boundary: BoundaryV3,
+) void {
+    putDigest(words, at, boundary.snapshot_id);
+    putU32(words, at, boundary.snapshot_count);
+    putScalar(words, at, boundary.continuation_root);
+    for (boundary.register_clocks) |clock| putU32(words, at, clock);
+    putDigest(words, at, boundary.memory_clock_id);
+    putU32(words, at, boundary.memory_clock_count);
+}
+
+fn putDigest(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    digest: segment_v2.Digest,
+) void {
+    for (digest) |word| putScalar(words, at, word);
+}
+
+fn putM31s(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    values: []const stwo_core.fields.m31.M31,
+) void {
+    for (values) |value| {
+        words[at.*] = value;
+        at.* += 1;
+    }
+}
+
+fn putScalar(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    value: u32,
+) void {
+    std.debug.assert(value < m31.Modulus);
+    words[at.*] = stwo_core.fields.m31.M31.fromCanonical(value);
+    at.* += 1;
+}
+
+fn putU32(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    value: u32,
+) void {
+    putScalar(words, at, value & 0xffff);
+    putScalar(words, at, value >> 16);
+}
+
+fn putU64(
+    words: []stwo_core.fields.m31.M31,
+    at: *usize,
+    value: u64,
+) void {
+    inline for (0..4) |limb|
+        putScalar(words, at, @intCast((value >> (16 * limb)) & 0xffff));
 }

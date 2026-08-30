@@ -69,6 +69,10 @@ test "leaf-local V3: adjacent native segments bind global order and exact state"
         left_metadata.exit.continuation_root,
         right_metadata.entry.continuation_root,
     );
+    try std.testing.expect(!std.meta.eql(
+        try left_metadata.identity(),
+        try right_metadata.identity(),
+    ));
     try std.testing.expectError(
         error.ClockFrameMismatch,
         segment_v2.SourceV2.fromSegmentResult(
@@ -220,6 +224,15 @@ test "leaf-local V3: metadata admits global positions beyond V2 without widening
     };
     try metadata.validate();
     try std.testing.expect(metadata.global_cycle_start > segment_v2.MAX_GLOBAL_CYCLES);
+
+    const metadata_id = try metadata.identity();
+    var changed_boundary = metadata;
+    changed_boundary.exit.continuation_root = 1;
+    try changed_boundary.validate();
+    try std.testing.expect(!std.meta.eql(
+        metadata_id,
+        try changed_boundary.identity(),
+    ));
 
     var forged = metadata;
     forged.local_cycle_count = segment_v2.MAX_GLOBAL_CYCLES + 1;

@@ -607,6 +607,7 @@ test {
     _ = @import("recursion/recursion_air_composition_circuit_v3_test_continuation_1.zig");
     _ = @import("recursion/segment_leaf_authority_v2_test.zig");
     _ = @import("recursion/segment_leaf_local_authority_v3_test.zig");
+    _ = @import("recursion/segment_leaf_local_projection_v3_test.zig");
     _ = @import("recursion/segment_leaf_outer_authority_v2_test.zig");
     _ = @import("recursion/segment_outer_cohort_v2_test.zig");
     _ = @import("recursion/segment_outer_noncore_audits_v2_test_fixture.zig");

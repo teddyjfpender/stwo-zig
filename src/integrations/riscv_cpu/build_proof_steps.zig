@@ -201,6 +201,7 @@ pub fn add(ctx: anytype) void {
     segment_v2_native_root.addImport("interop_postcard", postcard);
     const segment_v2_native_test_names: []const []const u8 = &.{
         "native V2 proves and independently verifies real nonfinal and final segments",
+        "native V2 proves a rebased leaf-local V3 segment without widening the AIR",
     };
     const segment_v2_native_compile = b.addTest(.{
         .root_module = segment_v2_native_root,
