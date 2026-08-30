@@ -1177,3 +1177,39 @@ The focused Debug closure receipt is
 `.git/typed-air-zig-gates/runs/1788104767279320000-94212.json`; the retained
 ReleaseFast proof/fresh-verifier receipt is
 `.git/typed-air-zig-gates/runs/1788104781874948000-94257.json`.
+
+### Retained: production commitment suite and Metal parity
+
+The first closed proof deliberately used the recursion Poseidon commitment
+suite because it was the shortest route to a fresh-verifier soundness gate.
+That is not the production RISC-V commitment protocol.  The proof harness is
+now backend-generic and instantiates the ordinary Blake-based RISC-V prover
+engine unchanged on CPU and Metal.  Both backends prove the same ten-component
+trace, public ECDSA counterpart, interaction closure, transcript, and fresh
+verifier statement.
+
+| ReleaseFast production-suite phase | CPU | Metal |
+|---|---:|---:|
+| witness and bundle materialization | 23.028 ms | 14.687 ms |
+| preprocessed commitment | 1.928 ms | 8.866 ms |
+| main commitment | 49.360 ms | 9.497 ms |
+| interaction generation | 21.171 ms | 22.238 ms |
+| interaction commitment | 32.493 ms | 8.120 ms |
+| quotient/FRI proof after commitments | 323.617 ms | 303.442 ms |
+| **proof production total** | **451.597 ms** | **366.850 ms** |
+| fresh verification | 151.885 ms | 168.351 ms |
+| prove plus fresh verify | 603.482 ms | 535.201 ms |
+
+The production-suite result is 77.1% below the retained 1.972313-second
+software CSP proof duration on CPU and 81.4% below it on Metal.  Metal records
+32 authenticated device dispatches and three CPU fallbacks.  The retained CPU
+receipt is `.git/typed-air-zig-gates/runs/1788106051566937000-96379.json`; the
+real-device Metal AOT receipt is
+`.git/typed-air-zig-gates/runs/1788106085386971000-96448.json`.
+
+These timings are intentionally scoped to the typed ECDSA provider proof with
+the public relation counterpart supplied directly.  They are not yet the
+end-to-end CSP guest/caller benchmark: caller instruction retirement, memory
+custody, failure semantics, and the final product route still have to be
+composed before replacing the retained CSP row.  The sub-500-millisecond proof
+target is therefore a demonstrated provider floor, not an end-to-end claim.

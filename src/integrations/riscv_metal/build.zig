@@ -18,10 +18,13 @@ pub fn build(b: *std.Build) void {
         "stwo_metal_backend",
         dependency_options,
     ).module("stwo_metal_backend");
-    const frontend = b.dependency(
+    const frontend_dependency = b.dependency(
         "stwo_riscv_frontend",
         dependency_options,
-    ).module("stwo_riscv_frontend");
+    );
+    const frontend = frontend_dependency.module("stwo_riscv_frontend");
+    const secp256k1_proof_harness =
+        frontend_dependency.module("secp256k1_proof_harness");
     const integration = b.addModule("stwo_riscv_metal_integration", .{
         .root_source_file = b.path("mod.zig"),
         .target = target,
@@ -41,12 +44,17 @@ pub fn build(b: *std.Build) void {
         "test-authenticated-aot",
         "Run the guest Poseidon2 proof on a real device with authenticated AOT",
     );
+    const secp256k1_proof_step = b.step(
+        "test-secp256k1-precompile-proof",
+        "Prove compact typed secp256k1 ECDSA on Metal and verify independently",
+    );
     if (target.result.os.tag != .macos) {
         const unsupported = b.addFail(
             "stwo_riscv_metal_integration tests require macOS and the Apple Metal SDK",
         );
         test_step.dependOn(&unsupported.step);
         authenticated_aot_step.dependOn(&unsupported.step);
+        secp256k1_proof_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = integration });
@@ -58,15 +66,19 @@ pub fn build(b: *std.Build) void {
         "metal-core-aot-bundle",
         "Absolute authenticated core AOT bundle for real-device acceptance",
     ) orelse {
-        authenticated_aot_step.dependOn(&b.addFail(
+        const missing_bundle = b.addFail(
             "test-authenticated-aot requires -Dmetal-core-aot-bundle=<absolute-path>",
-        ).step);
+        );
+        authenticated_aot_step.dependOn(&missing_bundle.step);
+        secp256k1_proof_step.dependOn(&missing_bundle.step);
         return;
     };
     if (!std.fs.path.isAbsolute(configured_bundle)) {
-        authenticated_aot_step.dependOn(&b.addFail(
+        const invalid_bundle = b.addFail(
             "test-authenticated-aot requires an absolute AOT bundle path",
-        ).step);
+        );
+        authenticated_aot_step.dependOn(&invalid_bundle.step);
+        secp256k1_proof_step.dependOn(&invalid_bundle.step);
         return;
     }
     const real_tests = b.addTest(.{
@@ -84,6 +96,29 @@ pub fn build(b: *std.Build) void {
     run_real.setEnvironmentVariable("STWO_ZIG_WORKERS", "1");
     run_real.setEnvironmentVariable("STWO_ZIG_MERKLE_WORKERS", "1");
     authenticated_aot_step.dependOn(&run_real.step);
+
+    const secp256k1_root = b.createModule(.{
+        .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    secp256k1_root.addImport("stwo_core", core);
+    secp256k1_root.addImport("stwo_metal_backend", metal_backend);
+    secp256k1_root.addImport("stwo_prover_engine", prover);
+    secp256k1_root.addImport("stwo_riscv_frontend", frontend);
+    secp256k1_root.addImport("secp256k1_proof_harness", secp256k1_proof_harness);
+    const secp256k1_tests = b.addTest(.{
+        .root_module = secp256k1_root,
+        .filters = &.{"secp256k1 typed ECDSA bundle proves on Metal"},
+    });
+    linkMetalFrameworks(secp256k1_tests);
+    const run_secp256k1 = b.addRunArtifact(secp256k1_tests);
+    run_secp256k1.has_side_effects = true;
+    run_secp256k1.setEnvironmentVariable(
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+        configured_bundle,
+    );
+    secp256k1_proof_step.dependOn(&run_secp256k1.step);
 }
 
 fn linkMetalFrameworks(artifact: *std.Build.Step.Compile) void {

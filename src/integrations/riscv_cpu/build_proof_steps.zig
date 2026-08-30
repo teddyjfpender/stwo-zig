@@ -165,6 +165,10 @@ pub fn add(ctx: anytype) void {
         cpu_backend,
         frontend,
     );
+    secp256k1_proof_root.addImport(
+        "secp256k1_proof_harness",
+        ctx.secp256k1_proof_harness,
+    );
     const secp256k1_proof_name =
         "secp256k1 typed ECDSA bundle proves and independently verifies";
     const secp256k1_proof_compile = b.addTest(.{

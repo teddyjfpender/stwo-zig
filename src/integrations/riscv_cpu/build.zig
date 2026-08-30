@@ -22,10 +22,13 @@ pub fn build(b: *std.Build) void {
         "stwo_cpu_backend",
         dependency_options,
     ).module("stwo_cpu_backend");
-    const frontend = b.dependency(
+    const frontend_dependency = b.dependency(
         "stwo_riscv_frontend",
         dependency_options,
-    ).module("stwo_riscv_frontend");
+    );
+    const frontend = frontend_dependency.module("stwo_riscv_frontend");
+    const secp256k1_proof_harness =
+        frontend_dependency.module("secp256k1_proof_harness");
     const postcard = frontend.import_table.get("interop_postcard") orelse
         @panic("canonical RISC-V frontend is missing interop_postcard");
     const integration = b.addModule("stwo_riscv_cpu_integration", .{
@@ -53,6 +56,7 @@ pub fn build(b: *std.Build) void {
         .prover_api = prover_api,
         .cpu_backend = cpu_backend,
         .frontend = frontend,
+        .secp256k1_proof_harness = secp256k1_proof_harness,
         .postcard = postcard,
         .integration = integration,
         .test_step = test_step,

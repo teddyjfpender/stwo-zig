@@ -83,6 +83,18 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("typed_air_h009_artifacts", typed_air_h009_artifacts);
     frontend.addImport("typed_air_h010_artifacts", typed_air_h010_artifacts);
 
+    // Backend-generic proof harness exported as a separate test-only module.
+    // Keeping it outside the frontend root avoids a dependency cycle while
+    // CPU and Metal instantiate the exact same typed trace and transcript.
+    const secp256k1_proof_harness = b.addModule("secp256k1_proof_harness", .{
+        .root_source_file = b.path("testing/secp256k1_proof_harness.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    secp256k1_proof_harness.addImport("stwo_core", core);
+    secp256k1_proof_harness.addImport("stwo_prover_engine", prover);
+    secp256k1_proof_harness.addImport("stwo_riscv_frontend", frontend);
+
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);
     // ReleaseFast production skips the duplicate pre-commit semantic pass.
