@@ -55,6 +55,34 @@ for ISA and guest-library differences.  A matched Stwo run must therefore use
 the existing resumable execution and SegmentV2 proof substrate, aggregate all
 adjacent leaves, and independently verify one recursive root.
 
+The frontend now has a bounded-memory execution inventory for this work. The
+trace tool's `--segment-steps` mode transfers each completed trace range out of
+the live session, emits a content-addressed NDJSON record, and retains only the
+state needed to execute the next range. The durable controller replays an
+interrupted execution, byte-compares its fsynced prefix, and appends only new
+records:
+
+```sh
+python3 scripts/riscv_segmented_execution.py capture \
+  --repository . \
+  --bundle /external/create-only/bundle \
+  --tool zig-out/bin/riscv-trace-dump \
+  --elf /path/to/guest.elf \
+  --input /path/to/input.bin \
+  --segment-steps 65536
+
+python3 scripts/riscv_segmented_execution.py validate \
+  /external/create-only/bundle
+```
+
+This inventory is explicitly `execution-only-not-a-proof`. Segment Statement
+V2 also caps *global* cycles at 2^24, and its access-clock predecessor is
+range-checked below 2^26 (`low20 + high6 * 2^20`). Since access clocks use a
+four-wide bucket, merely splitting a 60M+ execution into small traces does not
+make those leaves V2-admissible. Large-block proving therefore needs a new,
+versioned global-clock/range authority while retaining the 2^24 per-leaf row
+ceiling. The existing V2 checks must not be widened in place.
+
 The ZisK guest also uses native Keccak, SHA-256, secp256k1, big-integer, pairing,
 and KZG operations.  Stwo currently exposes only its Poseidon2 guest extension.
 A fair comparison must either:

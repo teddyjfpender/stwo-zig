@@ -30,11 +30,20 @@ const session_support = @import("segment_session_support.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 pub const HostInterface = host_mod.HostInterface;
+/// Controls whether a resumable session retains the whole execution trace or
+/// transfers each completed range directly to its `SegmentResult`.
+///
+/// `cumulative` preserves the original diagnostic surface. `segment_owned`
+/// is the bounded-memory production path: after every yielded segment the
+/// session retains only the global clock origin needed to admit the next row.
+pub const TraceRetention = enum { cumulative, segment_owned };
+
 pub const SessionOptions = struct {
     host: ?HostInterface = null,
     input: []const u8 = &.{},
     stop_on_halt_flag: bool = false,
     strict_completion: bool = false,
+    trace_retention: TraceRetention = .cumulative,
 };
 
 pub fn ConfiguredSegmentResult(comptime profile: ExecutionProfile) type {
@@ -115,6 +124,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         host: ?HostInterface,
         stop_on_halt_flag: bool,
         strict_completion: bool,
+        trace_retention: TraceRetention,
         input: ?[]u8,
         global_steps: u64 = 0,
         next_segment_index: u32 = 0,
@@ -182,6 +192,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 .host = options.host,
                 .stop_on_halt_flag = options.stop_on_halt_flag,
                 .strict_completion = options.strict_completion,
+                .trace_retention = options.trace_retention,
                 .input = owned_input,
                 .memory_clocks = std.AutoHashMap(u32, u32).init(allocator),
                 .memory_initials = std.AutoHashMap(u32, u32).init(allocator),
@@ -285,7 +296,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
 
             const segment_index = self.next_segment_index;
             const entry_cpu = self.cpu;
-            const trace_start = self.execution_trace.rows.items.len;
+            const trace_start = switch (self.trace_retention) {
+                .cumulative => self.execution_trace.rows.items.len,
+                .segment_owned => 0,
+            };
+            if (self.trace_retention == .segment_owned and
+                self.execution_trace.rows.items.len != 0)
+            {
+                return error.StreamingTraceNotReleased;
+            }
             const first_cycle = std.math.add(u64, self.global_steps, 1) catch
                 return error.ExecutionClockOutOfRange;
 
@@ -360,12 +379,23 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             self.execution_trace.final_pc = self.cpu.pc;
             try self.execution_trace.validateClockAuthority();
 
-            // Extract this segment only after execution.  Retirement keeps one
-            // cumulative trace for its global clock/index invariant, while the
-            // proof boundary owns a compact independent range.
-            var segment_trace = if (exhaustion_policy == .legacy_terminal) blk: {
+            // Extract this segment only after execution. Cumulative mode copies
+            // a compact independent range while retaining the session trace;
+            // segment-owned mode transfers the range and retains only its
+            // authenticated global clock origin for the next retirement.
+            var segment_trace = if (exhaustion_policy == .legacy_terminal or
+                self.trace_retention == .segment_owned)
+            blk: {
                 const owned = self.execution_trace;
                 self.execution_trace = trace.Trace.init(self.allocator);
+                self.execution_trace.initial_pc = self.cpu.pc;
+                if (exhaustion_policy == .yield) {
+                    try self.execution_trace.bindExtractedClockRange(
+                        @intCast(self.global_steps),
+                        @intCast(self.global_steps),
+                        0,
+                    );
+                }
                 break :blk owned;
             } else blk: {
                 var owned = trace.Trace.init(self.allocator);

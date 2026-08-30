@@ -283,3 +283,41 @@ test "runner: Poseidon2 extension logs remain segment-owned across resume" {
         first.base.execution_trace.rows.items.len + second.base.execution_trace.rows.items.len,
     );
 }
+
+test "runner: segment-owned retention releases every yielded trace range" {
+    const instructions = [_]u32{
+        0x0010_0093, // ADDI x1, x0, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    var session = try BaseExecutionSession.init(std.testing.allocator, &elf, .{
+        .trace_retention = .segment_owned,
+    });
+    defer session.deinit();
+
+    var first = try session.startSegment(2);
+    defer first.deinit();
+    try std.testing.expectEqual(@as(usize, 2), first.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(2, 2, 0);
+
+    var second = try session.resumeSegment(first.continuation.?, 2);
+    defer second.deinit();
+    try std.testing.expectEqual(@as(usize, 2), second.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(4, 4, 0);
+    try std.testing.expect(std.meta.eql(first.exit_cpu, second.entry_cpu));
+    try first.rw_memory.requireContinuationTo(second.rw_memory);
+
+    var third = try session.resumeSegment(second.continuation.?, 2);
+    defer third.deinit();
+    try std.testing.expect(third.isComplete());
+    try std.testing.expectEqual(@as(usize, 1), third.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(5, 5, 0);
+    try std.testing.expect(std.meta.eql(second.exit_cpu, third.entry_cpu));
+    try second.rw_memory.requireContinuationTo(third.rw_memory);
+}

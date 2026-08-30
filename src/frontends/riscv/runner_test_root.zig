@@ -1,4 +1,5 @@
 test {
+    _ = @import("diagnostics/segment_manifest.zig");
     _ = @import("runner/access_witness.zig");
     _ = @import("runner/auipc_retirement.zig");
     _ = @import("runner/auipc_retirement_test.zig");

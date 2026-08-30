@@ -1,6 +1,7 @@
 //! Proof-independent diagnostic surfaces owned by the RISC-V frontend.
 
 pub const public_values = @import("public_values.zig");
+pub const segment_manifest = @import("segment_manifest.zig");
 
 /// Opts a `ReleaseFast` prover into the pre-commit opcode-witness semantic
 /// audit. Debug, ReleaseSafe, and ReleaseSmall builds run the audit by default;

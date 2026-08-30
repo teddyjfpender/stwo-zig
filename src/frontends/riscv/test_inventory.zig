@@ -509,6 +509,7 @@ test {
     // Diagnostic dumps.
     _ = @import("diagnostics/mod.zig");
     _ = @import("diagnostics/public_values.zig");
+    _ = @import("diagnostics/segment_manifest.zig");
 
     // Proof orchestration.
     _ = @import("prover/lookup_sources.zig");

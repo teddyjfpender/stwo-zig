@@ -50,6 +50,7 @@ pub const SegmentResult = result_mod.SegmentResult;
 pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
 pub const ContinuationToken = result_mod.ContinuationToken;
 pub const SessionOptions = segment_session.SessionOptions;
+pub const TraceRetention = segment_session.TraceRetention;
 pub const ExecutionSession = segment_session.ExecutionSession;
 pub const BaseExecutionSession = ExecutionSession(.rv32im_zkvm_v1);
 pub const Poseidon2ExecutionSession = ExecutionSession(.rv32im_zkvm_poseidon2_v1);
