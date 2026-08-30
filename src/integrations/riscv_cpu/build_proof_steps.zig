@@ -119,6 +119,39 @@ pub fn add(ctx: anytype) void {
         "R-012 narrow native recursion proof identity guard",
     ));
 
+    const keccakf_proof_root = b.createModule(.{
+        .root_source_file = b.path("keccakf_precompile_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    support.addImports(
+        keccakf_proof_root,
+        core,
+        prover_api,
+        prover,
+        cpu_backend,
+        frontend,
+    );
+    const keccakf_proof_compile = b.addTest(.{
+        .root_module = keccakf_proof_root,
+        .filters = &.{"Keccak-f typed shard and lookup tables prove and independently verify"},
+    });
+    b.step(
+        "check-keccakf-precompile-proof",
+        "Compile the typed Keccak-f native proof gate without executing it",
+    ).dependOn(&keccakf_proof_compile.step);
+    const keccakf_proof_tests = b.addRunArtifact(keccakf_proof_compile);
+    keccakf_proof_tests.has_side_effects = true;
+    b.step(
+        "test-keccakf-precompile-proof",
+        "Prove and independently verify the typed Keccak-f shard and lookup tables",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        keccakf_proof_tests,
+        &.{"Keccak-f typed shard and lookup tables prove and independently verify"},
+        "Keccak-f native proof identity guard",
+    ));
+
     const full_recursion_proof_root = b.createModule(.{
         .root_source_file = b.path("universal_recursive_air_proof_test.zig"),
         .target = target,

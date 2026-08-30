@@ -101,7 +101,7 @@ test "keccakf relations: request and emit cancel only on the same typed bus" {
 }
 
 test "keccakf relations: table tuples are injective at sampled boundaries" {
-    const chi_rows = [_]u32{ 0, 1, 15, 16, 1_048_575, 1_048_576, 2_097_151 };
+    const chi_rows = [_]u32{ 0, 1, 15, 16, 4095, 4096, 8191 };
     for (chi_rows) |row| {
         const tuple = try relations.chiTuple(row);
         for (chi_rows) |other| {
@@ -109,7 +109,7 @@ test "keccakf relations: table tuples are injective at sampled boundaries" {
             try std.testing.expect(!std.meta.eql(tuple, try relations.chiTuple(other)));
         }
     }
-    const xor_rows = [_]u32{ 0, 1, 35, 36, 1295, 1296, 46_655 };
+    const xor_rows = [_]u32{ 0, 1, 3, 4, 255, 256, 1023 };
     for (xor_rows) |row| {
         const tuple = try relations.xor5Tuple(row);
         for (xor_rows) |other| {

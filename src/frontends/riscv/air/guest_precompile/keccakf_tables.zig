@@ -1,9 +1,9 @@
 //! Exact extension-local Keccak-f lookup-table schemas.
 //!
-//! Chi occupies its exact 2^21 domain. Xor5 has 46,656 semantic rows inside a
-//! 2^16 commitment; remaining rows use distinct, unreachable sentinel tuples
-//! and therefore cannot alias a valid lookup. Base proofs never commit either
-//! table—these columns belong only to the Keccak execution profile.
+//! The latency-oriented layout owns exact 2^13 chi and 2^10 xor5 domains.
+//! Each row proves one output position for two sliced executions, avoiding the
+//! enormous Cartesian products of the throughput-oriented five-output layout.
+//! Base proofs never commit either table.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
@@ -24,8 +24,8 @@ pub const Error = authority.Error || error{
 
 pub fn logSize(kind: Kind) u32 {
     return switch (kind) {
-        .chi => 21,
-        .xor5 => 16,
+        .chi => 13,
+        .xor5 => 10,
     };
 }
 
@@ -35,8 +35,8 @@ pub fn size(kind: Kind) usize {
 
 pub fn semanticRows(kind: Kind) usize {
     return switch (kind) {
-        .chi => authority.candidate.chi_table_rows,
-        .xor5 => authority.candidate.xor5_table_rows,
+        .chi => authority.candidate.compact.chi_table_rows,
+        .xor5 => authority.candidate.compact.xor5_table_rows,
     };
 }
 
@@ -44,18 +44,35 @@ pub fn tupleAt(kind: Kind, row: usize) Error![arity]M31 {
     if (row >= size(kind)) return error.ValueOutOfRange;
     return switch (kind) {
         .chi => relations.chiTuple(@intCast(row)),
-        .xor5 => if (row < semanticRows(.xor5))
-            relations.xor5Tuple(@intCast(row))
-        else
-            xor5Sentinel(row),
+        .xor5 => relations.xor5Tuple(@intCast(row)),
     };
 }
 
 pub fn index(kind: Kind, tuple: []const M31) Error!usize {
     if (tuple.len != arity) return error.InvalidArity;
-    const row = switch (kind) {
-        .chi => try chiIndex(tuple),
-        .xor5 => try xor5Index(tuple),
+    const row: usize = switch (kind) {
+        .chi => blk: {
+            if (!tuple[5].isZero() or tuple[3].toU32() > 1)
+                return error.InvalidTuple;
+            for (tuple[0..3]) |value|
+                if (value.toU32() > 27) return error.InvalidTuple;
+            break :blk try authority.compactChiTableRow(.{
+                @intCast(tuple[0].toU32()),
+                @intCast(tuple[1].toU32()),
+                @intCast(tuple[2].toU32()),
+            }, tuple[3].isOne());
+        },
+        .xor5 => blk: {
+            for (tuple[0..5]) |value|
+                if (value.toU32() > 9) return error.InvalidTuple;
+            break :blk try authority.compactXor5TableRow(.{
+                @intCast(tuple[0].toU32()),
+                @intCast(tuple[1].toU32()),
+                @intCast(tuple[2].toU32()),
+                @intCast(tuple[3].toU32()),
+                @intCast(tuple[4].toU32()),
+            });
+        },
     };
     const expected = try tupleAt(kind, row);
     for (tuple, expected) |actual, wanted| {
@@ -103,55 +120,9 @@ pub fn generatePreprocessed(
     return result;
 }
 
-fn chiIndex(tuple: []const M31) Error!usize {
-    var packed_input = tuple[0].toU32();
-    const iota: u32 = @intFromBool(packed_input >= authority.candidate.chi_span);
-    if (iota != 0) packed_input -= authority.candidate.chi_span;
-    var row: u32 = 0;
-    var power: u32 = 1;
-    for (0..5) |_| {
-        const digit = packed_input % authority.candidate.chi_input_radix;
-        packed_input /= authority.candidate.chi_input_radix;
-        const a = digit % authority.candidate.slot_base;
-        const b = digit / authority.candidate.slot_base;
-        if (a >= 4 or b >= 4) return error.InvalidTuple;
-        row += power * (a + 4 * b);
-        power *= authority.candidate.chi_digit_radix;
-    }
-    if (packed_input != 0) return error.InvalidTuple;
-    if (iota != 0) row += authority.candidate.chi_table_rows / 2;
-    return row;
-}
-
-fn xor5Index(tuple: []const M31) Error!usize {
-    var row: usize = 0;
-    var power: usize = 1;
-    for (tuple[0..3]) |value| {
-        const sliced = value.toU32();
-        const a = sliced % authority.candidate.slot_base;
-        const b = sliced / authority.candidate.slot_base;
-        if (a >= 6 or b >= 6) {
-            if (sliced >= authority.candidate.xor5_table_rows)
-                return error.SentinelTuple;
-            return error.InvalidTuple;
-        }
-        row += power * (a + 6 * b);
-        power *= authority.candidate.xor5_radix;
-    }
-    if (row >= semanticRows(.xor5)) return error.InvalidTuple;
-    return row;
-}
-
-fn xor5Sentinel(row: usize) [arity]M31 {
-    std.debug.assert(row >= semanticRows(.xor5) and row < size(.xor5));
-    var result = [_]M31{M31.zero()} ** arity;
-    result[0] = M31.fromCanonical(@intCast(row));
-    return result;
-}
-
 comptime {
-    if (size(.chi) != authority.candidate.chi_table_rows or
-        size(.xor5) != 65_536 or semanticRows(.xor5) != 46_656)
+    if (size(.chi) != authority.candidate.compact.chi_table_rows or
+        size(.xor5) != authority.candidate.compact.xor5_table_rows)
     {
         @compileError("Keccak-f physical table geometry drifted");
     }

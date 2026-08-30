@@ -25,7 +25,7 @@ fn standardPermutation(input: authority.State) authority.State {
     return output;
 }
 
-test "keccakf authority: pinned wide paired geometry remains internally exact" {
+test "keccakf authority: wide and compact paired geometries remain internally exact" {
     try std.testing.expectEqual(@as(usize, 1600), authority.width_bits);
     try std.testing.expectEqual(@as(usize, 24), authority.round_count);
     try std.testing.expectEqual(@as(usize, 29), authority.candidate.rows_per_slot);
@@ -36,9 +36,13 @@ test "keccakf authority: pinned wide paired geometry remains internally exact" {
     try std.testing.expectEqual(@as(usize, 107), authority.candidate.xor5_lookups_per_round);
     try std.testing.expectEqual(@as(usize, 7_680), authority.candidate.chi_lookups_per_slot);
     try std.testing.expectEqual(@as(usize, 2_568), authority.candidate.xor5_lookups_per_slot);
-    try std.testing.expectEqual(@as(usize, 559_240), authority.candidate.maximum_calls);
+    try std.testing.expectEqual(@as(usize, 8_192), authority.candidate.compact.chi_table_rows);
+    try std.testing.expectEqual(@as(usize, 1_024), authority.candidate.compact.xor5_table_rows);
+    try std.testing.expectEqual(@as(usize, 1_600), authority.candidate.compact.chi_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 320), authority.candidate.compact.xor5_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 111_848), authority.candidate.maximum_calls);
     try std.testing.expect(
-        authority.candidate.maximum_slots * authority.candidate.chi_lookups_per_slot <
+        authority.candidate.maximum_slots * authority.candidate.compact.chi_lookups_per_slot <
             0x7fff_ffff,
     );
 }

@@ -68,10 +68,26 @@ pub const candidate = struct {
     pub const chi_lookups_per_round: usize = 5 * lane_bits;
     pub const chi_lookups_per_slot: usize = round_count * chi_lookups_per_round;
     pub const xor5_lookups_per_slot: usize = round_count * xor5_lookups_per_round;
+
+    /// Small/medium-proof geometry. One chi output and one parity position are
+    /// checked per lookup, shrinking the fixed universes from 2^21/2^16 to
+    /// 2^13/2^10 while retaining the paired `a + 8*b` witness encoding.
+    pub const compact = struct {
+        pub const chi_input_count: usize = 3;
+        pub const chi_input_radix: u32 = 16;
+        pub const chi_table_rows: usize = 2 * 16 * 16 * 16;
+        pub const chi_lookups_per_round: usize = width_bits;
+        pub const chi_lookups_per_slot: usize = round_count * @This().chi_lookups_per_round;
+        pub const xor_input_count: usize = 5;
+        pub const xor_input_radix: u32 = 4;
+        pub const xor5_table_rows: usize = 4 * 4 * 4 * 4 * 4;
+        pub const xor5_lookups_per_round: usize = parity_positions;
+        pub const xor5_lookups_per_slot: usize = round_count * @This().xor5_lookups_per_round;
+    };
     /// All-source LogUp coefficients must remain strictly below M31's modulus.
     /// Chi is the limiting bus, and an odd trailing operation still owns a
     /// complete paired slot.
-    pub const maximum_slots: usize = (0x7fff_fffe) / chi_lookups_per_slot;
+    pub const maximum_slots: usize = (0x7fff_fffe) / compact.chi_lookups_per_slot;
     pub const maximum_calls: usize = operations_per_slot * maximum_slots;
 };
 
@@ -122,6 +138,17 @@ pub const ChiTableEntry = struct {
 pub const Xor5TableEntry = struct {
     sliced_sums: [candidate.xor5_batch]u8,
     sliced_parities: [candidate.xor5_batch]u8,
+};
+
+pub const CompactChiTableEntry = struct {
+    theta: [candidate.compact.chi_input_count]u8,
+    iota: u8,
+    output: u8,
+};
+
+pub const CompactXor5TableEntry = struct {
+    input: [candidate.compact.xor_input_count]u8,
+    output: u8,
 };
 
 pub const Error = error{
@@ -265,6 +292,82 @@ pub fn xor5TableEntry(row: u32) Error!Xor5TableEntry {
         result.sliced_sums[index] = sum_a + candidate.slot_base * sum_b;
         result.sliced_parities[index] = (sum_a & 1) + candidate.slot_base * (sum_b & 1);
     }
+    return result;
+}
+
+/// Compact one-output chi table. Each theta input stores two independent
+/// values in `[0,3]` as `a + 8*b`; the table applies parity, chi, and iota to
+/// both executions without expanding a five-output Cartesian product.
+pub fn compactChiTableRow(
+    theta: [candidate.compact.chi_input_count]u8,
+    iota: bool,
+) Error!u32 {
+    var row: u32 = 0;
+    var power: u32 = 1;
+    for (theta) |value| {
+        const a = value % candidate.slot_base;
+        const b = value / candidate.slot_base;
+        if (a >= 4 or b >= 4) return error.InvalidChiDigit;
+        row += power * (a + 4 * @as(u32, b));
+        power *= candidate.compact.chi_input_radix;
+    }
+    if (iota) row += power;
+    return row;
+}
+
+pub fn compactChiTableEntry(row: u32) Error!CompactChiTableEntry {
+    if (row >= candidate.compact.chi_table_rows) return error.InvalidChiRow;
+    var encoded = row;
+    var result: CompactChiTableEntry = undefined;
+    for (&result.theta) |*value| {
+        const digit: u8 = @truncate(encoded % candidate.compact.chi_input_radix);
+        encoded /= candidate.compact.chi_input_radix;
+        value.* = (digit & 3) + candidate.slot_base * (digit >> 2);
+    }
+    result.iota = @truncate(encoded);
+    const a0 = result.theta[0] & 1;
+    const a1 = result.theta[1] & 1;
+    const a2 = result.theta[2] & 1;
+    const b0 = (result.theta[0] / candidate.slot_base) & 1;
+    const b1 = (result.theta[1] / candidate.slot_base) & 1;
+    const b2 = (result.theta[2] / candidate.slot_base) & 1;
+    result.output = (a0 ^ ((1 - a1) & a2) ^ result.iota) +
+        candidate.slot_base * (b0 ^ ((1 - b1) & b2) ^ result.iota);
+    return result;
+}
+
+/// Compact one-output parity table over five paired sliced input bits.
+pub fn compactXor5TableRow(
+    input: [candidate.compact.xor_input_count]u8,
+) Error!u32 {
+    var row: u32 = 0;
+    var power: u32 = 1;
+    for (input) |value| {
+        const a = value % candidate.slot_base;
+        const b = value / candidate.slot_base;
+        if (a >= 2 or b >= 2) return error.InvalidXor5Digit;
+        row += power * (a + 2 * @as(u32, b));
+        power *= candidate.compact.xor_input_radix;
+    }
+    return row;
+}
+
+pub fn compactXor5TableEntry(row: u32) Error!CompactXor5TableEntry {
+    if (row >= candidate.compact.xor5_table_rows) return error.InvalidXor5Row;
+    var encoded = row;
+    var result = CompactXor5TableEntry{ .input = undefined, .output = 0 };
+    var a: u8 = 0;
+    var b: u8 = 0;
+    for (&result.input) |*value| {
+        const digit: u8 = @truncate(encoded % candidate.compact.xor_input_radix);
+        encoded /= candidate.compact.xor_input_radix;
+        const bit_a = digit & 1;
+        const bit_b = digit >> 1;
+        value.* = bit_a + candidate.slot_base * bit_b;
+        a ^= bit_a;
+        b ^= bit_b;
+    }
+    result.output = a + candidate.slot_base * b;
     return result;
 }
 

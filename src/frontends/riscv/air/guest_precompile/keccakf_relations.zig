@@ -30,6 +30,15 @@ pub const xor5_arity: usize = 6;
 pub const IoTuple = [io_arity]M31;
 pub const ChiTuple = [chi_arity]M31;
 pub const Xor5Tuple = [xor5_arity]M31;
+pub fn IoTupleFor(comptime S: type) type {
+    return [io_arity]S;
+}
+pub fn ChiTupleFor(comptime S: type) type {
+    return [chi_arity]S;
+}
+pub fn Xor5TupleFor(comptime S: type) type {
+    return [xor5_arity]S;
+}
 
 pub const Schema = struct {
     id: types.RelationSchemaId,
@@ -68,7 +77,7 @@ pub const io_schema = Schema{
 };
 pub const chi_schema = Schema{
     .id = @enumFromInt(chi_schema_numeric_id),
-    .version = 1,
+    .version = 2,
     .name = "stwo.riscv.guest_keccakf_chi",
     .fields = &table_fields,
     .request_is_unit = true,
@@ -76,7 +85,7 @@ pub const chi_schema = Schema{
 };
 pub const xor5_schema = Schema{
     .id = @enumFromInt(xor5_schema_numeric_id),
-    .version = 1,
+    .version = 2,
     .name = "stwo.riscv.guest_keccakf_xor5",
     .fields = &table_fields,
     .request_is_unit = true,
@@ -208,21 +217,23 @@ fn packState(state: authority.State, destination: []M31) void {
 }
 
 pub fn chiTuple(table_row: u32) authority.Error!ChiTuple {
-    const entry = try authority.chiTableEntry(table_row);
-    var tuple: ChiTuple = undefined;
-    tuple[0] = M31.fromCanonical(entry.packed_input);
-    for (entry.output, tuple[1..]) |value, *destination|
-        destination.* = M31.fromCanonical(value);
-    return tuple;
+    const entry = try authority.compactChiTableEntry(table_row);
+    return .{
+        M31.fromCanonical(entry.theta[0]),
+        M31.fromCanonical(entry.theta[1]),
+        M31.fromCanonical(entry.theta[2]),
+        M31.fromCanonical(entry.iota),
+        M31.fromCanonical(entry.output),
+        M31.zero(),
+    };
 }
 
 pub fn xor5Tuple(table_row: u32) authority.Error!Xor5Tuple {
-    const entry = try authority.xor5TableEntry(table_row);
+    const entry = try authority.compactXor5TableEntry(table_row);
     var tuple: Xor5Tuple = undefined;
-    for (entry.sliced_sums, tuple[0..3]) |value, *destination|
+    for (entry.input, tuple[0..5]) |value, *destination|
         destination.* = M31.fromCanonical(value);
-    for (entry.sliced_parities, tuple[3..6]) |value, *destination|
-        destination.* = M31.fromCanonical(value);
+    tuple[5] = M31.fromCanonical(entry.output);
     return tuple;
 }
 

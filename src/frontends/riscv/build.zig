@@ -391,6 +391,7 @@ pub fn build(b: *std.Build) void {
         .step = "test-keccakf-precompile",
         .description = "Run the Keccak-f semantic and paired-witness authority tests",
         .root = "keccakf_precompile_test_root.zig",
+        .imports_prover_engine = true,
         .minimum = 4,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
