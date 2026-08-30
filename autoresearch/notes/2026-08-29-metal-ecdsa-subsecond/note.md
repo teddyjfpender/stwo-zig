@@ -936,3 +936,27 @@ first local mean CSP observation below two seconds in this campaign, but it is
 a diagnostic, not a claim of the still-unmet one-second target. The opcode
 profile shows the next campaign must reduce packed row evaluation or its batch
 inverse algorithm; chunk-count retuning is saturated on this host.
+
+### Rejected: packed opcode-interaction finalization
+
+The next candidate kept the existing opcode task topology and replaced the
+scalar post-inversion QM31 multiply/store loop with four-lane `PackedQM31`
+operations. ReleaseFast packed/scalar parity passed, and complementary ECDSA
+orders both improved. Across twenty samples per arm, proving moved from
+1.330456 s to 1.323677 s (-0.51%), CSP `proof_duration` from 2.041793 s to
+2.033042 s (-0.43%), and complete request from 2.202524 s to 2.193795 s
+(-0.40%).
+
+The independent Keccak/128 guardrail rejected the change. Across twenty-eight
+samples per arm, proving regressed from 0.370269 s to 0.372440 s (+0.59%), CSP
+duration from 0.436088 s to 0.439300 s (+0.74%), and complete request from
+0.505761 s to 0.508667 s (+0.57%); both complementary orderings pointed in the
+same direction. The implementation was reverted rather than retaining a broad
+regression for the narrow ECDSA gain. Evidence is retained under
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/opcode-packed-finalize-{ecdsa-v1,keccak-v2}`.
+The diagnostic product SHA-256 is
+`edeea657d5ef2528d74e7bafd3b4aa849d14dc49fbf47465a7b4510b7178b4cd`;
+its product gate receipt is
+`.git/typed-air-zig-gates/runs/1788063982239251000-6429.json`, and the focused
+parity receipt is
+`.git/typed-air-zig-gates/runs/1788063936550685000-6326.json`.
