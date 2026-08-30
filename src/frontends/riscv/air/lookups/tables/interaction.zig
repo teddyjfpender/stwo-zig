@@ -15,6 +15,7 @@ const schema = @import("schema.zig");
 
 pub const N_COLUMNS: usize = 4;
 pub const CHUNK_ROWS: usize = 4096;
+const PARALLEL_CHUNKS_PER_WORKER: usize = 2;
 
 pub const Result = struct {
     columns: [N_COLUMNS][]M31,
@@ -264,11 +265,12 @@ pub fn generateParallel(
     const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
     defer table.deinit(allocator);
 
-    const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
+    const chunk_rows = parallelChunkRows(size, pool.workerCount());
+    const chunk_count = std.math.divCeil(usize, size, chunk_rows) catch unreachable;
     const chunks = try allocator.alloc(TableChunk, chunk_count);
     defer allocator.free(chunks);
     for (chunks, 0..) |*chunk, index| {
-        const row_start = index * CHUNK_ROWS;
+        const row_start = index * chunk_rows;
         chunk.* = .{
             .allocator = allocator,
             .counter = counter,
@@ -276,7 +278,7 @@ pub fn generateParallel(
             .table = table,
             .columns = &columns,
             .row_start = row_start,
-            .row_end = @min(size, row_start + CHUNK_ROWS),
+            .row_end = @min(size, row_start + chunk_rows),
         };
     }
 
@@ -297,6 +299,23 @@ pub fn generateParallel(
     TableChunk.addOffset(&chunks[0]);
     wait_group.wait();
     return .{ .columns = columns, .claim = claim };
+}
+
+/// Retains two balanced task waves for large tables while preserving the
+/// cache-sized floor for small tables. Batch inversion has one serial field
+/// inverse per chunk, so hundreds of fixed 4096-row tasks add measurable work
+/// once the bounded pool already has enough independent ranges.
+fn parallelChunkRows(size: usize, worker_count: usize) usize {
+    std.debug.assert(size != 0 and worker_count != 0);
+    const target_chunks = std.math.mul(
+        usize,
+        worker_count,
+        PARALLEL_CHUNKS_PER_WORKER,
+    ) catch unreachable;
+    return @max(
+        CHUNK_ROWS,
+        std.math.divCeil(usize, size, target_chunks) catch unreachable,
+    );
 }
 
 const TableChunk = struct {
@@ -686,6 +705,14 @@ test "chunked table interaction rolls back every allocation failure" {
         generateForAllocationTest,
         .{ &counter, &relations },
     );
+}
+
+test "parallel table chunks retain two balanced waves above cache floor" {
+    try std.testing.expectEqual(@as(usize, 4096), parallelChunkRows(1 << 15, 18));
+    try std.testing.expectEqual(@as(usize, 7282), parallelChunkRows(1 << 18, 18));
+    try std.testing.expectEqual(@as(usize, 14564), parallelChunkRows(1 << 19, 18));
+    try std.testing.expectEqual(@as(usize, 29128), parallelChunkRows(1 << 20, 18));
+    try std.testing.expectEqual(@as(usize, 1 << 19), parallelChunkRows(1 << 20, 1));
 }
 
 fn M31QM31(value: u32) QM31 {

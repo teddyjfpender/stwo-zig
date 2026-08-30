@@ -839,3 +839,100 @@ Evidence roots are
 `/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-base-prepared-{keccak,ecdsa}-{bccb,cbbc}-v1`.
 The fresh receipts bind decoded proof SHA-256 `b060b18a...063a8` for Keccak
 and `eaa345bd...3782d` for ECDSA, with empty verifier stderr.
+
+### Rejected: algebraically reduced singleton LogUp rows
+
+The post-composition profile still showed the generic two-fraction LogUp
+constraint as a large leaf even though lookup tables always use
+`RowPair.single` (`n2 = 0`, `d2 = 1`). A candidate reduced the prepared-domain
+identity directly to `delta * denominator + signed_multiplicity` and retained
+base operands for the boundary selector. The all-six-table differential gate
+passed, but whole-proof code generation regressed. The first complementary
+seven-sample-per-leg Keccak/128 run measured +1.25% CSP and +1.20% complete
+request. A second independent complementary run with ten samples per leg
+confirmed +0.91% proving, +0.43% CSP, and +0.22% complete request. The source
+change was reverted. Rejected evidence is retained under
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-singleton-reduced-keccak-{bccb,cbbc}-{v1,v2}`;
+the rejected product is retained only for diagnosis at
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/builds/table-singleton-reduced-v1`.
+
+### Retained: topology-balanced lookup-table chunks
+
+After base-field composition, `TableChunk.generate` became the largest
+interaction-generation leaf. Fixed 4096-row chunks created 256 tasks and 256
+serial field inversions for a 2^20 table even though the bounded pool has only
+18 workers. A temporary real-generator microprobe swept fixed 8192/16384-row
+chunks and topology-derived one/two/three/four-wave schedules. The warmed
+2^20-table medians were approximately 10.07 ms for the original geometry,
+9.28 ms for fixed 8192, 8.96 ms for fixed 16384, 8.3 ms for one wave, 6.3 ms
+for two waves, 8.3 ms for three waves, and 7.0 ms for four waves.
+
+The retained policy derives two balanced chunks per available worker with the
+original 4096-row cache floor. It therefore scales with pool topology and table
+size rather than recognizing a benchmark: on 18 workers the six fixed tables
+use 36 tasks for logs 18--20, 16 tasks for log 16, and 8 tasks for log 15.
+Sequential and receipt-bearing exact-work generation retain their original
+4096-row authority. The permanent geometry test pins the cache floor, large
+table division, and one-worker behavior. The post-change Keccak sample reduced
+`TableChunk.generate` from 2360 to 1222 sampled stacks.
+
+Two complementary seven-sample-per-leg Keccak/128 cohorts pooled to:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| fixed 4096-row chunks | 0.001986 s | 0.065048 s | 0.363704 s | 0.430738 s | 0.499189 s |
+| topology-balanced chunks | 0.001985 s | 0.062792 s | 0.355889 s | 0.420666 s | 0.488336 s |
+
+That is -3.47% witness, -2.15% proving, -2.34% CSP duration, and -2.17%
+complete request. Complementary five-sample-per-leg ECDSA cohorts retained the
+guardrail:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| fixed 4096-row chunks | 0.335058 s | 0.365448 s | 1.330081 s | 2.030587 s | 2.190792 s |
+| topology-balanced chunks | 0.334286 s | 0.367086 s | 1.316278 s | 2.017649 s | 2.180200 s |
+
+ECDSA improves by 1.04% proving, 0.64% CSP duration, and 0.48% complete
+request. Peak footprint was flat to slightly lower (-0.12% Keccak, -0.04%
+ECDSA); process cycles fell 10.19% and 1.44% respectively, while observational
+energy was -0.40% and +1.26%. The focused gate receipt is
+`.git/typed-air-zig-gates/runs/1788061779276105000-2634.json`; the product
+receipt is `.git/typed-air-zig-gates/runs/1788061805061073000-2700.json`, and
+the product SHA-256 is
+`db2265abc5d79c4cb848872388b029f92c0f754183491e66dca73697d5af073d`.
+Evidence roots are
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-adaptive-chunks-{keccak,ecdsa}-{bccb,cbbc}-v1`.
+Fresh verification preserves decoded proof SHA-256 `b060b18a...063a8` for
+Keccak and `eaa345bd...3782d` for ECDSA, exact statement/transcript identities,
+one canonical receipt line, and empty verifier stderr.
+
+### Rejected: topology-balanced opcode-interaction chunks
+
+The post-table ECDSA sample moved the dominant runnable leaf to
+`OpcodeChunk.generate` (4032 sampled stacks), followed by its packed batch
+inverse (1574). The opcode generator also used fixed 4096-row chunks, so a
+candidate applied the same topology-derived two-wave policy while aligning
+every boundary to the four-row packed width and carrying the exact dynamic
+chunk size through prefix-offset placement. Packed/scalar parity, boundary,
+and rollback tests passed in ReleaseFast.
+
+Unlike fixed tables, opcode chunks perform substantial per-row typed-program
+evaluation and have multiple batch planes, so reducing task count did not repay
+the loss of fine-grained balance. The first complementary five-sample-per-leg
+ECDSA run was mixed (-0.20% CSP, +0.20% complete request). A second independent
+ten-sample-per-leg run rejected it: proving +0.79%, CSP +0.56%, and complete
+request +1.02%. The implementation and permanent test were reverted. Evidence
+is retained under
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/opcode-adaptive-chunks-ecdsa-{bccb,cbbc}-{v1,v2}`.
+The rejected product gate receipt is
+`.git/typed-air-zig-gates/runs/1788062906242110000-4596.json`, with diagnostic
+product SHA-256
+`01f6846b7e66ba01e9b4f16fc2b3d7f8fc35a0f8bc31517f2b916a7f42e924a1`.
+
+The retained table-scheduler product's unsampled 11-request post-change ECDSA
+diagnostic reached 0.324346 s execution, 0.368565 s witness, 1.279401 s proving,
+and 1.972313 s CSP `proof_duration` (2.120920 s complete request). This is the
+first local mean CSP observation below two seconds in this campaign, but it is
+a diagnostic, not a claim of the still-unmet one-second target. The opcode
+profile shows the next campaign must reduce packed row evaluation or its batch
+inverse algorithm; chunk-count retuning is saturated on this host.
