@@ -796,3 +796,46 @@ frequency scaling, but the median 32-wide run was about 1.20 ms versus roughly
 32 for these aligned interaction domains. No source change was retained; this
 hotspot needs a different multiplication/inversion algorithm, not another
 chain-width retune.
+
+### Retained: base-field lookup-table composition
+
+After the ECDSA lookup-counter path saturated, a Keccak/128 process sample made
+the next general bottleneck unambiguous: lookup-table prepared-domain AIR
+evaluation and its generic LogUp constraint dominated the runnable CPU leaves.
+The table tuple polynomials evaluate in M31 even on the doubled composition
+domain, but the prepared evaluator promoted every coordinate to QM31 before
+combining it with the secure relation challenges.
+
+The retained evaluator keeps those tuple coordinates in M31 and uses each
+relation's existing `combineBase` authority. The signed multiplicity and
+`is_first` values are promoted only once, while current/previous interaction
+values, claim, and the exact singleton LogUp transition remain unchanged. A
+six-kind differential test compares the new path to the canonical secure-field
+evaluator; the product proof and fresh verifier preserve the exact decoded
+proof, statement, and transcript identities.
+
+Two complementary seven-sample-per-leg Keccak/128 cohorts pooled to:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| base-field table denominators | 0.001991 s | 0.063886 s | 0.450227 s | 0.516104 s | 0.585038 s |
+| base-field prepared evaluator | 0.001992 s | 0.064340 s | 0.366067 s | 0.432399 s | 0.501062 s |
+
+That is -18.69% proving, -16.22% CSP duration, and -14.35% complete request.
+The ECDSA guardrail also retained across complementary five-sample cohorts:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| base-field table denominators | 0.329840 s | 0.365884 s | 1.378186 s | 2.073910 s | 2.230492 s |
+| base-field prepared evaluator | 0.330583 s | 0.364341 s | 1.317397 s | 2.012321 s | 2.168232 s |
+
+ECDSA improves by 4.41% proving, 2.97% CSP duration, and 2.79% complete
+request. The focused gate receipt is
+`.git/typed-air-zig-gates/runs/1788059720969564000-98249.json`; the product
+receipt is `.git/typed-air-zig-gates/runs/1788059741917006000-98304.json`, and
+the product SHA-256 is
+`d96b45cedf4d77747f224b659c198c49b0eaf333698164405b91d536eb302609`.
+Evidence roots are
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-base-prepared-{keccak,ecdsa}-{bccb,cbbc}-v1`.
+The fresh receipts bind decoded proof SHA-256 `b060b18a...063a8` for Keccak
+and `eaa345bd...3782d` for ECDSA, with empty verifier stderr.
