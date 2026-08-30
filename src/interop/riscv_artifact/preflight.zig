@@ -6,10 +6,11 @@
 
 const std = @import("std");
 const schema = @import("schema.zig");
+const protocol = @import("protocol.zig");
 
 const MAX_KEY_BYTES: usize = 64;
 const SCANNER_STORAGE_BYTES: usize = 16 * 1024;
-const MAX_OPCODE_SUMS: usize = 22;
+const MAX_OPCODE_SUMS: usize = protocol.MAX_OPCODE_INTERACTION_BATCHES;
 const MAX_INFRA_SUMS: usize = 4;
 const M31_MODULUS: u32 = 0x7fff_ffff;
 
@@ -684,4 +685,19 @@ test "preflight rejects unknown nested fields and oversized arrays" {
     }
     try bytes.appendSlice(std.testing.allocator, "]}");
     try std.testing.expectError(error.InvalidComponentCount, validate(bytes.items));
+}
+
+test "preflight admits the registry-derived DIV interaction width" {
+    const component =
+        "[{\"index\":0,\"family\":15,\"family_shard_index\":0," ++
+        "\"family_shard_count\":1,\"row_offset\":0,\"log_size\":4," ++
+        "\"n_rows\":1,\"n_columns\":67,\"interaction_batch_count\":25}]";
+    var storage: [SCANNER_STORAGE_BYTES]u8 = undefined;
+    var fixed = std.heap.FixedBufferAllocator.init(&storage);
+    var scanner = std.json.Scanner.initCompleteInput(fixed.allocator(), component);
+    defer scanner.deinit();
+    var widths = [_]u32{0} ** schema.MAX_COMPONENTS;
+    try std.testing.expectEqual(@as(usize, 1), try parseComponents(&scanner, &widths));
+    try std.testing.expectEqual(@as(u32, 25), widths[0]);
+    try expect(&scanner, .end_of_document);
 }

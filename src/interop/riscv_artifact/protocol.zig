@@ -39,6 +39,15 @@ pub const FAMILIES = [FAMILY_COUNT]Family{
     .{ .ordinal = 16, .n_main_columns = 6, .n_interaction_batches = 2 }, // fence
 };
 
+/// Fixed-memory JSON preflight capacity derived from the same closed family
+/// registry that validation uses. Keeping a second handwritten maximum made
+/// valid DIV-bearing proofs serialize successfully but fail fresh verification.
+pub const MAX_OPCODE_INTERACTION_BATCHES: usize = blk: {
+    var maximum: usize = 0;
+    for (FAMILIES) |family| maximum = @max(maximum, family.n_interaction_batches);
+    break :blk maximum;
+};
+
 pub const InfraKind = enum(u32) {
     program,
     memory,
