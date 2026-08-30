@@ -46,14 +46,14 @@ pub const Plan = struct {
     allocator: std.mem.Allocator,
     family: trace.OpcodeFamily,
     program: prover_component.OwnedLookupPolynomialProgram,
-    reachable: []bool,
+    evaluation: validation.EvaluationPlan,
     domains: [entry.MAX_ENTRIES]entry.Domain = undefined,
 
     pub fn init(allocator: std.mem.Allocator, family: trace.OpcodeFamily) !Plan {
         var program = try runtime_program.buildLookups(allocator, family);
         errdefer program.deinit();
-        const reachable = try lookupReachable(allocator, program);
-        errdefer allocator.free(reachable);
+        var evaluation = try validation.EvaluationPlan.init(allocator, program);
+        errdefer evaluation.deinit();
 
         const zero_columns = [_]BaseScalar{BaseScalar.zero()} ** trace.MAX_FAMILY_COLUMNS;
         const typed = try base_opcode_entries.fromMain(
@@ -66,7 +66,7 @@ pub const Plan = struct {
             .allocator = allocator,
             .family = family,
             .program = program,
-            .reachable = reachable,
+            .evaluation = evaluation,
         };
         for (typed.entries[0..typed.len], result.domains[0..typed.len]) |source, *domain| {
             try source.validate();
@@ -76,7 +76,7 @@ pub const Plan = struct {
     }
 
     pub fn deinit(self: *Plan) void {
-        self.allocator.free(self.reachable);
+        self.evaluation.deinit();
         self.program.deinit();
         self.* = undefined;
     }
@@ -555,9 +555,8 @@ const OpcodeChunk = struct {
             for (self.main_columns, base[0..self.main_columns.len]) |column, *value| {
                 value.* = m31.loadPacked(column.ptr + self.row_start + local_row);
             }
-            evaluateNodes(
+            self.plan.evaluation.evaluate(
                 self.plan.program.nodes,
-                self.plan.reachable,
                 node_values,
                 base[0..self.main_columns.len],
             );
@@ -828,8 +827,6 @@ fn pairPlanned(
     };
 }
 
-const evaluateNodes = validation.evaluateNodes;
-const lookupReachable = validation.lookupReachable;
 const validateColumns = validation.validateColumns;
 
 /// Narrow test-only access to production-private reconstruction primitives.
@@ -840,5 +837,4 @@ pub const TestHooks = if (builtin.is_test) struct {
     pub const baseOpcodeEntries = base_opcode_entries;
     pub const pairBaseForTest = pairBase;
     pub const pairPlannedForTest = pairPlanned;
-    pub const evaluateNodesForTest = evaluateNodes;
 } else struct {};

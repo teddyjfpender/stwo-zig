@@ -9,24 +9,70 @@ const m31 = fields.m31;
 const M31 = m31.M31;
 const PackedM31 = m31.PackedM31;
 
-pub fn evaluateNodes(
-    nodes: []const prover_component.BasePolynomialNode,
-    reachable: []const bool,
+fn evaluateNode(
+    node: prover_component.BasePolynomialNode,
     values: []PackedM31,
     columns: []const PackedM31,
-) void {
-    for (nodes, reachable, 0..) |node, is_reachable, index| {
-        if (!is_reachable) continue;
-        values[index] = switch (node.op) {
-            .constant => @splat(node.value),
-            .column => columns[node.value],
-            .add => m31.addPacked(values[node.lhs], values[node.rhs]),
-            .sub => m31.subPacked(values[node.lhs], values[node.rhs]),
-            .mul => m31.mulPacked(values[node.lhs], values[node.rhs]),
-            .neg => m31.negPacked(values[node.lhs]),
+) PackedM31 {
+    return switch (node.op) {
+        .constant => @splat(node.value),
+        .column => columns[node.value],
+        .add => m31.addPacked(values[node.lhs], values[node.rhs]),
+        .sub => m31.subPacked(values[node.lhs], values[node.rhs]),
+        .mul => m31.mulPacked(values[node.lhs], values[node.rhs]),
+        .neg => m31.negPacked(values[node.lhs]),
+    };
+}
+
+pub const EvaluationPlan = struct {
+    allocator: std.mem.Allocator,
+    indices: []usize,
+    dense: bool,
+
+    pub fn init(
+        allocator: std.mem.Allocator,
+        program: prover_component.OwnedLookupPolynomialProgram,
+    ) !EvaluationPlan {
+        const reachable = try lookupReachable(allocator, program);
+        defer allocator.free(reachable);
+        var count: usize = 0;
+        for (reachable) |is_reachable| count += @intFromBool(is_reachable);
+        const indices = try allocator.alloc(usize, count);
+        var cursor: usize = 0;
+        for (reachable, 0..) |is_reachable, index| {
+            if (!is_reachable) continue;
+            indices[cursor] = index;
+            cursor += 1;
+        }
+        return .{
+            .allocator = allocator,
+            .indices = indices,
+            // A direct walk avoids both the reachability branch and indexed
+            // node loads when omitted nodes are too sparse to repay them.
+            .dense = count * 8 >= program.nodes.len * 7,
         };
     }
-}
+
+    pub fn deinit(self: *EvaluationPlan) void {
+        self.allocator.free(self.indices);
+        self.* = undefined;
+    }
+
+    pub fn evaluate(
+        self: *const EvaluationPlan,
+        nodes: []const prover_component.BasePolynomialNode,
+        values: []PackedM31,
+        columns: []const PackedM31,
+    ) void {
+        if (self.dense) {
+            for (nodes, 0..) |node, index|
+                values[index] = evaluateNode(node, values, columns);
+            return;
+        }
+        for (self.indices) |index|
+            values[index] = evaluateNode(nodes[index], values, columns);
+    }
+};
 
 pub fn lookupReachable(
     allocator: std.mem.Allocator,

@@ -608,3 +608,36 @@ The last result is useful architecture evidence: the committed-column builder
 is already well scalarized and cache-hot. A future single-source fusion must
 share the witness writer's decoded row before either product is materialized;
 building a second typed event structure beside it is not reuse.
+
+### Retained: density-aware opcode polynomial evaluation
+
+The next process sample identified the packed opcode lookup polynomial DAG as
+the largest remaining frontend stack. Its old evaluator walked every symbolic
+node and tested a reachability byte on every packed row. Program density is
+bimodal: most opcode families retain nearly every node, while `shifts_imm`,
+`load_store`, and `div` omit 35%, 30%, and 24% respectively.
+
+The retained plan resolves that static choice once per family. DAGs at least
+7/8 dense use a branch-free sequential walk; sparser DAGs use a compact
+topological index list. The symbolic program, dependency order, packed field
+operations, relation construction, batch inversion, prefix order, and proof
+remain unchanged. A same-binary ReleaseFast ABBA microbenchmark improved every
+material family except one small noisy case: BASE_ALU_REG 20.82 ms to 18.53 ms,
+LOAD_STORE 40.84 ms to 28.95 ms, and DIV 112.21 ms to 100.36 ms over 400,000
+evaluations. Exact packed/scalar parity remains covered for every opcode family;
+the focused final gate receipt is
+`.git/typed-air-zig-gates/runs/1788051495229640000-82777.json`.
+
+Two complementary five-sample-per-leg ECDSA cohorts measured:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| base-numerator arithmetic | 0.326908 s | 0.377036 s | 1.372504 s | 2.076449 s | 2.227324 s |
+| density-aware evaluation | 0.328827 s | 0.376752 s | 1.363559 s | 2.069138 s | 2.221093 s |
+
+This is a 0.35% CSP reduction and a 0.65% proving reduction. The corresponding
+two complementary Keccak/128 cohorts, 28 samples per implementation, were flat:
+0.524230 versus 0.524444 seconds CSP duration (+0.04%). The candidate product
+SHA is `e3d8b48c71e43dad4e6412cfbdfd2578ae7d330e0b30267d91c9e939ec9b7c5a`.
+Fresh-process verification reproduced the unchanged ECDSA and Keccak proof,
+statement, and transcript identities recorded above.

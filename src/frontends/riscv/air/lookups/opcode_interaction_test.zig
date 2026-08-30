@@ -25,7 +25,6 @@ const nColumns = subject.nColumns;
 const base_opcode_entries = subject.TestHooks.baseOpcodeEntries;
 const pairBase = subject.TestHooks.pairBaseForTest;
 const pairPlanned = subject.TestHooks.pairPlannedForTest;
-const evaluateNodes = subject.TestHooks.evaluateNodesForTest;
 
 fn testRow() trace.TraceRow {
     return .{
@@ -156,9 +155,8 @@ fn expectPlanPairParity(
             packed_column[lane] = column[row].v;
         }
     }
-    evaluateNodes(
+    plan.evaluation.evaluate(
         plan.program.nodes,
-        plan.reachable,
         node_values,
         packed_columns[0..main.len],
     );
