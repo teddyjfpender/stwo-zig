@@ -13,6 +13,7 @@ const Secp256k1 = std.crypto.ecc.Secp256k1;
 pub const Value = [field.limb_count]u8;
 pub const wnaf_width: usize = 5;
 pub const odd_table_size: usize = 1 << (wnaf_width - 2);
+pub const signed_table_size: usize = 1 + 2 * odd_table_size;
 pub const maximum_wnaf_digits: usize = 257;
 pub const endomorphism_lambda: u256 =
     37718080363155996902926221483475020450927657555482586988616620542887997980018;
@@ -31,13 +32,13 @@ pub const ModulusKind = enum(u1) {
     }
 };
 
-pub const LinearKind = enum {
+pub const LinearKind = enum(u2) {
     add,
     subtract,
     reduce_once,
 };
 
-pub const PointKind = enum {
+pub const PointKind = enum(u3) {
     double,
     add,
     left_identity,
@@ -96,12 +97,85 @@ pub const ScalarSplitRecord = struct {
     linear_count: u8,
 };
 
+pub const TableKind = enum(u2) {
+    generator,
+    generator_endomorphism,
+    public_key,
+    public_key_endomorphism,
+};
+
+pub const SignedTable = [signed_table_size]Point;
+
+pub const TableRecord = struct {
+    kind: TableKind,
+    source: Point,
+    twice: Point,
+    entries: SignedTable,
+    point_start: u32,
+    point_count: u8,
+    linear_start: u32,
+    linear_count: u8,
+    negation_linear_start: u32,
+    root_product_index: u32,
+};
+
+pub const ScalarStepRecord = struct {
+    bit_index: u8,
+    accumulator_before: Point,
+    after_double: Point,
+    digits: [4]i8,
+    state_after: [4]Value,
+    selected: [4]Point,
+    after_add: [4]Point,
+    point_record_indices: [5]u32,
+};
+
+pub const ScalarProgramRecord = struct {
+    generator_scalar: Value,
+    point: Point,
+    point_scalar: Value,
+    split_start: u32,
+    table_start: u32,
+    step_start: u32,
+    step_count: u8,
+    result: Point,
+};
+
+/// One successful ECDSA verification transaction.  The retained derived
+/// scalars and exact tape ranges are the high-level authority consumed by the
+/// compact scalar-program AIR; they prevent a bag of individually valid field
+/// operations from being mistaken for an ECDSA verification.
+pub const EcdsaRecord = struct {
+    digest_big_endian: [32]u8,
+    public_key: Point,
+    r: Value,
+    s: Value,
+    reduced_digest: Value,
+    inverse_s: Value,
+    generator_scalar: Value,
+    public_key_scalar: Value,
+    result: Point,
+    program_index: u32,
+    product_start: u32,
+    product_count: u32,
+    linear_start: u32,
+    linear_count: u32,
+    point_start: u32,
+    point_count: u32,
+    split_start: u32,
+    split_count: u8,
+};
+
 pub const Tape = struct {
     allocator: std.mem.Allocator,
     products: std.ArrayList(ProductRecord) = .empty,
     linears: std.ArrayList(LinearRecord) = .empty,
     points: std.ArrayList(PointRecord) = .empty,
     scalar_splits: std.ArrayList(ScalarSplitRecord) = .empty,
+    tables: std.ArrayList(TableRecord) = .empty,
+    scalar_steps: std.ArrayList(ScalarStepRecord) = .empty,
+    scalar_programs: std.ArrayList(ScalarProgramRecord) = .empty,
+    ecdsa: std.ArrayList(EcdsaRecord) = .empty,
 
     pub fn init(allocator: std.mem.Allocator) Tape {
         return .{ .allocator = allocator };
@@ -112,6 +186,10 @@ pub const Tape = struct {
         self.linears.deinit(self.allocator);
         self.points.deinit(self.allocator);
         self.scalar_splits.deinit(self.allocator);
+        self.tables.deinit(self.allocator);
+        self.scalar_steps.deinit(self.allocator);
+        self.scalar_programs.deinit(self.allocator);
+        self.ecdsa.deinit(self.allocator);
         self.* = undefined;
     }
 
@@ -194,8 +272,8 @@ pub const Tape = struct {
         const product_start = self.products.items.len;
         const linear_start = self.linears.items.len;
         const raw = try Secp256k1.Endormorphism.splitScalar(value, .little);
-        const first = try self.canonicalSplitMagnitude(raw.r1);
-        const second = try self.canonicalSplitMagnitude(raw.r2);
+        const first = try canonicalSplitMagnitude(raw.r1);
+        const second = try canonicalSplitMagnitude(raw.r2);
         const lambda_product = try self.mul(
             .scalar,
             second.magnitude,
@@ -236,11 +314,10 @@ pub const Tape = struct {
         return .{ .first = first, .second = second };
     }
 
-    fn canonicalSplitMagnitude(self: *Tape, raw: Value) !SignedMagnitude {
-        const zero: Value = @splat(0);
+    fn canonicalSplitMagnitude(raw: Value) !SignedMagnitude {
         const negative = raw[raw.len / 2] != 0;
         const magnitude = if (negative)
-            try self.sub(.scalar, zero, raw)
+            field.bytesFromInteger(field.scalar_modulus.integer() - integer(raw))
         else
             raw;
         for (magnitude[magnitude.len / 2 ..]) |byte| {
@@ -358,52 +435,6 @@ pub fn addPoints(tape: *Tape, lhs: Point, rhs: Point) !Point {
     return result;
 }
 
-pub fn doubleScalarWnaf(
-    tape: *Tape,
-    generator_scalar: Value,
-    point: Point,
-    point_scalar: Value,
-) !Point {
-    if (integer(generator_scalar) >= field.scalar_modulus.integer() or
-        integer(point_scalar) >= field.scalar_modulus.integer())
-    {
-        return error.NonCanonicalScalar;
-    }
-    if (point.infinity) return error.IdentityPoint;
-
-    const generator_digits = wnaf(generator_scalar);
-    const point_digits = wnaf(point_scalar);
-    const generator_table = fixedGeneratorOddTable();
-    const point_table = try oddTable(tape, point);
-    const highest = @max(generator_digits.length, point_digits.length);
-
-    var accumulator = Point{};
-    var index = highest;
-    while (index != 0) {
-        index -= 1;
-        accumulator = try double(tape, accumulator);
-        if (generator_digits.digits[index] != 0) {
-            const selected = try signedSelection(
-                tape,
-                &generator_table,
-                generator_digits.digits[index],
-                false,
-            );
-            accumulator = try addPoints(tape, accumulator, selected);
-        }
-        if (point_digits.digits[index] != 0) {
-            const selected = try signedSelection(
-                tape,
-                &point_table,
-                point_digits.digits[index],
-                true,
-            );
-            accumulator = try addPoints(tape, accumulator, selected);
-        }
-    }
-    return accumulator;
-}
-
 /// GLV-accelerated joint multiplication.  Both scalar decompositions and the
 /// variable-point endomorphism are retained in the operation tape.
 pub fn doubleScalarGlvWnaf(
@@ -413,14 +444,38 @@ pub fn doubleScalarGlvWnaf(
     point_scalar: Value,
 ) !Point {
     if (point.infinity) return error.IdentityPoint;
+    const split_start = tape.scalar_splits.items.len;
     const generator_split = try tape.splitScalar(generator_scalar);
     const point_split = try tape.splitScalar(point_scalar);
+    const endomorphism_product_index = try productRecordIndex(tape);
     const point_endomorphism = try endomorphismPoint(tape, point);
 
-    const generator_table = fixedGeneratorOddTable();
-    const generator_endomorphism_table = fixedGeneratorEndomorphismOddTable();
-    const point_table = try oddTable(tape, point);
-    const point_endomorphism_table = try oddTable(tape, point_endomorphism);
+    const table_start = tape.tables.items.len;
+    const generator_table = try buildSignedTable(
+        tape,
+        .generator,
+        basePoint(),
+        true,
+        null,
+        null,
+    );
+    const generator_endomorphism_table = try buildSignedTable(
+        tape,
+        .generator_endomorphism,
+        fixedGeneratorEndomorphismOddTable()[0],
+        true,
+        null,
+        null,
+    );
+    const point_table = try buildSignedTable(tape, .public_key, point, false, null, null);
+    const point_endomorphism_table = try buildSignedTable(
+        tape,
+        .public_key_endomorphism,
+        point_endomorphism,
+        false,
+        endomorphism_product_index,
+        point,
+    );
 
     const generator_first = wnaf(generator_split.first.magnitude);
     const generator_second = wnaf(generator_split.second.magnitude);
@@ -432,71 +487,170 @@ pub fn doubleScalarGlvWnaf(
     );
     if (highest > 130) return error.InvalidScalarSplit;
 
+    const step_start = tape.scalar_steps.items.len;
     var accumulator = Point{};
     var index = highest;
     while (index != 0) {
         index -= 1;
+        var step = ScalarStepRecord{
+            .bit_index = @intCast(index),
+            .accumulator_before = accumulator,
+            .after_double = undefined,
+            .digits = .{
+                signedDigit(generator_first.digits[index], generator_split.first.negative),
+                signedDigit(generator_second.digits[index], generator_split.second.negative),
+                signedDigit(point_first.digits[index], point_split.first.negative),
+                signedDigit(point_second.digits[index], point_split.second.negative),
+            },
+            .state_after = .{
+                wnafStateAfter(generator_split.first.magnitude, index),
+                wnafStateAfter(generator_split.second.magnitude, index),
+                wnafStateAfter(point_split.first.magnitude, index),
+                wnafStateAfter(point_split.second.magnitude, index),
+            },
+            .selected = undefined,
+            .after_add = undefined,
+            .point_record_indices = @splat(std.math.maxInt(u32)),
+        };
+        step.point_record_indices[0] = try pointRecordIndex(tape);
         accumulator = try double(tape, accumulator);
-        accumulator = try addDigit(
-            tape,
-            accumulator,
+        step.after_double = accumulator;
+
+        const tables = [_]*const SignedTable{
             &generator_table,
-            signedDigit(generator_first.digits[index], generator_split.first.negative),
-            false,
-        );
-        accumulator = try addDigit(
-            tape,
-            accumulator,
             &generator_endomorphism_table,
-            signedDigit(generator_second.digits[index], generator_split.second.negative),
-            false,
-        );
-        accumulator = try addDigit(
-            tape,
-            accumulator,
             &point_table,
-            signedDigit(point_first.digits[index], point_split.first.negative),
-            true,
-        );
-        accumulator = try addDigit(
-            tape,
-            accumulator,
             &point_endomorphism_table,
-            signedDigit(point_second.digits[index], point_split.second.negative),
-            true,
-        );
+        };
+        for (tables, 0..) |table, digit_index| {
+            const digit = step.digits[digit_index];
+            step.selected[digit_index] = table[signedTableIndex(digit)];
+            if (digit != 0) {
+                step.point_record_indices[1 + digit_index] = try pointRecordIndex(tape);
+                accumulator = try addPoints(tape, accumulator, step.selected[digit_index]);
+            }
+            step.after_add[digit_index] = accumulator;
+        }
+        try tape.scalar_steps.append(tape.allocator, step);
     }
+    const step_count = tape.scalar_steps.items.len - step_start;
+    if (split_start > std.math.maxInt(u32) or
+        table_start > std.math.maxInt(u32) or
+        step_start > std.math.maxInt(u32) or
+        step_count > std.math.maxInt(u8))
+    {
+        return error.TapeOverflow;
+    }
+    try tape.scalar_programs.append(tape.allocator, .{
+        .generator_scalar = generator_scalar,
+        .point = point,
+        .point_scalar = point_scalar,
+        .split_start = @intCast(split_start),
+        .table_start = @intCast(table_start),
+        .step_start = @intCast(step_start),
+        .step_count = @intCast(step_count),
+        .result = accumulator,
+    });
     return accumulator;
 }
 
-pub fn verifyEcdsa(
+fn buildSignedTable(
     tape: *Tape,
-    digest_big_endian: [32]u8,
-    public_key_sec1: [65]u8,
-    r_big_endian: [32]u8,
-    s_big_endian: [32]u8,
-) !bool {
-    const public_key = pointFromSec1(&public_key_sec1) catch return false;
-    var digest = reverse(digest_big_endian);
-    const r = reverse(r_big_endian);
-    const s = reverse(s_big_endian);
-    const order = field.scalar_modulus.integer();
-    if (integer(r) == 0 or integer(s) == 0 or integer(r) >= order or integer(s) >= order)
-        return false;
+    kind: TableKind,
+    point: Point,
+    fixed: bool,
+    root_product_index: ?u32,
+    source_point: ?Point,
+) !SignedTable {
+    const point_start = tape.points.items.len;
+    const linear_start = tape.linears.items.len;
+    const positive = if (fixed)
+        switch (kind) {
+            .generator => fixedGeneratorOddTable(),
+            .generator_endomorphism => fixedGeneratorEndomorphismOddTable(),
+            else => return error.InvalidFixedTable,
+        }
+    else
+        try oddTable(tape, point);
+    const twice = if (fixed)
+        pointFromStd((try pointToStd(point)).dbl())
+    else
+        tape.points.items[point_start].result;
+    var result: SignedTable = undefined;
+    result[0] = .{};
+    const negation_linear_start = tape.linears.items.len;
+    for (positive, 0..) |entry, table_index| {
+        result[1 + table_index] = entry;
+        var negative = entry;
+        negative.y = if (fixed)
+            negateValue(entry.y)
+        else
+            try tape.sub(.base, @splat(0), entry.y);
+        result[1 + odd_table_size + table_index] = negative;
+    }
+    const point_count = tape.points.items.len - point_start;
+    const linear_count = tape.linears.items.len - linear_start;
+    if (point_start > std.math.maxInt(u32) or
+        linear_start > std.math.maxInt(u32) or
+        negation_linear_start > std.math.maxInt(u32) or
+        point_count > std.math.maxInt(u8) or
+        linear_count > std.math.maxInt(u8))
+    {
+        return error.TapeOverflow;
+    }
+    try tape.tables.append(tape.allocator, .{
+        .kind = kind,
+        .source = source_point orelse point,
+        .twice = twice,
+        .entries = result,
+        .point_start = @intCast(point_start),
+        .point_count = @intCast(point_count),
+        .linear_start = @intCast(linear_start),
+        .linear_count = @intCast(linear_count),
+        .negation_linear_start = @intCast(negation_linear_start),
+        .root_product_index = root_product_index orelse std.math.maxInt(u32),
+    });
+    return result;
+}
 
-    digest = try tape.reduceScalarOnce(digest);
-    const inverse_s = try tape.inverse(.scalar, s);
-    const generator_scalar = try tape.mul(.scalar, digest, inverse_s);
-    const public_key_scalar = try tape.mul(.scalar, r, inverse_s);
-    const result = try doubleScalarGlvWnaf(
-        tape,
-        generator_scalar,
-        public_key,
-        public_key_scalar,
-    );
-    if (result.infinity) return false;
-    const x_scalar = try tape.reduceScalarOnce(result.x);
-    return std.mem.eql(u8, &x_scalar, &r);
+pub fn fixedSignedTable(kind: TableKind) ?SignedTable {
+    const positive = switch (kind) {
+        .generator => fixedGeneratorOddTable(),
+        .generator_endomorphism => fixedGeneratorEndomorphismOddTable(),
+        else => return null,
+    };
+    var result: SignedTable = undefined;
+    result[0] = .{};
+    for (positive, 0..) |entry, table_index| {
+        result[1 + table_index] = entry;
+        var negative = entry;
+        negative.y = negateValue(entry.y);
+        result[1 + odd_table_size + table_index] = negative;
+    }
+    return result;
+}
+
+pub fn signedTableIndex(digit: i8) usize {
+    if (digit == 0) return 0;
+    const magnitude: usize = @intCast(if (digit < 0) -@as(i16, digit) else digit);
+    std.debug.assert(magnitude <= 15 and magnitude & 1 == 1);
+    const positive_index = (magnitude - 1) / 2;
+    return 1 + positive_index + if (digit < 0) odd_table_size else 0;
+}
+
+fn pointRecordIndex(tape: *const Tape) !u32 {
+    if (tape.points.items.len > std.math.maxInt(u32)) return error.TapeOverflow;
+    return @intCast(tape.points.items.len);
+}
+
+fn productRecordIndex(tape: *const Tape) !u32 {
+    if (tape.products.items.len > std.math.maxInt(u32)) return error.TapeOverflow;
+    return @intCast(tape.products.items.len);
+}
+
+fn negateValue(value: Value) Value {
+    if (integer(value) == 0) return @splat(0);
+    return field.bytesFromInteger(field.base_modulus.integer() - integer(value));
 }
 
 const Wnaf = struct {
@@ -518,6 +672,20 @@ fn wnaf(value: Value) Wnaf {
         scalar = @divExact(scalar, 2);
     }
     return result;
+}
+
+fn wnafStateAfter(value: Value, digit_index: usize) Value {
+    var scalar_value: i512 = @intCast(integer(value));
+    var index: usize = 0;
+    while (index <= digit_index) : (index += 1) {
+        if (@mod(scalar_value, 2) != 0) {
+            var digit: i16 = @intCast(@mod(scalar_value, 1 << wnaf_width));
+            if (digit >= 1 << (wnaf_width - 1)) digit -= 1 << wnaf_width;
+            scalar_value -= digit;
+        }
+        scalar_value = @divExact(scalar_value, 2);
+    }
+    return field.bytesFromInteger(@intCast(scalar_value));
 }
 
 fn oddTable(tape: *Tape, point: Point) ![odd_table_size]Point {
@@ -564,46 +732,8 @@ fn endomorphismPoint(tape: *Tape, point: Point) !Point {
     };
 }
 
-fn addDigit(
-    tape: *Tape,
-    accumulator: Point,
-    table: *const [odd_table_size]Point,
-    digit: i8,
-    record_negation: bool,
-) !Point {
-    if (digit == 0) return accumulator;
-    return addPoints(
-        tape,
-        accumulator,
-        try signedSelection(tape, table, digit, record_negation),
-    );
-}
-
 fn signedDigit(digit: i8, negative: bool) i8 {
     return if (negative) -digit else digit;
-}
-
-fn signedSelection(
-    tape: *Tape,
-    table: *const [odd_table_size]Point,
-    digit: i8,
-    record_negation: bool,
-) !Point {
-    std.debug.assert(digit != 0 and @mod(digit, 2) != 0);
-    const magnitude: u8 = @intCast(if (digit < 0) -@as(i16, digit) else digit);
-    var result = table[(magnitude - 1) / 2];
-    if (digit < 0) {
-        if (record_negation) {
-            result.y = try tape.sub(.base, @splat(0), result.y);
-        } else {
-            const p = field.base_modulus.integer();
-            result.y = field.bytesFromInteger(if (integer(result.y) == 0)
-                0
-            else
-                p - integer(result.y));
-        }
-    }
-    return result;
 }
 
 fn appendPoint(

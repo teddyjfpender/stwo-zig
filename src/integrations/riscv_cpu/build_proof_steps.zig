@@ -152,6 +152,41 @@ pub fn add(ctx: anytype) void {
         "Keccak-f native proof identity guard",
     ));
 
+    const secp256k1_proof_root = b.createModule(.{
+        .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    support.addImports(
+        secp256k1_proof_root,
+        core,
+        prover_api,
+        prover,
+        cpu_backend,
+        frontend,
+    );
+    const secp256k1_proof_name =
+        "secp256k1 typed ECDSA bundle proves and independently verifies";
+    const secp256k1_proof_compile = b.addTest(.{
+        .root_module = secp256k1_proof_root,
+        .filters = &.{secp256k1_proof_name},
+    });
+    b.step(
+        "check-secp256k1-precompile-proof",
+        "Compile the compact typed secp256k1 native proof gate",
+    ).dependOn(&secp256k1_proof_compile.step);
+    const secp256k1_proof_tests = b.addRunArtifact(secp256k1_proof_compile);
+    secp256k1_proof_tests.has_side_effects = true;
+    b.step(
+        "test-secp256k1-precompile-proof",
+        "Prove and independently verify compact typed secp256k1 ECDSA",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        secp256k1_proof_tests,
+        &.{secp256k1_proof_name},
+        "secp256k1 native proof identity guard",
+    ));
+
     const full_recursion_proof_root = b.createModule(.{
         .root_source_file = b.path("universal_recursive_air_proof_test.zig"),
         .target = target,

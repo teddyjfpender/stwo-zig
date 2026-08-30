@@ -1,9 +1,10 @@
 const std = @import("std");
 const affine = @import("secp256k1_affine.zig");
+const ecdsa = @import("secp256k1_ecdsa.zig");
 const field = @import("secp256k1_field.zig");
 
 const Secp256k1 = std.crypto.ecc.Secp256k1;
-const csp_input = [_]u8{
+pub const csp_input = [_]u8{
     0xe4, 0x95, 0xc7, 0x07, 0xf9, 0x13, 0x9a, 0x49, 0x9b, 0xa2, 0x6b, 0xb8,
     0xe8, 0x53, 0xe7, 0x7e, 0x3b, 0x29, 0xea, 0xd1, 0xf6, 0x26, 0x9e, 0x93,
     0xa8, 0xb7, 0x8d, 0x08, 0x50, 0x79, 0xee, 0xd5, 0x04, 0x05, 0xb3, 0x04,
@@ -39,37 +40,7 @@ test "secp256k1 affine: complete add and double agree with Zig secp" {
     try std.testing.expect(affine.Point.eql(try affine.addPoints(&tape, generator, .{}), generator));
 }
 
-test "secp256k1 affine: joint wNAF matches independent GLV reference" {
-    var generator = std.Random.DefaultPrng.init(0x5ec0_5ec0_2561_2561);
-    const random = generator.random();
-    for (0..12) |_| {
-        var tape = affine.Tape.init(std.testing.allocator);
-        defer tape.deinit();
-        const order = field.scalar_modulus.integer();
-        const point_scalar = 1 + random.int(u256) % (order - 1);
-        const generator_scalar = 1 + random.int(u256) % (order - 1);
-        const other_scalar = 1 + random.int(u256) % (order - 1);
-        const point_std = try Secp256k1.basePoint.mul(field.bytesFromInteger(point_scalar), .little);
-        const point = try affine.pointFromSec1(&point_std.toUncompressedSec1());
-        const actual = try affine.doubleScalarWnaf(
-            &tape,
-            field.bytesFromInteger(generator_scalar),
-            point,
-            field.bytesFromInteger(other_scalar),
-        );
-        const expected = try Secp256k1.mulDoubleBasePublic(
-            Secp256k1.basePoint,
-            field.bytesFromInteger(generator_scalar),
-            point_std,
-            field.bytesFromInteger(other_scalar),
-            .little,
-        );
-        try std.testing.expect((try affine.pointToStd(actual)).equivalent(expected));
-        try std.testing.expect(tape.products.items.len < 1_900);
-    }
-}
-
-test "secp256k1 affine: GLV tape matches baseline and reduces product rows" {
+test "secp256k1 affine: GLV tape matches independent standard implementation" {
     var generator = std.Random.DefaultPrng.init(0x1234_5ec0_2561_abcd);
     const random = generator.random();
     for (0..12) |_| {
@@ -80,13 +51,12 @@ test "secp256k1 affine: GLV tape matches baseline and reduces product rows" {
         const point_std = try Secp256k1.basePoint.mul(field.bytesFromInteger(point_scalar), .little);
         const point = try affine.pointFromSec1(&point_std.toUncompressedSec1());
 
-        var baseline = affine.Tape.init(std.testing.allocator);
-        defer baseline.deinit();
-        const expected = try affine.doubleScalarWnaf(
-            &baseline,
+        const expected = try Secp256k1.mulDoubleBasePublic(
+            Secp256k1.basePoint,
             field.bytesFromInteger(generator_scalar),
-            point,
+            point_std,
             field.bytesFromInteger(other_scalar),
+            .little,
         );
         var glv = affine.Tape.init(std.testing.allocator);
         defer glv.deinit();
@@ -96,8 +66,8 @@ test "secp256k1 affine: GLV tape matches baseline and reduces product rows" {
             point,
             field.bytesFromInteger(other_scalar),
         );
-        try std.testing.expect(affine.Point.eql(expected, actual));
-        try std.testing.expect(glv.products.items.len * 4 < baseline.products.items.len * 3);
+        try std.testing.expect((try affine.pointToStd(actual)).equivalent(expected));
+        try std.testing.expect(glv.products.items.len < 1_100);
         try std.testing.expectEqual(@as(usize, 2), glv.scalar_splits.items.len);
     }
 }
@@ -106,7 +76,7 @@ test "secp256k1 affine: CSP signature verifies with compact operation tape" {
     try std.testing.expectEqual(@as(usize, 161), csp_input.len);
     var tape = affine.Tape.init(std.testing.allocator);
     defer tape.deinit();
-    const valid = try affine.verifyEcdsa(
+    const valid = try ecdsa.verify(
         &tape,
         csp_input[0..32].*,
         csp_input[32..97].*,
@@ -114,9 +84,14 @@ test "secp256k1 affine: CSP signature verifies with compact operation tape" {
         csp_input[129..161].*,
     );
     try std.testing.expect(valid);
-    try std.testing.expectEqual(@as(usize, 1_039), tape.products.items.len);
-    try std.testing.expectEqual(@as(usize, 1_516), tape.linears.items.len);
+    try std.testing.expectEqual(@as(usize, 1_042), tape.products.items.len);
+    try std.testing.expectEqual(@as(usize, 1_507), tape.linears.items.len);
     try std.testing.expectEqual(@as(usize, 228), tape.points.items.len);
+    try std.testing.expectEqual(@as(usize, 4), tape.tables.items.len);
+    try std.testing.expect(tape.scalar_steps.items.len > 0);
+    try std.testing.expect(tape.scalar_steps.items.len <= 130);
+    try std.testing.expectEqual(@as(usize, 1), tape.scalar_programs.items.len);
+    try std.testing.expectEqual(@as(usize, 1), tape.ecdsa.items.len);
     for (tape.products.items) |*record| try record.witness.validateExact(record.modulus.modulus());
 }
 
@@ -125,7 +100,7 @@ test "secp256k1 affine: pinned bad signature is rejected" {
     bad_input[160] ^= 1;
     var tape = affine.Tape.init(std.testing.allocator);
     defer tape.deinit();
-    try std.testing.expect(!try affine.verifyEcdsa(
+    try std.testing.expect(!try ecdsa.verify(
         &tape,
         bad_input[0..32].*,
         bad_input[32..97].*,

@@ -1138,3 +1138,42 @@ The wall-time ratio is 0.8181 with 95% CI `[0.794593, 0.820251]`.  This is a
 general two-point secp256k1 optimization, not a CSP fixture specialization.
 The next proof checkpoint must bind the point/scalar program and its primitive
 row multiset before any end-to-end speed claim is made.
+
+### Retained: complete typed ECDSA proof below one second
+
+The second checkpoint closes the complete GLV tape in one STARK.  Ten typed
+components prove base- and scalar-field products and linear operations, affine
+point transitions, both GLV splits, the 128-row joint scalar program, signed
+tables, the ECDSA transaction, and the shared byte table.  Every primitive
+product, linear, point, split, and scalar-program tape record is consumed
+exactly once.  The verifier reconstructs only the public ECDSA counterpart and
+replays the transcript in a fresh verifier scheme.
+
+The first closed proof used 6,464 interaction columns.  Inspection showed that
+the high-level point, split, table, scalar, and ECDSA rows were range-checking
+bytes already authenticated by their primitive product/linear relations.  The
+retained custody model leaves all primitive byte checks intact, retains checks
+for the scalar program's 64 bytes of private recurrence state, and directly
+checks the 160 public ECDSA bytes.  All other copied values are authenticated
+through exact relation custody.  This removes 1,056 duplicate range batches
+and reduces the interaction tree to 2,240 columns, a 65.3% reduction, without
+changing the arithmetic program or public statement.
+
+| ReleaseFast complete typed ECDSA proof | initial closed proof | delegated range custody |
+|---|---:|---:|
+| witness and bundle materialization | 25.188 ms | 23.304 ms |
+| preprocessed commitment | 15.480 ms | 16.866 ms |
+| main commitment | 246.242 ms | 245.359 ms |
+| interaction generation | 30.812 ms | 19.625 ms |
+| interaction commitment | 408.123 ms | 292.971 ms |
+| quotient/FRI proof after commitments | 449.894 ms | 330.561 ms |
+| **proof production total** | **1,175.739 ms** | **928.686 ms** |
+| fresh verification | 262.811 ms | 155.715 ms |
+| prove plus fresh verify | 1,438.550 ms | 1,084.401 ms |
+
+The retained proof-production improvement is 21.0%, and the complete typed
+proof now crosses the subsecond target without benchmark-specific constants.
+The focused Debug closure receipt is
+`.git/typed-air-zig-gates/runs/1788104767279320000-94212.json`; the retained
+ReleaseFast proof/fresh-verifier receipt is
+`.git/typed-air-zig-gates/runs/1788104781874948000-94257.json`.
