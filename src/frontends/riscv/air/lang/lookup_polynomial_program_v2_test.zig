@@ -59,8 +59,8 @@ test "lookup polynomial v2: every selected family lowers into exact authenticate
         selected_batches += program.batchCount();
         selected_columns += program.interactionColumnCount();
     }
-    try std.testing.expectEqual(@as(usize, 137), selected_batches);
-    try std.testing.expectEqual(@as(usize, 548), selected_columns);
+    try std.testing.expectEqual(@as(usize, 138), selected_batches);
+    try std.testing.expectEqual(@as(usize, 552), selected_columns);
 }
 
 test "lookup polynomial v2: uniform selections retain exact v1 program and layout" {

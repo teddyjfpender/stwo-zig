@@ -58,8 +58,8 @@ test "lookup batch execution: selected native layouts preserve every row sum" {
             try std.testing.expect(singleton_total.eql(selected_total));
         }
     }
-    try std.testing.expectEqual(@as(usize, 155), current_batches);
-    try std.testing.expectEqual(@as(usize, 137), selected_batches);
+    try std.testing.expectEqual(@as(usize, 156), current_batches);
+    try std.testing.expectEqual(@as(usize, 138), selected_batches);
 }
 
 test "lookup batch execution: selected cumulative traces preserve row totals" {

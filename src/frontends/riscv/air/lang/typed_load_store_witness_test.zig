@@ -80,13 +80,26 @@ test "typed load/store direct writer matches every legacy cell over boundary cor
                 const row = makeRow(opcode, @intCast(offset), value, case_index);
                 witness.writeActiveRow(&typed_columns, 0, row);
                 legacy.writeRow(&legacy_columns, 0, row);
-                for (typed_columns, legacy_columns, 0..) |actual, expected, column| {
+                for (
+                    typed_columns[0..48],
+                    legacy_columns[0..48],
+                    0..,
+                ) |actual, expected, column| {
                     errdefer std.debug.print(
                         "load/store mismatch case={d} opcode={s} column={d}\n",
                         .{ case_index, @tagName(opcode), column },
                     );
                     try std.testing.expectEqual(expected[0], actual[0]);
                 }
+                const word_index = (row.mem_addr & ~@as(u32, 3)) >> 2;
+                try std.testing.expectEqual(
+                    M31.fromCanonical(word_index),
+                    typed_columns[48][0],
+                );
+                try std.testing.expectEqual(
+                    M31.fromCanonical(word_index & ((1 << 20) - 1)),
+                    typed_columns[49][0],
+                );
                 case_index += 1;
             }
         }

@@ -8,8 +8,8 @@ const types = @import("types.zig");
 
 const StateChainTracker = state_chain.StateChainTracker;
 const MAX_EVENTS: usize = 3;
-const MAX_ALIGNED_DATA_ADDRESS: u32 = ((@as(u32, 1) << 20) - 1) * 4;
-const M31_MODULUS: u32 = 0x7fff_ffff;
+const MAX_ALIGNED_DATA_ADDRESS: u32 = (@as(u32, 1) << 30) - 4;
+const MAX_DATA_BASE_EXCLUSIVE: u32 = 1 << 30;
 
 pub const RegisterRole = enum { rs1, rs2, rd };
 
@@ -98,7 +98,7 @@ pub fn appendMemory(
     const width = decode.memoryWidthBytes(opcode).?;
     const effective_address = input.rs1_value +%
         @as(u32, @bitCast(input.instruction.imm));
-    if (input.rs1_value >= M31_MODULUS)
+    if (input.rs1_value >= MAX_DATA_BASE_EXCLUSIVE)
         return error.MemoryBaseOutOfRange;
     if (effective_address & (@as(u32, width) - 1) != 0)
         return error.MemoryAddressMisaligned;

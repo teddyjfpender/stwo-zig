@@ -32,8 +32,10 @@ pub const FORMAT_VERSION: u16 = 1;
 pub const MAX_EVENTS: usize = 3;
 pub const MAX_TRANSACTION_BYTES: usize = 256;
 
-/// The typed load/store AIR range-checks the aligned word index as uint20.
-pub const MAX_ALIGNED_DATA_ADDRESS: u32 = ((@as(u32, 1) << 20) - 1) * 4;
+/// Recursive segment statements already bind read/write addresses below 2^30.
+/// The load/store AIR now proves the same bound with a low20/high8 word-index
+/// decomposition, so execution and proof admission share one exact ceiling.
+pub const MAX_ALIGNED_DATA_ADDRESS: u32 = (@as(u32, 1) << 30) - 4;
 /// `range_check_m31` admits the canonical integers below the M31 modulus.
 pub const M31_MODULUS: u32 = 0x7fff_ffff;
 

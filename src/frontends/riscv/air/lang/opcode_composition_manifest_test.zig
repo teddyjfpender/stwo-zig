@@ -62,10 +62,10 @@ test "E-022 composition manifest has the exact 17-family compatibility geometry"
         total_batches += item.lookup_batches;
         total_interaction += item.interaction_columns;
     }
-    try std.testing.expectEqual(@as(usize, 644), total_main);
+    try std.testing.expectEqual(@as(usize, 646), total_main);
     try std.testing.expectEqual(@as(usize, 545), total_direct);
-    try std.testing.expectEqual(@as(usize, 242), total_lookups);
-    try std.testing.expectEqual(@as(usize, 155), total_batches);
+    try std.testing.expectEqual(@as(usize, 243), total_lookups);
+    try std.testing.expectEqual(@as(usize, 156), total_batches);
     try std.testing.expectEqual(@as(usize, 620), total_interaction);
     try std.testing.expectEqual(@as(usize, 67), subject.MAX_MAIN_COLUMNS);
     try std.testing.expectEqual(@as(usize, 79), subject.MAX_DIRECT_CONSTRAINTS);
@@ -259,7 +259,7 @@ test "E-022 infrastructure cursor owns fixed geometry and O(1) canonical placeme
         .component_count = 17,
         .adapter_count = 34,
         .preprocessed_columns = 34,
-        .main_columns = 644,
+        .main_columns = 646,
         .interaction_columns = 620,
     };
     var cursor = base_component_assembly.InfrastructureCursor.init(opcode_final);
@@ -454,7 +454,7 @@ test "E-022 prover and verifier materialize the same 17-family placement plan" {
         .component_count = 17,
         .adapter_count = 34,
         .preprocessed_columns = 34,
-        .main_columns = 644,
+        .main_columns = 646,
         .interaction_columns = 620,
     };
     try std.testing.expectEqualDeep(expected_final, prover_cursor);
