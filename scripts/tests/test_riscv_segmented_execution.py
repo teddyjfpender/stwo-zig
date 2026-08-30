@@ -45,10 +45,11 @@ def fixture_stream(
     elf: bytes,
     budget: int = 65536,
     clock_frame: str = subject.CLOCK_FRAME_LEAF_LOCAL,
+    execution_profile: str = subject.PROFILE_BASE,
 ) -> list[bytes]:
     header = {
         "schema": subject.HEADER_SCHEMA,
-        "profile": "rv32im-zkvm-v1",
+        "profile": execution_profile,
         "clock_frame": clock_frame,
         "claim_boundary": subject.CLAIM_BOUNDARY,
         "elf_bytes": len(elf),
@@ -224,7 +225,33 @@ class SegmentedExecutionTests(unittest.TestCase):
             self.assertEqual(len(tuple(bundle.glob("invocation-*.stderr"))), 2)
             plan = json.loads((bundle / "plan.json").read_bytes())
             self.assertEqual(plan["clock_frame"], subject.CLOCK_FRAME_LEAF_LOCAL)
+            self.assertEqual(plan["execution_profile"], subject.PROFILE_BASE)
             self.assertIn("leaf-local", plan["command"])
+
+    def test_execution_profile_is_bound_by_the_capture_plan(self) -> None:
+        repository = Path(__file__).resolve().parents[2]
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            tool = root / "tool"
+            elf_path = root / "guest.elf"
+            tool.write_bytes(b"tool")
+            elf_path.write_bytes(b"elf")
+            plan = subject.make_plan(
+                repository,
+                tool,
+                elf_path,
+                None,
+                65536,
+                execution_profile=subject.PROFILE_KECCAKF,
+            )
+            lines = fixture_stream(b"elf", execution_profile=subject.PROFILE_KECCAKF)
+            self.assertEqual(
+                subject.validate_records(lines, plan, require_complete=True)["total_cycles"],
+                8,
+            )
+            forged = fixture_stream(b"elf", execution_profile=subject.PROFILE_BASE)
+            with self.assertRaisesRegex(subject.ContractError, "execution profile"):
+                subject.validate_records(forged, plan, require_complete=True)
 
     def test_pathological_tiny_segments_are_rejected(self) -> None:
         repository = Path(__file__).resolve().parents[2]

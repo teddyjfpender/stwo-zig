@@ -9,6 +9,7 @@
 
 const std = @import("std");
 const runner = @import("../runner/mod.zig");
+const execution_profile = @import("../isa/execution_profile.zig");
 const memory_state = @import("../runner/memory_state.zig");
 const result_mod = @import("../runner/result.zig");
 const trace_mod = @import("../runner/trace.zig");
@@ -109,10 +110,56 @@ const MemoryDigest = struct {
 
 const Side = enum { initial, final };
 
-/// Execute a base RV32IM guest as bounded, segment-owned ranges and stream one
-/// canonical NDJSON chain.  The writer is flushed after every record so a
-/// supervising process can fsync a verified prefix before the next segment.
+/// Execute the ELF's exactly admitted RV32 machine profile as bounded,
+/// segment-owned ranges and stream one canonical NDJSON chain. The writer is
+/// flushed after every record so a supervising process can fsync a verified
+/// prefix before the next segment.
 pub fn stream(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    segment_step_budget: usize,
+    strict_completion: bool,
+    clock_frame: runner.SegmentClockFrame,
+    writer: *std.Io.Writer,
+) !void {
+    const profile = try runner.elf_loader.requestedExecutionProfile(elf_bytes);
+    return switch (profile) {
+        .rv32im_zkvm_v1 => streamForProfile(
+            .rv32im_zkvm_v1,
+            allocator,
+            elf_bytes,
+            input,
+            segment_step_budget,
+            strict_completion,
+            clock_frame,
+            writer,
+        ),
+        .rv32im_zkvm_poseidon2_v1 => streamForProfile(
+            .rv32im_zkvm_poseidon2_v1,
+            allocator,
+            elf_bytes,
+            input,
+            segment_step_budget,
+            strict_completion,
+            clock_frame,
+            writer,
+        ),
+        .rv32im_zkvm_keccakf_v1 => streamForProfile(
+            .rv32im_zkvm_keccakf_v1,
+            allocator,
+            elf_bytes,
+            input,
+            segment_step_budget,
+            strict_completion,
+            clock_frame,
+            writer,
+        ),
+    };
+}
+
+fn streamForProfile(
+    comptime profile: execution_profile.ExecutionProfile,
     allocator: std.mem.Allocator,
     elf_bytes: []const u8,
     input: []const u8,
@@ -129,7 +176,7 @@ pub fn stream(
     const input_hex = hex(input_digest);
     var previous_record = try writeEnvelope(allocator, writer, HeaderPayload{
         .schema = HEADER_SCHEMA,
-        .profile = "rv32im-zkvm-v1",
+        .profile = profile.name(),
         .clock_frame = @tagName(clock_frame),
         .claim_boundary = CLAIM_BOUNDARY,
         .elf_bytes = try u64FromUsize(elf_bytes.len),
@@ -141,7 +188,7 @@ pub fn stream(
         .trace_retention = "segment-owned",
     });
 
-    var session = try runner.BaseExecutionSession.init(allocator, elf_bytes, .{
+    var session = try runner.ExecutionSession(profile).init(allocator, elf_bytes, .{
         .input = input,
         .stop_on_halt_flag = strict_completion,
         .strict_completion = strict_completion,
@@ -169,11 +216,12 @@ pub fn stream(
     var final_output_bytes: ?u64 = null;
 
     while (true) {
-        var segment = if (continuation) |token|
+        var configured_segment = if (continuation) |token|
             try session.resumeSegment(token, segment_step_budget)
         else
             try session.startSegment(segment_step_budget);
-        defer segment.deinit();
+        defer configured_segment.deinit();
+        const segment = baseSegment(profile, &configured_segment);
 
         const entry_cpu = digestCpu(segment.entry_cpu);
         const exit_cpu = digestCpu(segment.exit_cpu);
@@ -218,6 +266,7 @@ pub fn stream(
             return error.OpcodeInventoryMismatch;
         const external_rows = std.math.sub(u64, cycles, core_rows) catch
             return error.TraceCycleCountMismatch;
+        try requireExtensionInventory(profile, &configured_segment, external_rows);
         total_cycles = std.math.add(u64, total_cycles, cycles) catch
             return error.ExecutionCycleCountOverflow;
         total_core_rows = std.math.add(u64, total_core_rows, core_rows) catch
@@ -332,6 +381,29 @@ pub fn stream(
         .segment_statement_v2_global_cycle_limit = segment_statement_v2.MAX_GLOBAL_CYCLES,
         .segment_statement_v2_admissible = total_cycles <= segment_statement_v2.MAX_GLOBAL_CYCLES,
     });
+}
+
+fn baseSegment(
+    comptime profile: execution_profile.ExecutionProfile,
+    configured: anytype,
+) *result_mod.SegmentResult {
+    if (comptime profile == .rv32im_zkvm_v1) return configured;
+    return &configured.base;
+}
+
+fn requireExtensionInventory(
+    comptime profile: execution_profile.ExecutionProfile,
+    configured: anytype,
+    external_rows: u64,
+) !void {
+    if (comptime profile == .rv32im_zkvm_v1) {
+        if (external_rows != 0) return error.ExtensionRowInventoryMismatch;
+        return;
+    }
+    const call_count = try u64FromUsize(configured.calls.len());
+    const execution_row_count = try u64FromUsize(configured.execution_rows.rows().len);
+    if (call_count != external_rows or execution_row_count != external_rows)
+        return error.ExtensionRowInventoryMismatch;
 }
 
 fn writeEnvelope(
@@ -509,4 +581,36 @@ test "segmented manifest is deterministic, chained, and exposes V2 claim boundar
     try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"segment_count\":3,\"total_cycles\":5") != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"max_segment_cycle_count\":2,\"leaf_local_clock_ranges_within_v3_limit\":true") != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"segment_statement_v2_admissible\":true") != null);
+}
+
+test "segmented manifest selects Keccak profile and closes external rows" {
+    const test_elf = @import("../runner/guest_precompile/test_elf.zig");
+    const elf = test_elf.buildKeccakf(.ecall);
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
+    try stream(
+        std.testing.allocator,
+        &elf,
+        &.{},
+        2,
+        false,
+        .leaf_local,
+        &output.writer,
+    );
+    try std.testing.expectEqual(@as(usize, 4), std.mem.count(u8, output.written(), "\n"));
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"profile\":\"rv32im-zkvm-keccakf-v1\"",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"external_trace_rows\":1",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"total_external_trace_rows\":1",
+    ) != null);
 }

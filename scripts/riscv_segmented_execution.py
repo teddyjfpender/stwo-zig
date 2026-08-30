@@ -24,9 +24,13 @@ from typing import Any
 HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v2"
 SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v2"
 SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v2"
-PLAN_SCHEMA = "stwo.riscv.segmented-execution-capture-plan.v2"
-RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v2"
+PLAN_SCHEMA = "stwo.riscv.segmented-execution-capture-plan.v3"
+RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v3"
 CLAIM_BOUNDARY = "execution-only-not-a-proof"
+PROFILE_BASE = "rv32im-zkvm-v1"
+PROFILE_POSEIDON2 = "rv32im-zkvm-poseidon2-v1"
+PROFILE_KECCAKF = "rv32im-zkvm-keccakf-v1"
+EXECUTION_PROFILES = (PROFILE_BASE, PROFILE_POSEIDON2, PROFILE_KECCAKF)
 CLOCK_FRAME_GLOBAL = "global_continuous"
 CLOCK_FRAME_LEAF_LOCAL = "leaf_local"
 CLOCK_FRAME_CLI = {
@@ -209,7 +213,7 @@ def validate_records(
         ),
         "header",
     )
-    if header["schema"] != HEADER_SCHEMA or header["profile"] != "rv32im-zkvm-v1":
+    if header["schema"] != HEADER_SCHEMA or header["profile"] not in EXECUTION_PROFILES:
         raise ContractError("unsupported segmented execution header")
     clock_frame = header["clock_frame"]
     if clock_frame not in (CLOCK_FRAME_GLOBAL, CLOCK_FRAME_LEAF_LOCAL):
@@ -230,6 +234,8 @@ def validate_records(
             raise ContractError("header ELF identity differs from capture plan")
         if header["input_bytes"] != plan["input"]["bytes"] or header["input_sha256"] != plan["input"]["sha256"]:
             raise ContractError("header input identity differs from capture plan")
+        if header["profile"] != plan["execution_profile"]:
+            raise ContractError("header execution profile differs from capture plan")
         if budget != plan["segment_step_budget"] or not header["strict_completion"]:
             raise ContractError("header execution policy differs from capture plan")
         if clock_frame != plan["clock_frame"]:
@@ -441,6 +447,7 @@ def make_plan(
     input_path: Path | None,
     segment_steps: int,
     clock_frame: str = CLOCK_FRAME_LEAF_LOCAL,
+    execution_profile: str = PROFILE_BASE,
 ) -> dict[str, Any]:
     if not MIN_SEGMENT_STEPS <= segment_steps <= MAX_SEGMENT_STEPS:
         raise ContractError(
@@ -455,6 +462,8 @@ def make_plan(
     )
     if clock_frame not in (CLOCK_FRAME_GLOBAL, CLOCK_FRAME_LEAF_LOCAL):
         raise ContractError("unsupported segmented execution clock frame")
+    if execution_profile not in EXECUTION_PROFILES:
+        raise ContractError("unsupported segmented execution profile")
     cli_clock_frame = next(
         cli for cli, normalized in CLOCK_FRAME_CLI.items() if normalized == clock_frame
     )
@@ -477,6 +486,7 @@ def make_plan(
         "tool": _file_identity(tool),
         "elf": _file_identity(elf),
         "input": input_identity,
+        "execution_profile": execution_profile,
         "segment_step_budget": segment_steps,
         "strict_completion": True,
         "clock_frame": clock_frame,
@@ -601,6 +611,7 @@ def capture_bundle(
     input_path: Path | None,
     segment_steps: int,
     clock_frame: str = CLOCK_FRAME_LEAF_LOCAL,
+    execution_profile: str = PROFILE_BASE,
     max_new_segments: int | None = None,
     require_clean: bool = False,
 ) -> dict[str, Any] | None:
@@ -609,7 +620,15 @@ def capture_bundle(
     elf = elf.resolve(strict=True)
     input_path = input_path.resolve(strict=True) if input_path is not None else None
     bundle = bundle.resolve(strict=False)
-    plan = make_plan(repository, tool, elf, input_path, segment_steps, clock_frame)
+    plan = make_plan(
+        repository,
+        tool,
+        elf,
+        input_path,
+        segment_steps,
+        clock_frame,
+        execution_profile,
+    )
     if require_clean and not plan["source"]["clean"]:
         raise ContractError("clean source is required")
     if bundle.exists() or bundle.is_symlink():
@@ -733,6 +752,11 @@ def _parser() -> argparse.ArgumentParser:
         choices=tuple(CLOCK_FRAME_CLI),
         default="leaf-local",
     )
+    capture.add_argument(
+        "--execution-profile",
+        choices=EXECUTION_PROFILES,
+        default=PROFILE_BASE,
+    )
     capture.add_argument("--max-new-segments", type=int)
     capture.add_argument("--require-clean", action="store_true")
     validate = sub.add_parser("validate")
@@ -756,6 +780,7 @@ def main(argv: list[str] | None = None) -> int:
                 input_path=args.input,
                 segment_steps=args.segment_steps,
                 clock_frame=CLOCK_FRAME_CLI[args.clock_frame],
+                execution_profile=args.execution_profile,
                 max_new_segments=args.max_new_segments,
                 require_clean=args.require_clean,
             )
