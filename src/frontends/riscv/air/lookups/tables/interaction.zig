@@ -58,6 +58,26 @@ pub fn rowPair(
     return logup.RowPair.single(relation_entry.numerator, try relation_entry.denominator(relations));
 }
 
+/// Combines a generated table tuple without promoting its base-field values to
+/// secure-field elements. The schema owns the fixed arity, so production table
+/// generation pays one `QM31.mulM31` per coordinate instead of a general
+/// `QM31.mul` while retaining the public `Entry` path as an independent oracle.
+fn denominatorBase(
+    kind: schema.Kind,
+    tuple: schema.Tuple,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    if (tuple.len != schema.arity(kind)) return error.InvalidArity;
+    return switch (kind) {
+        .bitwise => relations.bitwise.combineBase(tuple.values[0..4].*),
+        .range_check_20 => relations.range_check_20.combineBase(tuple.values[0..1].*),
+        .range_check_8_11 => relations.range_check_8_11.combineBase(tuple.values[0..2].*),
+        .range_check_8_8_4 => relations.range_check_8_8_4.combineBase(tuple.values[0..3].*),
+        .range_check_8_8 => relations.range_check_8_8.combineBase(tuple.values[0..2].*),
+        .range_check_m31 => relations.range_check_m31.combineBase(tuple.values[0..2].*),
+    };
+}
+
 /// Generate one secure singleton cumulative column as four committed M31
 /// columns. Denominators are batch-inverted because tables reach 2^20 rows.
 pub fn generate(
@@ -116,12 +136,7 @@ pub fn generateInto(
     // denominator non-zero here makes all following chunk writes infallible.
     for (0..size) |row| {
         const tuple = try schema.tupleAt(counter.kind, row);
-        const relation_entry = tableEntry(
-            counter.kind,
-            tuple,
-            counter.values[row],
-        );
-        if ((try relation_entry.denominator(relations)).isZero())
+        if ((try denominatorBase(counter.kind, tuple, relations)).isZero())
             return error.DivisionByZero;
     }
 
@@ -133,12 +148,7 @@ pub fn generateInto(
         for (denominators[0..chunk_len], 0..) |*denominator, local_row| {
             const row = row_start + local_row;
             const tuple = schema.tupleAt(counter.kind, row) catch unreachable;
-            const relation_entry = tableEntry(
-                counter.kind,
-                tuple,
-                counter.values[row],
-            );
-            denominator.* = relation_entry.denominator(relations) catch unreachable;
+            denominator.* = denominatorBase(counter.kind, tuple, relations) catch unreachable;
         }
         fields.batchInverseInPlace(
             QM31,
@@ -308,12 +318,7 @@ const TableChunk = struct {
         for (denominators, 0..) |*denominator, local_row| {
             const row = self.row_start + local_row;
             const tuple = try schema.tupleAt(self.counter.kind, row);
-            const relation_entry = tableEntry(
-                self.counter.kind,
-                tuple,
-                self.counter.values[row],
-            );
-            denominator.* = try relation_entry.denominator(self.relations);
+            denominator.* = try denominatorBase(self.counter.kind, tuple, self.relations);
         }
         try fields.batchInverseInPlace(QM31, denominators, inverses);
 
@@ -479,6 +484,28 @@ fn sourceTerm(
     };
     @memcpy(relation_entry.values[0..values.len], values);
     return numerator.mul(try (try relation_entry.denominator(relations)).inv());
+}
+
+test "base table denominator matches canonical entry for every schema" {
+    const relations = relations_mod.Relations.dummy();
+    for (0..schema.KIND_COUNT) |index| {
+        const kind: schema.Kind = @enumFromInt(index);
+        for ([_]usize{ 0, 17, schema.size(kind) - 1 }) |row| {
+            const tuple = try schema.tupleAt(kind, row);
+            const canonical = tableEntry(kind, tuple, M31.one());
+            try std.testing.expect(
+                (try denominatorBase(kind, tuple, &relations)).eql(
+                    try canonical.denominator(&relations),
+                ),
+            );
+        }
+        var malformed = try schema.tupleAt(kind, 0);
+        malformed.len -= 1;
+        try std.testing.expectError(
+            error.InvalidArity,
+            denominatorBase(kind, malformed, &relations),
+        );
+    }
 }
 
 test "table singleton balances signed source multiplicity for all six domains" {

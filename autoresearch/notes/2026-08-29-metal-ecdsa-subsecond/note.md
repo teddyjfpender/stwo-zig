@@ -688,3 +688,46 @@ and Keccak proof SHA
 The balanced evidence roots are
 `/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/opcode-relations-{bccb,cbbc}-v1`
 and their `opcode-relations-keccak-*` counterparts.
+
+### Retained: base-field table denominator arithmetic
+
+The six preprocessed lookup tables contain only M31 tuple values, but their
+interaction generator constructed a generic secure-field `Entry` for every
+row and evaluated each challenge term with a full QM31-by-QM31 multiply. The
+retained generated-table path now uses each relation's typed `combineBase`
+operation, so every challenge term is QM31-by-M31. The public generic `Entry`
+path is deliberately unchanged and remains the independent oracle for all six
+schemas; tests compare the optimized denominator to it, including boundary and
+duplicate rows, and malformed arity still rejects before generation.
+
+A temporary same-binary ReleaseFast timing over 100,000 denominators per table
+measured these representative pairs before the research harness was removed:
+
+| table | generic secure path | base-field path |
+|---|---:|---:|
+| bitwise | 4.434 ms | 0.439 ms |
+| range-check-20 | 3.096 ms | 0.595 ms |
+| range-check-8-8-4 | 3.904 ms | 0.566 ms |
+| range-check-M31 | 2.889 ms | 0.425 ms |
+
+Two complementary five-sample-per-leg ECDSA cohorts pooled to:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| prepared opcode relations | 0.328422 s | 0.369900 s | 1.372882 s | 2.071204 s | 2.226088 s |
+| base-field table denominators | 0.329403 s | 0.367199 s | 1.358220 s | 2.054823 s | 2.212794 s |
+
+The official ECDSA boundary improves by 0.79%, proving by 1.07%, witness by
+0.73%, and complete request by 0.60%. Keccak/128 also improves across two
+complementary seven-sample-per-leg cohorts: 0.519795 to 0.514962 seconds CSP
+duration (-0.93%) and 0.590432 to 0.584425 seconds complete request (-1.02%).
+
+The final lookup-table gate receipt is
+`.git/typed-air-zig-gates/runs/1788055516788181000-91096.json`; the product
+receipt is `.git/typed-air-zig-gates/runs/1788055536594089000-91163.json` and
+the retained product SHA-256 is
+`866487cf4422c18dc03c31cdcfb4d968ac3d9d08ad265813a94ae8a1af37928a`.
+Fresh verification reproduced the unchanged ECDSA and Keccak proof, statement,
+and transcript identities. Evidence roots are
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/table-base-denominator-{bccb,cbbc}-v1`
+and their `table-base-denominator-keccak-*` counterparts.
