@@ -330,6 +330,20 @@ pub fn build(b: *std.Build) void {
         .minimum = 5,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-table-interaction",
+        .description = "Run lookup-table interaction parity and rollback tests",
+        .root = "lookup_table_interaction_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-opcode-interaction",
+        .description = "Run scalar/packed opcode interaction parity and rollback tests",
+        .root = "opcode_interaction_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 11,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-lookup-batching-edit",
         .description = "Run the lightweight authenticated lookup-batch planner edit loop",
         .root = "lookup_batch_edit_test_root.zig",

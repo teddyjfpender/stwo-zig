@@ -580,11 +580,15 @@ const OpcodeChunk = struct {
         }
         try fields.batchInverseInPlace(QM31, denominators, inverses);
 
+        const singleton_batches = self.plan.program.batch_size == 1;
         for (0..self.n_batches) |batch| {
             for (0..chunk_len) |row_offset| {
                 const term_index = batch * chunk_len + row_offset;
                 self.trace_sums[batch * self.trace_size + self.row_start + row_offset] =
-                    numerators[term_index].mul(inverses[term_index]);
+                    if (singleton_batches)
+                        inverses[term_index].mulM31(numerators[term_index].c0.a)
+                    else
+                        numerators[term_index].mul(inverses[term_index]);
             }
         }
     }

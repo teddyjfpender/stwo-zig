@@ -550,3 +550,61 @@ request. The ECDSA proof remained 3,304,541 bytes with SHA-256
 `eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`
 and passed a fresh-process secure verifier with the unchanged statement and
 transcript identities.
+
+### Retained: base-numerator interaction arithmetic
+
+The post-source-ingest sample still spent substantial CPU time in opcode and
+preprocessed-table interaction generation. Two numerator shapes were carrying
+base-field values through unnecessary secure-field construction/multiply
+paths:
+
+- the MUL/MULH/DIV opcode families use physical singleton batches, so their
+  post-inversion numerator is one M31 scalar rather than a general QM31;
+- every preprocessed lookup-table multiplicity is an M31 scalar, while the
+  denominator inverse is QM31.
+
+The retained implementation uses `QM31.mulM31` in both cases. It does not
+change batching, denominator construction, inversion order, prefix order, or
+the committed interaction columns. A production-shaped lookup-table timing
+improved from 11.039 ms to 7.776 ms (-29.6%). The packed singleton opcode
+timing improved by 1.3--1.9%, depending on mean versus median. Focused Debug
+and ReleaseFast gates cover paired, singleton, and wide opcode families plus
+all six table interactions; their reusable roots avoid rebuilding the full
+frontend during subsequent arithmetic experiments.
+
+Two complementary five-sample-per-leg ECDSA B/C/C/B and C/B/B/C runs pooled
+to:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| caller-owned source entries | 0.328207 s | 0.377029 s | 1.384078 s | 2.089314 s | 2.246633 s |
+| base-numerator arithmetic | 0.328874 s | 0.377201 s | 1.369599 s | 2.075674 s | 2.227825 s |
+
+This is a 0.65% reduction at the official CSP boundary and a 0.84% complete
+request reduction. Keccak/128 was neutral across two complementary 28-sample
+cohorts: 0.521241 versus 0.521447 seconds (+0.04%). The retained product SHA is
+`3d7c02b3a64eb03e9f9da854cee2ec0f534f616e3ccd783358ffdee5c2019763`.
+Fresh-process verification passed for both workloads. All ECDSA arms decoded
+to the unchanged 3,304,541-byte proof SHA
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`;
+all Keccak arms decoded to the unchanged 827,978-byte proof SHA
+`b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.
+
+### Rejected: broader packed and direct-event lookup rewrites
+
+Three larger rewrites did not survive focused measurement and were reverted:
+
+- packing four independent table terms into QM31 lanes made the production
+  table loop slower;
+- a four-term packed dot product in opcode denominator construction regressed
+  the load/store interaction timing by about 1.4%;
+- reconstructing BASE_ALU_REG table requests directly from its typed relation
+  events looked attractive in the process sample, but the exact row-level
+  benchmark measured 128.39 ns per row versus 87.37 ns for the retained
+  committed-column authority (+47%). A whole-proof screen was correspondingly
+  neutral. The direct path and its temporary timing test were removed in full.
+
+The last result is useful architecture evidence: the committed-column builder
+is already well scalarized and cache-hot. A future single-source fusion must
+share the witness writer's decoded row before either product is materialized;
+building a second typed event structure beside it is not reuse.

@@ -152,7 +152,7 @@ pub fn generateInto(
         ) |denominator_inverse, multiplicity, local_row| {
             const row = row_start + local_row;
             accumulator = accumulator.add(
-                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+                denominator_inverse.mulM31(multiplicity.neg()),
             );
             const current = accumulator.toM31Array();
             const dst = core_utils.bitReverseIndex(
@@ -320,7 +320,7 @@ const TableChunk = struct {
         var accumulator = QM31.zero();
         for (inverses, self.counter.values[self.row_start..self.row_end], 0..) |denominator_inverse, multiplicity, local_row| {
             accumulator = accumulator.add(
-                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+                denominator_inverse.mulM31(multiplicity.neg()),
             );
             const current = accumulator.toM31Array();
             const dst = self.table.map(self.row_start + local_row);
@@ -436,7 +436,7 @@ fn generateFullDomainReference(
     defer allocator.free(sums);
     var accumulator = QM31.zero();
     for (sums, inverses, counter.values) |*sum, denominator_inverse, multiplicity| {
-        accumulator = accumulator.add(QM31.fromBase(multiplicity).neg().mul(denominator_inverse));
+        accumulator = accumulator.add(denominator_inverse.mulM31(multiplicity.neg()));
         sum.* = accumulator;
     }
 

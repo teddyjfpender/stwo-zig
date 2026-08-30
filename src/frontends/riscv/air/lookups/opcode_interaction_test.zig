@@ -3,6 +3,7 @@
 
 const std = @import("std");
 const fields = @import("stwo_core").fields;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const m31 = fields.m31;
 const M31 = m31.M31;
 const QM31 = fields.qm31.QM31;
@@ -19,6 +20,7 @@ const MAX_BATCHES = subject.MAX_BATCHES;
 const CHUNK_ROWS = subject.CHUNK_ROWS;
 const Plan = subject.Plan;
 const generate = subject.generate;
+const generateParallel = subject.generateParallel;
 const nColumns = subject.nColumns;
 const base_opcode_entries = subject.TestHooks.baseOpcodeEntries;
 const pairBase = subject.TestHooks.pairBaseForTest;
@@ -522,6 +524,66 @@ test "opcode interaction matches scalar prefixes for every family" {
             &relations,
         );
     }
+}
+
+fn expectParallelParity(family: trace.OpcodeFamily) !void {
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    const log_size: u32 = 13;
+    var main = try testColumns(
+        allocator,
+        family,
+        log_size,
+        &.{testRowForFamily(family, 0)},
+    );
+    defer freeTestColumns(allocator, main);
+    var expected = try generate(
+        allocator,
+        family,
+        main.storage[0..main.len],
+        log_size,
+        &relations,
+    );
+    defer expected.deinit(allocator);
+
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{
+        .worker_count = 2,
+        .stack_size = 512 * 1024,
+        .backing_allocator = allocator,
+    });
+    defer pool.deinit();
+    var actual = try generateParallel(
+        allocator,
+        family,
+        main.storage[0..main.len],
+        log_size,
+        &relations,
+        &pool,
+    );
+    defer actual.deinit(allocator);
+
+    try std.testing.expectEqual(expected.n_batches, actual.n_batches);
+    for (expected.claims[0..expected.n_batches], actual.claims[0..actual.n_batches]) |
+        expected_claim,
+        actual_claim,
+    | try std.testing.expect(actual_claim.eql(expected_claim));
+    for (expected.columns[0..expected.nColumns()], actual.columns[0..actual.nColumns()]) |
+        expected_column,
+        actual_column,
+    | try std.testing.expectEqualSlices(M31, expected_column, actual_column);
+}
+
+test "packed parallel paired opcode interaction matches scalar generation" {
+    try expectParallelParity(.base_alu_reg);
+}
+
+test "packed parallel singleton opcode interaction matches scalar generation" {
+    try expectParallelParity(.mul);
+}
+
+test "packed parallel wide opcode interaction matches scalar generation" {
+    try expectParallelParity(.load_store);
 }
 
 test "base-field opcode entries match secure reconstruction for every family and padding" {
