@@ -69,7 +69,7 @@ pub const Claim = struct {
         }
         const end = std.math.add(u32, self.first_call_index, self.call_count) catch
             return error.InvalidClaim;
-        if (end > @import("keccakf_authority.zig").candidate.maximum_calls)
+        if (end > @import("keccakf_authority.zig").geometry.maximum_calls)
             return error.InvalidClaim;
         const slots = std.math.divCeil(u32, self.call_count, 2) catch unreachable;
         const rows = std.math.mul(u32, slots, witness.row_count) catch

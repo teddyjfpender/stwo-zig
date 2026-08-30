@@ -70,7 +70,7 @@ test "keccakf relations: packed states bind call order and every input output bi
     ));
     try std.testing.expectError(
         error.CallIndexOutOfRange,
-        relations.ioTuple(authority.candidate.maximum_calls, input, output),
+        relations.ioTuple(authority.geometry.maximum_calls, input, output),
     );
 }
 

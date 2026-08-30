@@ -21,6 +21,7 @@ const elf_loader = @import("elf_loader.zig");
 const execute_mod = @import("execute.zig");
 const generated_retirement = @import("generated_retirement.zig");
 const guest_precompile = @import("guest_precompile/mod.zig");
+const extension_state = @import("guest_precompile/session_state.zig");
 const host_mod = @import("../host/mod.zig");
 const trace = @import("trace.zig");
 const state_chain = @import("state_chain.zig");
@@ -50,60 +51,23 @@ pub const SessionOptions = struct {
 };
 
 pub fn ConfiguredSegmentResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1)
-        result_mod.SegmentResult
-    else
-        result_mod.Poseidon2SegmentResult;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => result_mod.SegmentResult,
+        .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2SegmentResult,
+        .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfSegmentResult,
+    };
 }
 
 fn ConfiguredRunResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1)
-        result_mod.RunResult
-    else
-        result_mod.Poseidon2RunResult;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => result_mod.RunResult,
+        .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2RunResult,
+        .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfRunResult,
+    };
 }
 
 const SessionStatus = enum { active, complete, poisoned };
 const ExhaustionPolicy = enum { yield, legacy_terminal };
-
-const Poseidon2ExecutionState = struct {
-    calls: guest_precompile.call_buffer.Builder,
-    rows: guest_precompile.poseidon2_v1.ExecutionRowsBuilder,
-    external_step_origin: usize,
-
-    fn init(
-        allocator: std.mem.Allocator,
-        step_budget: usize,
-        external_step_origin: usize,
-    ) !Poseidon2ExecutionState {
-        const limit = @min(step_budget, guest_precompile.call_buffer.max_calls);
-        return .{
-            .calls = try .init(allocator, limit),
-            .rows = try .init(allocator, limit),
-            .external_step_origin = external_step_origin,
-        };
-    }
-
-    fn deinit(self: *Poseidon2ExecutionState) void {
-        self.calls.deinit();
-        self.rows.deinit();
-        self.* = undefined;
-    }
-};
-
-const EmptyExtensionState = struct {
-    fn init(_: std.mem.Allocator, _: usize, _: usize) !EmptyExtensionState {
-        return .{};
-    }
-    fn deinit(_: *EmptyExtensionState) void {}
-};
-
-fn ExtensionState(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_poseidon2_v1)
-        Poseidon2ExecutionState
-    else
-        EmptyExtensionState;
-}
 
 const StepOutcome = struct {
     retired: bool,
@@ -288,6 +252,16 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 };
                 segment = undefined;
                 return result;
+            } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
+                errdefer segment.deinit();
+                const base = segmentToRunResult(&segment.base);
+                const result = result_mod.KeccakfRunResult{
+                    .base = base,
+                    .calls = segment.calls,
+                    .execution_rows = segment.execution_rows,
+                };
+                segment = undefined;
+                return result;
             } else {
                 errdefer segment.deinit();
                 return segmentToRunResult(&segment);
@@ -343,7 +317,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             else
                 emptyAccessClockBoundary();
             errdefer entry_access_clocks.deinit(self.allocator);
-            var extension = try ExtensionState(profile).init(
+            var extension = try extension_state.State(profile).init(
                 self.allocator,
                 step_budget,
                 self.execution_trace.recordedExternalSteps(),
@@ -432,7 +406,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     local_steps,
                     owned.rows.items.len,
                 ) catch return error.ProfileClockAuthorityMismatch;
-                if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+                if (comptime profile != .rv32im_zkvm_v1) {
                     if (extension.calls.len() != external_steps or
                         extension.rows.len() != external_steps)
                     {
@@ -610,6 +584,12 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     .calls = extension.calls.freeze(),
                     .execution_rows = extension.rows.freeze(),
                 };
+            } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
+                return .{
+                    .base = base_result,
+                    .calls = extension.calls.freeze(),
+                    .execution_rows = extension.rows.freeze(),
+                };
             }
             return base_result;
         }
@@ -629,7 +609,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             execution_clock: u32,
             exec_trace: *trace.Trace,
             chain_tracker: *state_chain.StateChainTracker,
-            extension: *ExtensionState(profile),
+            extension: *extension_state.State(profile),
         ) !StepOutcome {
             const pc_before = self.cpu.pc;
             isa_profile.requireInstructionAligned(pc_before) catch
@@ -640,21 +620,37 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             {
                 return error.InvalidInstruction;
             }
-            if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+            if (comptime profile != .rv32im_zkvm_v1) {
                 if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                    try guest_precompile.poseidon2_v1.executeWithRecordedClock(
-                        profile,
-                        inst_word,
-                        execution_clock,
-                        extension.external_step_origin,
-                        &self.cpu,
-                        &self.memory,
-                        self.elf_info.memory_layout,
-                        chain_tracker,
-                        exec_trace,
-                        &extension.calls,
-                        &extension.rows,
-                    );
+                    if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+                        try guest_precompile.poseidon2_v1.executeWithRecordedClock(
+                            profile,
+                            inst_word,
+                            execution_clock,
+                            extension.external_step_origin,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                            &extension.calls,
+                            &extension.rows,
+                        );
+                    } else {
+                        try guest_precompile.keccakf_v1.executeWithRecordedClock(
+                            profile,
+                            inst_word,
+                            execution_clock,
+                            extension.external_step_origin,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                            &extension.calls,
+                            &extension.rows,
+                        );
+                    }
                     return .{ .retired = true };
                 }
             }

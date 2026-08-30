@@ -16,7 +16,9 @@ pub const Error = error{
     UnsupportedMachineProfile,
     UnsupportedRequiredCapabilities,
     UnsupportedPoseidon2Abi,
+    UnsupportedKeccakfAbi,
     Poseidon2SemanticDigestMismatch,
+    KeccakfSemanticDigestMismatch,
 };
 
 pub const sht_strtab: u32 = 3;
@@ -191,23 +193,33 @@ fn parseDescriptor(descriptor: []const u8) Error!ExecutionProfile {
         return error.InvalidAdmissionNote;
     }
 
-    const profile_id = readU16LE(descriptor[10..12]);
-    if (profile_id != @intFromEnum(ExecutionProfile.rv32im_zkvm_poseidon2_v1))
-        return error.UnsupportedMachineProfile;
-    if (readU64LE(descriptor[12..20]) != execution_profile.poseidon2_capability_bit)
-        return error.UnsupportedRequiredCapabilities;
-    if (readU16LE(descriptor[20..22]) != execution_profile.poseidon2_abi_version)
-        return error.UnsupportedPoseidon2Abi;
     if (readU16LE(descriptor[22..24]) != 0)
         return error.InvalidAdmissionNote;
-    if (!std.mem.eql(
-        u8,
-        descriptor[24..56],
-        &execution_profile.poseidon2_semantic_digest,
-    ))
-        return error.Poseidon2SemanticDigestMismatch;
-
-    return .rv32im_zkvm_poseidon2_v1;
+    const profile = std.meta.intToEnum(
+        ExecutionProfile,
+        readU16LE(descriptor[10..12]),
+    ) catch return error.UnsupportedMachineProfile;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => error.UnsupportedMachineProfile,
+        .rv32im_zkvm_poseidon2_v1 => blk: {
+            if (readU64LE(descriptor[12..20]) != execution_profile.poseidon2_capability_bit)
+                return error.UnsupportedRequiredCapabilities;
+            if (readU16LE(descriptor[20..22]) != execution_profile.poseidon2_abi_version)
+                return error.UnsupportedPoseidon2Abi;
+            if (!std.mem.eql(u8, descriptor[24..56], &execution_profile.poseidon2_semantic_digest))
+                return error.Poseidon2SemanticDigestMismatch;
+            break :blk profile;
+        },
+        .rv32im_zkvm_keccakf_v1 => blk: {
+            if (readU64LE(descriptor[12..20]) != execution_profile.keccakf_capability_bit)
+                return error.UnsupportedRequiredCapabilities;
+            if (readU16LE(descriptor[20..22]) != execution_profile.keccakf_abi_version)
+                return error.UnsupportedKeccakfAbi;
+            if (!std.mem.eql(u8, descriptor[24..56], &execution_profile.keccakf_semantic_digest))
+                return error.KeccakfSemanticDigestMismatch;
+            break :blk profile;
+        },
+    };
 }
 
 fn readU16LE(bytes: *const [2]u8) u16 {

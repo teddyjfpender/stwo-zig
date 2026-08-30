@@ -1,7 +1,7 @@
 //! Profile-local typed relations for the Keccak-f extension.
 //!
 //! IDs append to the unchanged twelve-relation base registry only inside the
-//! future Keccak profile.  The profile owns three independent challenge pairs:
+//! admitted Keccak profile. The profile owns three independent challenge pairs:
 //! packed-state I/O, chi-row lookup, and xor5 normalization.  Keeping the tables
 //! on distinct buses prevents an arity-compatible forged table row from
 //! cancelling against guest memory I/O.
@@ -186,7 +186,7 @@ pub fn ioTuple(
     input: authority.State,
     output: authority.State,
 ) Error!IoTuple {
-    if (call_index >= authority.candidate.maximum_calls)
+    if (call_index >= authority.geometry.maximum_calls)
         return error.CallIndexOutOfRange;
     var tuple: IoTuple = undefined;
     tuple[0] = M31.fromCanonical(@intCast(call_index));

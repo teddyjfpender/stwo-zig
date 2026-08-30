@@ -18,7 +18,7 @@ pub const maximum_log_size: u32 = 16;
 pub const maximum_slots_per_shard: usize =
     (@as(usize, 1) << maximum_log_size) / witness.row_count;
 pub const maximum_calls_per_shard: usize =
-    maximum_slots_per_shard * authority.candidate.operations_per_slot;
+    maximum_slots_per_shard * authority.geometry.operations_per_slot;
 
 pub const Layout = struct {
     pub const in_use_a: usize = 0;
@@ -89,12 +89,12 @@ pub fn generateShard(
     if (records.len > maximum_calls_per_shard) return error.CallRangeTooLarge;
     const call_end = std.math.add(usize, first_call_index, records.len) catch
         return error.CallIndexOutOfRange;
-    if (call_end > authority.candidate.maximum_calls)
+    if (call_end > authority.geometry.maximum_calls)
         return error.CallIndexOutOfRange;
     const slot_count = std.math.divCeil(
         usize,
         records.len,
-        authority.candidate.operations_per_slot,
+        authority.geometry.operations_per_slot,
     ) catch unreachable;
     const n_rows = std.math.mul(usize, slot_count, witness.row_count) catch
         return error.TraceSizeOverflow;

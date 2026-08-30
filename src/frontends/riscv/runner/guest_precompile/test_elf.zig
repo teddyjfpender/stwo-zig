@@ -10,13 +10,14 @@ const descriptor_offset: usize = note_offset + 20;
 const symbol_strings_offset: usize = 480;
 const symbols_offset: usize = 560;
 const program_offset: usize = 640;
-const data_size: usize = 64;
+const poseidon_data_size: usize = 64;
+const keccakf_data_size: usize = 256;
 
-fn imageSize(comptime instruction_count: usize) usize {
-    return program_offset + instruction_count * @sizeOf(u32) + data_size;
+fn imageSize(comptime instruction_count: usize, comptime writable_size: usize) usize {
+    return program_offset + instruction_count * @sizeOf(u32) + writable_size;
 }
 
-pub const elf_size: usize = imageSize(4);
+pub const elf_size: usize = imageSize(4, poseidon_data_size);
 
 pub const Completion = enum { ecall, self_loop };
 
@@ -34,7 +35,32 @@ pub fn build(include_call: bool, completion: Completion) [elf_size]u8 {
             .self_loop => 0x0000_006f,
         },
     };
-    return buildProgram(instructions.len, &instructions);
+    return buildProgram(
+        instructions.len,
+        &instructions,
+        poseidon_data_size,
+        .rv32im_zkvm_poseidon2_v1,
+    );
+}
+
+pub const keccakf_elf_size: usize = imageSize(4, keccakf_data_size);
+
+pub fn buildKeccakf(completion: Completion) [keccakf_elf_size]u8 {
+    const instructions = [_]u32{
+        0x0010_02b7,
+        0x1002_8293,
+        custom0.encodeKeccakf(5),
+        switch (completion) {
+            .ecall => 0x0000_0073,
+            .self_loop => 0x0000_006f,
+        },
+    };
+    return buildProgram(
+        instructions.len,
+        &instructions,
+        keccakf_data_size,
+        .rv32im_zkvm_keccakf_v1,
+    );
 }
 
 /// Minimal admitted program for temporal-recursion custody tests. Both
@@ -48,12 +74,14 @@ pub const temporal_pair_instructions = [_]u32{
 };
 
 pub const temporal_pair_elf_size: usize =
-    imageSize(temporal_pair_instructions.len);
+    imageSize(temporal_pair_instructions.len, poseidon_data_size);
 
 pub fn buildTemporalPair() [temporal_pair_elf_size]u8 {
     return buildProgram(
         temporal_pair_instructions.len,
         &temporal_pair_instructions,
+        poseidon_data_size,
+        .rv32im_zkvm_poseidon2_v1,
     );
 }
 
@@ -70,12 +98,14 @@ pub const temporal_quad_instructions = [_]u32{
 };
 
 pub const temporal_quad_elf_size: usize =
-    imageSize(temporal_quad_instructions.len);
+    imageSize(temporal_quad_instructions.len, poseidon_data_size);
 
 pub fn buildTemporalQuad() [temporal_quad_elf_size]u8 {
     return buildProgram(
         temporal_quad_instructions.len,
         &temporal_quad_instructions,
+        poseidon_data_size,
+        .rv32im_zkvm_poseidon2_v1,
     );
 }
 
@@ -107,19 +137,27 @@ pub const all_family_instructions = [_]u32{
     0x0000_006F, // JAL x0, 0: proof-bearing completion.
 };
 
-pub const all_family_elf_size: usize = imageSize(all_family_instructions.len);
+pub const all_family_elf_size: usize =
+    imageSize(all_family_instructions.len, poseidon_data_size);
 
 pub fn buildAllFamilies() [all_family_elf_size]u8 {
-    return buildProgram(all_family_instructions.len, &all_family_instructions);
+    return buildProgram(
+        all_family_instructions.len,
+        &all_family_instructions,
+        poseidon_data_size,
+        .rv32im_zkvm_poseidon2_v1,
+    );
 }
 
 fn buildProgram(
     comptime instruction_count: usize,
     instructions: *const [instruction_count]u32,
-) [imageSize(instruction_count)]u8 {
+    comptime writable_size: usize,
+    comptime profile: execution_profile.ExecutionProfile,
+) [imageSize(instruction_count, writable_size)]u8 {
     const program_size = instruction_count * @sizeOf(u32);
     const data_offset = program_offset + program_size;
-    var elf = [_]u8{0} ** imageSize(instruction_count);
+    var elf = [_]u8{0} ** imageSize(instruction_count, writable_size);
     @memcpy(elf[0..4], "\x7fELF");
     elf[4] = 1;
     elf[5] = 1;
@@ -148,8 +186,8 @@ fn buildProgram(
     put(u32, &elf, 84, 1);
     put(u32, &elf, 88, data_offset);
     put(u32, &elf, 92, 0x0010_0100);
-    put(u32, &elf, 100, 64);
-    put(u32, &elf, 104, 64);
+    put(u32, &elf, 100, writable_size);
+    put(u32, &elf, 104, writable_size);
     put(u32, &elf, 108, 6);
     put(u32, &elf, 112, 4);
 
@@ -203,17 +241,28 @@ fn buildProgram(
     @memcpy(elf[note_offset + 12 .. note_offset + 17], admission.note_name);
     @memcpy(elf[descriptor_offset .. descriptor_offset + 8], admission.descriptor_magic);
     put(u16, &elf, descriptor_offset + 8, admission.schema_version);
-    put(u16, &elf, descriptor_offset + 10, 1);
-    put(u64, &elf, descriptor_offset + 12, execution_profile.poseidon2_capability_bit);
-    put(u16, &elf, descriptor_offset + 20, execution_profile.poseidon2_abi_version);
+    put(u16, &elf, descriptor_offset + 10, @intFromEnum(profile));
+    put(u64, &elf, descriptor_offset + 12, profile.requiredCapabilities());
+    const abi_version, const semantic_digest = switch (profile) {
+        .rv32im_zkvm_poseidon2_v1 => .{
+            execution_profile.poseidon2_abi_version,
+            execution_profile.poseidon2_semantic_digest,
+        },
+        .rv32im_zkvm_keccakf_v1 => .{
+            execution_profile.keccakf_abi_version,
+            execution_profile.keccakf_semantic_digest,
+        },
+        .rv32im_zkvm_v1 => unreachable,
+    };
+    put(u16, &elf, descriptor_offset + 20, abi_version);
     @memcpy(
         elf[descriptor_offset + 24 .. descriptor_offset + 56],
-        &execution_profile.poseidon2_semantic_digest,
+        &semantic_digest,
     );
 
     for (instructions, 0..) |word, index|
         put(u32, &elf, program_offset + 4 * index, word);
-    for (0..16) |lane|
+    for (0..writable_size / @sizeOf(u32)) |lane|
         put(u32, &elf, data_offset + 4 * lane, @intCast(lane));
     return elf;
 }

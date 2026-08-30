@@ -1,9 +1,9 @@
-//! Keccak-f[1600] semantic and candidate-AIR geometry authority.
+//! Keccak-f[1600] semantic and typed-AIR geometry authority.
 //!
 //! The execution ABI operates on 25 little-endian `u64` lanes in place.  This
 //! module deliberately contains no prover or runner state: it is the small,
-//! independently testable authority used to validate both before a Keccak
-//! execution profile is admitted.
+//! independently testable authority shared by the admitted execution profile
+//! and its prover components.
 //!
 //! The paired sliced witness follows the public two-operation construction
 //! used by Polygon ZisK's Apache-2.0/MIT Keccak machine, independently restated
@@ -12,6 +12,14 @@
 //! a complete five-bit row plus the iota bit.
 
 const std = @import("std");
+
+pub const execution_semantic_preimage = "riscv.keccakf_1600.permute.v1";
+pub const execution_semantic_digest = [32]u8{
+    0x86, 0x30, 0x25, 0x10, 0x3a, 0x8f, 0x4a, 0xad,
+    0x9f, 0xc0, 0x0a, 0xf7, 0xff, 0x31, 0x85, 0x85,
+    0x58, 0x32, 0x03, 0xef, 0x6b, 0x9c, 0xdc, 0x73,
+    0x4d, 0x76, 0x48, 0x85, 0xfc, 0xd6, 0x1c, 0xd6,
+};
 
 pub const lane_count: usize = 25;
 pub const lane_bits: usize = 64;
@@ -44,7 +52,7 @@ pub const rho_offsets = [5][5]u6{
     .{ 27, 20, 39, 8, 14 },
 };
 
-pub const candidate = struct {
+pub const geometry = struct {
     pub const lanes_per_row: usize = 25;
     pub const rows_per_state: usize = lane_count / lanes_per_row;
     pub const operations_per_slot: usize = 2;
@@ -136,18 +144,18 @@ pub const ChiTableEntry = struct {
 };
 
 pub const Xor5TableEntry = struct {
-    sliced_sums: [candidate.xor5_batch]u8,
-    sliced_parities: [candidate.xor5_batch]u8,
+    sliced_sums: [geometry.xor5_batch]u8,
+    sliced_parities: [geometry.xor5_batch]u8,
 };
 
 pub const CompactChiTableEntry = struct {
-    theta: [candidate.compact.chi_input_count]u8,
+    theta: [geometry.compact.chi_input_count]u8,
     iota: u8,
     output: u8,
 };
 
 pub const CompactXor5TableEntry = struct {
-    input: [candidate.compact.xor_input_count]u8,
+    input: [geometry.compact.xor_input_count]u8,
     output: u8,
 };
 
@@ -229,29 +237,29 @@ pub fn chiTableRow(theta_a: [5]u8, theta_b: [5]u8, iota: bool) Error!u32 {
     while (x != 0) {
         x -= 1;
         if (theta_a[x] >= 4 or theta_b[x] >= 4) return error.InvalidChiDigit;
-        row = row * candidate.chi_digit_radix + theta_a[x] + 4 * @as(u32, theta_b[x]);
+        row = row * geometry.chi_digit_radix + theta_a[x] + 4 * @as(u32, theta_b[x]);
     }
-    if (iota) row += candidate.chi_digit_radix * candidate.chi_digit_radix *
-        candidate.chi_digit_radix * candidate.chi_digit_radix * candidate.chi_digit_radix;
+    if (iota) row += geometry.chi_digit_radix * geometry.chi_digit_radix *
+        geometry.chi_digit_radix * geometry.chi_digit_radix * geometry.chi_digit_radix;
     return row;
 }
 
 pub fn chiTableEntry(row: u32) Error!ChiTableEntry {
-    if (row >= candidate.chi_table_rows) return error.InvalidChiRow;
-    const chi_half: u32 = candidate.chi_table_rows / 2;
+    if (row >= geometry.chi_table_rows) return error.InvalidChiRow;
+    const chi_half: u32 = geometry.chi_table_rows / 2;
     const iota: u8 = @intFromBool(row >= chi_half);
     var encoded = row % chi_half;
     var theta_a: [5]u8 = undefined;
     var theta_b: [5]u8 = undefined;
-    var packed_input: u32 = @as(u32, iota) * candidate.chi_span;
+    var packed_input: u32 = @as(u32, iota) * geometry.chi_span;
     var power: u32 = 1;
     for (0..5) |x| {
-        const digit: u8 = @truncate(encoded % candidate.chi_digit_radix);
-        encoded /= candidate.chi_digit_radix;
+        const digit: u8 = @truncate(encoded % geometry.chi_digit_radix);
+        encoded /= geometry.chi_digit_radix;
         theta_a[x] = digit & 3;
         theta_b[x] = digit >> 2;
-        packed_input += power * (theta_a[x] + candidate.slot_base * @as(u32, theta_b[x]));
-        power *= candidate.chi_input_radix;
+        packed_input += power * (theta_a[x] + geometry.slot_base * @as(u32, theta_b[x]));
+        power *= geometry.chi_input_radix;
     }
 
     var output: [5]u8 = undefined;
@@ -262,35 +270,35 @@ pub fn chiTableEntry(row: u32) Error!ChiTableEntry {
             (theta_a[next2] & 1) + if (x == 0) iota else 0) & 1;
         const out_b = (theta_b[x] + (1 - (theta_b[next] & 1)) *
             (theta_b[next2] & 1) + if (x == 0) iota else 0) & 1;
-        output[x] = out_a + candidate.slot_base * out_b;
+        output[x] = out_a + geometry.slot_base * out_b;
     }
     return .{ .packed_input = packed_input, .output = output };
 }
 
-pub fn xor5TableRow(sums: [candidate.xor5_batch][2]u8) Error!u32 {
+pub fn xor5TableRow(sums: [geometry.xor5_batch][2]u8) Error!u32 {
     var row: u32 = 0;
-    var index: usize = candidate.xor5_batch;
+    var index: usize = geometry.xor5_batch;
     while (index != 0) {
         index -= 1;
         const sum_a = sums[index][0];
         const sum_b = sums[index][1];
         if (sum_a >= 6 or sum_b >= 6) return error.InvalidXor5Digit;
-        row = row * candidate.xor5_radix + sum_a + 6 * @as(u32, sum_b);
+        row = row * geometry.xor5_radix + sum_a + 6 * @as(u32, sum_b);
     }
     return row;
 }
 
 pub fn xor5TableEntry(row: u32) Error!Xor5TableEntry {
-    if (row >= candidate.xor5_table_rows) return error.InvalidXor5Row;
+    if (row >= geometry.xor5_table_rows) return error.InvalidXor5Row;
     var encoded = row;
     var result: Xor5TableEntry = undefined;
-    for (0..candidate.xor5_batch) |index| {
-        const digit: u8 = @truncate(encoded % candidate.xor5_radix);
-        encoded /= candidate.xor5_radix;
+    for (0..geometry.xor5_batch) |index| {
+        const digit: u8 = @truncate(encoded % geometry.xor5_radix);
+        encoded /= geometry.xor5_radix;
         const sum_a = digit % 6;
         const sum_b = digit / 6;
-        result.sliced_sums[index] = sum_a + candidate.slot_base * sum_b;
-        result.sliced_parities[index] = (sum_a & 1) + candidate.slot_base * (sum_b & 1);
+        result.sliced_sums[index] = sum_a + geometry.slot_base * sum_b;
+        result.sliced_parities[index] = (sum_a & 1) + geometry.slot_base * (sum_b & 1);
     }
     return result;
 }
@@ -299,80 +307,80 @@ pub fn xor5TableEntry(row: u32) Error!Xor5TableEntry {
 /// values in `[0,3]` as `a + 8*b`; the table applies parity, chi, and iota to
 /// both executions without expanding a five-output Cartesian product.
 pub fn compactChiTableRow(
-    theta: [candidate.compact.chi_input_count]u8,
+    theta: [geometry.compact.chi_input_count]u8,
     iota: bool,
 ) Error!u32 {
     var row: u32 = 0;
     var power: u32 = 1;
     for (theta) |value| {
-        const a = value % candidate.slot_base;
-        const b = value / candidate.slot_base;
+        const a = value % geometry.slot_base;
+        const b = value / geometry.slot_base;
         if (a >= 4 or b >= 4) return error.InvalidChiDigit;
         row += power * (a + 4 * @as(u32, b));
-        power *= candidate.compact.chi_input_radix;
+        power *= geometry.compact.chi_input_radix;
     }
     if (iota) row += power;
     return row;
 }
 
 pub fn compactChiTableEntry(row: u32) Error!CompactChiTableEntry {
-    if (row >= candidate.compact.chi_table_rows) return error.InvalidChiRow;
+    if (row >= geometry.compact.chi_table_rows) return error.InvalidChiRow;
     var encoded = row;
     var result: CompactChiTableEntry = undefined;
     for (&result.theta) |*value| {
-        const digit: u8 = @truncate(encoded % candidate.compact.chi_input_radix);
-        encoded /= candidate.compact.chi_input_radix;
-        value.* = (digit & 3) + candidate.slot_base * (digit >> 2);
+        const digit: u8 = @truncate(encoded % geometry.compact.chi_input_radix);
+        encoded /= geometry.compact.chi_input_radix;
+        value.* = (digit & 3) + geometry.slot_base * (digit >> 2);
     }
     result.iota = @truncate(encoded);
     const a0 = result.theta[0] & 1;
     const a1 = result.theta[1] & 1;
     const a2 = result.theta[2] & 1;
-    const b0 = (result.theta[0] / candidate.slot_base) & 1;
-    const b1 = (result.theta[1] / candidate.slot_base) & 1;
-    const b2 = (result.theta[2] / candidate.slot_base) & 1;
+    const b0 = (result.theta[0] / geometry.slot_base) & 1;
+    const b1 = (result.theta[1] / geometry.slot_base) & 1;
+    const b2 = (result.theta[2] / geometry.slot_base) & 1;
     result.output = (a0 ^ ((1 - a1) & a2) ^ result.iota) +
-        candidate.slot_base * (b0 ^ ((1 - b1) & b2) ^ result.iota);
+        geometry.slot_base * (b0 ^ ((1 - b1) & b2) ^ result.iota);
     return result;
 }
 
 /// Compact one-output parity table over five paired sliced input bits.
 pub fn compactXor5TableRow(
-    input: [candidate.compact.xor_input_count]u8,
+    input: [geometry.compact.xor_input_count]u8,
 ) Error!u32 {
     var row: u32 = 0;
     var power: u32 = 1;
     for (input) |value| {
-        const a = value % candidate.slot_base;
-        const b = value / candidate.slot_base;
+        const a = value % geometry.slot_base;
+        const b = value / geometry.slot_base;
         if (a >= 2 or b >= 2) return error.InvalidXor5Digit;
         row += power * (a + 2 * @as(u32, b));
-        power *= candidate.compact.xor_input_radix;
+        power *= geometry.compact.xor_input_radix;
     }
     return row;
 }
 
 pub fn compactXor5TableEntry(row: u32) Error!CompactXor5TableEntry {
-    if (row >= candidate.compact.xor5_table_rows) return error.InvalidXor5Row;
+    if (row >= geometry.compact.xor5_table_rows) return error.InvalidXor5Row;
     var encoded = row;
     var result = CompactXor5TableEntry{ .input = undefined, .output = 0 };
     var a: u8 = 0;
     var b: u8 = 0;
     for (&result.input) |*value| {
-        const digit: u8 = @truncate(encoded % candidate.compact.xor_input_radix);
-        encoded /= candidate.compact.xor_input_radix;
+        const digit: u8 = @truncate(encoded % geometry.compact.xor_input_radix);
+        encoded /= geometry.compact.xor_input_radix;
         const bit_a = digit & 1;
         const bit_b = digit >> 1;
-        value.* = bit_a + candidate.slot_base * bit_b;
+        value.* = bit_a + geometry.slot_base * bit_b;
         a ^= bit_a;
         b ^= bit_b;
     }
-    result.output = a + candidate.slot_base * b;
+    result.output = a + geometry.slot_base * b;
     return result;
 }
 
 /// Validate every nonlinear/table boundary for two round traces.  This does
-/// not merely recompute the output permutation: it proves that the candidate
+/// not merely recompute the output permutation: it proves that the geometry
 /// paired witness decodes to both independent Keccak executions round by round.
 pub fn validatePairedTraces(
     trace_a: *const PermutationTrace,
@@ -385,23 +393,23 @@ pub fn validatePairedTraces(
         const columns_b = ThetaColumns.init(trace_b[round]);
 
         var position: usize = 0;
-        while (position < candidate.parity_positions) : (position += candidate.xor5_batch) {
-            var sums: [candidate.xor5_batch][2]u8 = @splat(.{ 0, 0 });
-            for (0..candidate.xor5_batch) |offset| {
+        while (position < geometry.parity_positions) : (position += geometry.xor5_batch) {
+            var sums: [geometry.xor5_batch][2]u8 = @splat(.{ 0, 0 });
+            for (0..geometry.xor5_batch) |offset| {
                 const current = position + offset;
-                if (current >= candidate.parity_positions) continue;
+                if (current >= geometry.parity_positions) continue;
                 const x = current / lane_bits;
                 const z = current % lane_bits;
                 sums[offset] = .{ columns_a.sums[x][z], columns_b.sums[x][z] };
             }
             const normalized = try xor5TableEntry(try xor5TableRow(sums));
-            for (0..candidate.xor5_batch) |offset| {
+            for (0..geometry.xor5_batch) |offset| {
                 const current = position + offset;
-                const expected = if (current < candidate.parity_positions) blk: {
+                const expected = if (current < geometry.parity_positions) blk: {
                     const x = current / lane_bits;
                     const z = current % lane_bits;
                     break :blk columns_a.parities[x][z] +
-                        candidate.slot_base * columns_b.parities[x][z];
+                        geometry.slot_base * columns_b.parities[x][z];
                 } else 0;
                 if (normalized.sliced_parities[offset] != expected)
                     return error.TraceRoundMismatch;
@@ -420,7 +428,7 @@ pub fn validatePairedTraces(
                 const entry = try chiTableEntry(try chiTableRow(theta_a, theta_b, iota));
                 for (0..5) |x| {
                     const expected = bit(trace_a[round + 1], x, y, z) +
-                        candidate.slot_base * bit(trace_b[round + 1], x, y, z);
+                        geometry.slot_base * bit(trace_b[round + 1], x, y, z);
                     if (entry.output[x] != expected) return error.TraceRoundMismatch;
                 }
             }

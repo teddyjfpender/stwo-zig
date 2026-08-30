@@ -12,8 +12,8 @@ const relations_mod = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
 
-pub const chi_event_count: usize = authority.candidate.compact.chi_lookups_per_round;
-pub const xor5_event_count: usize = authority.candidate.compact.xor5_lookups_per_round;
+pub const chi_event_count: usize = authority.geometry.compact.chi_lookups_per_round;
+pub const xor5_event_count: usize = authority.geometry.compact.xor5_lookups_per_round;
 pub const io_event_count: usize = 2;
 pub const event_count: usize = chi_event_count + xor5_event_count + io_event_count;
 pub const batch_count: usize = (event_count + 1) / 2;
@@ -63,7 +63,7 @@ fn rowPairsFor(
         const y = position / authority.lane_bits;
         const z = position % authority.lane_bits;
         var tuple: relations_mod.ChiTupleFor(S) = undefined;
-        for (0..authority.candidate.compact.chi_input_count) |offset| {
+        for (0..authority.geometry.compact.chi_input_count) |offset| {
             const output_x = (x + offset) % 5;
             const source_x = (output_x + 3 * y) % 5;
             const source_y = output_x;

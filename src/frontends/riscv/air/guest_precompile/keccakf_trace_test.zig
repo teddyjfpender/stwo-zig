@@ -94,7 +94,7 @@ test "keccakf trace: output and range mutations fail without counter publication
         subject.generateShard(
             std.testing.allocator,
             &.{record(11)},
-            authority.candidate.maximum_calls,
+            authority.geometry.maximum_calls,
             &counters,
         ),
     );

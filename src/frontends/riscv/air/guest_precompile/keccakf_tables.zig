@@ -35,8 +35,8 @@ pub fn size(kind: Kind) usize {
 
 pub fn semanticRows(kind: Kind) usize {
     return switch (kind) {
-        .chi => authority.candidate.compact.chi_table_rows,
-        .xor5 => authority.candidate.compact.xor5_table_rows,
+        .chi => authority.geometry.compact.chi_table_rows,
+        .xor5 => authority.geometry.compact.xor5_table_rows,
     };
 }
 
@@ -121,8 +121,8 @@ pub fn generatePreprocessed(
 }
 
 comptime {
-    if (size(.chi) != authority.candidate.compact.chi_table_rows or
-        size(.xor5) != authority.candidate.compact.xor5_table_rows)
+    if (size(.chi) != authority.geometry.compact.chi_table_rows or
+        size(.xor5) != authority.geometry.compact.xor5_table_rows)
     {
         @compileError("Keccak-f physical table geometry drifted");
     }

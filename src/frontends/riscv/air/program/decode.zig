@@ -19,6 +19,7 @@ pub const ExecutionProfile = execution_profile.ExecutionProfile;
 /// Keep this numeric: the closed base `Opcode` enum must not acquire an
 /// extension variant and silently alter base protocol surfaces.
 pub const poseidon2_v1_program_opcode_id: u32 = 46;
+pub const keccakf_v1_program_opcode_id: u32 = 46;
 
 pub const Error = error{
     InvalidInstruction,
@@ -100,6 +101,12 @@ pub fn decodeProgramWordForProfile(
     return switch (inst.opcode) {
         .poseidon2_m31_permute_in_place_v1 => .{
             poseidon2_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
+        },
+        .keccakf_1600_permute_in_place_v1 => .{
+            keccakf_v1_program_opcode_id,
             0,
             inst.rs1,
             0,
@@ -240,6 +247,26 @@ test "decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple" {
     );
 }
 
+test "decoded program: Keccak-f profile owns the same isolated extension slot" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ keccakf_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_keccakf_v1,
+                custom0.encodeKeccakf(rs1),
+            ),
+        );
+    }
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_poseidon2_v1,
+            custom0.encodeKeccakf(5),
+        ),
+    );
+}
+
 test "decoded program: CUSTOM-0 authority remains profile-separated" {
     const canonical = custom0.encodePoseidon2(17);
     try std.testing.expectError(error.InvalidInstruction, decodeProgramWord(canonical));
@@ -259,4 +286,6 @@ test "decoded program: CUSTOM-0 authority remains profile-separated" {
 comptime {
     if (@typeInfo(Opcode).@"enum".fields.len != poseidon2_v1_program_opcode_id)
         @compileError("Poseidon2 program opcode must append after every base opcode");
+    if (keccakf_v1_program_opcode_id != poseidon2_v1_program_opcode_id)
+        @compileError("exclusive extension profiles must share the one local program slot");
 }

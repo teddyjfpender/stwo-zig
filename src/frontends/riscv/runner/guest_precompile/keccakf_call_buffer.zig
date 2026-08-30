@@ -8,7 +8,7 @@ const std = @import("std");
 const authority = @import("../../air/guest_precompile/keccakf_authority.zig");
 
 pub const word_count: usize = 50;
-pub const max_calls: usize = authority.candidate.maximum_calls;
+pub const max_calls: usize = authority.geometry.maximum_calls;
 
 pub const Record = struct {
     execution_clock: u32,

@@ -1,11 +1,11 @@
-//! Native CPU proof gate for the candidate typed Keccak-f profile.
+//! Native CPU proof gate for the typed Keccak-f profile.
 //!
 //! This is deliberately isolated from production routing. It proves one
 //! paired Keccak shard together with the complete chi/xor5 multiplicity
 //! tables, supplies the public packed-I/O boundary, and then reconstructs the
 //! transcript in a fresh verifier scheme. The heterogeneous log-5/log-10/
 //! log-13 commitment trees exercise the same placement and prepared-domain
-//! surfaces needed by the eventual guest profile.
+//! surfaces used by the admitted guest profile.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");

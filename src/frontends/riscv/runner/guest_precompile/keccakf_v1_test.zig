@@ -1,4 +1,4 @@
-//! Transaction, custody, and fail-closed tests for the Keccak-f candidate.
+//! Transaction, custody, and fail-closed tests for the Keccak-f profile.
 
 const std = @import("std");
 const authority = @import("../../air/guest_precompile/keccakf_authority.zig");
@@ -8,7 +8,7 @@ const Memory = @import("../memory.zig").Memory;
 const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
 const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
 const call_buffer = @import("keccakf_call_buffer.zig");
-const candidate = @import("keccakf_v1.zig");
+const subject = @import("keccakf_v1.zig");
 
 fn testLayout() MemoryLayout {
     return .{
@@ -53,14 +53,14 @@ fn readState(memory: *const Memory, ptr: u32) authority.State {
     return state;
 }
 
-test "keccakf candidate: transaction commits exact output clocks and records" {
+test "keccakf profile: transaction commits exact output clocks and records" {
     var memory = try Memory.initFallible(std.testing.allocator);
     defer memory.deinit();
     var tracker = StateChainTracker.init(std.testing.allocator);
     defer tracker.deinit();
     var calls = try call_buffer.Builder.init(std.testing.allocator, 2);
     defer calls.deinit();
-    var rows = try candidate.ExecutionRowsBuilder.init(std.testing.allocator, 2);
+    var rows = try subject.ExecutionRowsBuilder.init(std.testing.allocator, 2);
     defer rows.deinit();
     var cpu = Cpu.init(0x1000, 0x4000);
     const ptr: u32 = 0x2000;
@@ -68,7 +68,8 @@ test "keccakf candidate: transaction commits exact output clocks and records" {
     const input = inputState();
     writeState(&memory, ptr, input);
 
-    try candidate.executeCandidate(
+    try subject.execute(
+        .rv32im_zkvm_keccakf_v1,
         custom0.encodeKeccakf(5),
         1,
         &cpu,
@@ -87,22 +88,22 @@ test "keccakf candidate: transaction commits exact output clocks and records" {
     try std.testing.expectEqual(@as(u32, 1), calls.records()[0].execution_clock);
     try std.testing.expectEqual(@as(u32, ptr), calls.records()[0].state_ptr);
     try std.testing.expectEqual(@as(u32, 0), rows.rows()[0].call_index);
-    try std.testing.expectEqual(@as(usize, candidate.word_count + 1), tracker.accesses.items.len);
+    try std.testing.expectEqual(@as(usize, subject.word_count + 1), tracker.accesses.items.len);
     try std.testing.expectEqual(@as(u32, 1), tracker.reg_last_clk[5]);
-    for (0..candidate.word_count) |index| {
+    for (0..subject.word_count) |index| {
         const addr = ptr + @as(u32, @intCast(index * 4));
         try std.testing.expectEqual(@as(u32, 2), tracker.mem_last_clk.get(addr).?);
     }
 }
 
-test "keccakf candidate: invalid encoding alignment span and clock are fail atomic" {
+test "keccakf profile: invalid encoding alignment span and clock are fail atomic" {
     var memory = try Memory.initFallible(std.testing.allocator);
     defer memory.deinit();
     var tracker = StateChainTracker.init(std.testing.allocator);
     defer tracker.deinit();
     var calls = try call_buffer.Builder.init(std.testing.allocator, 4);
     defer calls.deinit();
-    var rows = try candidate.ExecutionRowsBuilder.init(std.testing.allocator, 4);
+    var rows = try subject.ExecutionRowsBuilder.init(std.testing.allocator, 4);
     defer rows.deinit();
     var cpu = Cpu.init(0x1000, 0x4000);
     cpu.writeReg(5, 0x2000);
@@ -117,7 +118,8 @@ test "keccakf candidate: invalid encoding alignment span and clock are fail atom
     };
     for (cases) |case| {
         cpu.writeReg(5, case.pointer);
-        try std.testing.expectError(case.expected, candidate.executeCandidate(
+        try std.testing.expectError(case.expected, subject.execute(
+            .rv32im_zkvm_keccakf_v1,
             case.word,
             case.clock,
             &cpu,
@@ -135,21 +137,22 @@ test "keccakf candidate: invalid encoding alignment span and clock are fail atom
     try std.testing.expectEqual(before, readState(&memory, 0x2000));
 }
 
-test "keccakf candidate: call limit failure cannot publish architecture" {
+test "keccakf profile: call limit failure cannot publish architecture" {
     var memory = try Memory.initFallible(std.testing.allocator);
     defer memory.deinit();
     var tracker = StateChainTracker.init(std.testing.allocator);
     defer tracker.deinit();
     var calls = try call_buffer.Builder.init(std.testing.allocator, 0);
     defer calls.deinit();
-    var rows = try candidate.ExecutionRowsBuilder.init(std.testing.allocator, 1);
+    var rows = try subject.ExecutionRowsBuilder.init(std.testing.allocator, 1);
     defer rows.deinit();
     var cpu = Cpu.init(0x1000, 0x4000);
     cpu.writeReg(5, 0x2000);
     const before = inputState();
     writeState(&memory, 0x2000, before);
 
-    try std.testing.expectError(error.PrecompileCallLimitExceeded, candidate.executeCandidate(
+    try std.testing.expectError(error.PrecompileCallLimitExceeded, subject.execute(
+        .rv32im_zkvm_keccakf_v1,
         custom0.encodeKeccakf(5),
         1,
         &cpu,

@@ -1,7 +1,5 @@
-//! Transactional execution candidate for `stwo.keccakf.1600.v1`.
+//! Transactional execution of `stwo.keccakf.1600.v1`.
 //!
-//! This module owns exact memory and access-clock semantics but is intentionally
-//! absent from production profile dispatch until its typed AIR provider lands.
 //! Prepare performs every fallible action; commit publishes memory, state-chain,
 //! call, row, and PC state without allocation.
 
@@ -9,15 +7,18 @@ const std = @import("std");
 const access_clock = @import("../../access_clock.zig");
 const authority = @import("../../air/guest_precompile/keccakf_authority.zig");
 const custom0 = @import("../../isa/custom0.zig");
+const execution_profile = @import("../../isa/execution_profile.zig");
 const isa_profile = @import("../../isa/profile.zig");
 const Cpu = @import("../cpu.zig").Cpu;
 const Memory = @import("../memory.zig").Memory;
 const MemoryLayout = @import("../memory_state.zig").MemoryLayout;
+const Trace = @import("../trace.zig").Trace;
 const StateChainTracker = @import("../state_chain.zig").StateChainTracker;
 const call_buffer = @import("keccakf_call_buffer.zig");
 
 pub const word_count = call_buffer.word_count;
 pub const state_bytes = word_count * @sizeOf(u32);
+pub const ExecutionProfile = execution_profile.ExecutionProfile;
 
 pub const Error = custom0.DecodeError || error{
     OutOfMemory,
@@ -108,7 +109,8 @@ const Prepared = struct {
     memory_clock: u32,
 };
 
-pub fn executeCandidate(
+pub fn execute(
+    profile: ExecutionProfile,
     inst_word: u32,
     execution_clock: u32,
     cpu: *Cpu,
@@ -119,6 +121,7 @@ pub fn executeCandidate(
     execution_rows: *ExecutionRowsBuilder,
 ) Error!void {
     const prepared = try prepareAndReserve(
+        profile,
         inst_word,
         execution_clock,
         cpu.*,
@@ -131,7 +134,64 @@ pub fn executeCandidate(
     commit(prepared, cpu, memory, tracker, calls, execution_rows);
 }
 
+/// Publish the Keccak call and the runner's external-retirement clock through
+/// one allocation-free commit after every fallible check and reserve succeeds.
+pub fn executeWithRecordedClock(
+    profile: ExecutionProfile,
+    inst_word: u32,
+    execution_clock: u32,
+    segment_external_origin: usize,
+    cpu: *Cpu,
+    memory: *Memory,
+    layout: MemoryLayout,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) !void {
+    const clock_token = try trace.prepareRecordedExternalRetirement(
+        execution_clock,
+        segment_external_origin,
+        calls.len(),
+        execution_rows.len(),
+    );
+    const prepared = try prepareAndReserve(
+        profile,
+        inst_word,
+        execution_clock,
+        cpu.*,
+        memory,
+        layout,
+        tracker,
+        calls,
+        execution_rows,
+    );
+    if (!trace.externalRetirementTokenIsCurrent(
+        clock_token,
+        calls.len(),
+        execution_rows.len(),
+    )) return error.ProfileClockAuthorityMismatch;
+    if (!Trace.externalRetirementCommitIsValid(
+        clock_token,
+        calls.len() + 1,
+        execution_rows.len() + 1,
+        prepared.record.execution_clock,
+        prepared.row.execution_clock,
+    )) return error.ProfileClockAuthorityMismatch;
+    commitWithRecordedClock(
+        prepared,
+        cpu,
+        memory,
+        tracker,
+        trace,
+        clock_token,
+        calls,
+        execution_rows,
+    );
+}
+
 fn prepareAndReserve(
+    profile: ExecutionProfile,
     inst_word: u32,
     execution_clock: u32,
     cpu: Cpu,
@@ -142,6 +202,7 @@ fn prepareAndReserve(
     execution_rows: *ExecutionRowsBuilder,
 ) Error!Prepared {
     const prepared = try prepare(
+        profile,
         inst_word,
         execution_clock,
         cpu,
@@ -175,6 +236,7 @@ fn prepareAndReserve(
 }
 
 fn prepare(
+    profile: ExecutionProfile,
     inst_word: u32,
     execution_clock: u32,
     cpu: Cpu,
@@ -183,7 +245,7 @@ fn prepare(
     tracker: *const StateChainTracker,
     calls: *const call_buffer.Builder,
 ) Error!Prepared {
-    const decoded = try custom0.decodeKeccakfCandidate(inst_word);
+    const decoded = try custom0.decode(profile, inst_word);
     if (execution_clock == 0 or
         access_clock.maximum(execution_clock) > std.math.maxInt(u32))
     {
@@ -279,6 +341,20 @@ fn commit(
     execution_rows.appendAssumeCapacity(prepared.row);
     calls.appendAssumeCapacity(prepared.record);
     cpu.pc +%= 4;
+}
+
+fn commitWithRecordedClock(
+    prepared: Prepared,
+    cpu: *Cpu,
+    memory: *Memory,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    clock_token: Trace.ExternalRetirementToken,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) void {
+    commit(prepared, cpu, memory, tracker, calls, execution_rows);
+    trace.commitRecordedExternalRetirement(clock_token);
 }
 
 fn spanWithinOneRwInterval(layout: MemoryLayout, start: u32, end: u64) bool {

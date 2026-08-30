@@ -177,6 +177,19 @@ pub const Poseidon2SegmentResult = struct {
     }
 };
 
+pub const KeccakfSegmentResult = struct {
+    base: SegmentResult,
+    calls: guest_precompile.keccakf_call_buffer.Frozen,
+    execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *KeccakfSegmentResult) void {
+        self.calls.deinit();
+        self.execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
 /// Owned result of running a RISC-V program to completion.
 pub const RunResult = struct {
     initial_pc: u32,
@@ -224,6 +237,20 @@ pub const Poseidon2RunResult = struct {
     execution_rows: guest_precompile.poseidon2_v1.FrozenExecutionRows,
 
     pub fn deinit(self: *Poseidon2RunResult) void {
+        self.calls.deinit();
+        self.execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Owned result for the explicit Keccak-f extension runner.
+pub const KeccakfRunResult = struct {
+    base: RunResult,
+    calls: guest_precompile.keccakf_call_buffer.Frozen,
+    execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *KeccakfRunResult) void {
         self.calls.deinit();
         self.execution_rows.deinit();
         self.base.deinit();

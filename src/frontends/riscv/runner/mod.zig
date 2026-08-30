@@ -46,8 +46,10 @@ pub const CompletionReason = result_mod.CompletionReason;
 pub const OutputWord = result_mod.OutputWord;
 pub const RunResult = result_mod.RunResult;
 pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
+pub const KeccakfRunResult = result_mod.KeccakfRunResult;
 pub const SegmentResult = result_mod.SegmentResult;
 pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
+pub const KeccakfSegmentResult = result_mod.KeccakfSegmentResult;
 pub const ContinuationToken = result_mod.ContinuationToken;
 pub const SegmentClockFrame = result_mod.SegmentClockFrame;
 pub const SessionOptions = segment_session.SessionOptions;
@@ -55,11 +57,16 @@ pub const TraceRetention = segment_session.TraceRetention;
 pub const ExecutionSession = segment_session.ExecutionSession;
 pub const BaseExecutionSession = ExecutionSession(.rv32im_zkvm_v1);
 pub const Poseidon2ExecutionSession = ExecutionSession(.rv32im_zkvm_poseidon2_v1);
+pub const KeccakfExecutionSession = ExecutionSession(.rv32im_zkvm_keccakf_v1);
 
 const ExecutionProfile = execution_profile.ExecutionProfile;
 
 fn ConfiguredResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1) RunResult else Poseidon2RunResult;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => RunResult,
+        .rv32im_zkvm_poseidon2_v1 => Poseidon2RunResult,
+        .rv32im_zkvm_keccakf_v1 => KeccakfRunResult,
+    };
 }
 
 /// Run a RISC-V ELF program to completion (or until `max_steps`).
@@ -143,6 +150,44 @@ pub fn runPoseidon2ExtensionWithInput(
 ) !Poseidon2RunResult {
     return runConfigured(
         .rv32im_zkvm_poseidon2_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        input,
+        true,
+        true,
+    );
+}
+
+/// Execute an explicitly admitted Keccak-f ELF. CUSTOM-0 retirement is kept
+/// outside the base trace and retained in the typed Keccak call authority.
+pub fn runKeccakfExtension(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    max_steps: usize,
+) !KeccakfRunResult {
+    return runConfigured(
+        .rv32im_zkvm_keccakf_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        &.{},
+        false,
+        false,
+    );
+}
+
+/// Strict input/halt variant used by proof production and benchmarks.
+pub fn runKeccakfExtensionWithInput(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    max_steps: usize,
+) !KeccakfRunResult {
+    return runConfigured(
+        .rv32im_zkvm_keccakf_v1,
         allocator,
         elf_bytes,
         max_steps,

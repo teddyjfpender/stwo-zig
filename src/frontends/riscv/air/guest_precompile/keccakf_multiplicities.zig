@@ -50,7 +50,7 @@ pub const Counters = struct {
     pub fn recordSlot(self: *Counters, slot: *const witness.Slot) Error!void {
         try witness.validateSlot(slot);
         if (slot.rows[0].in_use_a == 0) return error.EmptySlot;
-        if (self.slots >= authority.candidate.maximum_slots)
+        if (self.slots >= authority.geometry.maximum_slots)
             return error.SlotLimitExceeded;
 
         for (0..authority.round_count) |round| {
@@ -70,12 +70,12 @@ pub const Counters = struct {
         const expected_chi = std.math.mul(
             usize,
             self.slots,
-            authority.candidate.compact.chi_lookups_per_slot,
+            authority.geometry.compact.chi_lookups_per_slot,
         ) catch return error.MultiplicityOverflow;
         const expected_xor5 = std.math.mul(
             usize,
             self.slots,
-            authority.candidate.compact.xor5_lookups_per_slot,
+            authority.geometry.compact.xor5_lookups_per_slot,
         ) catch return error.MultiplicityOverflow;
         if (sum(self.chi) != expected_chi or sum(self.xor5) != expected_xor5)
             return error.MultiplicityOverflow;
@@ -116,8 +116,8 @@ fn sum(values: []const M31) usize {
 }
 
 comptime {
-    if (authority.candidate.maximum_slots *
-        authority.candidate.compact.chi_lookups_per_slot >= m31.Modulus)
+    if (authority.geometry.maximum_slots *
+        authority.geometry.compact.chi_lookups_per_slot >= m31.Modulus)
     {
         @compileError("Keccak chi multiplicities exceed the M31 source bound");
     }

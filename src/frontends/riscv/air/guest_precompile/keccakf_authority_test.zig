@@ -28,21 +28,21 @@ fn standardPermutation(input: authority.State) authority.State {
 test "keccakf authority: wide and compact paired geometries remain internally exact" {
     try std.testing.expectEqual(@as(usize, 1600), authority.width_bits);
     try std.testing.expectEqual(@as(usize, 24), authority.round_count);
-    try std.testing.expectEqual(@as(usize, 29), authority.candidate.rows_per_slot);
-    try std.testing.expectEqual(@as(usize, 2), authority.candidate.operations_per_slot);
-    try std.testing.expectEqual(@as(usize, 2_097_152), authority.candidate.chi_table_rows);
-    try std.testing.expectEqual(@as(usize, 46_656), authority.candidate.xor5_table_rows);
-    try std.testing.expectEqual(@as(usize, 320), authority.candidate.chi_lookups_per_round);
-    try std.testing.expectEqual(@as(usize, 107), authority.candidate.xor5_lookups_per_round);
-    try std.testing.expectEqual(@as(usize, 7_680), authority.candidate.chi_lookups_per_slot);
-    try std.testing.expectEqual(@as(usize, 2_568), authority.candidate.xor5_lookups_per_slot);
-    try std.testing.expectEqual(@as(usize, 8_192), authority.candidate.compact.chi_table_rows);
-    try std.testing.expectEqual(@as(usize, 1_024), authority.candidate.compact.xor5_table_rows);
-    try std.testing.expectEqual(@as(usize, 1_600), authority.candidate.compact.chi_lookups_per_round);
-    try std.testing.expectEqual(@as(usize, 320), authority.candidate.compact.xor5_lookups_per_round);
-    try std.testing.expectEqual(@as(usize, 111_848), authority.candidate.maximum_calls);
+    try std.testing.expectEqual(@as(usize, 29), authority.geometry.rows_per_slot);
+    try std.testing.expectEqual(@as(usize, 2), authority.geometry.operations_per_slot);
+    try std.testing.expectEqual(@as(usize, 2_097_152), authority.geometry.chi_table_rows);
+    try std.testing.expectEqual(@as(usize, 46_656), authority.geometry.xor5_table_rows);
+    try std.testing.expectEqual(@as(usize, 320), authority.geometry.chi_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 107), authority.geometry.xor5_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 7_680), authority.geometry.chi_lookups_per_slot);
+    try std.testing.expectEqual(@as(usize, 2_568), authority.geometry.xor5_lookups_per_slot);
+    try std.testing.expectEqual(@as(usize, 8_192), authority.geometry.compact.chi_table_rows);
+    try std.testing.expectEqual(@as(usize, 1_024), authority.geometry.compact.xor5_table_rows);
+    try std.testing.expectEqual(@as(usize, 1_600), authority.geometry.compact.chi_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 320), authority.geometry.compact.xor5_lookups_per_round);
+    try std.testing.expectEqual(@as(usize, 111_848), authority.geometry.maximum_calls);
     try std.testing.expect(
-        authority.candidate.maximum_slots * authority.candidate.compact.chi_lookups_per_slot <
+        authority.geometry.maximum_slots * authority.geometry.compact.chi_lookups_per_slot <
             0x7fff_ffff,
     );
 }
@@ -94,7 +94,7 @@ test "keccakf authority: trace and table mutations reject fail closed" {
     );
     try std.testing.expectError(
         error.InvalidChiRow,
-        authority.chiTableEntry(authority.candidate.chi_table_rows),
+        authority.chiTableEntry(authority.geometry.chi_table_rows),
     );
     try std.testing.expectError(
         error.InvalidXor5Digit,
@@ -102,6 +102,6 @@ test "keccakf authority: trace and table mutations reject fail closed" {
     );
     try std.testing.expectError(
         error.InvalidXor5Row,
-        authority.xor5TableEntry(authority.candidate.xor5_table_rows),
+        authority.xor5TableEntry(authority.geometry.xor5_table_rows),
     );
 }

@@ -10,8 +10,8 @@ const std = @import("std");
 const authority = @import("keccakf_authority.zig");
 
 pub const state_cell_count = authority.width_bits;
-pub const parity_cell_count = authority.candidate.parity_positions;
-pub const row_count = authority.candidate.rows_per_slot;
+pub const parity_cell_count = authority.geometry.parity_positions;
+pub const row_count = authority.geometry.rows_per_slot;
 
 pub const Row = struct {
     in_use_a: u8 = 0,
@@ -59,7 +59,7 @@ pub fn buildSlot(input_a: ?authority.State, input_b: ?authority.State) Error!Slo
                 const x = position / authority.lane_bits;
                 const z = position % authority.lane_bits;
                 row.parity[position] = columns_a.parities[x][z] +
-                    authority.candidate.slot_base * columns_b.parities[x][z];
+                    authority.geometry.slot_base * columns_b.parities[x][z];
             }
         }
     }
@@ -89,12 +89,12 @@ pub fn validateSlot(slot: *const Slot) Error!void {
     try validateBoundary(&slot.rows[28].state);
     for (0..state_cell_count) |cell| {
         if (slot.rows[2].state[cell] != slot.rows[0].state[cell] +
-            authority.candidate.slot_base * slot.rows[1].state[cell])
+            authority.geometry.slot_base * slot.rows[1].state[cell])
         {
             return error.InvalidSliceGlue;
         }
         if (slot.rows[26].state[cell] != slot.rows[27].state[cell] +
-            authority.candidate.slot_base * slot.rows[28].state[cell])
+            authority.geometry.slot_base * slot.rows[28].state[cell])
         {
             return error.InvalidSliceGlue;
         }
@@ -143,8 +143,8 @@ pub fn xor5LookupRow(
     if (round >= authority.round_count or first_position >= parity_cell_count)
         return error.InvalidXor5Lookup;
     const current = &slot.rows[2 + round];
-    var sums: [authority.candidate.xor5_batch][2]u8 = @splat(.{ 0, 0 });
-    for (0..authority.candidate.xor5_batch) |offset| {
+    var sums: [authority.geometry.xor5_batch][2]u8 = @splat(.{ 0, 0 });
+    for (0..authority.geometry.xor5_batch) |offset| {
         const position = first_position + offset;
         if (position >= parity_cell_count) continue;
         const x = position / authority.lane_bits;
@@ -206,7 +206,7 @@ pub fn compactXor5LookupRow(
     const current = &slot.rows[2 + round];
     const x = position / authority.lane_bits;
     const z = position % authority.lane_bits;
-    var input: [authority.candidate.compact.xor_input_count]u8 = undefined;
+    var input: [authority.geometry.compact.xor_input_count]u8 = undefined;
     for (&input, 0..) |*value, y| value.* = current.state[stateCell(x, y, z)];
     return authority.compactXor5TableRow(input) catch error.InvalidXor5Lookup;
 }
@@ -224,7 +224,7 @@ pub fn compactChiLookupRow(
     {
         return error.InvalidChiTransition;
     }
-    var theta: [authority.candidate.compact.chi_input_count]u8 = undefined;
+    var theta: [authority.geometry.compact.chi_input_count]u8 = undefined;
     for (&theta, 0..) |*value, offset| value.* = slicedTheta(
         slot,
         round,
@@ -275,7 +275,7 @@ fn writeSlicedState(
 ) void {
     for (0..5) |y| for (0..5) |x| for (0..authority.lane_bits) |z| {
         cells[stateCell(x, y, z)] = authority.bit(state_a, x, y, z) +
-            authority.candidate.slot_base * authority.bit(state_b, x, y, z);
+            authority.geometry.slot_base * authority.bit(state_b, x, y, z);
     };
 }
 
@@ -284,8 +284,8 @@ inline fn stateCell(x: usize, y: usize, z: usize) usize {
 }
 
 inline fn decodeSlicedBit(value: u8) ?[2]u8 {
-    const a = value % authority.candidate.slot_base;
-    const b = value / authority.candidate.slot_base;
+    const a = value % authority.geometry.slot_base;
+    const b = value / authority.geometry.slot_base;
     if (a > 1 or b > 1) return null;
     return .{ a, b };
 }
