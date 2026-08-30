@@ -331,6 +331,7 @@ test "segment statement V2 runner adapter validates the captured boundary" {
     var result: runner_result.SegmentResult = undefined;
     result.segment_index = 1;
     result.segment_role = .{ .is_first = false, .is_last = true };
+    result.clock_frame = .global_continuous;
     result.global_first_cycle = 3;
     result.cycle_count = 2;
     result.entry_cpu = cpuFromMachine(fixture.statements[1].body.executed.entry);

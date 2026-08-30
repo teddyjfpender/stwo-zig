@@ -49,6 +49,7 @@ pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
 pub const SegmentResult = result_mod.SegmentResult;
 pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
 pub const ContinuationToken = result_mod.ContinuationToken;
+pub const SegmentClockFrame = result_mod.SegmentClockFrame;
 pub const SessionOptions = segment_session.SessionOptions;
 pub const TraceRetention = segment_session.TraceRetention;
 pub const ExecutionSession = segment_session.ExecutionSession;

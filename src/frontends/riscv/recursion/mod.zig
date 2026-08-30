@@ -25,6 +25,8 @@ pub const recursion_air_composition_circuit = @import("recursion_air_composition
 pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
 pub const segment_leaf_authority = @import("segment_leaf_authority.zig");
 pub const segment_leaf_authority_v2 = @import("segment_leaf_authority_v2.zig");
+pub const segment_leaf_local_authority_v3 =
+    @import("segment_leaf_local_authority_v3.zig");
 pub const segment_leaf_outer_bundle = @import("segment_leaf_outer_bundle.zig");
 pub const segment_leaf_outer_air_v2 = @import("segment_leaf_outer_air_v2.zig");
 pub const segment_leaf_outer_authority_v2 = @import("segment_leaf_outer_authority_v2.zig");

@@ -1,11 +1,12 @@
 //! Resumable RV32IM execution with owned, proof-oriented segment boundaries.
 //!
 //! The architectural state, sparse memory, and decoded-instruction cache live
-//! for the whole session.  Trace and state-chain logs are owned per segment,
-//! while their clocks remain global across resumes.  This is intentionally a
-//! runner substrate: V1 public data assumes zero predecessor clocks and must
-//! not admit a non-first segment; V2 must authenticate the exposed entry clock
-//! boundary together with the sparse-memory root derived from `rw_memory`.
+//! for the whole session. Trace and state-chain logs are owned per segment.
+//! Existing V2 sessions keep clocks global across resumes; the explicit
+//! leaf-local frame resets proof-internal clocks at every boundary so a later
+//! versioned recursive wrapper can own global position without widening M31
+//! clock columns. This is intentionally a runner substrate: V1/V2 admission
+//! continues to fail closed on non-first locally clocked segments.
 
 const std = @import("std");
 const custom0 = @import("../isa/custom0.zig");
@@ -30,12 +31,13 @@ const session_support = @import("segment_session_support.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 pub const HostInterface = host_mod.HostInterface;
+pub const SegmentClockFrame = result_mod.SegmentClockFrame;
 /// Controls whether a resumable session retains the whole execution trace or
 /// transfers each completed range directly to its `SegmentResult`.
 ///
 /// `cumulative` preserves the original diagnostic surface. `segment_owned`
 /// is the bounded-memory production path: after every yielded segment the
-/// session retains only the global clock origin needed to admit the next row.
+/// session retains only the clock origin needed to admit the next row.
 pub const TraceRetention = enum { cumulative, segment_owned };
 
 pub const SessionOptions = struct {
@@ -44,6 +46,7 @@ pub const SessionOptions = struct {
     stop_on_halt_flag: bool = false,
     strict_completion: bool = false,
     trace_retention: TraceRetention = .cumulative,
+    clock_frame: SegmentClockFrame = .global_continuous,
 };
 
 pub fn ConfiguredSegmentResult(comptime profile: ExecutionProfile) type {
@@ -117,14 +120,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         elf_info: elf_loader.ElfInfo,
         cpu: Cpu,
         instruction_cache: decode_cache.Cache,
-        /// Authority-facing trace stays cumulative so retirement transactions
-        /// retain their global-clock/row-index invariant across segments.
-        /// Segment results receive an owned copy of only their appended range.
+        /// The authority-facing trace follows `clock_frame`. Global sessions
+        /// may retain it cumulatively; leaf-local sessions transfer each range
+        /// and restart the next trace at local clock zero.
         execution_trace: trace.Trace,
         host: ?HostInterface,
         stop_on_halt_flag: bool,
         strict_completion: bool,
         trace_retention: TraceRetention,
+        clock_frame: SegmentClockFrame,
         input: ?[]u8,
         global_steps: u64 = 0,
         next_segment_index: u32 = 0,
@@ -164,6 +168,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             options: SessionOptions,
             build_continuation_tag: bool,
         ) !Self {
+            if (options.clock_frame == .leaf_local and
+                (!build_continuation_tag or options.trace_retention != .segment_owned))
+            {
+                return error.LeafLocalClockRequiresSegmentOwnedContinuation;
+            }
             var mem = try Memory.initFallible(allocator);
             errdefer mem.deinit();
             const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
@@ -193,11 +202,12 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 .stop_on_halt_flag = options.stop_on_halt_flag,
                 .strict_completion = options.strict_completion,
                 .trace_retention = options.trace_retention,
+                .clock_frame = options.clock_frame,
                 .input = owned_input,
                 .memory_clocks = std.AutoHashMap(u32, u32).init(allocator),
                 .memory_initials = std.AutoHashMap(u32, u32).init(allocator),
                 .session_tag = if (build_continuation_tag)
-                    sessionTag(elf_bytes, options.input, profile)
+                    sessionTag(elf_bytes, options.input, profile, options.clock_frame)
                 else
                     0,
                 .continuation_enabled = build_continuation_tag,
@@ -323,7 +333,8 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 );
             }
             defer if (memory_baseline) |*baseline| baseline.deinit(self.allocator);
-            var entry_access_clocks = if (exhaustion_policy == .yield)
+            var entry_access_clocks = if (exhaustion_policy == .yield and
+                self.clock_frame == .global_continuous)
                 try captureAccessClockBoundary(
                     self.allocator,
                     self.register_clocks,
@@ -356,21 +367,26 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     break;
                 }
 
-                const next_clock = std.math.add(u64, self.global_steps, 1) catch
+                const next_global_clock = std.math.add(u64, self.global_steps, 1) catch
                     return error.ExecutionClockOutOfRange;
-                if (next_clock > std.math.maxInt(u32) or
-                    access_clock.maximum(@intCast(next_clock)) > std.math.maxInt(u32))
+                const retirement_clock: u64 = switch (self.clock_frame) {
+                    .global_continuous => next_global_clock,
+                    .leaf_local => std.math.add(u64, local_steps, 1) catch
+                        return error.ExecutionClockOutOfRange,
+                };
+                if (retirement_clock > std.math.maxInt(u32) or
+                    access_clock.maximum(@intCast(retirement_clock)) > std.math.maxInt(u32))
                 {
                     return error.ExecutionClockOutOfRange;
                 }
                 const outcome = try self.retireOne(
-                    @intCast(next_clock),
+                    @intCast(retirement_clock),
                     &self.execution_trace,
                     &chain_tracker,
                     &extension,
                 );
                 if (outcome.retired) {
-                    self.global_steps = next_clock;
+                    self.global_steps = next_global_clock;
                     local_steps += 1;
                 }
                 completion_reason = outcome.completion_reason;
@@ -382,7 +398,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             // Extract this segment only after execution. Cumulative mode copies
             // a compact independent range while retaining the session trace;
             // segment-owned mode transfers the range and retains only its
-            // authenticated global clock origin for the next retirement.
+            // authenticated clock origin for the next retirement.
             var segment_trace = if (exhaustion_policy == .legacy_terminal or
                 self.trace_retention == .segment_owned)
             blk: {
@@ -390,9 +406,13 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 self.execution_trace = trace.Trace.init(self.allocator);
                 self.execution_trace.initial_pc = self.cpu.pc;
                 if (exhaustion_policy == .yield) {
+                    const next_origin: u32 = switch (self.clock_frame) {
+                        .global_continuous => @intCast(self.global_steps),
+                        .leaf_local => 0,
+                    };
                     try self.execution_trace.bindExtractedClockRange(
-                        @intCast(self.global_steps),
-                        @intCast(self.global_steps),
+                        next_origin,
+                        next_origin,
                         0,
                     );
                 }
@@ -507,7 +527,9 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 emptyAccessClockBoundary();
             errdefer exit_access_clocks.deinit(self.allocator);
 
-            if (exhaustion_policy == .yield) {
+            if (exhaustion_policy == .yield and
+                self.clock_frame == .global_continuous)
+            {
                 // Clone the final maps for the owned segment tracker, then
                 // transfer their originals to the session.  Exactly one
                 // full-map copy is paid per proof boundary; legacy one-shot
@@ -537,6 +559,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 null
             else
                 .{
+                    .clock_frame = self.clock_frame,
                     .session_tag = self.session_tag,
                     .next_segment_index = segment_index + 1,
                     .next_cycle = self.global_steps + 1,
@@ -550,6 +573,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             const base_result = result_mod.SegmentResult{
                 .segment_index = segment_index,
                 .segment_role = role,
+                .clock_frame = self.clock_frame,
                 .global_first_cycle = first_cycle,
                 .cycle_count = local_steps,
                 .entry_cpu = entry_cpu,
@@ -593,6 +617,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         fn seedTracker(self: *const Self) !state_chain.StateChainTracker {
             var tracker = state_chain.StateChainTracker.init(self.allocator);
             errdefer tracker.deinit();
+            if (self.clock_frame == .leaf_local) return tracker;
             tracker.reg_last_clk = self.register_clocks;
             tracker.mem_last_clk = try cloneClockMap(self.allocator, &self.memory_clocks);
             tracker.mem_initial = try cloneClockMap(self.allocator, &self.memory_initials);

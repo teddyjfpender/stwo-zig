@@ -55,6 +55,16 @@ pub const MIN_CANONICAL_WORDS = shard_0.MIN_CANONICAL_WORDS;
 pub const Error = shard_0.Error;
 pub const CompletionKindV2 = shard_0.CompletionKindV2;
 pub const CompletionV2 = shard_0.CompletionV2;
+/// Shared boundary primitives used by later statement versions. Exporting
+/// these through the facade keeps V3 from importing an internal V2 shard or
+/// silently drifting the canonical sparse-state formulas.
+pub const SnapshotIdentity = shard_0.SnapshotIdentity;
+pub const SnapshotSide = shard_1.SnapshotSide;
+pub const completionFromRunner = shard_1.completionFromRunner;
+pub const validateMemoryWords = shard_1.validateMemoryWords;
+pub const validateClockBoundary = shard_1.validateClockBoundary;
+pub const snapshotIdentity = shard_1.snapshotIdentity;
+pub const memoryClockIdentity = shard_1.memoryClockIdentity;
 /// Borrowed, exact native source for one segment statement.  The slices stay
 /// owned by the runner result.  `encodeCanonical` retains their canonical
 /// sparse projections in the wire before that result may be released.

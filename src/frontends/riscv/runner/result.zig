@@ -18,16 +18,28 @@ pub const CompletionReason = enum {
     max_steps,
 };
 
-pub const CONTINUATION_SCHEMA_VERSION: u32 = 1;
+pub const CONTINUATION_SCHEMA_VERSION: u32 = 2;
+
+/// Clock namespace used by one segmented trace.
+///
+/// The existing SegmentV2 path uses `global_continuous`. Large recursive jobs
+/// use `leaf_local`: every independently proved leaf starts at instruction
+/// clock one, while a versioned outer statement owns its global position.
+/// Keeping this explicit prevents a locally rebased trace from being mistaken
+/// for the existing globally clocked protocol.
+pub const SegmentClockFrame = enum(u8) {
+    global_continuous = 1,
+    leaf_local = 2,
+};
 
 pub const MemoryAccessClock = struct {
     addr: u32,
     clock: u32,
 };
 
-/// Exact predecessor-clock custody at a segment edge.  V1 public data assumes
-/// all initial clocks are zero, so non-first segments must remain on the V2
-/// path and authenticate this boundary explicitly.
+/// Exact predecessor-clock custody at a segment edge. Global-continuous V2
+/// segments authenticate this boundary explicitly. Leaf-local segments reset
+/// it to zero and require a versioned outer state-adjacency statement.
 pub const AccessClockBoundary = struct {
     register_clocks: [32]u32,
     memory_clocks: []MemoryAccessClock,
@@ -66,6 +78,7 @@ inline fn mix(current: u64, value: u64) u64 {
 /// Validation happens before the session mutates any architectural state.
 pub const ContinuationToken = struct {
     schema_version: u32 = CONTINUATION_SCHEMA_VERSION,
+    clock_frame: SegmentClockFrame,
     session_tag: u64,
     next_segment_index: u32,
     next_cycle: u64,
@@ -90,6 +103,7 @@ pub const OutputWord = struct {
 pub const SegmentResult = struct {
     segment_index: u32,
     segment_role: memory_state.SegmentRole,
+    clock_frame: SegmentClockFrame,
     global_first_cycle: u64,
     cycle_count: usize,
     entry_cpu: Cpu,

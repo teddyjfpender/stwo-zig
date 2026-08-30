@@ -409,8 +409,9 @@ fn digestAccessClocks(boundary: result_mod.AccessClockBoundary) Digest {
 
 fn digestContinuation(token: runner.ContinuationToken) Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update("stwo-zig/riscv/segment-continuation/v1\x00");
+    hash.update("stwo-zig/riscv/segment-continuation/v2\x00");
     updateInt(&hash, u32, token.schema_version);
+    updateInt(&hash, u8, @intFromEnum(token.clock_frame));
     updateInt(&hash, u64, token.session_tag);
     updateInt(&hash, u32, token.next_segment_index);
     updateInt(&hash, u64, token.next_cycle);

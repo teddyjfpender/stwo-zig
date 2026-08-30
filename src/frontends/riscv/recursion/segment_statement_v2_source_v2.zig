@@ -80,6 +80,8 @@ pub const SourceV2 = struct {
         base_statement: span_statement.SpanStatement,
         result: *const runner_result.SegmentResult,
     ) Error!SourceV2 {
+        if (result.clock_frame != .global_continuous)
+            return error.ClockFrameMismatch;
         if (!std.meta.eql(result.segment_role, result.rw_memory.segment_role))
             return error.InvalidSegmentRole;
         const completion = if (result.completion_reason) |reason|
