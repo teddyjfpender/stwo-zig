@@ -45,6 +45,7 @@ pub fn main() !void {
     var max_steps: usize = 1_000_000;
     var max_steps_set = false;
     var segment_steps: ?usize = null;
+    var segment_clock_frame: ?segment_manifest.SegmentClockFrame = null;
     var help = false;
 
     var i: usize = 1;
@@ -82,6 +83,9 @@ pub fn main() !void {
             if (segment_steps != null) return error.DuplicateOption;
             segment_steps = try std.fmt.parseInt(usize, try takeValue(args, &i), 10);
             if (segment_steps.? == 0) return error.ZeroSegmentStepBudget;
+        } else if (std.mem.eql(u8, args[i], "--segment-clock-frame")) {
+            if (segment_clock_frame != null) return error.DuplicateOption;
+            segment_clock_frame = try parseSegmentClockFrame(try takeValue(args, &i));
         } else if (std.mem.eql(u8, args[i], "--help") or std.mem.eql(u8, args[i], "-h")) {
             if (help) return error.DuplicateOption;
             help = true;
@@ -102,13 +106,15 @@ pub fn main() !void {
     });
     if (help) {
         if (mode_count != 0 or output_path != null or input_path != null or
-            max_steps_set or segment_steps != null)
+            max_steps_set or segment_steps != null or segment_clock_frame != null)
             return error.ConflictingOptions;
         printUsage();
         return;
     }
     if (mode_count != 1) return error.ConflictingOptions;
     if (segment_steps != null and (elf_path == null or output_path != null or max_steps_set))
+        return error.ConflictingOptions;
+    if (segment_clock_frame != null and segment_steps == null)
         return error.ConflictingOptions;
     if (output_path != null and elf_path == null) return error.ConflictingOptions;
     if (input_path != null and elf_path == null and relation_tuples == null and
@@ -182,6 +188,7 @@ pub fn main() !void {
             input,
             budget,
             true,
+            segment_clock_frame orelse .global_continuous,
             &stdout.interface,
         );
         return;
@@ -666,12 +673,20 @@ fn printUsage() void {
         \\  --input <path>       Load bytes into the ELF's declared input region
         \\  --max-steps <N>      Maximum execution steps (default: 1000000)
         \\  --segment-steps <N>  Stream strict, bounded execution NDJSON to stdout
+        \\  --segment-clock-frame <global-continuous|leaf-local>
+        \\                       Bind the AIR-visible clock namespace explicitly
         \\  --relation-tuples <path>  Dump bound default-challenge tuple evidence
         \\  --relation-sums <path>    Dump bound default-challenge sum evidence
         \\  --public-values <path>    Dump proof-independent public statement JSON
         \\  --help, -h           Show this message
         \\
     , .{});
+}
+
+fn parseSegmentClockFrame(value: []const u8) !segment_manifest.SegmentClockFrame {
+    if (std.mem.eql(u8, value, "global-continuous")) return .global_continuous;
+    if (std.mem.eql(u8, value, "leaf-local")) return .leaf_local;
+    return error.InvalidSegmentClockFrame;
 }
 
 /// Decode-matrix mode for formal-model parity: canonical one-line-per-word

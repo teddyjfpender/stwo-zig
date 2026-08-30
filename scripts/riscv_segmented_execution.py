@@ -21,12 +21,18 @@ import subprocess
 import sys
 from typing import Any
 
-HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v1"
-SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v1"
-SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v1"
-PLAN_SCHEMA = "stwo.riscv.segmented-execution-capture-plan.v1"
-RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v1"
+HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v2"
+SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v2"
+SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v2"
+PLAN_SCHEMA = "stwo.riscv.segmented-execution-capture-plan.v2"
+RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v2"
 CLAIM_BOUNDARY = "execution-only-not-a-proof"
+CLOCK_FRAME_GLOBAL = "global_continuous"
+CLOCK_FRAME_LEAF_LOCAL = "leaf_local"
+CLOCK_FRAME_CLI = {
+    "global-continuous": CLOCK_FRAME_GLOBAL,
+    "leaf-local": CLOCK_FRAME_LEAF_LOCAL,
+}
 MIN_SEGMENT_STEPS = 1 << 16
 MAX_SEGMENT_STEPS = 1 << 24
 MAX_RECORD_BYTES = 64 * 1024
@@ -51,6 +57,13 @@ FAMILIES = (
     "shifts_reg",
     "fence",
 )
+
+
+def _empty_access_clocks_sha256() -> str:
+    authority = b"stwo-zig/riscv/segment-boundary-access-clocks/v1\0"
+    authority += b"\0" * (32 * 4)
+    authority += b"\0" * 8
+    return _sha(authority)
 
 
 class ContractError(RuntimeError):
@@ -184,6 +197,7 @@ def validate_records(
         (
             "schema",
             "profile",
+            "clock_frame",
             "claim_boundary",
             "elf_bytes",
             "elf_sha256",
@@ -197,6 +211,9 @@ def validate_records(
     )
     if header["schema"] != HEADER_SCHEMA or header["profile"] != "rv32im-zkvm-v1":
         raise ContractError("unsupported segmented execution header")
+    clock_frame = header["clock_frame"]
+    if clock_frame not in (CLOCK_FRAME_GLOBAL, CLOCK_FRAME_LEAF_LOCAL):
+        raise ContractError("unsupported segmented execution clock frame")
     if header["claim_boundary"] != CLAIM_BOUNDARY or header["trace_retention"] != "segment-owned":
         raise ContractError("execution claim boundary/retention mismatch")
     _boolean(header["strict_completion"], "header.strict_completion")
@@ -215,6 +232,8 @@ def validate_records(
             raise ContractError("header input identity differs from capture plan")
         if budget != plan["segment_step_budget"] or not header["strict_completion"]:
             raise ContractError("header execution policy differs from capture plan")
+        if clock_frame != plan["clock_frame"]:
+            raise ContractError("header clock frame differs from capture plan")
 
     previous_digest = records[0]["content_sha256"]
     expected_cycle = 1
@@ -239,6 +258,7 @@ def validate_records(
             payload,
             (
                 "schema",
+                "clock_frame",
                 "previous_record_sha256",
                 "segment_index",
                 "global_first_cycle",
@@ -264,6 +284,8 @@ def validate_records(
         )
         if payload["schema"] != SEGMENT_SCHEMA or payload["previous_record_sha256"] != previous_digest:
             raise ContractError("segment schema/hash chain mismatch")
+        if payload["clock_frame"] != clock_frame:
+            raise ContractError("segment clock frame differs from header")
         if _integer(payload["segment_index"], "segment_index", maximum=(1 << 32) - 1) != segment_count:
             raise ContractError("segment index is not contiguous")
         if _integer(payload["global_first_cycle"], "global_first_cycle") != expected_cycle:
@@ -278,9 +300,16 @@ def validate_records(
         if expected_cpu is not None and (
             entry["cpu_sha256"] != expected_cpu
             or entry["rw_memory_sha256"] != expected_memory
-            or entry["access_clocks_sha256"] != expected_clocks
         ):
             raise ContractError("adjacent segment boundary mismatch")
+        if clock_frame == CLOCK_FRAME_GLOBAL:
+            if expected_clocks is not None and entry["access_clocks_sha256"] != expected_clocks:
+                raise ContractError("adjacent global access-clock boundary mismatch")
+        elif (
+            entry["memory_access_clock_entries"] != 0
+            or entry["access_clocks_sha256"] != _empty_access_clocks_sha256()
+        ):
+            raise ContractError("leaf-local segment entry clocks were not reset")
         core = _integer(payload["core_trace_rows"], "core_trace_rows")
         external = _integer(payload["external_trace_rows"], "external_trace_rows")
         unclassified = _integer(payload["unclassified_core_rows"], "unclassified_core_rows")
@@ -329,6 +358,7 @@ def validate_records(
         summary,
         (
             "schema",
+            "clock_frame",
             "previous_record_sha256",
             "claim_boundary",
             "completed",
@@ -345,6 +375,8 @@ def validate_records(
             "final_cpu_sha256",
             "final_rw_memory_sha256",
             "final_access_clocks_sha256",
+            "max_segment_cycle_count",
+            "leaf_local_clock_ranges_within_v3_limit",
             "segment_statement_v2_global_cycle_limit",
             "segment_statement_v2_admissible",
         ),
@@ -352,6 +384,8 @@ def validate_records(
     )
     if summary["previous_record_sha256"] != previous_digest or summary["claim_boundary"] != CLAIM_BOUNDARY:
         raise ContractError("summary chain/claim boundary mismatch")
+    if summary["clock_frame"] != clock_frame:
+        raise ContractError("summary clock frame differs from header")
     if not _boolean(summary["completed"], "summary.completed"):
         raise ContractError("summary is not complete")
     exact = (
@@ -368,10 +402,23 @@ def validate_records(
         and summary["final_cpu_sha256"] == last_segment["exit"]["cpu_sha256"]
         and summary["final_rw_memory_sha256"] == last_segment["exit"]["rw_memory_sha256"]
         and summary["final_access_clocks_sha256"] == last_segment["exit"]["access_clocks_sha256"]
+        and summary["max_segment_cycle_count"]
+        == max(record["payload"]["cycle_count"] for record in records[1:-1])
     )
     if not exact:
         raise ContractError("summary does not exactly reduce the segment journal")
     v2_limit = _integer(summary["segment_statement_v2_global_cycle_limit"], "v2 limit", 1)
+    if v2_limit != MAX_SEGMENT_STEPS:
+        raise ContractError("summary V2 cycle limit is not canonical")
+    max_segment_cycles = _integer(summary["max_segment_cycle_count"], "max segment cycles", 1, budget)
+    leaf_ranges_admissible = _boolean(
+        summary["leaf_local_clock_ranges_within_v3_limit"],
+        "leaf-local range admission",
+    )
+    if leaf_ranges_admissible != (
+        clock_frame == CLOCK_FRAME_LEAF_LOCAL and max_segment_cycles <= v2_limit
+    ):
+        raise ContractError("summary leaf-local clock-range boundary is inconsistent")
     if _boolean(summary["segment_statement_v2_admissible"], "v2 admissible") != (total_cycles <= v2_limit):
         raise ContractError("summary V2 claim boundary is inconsistent")
     return summary
@@ -393,6 +440,7 @@ def make_plan(
     elf: Path,
     input_path: Path | None,
     segment_steps: int,
+    clock_frame: str = CLOCK_FRAME_LEAF_LOCAL,
 ) -> dict[str, Any]:
     if not MIN_SEGMENT_STEPS <= segment_steps <= MAX_SEGMENT_STEPS:
         raise ContractError(
@@ -405,7 +453,20 @@ def make_plan(
         if input_path is not None
         else {"path": None, "bytes": 0, "sha256": empty_sha}
     )
-    command = [str(tool), "--elf", str(elf), "--segment-steps", str(segment_steps)]
+    if clock_frame not in (CLOCK_FRAME_GLOBAL, CLOCK_FRAME_LEAF_LOCAL):
+        raise ContractError("unsupported segmented execution clock frame")
+    cli_clock_frame = next(
+        cli for cli, normalized in CLOCK_FRAME_CLI.items() if normalized == clock_frame
+    )
+    command = [
+        str(tool),
+        "--elf",
+        str(elf),
+        "--segment-steps",
+        str(segment_steps),
+        "--segment-clock-frame",
+        cli_clock_frame,
+    ]
     if input_path is not None:
         command.extend(("--input", str(input_path)))
     return {
@@ -418,6 +479,7 @@ def make_plan(
         "input": input_identity,
         "segment_step_budget": segment_steps,
         "strict_completion": True,
+        "clock_frame": clock_frame,
         "command": command,
     }
 
@@ -503,6 +565,11 @@ def _receipt(plan: dict[str, Any], journal_path: Path, summary: dict[str, Any]) 
         "total_cycles": summary["total_cycles"],
         "total_core_trace_rows": summary["total_core_trace_rows"],
         "total_external_trace_rows": summary["total_external_trace_rows"],
+        "clock_frame": summary["clock_frame"],
+        "max_segment_cycle_count": summary["max_segment_cycle_count"],
+        "leaf_local_clock_ranges_within_v3_limit": summary[
+            "leaf_local_clock_ranges_within_v3_limit"
+        ],
         "segment_statement_v2_admissible": summary["segment_statement_v2_admissible"],
         "final_cpu_sha256": summary["final_cpu_sha256"],
         "final_rw_memory_sha256": summary["final_rw_memory_sha256"],
@@ -533,6 +600,7 @@ def capture_bundle(
     elf: Path,
     input_path: Path | None,
     segment_steps: int,
+    clock_frame: str = CLOCK_FRAME_LEAF_LOCAL,
     max_new_segments: int | None = None,
     require_clean: bool = False,
 ) -> dict[str, Any] | None:
@@ -541,7 +609,7 @@ def capture_bundle(
     elf = elf.resolve(strict=True)
     input_path = input_path.resolve(strict=True) if input_path is not None else None
     bundle = bundle.resolve(strict=False)
-    plan = make_plan(repository, tool, elf, input_path, segment_steps)
+    plan = make_plan(repository, tool, elf, input_path, segment_steps, clock_frame)
     if require_clean and not plan["source"]["clean"]:
         raise ContractError("clean source is required")
     if bundle.exists() or bundle.is_symlink():
@@ -660,6 +728,11 @@ def _parser() -> argparse.ArgumentParser:
     capture.add_argument("--elf", type=_path, required=True)
     capture.add_argument("--input", type=_path)
     capture.add_argument("--segment-steps", type=int, required=True)
+    capture.add_argument(
+        "--clock-frame",
+        choices=tuple(CLOCK_FRAME_CLI),
+        default="leaf-local",
+    )
     capture.add_argument("--max-new-segments", type=int)
     capture.add_argument("--require-clean", action="store_true")
     validate = sub.add_parser("validate")
@@ -682,6 +755,7 @@ def main(argv: list[str] | None = None) -> int:
                 elf=args.elf,
                 input_path=args.input,
                 segment_steps=args.segment_steps,
+                clock_frame=CLOCK_FRAME_CLI[args.clock_frame],
                 max_new_segments=args.max_new_segments,
                 require_clean=args.require_clean,
             )

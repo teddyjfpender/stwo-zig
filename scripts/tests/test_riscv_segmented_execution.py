@@ -20,15 +20,17 @@ def envelope(payload: dict) -> bytes:
     return subject._canonical({"payload": payload, "content_sha256": digest}) + b"\n"
 
 
-def boundary(label: str, pc: int) -> dict:
+def boundary(label: str, pc: int, *, reset_clocks: bool = False) -> dict:
     return {
         "pc": pc,
         "cpu_sha256": sha(f"cpu-{label}"),
         "rw_memory_sha256": sha(f"memory-{label}"),
         "rw_memory_retained_words": 2,
         "rw_memory_nonzero_words": 1,
-        "access_clocks_sha256": sha(f"clocks-{label}"),
-        "memory_access_clock_entries": 1,
+        "access_clocks_sha256": (
+            subject._empty_access_clocks_sha256() if reset_clocks else sha(f"clocks-{label}")
+        ),
+        "memory_access_clock_entries": 0 if reset_clocks else 1,
     }
 
 
@@ -39,10 +41,15 @@ def families(base_alu_imm: int) -> list[dict]:
     ]
 
 
-def fixture_stream(elf: bytes, budget: int = 65536) -> list[bytes]:
+def fixture_stream(
+    elf: bytes,
+    budget: int = 65536,
+    clock_frame: str = subject.CLOCK_FRAME_LEAF_LOCAL,
+) -> list[bytes]:
     header = {
         "schema": subject.HEADER_SCHEMA,
         "profile": "rv32im-zkvm-v1",
+        "clock_frame": clock_frame,
         "claim_boundary": subject.CLAIM_BOUNDARY,
         "elf_bytes": len(elf),
         "elf_sha256": sha(elf),
@@ -60,13 +67,18 @@ def fixture_stream(elf: bytes, budget: int = 65536) -> list[bytes]:
         last = index == len(cycles) - 1
         payload = {
             "schema": subject.SEGMENT_SCHEMA,
+            "clock_frame": clock_frame,
             "previous_record_sha256": previous,
             "segment_index": index,
             "global_first_cycle": first_cycle,
             "cycle_count": count,
             "is_first": index == 0,
             "is_last": last,
-            "entry": boundary(str(index), 0x10000 + index * 4),
+            "entry": boundary(
+                str(index),
+                0x10000 + index * 4,
+                reset_clocks=clock_frame == subject.CLOCK_FRAME_LEAF_LOCAL,
+            ),
             "exit": boundary(str(index + 1), 0x10004 + index * 4),
             "core_trace_rows": count,
             "external_trace_rows": 0,
@@ -88,6 +100,7 @@ def fixture_stream(elf: bytes, budget: int = 65536) -> list[bytes]:
     final = json.loads(lines[-1])["payload"]
     summary = {
         "schema": subject.SUMMARY_SCHEMA,
+        "clock_frame": clock_frame,
         "previous_record_sha256": previous,
         "claim_boundary": subject.CLAIM_BOUNDARY,
         "completed": True,
@@ -104,6 +117,10 @@ def fixture_stream(elf: bytes, budget: int = 65536) -> list[bytes]:
         "final_cpu_sha256": final["exit"]["cpu_sha256"],
         "final_rw_memory_sha256": final["exit"]["rw_memory_sha256"],
         "final_access_clocks_sha256": final["exit"]["access_clocks_sha256"],
+        "max_segment_cycle_count": 3,
+        "leaf_local_clock_ranges_within_v3_limit": (
+            clock_frame == subject.CLOCK_FRAME_LEAF_LOCAL
+        ),
         "segment_statement_v2_global_cycle_limit": 1 << 24,
         "segment_statement_v2_admissible": True,
     }
@@ -118,6 +135,18 @@ class SegmentedExecutionTests(unittest.TestCase):
         self.assertEqual(summary["segment_count"], 3)
         self.assertEqual(summary["total_cycles"], 8)
 
+    def test_global_clock_mode_retains_access_clock_adjacency(self) -> None:
+        lines = fixture_stream(b"elf", clock_frame=subject.CLOCK_FRAME_GLOBAL)
+        summary = subject.validate_records(lines, require_complete=True)
+        self.assertFalse(summary["leaf_local_clock_ranges_within_v3_limit"])
+
+        record = json.loads(lines[2])
+        record["payload"]["entry"]["access_clocks_sha256"] = sha("forged")
+        mutated = lines.copy()
+        mutated[2] = envelope(record["payload"])
+        with self.assertRaisesRegex(subject.ContractError, "global access-clock boundary"):
+            subject.validate_records(mutated, require_complete=True)
+
     def test_boundary_and_content_mutations_fail_closed(self) -> None:
         lines = fixture_stream(b"elf")
         record = json.loads(lines[2])
@@ -125,6 +154,14 @@ class SegmentedExecutionTests(unittest.TestCase):
         mutated = lines.copy()
         mutated[2] = envelope(record["payload"])
         with self.assertRaisesRegex(subject.ContractError, "boundary mismatch"):
+            subject.validate_records(mutated, require_complete=True)
+
+        record = json.loads(lines[2])
+        record["payload"]["entry"]["access_clocks_sha256"] = sha("not-reset")
+        record["payload"]["entry"]["memory_access_clock_entries"] = 1
+        mutated = lines.copy()
+        mutated[2] = envelope(record["payload"])
+        with self.assertRaisesRegex(subject.ContractError, "entry clocks were not reset"):
             subject.validate_records(mutated, require_complete=True)
 
         record = json.loads(lines[1])
@@ -185,6 +222,9 @@ class SegmentedExecutionTests(unittest.TestCase):
             self.assertEqual((bundle / "execution.ndjson").read_bytes(), b"".join(lines))
             self.assertEqual(subject.validate_bundle(bundle), result)
             self.assertEqual(len(tuple(bundle.glob("invocation-*.stderr"))), 2)
+            plan = json.loads((bundle / "plan.json").read_bytes())
+            self.assertEqual(plan["clock_frame"], subject.CLOCK_FRAME_LEAF_LOCAL)
+            self.assertIn("leaf-local", plan["command"])
 
     def test_pathological_tiny_segments_are_rejected(self) -> None:
         repository = Path(__file__).resolve().parents[2]

@@ -15,16 +15,18 @@ const trace_mod = @import("../runner/trace.zig");
 const witness_layout = @import("../witness_layout.zig");
 const segment_statement_v2 = @import("../recursion/segment_statement_v2.zig");
 
-pub const HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v1";
-pub const SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v1";
-pub const SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v1";
+pub const HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v2";
+pub const SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v2";
+pub const SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v2";
 pub const CLAIM_BOUNDARY = "execution-only-not-a-proof";
+pub const SegmentClockFrame = runner.SegmentClockFrame;
 
 const Digest = [32]u8;
 
 const HeaderPayload = struct {
     schema: []const u8,
     profile: []const u8,
+    clock_frame: []const u8,
     claim_boundary: []const u8,
     elf_bytes: u64,
     elf_sha256: []const u8,
@@ -52,6 +54,7 @@ const BoundaryPayload = struct {
 
 const SegmentPayload = struct {
     schema: []const u8,
+    clock_frame: []const u8,
     previous_record_sha256: []const u8,
     segment_index: u32,
     global_first_cycle: u64,
@@ -76,6 +79,7 @@ const SegmentPayload = struct {
 
 const SummaryPayload = struct {
     schema: []const u8,
+    clock_frame: []const u8,
     previous_record_sha256: []const u8,
     claim_boundary: []const u8,
     completed: bool,
@@ -92,6 +96,8 @@ const SummaryPayload = struct {
     final_cpu_sha256: []const u8,
     final_rw_memory_sha256: []const u8,
     final_access_clocks_sha256: []const u8,
+    max_segment_cycle_count: u64,
+    leaf_local_clock_ranges_within_v3_limit: bool,
     segment_statement_v2_global_cycle_limit: u32,
     segment_statement_v2_admissible: bool,
 };
@@ -112,6 +118,7 @@ pub fn stream(
     input: []const u8,
     segment_step_budget: usize,
     strict_completion: bool,
+    clock_frame: runner.SegmentClockFrame,
     writer: *std.Io.Writer,
 ) !void {
     if (segment_step_budget == 0) return error.ZeroSegmentStepBudget;
@@ -123,6 +130,7 @@ pub fn stream(
     var previous_record = try writeEnvelope(allocator, writer, HeaderPayload{
         .schema = HEADER_SCHEMA,
         .profile = "rv32im-zkvm-v1",
+        .clock_frame = @tagName(clock_frame),
         .claim_boundary = CLAIM_BOUNDARY,
         .elf_bytes = try u64FromUsize(elf_bytes.len),
         .elf_sha256 = &elf_hex,
@@ -138,6 +146,7 @@ pub fn stream(
         .stop_on_halt_flag = strict_completion,
         .strict_completion = strict_completion,
         .trace_retention = .segment_owned,
+        .clock_frame = clock_frame,
     });
     defer session.deinit();
 
@@ -149,6 +158,7 @@ pub fn stream(
     var total_core_rows: u64 = 0;
     var total_external_rows: u64 = 0;
     var total_unclassified_rows: u64 = 0;
+    var max_segment_cycles: u64 = 0;
     var total_families = trace_mod.OpcodeFamilyCounts{};
     var final_cpu: Digest = undefined;
     var final_memory: Digest = undefined;
@@ -173,7 +183,15 @@ pub fn stream(
         const exit_clocks = digestAccessClocks(segment.exit_access_clocks);
         if (expected_cpu) |digest| try requireDigest(digest, entry_cpu);
         if (expected_memory) |digest| try requireDigest(digest, entry_memory.digest);
-        if (expected_clocks) |digest| try requireDigest(digest, entry_clocks);
+        if (clock_frame == .global_continuous) {
+            if (expected_clocks) |digest| try requireDigest(digest, entry_clocks);
+        } else {
+            const empty = result_mod.AccessClockBoundary{
+                .register_clocks = .{0} ** 32,
+                .memory_clocks = &.{},
+            };
+            try requireDigest(digestAccessClocks(empty), entry_clocks);
+        }
 
         var family_counts = trace_mod.OpcodeFamilyCounts{};
         var unclassified_rows: u64 = 0;
@@ -194,6 +212,7 @@ pub fn stream(
         fillFamilyRows(&family_rows, &family_counts);
 
         const cycles = try u64FromUsize(segment.cycle_count);
+        max_segment_cycles = @max(max_segment_cycles, cycles);
         const core_rows = try u64FromUsize(segment.execution_trace.rows.items.len);
         if (try u64FromUsize(family_counts.total()) + unclassified_rows != core_rows)
             return error.OpcodeInventoryMismatch;
@@ -226,6 +245,7 @@ pub fn stream(
         const continuation_hex = if (continuation_digest) |digest| hex(digest) else undefined;
         previous_record = try writeEnvelope(allocator, writer, SegmentPayload{
             .schema = SEGMENT_SCHEMA,
+            .clock_frame = @tagName(clock_frame),
             .previous_record_sha256 = &previous_hex,
             .segment_index = segment.segment_index,
             .global_first_cycle = segment.global_first_cycle,
@@ -289,6 +309,7 @@ pub fn stream(
     const output_hex = if (final_output_digest) |digest| hex(digest) else undefined;
     _ = try writeEnvelope(allocator, writer, SummaryPayload{
         .schema = SUMMARY_SCHEMA,
+        .clock_frame = @tagName(clock_frame),
         .previous_record_sha256 = &previous_hex,
         .claim_boundary = CLAIM_BOUNDARY,
         .completed = true,
@@ -305,6 +326,9 @@ pub fn stream(
         .final_cpu_sha256 = &final_cpu_hex,
         .final_rw_memory_sha256 = &final_memory_hex,
         .final_access_clocks_sha256 = &final_clocks_hex,
+        .max_segment_cycle_count = max_segment_cycles,
+        .leaf_local_clock_ranges_within_v3_limit = clock_frame == .leaf_local and
+            max_segment_cycles <= segment_statement_v2.MAX_GLOBAL_CYCLES,
         .segment_statement_v2_global_cycle_limit = segment_statement_v2.MAX_GLOBAL_CYCLES,
         .segment_statement_v2_admissible = total_cycles <= segment_statement_v2.MAX_GLOBAL_CYCLES,
     });
@@ -456,15 +480,33 @@ test "segmented manifest is deterministic, chained, and exposes V2 claim boundar
     });
     var first = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer first.deinit();
-    try stream(std.testing.allocator, &elf, &.{}, 2, false, &first.writer);
+    try stream(
+        std.testing.allocator,
+        &elf,
+        &.{},
+        2,
+        false,
+        .leaf_local,
+        &first.writer,
+    );
     var second = std.Io.Writer.Allocating.init(std.testing.allocator);
     defer second.deinit();
-    try stream(std.testing.allocator, &elf, &.{}, 2, false, &second.writer);
+    try stream(
+        std.testing.allocator,
+        &elf,
+        &.{},
+        2,
+        false,
+        .leaf_local,
+        &second.writer,
+    );
     try std.testing.expectEqualStrings(first.written(), second.written());
     try std.testing.expectEqual(@as(usize, 5), std.mem.count(u8, first.written(), "\n"));
     try std.testing.expect(std.mem.indexOf(u8, first.written(), HEADER_SCHEMA) != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), SEGMENT_SCHEMA) != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), SUMMARY_SCHEMA) != null);
+    try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"clock_frame\":\"leaf_local\"") != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"segment_count\":3,\"total_cycles\":5") != null);
+    try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"max_segment_cycle_count\":2,\"leaf_local_clock_ranges_within_v3_limit\":true") != null);
     try std.testing.expect(std.mem.indexOf(u8, first.written(), "\"segment_statement_v2_admissible\":true") != null);
 }
