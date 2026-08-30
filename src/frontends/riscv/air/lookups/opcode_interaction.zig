@@ -27,6 +27,7 @@ const opcode_entries = @import("opcode_entries.zig");
 const runtime_program = @import("../extract/runtime_program.zig");
 const selected_batching = @import("../lang/lookup_batch_execution.zig");
 const validation = @import("opcode_interaction_validation.zig");
+const packed_relations = @import("opcode_interaction_relations.zig");
 
 pub const MAX_BATCHES: usize = entry.MAX_BATCHES;
 pub const MAX_COLUMNS: usize = 4 * MAX_BATCHES;
@@ -68,8 +69,14 @@ pub const Plan = struct {
             .program = program,
             .evaluation = evaluation,
         };
-        for (typed.entries[0..typed.len], result.domains[0..typed.len]) |source, *domain| {
+        for (
+            typed.entries[0..typed.len],
+            result.domains[0..typed.len],
+            program.entries,
+        ) |source, *domain, planned| {
             try source.validate();
+            if (planned.arity != source.arity)
+                return error.InvalidLookupPolynomialProgram;
             domain.* = source.domain;
         }
         return result;
@@ -441,6 +448,13 @@ pub fn generateParallelPlanned(
     defer placement.deinit(allocator);
     const trace_sums = try allocator.alloc(QM31, n_batches * size);
     defer allocator.free(trace_sums);
+    var prepared_relations = try packed_relations.PreparedProgram.init(
+        allocator,
+        plan.program.entries,
+        plan.domains[0..plan.program.entries.len],
+        relations,
+    );
+    defer prepared_relations.deinit();
 
     const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
     const chunks = try allocator.alloc(OpcodeChunk, chunk_count);
@@ -452,7 +466,7 @@ pub fn generateParallelPlanned(
             .family = family,
             .plan = plan,
             .main_columns = main_columns,
-            .relations = relations,
+            .relations = &prepared_relations,
             .placement = placement,
             .trace_sums = trace_sums,
             .trace_size = size,
@@ -519,7 +533,7 @@ const OpcodeChunk = struct {
     family: trace.OpcodeFamily,
     plan: *const Plan,
     main_columns: []const []const M31,
-    relations: *const relations_mod.Relations,
+    relations: *const packed_relations.PreparedProgram,
     placement: infra.BitReversalTable,
     trace_sums: []QM31,
     trace_size: usize,
@@ -759,71 +773,34 @@ const PackedRowPair = struct {
     d2: PackedQM31,
 };
 
-fn combinePlanned(
-    comptime arity: usize,
-    lookup: prover_component.LookupPolynomialEntry,
-    nodes: []const PackedM31,
-    relation: anytype,
-) PackedQM31 {
-    var result = PackedQM31.zero();
-    inline for (0..arity) |value_index| {
-        result = result.add(
-            PackedQM31.splat(relation.alpha_powers[value_index])
-                .mulBase(nodes[lookup.values[value_index]]),
-        );
-    }
-    return result.sub(PackedQM31.splat(relation.z));
-}
-
-fn denominatorPlanned(
-    lookup: prover_component.LookupPolynomialEntry,
-    domain: entry.Domain,
-    nodes: []const PackedM31,
-    relations: *const relations_mod.Relations,
-) !PackedQM31 {
-    if (lookup.arity != entry.expectedArity(domain))
-        return error.InvalidLookupPolynomialProgram;
-    return switch (domain) {
-        .registers_state => combinePlanned(2, lookup, nodes, relations.registers_state),
-        .memory_access => combinePlanned(7, lookup, nodes, relations.memory_access),
-        .program_access => combinePlanned(5, lookup, nodes, relations.program_access),
-        .merkle => combinePlanned(4, lookup, nodes, relations.merkle),
-        .poseidon2 => combinePlanned(16, lookup, nodes, relations.poseidon2),
-        .poseidon2_io => combinePlanned(32, lookup, nodes, relations.poseidon2_io),
-        .bitwise => combinePlanned(4, lookup, nodes, relations.bitwise),
-        .range_check_20 => combinePlanned(1, lookup, nodes, relations.range_check_20),
-        .range_check_8_11 => combinePlanned(2, lookup, nodes, relations.range_check_8_11),
-        .range_check_8_8_4 => combinePlanned(3, lookup, nodes, relations.range_check_8_8_4),
-        .range_check_8_8 => combinePlanned(2, lookup, nodes, relations.range_check_8_8),
-        .range_check_m31 => combinePlanned(2, lookup, nodes, relations.range_check_m31),
-    };
-}
-
 fn pairPlanned(
     plan: *const Plan,
     nodes: []const PackedM31,
     batch: usize,
-    relations: *const relations_mod.Relations,
+    relations: *const packed_relations.PreparedProgram,
 ) !PackedRowPair {
     const program = plan.program;
     const first_index = batch * program.batch_size;
-    if (first_index >= program.entries.len) return error.InvalidBatchCount;
+    if (first_index >= program.entries.len or first_index >= relations.entries.len)
+        return error.InvalidBatchCount;
     const first = program.entries[first_index];
     if (program.batch_size == 1 or first_index + 1 == program.entries.len) {
         return .{
             .n1 = nodes[first.numerator],
-            .d1 = try denominatorPlanned(first, plan.domains[first_index], nodes, relations),
+            .d1 = relations.denominator(first_index, nodes),
             .n2 = @splat(0),
             .d2 = PackedQM31.one(),
         };
     }
     const second_index = first_index + 1;
+    if (second_index >= relations.entries.len)
+        return error.InvalidBatchCount;
     const second = program.entries[second_index];
     return .{
         .n1 = nodes[first.numerator],
-        .d1 = try denominatorPlanned(first, plan.domains[first_index], nodes, relations),
+        .d1 = relations.denominator(first_index, nodes),
         .n2 = nodes[second.numerator],
-        .d2 = try denominatorPlanned(second, plan.domains[second_index], nodes, relations),
+        .d2 = relations.denominator(second_index, nodes),
     };
 }
 
@@ -837,4 +814,5 @@ pub const TestHooks = if (builtin.is_test) struct {
     pub const baseOpcodeEntries = base_opcode_entries;
     pub const pairBaseForTest = pairBase;
     pub const pairPlannedForTest = pairPlanned;
+    pub const PackedRelationProgram = packed_relations.PreparedProgram;
 } else struct {};

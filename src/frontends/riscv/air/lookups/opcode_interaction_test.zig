@@ -25,6 +25,7 @@ const nColumns = subject.nColumns;
 const base_opcode_entries = subject.TestHooks.baseOpcodeEntries;
 const pairBase = subject.TestHooks.pairBaseForTest;
 const pairPlanned = subject.TestHooks.pairPlannedForTest;
+const PackedRelationProgram = subject.TestHooks.PackedRelationProgram;
 
 fn testRow() trace.TraceRow {
     return .{
@@ -146,6 +147,13 @@ fn expectPlanPairParity(
 ) !void {
     var plan = try Plan.init(allocator, family);
     defer plan.deinit();
+    var packed_relations = try PackedRelationProgram.init(
+        allocator,
+        plan.program.entries,
+        plan.domains[0..plan.program.entries.len],
+        relations,
+    );
+    defer packed_relations.deinit();
     const node_values = try allocator.alloc(PackedM31, plan.program.nodes.len);
     defer allocator.free(node_values);
     var packed_columns: [trace.MAX_FAMILY_COLUMNS]PackedM31 = undefined;
@@ -170,7 +178,7 @@ fn expectPlanPairParity(
         const typed = try base_opcode_entries.fromMain(family, scalar_columns[0..main.len]);
         for (0..typed.batchCount()) |batch| {
             const expected = try pairBase(&typed, batch, relations);
-            const actual = try pairPlanned(&plan, node_values, batch, relations);
+            const actual = try pairPlanned(&plan, node_values, batch, &packed_relations);
             try std.testing.expect(QM31.fromBase(M31.fromCanonical(actual.n1[lane])).eql(expected.n1));
             try std.testing.expect(actual.d1.lane(lane).eql(expected.d1));
             try std.testing.expect(QM31.fromBase(M31.fromCanonical(actual.n2[lane])).eql(expected.n2));
@@ -699,5 +707,41 @@ test "opcode interaction rolls back every allocation failure" {
         allocator,
         generateForAllocationTest,
         .{ main.storage[0..main.len], &relations },
+    );
+}
+
+fn prepareRelationsForAllocationTest(
+    allocator: std.mem.Allocator,
+    plan: *const Plan,
+    relations: *const relations_mod.Relations,
+) !void {
+    var prepared = try PackedRelationProgram.init(
+        allocator,
+        plan.program.entries,
+        plan.domains[0..plan.program.entries.len],
+        relations,
+    );
+    defer prepared.deinit();
+}
+
+test "packed opcode relation program is fail-closed and allocation-safe" {
+    const allocator = std.testing.allocator;
+    const relations = relations_mod.Relations.dummy();
+    var plan = try Plan.init(allocator, .load_store);
+    defer plan.deinit();
+
+    try std.testing.expectError(
+        error.InvalidLookupPolynomialProgram,
+        PackedRelationProgram.init(
+            allocator,
+            plan.program.entries,
+            plan.domains[0 .. plan.program.entries.len - 1],
+            &relations,
+        ),
+    );
+    try std.testing.checkAllAllocationFailures(
+        allocator,
+        prepareRelationsForAllocationTest,
+        .{ &plan, &relations },
     );
 }

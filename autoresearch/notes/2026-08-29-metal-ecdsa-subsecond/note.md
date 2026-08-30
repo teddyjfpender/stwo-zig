@@ -641,3 +641,50 @@ two complementary Keccak/128 cohorts, 28 samples per implementation, were flat:
 SHA is `e3d8b48c71e43dad4e6412cfbdfd2578ae7d330e0b30267d91c9e939ec9b7c5a`.
 Fresh-process verification reproduced the unchanged ECDSA and Keccak proof,
 statement, and transcript identities recorded above.
+
+### Retained: challenge-prepared opcode relation programs
+
+The density-aware evaluator made relation-denominator construction the next
+measurable opcode-interaction cost. Each packed row was still switching on the
+relation domain and splatting the same verifier challenge powers and relation
+constant for every lookup. The retained implementation validates every
+program/domain arity once, packs the challenges once per interaction trace,
+and evaluates a compact immutable entry/power program shared by all row
+workers. It preserves lookup order, numerator indices, denominator arithmetic,
+batch inversion, prefix order, interaction columns, and transcript. Runtime
+bounds remain fail-closed and focused allocation-failure coverage proves both
+preparation allocations roll back.
+
+A same-binary microbenchmark over 80,000 complete entry-set evaluations found
+the compact representation materially cheaper than the already packed
+domain-switch path: BASE_ALU_REG improved from 20.34 ms to 14.93 ms,
+BASE_ALU_IMM from 19.49 ms to 12.50 ms, LOAD_STORE from 18.07 ms to 12.40 ms,
+and DIV from 17.41 ms to 16.87 ms. The small FENCE family fell from 17.27 ms
+to 1.92 ms because the hot loop no longer carries the full relation switch.
+The research timing harness was removed before the production gate.
+
+Two complementary five-sample-per-leg ECDSA cohorts pooled to:
+
+| implementation | execution | witness | proving | CSP `proof_duration` | complete request |
+|---|---:|---:|---:|---:|---:|
+| density-aware evaluation | 0.326167 s | 0.344720 s | 1.368971 s | 2.039857 s | 2.187726 s |
+| prepared relation program | 0.327144 s | 0.346607 s | 1.361839 s | 2.035590 s | 2.189903 s |
+
+This reduces the official CSP boundary by 0.21% and proving by 0.52%; the
+complete request is flat within noise (+0.10%). Two complementary
+seven-sample-per-leg Keccak/128 cohorts were also positive: 0.513051 seconds
+to 0.512169 seconds CSP duration (-0.17%), with complete request essentially
+unchanged (0.582951/0.582911 seconds).
+
+The focused ReleaseFast gate receipt is
+`.git/typed-air-zig-gates/runs/1788053072991698000-85647.json`; the product
+receipt is `.git/typed-air-zig-gates/runs/1788053165551431000-85833.json` and
+the retained product SHA-256 is
+`6f275ad64905eb2734a6a142e4f4c3be7240270550a2c1695ea5391e90e7c48e`.
+Fresh-process verification reproduced the unchanged ECDSA proof SHA
+`eaa345bdb4435f12c1da4d914e700fdff6b50f0d94b4f6c02ffddf0c2633782d`
+and Keccak proof SHA
+`b060b18a76d3ec5611ec79ddf58e15a1827e30584c21aaa05fb35d46a83063a8`.
+The balanced evidence roots are
+`/private/tmp/stwo-metal-ecdsa-subsecond-20260829/evidence/opcode-relations-{bccb,cbbc}-v1`
+and their `opcode-relations-keccak-*` counterparts.
