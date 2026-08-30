@@ -9,7 +9,7 @@ loop:
 | block hash | `0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9` |
 | transactions | 66 |
 | gas used | 7,372,614 |
-| stateless witness | 2,718,960 bytes |
+| ZisK guest input | 2,718,960 bytes |
 | ZisK RV64 steps | 60,465,946 |
 | ZisK active AIR types / instances | 18 / 38 |
 | ZisK padded rows | 131,596,288 |
@@ -26,6 +26,53 @@ the current Stwo assurance boundary.
 The pinned ZisK guest executes the full stateless block validator and commits
 the canonical block hash.  Its execution and AIR plan have been reproduced.
 No ZisK proof for this block has been retained by this contract.
+
+The input is not an opaque blob. It is exactly two `ZiskStdin` records, each
+encoded as an eight-byte little-endian length followed by payload and zero
+padding to an eight-byte boundary:
+
+| record | payload bytes | SHA-256 |
+| --- | ---: | --- |
+| `guest_reth::RethInputPublic` | 37,233 | `89845d9725f5d169691bcf5032ad77d6a13dbd33d211333ba3948f168b50a9fa` |
+| `guest_reth::RethInputWitness` | 2,681,704 | `9c93f7b11fac67fbc97b9a4b924bfd7e799e4ad13d314c350da2b665b6a54473` |
+
+The two payloads use bincode while Stwo's ported eth-act guest accepts a
+schema-prefixed canonical SSZ `StatelessInput`. Passing the ZisK file directly
+to that guest therefore exercises only its malformed-input return path. Such a
+run is explicitly not execution evidence and must never enter a performance
+comparison.
+
+The lossless semantic projection is now retained and host-validated:
+
+| projection field | pinned value |
+| --- | --- |
+| canonical fork / schema | BPO2 / `0x1401` |
+| canonical SSZ input | 2,700,688 bytes / `845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c` |
+| Stwo runner transport | 2,700,692 bytes / `faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb` |
+| recovered transaction keys | 66 |
+| witness state / code / legacy-key / header entries | 3,854 / 120 / 835 / 1 |
+| successful host output | 43 bytes / `730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5` |
+| new-payload-request root | `e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030` |
+
+The older ZisK fixture names timestamp `1,767,747,671` as `bpo1_time`; the
+current canonical mainnet schedule names that same transition BPO2. Selecting
+BPO1 caused the current validator to reject the exact excess-blob-gas
+transition, while BPO2 reproduces it and validates the block. This fork join is
+explicit in the manifest rather than inferred from the legacy field name.
+
+Stwo's runner writes input bytes verbatim. The RV32 guest ABI therefore uses a
+four-byte little-endian payload length followed by the canonical SSZ bytes; the
+length prefix is transport only and is bound separately from the semantic
+payload. The next promotion step is complete RV32 execution of that exact
+transport, followed by proof of every adjacent segment and one recursively
+verified root.
+
+This promotes `matched_semantic_input_projected`, but not yet
+`matched_guest_statement_reproduced`: ZisK publishes the block hash while the
+eth-act guest publishes the SSZ new-payload-request root plus its success bit,
+chain id, and schema id. The final comparison must bind those two output
+formats to one reviewed block-statement projection rather than equating their
+bytes.
 
 Stwo's existing Revm accumulator benchmark executes a real EVM transition, but
 it is **not** this block statement: it does not authenticate the block header,
@@ -73,6 +120,15 @@ python3 scripts/riscv_segmented_execution.py capture \
 
 python3 scripts/riscv_segmented_execution.py validate \
   /external/create-only/bundle
+```
+
+Replay the retained semantic projection independently with:
+
+```sh
+python3 autoresearch/benchmarks/ethereum_block_comparison.py validate-projection \
+  --canonical-input /external/mainnet_24628607.canonical-ssz.bin \
+  --stwo-runner-input /external/mainnet_24628607.stwo-input.bin \
+  --host-output /external/mainnet_24628607.stwo-host-output.bin
 ```
 
 This inventory is explicitly `execution-only-not-a-proof`. Segment Statement

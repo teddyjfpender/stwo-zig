@@ -1,5 +1,5 @@
 {
-  "schema": "stwo.autoresearch.ethereum-block-comparison.v1",
+  "schema": "stwo.autoresearch.ethereum-block-comparison.v3",
   "block": {
     "chain": "mainnet",
     "chain_id": 1,
@@ -32,7 +32,33 @@
       "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628607_66_7_zec_reth.bin",
       "bytes": 2718960,
       "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
-      "git_blob": "77ce1b475784fd6c008f2ca0a834f9afc7948d2b"
+      "git_blob": "77ce1b475784fd6c008f2ca0a834f9afc7948d2b",
+      "transport": {
+        "schema": "zisk-stdin-frame-authority.v1",
+        "framing": "u64le-length-prefixed-eight-byte-aligned",
+        "frames": [
+          {
+            "index": 0,
+            "header_offset": 0,
+            "payload_offset": 8,
+            "payload_bytes": 37233,
+            "padding_bytes": 7,
+            "sha256": "89845d9725f5d169691bcf5032ad77d6a13dbd33d211333ba3948f168b50a9fa",
+            "codec": "bincode-v2-serde-standard",
+            "semantic_type": "guest_reth::RethInputPublic"
+          },
+          {
+            "index": 1,
+            "header_offset": 37248,
+            "payload_offset": 37256,
+            "payload_bytes": 2681704,
+            "padding_bytes": 0,
+            "sha256": "9c93f7b11fac67fbc97b9a4b924bfd7e799e4ad13d314c350da2b665b6a54473",
+            "codec": "bincode-v2-serde-standard",
+            "semantic_type": "guest_reth::RethInputWitness"
+          }
+        ]
+      }
     },
     "guest_elf": {
       "path": "bin/guests/stateless-validator-reth/elf/zec-reth.elf",
@@ -110,6 +136,49 @@
     "proof_system_soundness": false,
     "independent_proof_verifier_implemented": false,
     "full_block_guest_ported": false,
+    "semantic_projection": {
+      "schema": "stwo.ethereum.stateless-input-projection.v1",
+      "validator_source": {
+        "repository": "https://github.com/paradigmxyz/stateless.git",
+        "commit": "a134a621bad7229ff7f980e42dfca8e22d101491",
+        "tree": "b08c284d34dbed707db82d1847d611016b3a7ac2"
+      },
+      "fork": {
+        "canonical": "BPO2",
+        "schema_id": 5121,
+        "block_timestamp": 1773164303,
+        "legacy_activation_field": "bpo1_time",
+        "legacy_activation_timestamp": 1767747671,
+        "canonical_mainnet_bpo2_timestamp": 1767747671
+      },
+      "witness": {
+        "state_nodes": 3854,
+        "codes": 120,
+        "legacy_keys": 835,
+        "headers": 1,
+        "embedded_public_keys": 0,
+        "recovered_transaction_public_keys": 66
+      },
+      "canonical_input": {
+        "bytes": 2700688,
+        "sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+        "framing": "u16be-schema-id-plus-ssz"
+      },
+      "stwo_runner_input": {
+        "bytes": 2700692,
+        "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+        "framing": "u32le-payload-length-plus-canonical-input"
+      },
+      "host_validation": {
+        "successful_validation": true,
+        "output_bytes": 43,
+        "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+        "new_payload_request_root": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030",
+        "chain_id": 1,
+        "schema_id": 5121
+      }
+    },
+    "matched_semantic_input_projected": true,
     "full_block_execution_reproduced": false,
     "full_block_segment_proofs_verified": false,
     "full_block_recursive_root_verified": false
@@ -119,7 +188,8 @@
     "zisk_air_plan_reproduced": true,
     "zisk_full_block_proof_reproduced": false,
     "stwo_mini_transition_is_full_ethereum_block": false,
+    "matched_guest_statement_reproduced": false,
     "stwo_full_block_comparison_ready": false,
-    "performance_comparison_status": "blocked-on-matched-statement-and-recursive-full-block-proof"
+    "performance_comparison_status": "blocked-on-complete-rv32-execution-and-recursive-full-block-proof"
   }
 }

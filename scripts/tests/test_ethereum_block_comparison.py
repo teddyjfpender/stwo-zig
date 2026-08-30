@@ -25,6 +25,7 @@ class EthereumBlockComparisonTests(unittest.TestCase):
         subject.validate_stwo_source(ROOT, self.manifest)
         self.assertFalse(self.manifest["stwo"]["whole_frontend_verified"])
         self.assertFalse(self.manifest["stwo"]["proof_system_soundness"])
+        self.assertTrue(self.manifest["stwo"]["matched_semantic_input_projected"])
         self.assertFalse(self.manifest["claim_boundary"]["stwo_full_block_comparison_ready"])
 
     def test_manifest_rejects_claim_inflation(self) -> None:
@@ -34,6 +35,7 @@ class EthereumBlockComparisonTests(unittest.TestCase):
             ("stwo", "full_block_execution_reproduced"),
             ("claim_boundary", "zisk_full_block_proof_reproduced"),
             ("claim_boundary", "stwo_mini_transition_is_full_ethereum_block"),
+            ("claim_boundary", "matched_guest_statement_reproduced"),
             ("claim_boundary", "stwo_full_block_comparison_ready"),
         ):
             with self.subTest(section=section, field=field):
@@ -41,6 +43,99 @@ class EthereumBlockComparisonTests(unittest.TestCase):
                 mutated[section][field] = True
                 with self.assertRaises(subject.ContractError):
                     subject.validate_manifest(mutated)
+
+        regressed = copy.deepcopy(self.manifest)
+        regressed["stwo"]["matched_semantic_input_projected"] = False
+        with self.assertRaises(subject.ContractError):
+            subject.validate_manifest(regressed)
+
+    def test_stwo_projection_binds_canonical_transport_and_success_output(self) -> None:
+        canonical = b"\x14\x01canonical-ssz"
+        runner_input = len(canonical).to_bytes(4, "little") + canonical
+        root = bytes(range(32))
+        host_output = root + b"\x01" + (1).to_bytes(8, "little") + (0x1401).to_bytes(2, "little")
+        manifest = copy.deepcopy(self.manifest)
+        projection = manifest["stwo"]["semantic_projection"]
+        projection["canonical_input"]["bytes"] = len(canonical)
+        projection["canonical_input"]["sha256"] = subject._sha256_bytes(canonical)
+        projection["stwo_runner_input"]["bytes"] = len(runner_input)
+        projection["stwo_runner_input"]["sha256"] = subject._sha256_bytes(runner_input)
+        projection["host_validation"]["output_sha256"] = subject._sha256_bytes(host_output)
+        projection["host_validation"]["new_payload_request_root"] = root.hex()
+        with tempfile.TemporaryDirectory() as directory:
+            root_path = Path(directory)
+            canonical_path = root_path / "canonical.bin"
+            runner_path = root_path / "runner.bin"
+            output_path = root_path / "output.bin"
+            canonical_path.write_bytes(canonical)
+            runner_path.write_bytes(runner_input)
+            output_path.write_bytes(host_output)
+            result = subject.validate_stwo_projection(
+                canonical_path, runner_path, output_path, manifest,
+            )
+            self.assertEqual(result["status"], "host-semantic-projection-valid")
+
+            runner_path.write_bytes((len(canonical) + 1).to_bytes(4, "little") + canonical)
+            with self.assertRaises(subject.ContractError):
+                subject.validate_stwo_projection(canonical_path, runner_path, output_path, manifest)
+            runner_path.write_bytes(runner_input)
+            output_path.write_bytes(root + b"\x00" + host_output[33:])
+            with self.assertRaises(subject.ContractError):
+                subject.validate_stwo_projection(canonical_path, runner_path, output_path, manifest)
+
+    def test_zisk_stdin_frame_authority_rejects_payload_padding_and_length_mutations(self) -> None:
+        payloads = [b"public-frame", b"witness-frame-longer"]
+        raw = bytearray()
+        frames = []
+        semantic_types = [
+            "guest_reth::RethInputPublic",
+            "guest_reth::RethInputWitness",
+        ]
+        for index, payload in enumerate(payloads):
+            header_offset = len(raw)
+            raw.extend(len(payload).to_bytes(8, "little"))
+            payload_offset = len(raw)
+            raw.extend(payload)
+            padding_bytes = (-len(raw)) % 8
+            raw.extend(bytes(padding_bytes))
+            frames.append({
+                "index": index,
+                "header_offset": header_offset,
+                "payload_offset": payload_offset,
+                "payload_bytes": len(payload),
+                "padding_bytes": padding_bytes,
+                "sha256": subject._sha256_bytes(payload),
+                "codec": "bincode-v2-serde-standard",
+                "semantic_type": semantic_types[index],
+            })
+        expected = {
+            "schema": "zisk-stdin-frame-authority.v1",
+            "framing": "u64le-length-prefixed-eight-byte-aligned",
+            "frames": frames,
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "input.bin"
+            path.write_bytes(raw)
+            self.assertEqual(subject.validate_zisk_stdin(path, expected), frames)
+
+            payload_mutation = bytearray(raw)
+            payload_mutation[frames[0]["payload_offset"]] ^= 1
+            path.write_bytes(payload_mutation)
+            with self.assertRaises(subject.ContractError):
+                subject.validate_zisk_stdin(path, expected)
+
+            padding_mutation = bytearray(raw)
+            padding_offset = (frames[0]["payload_offset"] + frames[0]["payload_bytes"])
+            padding_mutation[padding_offset] = 1
+            path.write_bytes(padding_mutation)
+            with self.assertRaises(subject.ContractError):
+                subject.validate_zisk_stdin(path, expected)
+
+            length_mutation = bytearray(raw)
+            length_mutation[:8] = (len(payloads[0]) + 1).to_bytes(8, "little")
+            path.write_bytes(length_mutation)
+            with self.assertRaises(subject.ContractError):
+                subject.validate_zisk_stdin(path, expected)
 
     def test_rpc_projection_accepts_exact_block_and_rejects_root_mutation(self) -> None:
         block = self.manifest["block"]

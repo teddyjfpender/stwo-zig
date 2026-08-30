@@ -23,7 +23,7 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA = "stwo.autoresearch.ethereum-block-comparison.v1"
+SCHEMA = "stwo.autoresearch.ethereum-block-comparison.v3"
 REPORT_SCHEMA = "stwo.autoresearch.ethereum-block-validation.v1"
 DEFAULT_MANIFEST = Path(__file__).with_name("ethereum_block_mainnet_24628607.json")
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -134,11 +134,61 @@ def validate_manifest(value: Any) -> None:
                  f"zisk.{name}.repository differs")
         _require(GIT_OID.fullmatch(source["commit"]) is not None, f"zisk.{name}.commit differs")
         _require(GIT_OID.fullmatch(source["tree"]) is not None, f"zisk.{name}.tree differs")
-    for name in ("fixture", "guest_elf"):
-        item = _exact_keys(zisk[name], {"path", "bytes", "sha256", "git_blob"}, f"zisk.{name}")
-        _positive_int(item["bytes"], f"zisk.{name}.bytes")
-        _require(SHA256.fullmatch(item["sha256"]) is not None, f"zisk.{name}.sha256 differs")
-        _require(GIT_OID.fullmatch(item["git_blob"]) is not None, f"zisk.{name}.git_blob differs")
+    fixture = _exact_keys(zisk["fixture"], {
+        "path", "bytes", "sha256", "git_blob", "transport",
+    }, "zisk.fixture")
+    for name in ("bytes",):
+        _positive_int(fixture[name], f"zisk.fixture.{name}")
+    _require(SHA256.fullmatch(fixture["sha256"]) is not None,
+             "zisk.fixture.sha256 differs")
+    _require(GIT_OID.fullmatch(fixture["git_blob"]) is not None,
+             "zisk.fixture.git_blob differs")
+    transport = _exact_keys(fixture["transport"], {"schema", "framing", "frames"},
+                            "zisk.fixture.transport")
+    _require(transport["schema"] == "zisk-stdin-frame-authority.v1",
+             "ZisK stdin authority schema differs")
+    _require(transport["framing"] == "u64le-length-prefixed-eight-byte-aligned",
+             "ZisK stdin framing differs")
+    _require(isinstance(transport["frames"], list) and len(transport["frames"]) == 2,
+             "ZisK stdin must contain exactly two frames")
+    expected_offset = 0
+    for index, raw_frame in enumerate(transport["frames"]):
+        frame = _exact_keys(raw_frame, {
+            "index", "header_offset", "payload_offset", "payload_bytes", "padding_bytes",
+            "sha256", "codec", "semantic_type",
+        }, f"zisk.fixture.transport.frames[{index}]")
+        _require(frame["index"] == index, "ZisK stdin frame index differs")
+        _require(frame["header_offset"] == expected_offset,
+                 "ZisK stdin frame header offset differs")
+        _require(frame["payload_offset"] == expected_offset + 8,
+                 "ZisK stdin frame payload offset differs")
+        _positive_int(frame["payload_bytes"], "ZisK stdin frame payload bytes")
+        _require(isinstance(frame["padding_bytes"], int)
+                 and 0 <= frame["padding_bytes"] <= 7,
+                 "ZisK stdin frame padding differs")
+        _require(SHA256.fullmatch(frame["sha256"]) is not None,
+                 "ZisK stdin frame sha256 differs")
+        _require(frame["codec"] == "bincode-v2-serde-standard",
+                 "ZisK stdin frame codec differs")
+        expected_type = ("guest_reth::RethInputPublic" if index == 0
+                         else "guest_reth::RethInputWitness")
+        _require(frame["semantic_type"] == expected_type,
+                 "ZisK stdin frame semantic type differs")
+        end = frame["payload_offset"] + frame["payload_bytes"]
+        expected_padding = (-end) % 8
+        _require(frame["padding_bytes"] == expected_padding,
+                 "ZisK stdin frame padding is not canonical")
+        expected_offset = end + expected_padding
+    _require(expected_offset == fixture["bytes"],
+             "ZisK stdin frame inventory does not cover the fixture")
+
+    item = _exact_keys(zisk["guest_elf"], {"path", "bytes", "sha256", "git_blob"},
+                       "zisk.guest_elf")
+    _positive_int(item["bytes"], "zisk.guest_elf.bytes")
+    _require(SHA256.fullmatch(item["sha256"]) is not None,
+             "zisk.guest_elf.sha256 differs")
+    _require(GIT_OID.fullmatch(item["git_blob"]) is not None,
+             "zisk.guest_elf.git_blob differs")
 
     tools = _exact_keys(zisk["tools"], {"version", "ziskemu", "cargo_zisk_dev"}, "zisk.tools")
     _require(tools["version"] == "1.2.0-alpha", "ZisK tool version differs")
@@ -197,27 +247,103 @@ def validate_manifest(value: Any) -> None:
     stwo = _exact_keys(root["stwo"], {
         "one_shot_max_steps", "whole_frontend_verified", "proof_system_soundness",
         "independent_proof_verifier_implemented", "full_block_guest_ported",
+        "semantic_projection", "matched_semantic_input_projected",
         "full_block_execution_reproduced", "full_block_segment_proofs_verified",
         "full_block_recursive_root_verified",
     }, "stwo")
     _positive_int(stwo["one_shot_max_steps"], "stwo.one_shot_max_steps")
-    for name, status in stwo.items():
-        if name != "one_shot_max_steps":
-            _require(status is False, f"stwo.{name} may change only with new evidence")
+    projection = _exact_keys(stwo["semantic_projection"], {
+        "schema", "validator_source", "fork", "witness", "canonical_input",
+        "stwo_runner_input", "host_validation",
+    }, "stwo.semantic_projection")
+    _require(projection["schema"] == "stwo.ethereum.stateless-input-projection.v1",
+             "Stwo semantic projection schema differs")
+    source = _exact_keys(projection["validator_source"], {"repository", "commit", "tree"},
+                         "stwo.semantic_projection.validator_source")
+    _require(source["repository"] == "https://github.com/paradigmxyz/stateless.git",
+             "Stwo stateless validator repository differs")
+    _require(GIT_OID.fullmatch(source["commit"]) is not None,
+             "Stwo stateless validator commit differs")
+    _require(GIT_OID.fullmatch(source["tree"]) is not None,
+             "Stwo stateless validator tree differs")
+    fork = _exact_keys(projection["fork"], {
+        "canonical", "schema_id", "block_timestamp", "legacy_activation_field",
+        "legacy_activation_timestamp", "canonical_mainnet_bpo2_timestamp",
+    }, "stwo.semantic_projection.fork")
+    _require(fork == {
+        "canonical": "BPO2",
+        "schema_id": 0x1401,
+        "block_timestamp": block["timestamp"],
+        "legacy_activation_field": "bpo1_time",
+        "legacy_activation_timestamp": 1_767_747_671,
+        "canonical_mainnet_bpo2_timestamp": 1_767_747_671,
+    }, "Stwo semantic projection fork authority differs")
+    witness = _exact_keys(projection["witness"], {
+        "state_nodes", "codes", "legacy_keys", "headers", "embedded_public_keys",
+        "recovered_transaction_public_keys",
+    }, "stwo.semantic_projection.witness")
+    expected_witness = {
+        "state_nodes": 3854,
+        "codes": 120,
+        "legacy_keys": 835,
+        "headers": 1,
+        "embedded_public_keys": 0,
+        "recovered_transaction_public_keys": block["transaction_count"],
+    }
+    _require(witness == expected_witness, "Stwo semantic projection witness inventory differs")
+    canonical = _exact_keys(projection["canonical_input"], {"bytes", "sha256", "framing"},
+                            "stwo.semantic_projection.canonical_input")
+    runner_input = _exact_keys(projection["stwo_runner_input"],
+                               {"bytes", "sha256", "framing"},
+                               "stwo.semantic_projection.stwo_runner_input")
+    host = _exact_keys(projection["host_validation"], {
+        "successful_validation", "output_bytes", "output_sha256",
+        "new_payload_request_root", "chain_id", "schema_id",
+    }, "stwo.semantic_projection.host_validation")
+    for where, identity in (("canonical input", canonical), ("Stwo runner input", runner_input)):
+        _positive_int(identity["bytes"], where + " bytes")
+        _require(SHA256.fullmatch(identity["sha256"]) is not None, where + " sha256 differs")
+    _require(canonical["framing"] == "u16be-schema-id-plus-ssz",
+             "canonical input framing differs")
+    _require(runner_input["framing"] == "u32le-payload-length-plus-canonical-input",
+             "Stwo runner input framing differs")
+    _require(runner_input["bytes"] == canonical["bytes"] + 4,
+             "Stwo runner input length projection differs")
+    _require(host["successful_validation"] is True, "Stwo host validation did not succeed")
+    _require(host["output_bytes"] == 43, "Stwo host output length differs")
+    _require(SHA256.fullmatch(host["output_sha256"]) is not None,
+             "Stwo host output sha256 differs")
+    _require(SHA256.fullmatch(host["new_payload_request_root"]) is not None,
+             "Stwo payload-request root differs")
+    _require(host["chain_id"] == block["chain_id"] and host["schema_id"] == fork["schema_id"],
+             "Stwo host validation authority differs")
+    expected_status = {
+        "whole_frontend_verified": False,
+        "proof_system_soundness": False,
+        "independent_proof_verifier_implemented": False,
+        "full_block_guest_ported": False,
+        "matched_semantic_input_projected": True,
+        "full_block_execution_reproduced": False,
+        "full_block_segment_proofs_verified": False,
+        "full_block_recursive_root_verified": False,
+    }
+    for name, status in expected_status.items():
+        _require(stwo[name] is status, f"stwo.{name} differs from retained evidence")
 
     claim = _exact_keys(root["claim_boundary"], {
         "zisk_stateless_block_execution_reproduced", "zisk_air_plan_reproduced",
         "zisk_full_block_proof_reproduced", "stwo_mini_transition_is_full_ethereum_block",
-        "stwo_full_block_comparison_ready", "performance_comparison_status",
+        "matched_guest_statement_reproduced", "stwo_full_block_comparison_ready",
+        "performance_comparison_status",
     }, "claim_boundary")
     _require(claim["zisk_stateless_block_execution_reproduced"] is True,
              "ZisK execution claim differs")
     _require(claim["zisk_air_plan_reproduced"] is True, "ZisK plan claim differs")
     for name in ("zisk_full_block_proof_reproduced", "stwo_mini_transition_is_full_ethereum_block",
-                 "stwo_full_block_comparison_ready"):
+                 "matched_guest_statement_reproduced", "stwo_full_block_comparison_ready"):
         _require(claim[name] is False, f"claim_boundary.{name} is not evidence-backed")
     _require(claim["performance_comparison_status"]
-             == "blocked-on-matched-statement-and-recursive-full-block-proof",
+             == "blocked-on-complete-rv32-execution-and-recursive-full-block-proof",
              "performance comparison status differs")
 
 
@@ -241,6 +367,88 @@ def validate_stwo_source(root: Path, manifest: dict[str, Any]) -> None:
              "Stwo one-shot execution cap differs")
 
 
+def validate_zisk_stdin(path: Path, expected: dict[str, Any]) -> list[dict[str, Any]]:
+    """Validate ZiskStdin framing and return its content-addressed frame inventory."""
+    _regular_file(path, "ZisK stdin")
+    data = path.read_bytes()
+    frames: list[dict[str, Any]] = []
+    offset = 0
+    while offset < len(data):
+        _require(offset + 8 <= len(data), "ZisK stdin has a truncated frame header")
+        header_offset = offset
+        payload_bytes = int.from_bytes(data[offset:offset + 8], "little")
+        _positive_int(payload_bytes, "ZisK stdin frame length")
+        payload_offset = offset + 8
+        payload_end = payload_offset + payload_bytes
+        _require(payload_end <= len(data), "ZisK stdin has a truncated frame payload")
+        padding_bytes = (-payload_end) % 8
+        frame_end = payload_end + padding_bytes
+        _require(frame_end <= len(data), "ZisK stdin has truncated alignment padding")
+        _require(not any(data[payload_end:frame_end]),
+                 "ZisK stdin alignment padding must be zero")
+        frames.append({
+            "index": len(frames),
+            "header_offset": header_offset,
+            "payload_offset": payload_offset,
+            "payload_bytes": payload_bytes,
+            "padding_bytes": padding_bytes,
+            "sha256": _sha256_bytes(data[payload_offset:payload_end]),
+            "codec": expected["frames"][len(frames)]["codec"]
+            if len(frames) < len(expected["frames"]) else None,
+            "semantic_type": expected["frames"][len(frames)]["semantic_type"]
+            if len(frames) < len(expected["frames"]) else None,
+        })
+        offset = frame_end
+    _require(offset == len(data), "ZisK stdin has trailing bytes")
+    _require(frames == expected["frames"], "ZisK stdin frame inventory differs")
+    return frames
+
+
+def validate_stwo_projection(
+    canonical_path: Path,
+    runner_input_path: Path,
+    host_output_path: Path,
+    manifest: dict[str, Any],
+) -> dict[str, Any]:
+    """Replay the retained canonical-SSZ, runner-transport, and host-result join."""
+    projection = manifest["stwo"]["semantic_projection"]
+    canonical_identity = projection["canonical_input"]
+    runner_identity = projection["stwo_runner_input"]
+    host_identity = projection["host_validation"]
+    _file_identity(canonical_path, canonical_identity, "canonical Stwo input")
+    _file_identity(runner_input_path, runner_identity, "Stwo runner input")
+    _file_identity(host_output_path, {
+        "bytes": host_identity["output_bytes"],
+        "sha256": host_identity["output_sha256"],
+    }, "Stwo host output")
+
+    canonical = canonical_path.read_bytes()
+    runner_input = runner_input_path.read_bytes()
+    host_output = host_output_path.read_bytes()
+    schema_id = projection["fork"]["schema_id"]
+    _require(canonical[:2] == schema_id.to_bytes(2, "big"),
+             "canonical Stwo input schema prefix differs")
+    _require(runner_input[:4] == len(canonical).to_bytes(4, "little"),
+             "Stwo runner input length prefix differs")
+    _require(runner_input[4:] == canonical,
+             "Stwo runner input payload differs from canonical SSZ")
+    _require(host_output[:32].hex() == host_identity["new_payload_request_root"],
+             "Stwo host payload-request root differs")
+    _require(host_output[32] == 1, "Stwo host validation success byte differs")
+    _require(int.from_bytes(host_output[33:41], "little") == host_identity["chain_id"],
+             "Stwo host output chain id differs")
+    _require(int.from_bytes(host_output[41:43], "little") == schema_id,
+             "Stwo host output schema id differs")
+    return {
+        "schema": projection["schema"],
+        "status": "host-semantic-projection-valid",
+        "canonical_input_sha256": canonical_identity["sha256"],
+        "stwo_runner_input_sha256": runner_identity["sha256"],
+        "host_output_sha256": host_identity["output_sha256"],
+        "new_payload_request_root": host_identity["new_payload_request_root"],
+    }
+
+
 def validate_client_fixture(client_root: Path, manifest: dict[str, Any]) -> tuple[Path, Path]:
     zisk = manifest["zisk"]
     _source_identity(client_root, zisk["ethereum_client"], "ZisK Ethereum client")
@@ -251,6 +459,7 @@ def validate_client_fixture(client_root: Path, manifest: dict[str, Any]) -> tupl
         _file_identity(path, expected, f"ZisK {name}")
         blob = _git(client_root, "hash-object", str(path.relative_to(client_root)))
         _require(blob == expected["git_blob"], f"ZisK {name} git blob differs")
+    validate_zisk_stdin(fixture, zisk["fixture"]["transport"])
     return fixture, elf
 
 
@@ -475,6 +684,16 @@ def validate_local(args: argparse.Namespace) -> dict[str, Any]:
     }
 
 
+def validate_projection_files(args: argparse.Namespace) -> dict[str, Any]:
+    manifest = load_manifest(args.manifest)
+    return validate_stwo_projection(
+        args.canonical_input,
+        args.stwo_runner_input,
+        args.host_output,
+        manifest,
+    )
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=DEFAULT_MANIFEST)
@@ -494,6 +713,12 @@ def _parser() -> argparse.ArgumentParser:
     local.add_argument("--execution-output", type=Path, required=True)
     local.add_argument("--plan-stdout", type=Path, required=True)
     local.set_defaults(action=validate_local)
+
+    projection = sub.add_parser("validate-projection")
+    projection.add_argument("--canonical-input", type=Path, required=True)
+    projection.add_argument("--stwo-runner-input", type=Path, required=True)
+    projection.add_argument("--host-output", type=Path, required=True)
+    projection.set_defaults(action=validate_projection_files)
 
     rpc = sub.add_parser("validate-rpc")
     rpc.add_argument("--endpoint", required=True)
