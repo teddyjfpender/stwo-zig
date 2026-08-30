@@ -1,4 +1,4 @@
-//! Compact 1,922-event / 961-batch LogUp plan for paired Keccak-f rows.
+//! Compact 2,082-event / 1,041-batch LogUp plan for paired Keccak-f rows.
 //!
 //! Round rows request one tuple per chi output bit and one tuple per parity
 //! position. The larger shard interaction is tiny at latency-oriented shard
@@ -8,6 +8,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const logup = @import("../logup.zig");
 const authority = @import("keccakf_authority.zig");
+const caller = @import("keccakf_caller.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
@@ -15,8 +16,11 @@ const witness = @import("keccakf_witness.zig");
 pub const chi_event_count: usize = authority.geometry.compact.chi_lookups_per_round;
 pub const xor5_event_count: usize = authority.geometry.compact.xor5_lookups_per_round;
 pub const io_event_count: usize = 2;
-pub const event_count: usize = chi_event_count + xor5_event_count + io_event_count;
-pub const batch_count: usize = (event_count + 1) / 2;
+pub const permutation_event_count: usize = chi_event_count + xor5_event_count +
+    io_event_count;
+pub const event_count: usize = permutation_event_count + caller.event_count;
+pub const permutation_batch_count: usize = permutation_event_count / 2;
+pub const batch_count: usize = permutation_batch_count + caller.batch_count;
 pub const interaction_column_count: usize = 4 * batch_count;
 
 pub const Error = error{InvalidTraceShape};
@@ -24,30 +28,48 @@ pub const Error = error{InvalidTraceShape};
 pub fn rowPairs(
     main: []const QM31,
     next_state: []const QM31,
+    caller_output_state: []const QM31,
     selectors: []const QM31,
     relations: *const relations_mod.Relations,
 ) Error![batch_count]logup.RowPair {
-    return rowPairsFor(QM31, main, next_state, selectors, relations);
+    return rowPairsFor(
+        QM31,
+        main,
+        next_state,
+        caller_output_state,
+        selectors,
+        relations,
+    );
 }
 
 pub fn rowPairsBase(
     main: []const M31,
     next_state: []const M31,
+    caller_output_state: []const M31,
     selectors: []const M31,
     relations: *const relations_mod.Relations,
 ) Error![batch_count]logup.RowPair {
-    return rowPairsFor(M31, main, next_state, selectors, relations);
+    return rowPairsFor(
+        M31,
+        main,
+        next_state,
+        caller_output_state,
+        selectors,
+        relations,
+    );
 }
 
 fn rowPairsFor(
     comptime S: type,
     main: []const S,
     next_state: []const S,
+    caller_output_state: []const S,
     selectors: []const S,
     relations: *const relations_mod.Relations,
 ) Error![batch_count]logup.RowPair {
     if (main.len != trace.Layout.main_columns or
         next_state.len != witness.state_cell_count or
+        caller_output_state.len != witness.state_cell_count or
         selectors.len != witness.row_count)
     {
         return error.InvalidTraceShape;
@@ -55,7 +77,7 @@ fn rowPairsFor(
     var round_active = S.zero();
     for (selectors[2..26]) |selector| round_active = round_active.add(selector);
     const request = lift(S, round_active).neg();
-    var events: [event_count]logup.RowPair = undefined;
+    var events: [permutation_event_count]logup.RowPair = undefined;
 
     for (0..chi_event_count) |event| {
         const x = event % 5;
@@ -120,25 +142,38 @@ fn rowPairsFor(
         a.* = main[trace.Layout.io_a + field];
         b.* = main[trace.Layout.io_b + field];
     }
-    events[event_count - 2] = logup.RowPair.single(
+    events[permutation_event_count - 2] = logup.RowPair.single(
         lift(S, selectors[0]).neg(),
         denominator(S, io_a_tuple, relations.io),
     );
-    events[event_count - 1] = logup.RowPair.single(
+    events[permutation_event_count - 1] = logup.RowPair.single(
         lift(S, selectors[1].mul(main[trace.Layout.in_use_b])).neg(),
         denominator(S, io_b_tuple, relations.io),
     );
 
     var result: [batch_count]logup.RowPair = undefined;
-    for (&result, 0..) |*pair, batch| {
+    for (result[0..permutation_batch_count], 0..) |*pair, batch| {
         const first = 2 * batch;
-        pair.* = if (first + 1 < event_count) .{
+        pair.* = .{
             .n1 = events[first].n1,
             .d1 = events[first].d1,
             .n2 = events[first + 1].n1,
             .d2 = events[first + 1].d1,
-        } else events[first];
+        };
     }
+    const caller_pairs = try caller.rowPairs(
+        S,
+        main[trace.Layout.caller..][0..caller.Layout.main_columns],
+        main[trace.Layout.state..][0..witness.state_cell_count],
+        caller_output_state,
+        main[trace.Layout.io_a..][0..relations_mod.io_arity],
+        main[trace.Layout.io_b..][0..relations_mod.io_arity],
+        selectors[0],
+        selectors[1],
+        main[trace.Layout.in_use_b],
+        relations,
+    );
+    @memcpy(result[permutation_batch_count..], &caller_pairs);
     return result;
 }
 
@@ -169,8 +204,8 @@ inline fn stateCell(x: usize, y: usize, z: usize) usize {
 }
 
 comptime {
-    if (event_count != 1922 or batch_count != 961 or
-        interaction_column_count != 3844)
+    if (permutation_event_count != 1922 or event_count != 2082 or
+        batch_count != 1041 or interaction_column_count != 4164)
     {
         @compileError("Keccak-f interaction geometry drifted");
     }

@@ -1,6 +1,6 @@
 //! Bounded, committed-order main trace for the paired Keccak-f component.
 //!
-//! A shard holds at most one log-16 domain (roughly 504 MiB at the maximum
+//! A shard holds at most one log-16 domain (roughly 552 MiB at the maximum
 //! width).  Larger call sets use multiple components while sharing one global
 //! lookup multiplicity authority.  This keeps allocation explicit and avoids
 //! a monolithic multi-gigabyte witness.
@@ -9,6 +9,7 @@ const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
 const authority = @import("keccakf_authority.zig");
+const caller_mod = @import("keccakf_caller.zig");
 const counters_mod = @import("keccakf_multiplicities.zig");
 const relations = @import("keccakf_relations.zig");
 const witness = @import("keccakf_witness.zig");
@@ -27,7 +28,8 @@ pub const Layout = struct {
     pub const io_b: usize = io_a + relations.io_arity;
     pub const state: usize = io_b + relations.io_arity;
     pub const parity: usize = state + witness.state_cell_count;
-    pub const main_columns: usize = parity + witness.parity_cell_count;
+    pub const caller: usize = parity + witness.parity_cell_count;
+    pub const main_columns: usize = caller + caller_mod.Layout.main_columns;
 
     pub const is_first: usize = 0;
     pub const row_group: usize = 1;
@@ -158,6 +160,8 @@ pub fn generateShard(
         writeSlot(
             &result,
             slot_index,
+            first_record,
+            second_record,
             try relations.ioTuple(
                 first_call_index + 2 * slot_index,
                 input_a,
@@ -177,11 +181,15 @@ pub fn generateShard(
 fn writeSlot(
     shard: *Shard,
     slot_index: usize,
+    record_a: *const call_buffer.Record,
+    record_b: ?*const call_buffer.Record,
     io_a: relations.IoTuple,
     io_b: ?relations.IoTuple,
     slot: *const witness.Slot,
 ) void {
     const size = shard.domainSize();
+    const caller_a = caller_mod.fill(record_a.*);
+    const caller_b = if (record_b) |record| caller_mod.fill(record.*) else null;
     for (slot.rows, 0..) |row, group| {
         const logical_row = slot_index * witness.row_count + group;
         const destination = committedRow(logical_row, shard.log_size);
@@ -210,6 +218,15 @@ fn writeSlot(
         for (row.parity, 0..) |value, cell| shard.main_storage[
             (Layout.parity + cell) * size + destination
         ] = M31.fromCanonical(value);
+        const caller_row = if (group == 0)
+            &caller_a
+        else if (group == 1 and caller_b != null)
+            &caller_b.?
+        else
+            null;
+        if (caller_row) |values| for (values, 0..) |value, column| {
+            shard.main_storage[(Layout.caller + column) * size + destination] = value;
+        };
     }
 }
 
@@ -236,7 +253,7 @@ pub inline fn committedRow(logical_row: usize, log_size: u32) usize {
 }
 
 comptime {
-    if (Layout.main_columns != 2140 or Layout.preprocessed_columns != 31 or
+    if (Layout.main_columns != 2204 or Layout.preprocessed_columns != 31 or
         maximum_slots_per_shard != 2259 or maximum_calls_per_shard != 4518)
     {
         @compileError("Keccak-f shard geometry drifted");

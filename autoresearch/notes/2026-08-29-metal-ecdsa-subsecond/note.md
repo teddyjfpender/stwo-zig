@@ -960,3 +960,46 @@ its product gate receipt is
 `.git/typed-air-zig-gates/runs/1788063982239251000-6429.json`, and the focused
 parity receipt is
 `.git/typed-air-zig-gates/runs/1788063936550685000-6326.json`.
+
+### Retained: zero-copy Keccak caller linkage
+
+The compact Keccak-f AIR initially proved only the permutation and its public
+packed input/output.  The production execution profile additionally requires
+the CUSTOM-0 program row, register-state transition, pointer read, fifty
+in-place memory transitions, access-clock gaps, and address-span checks to
+cancel against the ordinary RISC-V proof.
+
+The retained caller authority is embedded in the same 29-row paired Keccak
+component rather than introducing another commitment domain.  One 64-column
+metadata block is reused on row group zero for the first call and row group
+one for the optional second call.  Most importantly, memory tuples are built
+directly from the permutation trace's existing 1,600 boolean state cells at
+the input row and offset +27 output row.  A rejected intermediate shape stored
+400 duplicate input/output byte columns; the zero-copy shape removes those
+columns and their 400 binding constraints entirely.
+
+| ReleaseFast one-call isolated proof | permutation-only | linked zero-copy caller |
+|---|---:|---:|
+| main columns | 2,140 | 2,204 |
+| interaction columns | 3,844 | 4,164 |
+| witness | 10.458 ms | 9.094 ms |
+| preprocessed commitment | 78.659 ms | 79.921 ms |
+| main commitment | 31.565 ms | 32.879 ms |
+| interaction generation | 8.406 ms | 9.391 ms |
+| interaction commitment | 52.651 ms | 59.125 ms |
+| prove | 206.215 ms | 222.937 ms |
+| fresh verify | 161.244 ms | 172.603 ms |
+| prove path total | 387.954 ms | 413.347 ms |
+| prove plus fresh verify | 549.198 ms | 585.950 ms |
+
+The 6.7% complete-proof overhead closes the caller constraint surface while
+remaining comfortably subsecond.  Direct mutation tests cover state bytes and
+pointer alignment; interaction mutations cover clock authority; the complete
+2,082-event multiset closes with chi/xor tables and a record-derived public
+core boundary.  The ReleaseFast proof and fresh verifier gate is
+`.git/typed-air-zig-gates/runs/1788096195395319000-78371.json`.
+
+This isolated gate deliberately supplies the base-relation counterpart as
+public data.  Product integration must replace that boundary with cancellation
+against the committed program/register/memory/range components before the
+Keccak profile is exposed by the ordinary proof artifact route.

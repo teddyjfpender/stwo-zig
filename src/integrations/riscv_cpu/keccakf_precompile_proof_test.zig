@@ -2,7 +2,7 @@
 //!
 //! This is deliberately isolated from production routing. It proves one
 //! paired Keccak shard together with the complete chi/xor5 multiplicity
-//! tables, supplies the public packed-I/O boundary, and then reconstructs the
+//! tables, supplies the public core-caller boundary, and then reconstructs the
 //! transcript in a fresh verifier scheme. The heterogeneous log-5/log-10/
 //! log-13 commitment trees exercise the same placement and prepared-domain
 //! surfaces used by the admitted guest profile.
@@ -21,6 +21,7 @@ const pcs_core = stwo_core.pcs;
 const guest_air = frontend.air.guest_precompile;
 const guest_runner = frontend.runner.guest_precompile;
 const authority = guest_air.keccakf_authority;
+const caller = guest_air.keccakf_caller;
 const component_mod = guest_air.keccakf_component;
 const counters_mod = guest_air.keccakf_multiplicities;
 const interaction_mod = guest_air.keccakf_interaction;
@@ -153,18 +154,18 @@ test "Keccak-f typed shard and lookup tables prove and independently verify" {
         &shard,
         shard_interaction.claims,
     );
-    const public_io_sum = try publicIoSum(&records, 0, &relations);
+    const public_core_sum = try publicCoreSum(&records, &relations);
     try std.testing.expect(shard_claim.component_sum
         .add(chi_interaction.claim)
         .add(xor5_interaction.claim)
-        .add(public_io_sum)
+        .add(public_core_sum)
         .isZero());
     mixInteractionClaims(
         &channel,
         shard_claim,
         chi_interaction.claim,
         xor5_interaction.claim,
-        public_io_sum,
+        public_core_sum,
     );
     const interaction_gen_ns = timer.lap();
 
@@ -250,7 +251,7 @@ test "Keccak-f typed shard and lookup tables prove and independently verify" {
         shard_claim,
         chi_interaction.claim,
         xor5_interaction.claim,
-        public_io_sum,
+        public_core_sum,
     );
     try verifier_scheme.commit(
         allocator,
@@ -480,26 +481,23 @@ fn mixInteractionClaims(
     shard: component_mod.Claim,
     chi: QM31,
     xor5: QM31,
-    public_io: QM31,
+    public_core: QM31,
 ) void {
     channel.mixU64(0x4b_45_43_43_41_4b_49_31); // "KECCAKI1"
     channel.mixFelts(&shard.batch_sums);
-    channel.mixFelts(&.{ shard.component_sum, chi, xor5, public_io });
+    channel.mixFelts(&.{ shard.component_sum, chi, xor5, public_core });
 }
 
-fn publicIoSum(
+fn publicCoreSum(
     records: []const call_buffer.Record,
-    first_call_index: usize,
     relations: *const relations_mod.Relations,
 ) !QM31 {
     var result = QM31.zero();
-    for (records, 0..) |record, index| {
-        const tuple = try relations_mod.ioTuple(
-            first_call_index + index,
-            trace_mod.stateFromWords(record.input),
-            trace_mod.stateFromWords(record.output),
-        );
-        result = result.add(try relations_mod.IoEvent.unitEmit(tuple).term(&relations.io));
+    for (records) |record| {
+        result = result.add(try caller.publicCoreCounterpartForRecord(
+            record,
+            relations,
+        ));
     }
     return result;
 }
@@ -509,6 +507,6 @@ fn ms(ns: u64) f64 {
 }
 
 comptime {
-    if (pp_count != 45 or main_count != 2142 or interaction_count != 3852)
+    if (pp_count != 45 or main_count != 2206 or interaction_count != 4172)
         @compileError("Keccak-f isolated proof tree geometry drifted");
 }

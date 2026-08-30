@@ -35,7 +35,7 @@ fn record(seed: u32) call_buffer.Record {
     };
 }
 
-test "keccakf interaction: all 961 compact recurrences close over odd padding" {
+test "keccakf interaction: all 1041 linked recurrences close over odd padding" {
     const records = [_]call_buffer.Record{ record(1), record(2), record(3) };
     var counters = try counters_mod.Counters.init(std.testing.allocator);
     defer counters.deinit();
@@ -51,8 +51,18 @@ test "keccakf interaction: all 961 compact recurrences close over odd padding" {
     for (0..trace.domainSize()) |logical_row| {
         const main = subject.readMain(&trace, logical_row);
         const next = subject.readState(&trace, (logical_row + 1) % trace.domainSize());
+        const output = subject.readState(
+            &trace,
+            (logical_row + 27) % trace.domainSize(),
+        );
         const selectors = subject.readSelectors(&trace, logical_row);
-        const pairs = try plan.rowPairsBase(&main, &next, &selectors, &relations);
+        const pairs = try plan.rowPairsBase(
+            &main,
+            &next,
+            &output,
+            &selectors,
+            &relations,
+        );
         const current_row = trace_mod.committedRow(logical_row, trace.log_size);
         const previous_row = trace_mod.committedRow(
             (logical_row + trace.domainSize() - 1) % trace.domainSize(),
@@ -78,8 +88,15 @@ test "keccakf interaction: all 961 compact recurrences close over odd padding" {
     result.columns[0][row] = result.columns[0][row].add(M31.one());
     const main = subject.readMain(&trace, 2);
     const next = subject.readState(&trace, 3);
+    const output = subject.readState(&trace, 29);
     const selectors = subject.readSelectors(&trace, 2);
-    const pairs = try plan.rowPairsBase(&main, &next, &selectors, &relations);
+    const pairs = try plan.rowPairsBase(
+        &main,
+        &next,
+        &output,
+        &selectors,
+        &relations,
+    );
     const current = secureAt(&result.columns, 0, row);
     const previous = secureAt(
         &result.columns,

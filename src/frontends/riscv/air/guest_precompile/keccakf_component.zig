@@ -221,6 +221,7 @@ pub const KeccakShardComponent = struct {
                     shiftedPoint(max_log_degree_bound, point, -1),
                     shiftedPoint(max_log_degree_bound, point, 1),
                     shiftedPoint(max_log_degree_bound, point, 2),
+                    shiftedPoint(max_log_degree_bound, point, 27),
                 }
             else
                 &.{point};
@@ -285,6 +286,7 @@ pub const KeccakShardComponent = struct {
         const pairs = try interaction.rowPairs(
             &sampled.main,
             &sampled.state_plus_one,
+            &sampled.state_plus_twenty_seven,
             &sampled.selectors,
             self.relations,
         );
@@ -449,6 +451,7 @@ const PointSample = struct {
     state_minus_one: [witness.state_cell_count]QM31,
     state_plus_one: [witness.state_cell_count]QM31,
     state_plus_two: [witness.state_cell_count]QM31,
+    state_plus_twenty_seven: [witness.state_cell_count]QM31,
     current_sums: [interaction.batch_count]QM31,
     previous_sums: [interaction.batch_count]QM31,
 };
@@ -489,6 +492,7 @@ fn samplePoint(
         result.state_minus_one[cell] = try pointAt(points, 2);
         result.state_plus_one[cell] = try pointAt(points, 3);
         result.state_plus_two[cell] = try pointAt(points, 4);
+        result.state_plus_twenty_seven[cell] = try pointAt(points, 5);
     }
     for (0..interaction.batch_count) |batch| {
         result.current_sums[batch] = try sampledSecure(
@@ -574,6 +578,12 @@ const PreparedDomainState = struct {
                 self.eval_log_size,
                 2,
             );
+            const plus_twenty_seven_row = utils.offsetBitReversedCircleDomainIndex(
+                row,
+                self.component.claim.log_size,
+                self.eval_log_size,
+                27,
+            );
             var main: [main_column_count]M31 = undefined;
             for (&main, 0..) |*value, column| value.* =
                 self.evaluations[main_start + column][row];
@@ -585,6 +595,7 @@ const PreparedDomainState = struct {
             var minus_one: [witness.state_cell_count]M31 = undefined;
             var plus_one: [witness.state_cell_count]M31 = undefined;
             var plus_two: [witness.state_cell_count]M31 = undefined;
+            var plus_twenty_seven: [witness.state_cell_count]M31 = undefined;
             for (0..witness.state_cell_count) |cell| {
                 const values = self.evaluations[
                     main_start + trace_mod.Layout.state + cell
@@ -593,6 +604,7 @@ const PreparedDomainState = struct {
                 minus_one[cell] = values[previous_row];
                 plus_one[cell] = values[plus_one_row];
                 plus_two[cell] = values[plus_two_row];
+                plus_twenty_seven[cell] = values[plus_twenty_seven_row];
             }
             var selectors: [witness.row_count]M31 = undefined;
             for (&selectors, 0..) |*value, group| value.* = self.evaluations[
@@ -615,6 +627,7 @@ const PreparedDomainState = struct {
             const pairs = try interaction.rowPairsBase(
                 &main,
                 &plus_one,
+                &plus_twenty_seven,
                 &selectors,
                 self.component.relations,
             );
@@ -742,6 +755,6 @@ fn checkedAdd(lhs: usize, rhs: usize) !usize {
 }
 
 comptime {
-    if (constraint_count != 7004 or prepared_source_count != 6015)
+    if (constraint_count != 7215 or prepared_source_count != 6399)
         @compileError("Keccak-f component geometry drifted");
 }

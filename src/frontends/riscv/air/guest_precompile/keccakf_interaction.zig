@@ -55,9 +55,18 @@ const Context = struct {
             self.trace,
             (logical_row + 1) % self.trace.domainSize(),
         );
+        const caller_output = readState(
+            self.trace,
+            (logical_row + 27) % self.trace.domainSize(),
+        );
         const selectors = readSelectors(self.trace, logical_row);
-        return plan.rowPairsBase(&main, &next, &selectors, self.relations) catch
-            unreachable;
+        return plan.rowPairsBase(
+            &main,
+            &next,
+            &caller_output,
+            &selectors,
+            self.relations,
+        ) catch unreachable;
     }
 };
 

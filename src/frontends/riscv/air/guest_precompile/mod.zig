@@ -22,6 +22,7 @@ pub const production_adapter = @import("production_adapter.zig");
 /// remain outside the production profile switch until the caller relation and
 /// guest ABI are activated together.
 pub const keccakf_authority = @import("keccakf_authority.zig");
+pub const keccakf_caller = @import("keccakf_caller.zig");
 pub const keccakf_component = @import("keccakf_component.zig");
 pub const keccakf_interaction = @import("keccakf_interaction.zig");
 pub const keccakf_multiplicities = @import("keccakf_multiplicities.zig");

@@ -6,6 +6,7 @@
 
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const caller = @import("keccakf_caller.zig");
 const relations = @import("keccakf_relations.zig");
 const trace = @import("keccakf_trace.zig");
 const witness = @import("keccakf_witness.zig");
@@ -23,7 +24,7 @@ pub const constraint_count: usize = activation_constraints +
     io_continuity_constraints + inactive_b_constraints +
     io_binding_constraints + boundary_boolean_constraints +
     slice_glue_constraints + terminal_parity_constraints +
-    padding_constraints;
+    padding_constraints + caller.direct_constraint_count;
 
 pub const Error = error{InvalidTraceShape};
 
@@ -114,6 +115,16 @@ pub fn evaluateGeneric(
 
     const padding = one.sub(active);
     for (main) |value| sink.add(padding.mul(value), 2);
+
+    const caller_active = selectors[0].add(
+        selectors[1].mul(in_use_b),
+    );
+    try caller.evaluateDirect(
+        S,
+        main[trace.Layout.caller..][0..caller.Layout.main_columns],
+        caller_active,
+        sink,
+    );
 }
 
 fn packCurrentStateChunk(
@@ -146,6 +157,6 @@ fn mulSmall(comptime S: type, value: S, coefficient: u32) S {
 }
 
 comptime {
-    if (constraint_count != 6043 or maximum_constraint_degree != 3)
+    if (constraint_count != 6174 or maximum_constraint_degree != 3)
         @compileError("Keccak-f direct constraint geometry drifted");
 }

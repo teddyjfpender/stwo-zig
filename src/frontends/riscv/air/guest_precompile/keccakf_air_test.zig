@@ -5,6 +5,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const authority = @import("keccakf_authority.zig");
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
+const caller = @import("keccakf_caller.zig");
 const direct = @import("keccakf_direct.zig");
 const interaction = @import("keccakf_interaction_plan.zig");
 const counters_mod = @import("keccakf_multiplicities.zig");
@@ -69,7 +70,58 @@ test "keccakf AIR: all direct rows vanish and a committed mutation is visible" {
     try std.testing.expect(sink.failures != 0);
 }
 
-test "keccakf AIR: provider, table, and packed I/O multisets cancel exactly" {
+test "keccakf AIR: caller alignment, memory state, and execution are bound" {
+    const records = [_]call_buffer.Record{record(5)};
+    var counters = try counters_mod.Counters.init(std.testing.allocator);
+    defer counters.deinit();
+    var trace = try trace_mod.generateShard(
+        std.testing.allocator,
+        &records,
+        0,
+        &counters,
+    );
+    defer trace.deinit();
+    const committed = trace_mod.committedRow(0, trace.log_size);
+    const size = trace.domainSize();
+
+    var sink = RootSink{};
+    const alignment_cell = (trace_mod.Layout.caller +
+        caller.Layout.pointer_double_word_index) * size + committed;
+    trace.main_storage[alignment_cell] = trace.main_storage[alignment_cell].add(M31.one());
+    sink = .{};
+    try evaluateDirectRow(&trace, 0, &sink);
+    try std.testing.expect(sink.failures != 0);
+    trace.main_storage[alignment_cell] = trace.main_storage[alignment_cell].sub(M31.one());
+
+    const relations = relations_mod.Relations.dummy();
+    var main = readMain(&trace, 0);
+    const next = readState(&trace, 1);
+    const output = readState(&trace, 27);
+    const selectors = readSelectors(&trace, 0);
+    const honest = try interaction.rowPairsBase(
+        &main,
+        &next,
+        &output,
+        &selectors,
+        &relations,
+    );
+    main[trace_mod.Layout.caller + caller.Layout.execution_clock] =
+        main[trace_mod.Layout.caller + caller.Layout.execution_clock].add(M31.one());
+    const forged = try interaction.rowPairsBase(
+        &main,
+        &next,
+        &output,
+        &selectors,
+        &relations,
+    );
+    var changed = false;
+    for (honest, forged) |before, after| {
+        changed = changed or !before.d1.eql(after.d1) or !before.d2.eql(after.d2);
+    }
+    try std.testing.expect(changed);
+}
+
+test "keccakf AIR: provider, caller, tables, and public core boundary cancel" {
     const records = [_]call_buffer.Record{ record(11), record(13), record(17) };
     var counters = try counters_mod.Counters.init(std.testing.allocator);
     defer counters.deinit();
@@ -81,8 +133,15 @@ test "keccakf AIR: provider, table, and packed I/O multisets cancel exactly" {
     for (0..trace.domainSize()) |logical_row| {
         const main = readMain(&trace, logical_row);
         const next = readState(&trace, offset(trace.domainSize(), logical_row, 1));
+        const output = readState(&trace, offset(trace.domainSize(), logical_row, 27));
         const selectors = readSelectors(&trace, logical_row);
-        const pairs = try interaction.rowPairsBase(&main, &next, &selectors, &relations);
+        const pairs = try interaction.rowPairsBase(
+            &main,
+            &next,
+            &output,
+            &selectors,
+            &relations,
+        );
         for (pairs) |pair| total = total
             .add(pair.n1.mul(try pair.d1.inv()))
             .add(pair.n2.mul(try pair.d2.inv()));
@@ -98,23 +157,34 @@ test "keccakf AIR: provider, table, and packed I/O multisets cancel exactly" {
             total = total.add((try denominator.inv()).mulM31(multiplicity));
         }
     }
-    for (records, 0..) |item, call_index| {
-        const tuple = try relations_mod.ioTuple(
-            call_index,
-            trace_mod.stateFromWords(item.input),
-            trace_mod.stateFromWords(item.output),
-        );
-        total = total.add(try relations.io.combineBase(tuple).inv());
+    for (records) |item| {
+        total = total.add(try caller.publicCoreCounterpartForRecord(
+            item,
+            &relations,
+        ));
     }
     try std.testing.expect(total.isZero());
 
     var current = readMain(&trace, 2);
     const next = readState(&trace, 3);
+    const output = readState(&trace, 29);
     const selectors = readSelectors(&trace, 2);
-    const honest = try interaction.rowPairsBase(&current, &next, &selectors, &relations);
+    const honest = try interaction.rowPairsBase(
+        &current,
+        &next,
+        &output,
+        &selectors,
+        &relations,
+    );
     current[trace_mod.Layout.state + 7] =
         current[trace_mod.Layout.state + 7].add(M31.one());
-    const forged = try interaction.rowPairsBase(&current, &next, &selectors, &relations);
+    const forged = try interaction.rowPairsBase(
+        &current,
+        &next,
+        &output,
+        &selectors,
+        &relations,
+    );
     var changed = false;
     for (honest, forged) |before, after| {
         changed = changed or !before.d1.eql(after.d1) or !before.d2.eql(after.d2);
