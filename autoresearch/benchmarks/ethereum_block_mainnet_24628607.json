@@ -1,0 +1,125 @@
+{
+  "schema": "stwo.autoresearch.ethereum-block-comparison.v1",
+  "block": {
+    "chain": "mainnet",
+    "chain_id": 1,
+    "number": 24628607,
+    "rpc_tag": "0x177cd7f",
+    "hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+    "parent_hash": "0x1fed00f48a765a81aa0adaf558d2dd597cc1141562ccbc239d04f40d67011384",
+    "state_root": "0xebe5670f335d9b36b3f3824bcda167b542acc86811784f6c4c073c46f53a6354",
+    "transactions_root": "0xf0b9f5ddf3218e063ff485123edb69ee8d4ec1a234749f140c6a14abf90a4c51",
+    "receipts_root": "0x83fdda090173bcc59479a90af13d53de02c7663e9591167c585a0c8a1e5155dc",
+    "withdrawals_root": "0x1900a10f3fc709da22d5f369affc9b95b5d48794ce637d6aa84c71c92b6a31a8",
+    "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "transaction_count": 66,
+    "gas_used": 7372614,
+    "gas_limit": 60000000,
+    "timestamp": 1773164303
+  },
+  "zisk": {
+    "source": {
+      "repository": "https://github.com/0xPolygonHermez/zisk.git",
+      "commit": "fbbc69bcd2ea9a78d1a438b4a897bc48ff0b00a3",
+      "tree": "5201a988acf28db8c0093509377bca06ee2ef563"
+    },
+    "ethereum_client": {
+      "repository": "https://github.com/0xPolygonHermez/zisk-eth-client.git",
+      "commit": "0887d43621931faba8cdf8da70402091bbe620ff",
+      "tree": "089973debb56ee225804627de86b6e10c3e6bf4d"
+    },
+    "fixture": {
+      "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628607_66_7_zec_reth.bin",
+      "bytes": 2718960,
+      "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+      "git_blob": "77ce1b475784fd6c008f2ca0a834f9afc7948d2b"
+    },
+    "guest_elf": {
+      "path": "bin/guests/stateless-validator-reth/elf/zec-reth.elf",
+      "bytes": 5556232,
+      "sha256": "213206cfde4b3e27114406c10ab529bd6a15579443d2f134c3c51d9554b96494",
+      "git_blob": "292f4356c0ff281dac5aa2127e50d13126ecb30c"
+    },
+    "tools": {
+      "version": "1.2.0-alpha",
+      "ziskemu": {
+        "bytes": 7042608,
+        "sha256": "7ab5e1a5f5a79914b9295e1bb633eade7b06ea11e43d0abe0a77612c98abb048"
+      },
+      "cargo_zisk_dev": {
+        "bytes": 35617968,
+        "sha256": "06c7ab1d7018ce35227ceaf00ebe333090f8be649f8fe47d38eb39967d94c5bc"
+      }
+    },
+    "execution": {
+      "steps": 60465946,
+      "sdk_display_cost": 7410148962,
+      "stats_cost_including_initialization": 7410377906,
+      "initialization_cost": 228944,
+      "cost": {
+        "base": 287309824,
+        "main": 4111684328,
+        "opcodes": 698211571,
+        "precompiles": 1432367450,
+        "memory_including_initialization": 880804733,
+        "frops": 758015501
+      },
+      "output": {
+        "bytes": 256,
+        "sha256": "9e95dca7f1e10976ac6f4f73c5cc6c6d003ef87041a57d6feb7b8abc99be0946",
+        "framing": "u8-length-prefixed-block-hash-zero-padded"
+      }
+    },
+    "plan": {
+      "instances": {
+        "Arith": 1,
+        "ArithEq": 1,
+        "Binary": 2,
+        "BinaryAddHi": 1,
+        "BinaryExtensionFull": 1,
+        "Dma": 1,
+        "Dma64Aligned": 1,
+        "DmaPrePost": 1,
+        "DmaUnaligned": 1,
+        "InputData": 1,
+        "Keccakf": 2,
+        "Main": 15,
+        "Mem": 5,
+        "MemAlign": 1,
+        "MemAlignByte": 1,
+        "MemAlignReadByte": 1,
+        "Rom": 1,
+        "RomData": 1
+      },
+      "air_types": 18,
+      "total_instances": 38,
+      "padded_rows": 131596288,
+      "committed_stage_cells": 8556380160,
+      "constant_cells": 196083712,
+      "all_cells": 8752463872,
+      "geometry_sha256": "026501b65f16fcfde42cd7c6723ed63fa545ed0738cce2c8af6c0348a7d45ff8",
+      "global_info": {
+        "bytes": 8744,
+        "sha256": "7d97fee4db934acced1fc1a1b68bf42867fdc8937fa92c3801ef3d3807607c45"
+      }
+    }
+  },
+  "stwo": {
+    "one_shot_max_steps": 16777216,
+    "whole_frontend_verified": false,
+    "proof_system_soundness": false,
+    "independent_proof_verifier_implemented": false,
+    "full_block_guest_ported": false,
+    "full_block_execution_reproduced": false,
+    "full_block_segment_proofs_verified": false,
+    "full_block_recursive_root_verified": false
+  },
+  "claim_boundary": {
+    "zisk_stateless_block_execution_reproduced": true,
+    "zisk_air_plan_reproduced": true,
+    "zisk_full_block_proof_reproduced": false,
+    "stwo_mini_transition_is_full_ethereum_block": false,
+    "stwo_full_block_comparison_ready": false,
+    "performance_comparison_status": "blocked-on-matched-statement-and-recursive-full-block-proof"
+  }
+}
