@@ -395,6 +395,12 @@ pub fn build(b: *std.Build) void {
         .minimum = 4,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-secp256k1-precompile",
+        .description = "Run compact secp256k1 field and precompile authority tests",
+        .root = "secp256k1_precompile_test_root.zig",
+        .minimum = 19,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-interaction-trace-plan",
         .description = "Run the prepared Tree-2 planning and execution tests",
         .root = "interaction_trace_plan_execution_test_root.zig",

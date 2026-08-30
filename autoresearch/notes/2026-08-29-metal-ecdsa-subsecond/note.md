@@ -1003,3 +1003,138 @@ This isolated gate deliberately supplies the base-relation counterpart as
 public data.  Product integration must replace that boundary with cancellation
 against the committed program/register/memory/range components before the
 Keccak profile is exposed by the ordinary proof artifact route.
+
+### Problem match: proof-oriented secp256k1 arithmetic
+
+Task and required semantics: prove Ethereum-compatible secp256k1 signature
+verification and public-key recovery, including canonical 256-bit inputs,
+curve membership, the scalar relation, caller memory/state transitions, and
+the Keccak address projection.  Invalid inputs must fail closed; host hints are
+witnesses, never authorities.
+
+Inputs, measured scale/provenance, encoding, and computational model: the
+current CSP guest verifies one 32-byte digest, one 65-byte uncompressed key,
+and one 64-byte `(r,s)` signature by executing about 5.4 million RV32 rows.
+Ethereum `ECRECOVER` consumes four 32-byte words `(digest,v,r,s)`.  The proof
+field has characteristic `2^31-1`; proof cost is dominated by committed cells,
+lookup events, constraint evaluation, and commitment domains rather than the
+host's native secp instruction count.
+
+Constraints, promises, invariants, and exploitable structure: secp256k1 uses
+the 256-bit prime `2^256-2^32-977`, has cofactor one, and admits the efficient
+endomorphism used by libsecp256k1.  Every public field/scalar value is
+canonical.  Main-trace values are committed before randomized non-native
+identities are challenged.  CPU and Metal must share the identical trace and
+transcript; no relaxed arithmetic or benchmark-specific constants are allowed.
+
+Candidate matches:
+
+| candidate | relationship | proof cost/fit | evidence | decision |
+|---|---|---|---|---|
+| 32 byte limbs + coefficient carries | exact radix-256 integer identity | zero-copy ABI, all coefficient bounds stay below M31 | derived | selected |
+| 16-bit limbs | exact only with extra anti-wrap machinery | fewer limbs, but convolution coefficients exceed M31 | derived | rejected |
+| affine slope trace | exact short-Weierstrass group law | 4--5 modular products per step; inverse is one witnessed product | EFD formulas, derived | selected baseline |
+| Jacobian/projective trace | exact group law | avoids host inversions but costs roughly 8--12 products per step | EFD formulas | fallback |
+| independent scalar multiplications | exact | duplicates doublings and additions | standard baseline | rejected |
+| Straus/Shamir joint multiplication with wNAF | exact | one doubling chain and sparse additions | libsecp256k1 | selected |
+| Pippenger | exact | optimized for many points; libsecp256k1 crosses over near 88 points | libsecp256k1 | rejected for two-point ECDSA |
+
+Chosen canonical problem and exact variant: non-native modular multiplication
+over radix-256 integers plus a two-point simultaneous scalar multiplication on
+the secp256k1 short-Weierstrass group.  The first transfer is the reusable
+modular-product authority.  For committed digit polynomials `A,B,Q,R,C`, it
+checks
+
+`A(x)B(x) - R(x) - Q(x)P(x) - (x-256)C(x) = 0`
+
+at a transcript challenge in QM31.  Carry limbs and all byte limbs are tightly
+range checked; therefore the coefficient identity cannot hide an M31 wrap.
+The degree is at most 62, giving a Schwartz--Zippel error below roughly
+`62/(2^31-1)^4` in addition to the surrounding proof soundness.
+
+Project -> canonical mapping and solution recovery: input/output memory bytes
+map directly to radix-256 limbs.  The witness supplies quotient, signed carry,
+and canonical-result addition witnesses.  Point operations consume these
+modular-product rows through relations.  The eventual ECDSA verifier proves
+the simultaneous multiplication relation; `ECRECOVER` proves the equivalent
+recovery relation and hashes the authenticated recovered key through the
+existing Keccak authority.
+
+Complexity/limits and prior implementations: one modular multiplication uses
+32-byte operands/result/quotient, 62 signed carries, one degree-62 randomized
+identity, and byte/boolean range checks.  The Explicit-Formulas Database
+publishes and symbolically checks Jacobian, mixed, affine, and doubling
+formulas (`https://hyperelliptic.org/EFD/oldefd/jacobian.html`).  Bitcoin
+Core's MIT-licensed libsecp256k1 uses Strauss wNAF for small MSMs, scalar
+endomorphism splitting, and switches to Pippenger only at much larger point
+counts (`https://github.com/bitcoin-core/secp256k1/blob/master/src/ecmult_impl.h`).
+Consensys gnark's ECRECOVER circuit independently demonstrates the
+hint-then-constrain structure and the required range/failure checks
+(`https://github.com/Consensys/gnark/blob/master/std/evmprecompiles/01-ecrecover.go`).
+
+Selected transfer, integration boundary, and rejected alternatives: transfer
+the byte-limb non-native identity first, then an affine joint-wNAF trace, and
+only then the caller/profile boundary.  Keep witness generation backend
+neutral; Metal acceleration starts at bulk column filling, interaction
+generation, and commitments using existing resident/AOT infrastructure.
+Projective formulas remain a measured fallback if sequential host inversions
+dominate.  A secp-only execution profile is rejected because Ethereum proofs
+must compose secp and Keccak in one admitted profile.
+
+End-to-end prediction, crossover, and falsifier: replacing 5.4 million RV32
+rows with roughly 2,000--4,000 modular-product rows should remove orders of
+magnitude of execution/witness work and target a subsecond complete proof.
+The design is falsified if the first complete component exceeds the software
+guest's committed-cell count or if range/interaction commitments dominate
+enough that a 16-bit or projective alternative wins in paired measurement.
+
+Correctness and benchmark plan: differential-test every modular product
+against `u512` arithmetic over boundary and randomized inputs; mutate every
+witness family; independently verify the polynomial identity at multiple
+challenges; compare point/scalar outputs with Zig's `std.crypto.ecc.Secp256k1`
+and the existing k256 guest corpus; run isolated ReleaseFast proof/fresh-verify
+before product integration; then measure CPU and Metal end-to-end with exact
+proof/statement/transcript parity.
+
+Open uncertainty: the optimal affine window and whether GLV pays for its
+additional scalar constraints remain measurement questions.  The first field
+authority deliberately does not commit either choice.
+
+### Retained: byte-limb field AIR and GLV joint multiplication
+
+The first implementation checkpoint keeps the radix-256 representation all
+the way from guest memory into the proof.  A modular-product row has 318 main
+columns, 69 degree-at-most-three constraints, and 142 shared
+`range_check_8_8` requests.  Its only secure constraint is the challenged
+degree-62 carry-polynomial identity; exact integer and randomized oracles cover
+both the base-field prime and scalar order.  The linear-operation row is
+smaller: 199 columns, 172 constraints, and 64 byte-pair range requests for
+modular add, subtract, and one-step reduction.  Both layouts reject mutations
+to every witness family and have M31/QM31 point-evaluation parity.
+
+Host generation is not the bottleneck.  A live-source `stwo-prof` isolate
+measured complete quotient/carry/canonical modular-product witness generation
+at 1.711 microseconds per row (42,470 instructions, 7,799 cycles, IPC 5.446).
+At the pinned CSP signature's final 1,039 product rows, generic `u512`
+division contributes only about 1.8 milliseconds to witness construction, so
+a specialized secp reduction kernel is deliberately deferred.
+
+The affine verifier initially used width-five joint wNAF and recorded 1,636
+products, 2,351 linear operations, and 347 point transitions.  Retaining both
+scalar-split equations and the variable-point endomorphism in the tape reduced
+that exact signature to 1,039 products, 1,516 linear operations, and 228 point
+transitions: 36.5%, 35.5%, and 34.3% fewer proof rows respectively.  Twelve
+deterministic randomized cases match Zig's independent secp256k1 group oracle.
+
+An ABBA live-source counter comparison measured the complete joint
+multiplication/tape builder as follows:
+
+| implementation | ns/op | instructions/op | cycles/op |
+|---|---:|---:|---:|
+| joint width-5 wNAF | 5,700,406 | baseline | baseline |
+| GLV + joint width-5 wNAF | 4,671,771 | 0.8294x | 0.8199x |
+
+The wall-time ratio is 0.8181 with 95% CI `[0.794593, 0.820251]`.  This is a
+general two-point secp256k1 optimization, not a CSP fixture specialization.
+The next proof checkpoint must bind the point/scalar program and its primitive
+row multiset before any end-to-end speed claim is made.

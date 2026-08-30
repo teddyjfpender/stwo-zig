@@ -31,3 +31,11 @@ pub const keccakf_table_component = @import("keccakf_table_component.zig");
 pub const keccakf_table_interaction = @import("keccakf_table_interaction.zig");
 pub const keccakf_tables = @import("keccakf_tables.zig");
 pub const keccakf_trace = @import("keccakf_trace.zig");
+
+/// Backend-neutral non-native secp256k1 arithmetic authority.  Point and
+/// caller components compose this primitive rather than reimplementing wide
+/// integer arithmetic per backend.
+pub const secp256k1_field = @import("secp256k1_field.zig");
+pub const secp256k1_mul_direct = @import("secp256k1_mul_direct.zig");
+pub const secp256k1_linear_direct = @import("secp256k1_linear_direct.zig");
+pub const secp256k1_affine = @import("secp256k1_affine.zig");
