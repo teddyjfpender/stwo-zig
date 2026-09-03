@@ -28,12 +28,28 @@ pub const lookup_polynomial_program_v2 =
     @import("lang/lookup_polynomial_program_v2.zig");
 pub const memory_commitment = @import("memory_commitment/mod.zig");
 pub const typed_poseidon2_authority = @import("lang/typed_poseidon2_authority.zig");
+pub const typed_poseidon2_degree_bounded_candidate =
+    @import("lang/typed_poseidon2_degree_bounded_candidate.zig");
+pub const typed_poseidon2_degree_bounded_component =
+    @import("lang/typed_poseidon2_degree_bounded_component.zig");
+pub const typed_poseidon2_degree_bounded_trace =
+    @import("lang/typed_poseidon2_degree_bounded_trace.zig");
+pub const typed_poseidon2_degree5_component =
+    @import("lang/typed_poseidon2_degree5_component.zig");
+pub const typed_poseidon2_degree5_backend =
+    @import("lang/typed_poseidon2_degree5_backend.zig");
+pub const typed_poseidon2_degree5_trace =
+    @import("lang/typed_poseidon2_degree5_trace.zig");
 pub const memory_logup = @import("memory_logup.zig");
 pub const opcode_memory = @import("opcode_memory.zig");
 pub const public_data = @import("public_data.zig");
 pub const public_data_v2 = @import("public_data_v2.zig");
 pub const public_logup = @import("public_logup.zig");
 pub const public_logup_v2 = @import("public_logup_v2.zig");
+pub const incremental_public_logup_v3 =
+    @import("incremental_public_logup_v3.zig");
+pub const incremental_public_logup_v4 =
+    @import("incremental_public_logup_v4.zig");
 pub const program = @import("program/mod.zig");
 pub const relation_challenges = @import("relation_challenges.zig");
 pub const relation_evidence = @import("relation_evidence.zig");

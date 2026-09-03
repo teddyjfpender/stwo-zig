@@ -106,6 +106,7 @@ pub fn requireExecutionProfile(
         .rv32im_zkvm_v1 => ElfError.MissingAdmissionNote,
         .rv32im_zkvm_poseidon2_v1 => ElfError.RequiredCapabilityUnavailable,
         .rv32im_zkvm_keccakf_v1 => ElfError.RequiredCapabilityUnavailable,
+        .rv32im_zkvm_ethereum_v1 => ElfError.RequiredCapabilityUnavailable,
     };
 }
 
@@ -652,7 +653,7 @@ test "ELF admission rejects every descriptor identity mismatch" {
     }
     {
         var elf = makeAdmissionNoteElf();
-        putU16LE(&elf, NOTE_DESCRIPTOR + 10, 3);
+        putU16LE(&elf, NOTE_DESCRIPTOR + 10, 4);
         try std.testing.expectError(ElfError.UnsupportedMachineProfile, requestedExecutionProfile(&elf));
     }
     {

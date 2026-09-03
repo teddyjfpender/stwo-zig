@@ -101,8 +101,9 @@ pub const VerifiedReceipt = struct {
 /// bytes or retaining a pointer into caller-owned statement storage.
 pub const OwnedPublicDataV2 = struct {
     allocator: std.mem.Allocator,
-    canonical_words: []M31,
+    canonical_words: []const M31,
     data: public_data_v2.PublicDataV2,
+    validated_lease: ?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2 = null,
 
     pub fn initVerified(
         allocator: std.mem.Allocator,
@@ -121,8 +122,39 @@ pub const OwnedPublicDataV2 = struct {
         };
     }
 
+    /// Move a verifier-input lease into the successful fresh capture.  The
+    /// optional is cleared exactly when ownership transfers, so every error
+    /// path retains one unambiguous deinitializer.
+    pub fn initVerifiedTakingLease(
+        allocator: std.mem.Allocator,
+        source: *const public_data_v2.PublicDataV2,
+        lease_inout: *?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2,
+    ) !OwnedPublicDataV2 {
+        try source.validate();
+        const lease = lease_inout.* orelse
+            return error.MissingValidatedPublicDataLeaseV2;
+        const lease_data = lease.data();
+        if (source.words().ptr != lease_data.words().ptr or
+            source.words().len != lease_data.words().len or
+            !std.meta.eql(source.wireId(), lease_data.wireId()))
+        {
+            return error.SourceMutation;
+        }
+        const result = OwnedPublicDataV2{
+            .allocator = allocator,
+            .canonical_words = lease.ownedWords(),
+            .data = lease_data.*,
+            .validated_lease = lease,
+        };
+        lease_inout.* = null;
+        return result;
+    }
+
     pub fn deinit(self: *OwnedPublicDataV2) void {
-        self.allocator.free(self.canonical_words);
+        if (self.validated_lease) |*lease|
+            lease.deinit()
+        else
+            self.allocator.free(self.canonical_words);
         self.* = undefined;
     }
 
@@ -301,21 +333,37 @@ pub const RiscVStatementV2 = struct {
         )) return error.SegmentResultMismatch;
 
         const rows = result.execution_trace.rows.items;
-        const first_clock = std.math.cast(u32, result.global_first_cycle) orelse
+        const local_cycles = std.math.cast(u32, result.cycle_count) orelse
             return error.SegmentResultMismatch;
-        const last_clock = std.math.add(
-            u32,
-            first_clock,
-            std.math.cast(u32, result.cycle_count -| 1) orelse
-                return error.SegmentResultMismatch,
+        const external = result.execution_trace.recordedExternalSteps();
+        const represented = std.math.add(usize, rows.len, external) catch
+            return error.SegmentResultMismatch;
+        result.execution_trace.validateClockRange(
+            0,
+            local_cycles,
+            external,
         ) catch return error.SegmentResultMismatch;
-        if (result.execution_trace.step_count != result.cycle_count or
-            rows.len != result.cycle_count or rows.len == 0 or
+        if (result.execution_trace.step_count != rows.len or
+            represented != result.cycle_count or rows.len == 0 or
             result.execution_trace.initial_pc != result.entry_cpu.pc or
-            result.execution_trace.final_pc != result.exit_cpu.pc or
-            rows[0].pc != result.entry_cpu.pc or
-            rows[rows.len - 1].next_pc != result.exit_cpu.pc or
-            rows[0].clk != first_clock or rows[rows.len - 1].clk != last_clock)
+            result.execution_trace.final_pc != result.exit_cpu.pc)
+        {
+            return error.SegmentResultMismatch;
+        }
+        if (external == 0) {
+            const first_clock = std.math.cast(
+                u32,
+                result.global_first_cycle,
+            ) orelse return error.SegmentResultMismatch;
+            if (rows[0].pc != result.entry_cpu.pc or
+                rows[rows.len - 1].next_pc != result.exit_cpu.pc or
+                rows[0].clk != first_clock or
+                rows[rows.len - 1].clk != local_cycles)
+            {
+                return error.SegmentResultMismatch;
+            }
+        } else if (rows[0].clk == 0 or
+            rows[rows.len - 1].clk > local_cycles)
         {
             return error.SegmentResultMismatch;
         }
@@ -351,23 +399,39 @@ pub fn nativeRelationSums(
     data: *const public_data_v2.PublicDataV2,
     relations: *const relation_challenges.Relations,
 ) Error!public_logup_v2.Sums {
-    const view = try authenticatedView(data);
     var sums = try public_logup_v2.relationSums(data, relations);
+    sums.merkle = sums.merkle.add(try sparseContinuationTreeCompensation(
+        data,
+        relations,
+    ));
+    return sums;
+}
+
+/// Exact V2-only Merkle compensation for the sparse continuation leaves (or
+/// the empty-tree root). Full-state incremental witnesses commit those leaves
+/// through their boundary and bridge, so their versioned public adapter must
+/// remove this member while retaining the three public root anchors.
+pub fn sparseContinuationTreeCompensation(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    const view = try authenticatedView(data);
+    var result = QM31.zero();
     try addContinuationTreeCompensation(
-        &sums.merkle,
+        &result,
         &view,
         view.entry_snapshot,
         view.statement.entry_continuation_root,
         &relations.merkle,
     );
     try addContinuationTreeCompensation(
-        &sums.merkle,
+        &result,
         &view,
         view.exit_snapshot,
         view.statement.exit_continuation_root,
         &relations.merkle,
     );
-    return sums;
+    return result;
 }
 
 pub fn nativeRelationSum(
@@ -478,9 +542,7 @@ fn scalarProgramRoot(program: public_data_v2.Digest) Error!u32 {
 fn authenticatedView(
     data: *const public_data_v2.PublicDataV2,
 ) Error!segment_v2.CanonicalWireViewV2 {
-    const view = try segment_v2.authenticateCanonicalWire(data.words());
-    if (!std.meta.eql(view.wire_id, data.wireId())) return error.SourceMutation;
-    return view;
+    return data.authenticatedView();
 }
 
 const SnapshotSide = enum { initial_word, final_word };

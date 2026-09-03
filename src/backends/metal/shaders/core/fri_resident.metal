@@ -4,6 +4,7 @@ using namespace metal;
 #ifndef STWO_ZIG_AMALGAMATED
 #include "stwo_zig/blake2s.metal"
 #include "stwo_zig/m31.metal"
+#include "stwo_zig/poseidon2_m31.metal"
 #include "stwo_zig/extension_fields.metal"
 #endif
 
@@ -144,6 +145,40 @@ kernel void stwo_zig_fri_packed_leaves_resident(
         blake2s_compress(state, message, prefix_bytes + 64u, true);
     }
     for (uint i = 0u; i < 8u; ++i) arena[destination_base + leaf * 8u + i] = state[i];
+}
+
+kernel void stwo_zig_poseidon2_m31_fri_packed_leaves_resident(
+    device uint *arena [[buffer(0)]],
+    constant uint &evaluation_base [[buffer(1)]],
+    constant uint &coordinate_stride [[buffer(2)]],
+    constant uint &evaluation_size [[buffer(3)]],
+    constant uint &log_rows_per_leaf [[buffer(4)]],
+    constant uint &destination_base [[buffer(5)]],
+    constant uint *unused_leaf_seed [[buffer(6)]],
+    constant uint &unused_prefix_bytes [[buffer(7)]],
+    uint leaf [[thread_position_in_grid]]
+) {
+    (void)unused_leaf_seed;
+    (void)unused_prefix_bytes;
+    uint leaf_count = evaluation_size >> log_rows_per_leaf;
+    if (leaf >= leaf_count) return;
+    uint state[16];
+    uint filled = 0u;
+    stwo_zig_poseidon2_leaf_init(state);
+    uint rows_per_leaf = 1u << log_rows_per_leaf;
+    for (uint offset = 0u; offset < rows_per_leaf; ++offset) {
+        for (uint coordinate = 0u; coordinate < 4u; ++coordinate) {
+            stwo_zig_poseidon2_leaf_absorb(
+                state,
+                filled,
+                arena[evaluation_base + coordinate * coordinate_stride +
+                    rows_per_leaf * leaf + offset]
+            );
+        }
+    }
+    stwo_zig_poseidon2_leaf_finish(state, filled);
+    for (uint lane = 0u; lane < 8u; ++lane)
+        arena[destination_base + leaf * 8u + lane] = state[lane];
 }
 
 kernel void stwo_zig_fri_final_line_resident(

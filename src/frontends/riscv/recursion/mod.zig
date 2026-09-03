@@ -2,15 +2,54 @@
 
 pub const air = @import("air/mod.zig");
 pub const arithmetic_circuit = @import("arithmetic_circuit.zig");
+pub const binary_arithmetic_rows_heterogeneous_v2 =
+    @import("binary_arithmetic_rows_heterogeneous_v2.zig");
 pub const binary_fri_outer_bundle = @import("binary_fri_outer_bundle.zig");
+pub const binary_composition_rows_heterogeneous_v2 =
+    @import("binary_composition_rows_heterogeneous_v2.zig");
 pub const binary_fri_outer_source = @import("binary_fri_outer_source.zig");
 pub const binary_global_closure_outer_source = @import("binary_global_closure_outer_source.zig");
 pub const binary_inactive_outer_source = @import("binary_inactive_outer_source.zig");
+pub const binary_merkle_path_program_heterogeneous_v2 =
+    @import("binary_merkle_path_program_heterogeneous_v2.zig");
+pub const binary_node_program_descriptor_v1 =
+    @import("binary_node_program_descriptor_v1.zig");
+pub const binary_public_rows_program_heterogeneous_v2 =
+    @import("binary_public_rows_program_heterogeneous_v2.zig");
+pub const binary_poseidon_provider_program_heterogeneous_v2 =
+    @import("binary_poseidon_provider_program_heterogeneous_v2.zig");
 pub const binary_pair_nonfri_outer_bundle = @import("binary_pair_nonfri_outer_bundle.zig");
 pub const binary_pair_authority = @import("binary_pair_authority.zig");
 pub const binary_transcript_outer_source = @import("binary_transcript_outer_source.zig");
+pub const canonical_empty_cohort_v3 = @import("canonical_empty_cohort_v3.zig");
 pub const captured_fri = @import("captured_fri.zig");
 pub const engine = @import("engine.zig");
+pub const ethereum_composition_relations_v2 =
+    @import("ethereum_composition_relations_v2.zig");
+pub const ethereum_composition_extension_geometry_v2 =
+    @import("ethereum_composition_extension_geometry_v2.zig");
+pub const ethereum_leaf_link_program_v1 =
+    @import("ethereum_leaf_link_program_v1.zig");
+pub const ethereum_leaf_child_field_program_v1 =
+    @import("ethereum_leaf_child_field_program_v1.zig");
+pub const ethereum_leaf_child_field_witness_v1 =
+    @import("ethereum_leaf_child_field_witness_v1.zig");
+pub const ethereum_vm_composition_program_v2 =
+    @import("ethereum_vm_composition_program_v2.zig");
+pub const incremental_ethereum_vm_composition_program_v4 =
+    @import("incremental_ethereum_vm_composition_program_v4.zig");
+pub const ethereum_vm_program_field_authority_v1 =
+    @import("ethereum_vm_program_field_authority_v1.zig");
+pub const ethereum_vm_verified_program_descriptor_v1 =
+    @import("ethereum_vm_verified_program_descriptor_v1.zig");
+pub const provider_shard_composition_program_v1 =
+    @import("provider_shard_composition_program_v1.zig");
+pub const provider_shard_child_field_emitter_v1 =
+    @import("provider_shard_child_field_emitter_v1.zig");
+pub const provider_shard_recursive_verifier_inputs_v1 =
+    @import("provider_shard_recursive_verifier_inputs_v1.zig");
+pub const provider_shard_wrapper_program_v1 =
+    @import("provider_shard_wrapper_program_v1.zig");
 pub const fixed_profile = @import("fixed_profile.zig");
 pub const fixed_wire = @import("fixed_wire.zig");
 pub const fixed_wire_adapter = @import("fixed_wire_adapter.zig");
@@ -20,6 +59,8 @@ pub const pair_node = @import("pair_node.zig");
 pub const poseidon2_channel = @import("poseidon2_channel.zig");
 pub const proof_ingress = @import("proof_ingress.zig");
 pub const protocol = @import("protocol.zig");
+pub const recording_poseidon_channel_v4 =
+    @import("recording_poseidon_channel_v4.zig");
 pub const relation_summary = @import("relation_summary.zig");
 pub const recursion_air_composition_circuit = @import("recursion_air_composition_circuit.zig");
 pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
@@ -72,5 +113,14 @@ pub const transcript_shape = @import("transcript_shape.zig");
 pub const vm_public_claim = @import("vm_public_claim.zig");
 pub const vm_public_semantics_circuit = @import("vm_public_semantics_circuit.zig");
 pub const vm_air_profile = @import("vm_air_profile.zig");
+pub const vm_air_profile_v2 = @import("vm_air_profile_v2.zig");
 pub const vm_air_composition_circuit = @import("vm_air_composition_circuit.zig");
+pub const vm_air_composition_circuit_parallel_v4 =
+    @import("vm_air_composition_circuit_parallel_v4.zig");
+pub const vm_composition_base_geometry_v2 =
+    @import("vm_composition_base_geometry_v2.zig");
+pub const vm_selected_lookup_compiler_v2 =
+    @import("vm_selected_lookup_compiler_v2.zig");
 pub const vm_leaf_context = @import("vm_leaf_context.zig");
+pub const vm_leaf_context_v2 = @import("vm_leaf_context_v2.zig");
+pub const ethereum_leaf_context_v1 = @import("ethereum_leaf_context_v1.zig");

@@ -32,7 +32,7 @@ pub fn rowPairs(
     selectors: []const QM31,
     relations: *const relations_mod.Relations,
 ) Error![batch_count]logup.RowPair {
-    return rowPairsFor(
+    return rowPairsGeneric(
         QM31,
         main,
         next_state,
@@ -49,7 +49,7 @@ pub fn rowPairsBase(
     selectors: []const M31,
     relations: *const relations_mod.Relations,
 ) Error![batch_count]logup.RowPair {
-    return rowPairsFor(
+    return rowPairsGeneric(
         M31,
         main,
         next_state,
@@ -59,14 +59,16 @@ pub fn rowPairsBase(
     );
 }
 
-fn rowPairsFor(
+/// Typed compiler entry. Native wrappers above retain their exact public API;
+/// recursive compilation supplies the same rows and graph relations.
+pub fn rowPairsGeneric(
     comptime S: type,
     main: []const S,
     next_state: []const S,
     caller_output_state: []const S,
     selectors: []const S,
-    relations: *const relations_mod.Relations,
-) Error![batch_count]logup.RowPair {
+    relations: anytype,
+) Error![batch_count]logup.RowPairFor(InteractionScalar(S)) {
     if (main.len != trace.Layout.main_columns or
         next_state.len != witness.state_cell_count or
         caller_output_state.len != witness.state_cell_count or
@@ -77,7 +79,7 @@ fn rowPairsFor(
     var round_active = S.zero();
     for (selectors[2..26]) |selector| round_active = round_active.add(selector);
     const request = lift(S, round_active).neg();
-    var events: [permutation_event_count]logup.RowPair = undefined;
+    var events: [permutation_event_count]logup.RowPairFor(InteractionScalar(S)) = undefined;
 
     for (0..chi_event_count) |event| {
         const x = event % 5;
@@ -117,7 +119,7 @@ fn rowPairsFor(
         tuple[3] = iota;
         tuple[4] = next_state[stateCell(x, y, z)];
         tuple[5] = S.zero();
-        events[event] = logup.RowPair.single(
+        events[event] = logup.RowPairFor(InteractionScalar(S)).single(
             request,
             denominator(S, tuple, relations.chi),
         );
@@ -130,7 +132,7 @@ fn rowPairsFor(
         for (0..5) |y| tuple[y] =
             main[trace.Layout.state + stateCell(x, y, z)];
         tuple[5] = main[trace.Layout.parity + event];
-        events[chi_event_count + event] = logup.RowPair.single(
+        events[chi_event_count + event] = logup.RowPairFor(InteractionScalar(S)).single(
             request,
             denominator(S, tuple, relations.xor5),
         );
@@ -142,16 +144,16 @@ fn rowPairsFor(
         a.* = main[trace.Layout.io_a + field];
         b.* = main[trace.Layout.io_b + field];
     }
-    events[permutation_event_count - 2] = logup.RowPair.single(
+    events[permutation_event_count - 2] = logup.RowPairFor(InteractionScalar(S)).single(
         lift(S, selectors[0]).neg(),
         denominator(S, io_a_tuple, relations.io),
     );
-    events[permutation_event_count - 1] = logup.RowPair.single(
+    events[permutation_event_count - 1] = logup.RowPairFor(InteractionScalar(S)).single(
         lift(S, selectors[1].mul(main[trace.Layout.in_use_b])).neg(),
         denominator(S, io_b_tuple, relations.io),
     );
 
-    var result: [batch_count]logup.RowPair = undefined;
+    var result: [batch_count]logup.RowPairFor(InteractionScalar(S)) = undefined;
     for (result[0..permutation_batch_count], 0..) |*pair, batch| {
         const first = 2 * batch;
         pair.* = .{
@@ -181,22 +183,26 @@ fn denominator(
     comptime S: type,
     tuple: anytype,
     relation: anytype,
-) QM31 {
+) InteractionScalar(S) {
     if (comptime S == M31) return relation.combineBase(tuple);
     if (comptime S == QM31) return relation.combineSecure(tuple);
-    @compileError("Keccak interaction supports M31 and QM31 rows");
+    return relation.combine(tuple);
 }
 
-fn lift(comptime S: type, value: S) QM31 {
+fn lift(comptime S: type, value: S) InteractionScalar(S) {
     if (comptime S == M31) return QM31.fromBase(value);
     if (comptime S == QM31) return value;
-    @compileError("Keccak interaction supports M31 and QM31 rows");
+    return value;
 }
 
 fn mulSmall(comptime S: type, value: S, coefficient: u32) S {
     if (comptime S == M31) return value.mul(M31.fromCanonical(coefficient));
     if (comptime S == QM31) return value.mulM31(M31.fromCanonical(coefficient));
-    @compileError("Keccak interaction supports M31 and QM31 rows");
+    return value.mul(S.fromBase(M31.fromCanonical(coefficient)));
+}
+
+pub fn InteractionScalar(comptime S: type) type {
+    return if (S == M31) QM31 else S;
 }
 
 inline fn stateCell(x: usize, y: usize, z: usize) usize {

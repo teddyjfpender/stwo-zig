@@ -16,7 +16,8 @@ const prepared_domain = @import("prepared_domain.zig");
 const prover_twiddles = @import("../poly/twiddles.zig");
 const secure_column = @import("../secure_column.zig");
 const work_pool_mod = @import("../work_pool.zig");
-const stage_profile = @import("stwo_prover_api").stage_profile;
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
 
 const CirclePointQM31 = circle.CirclePointQM31;
 const M31 = m31.M31;
@@ -64,6 +65,8 @@ pub const BaseLookupPolynomialCapabilitiesV1 = component_programs.BaseLookupPoly
 pub const BaseLookupPolynomialCapabilityV1 = component_programs.BaseLookupPolynomialCapabilityV1;
 pub const BackendCompositionCapability = component_programs.BackendCompositionCapability;
 pub const ComponentProfileIdentity = @import("component_profile_identity.zig").ComponentProfileIdentity;
+pub const CompositionGeometryOverrideV1 =
+    core_air_components.CompositionGeometryOverrideV1;
 
 pub const ComponentProverVTable = struct {
     nConstraints: *const fn (ctx: *const anyopaque) usize,
@@ -94,6 +97,7 @@ pub const ComponentProverVTable = struct {
 pub const ComponentProver = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentProverVTable,
+    composition_geometry_override_v1: ?CompositionGeometryOverrideV1 = null,
     profile_identity: ?ComponentProfileIdentity = null,
     backend_composition_capability: ?BackendCompositionCapability = null,
     /// Optional exact one-row formula authority for profiled domain
@@ -142,14 +146,51 @@ pub const ComponentProver = struct {
         return self.vtable.nConstraints(self.ctx);
     }
 
-    pub inline fn maxConstraintLogDegreeBound(self: ComponentProver) u32 {
+    /// AIR-local bound before an additive proof-route lift. Prepared and work
+    /// callbacks continue to describe this local evaluation domain.
+    pub inline fn intrinsicMaxConstraintLogDegreeBound(
+        self: ComponentProver,
+    ) u32 {
         return self.vtable.maxConstraintLogDegreeBound(self.ctx);
     }
 
+    pub inline fn maxConstraintLogDegreeBound(self: ComponentProver) u32 {
+        const base = self.intrinsicMaxConstraintLogDegreeBound();
+        const geometry = self.composition_geometry_override_v1 orelse
+            return base;
+        return base + @as(
+            u32,
+            geometry.max_constraint_log_degree_bound_delta,
+        );
+    }
+
     pub inline fn compositionLogSplit(self: ComponentProver) u32 {
+        if (self.composition_geometry_override_v1) |geometry|
+            return geometry.composition_log_split;
         const get = self.vtable.compositionLogSplit orelse
             return @import("stwo_core").verifier_types.COMPOSITION_LOG_SPLIT;
         return get(self.ctx);
+    }
+
+    pub fn withCompositionGeometryOverrideV1(
+        self: ComponentProver,
+        geometry: CompositionGeometryOverrideV1,
+    ) !ComponentProver {
+        try geometry.validate(self.intrinsicMaxConstraintLogDegreeBound());
+        // V1 has one reviewed producer transform: q1 evaluations are
+        // interpolated and re-evaluated on q2.  The verifier-side geometry
+        // wrapper remains representation-free, but a prover must never label
+        // any other delta as executable without an owned transform.
+        if (geometry.max_constraint_log_degree_bound_delta != 1)
+            return error.UnsupportedCompositionGeometryOverride;
+        var result = self;
+        result.composition_geometry_override_v1 = geometry;
+        // A backend capability closes over the original context and would
+        // bypass the accumulator's candidate-only polynomial-extension mode.
+        // Prepared and parallel callbacks remain safe because the public
+        // methods below scope that mode around their invocation.
+        result.backend_composition_capability = null;
+        return result;
     }
 
     pub inline fn traceLogDegreeBounds(
@@ -201,6 +242,15 @@ pub const ComponentProver = struct {
         trace: *const Trace,
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
     ) anyerror!void {
+        if (self.composition_geometry_override_v1 != null) {
+            try evaluation_accumulator.beginPolynomialExtensionV1();
+            defer evaluation_accumulator.endPolynomialExtensionV1();
+            return self.vtable.evaluateConstraintQuotientsOnDomain(
+                self.ctx,
+                trace,
+                evaluation_accumulator,
+            );
+        }
         return self.vtable.evaluateConstraintQuotientsOnDomain(
             self.ctx,
             trace,
@@ -214,6 +264,17 @@ pub const ComponentProver = struct {
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
         pool: *work_pool_mod.WorkPool,
     ) anyerror!void {
+        if (self.composition_geometry_override_v1 != null) {
+            try evaluation_accumulator.beginPolynomialExtensionV1();
+            defer evaluation_accumulator.endPolynomialExtensionV1();
+            const evaluate = self.domain_parallel_evaluator orelse
+                return self.vtable.evaluateConstraintQuotientsOnDomain(
+                    self.ctx,
+                    trace,
+                    evaluation_accumulator,
+                );
+            return evaluate(self.ctx, trace, evaluation_accumulator, pool);
+        }
         const evaluate = self.domain_parallel_evaluator orelse
             return self.evaluateConstraintQuotientsOnDomain(trace, evaluation_accumulator);
         return evaluate(self.ctx, trace, evaluation_accumulator, pool);
@@ -226,6 +287,19 @@ pub const ComponentProver = struct {
         evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
     ) anyerror!?prepared_domain.PreparedDomainEvaluation {
         const prepare = self.prepare_domain_evaluator orelse return null;
+        if (self.composition_geometry_override_v1 != null) {
+            try evaluation_accumulator.beginPolynomialExtensionV1();
+            defer evaluation_accumulator.endPolynomialExtensionV1();
+            var result = try prepare(
+                self.ctx,
+                allocator,
+                trace,
+                evaluation_accumulator,
+            );
+            errdefer result.deinit();
+            try result.validate();
+            return result;
+        }
         var result = try prepare(
             self.ctx,
             allocator,
@@ -245,7 +319,8 @@ pub const ComponentProver = struct {
         const result = try profile(self.ctx, allocator);
         try result.validate();
         if (result.constraint_count != self.nConstraints() or
-            result.evaluation_log_size != self.maxConstraintLogDegreeBound())
+            result.evaluation_log_size !=
+                self.intrinsicMaxConstraintLogDegreeBound())
         {
             return error.InvalidCompositionWorkProfile;
         }
@@ -269,7 +344,8 @@ pub const ComponentProver = struct {
         try result.validate();
         if (result.constraint_count != self.nConstraints() or
             result.max_log_degree_bound != max_log_degree_bound or
-            result.component_log_degree_bound != self.maxConstraintLogDegreeBound() or
+            result.component_log_degree_bound !=
+                self.intrinsicMaxConstraintLogDegreeBound() or
             !std.mem.eql(
                 u8,
                 &result.composition_profile_digest,
@@ -558,15 +634,42 @@ pub const ComponentProvers = struct {
         residency_handles: []const ?*anyopaque,
         composition_twiddles: ?M31TwiddleTree,
     ) anyerror!SecureColumnByCoords {
-        if (try device_composition.tryStage(self.composition_stage, .{
+        return self.computeCompositionEvaluationForBackendDiagnosed(
+            B,
+            allocator,
+            random_coeff,
+            trace,
+            residency_handles,
+            composition_twiddles,
+            null,
+        );
+    }
+
+    pub fn computeCompositionEvaluationForBackendDiagnosed(
+        self: ComponentProvers,
+        comptime B: type,
+        allocator: std.mem.Allocator,
+        random_coeff: QM31,
+        trace: *const Trace,
+        residency_handles: []const ?*anyopaque,
+        composition_twiddles: ?M31TwiddleTree,
+        diagnostic: ?*?prover_api.EvaluationDiagnostic,
+    ) anyerror!SecureColumnByCoords {
+        if (device_composition.tryStage(self.composition_stage, .{
             .allocator = allocator,
             .random_coeff = random_coeff,
             .composition_log_degree_bound = self.compositionLogDegreeBound(),
             .total_constraints = self.totalConstraints(),
             .trace = trace,
-        })) |evaluation| return evaluation;
+        }) catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                .stage = .plan,
+                .cause = err,
+            });
+            return err;
+        }) |evaluation| return evaluation;
         var resolved_execution: ?composition_execution.Execution = null;
-        if (try composition_execution.tryBackend(
+        if (composition_execution.tryBackend(
             B,
             allocator,
             self.components,
@@ -578,12 +681,22 @@ pub const ComponentProvers = struct {
             self.task_recorder,
             self.composition_work_capture,
             &resolved_execution,
-        )) |evaluation| return evaluation;
+            diagnostic,
+        ) catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                .stage = .component_evaluation,
+                .cause = err,
+            });
+            return err;
+        }) |evaluation| return evaluation;
         if (resolved_execution == null and self.cpu_composition_execution != null) {
             resolved_execution = try composition_execution.Execution.resolveWithRecorder(
                 self.cpu_composition_execution,
                 self.task_recorder,
             );
+            if (resolved_execution) |*execution| {
+                execution.evaluation_diagnostic = diagnostic;
+            }
         }
         if (resolved_execution) |execution| {
             if (execution.explicit) return component_parallel.computeRequested(
@@ -612,12 +725,14 @@ pub const ComponentProvers = struct {
                 random_coeff,
                 trace,
                 active,
+                diagnostic,
             );
             return self.computeCompositionEvaluationSingleParallel(
                 allocator,
                 random_coeff,
                 trace,
                 active,
+                diagnostic,
             );
         }
 
@@ -625,6 +740,7 @@ pub const ComponentProvers = struct {
             allocator,
             random_coeff,
             trace,
+            diagnostic,
         );
     }
 
@@ -634,6 +750,7 @@ pub const ComponentProvers = struct {
         allocator: std.mem.Allocator,
         random_coeff: QM31,
         trace: *const Trace,
+        diagnostic: ?*?prover_api.EvaluationDiagnostic,
     ) anyerror!SecureColumnByCoords {
         var accumulator = try accumulation.DomainEvaluationAccumulator.init(
             allocator,
@@ -643,10 +760,25 @@ pub const ComponentProvers = struct {
         );
         defer accumulator.deinit();
 
-        for (self.components) |component| {
-            try component.evaluateConstraintQuotientsOnDomain(trace, &accumulator);
+        for (self.components, 0..) |component, index| {
+            component.evaluateConstraintQuotientsOnDomain(trace, &accumulator) catch |err| {
+                prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                    .stage = .component_evaluation,
+                    .cause = err,
+                    .component_index = std.math.cast(u32, index),
+                });
+                return err;
+            };
         }
-        return accumulator.finalize();
+        return accumulator.finalize() catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                .stage = .final_length,
+                .cause = err,
+                .actual = accumulator.next_power_index,
+                .expected = 0,
+            });
+            return err;
+        };
     }
 
     fn computeCompositionEvaluationSingleParallel(
@@ -655,6 +787,7 @@ pub const ComponentProvers = struct {
         random_coeff: QM31,
         trace: *const Trace,
         pool: *work_pool_mod.WorkPool,
+        diagnostic: ?*?prover_api.EvaluationDiagnostic,
     ) anyerror!SecureColumnByCoords {
         var accumulator = try accumulation.DomainEvaluationAccumulator.init(
             allocator,
@@ -664,12 +797,27 @@ pub const ComponentProvers = struct {
         );
         defer accumulator.deinit();
 
-        try self.components[0].evaluateConstraintQuotientsOnDomainParallel(
+        self.components[0].evaluateConstraintQuotientsOnDomainParallel(
             trace,
             &accumulator,
             pool,
-        );
-        return accumulator.finalize();
+        ) catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                .stage = .component_evaluation,
+                .cause = err,
+                .component_index = 0,
+            });
+            return err;
+        };
+        return accumulator.finalize() catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(diagnostic, .{
+                .stage = .final_length,
+                .cause = err,
+                .actual = accumulator.next_power_index,
+                .expected = 0,
+            });
+            return err;
+        };
     }
 
     /// Parallel implementation: each component gets its own accumulator
@@ -680,8 +828,9 @@ pub const ComponentProvers = struct {
         random_coeff: QM31,
         trace: *const Trace,
         pool: *work_pool_mod.WorkPool,
+        diagnostic: ?*?prover_api.EvaluationDiagnostic,
     ) anyerror!SecureColumnByCoords {
-        return component_parallel.computeWithRecorder(
+        return component_parallel.computeWithRecorderDiagnosed(
             allocator,
             self.components,
             self.compositionLogDegreeBound(),
@@ -690,6 +839,7 @@ pub const ComponentProvers = struct {
             trace,
             pool,
             self.task_recorder,
+            diagnostic,
         );
     }
 };

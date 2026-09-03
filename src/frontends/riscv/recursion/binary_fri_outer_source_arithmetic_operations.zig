@@ -2,6 +2,7 @@
 
 pub fn Operations(comptime Context: type) type {
     const Self = Context.Source;
+    const Boundary = Context.BoundaryType;
     const PreparedAuthority = Self.PreparedAuthority;
     const ArithmeticWorkspace = Self.ArithmeticWorkspace;
 
@@ -168,9 +169,12 @@ pub fn Operations(comptime Context: type) type {
         ) !void {
             const rows = self.arithmetic_rows orelse
                 return error.MissingCompositionAuthority;
-            var evaluations = arithmeticEvaluations(
-                self,
-            );
+            var evaluations: [8]lowering.Evaluation = undefined;
+            if (comptime @hasDecl(Boundary, "fillArithmeticEvaluations")) {
+                try Boundary.fillArithmeticEvaluations(self, &evaluations);
+            } else {
+                evaluations = arithmeticEvaluations(self);
+            }
             try rows.plan.materializeInto(
                 rows.reference,
                 .{ .lanes = evaluations[0..rows.lanes.len] },

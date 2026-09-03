@@ -20,7 +20,6 @@ const CONFIGURATION_DOMAIN = dependency_0.CONFIGURATION_DOMAIN;
 const ProofKind = dependency_0.ProofKind;
 const AirProgramId = dependency_0.AirProgramId;
 const SEGMENT_PHYSICAL_CLAIM_COUNT = dependency_0.SEGMENT_PHYSICAL_CLAIM_COUNT;
-const POSEIDON_ROSTER_ROW = dependency_0.POSEIDON_ROSTER_ROW;
 const COMPOSITION_CLAIM_INPUT_COUNT = dependency_0.COMPOSITION_CLAIM_INPUT_COUNT;
 const RELATION_CHALLENGE_COUNT = dependency_0.RELATION_CHALLENGE_COUNT;
 const PROGRAM_KIND_COUNT = dependency_0.PROGRAM_KIND_COUNT;
@@ -34,10 +33,13 @@ const proofKindIndex = dependency_0.proofKindIndex;
 const proofKindCode = dependency_0.proofKindCode;
 const CircuitAuthorityStorageV3 = dependency_2.CircuitAuthorityStorageV3;
 const descriptorShape = dependency_4.descriptorShape;
+const descriptorShapeForManifest = dependency_4.descriptorShapeForManifest;
+const h1DescriptorShape = dependency_4.h1DescriptorShape;
 const canonicalEmptyDescriptorShape = dependency_4.canonicalEmptyDescriptorShape;
 const validateManifests = dependency_4.validateManifests;
 const segmentOrderedProgramIdentity = dependency_5.segmentOrderedProgramIdentity;
 const universalOrderedProgramIdentity = dependency_5.universalOrderedProgramIdentity;
+const hashManifestRows = dependency_5.hashManifestRows;
 const canonicalEmptyAirProgramId = dependency_5.canonicalEmptyAirProgramId;
 const requireAirProgramId = dependency_5.requireAirProgramId;
 const hashInt = dependency_5.hashInt;
@@ -82,6 +84,21 @@ pub const ProgramDescriptorV3 = struct {
         return result;
     }
 
+    /// Mints the pointer-free binary descriptor for the authenticated
+    /// 12-placement full-Ethereum H1 manifest. The manifest is validated and
+    /// replayed here; a self-hashed descriptor is never promoted on its own.
+    pub fn sealAuthenticatedH1(
+        manifest: anytype,
+        air_program_id: AirProgramId,
+    ) Error!ProgramDescriptorV3 {
+        const result = try descriptorForAuthenticatedH1(
+            manifest,
+            air_program_id,
+        );
+        try result.validate();
+        return result;
+    }
+
     pub fn validate(self: ProgramDescriptorV3) Error!void {
         try requireAirProgramId(self.air_program_id);
         const provider_empty = self.proof_kind == .empty_leaf and
@@ -89,7 +106,10 @@ pub const ProgramDescriptorV3 = struct {
         const expected = if (provider_empty)
             canonicalEmptyDescriptorShape()
         else
-            descriptorShape(self.proof_kind);
+            descriptorShapeForManifest(
+                self.proof_kind,
+                self.manifest_family,
+            );
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or
             self.manifest_family != expected.manifest_family or
@@ -98,7 +118,7 @@ pub const ProgramDescriptorV3 = struct {
             self.program_roster_count != expected.program_roster_count or
             self.poseidon_partial_count != expected.poseidon_partial_count or
             self.composition_claim_count != COMPOSITION_CLAIM_INPUT_COUNT or
-            self.poseidon_roster_row != POSEIDON_ROSTER_ROW or
+            self.poseidon_roster_row != expected.poseidon_roster_row or
             allZero(&self.manifest_seal) or
             allZero(&self.ordered_program_identity) or
             !std.mem.eql(u8, &self.identity, &programDescriptorIdentity(self)))
@@ -183,6 +203,81 @@ pub const ProgramRosterV3 = struct {
         return result;
     }
 
+    /// Replaces only the binary program in the fixed three-selector roster
+    /// with a descriptor minted from the authenticated ordinary H1 manifest.
+    /// Segment and Empty remain byte-identical to the legacy configuration.
+    pub fn sealWithAuthenticatedH1(
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) Error!ProgramRosterV3 {
+        try validateManifests(manifests);
+        try air_program_ids.validate();
+        const binary = try ProgramDescriptorV3.sealAuthenticatedH1(
+            h1_manifest,
+            air_program_ids.binary_node,
+        );
+        var result = ProgramRosterV3{
+            .programs = .{
+                descriptorForSegment(manifests.segment, air_program_ids.segment_leaf),
+                binary,
+                descriptorForUniversal(
+                    .empty_leaf,
+                    manifests.universal,
+                    air_program_ids.empty_leaf,
+                ),
+            },
+            .identity = undefined,
+        };
+        result.identity = programRosterIdentity(result);
+        try result.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return result;
+    }
+
+    /// Combines the authenticated ordinary-H1 Binary descriptor with the
+    /// existing proofless canonical-Empty descriptor. The selector roster is
+    /// still exactly Segment/Binary/Empty; only the two already-versioned
+    /// descriptor policies are selected together.
+    pub fn sealWithAuthenticatedH1AndCanonicalEmpty(
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+        empty_program: CanonicalEmptyProgramV3,
+    ) Error!ProgramRosterV3 {
+        try validateManifests(manifests);
+        try air_program_ids.validate();
+        if (!std.meta.eql(
+            air_program_ids.empty_leaf,
+            empty_program.air_program_id,
+        )) return error.CanonicalEmptyProgramMismatch;
+        var result = ProgramRosterV3{
+            .programs = .{
+                descriptorForSegment(manifests.segment, air_program_ids.segment_leaf),
+                try ProgramDescriptorV3.sealAuthenticatedH1(
+                    h1_manifest,
+                    air_program_ids.binary_node,
+                ),
+                descriptorForCanonicalEmpty(
+                    manifests.universal,
+                    air_program_ids.empty_leaf,
+                    empty_program.identity,
+                ),
+            },
+            .identity = undefined,
+        };
+        result.identity = programRosterIdentity(result);
+        try result.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return result;
+    }
+
     pub fn validateAgainst(
         self: ProgramRosterV3,
         manifests: TrustedManifestsV3,
@@ -212,6 +307,58 @@ pub const ProgramRosterV3 = struct {
                 descriptorForUniversal(
                     .binary_node,
                     manifests.universal,
+                    air_program_ids.binary_node,
+                ),
+                expected_empty,
+            },
+            .identity = self.identity,
+        };
+        for (self.programs, expected.programs, 0..) |actual, wanted, index| {
+            try actual.validate();
+            if (proofKindIndex(actual.proof_kind) != index or
+                !std.meta.eql(actual, wanted))
+            {
+                return error.ManifestAuthorityMismatch;
+            }
+        }
+    }
+
+    /// Cold re-admission for an H1 binary roster. This rebuilds the expected
+    /// descriptor from the reopened manifest instead of trusting the retained
+    /// descriptor identity.
+    pub fn validateAgainstAuthenticatedH1(
+        self: ProgramRosterV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) Error!void {
+        try validateManifests(manifests);
+        try air_program_ids.validate();
+        if (self.format_version != FORMAT_VERSION or
+            self.schema_version != SCHEMA_VERSION or
+            !std.mem.eql(u8, &self.identity, &programRosterIdentity(self)))
+        {
+            return error.InvalidProgramRoster;
+        }
+        const actual_empty = self.programs[proofKindIndex(.empty_leaf)];
+        const expected_empty = if (actual_empty.claim_policy ==
+            .canonical_empty_provider)
+            descriptorForCanonicalEmpty(
+                manifests.universal,
+                air_program_ids.empty_leaf,
+                actual_empty.catalog_identity,
+            )
+        else
+            descriptorForUniversal(
+                .empty_leaf,
+                manifests.universal,
+                air_program_ids.empty_leaf,
+            );
+        const expected = ProgramRosterV3{
+            .programs = .{
+                descriptorForSegment(manifests.segment, air_program_ids.segment_leaf),
+                try ProgramDescriptorV3.sealAuthenticatedH1(
+                    h1_manifest,
                     air_program_ids.binary_node,
                 ),
                 expected_empty,
@@ -320,6 +467,69 @@ pub const ConfigurationV3 = struct {
         return result;
     }
 
+    /// Pointer-free configuration admission for the ordinary 12-placement H1
+    /// binary program. The legacy Segment/Empty descriptors and all scalar
+    /// profile fields retain their existing encoding.
+    pub fn sealWithAuthenticatedH1(
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        sampled_value_count: u32,
+        h1_manifest: anytype,
+    ) Error!ConfigurationV3 {
+        const roster = try ProgramRosterV3.sealWithAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        var result = ConfigurationV3{
+            .sampled_value_count = sampled_value_count,
+            .program_roster = roster,
+            .identity = undefined,
+        };
+        _ = graph_mod.recursionInputCount(result.graphInputProfile()) catch
+            return error.InvalidClaimInputProfile;
+        result.identity = configurationIdentity(result);
+        try result.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return result;
+    }
+
+    /// One pointer-free configuration for SegmentV2, ordinary H1, and the
+    /// proofless canonical Empty program. Legacy constructors and their
+    /// encodings are unchanged.
+    pub fn sealWithAuthenticatedH1AndCanonicalEmpty(
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        sampled_value_count: u32,
+        h1_manifest: anytype,
+        empty_program: CanonicalEmptyProgramV3,
+    ) Error!ConfigurationV3 {
+        const roster = try ProgramRosterV3
+            .sealWithAuthenticatedH1AndCanonicalEmpty(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+            empty_program,
+        );
+        var result = ConfigurationV3{
+            .sampled_value_count = sampled_value_count,
+            .program_roster = roster,
+            .identity = undefined,
+        };
+        _ = graph_mod.recursionInputCount(result.graphInputProfile()) catch
+            return error.InvalidClaimInputProfile;
+        result.identity = configurationIdentity(result);
+        try result.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return result;
+    }
+
     pub fn validateAgainst(
         self: ConfigurationV3,
         manifests: TrustedManifestsV3,
@@ -334,6 +544,31 @@ pub const ConfigurationV3 = struct {
             return error.InvalidClaimInputProfile;
         }
         try self.program_roster.validateAgainst(manifests, air_program_ids);
+        _ = graph_mod.recursionInputCount(self.graphInputProfile()) catch
+            return error.InvalidClaimInputProfile;
+        if (!std.mem.eql(u8, &self.identity, &configurationIdentity(self)))
+            return error.ConfigurationIdentityMismatch;
+    }
+
+    pub fn validateAgainstAuthenticatedH1(
+        self: ConfigurationV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) Error!void {
+        if (self.format_version != FORMAT_VERSION or
+            self.schema_version != SCHEMA_VERSION or
+            self.claimed_sum_count != COMPOSITION_CLAIM_INPUT_COUNT or
+            self.relation_challenge_count != RELATION_CHALLENGE_COUNT or
+            self.public_wire_boundary_count != 1)
+        {
+            return error.InvalidClaimInputProfile;
+        }
+        try self.program_roster.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
         _ = graph_mod.recursionInputCount(self.graphInputProfile()) catch
             return error.InvalidClaimInputProfile;
         if (!std.mem.eql(u8, &self.identity, &configurationIdentity(self)))
@@ -454,11 +689,59 @@ pub fn descriptorForCanonicalEmpty(
     return result;
 }
 
+/// Reconstructs the H1 descriptor from an authenticated, reopened manifest.
+/// The generic manifest parameter keeps this frontend module dependency-free;
+/// exact 0..11 roster ordering and the provider row are checked in addition to
+/// the manifest's own validation contract.
+pub fn descriptorForAuthenticatedH1(
+    manifest: anytype,
+    air_program_id: AirProgramId,
+) Error!ProgramDescriptorV3 {
+    manifest.validate() catch return error.ManifestAuthorityMismatch;
+    try requireAirProgramId(air_program_id);
+    const shape = h1DescriptorShape();
+    if (manifest.format_version == 0 or
+        manifest.roster_count != shape.program_roster_count or
+        allZero(&manifest.seal))
+    {
+        return error.ManifestAuthorityMismatch;
+    }
+    for (manifest.roster_rows[0..manifest.roster_count], 0..) |row, ordinal| {
+        if (row != @as(u8, @intCast(ordinal)))
+            return error.ManifestAuthorityMismatch;
+    }
+    if (manifest.roster_rows[@as(usize, shape.poseidon_roster_row)] !=
+        shape.poseidon_roster_row)
+    {
+        return error.ManifestAuthorityMismatch;
+    }
+    var result = baseDescriptorForShape(
+        .binary_node,
+        shape,
+        air_program_id,
+    );
+    result.manifest_format_version = manifest.format_version;
+    result.manifest_seal = manifest.seal;
+    result.catalog_identity = [_]u8{0} ** 32;
+    result.ordered_program_identity = authenticatedH1OrderedProgramIdentity(
+        manifest,
+    );
+    result.identity = programDescriptorIdentity(result);
+    return result;
+}
+
 pub fn baseDescriptor(
     kind: ProofKind,
     air_program_id: AirProgramId,
 ) ProgramDescriptorV3 {
-    const shape = descriptorShape(kind);
+    return baseDescriptorForShape(kind, descriptorShape(kind), air_program_id);
+}
+
+fn baseDescriptorForShape(
+    kind: ProofKind,
+    shape: dependency_4.DescriptorShape,
+    air_program_id: AirProgramId,
+) ProgramDescriptorV3 {
     return .{
         .proof_kind = kind,
         .manifest_family = shape.manifest_family,
@@ -467,7 +750,7 @@ pub fn baseDescriptor(
         .program_roster_count = shape.program_roster_count,
         .poseidon_partial_count = shape.poseidon_partial_count,
         .composition_claim_count = COMPOSITION_CLAIM_INPUT_COUNT,
-        .poseidon_roster_row = POSEIDON_ROSTER_ROW,
+        .poseidon_roster_row = shape.poseidon_roster_row,
         .manifest_format_version = 0,
         .manifest_seal = undefined,
         .catalog_identity = undefined,
@@ -475,6 +758,20 @@ pub fn baseDescriptor(
         .ordered_program_identity = undefined,
         .identity = undefined,
     };
+}
+
+fn authenticatedH1OrderedProgramIdentity(manifest: anytype) [32]u8 {
+    var hash = Sha256.init(.{});
+    hash.update(dependency_0.ORDERED_PROGRAM_DOMAIN);
+    hashInt(&hash, u16, FORMAT_VERSION);
+    hashInt(
+        &hash,
+        u8,
+        @intFromEnum(ManifestFamilyV3.ethereum_poseidon_h1_v1),
+    );
+    hash.update(&manifest.seal);
+    hashManifestRows(&hash, manifest);
+    return hash.finalResult();
 }
 
 pub fn programDescriptorIdentity(value: ProgramDescriptorV3) [32]u8 {

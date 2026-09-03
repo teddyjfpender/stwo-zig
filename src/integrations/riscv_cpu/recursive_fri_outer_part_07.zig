@@ -507,6 +507,30 @@ pub fn Namespace(comptime context: type) type {
                 };
             }
 
+            /// Versioned constructor for a transcript implementation that
+            /// already retained the complete verifier-drawn query words.
+            /// The native capture still owns the selected low-bit positions;
+            /// every supplied word is projection-checked before the owned
+            /// witness is published.
+            pub fn initFullWordsV2(
+                allocator: std.mem.Allocator,
+                captured: *const recursion.captured_fri.Owned,
+                full_words: []const M31,
+            ) !PreparedQueryWitness {
+                try validateQueryWordProjection(
+                    captured.circuit.lifting_log_size,
+                    full_words,
+                    captured.raw_queries,
+                );
+                const words = try allocator.dupe(M31, full_words);
+                errdefer allocator.free(words);
+                return .{
+                    .allocator = allocator,
+                    .owned_words = words,
+                    .value = .{ .segment_leaf = words },
+                };
+            }
+
             pub fn deinit(self: *PreparedQueryWitness) void {
                 if (self.owned_words) |words| self.allocator.free(words);
                 self.* = undefined;

@@ -56,7 +56,12 @@ pub const cairo_metal_integration_package_roots = &.{
     "dependency:../src/integrations/cairo_metal:mod.zig",
 };
 
+pub const artifact_store_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
+};
+
 pub const metal_session_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };
 
@@ -121,6 +126,7 @@ pub const cairo_cpu_protocol_package_roots = &.{
 };
 
 pub const cairo_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
@@ -176,6 +182,7 @@ pub const frontend_metal_cpu_protocol_package_roots = &.{
 };
 
 pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
@@ -196,6 +203,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
 };
 
 pub const metal_tools_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
@@ -302,6 +310,7 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
 };
 
 pub const compatibility_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",

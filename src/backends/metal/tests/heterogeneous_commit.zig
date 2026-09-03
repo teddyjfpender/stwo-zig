@@ -7,6 +7,7 @@ const engine_mod = @import("../prover_engine.zig");
 const commit_memory = @import("../runtime/commit_memory.zig");
 const ownership_testing = @import("../runtime/ownership_testing.zig");
 const precommitted_work = @import("../runtime/precommitted_work.zig");
+const heterogeneous_commit = @import("../runtime/heterogeneous_commit.zig");
 
 const M31 = core.fields.m31.M31;
 const Hasher = core.vcs_lifted.blake2_merkle.Blake2sPrefixedMerkleHasher;
@@ -16,6 +17,52 @@ const CircleCoefficients = prover.poly.circle.CircleCoefficients;
 const TwiddleSource = prover.poly.twiddle_source.TwiddleSource;
 
 const test_logs = [_]u32{ 8, 6, 8, 7, 6 };
+
+test "Metal staged Poseidon traffic receipt is exact and leaves Tree2 wide" {
+    const tree1_logs = [_]u32{5} ** 17 ++ [_]u32{7} ** 3;
+    const receipt = heterogeneous_commit.stagedPoseidonTrafficReceiptV1(
+        &tree1_logs,
+        7,
+    ).?;
+    try std.testing.expectEqual(@as(u32, 20), receipt.column_count);
+    try std.testing.expectEqual(@as(u64, 2_560), receipt.wide_column_reads);
+    try std.testing.expectEqual(@as(u64, 928), receipt.staged_column_reads);
+    try std.testing.expectEqual(@as(u64, 1_632), receipt.avoided_column_reads);
+    try std.testing.expectEqual(@as(u64, 384), receipt.wide_leaf_permutations);
+    try std.testing.expectEqual(@as(u64, 192), receipt.staged_leaf_permutations);
+    try std.testing.expectEqual(@as(u64, 192), receipt.avoided_leaf_permutations);
+    try std.testing.expectEqual(@as(u64, 4_096), receipt.retained_state_words);
+    try std.testing.expectEqual(@as(u64, 2_048), receipt.terminal_digest_words);
+    try std.testing.expect(!heterogeneous_commit.admitsStagedPoseidonTrafficV1(receipt));
+
+    const tree2_logs = [_]u32{5} ** 9 ++ [_]u32{7} ** 3;
+    try std.testing.expect(heterogeneous_commit.stagedPoseidonTrafficReceiptV1(
+        &tree2_logs,
+        7,
+    ) == null);
+
+    var retained_tree1_logs: [6_214]u32 = undefined;
+    @memset(retained_tree1_logs[0..239], 18);
+    @memset(retained_tree1_logs[239..], 19);
+    const retained_tree1 = heterogeneous_commit.stagedPoseidonTrafficReceiptV1(
+        &retained_tree1_logs,
+        19,
+    ).?;
+    try std.testing.expectEqual(@as(u64, 62_652_416), retained_tree1.avoided_column_reads);
+    try std.testing.expectEqual(@as(u64, 7_602_176), retained_tree1.avoided_leaf_permutations);
+    try std.testing.expect(heterogeneous_commit.admitsStagedPoseidonTrafficV1(retained_tree1));
+
+    var retained_tree2_logs: [312]u32 = undefined;
+    @memset(retained_tree2_logs[0..12], 18);
+    @memset(retained_tree2_logs[12..], 19);
+    const retained_tree2 = heterogeneous_commit.stagedPoseidonTrafficReceiptV1(
+        &retained_tree2_logs,
+        19,
+    ).?;
+    try std.testing.expectEqual(@as(u64, 3_145_728), retained_tree2.avoided_column_reads);
+    try std.testing.expectEqual(@as(u64, 262_144), retained_tree2.avoided_leaf_permutations);
+    try std.testing.expect(!heterogeneous_commit.admitsStagedPoseidonTrafficV1(retained_tree2));
+}
 
 const BackedColumns = struct {
     columns: []ColumnEvaluation,

@@ -20,6 +20,15 @@ pub const ExecutionProfile = execution_profile.ExecutionProfile;
 /// extension variant and silently alter base protocol surfaces.
 pub const poseidon2_v1_program_opcode_id: u32 = 46;
 pub const keccakf_v1_program_opcode_id: u32 = 46;
+/// The combined Ethereum profile admits Keccak-f and signer recovery at once;
+/// signer recovery therefore needs a distinct committed-program identity.
+pub const secp256k1_recover_v1_program_opcode_id: u32 = 47;
+/// Declared-only program-table identity for LLVM's canonical RISC-V `unimp`
+/// alignment word. This is not an executable opcode: fetched admission keeps
+/// rejecting it, while the Ethereum declared-program commitment binds the
+/// exact raw padding word with zero multiplicity.
+pub const ethereum_declared_padding_program_opcode_id: u32 = 48;
+pub const llvm_unimp_padding_word: u32 = 0xc0001073;
 
 pub const Error = error{
     InvalidInstruction,
@@ -111,7 +120,47 @@ pub fn decodeProgramWordForProfile(
             inst.rs1,
             0,
         },
+        .secp256k1_recover_signer_v1 => .{
+            secp256k1_recover_v1_program_opcode_id,
+            0,
+            inst.rs1,
+            0,
+        },
     };
+}
+
+/// Whether `word` is the one canonical, declared-only padding word admitted
+/// by the Ethereum program-commitment policy.
+///
+/// This policy is intentionally disjoint from execution semantics. Callers
+/// must never use it to decode a fetched instruction.
+pub fn isDeclaredPaddingForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) bool {
+    return selected_profile == .rv32im_zkvm_ethereum_v1 and
+        word == llvm_unimp_padding_word;
+}
+
+/// Decode a word from the complete declared program image.
+///
+/// LLVM emits `unimp` between aligned RISC-V functions even with unreachable
+/// traps disabled. The word is unreachable padding rather than executable
+/// guest code, but omitting it would leave the raw declared image outside the
+/// program root. The two 16-bit limbs make this projection injective and
+/// M31-safe. Fetched decoding remains exclusively
+/// `decodeProgramWordForProfile`, which rejects this word.
+pub fn decodeDeclaredProgramWordForProfile(
+    selected_profile: ExecutionProfile,
+    word: u32,
+) ProfileError!ProgramValues {
+    if (isDeclaredPaddingForProfile(selected_profile, word)) return .{
+        ethereum_declared_padding_program_opcode_id,
+        word & 0xffff,
+        word >> 16,
+        0,
+    };
+    return decodeProgramWordForProfile(selected_profile, word);
 }
 
 pub fn immediateToFelt(immediate: i32) u32 {
@@ -267,6 +316,38 @@ test "decoded program: Keccak-f profile owns the same isolated extension slot" {
     );
 }
 
+test "decoded program: Ethereum profile separates Keccak-f and signer recovery" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        try std.testing.expectEqual(
+            ProgramValues{ keccakf_v1_program_opcode_id, 0, rs1, 0 },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                custom0.encodeKeccakf(rs1),
+            ),
+        );
+        try std.testing.expectEqual(
+            ProgramValues{
+                secp256k1_recover_v1_program_opcode_id,
+                0,
+                rs1,
+                0,
+            },
+            try decodeProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                custom0.encodeSecp256k1Recover(rs1),
+            ),
+        );
+    }
+    try std.testing.expectError(
+        error.InvalidPrecompileEncoding,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_keccakf_v1,
+            custom0.encodeSecp256k1Recover(5),
+        ),
+    );
+}
+
 test "decoded program: CUSTOM-0 authority remains profile-separated" {
     const canonical = custom0.encodePoseidon2(17);
     try std.testing.expectError(error.InvalidInstruction, decodeProgramWord(canonical));
@@ -283,9 +364,73 @@ test "decoded program: CUSTOM-0 authority remains profile-separated" {
     );
 }
 
+test "decoded declared program: Ethereum unimp padding is exact and never executable" {
+    const expected = ProgramValues{
+        ethereum_declared_padding_program_opcode_id,
+        0x1073,
+        0xc000,
+        0,
+    };
+    try std.testing.expectEqual(
+        expected,
+        try decodeDeclaredProgramWordForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            llvm_unimp_padding_word,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidInstruction,
+        decodeProgramWordForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            llvm_unimp_padding_word,
+        ),
+    );
+    inline for ([_]ExecutionProfile{
+        .rv32im_zkvm_v1,
+        .rv32im_zkvm_poseidon2_v1,
+        .rv32im_zkvm_keccakf_v1,
+    }) |selected_profile| {
+        try std.testing.expect(!isDeclaredPaddingForProfile(
+            selected_profile,
+            llvm_unimp_padding_word,
+        ));
+        try std.testing.expectError(
+            error.InvalidInstruction,
+            decodeDeclaredProgramWordForProfile(
+                selected_profile,
+                llvm_unimp_padding_word,
+            ),
+        );
+    }
+    inline for ([_]u32{ 1, 1 << 16, 1 << 31 }) |mutation| {
+        const mutated = llvm_unimp_padding_word ^ mutation;
+        try std.testing.expect(!isDeclaredPaddingForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            mutated,
+        ));
+        try std.testing.expectError(
+            error.InvalidInstruction,
+            decodeDeclaredProgramWordForProfile(
+                .rv32im_zkvm_ethereum_v1,
+                mutated,
+            ),
+        );
+    }
+}
+
 comptime {
     if (@typeInfo(Opcode).@"enum".fields.len != poseidon2_v1_program_opcode_id)
         @compileError("Poseidon2 program opcode must append after every base opcode");
     if (keccakf_v1_program_opcode_id != poseidon2_v1_program_opcode_id)
         @compileError("exclusive extension profiles must share the one local program slot");
+    if (secp256k1_recover_v1_program_opcode_id !=
+        poseidon2_v1_program_opcode_id + 1)
+    {
+        @compileError("combined-profile signer opcode must append after Keccak-f");
+    }
+    if (ethereum_declared_padding_program_opcode_id !=
+        secp256k1_recover_v1_program_opcode_id + 1)
+    {
+        @compileError("Ethereum declared padding identity must remain pinned at 48");
+    }
 }

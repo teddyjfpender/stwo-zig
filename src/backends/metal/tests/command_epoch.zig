@@ -413,6 +413,194 @@ test "metal: compact streaming commitment epoch preserves evaluations and root" 
     try std.testing.expectEqualSlices(u8, &cpu_tree.root(), std.mem.sliceAsBytes(root_words));
 }
 
+test "metal: ABI22 staged Poseidon resident plan matches wide leaves and owns adoption provenance" {
+    const allocator = std.testing.allocator;
+    var runtime = try runtime_mod.Runtime.init();
+    defer runtime.deinit();
+
+    const small_log: u32 = 5;
+    const lifting_log: u32 = 7;
+    const small_columns: usize = 17;
+    const column_count: usize = 20;
+    var column_offsets: [column_count]u32 = undefined;
+    var column_logs: [column_count]u32 = undefined;
+    var cursor: u32 = 0;
+    for (&column_offsets, &column_logs, 0..) |*offset, *log_size, column| {
+        log_size.* = if (column < small_columns) small_log else lifting_log;
+        offset.* = cursor;
+        cursor += @as(u32, 1) << @intCast(log_size.*);
+    }
+    cursor = std.mem.alignForward(u32, cursor, 64);
+    var layer_offsets: [lifting_log + 1]u32 = undefined;
+    var layer_hashes: u32 = 1 << lifting_log;
+    for (&layer_offsets) |*offset| {
+        offset.* = cursor;
+        cursor = std.mem.alignForward(u32, cursor + layer_hashes * 8, 64);
+        layer_hashes >>= 1;
+    }
+    var state_offsets: [2]u32 = undefined;
+    for (&state_offsets) |*offset| {
+        offset.* = cursor;
+        cursor = std.mem.alignForward(
+            u32,
+            cursor + (@as(u32, 1) << lifting_log) * 16,
+            64,
+        );
+    }
+    const arena_bytes = @as(usize, cursor) * @sizeOf(u32);
+    var wide_arena = try runtime.allocateResidentBuffer(arena_bytes);
+    defer wide_arena.deinit();
+    var staged_arena = try runtime.allocateResidentBuffer(arena_bytes);
+    defer staged_arena.deinit();
+    var manual_arena = try runtime.allocateResidentBuffer(arena_bytes);
+    defer manual_arena.deinit();
+    const wide_words: [*]u32 = @ptrCast(@alignCast(wide_arena.contents));
+    const staged_words: [*]u32 = @ptrCast(@alignCast(staged_arena.contents));
+    const manual_words: [*]u32 = @ptrCast(@alignCast(manual_arena.contents));
+    for (column_offsets, column_logs, 0..) |offset_value, log_size, column| {
+        const rows = @as(usize, 1) << @intCast(log_size);
+        const offset: usize = @intCast(offset_value);
+        for (0..rows) |row| {
+            const value: u32 = @intCast((column * 31337 + row * 7919 + 41) % m31.Modulus);
+            wide_words[offset + row] = value;
+            staged_words[offset + row] = value;
+            manual_words[offset + row] = value;
+        }
+    }
+
+    const zero_seed = [_]u32{0} ** 8;
+    var wide_plan = try runtime.prepareResidentMerkleForHash(
+        &column_offsets,
+        &column_logs,
+        lifting_log,
+        &layer_offsets,
+        zero_seed,
+        zero_seed,
+        0,
+        2,
+    );
+    defer wide_plan.deinit();
+    var staged_plan = try runtime.prepareStagedPoseidonResidentMerkleV1(
+        &column_offsets,
+        &column_logs,
+        lifting_log,
+        &layer_offsets,
+        zero_seed,
+        zero_seed,
+        0,
+        state_offsets,
+    );
+    defer staged_plan.deinit();
+
+    var wide_epoch = try runtime.beginCommandEpoch(wide_arena);
+    defer wide_epoch.deinit();
+    try wide_epoch.encodeResidentMerkle(wide_plan);
+    try wide_epoch.submit();
+    const wide_stats = try wide_epoch.wait();
+
+    var staged_epoch = try runtime.beginCommandEpoch(staged_arena);
+    defer staged_epoch.deinit();
+    try staged_epoch.encodeResidentMerkle(staged_plan);
+    try staged_epoch.submit();
+    const staged_stats = try staged_epoch.wait();
+
+    var manual_epoch = try runtime.beginCommandEpoch(manual_arena);
+    defer manual_epoch.deinit();
+    try manual_epoch.encodeCompactLeafForHash(
+        column_offsets[0..16],
+        column_logs[0..16],
+        state_offsets[0],
+        small_log,
+        state_offsets[0],
+        small_log,
+        0,
+        false,
+        0,
+        zero_seed,
+        2,
+    );
+    try manual_epoch.encodeCompactLeafForHash(
+        column_offsets[16..17],
+        column_logs[16..17],
+        state_offsets[0],
+        small_log,
+        state_offsets[0],
+        small_log,
+        16,
+        false,
+        0,
+        zero_seed,
+        2,
+    );
+    try manual_epoch.encodeCompactLeafForHash(
+        column_offsets[17..],
+        column_logs[17..],
+        state_offsets[0],
+        small_log,
+        state_offsets[1],
+        lifting_log,
+        17,
+        true,
+        0,
+        zero_seed,
+        2,
+    );
+    try manual_epoch.encodePoseidon2LeafStateDigest(
+        state_offsets[1],
+        layer_offsets[0],
+        lifting_log,
+    );
+    try manual_epoch.submit();
+    const manual_stats = try manual_epoch.wait();
+
+    try std.testing.expectEqual(@as(u64, lifting_log + 1), wide_stats.compute_encoders);
+    try std.testing.expectEqual(@as(u64, lifting_log + 4), staged_stats.compute_encoders);
+    try std.testing.expectEqual(@as(u64, 4), manual_stats.compute_encoders);
+    try std.testing.expectEqual(@as(u64, 1), staged_stats.command_buffers);
+    try std.testing.expectEqual(@as(u64, 1), staged_stats.wait_count);
+    try std.testing.expectEqual(@as(u64, 0), staged_stats.intermediate_wait_count);
+
+    try std.testing.expectError(
+        error.CommitmentFailed,
+        runtime.residentMerkleTreeFromCompletedArena(staged_arena, wide_plan, &staged_epoch),
+    );
+    var wide_tree = try runtime.residentMerkleTreeFromCompletedArena(
+        wide_arena,
+        wide_plan,
+        &wide_epoch,
+    );
+    defer wide_tree.deinit();
+    var staged_tree = try runtime.residentMerkleTreeFromCompletedArena(
+        staged_arena,
+        staged_plan,
+        &staged_epoch,
+    );
+    defer staged_tree.deinit();
+    try std.testing.expectError(
+        error.CommitmentFailed,
+        runtime.residentMerkleTreeFromCompletedArena(staged_arena, staged_plan, &staged_epoch),
+    );
+
+    const wide_root = try wide_tree.root();
+    const staged_root = try staged_tree.root();
+    try std.testing.expectEqual(wide_root.hash, staged_root.hash);
+    try std.testing.expectEqualSlices(
+        u32,
+        wide_words[layer_offsets[lifting_log]..][0..8],
+        staged_words[layer_offsets[lifting_log]..][0..8],
+    );
+    try std.testing.expectEqualSlices(
+        u32,
+        wide_words[layer_offsets[0]..][0 .. (@as(usize, 1) << lifting_log) * 8],
+        manual_words[layer_offsets[0]..][0 .. (@as(usize, 1) << lifting_log) * 8],
+    );
+    const wide_layers = try wide_tree.copyLayers(&runtime, allocator, lifting_log);
+    defer allocator.free(wide_layers);
+    const staged_layers = try staged_tree.copyLayers(&runtime, allocator, lifting_log);
+    defer allocator.free(staged_layers);
+    try std.testing.expectEqualSlices([32]u8, wide_layers, staged_layers);
+}
+
 test "metal: command epoch retains a prepared plan through completion" {
     var runtime = try runtime_mod.Runtime.init();
     defer runtime.deinit();

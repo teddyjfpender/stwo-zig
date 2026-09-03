@@ -25,7 +25,23 @@ class EthereumBlockComparisonTests(unittest.TestCase):
         subject.validate_stwo_source(ROOT, self.manifest)
         self.assertFalse(self.manifest["stwo"]["whole_frontend_verified"])
         self.assertFalse(self.manifest["stwo"]["proof_system_soundness"])
+        self.assertTrue(self.manifest["stwo"]["full_block_guest_ported"])
         self.assertTrue(self.manifest["stwo"]["matched_semantic_input_projected"])
+        self.assertFalse(self.manifest["stwo"]["full_block_execution_reproduced"])
+        self.assertFalse(self.manifest["stwo"]["full_block_segment_proofs_verified"])
+        self.assertFalse(self.manifest["stwo"]["full_block_recursive_root_verified"])
+        smoke = self.manifest["stwo"]["guest_products"]["abi_smoke"]
+        self.assertTrue(smoke["execution_reproduced"])
+        self.assertFalse(smoke["execution_receipt"]["proof_generated"])
+        self.assertFalse(smoke["execution_receipt"]["independent_proof_verification"])
+        diagnostic = self.manifest["stwo"]["execution_diagnostics"]["keccak_only_full_block"]
+        self.assertFalse(diagnostic["combined_ethereum_profile"])
+        self.assertFalse(diagnostic["segment_proofs_verified"])
+        self.assertFalse(diagnostic["timing"]["normative"])
+        self.assertEqual(
+            self.manifest["stwo"]["provider"]["scope"]["revm_ecrecover"],
+            "software-default-crypto",
+        )
         self.assertFalse(self.manifest["claim_boundary"]["stwo_full_block_comparison_ready"])
 
     def test_manifest_rejects_claim_inflation(self) -> None:
@@ -48,6 +64,112 @@ class EthereumBlockComparisonTests(unittest.TestCase):
         regressed["stwo"]["matched_semantic_input_projected"] = False
         with self.assertRaises(subject.ContractError):
             subject.validate_manifest(regressed)
+
+        regressed = copy.deepcopy(self.manifest)
+        regressed["stwo"]["full_block_guest_ported"] = False
+        with self.assertRaises(subject.ContractError):
+            subject.validate_manifest(regressed)
+
+    def test_stwo_provider_abi_and_product_boundaries_fail_closed(self) -> None:
+        mutations = (
+            ("revm precompile", lambda value: value["stwo"]["provider"]["scope"].update(
+                {"revm_ecrecover": "native"},
+            )),
+            ("invalid result", lambda value: value["stwo"]["provider"]["scope"].update(
+                {"invalid_result_air_implemented": True},
+            )),
+            ("ABI offset", lambda value: value["stwo"]["provider"]["abi"]["fields"][4].update(
+                {"offset": 104},
+            )),
+            ("profile digest", lambda value: value["stwo"]["provider"]["profile"].update(
+                {"semantic_digest": "00" * 32},
+            )),
+            ("source overlay", lambda value: value["stwo"]["provider"]["source"]["overlay"]
+             ["files"][0].update({"sha256": "00" * 32})),
+            ("static site inventory", lambda value: value["stwo"]["guest_products"]
+             ["real_guest"].update({"keccak_instruction_sites": 1})),
+            ("smoke address", lambda value: value["stwo"]["guest_products"]
+             ["abi_smoke"].update({"expected_address": "00" * 20})),
+            ("smoke execution regression", lambda value: value["stwo"]["guest_products"]
+             ["abi_smoke"].update({"execution_reproduced": False})),
+            ("smoke proof inflation", lambda value: value["stwo"]["guest_products"]
+             ["abi_smoke"]["execution_receipt"].update({"proof_generated": True})),
+            ("smoke row partition", lambda value: value["stwo"]["guest_products"]
+             ["abi_smoke"]["execution_receipt"]["execution"].update(
+                 {"total_external_trace_rows": 1},
+             )),
+            ("input cross-binding", lambda value: value["stwo"]["guest_products"]
+             ["real_block"].update({"runner_input_sha256": "00" * 32})),
+            ("diagnostic profile inflation", lambda value: value["stwo"]
+             ["execution_diagnostics"]["keccak_only_full_block"].update(
+                 {"combined_ethereum_profile": True},
+             )),
+            ("diagnostic proof inflation", lambda value: value["stwo"]
+             ["execution_diagnostics"]["keccak_only_full_block"].update(
+                 {"segment_proofs_verified": True},
+             )),
+            ("diagnostic timing inflation", lambda value: value["stwo"]
+             ["execution_diagnostics"]["keccak_only_full_block"]["timing"].update(
+                 {"normative": True},
+             )),
+        )
+        for name, mutate in mutations:
+            with self.subTest(name=name):
+                value = copy.deepcopy(self.manifest)
+                mutate(value)
+                with self.assertRaises(subject.ContractError):
+                    subject.validate_manifest(value)
+
+    def test_stwo_product_elf_parser_binds_profile_and_executable_sites(self) -> None:
+        products = subject.stwo_products
+        blob = bytearray(256)
+        blob[:6] = b"\x7fELF\x01\x01"
+        blob[18:20] = (243).to_bytes(2, "little")
+        blob[28:32] = (52).to_bytes(4, "little")
+        blob[42:44] = (32).to_bytes(2, "little")
+        blob[44:46] = (1).to_bytes(2, "little")
+        blob[52:56] = (1).to_bytes(4, "little")
+        blob[56:60] = (128).to_bytes(4, "little")
+        blob[68:72] = (32).to_bytes(4, "little")
+        blob[76:80] = (1).to_bytes(4, "little")
+        blob[128:132] = products.RECOVERY_WORD.to_bytes(4, "little")
+        blob[132:136] = products.KECCAK_WORD.to_bytes(4, "little")
+        descriptor = (
+            b"STWZKVM\x00"
+            + (1).to_bytes(2, "little")
+            + (3).to_bytes(2, "little")
+            + (6).to_bytes(8, "little")
+            + (1).to_bytes(2, "little")
+            + b"\x00\x00"
+            + bytes.fromhex(products.PROFILE_DIGEST)
+        )
+        blob[192:248] = descriptor
+        profile = self.manifest["stwo"]["provider"]["profile"]
+
+        def expected(value: bytes) -> dict[str, object]:
+            return {
+                "bytes": len(value),
+                "sha256": subject._sha256_bytes(value),
+                "recovery_instruction_sites": 1,
+                "keccak_instruction_sites": 1,
+            }
+
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "guest.elf"
+            path.write_bytes(blob)
+            products._validate_elf(path, expected(blob), profile, "synthetic Stwo ELF")
+
+            mutated = bytearray(blob)
+            mutated[136:140] = products.RECOVERY_WORD.to_bytes(4, "little")
+            path.write_bytes(mutated)
+            with self.assertRaises(products.ProductContractError):
+                products._validate_elf(path, expected(mutated), profile, "synthetic Stwo ELF")
+
+            mutated = bytearray(blob)
+            mutated[216] ^= 1
+            path.write_bytes(mutated)
+            with self.assertRaises(products.ProductContractError):
+                products._validate_elf(path, expected(mutated), profile, "synthetic Stwo ELF")
 
     def test_stwo_projection_binds_canonical_transport_and_success_output(self) -> None:
         canonical = b"\x14\x01canonical-ssz"

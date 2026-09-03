@@ -38,6 +38,7 @@ const test_witness_hook = @import("test_witness_hook.zig");
 const trace_arena = @import("trace_arena.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
+const native_provider_omit = @import("memory_provider_shards/native_provider_omit_v1.zig");
 
 const M31 = m31.M31;
 const CommitmentWitness = commitment_witness.CommitmentWitness;
@@ -127,6 +128,31 @@ pub fn generateInfrastructure(
     try appendClockColumns(allocator, workspace, columns, geometry, opt_chain);
 }
 
+/// Provider-externalized infrastructure generation. The typed geometry has no
+/// Poseidon member, so this path cannot accidentally allocate or materialize
+/// the native 445-column provider. Ordinary generation above is unchanged.
+pub fn generateInfrastructureWithoutNativePoseidon(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    columns: *Columns,
+    witness: *const CommitmentWitness,
+    geometry: native_provider_omit.ProjectedGeometryV1,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    recorder: ?*stage_profile.Recorder,
+) !void {
+    var stage = try stage_profile.StageScope.begin(
+        recorder,
+        "riscv_infrastructure_trace_generation_without_native_poseidon",
+        "RISC-V infrastructure trace generation with external Poseidon provider",
+    );
+    defer stage.end();
+    const projected = projectedLegacyGeometry(geometry);
+    try appendProgramColumns(allocator, columns, witness, projected);
+    try appendMemoryColumns(allocator, workspace, columns, witness);
+    try appendMerkleColumns(allocator, columns, witness, projected);
+    try appendClockColumns(allocator, workspace, columns, projected, opt_chain);
+}
+
 /// Exact-work sibling of `generateInfrastructure`. The ordinary route remains
 /// unchanged; receipt construction is selected once per profiled proof and
 /// occurs only after every infrastructure column completed successfully.
@@ -188,13 +214,14 @@ fn appendMemoryColumns(
     columns: *Columns,
     witness: *const CommitmentWitness,
 ) !void {
-    const claims = witness.boundary orelse return;
+    const rows = witness.memoryBoundaryRows();
+    if (rows.len == 0) return;
     var row_start: usize = 0;
     for (workspace.memory_shard_lengths[0..workspace.memory_shard_count]) |shard_len| {
         const log_size = @max(computeLogSize(shard_len), 4);
         const generated = try memory_trace.generate(
             allocator,
-            claims.rows[row_start..][0..shard_len],
+            rows[row_start..][0..shard_len],
             log_size,
         );
         for (generated.values) |values| {
@@ -320,6 +347,23 @@ fn appendClockColumns(
     }
 }
 
+/// Adapter kept private to the omission-aware generator. The impossible
+/// Poseidon slot is never observed because that generator does not call
+/// `appendPoseidonColumns`.
+fn projectedLegacyGeometry(
+    geometry: native_provider_omit.ProjectedGeometryV1,
+) Geometry {
+    return .{
+        .program_log_size = geometry.program_log_size,
+        .merkle_log_size = geometry.merkle_log_size,
+        .poseidon_log_size = 0,
+        .clock_update_log = geometry.clock_update_log,
+        .merkle_infra_index = geometry.merkle_infra_index,
+        .poseidon_infra_index = std.math.maxInt(usize),
+        .clock_infra_index = geometry.clock_infra_index,
+    };
+}
+
 /// Adds the non-opcode multiplicity requests to the counters ingested from the
 /// opcode buffers, so one counter set covers every committed lookup.
 pub fn registerLookupSources(
@@ -328,9 +372,12 @@ pub fn registerLookupSources(
     workspace: *const ProofWorkspace,
 ) !void {
     try lookup_sources.registerProgram(&lookup_source.counters, witness.program.rows);
-    if (witness.boundary) |claims| {
-        try lookup_sources.registerMemoryBoundary(&lookup_source.counters, claims.rows);
-    }
+    const boundary_rows = witness.memoryBoundaryRows();
+    if (boundary_rows.len != 0)
+        try lookup_sources.registerMemoryBoundary(
+            &lookup_source.counters,
+            boundary_rows,
+        );
     var clock_views: [clock_update_interaction.N_MAIN_COLUMNS][]const M31 = undefined;
     for (&clock_views, workspace.clock_main) |*view, column| view.* = column;
     try clock_update_interaction.registerRangeCheckCounters(
@@ -458,7 +505,7 @@ pub const Columns = struct {
         };
     }
 
-    fn putOwned(
+    pub fn putOwned(
         self: *Columns,
         allocator: std.mem.Allocator,
         index: usize,
@@ -477,7 +524,7 @@ pub const Columns = struct {
         self.initialized[index] = true;
     }
 
-    fn appendOwned(
+    pub fn appendOwned(
         self: *Columns,
         allocator: std.mem.Allocator,
         column: prover_pcs.ColumnEvaluation,
@@ -486,7 +533,7 @@ pub const Columns = struct {
         self.offset += 1;
     }
 
-    fn putCopy(
+    pub fn putCopy(
         self: *Columns,
         allocator: std.mem.Allocator,
         index: usize,
@@ -507,7 +554,7 @@ pub const Columns = struct {
         self.initialized[index] = true;
     }
 
-    fn appendCopy(
+    pub fn appendCopy(
         self: *Columns,
         allocator: std.mem.Allocator,
         column: prover_pcs.ColumnEvaluation,
@@ -516,11 +563,11 @@ pub const Columns = struct {
         self.offset += 1;
     }
 
-    fn isArenaBacked(self: *const Columns) bool {
+    pub fn isArenaBacked(self: *const Columns) bool {
         return self.backing_buffers != null;
     }
 
-    fn reserve(
+    pub fn reserve(
         self: *Columns,
         comptime count: usize,
         log_size: u32,

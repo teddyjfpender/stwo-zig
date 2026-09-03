@@ -87,7 +87,8 @@ pub fn generateShard(
     first_call_index: usize,
     counters: *counters_mod.Counters,
 ) Error!Shard {
-    if (records.len == 0) return error.EmptyShard;
+    if (records.len == 0 and first_call_index != 0)
+        return error.CallIndexOutOfRange;
     if (records.len > maximum_calls_per_shard) return error.CallRangeTooLarge;
     const call_end = std.math.add(usize, first_call_index, records.len) catch
         return error.CallIndexOutOfRange;
@@ -100,10 +101,13 @@ pub fn generateShard(
     ) catch unreachable;
     const n_rows = std.math.mul(usize, slot_count, witness.row_count) catch
         return error.TraceSizeOverflow;
-    const log_size: u32 = @max(
-        minimum_log_size,
-        @as(u32, @intCast(std.math.log2_int_ceil(usize, n_rows))),
-    );
+    const log_size: u32 = if (n_rows == 0)
+        minimum_log_size
+    else
+        @max(
+            minimum_log_size,
+            @as(u32, @intCast(std.math.log2_int_ceil(usize, n_rows))),
+        );
     if (log_size > maximum_log_size) return error.CallRangeTooLarge;
     const domain_size = @as(usize, 1) << @intCast(log_size);
     const preprocessed_cells = std.math.mul(

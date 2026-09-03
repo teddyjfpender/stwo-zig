@@ -30,6 +30,7 @@ const Reader = dependency_2.Reader;
 const RetainedSectionV2 = dependency_0.RetainedSectionV2;
 const SCHEMA_VERSION = dependency_0.SCHEMA_VERSION;
 const SEGMENT_LINEAGE_ID_DOMAIN = dependency_0.SEGMENT_LINEAGE_ID_DOMAIN;
+const SnapshotIdentity = dependency_0.SnapshotIdentity;
 const SnapshotSide = dependency_1.SnapshotSide;
 const SourceV2 = dependency_2.SourceV2;
 const StatementV2 = dependency_0.StatementV2;
@@ -55,6 +56,31 @@ const validateWireClockProgress = dependency_2.validateWireClockProgress;
 /// tuples are checked for strict order, nonzero sparse normalization, bounds,
 /// count/header agreement, and digest agreement before a view is returned.
 pub fn authenticateCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
+    var view = try decodeCanonicalWire(words);
+    try validateRetainedIdentities(&view);
+    return view;
+}
+
+/// Cold-open twin of `authenticateCanonicalWire`. The retained snapshot
+/// authorities must include the exact sparse identity, count, and continuation
+/// root already authenticated by the enclosing segment source. The canonical
+/// wire still replays every sparse tuple and clock identity; only the expensive
+/// Poseidon continuation-root traversal is reused.
+pub fn authenticateCanonicalWireReusingRoots(
+    words: []const M31,
+    retained_entry: SnapshotIdentity,
+    retained_exit: SnapshotIdentity,
+) Error!CanonicalWireViewV2 {
+    var view = try decodeCanonicalWire(words);
+    try validateRetainedIdentitiesReusingRoots(
+        &view,
+        retained_entry,
+        retained_exit,
+    );
+    return view;
+}
+
+fn decodeCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
     if (words.len < MIN_CANONICAL_WORDS) return error.CanonicalLengthMismatch;
     var fixed: [FIXED_CANONICAL_WORDS]M31 = undefined;
     @memcpy(&fixed, words[0..FIXED_CANONICAL_WORDS]);
@@ -94,7 +120,7 @@ pub fn authenticateCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
     );
     if (reader.at != words.len) return error.CanonicalLengthMismatch;
 
-    var view = CanonicalWireViewV2{
+    const view = CanonicalWireViewV2{
         .words = words,
         .statement = statement_v2,
         .entry_snapshot = entry_snapshot,
@@ -103,7 +129,6 @@ pub fn authenticateCanonicalWire(words: []const M31) Error!CanonicalWireViewV2 {
         .exit_memory_clocks = exit_memory_clocks,
         .wire_id = channel.hashCanonicalWords(words, WIRE_ID_DOMAIN),
     };
-    try validateRetainedIdentities(&view);
     try validateWireClockProgress(&view);
     try validateWireCompletionLink(&view);
     return view;
@@ -229,6 +254,30 @@ pub fn validateRetainedIdentities(view: *const CanonicalWireViewV2) Error!void {
         exit_root != view.statement.exit_continuation_root or
         !std.meta.eql(entry_clocks, view.statement.entry_memory_clock_id) or
         !std.meta.eql(exit_clocks, view.statement.exit_memory_clock_id))
+    {
+        return error.BoundaryIdentityMismatch;
+    }
+}
+
+pub fn validateRetainedIdentitiesReusingRoots(
+    view: *const CanonicalWireViewV2,
+    retained_entry: SnapshotIdentity,
+    retained_exit: SnapshotIdentity,
+) Error!void {
+    const entry_snapshot = snapshotSectionIdentity(view, view.entry_snapshot);
+    const exit_snapshot = snapshotSectionIdentity(view, view.exit_snapshot);
+    const entry_clocks = clockSectionIdentity(view, view.entry_memory_clocks);
+    const exit_clocks = clockSectionIdentity(view, view.exit_memory_clocks);
+    if (!std.meta.eql(entry_snapshot, view.statement.entry_snapshot_id) or
+        !std.meta.eql(exit_snapshot, view.statement.exit_snapshot_id) or
+        !std.meta.eql(entry_clocks, view.statement.entry_memory_clock_id) or
+        !std.meta.eql(exit_clocks, view.statement.exit_memory_clock_id) or
+        !std.meta.eql(retained_entry.id, entry_snapshot) or
+        retained_entry.count != view.statement.entry_snapshot_count or
+        retained_entry.root != view.statement.entry_continuation_root or
+        !std.meta.eql(retained_exit.id, exit_snapshot) or
+        retained_exit.count != view.statement.exit_snapshot_count or
+        retained_exit.root != view.statement.exit_continuation_root)
     {
         return error.BoundaryIdentityMismatch;
     }

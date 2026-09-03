@@ -54,6 +54,10 @@ pub const provePoseidon2WithEngineAndPublicData =
 pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
     prover_mod.provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter;
 pub const verifyPoseidon2WithEngine = prover_mod.verifyPoseidon2WithEngine;
+pub const proveEthereumWithEngine = prover_mod.proveEthereumWithEngine;
+pub const proveEthereumWithEngineUsingExecution =
+    prover_mod.proveEthereumWithEngineUsingExecution;
+pub const verifyEthereumWithEngine = prover_mod.verifyEthereumWithEngine;
 pub const proveAndVerifyElfWithEngine = prover_mod.proveAndVerifyElfWithEngine;
 
 test "api signature: RISC-V facade preserves runner and prover entry points" {

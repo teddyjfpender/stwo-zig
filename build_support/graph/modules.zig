@@ -360,8 +360,8 @@ pub fn addMetalBackendImport(
     return backend;
 }
 
-/// Constructs the host-independent persistent Metal-session service module.
-pub fn createMetalSession(
+/// Constructs the host-neutral persistent typed artifact-store module.
+pub fn createArtifactStore(
     b: *std.Build,
     product: Product,
     target: std.Build.ResolvedTarget,
@@ -369,10 +369,42 @@ pub fn createMetalSession(
 ) *std.Build.Module {
     return create(b, .{
         .product = product,
+        .root_source_file = "src/artifact_store/mod.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+}
+
+pub fn addArtifactStoreImport(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    consumer: *std.Build.Module,
+) *std.Build.Module {
+    const artifact_store = createArtifactStore(b, product, target, optimize);
+    consumer.addImport("stwo_artifact_store", artifact_store);
+    return artifact_store;
+}
+
+/// Constructs the host-independent persistent Metal-session service module.
+pub fn createMetalSession(
+    b: *std.Build,
+    product: Product,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    artifact_store_override: ?*std.Build.Module,
+) *std.Build.Module {
+    const metal_session = create(b, .{
+        .product = product,
         .root_source_file = "src/tools/metal_session/mod.zig",
         .target = target,
         .optimize = optimize,
     });
+    const artifact_store = artifact_store_override orelse
+        createArtifactStore(b, product, target, optimize);
+    metal_session.addImport("stwo_artifact_store", artifact_store);
+    return metal_session;
 }
 
 /// Declares a consumer's dependency on the package-owned Metal-session API.
@@ -388,6 +420,7 @@ pub fn addMetalSessionImport(
         product,
         target,
         optimize,
+        consumer.import_table.get("stwo_artifact_store"),
     );
     consumer.addImport("stwo_metal_session", metal_session);
     return metal_session;

@@ -125,6 +125,32 @@ pub fn relationSums(
     return result;
 }
 
+/// V2 compensation contributed only by the full sparse RW-memory transition.
+/// Register memory endpoints are deliberately excluded. Incremental V3 keeps
+/// the V2 CPU/register authority but replaces this member with role-aware V1
+/// public-I/O terms because its committed full-state boundary owns all other
+/// RW endpoints.
+pub fn rwMemoryAccessSum(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    var cursor = try data.eventCursor();
+    var result = QM31.zero();
+    while (cursor.next()) |event| switch (event) {
+        .registers_state => {},
+        .memory_access => |memory| {
+            if (memory.address_space != 1) continue;
+            try addBoundaryInverse(
+                &result,
+                relations.memory_access.combineBase(memoryTuple(memory)),
+                memory.direction,
+                .compensation,
+            );
+        },
+    };
+    return result;
+}
+
 /// Failure-atomic pointer form for orchestration code that keeps a reusable
 /// output slot.  A malformed wire or zero denominator leaves `destination`
 /// byte-for-byte unchanged.

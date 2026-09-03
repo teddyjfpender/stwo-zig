@@ -131,6 +131,52 @@ pub fn buildV2(
     return .{ .base = geometry, .statement = statement };
 }
 
+/// V2 statement geometry for a segment whose authenticated profile owns
+/// compact retirement rows outside the base opcode trace. The resulting core
+/// statement still records the complete segment cycle count, while the caller
+/// must immediately bind and validate its versioned extension statement.
+pub fn buildExternalV2(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    public_data: public_data_v2.PublicDataV2,
+    external_retirements: u32,
+    policy: statement_validation.AdmissionPolicy,
+) !V2Geometry {
+    const core_steps = std.math.cast(u32, exec_trace.step_count) orelse
+        return ProverError.InvalidStatement;
+    const total_steps = std.math.add(
+        u32,
+        core_steps,
+        external_retirements,
+    ) catch return ProverError.InvalidStatement;
+    const projection = statement_v2.canonicalCorePublicData(&public_data) catch
+        return ProverError.InvalidStatement;
+    const geometry = try populate(
+        allocator,
+        workspace,
+        exec_trace,
+        witness,
+        opt_chain,
+        projection,
+        total_steps,
+        false,
+    );
+    const statement = statement_v2.RiscVStatementV2.init(
+        workspace.statement,
+        public_data,
+    ) catch return ProverError.InvalidStatement;
+    // The closed base validator does not understand external retirements.
+    // The profile statement validates the exact coefficient supplement after
+    // this function returns, so only the authenticated V2 envelope is checked
+    // here.
+    try statement.validate();
+    if (policy != .proof) return ProverError.InvalidStatement;
+    return .{ .base = geometry, .statement = statement };
+}
+
 /// Builds and authenticates the profile-separated core/extension statement.
 /// The core descriptor arrays continue to describe only ordinary shards; its
 /// `total_steps` includes the frozen guest retirements and is admitted through
@@ -145,19 +191,14 @@ pub fn buildPoseidon2(
     n_guest: u32,
     policy: statement_validation.AdmissionPolicy,
 ) !Poseidon2Geometry {
-    const base_steps = std.math.cast(u32, exec_trace.step_count) orelse
-        return ProverError.InvalidStatement;
-    const total_steps = std.math.add(u32, base_steps, n_guest) catch
-        return ProverError.InvalidStatement;
-    const geometry = try populate(
+    const geometry = try buildExternalBase(
         allocator,
         workspace,
         exec_trace,
         witness,
         opt_chain,
         public_data,
-        total_steps,
-        n_guest != 0,
+        n_guest,
     );
     const extension = try guest_statement.ExtensionStatement.canonical(
         &workspace.statement,
@@ -169,6 +210,38 @@ pub fn buildPoseidon2(
         policy,
     );
     return .{ .base = geometry, .extension = extension, .artifact = artifact };
+}
+
+/// Populates the unchanged base component prefix while accounting for compact
+/// external retirements that are proved by an authenticated extension.
+///
+/// This function intentionally performs no standalone V1 admission: the
+/// caller must immediately validate its versioned extension statement, whose
+/// coefficient certificate owns the extra retirement and memory terms.
+/// `buildPoseidon2` remains that profile's existing admitted wrapper.
+pub fn buildExternalBase(
+    allocator: std.mem.Allocator,
+    workspace: *ProofWorkspace,
+    exec_trace: *const trace_mod.Trace,
+    witness: *const CommitmentWitness,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    public_data: PublicData,
+    external_retirements: u32,
+) !Geometry {
+    const base_steps = std.math.cast(u32, exec_trace.step_count) orelse
+        return ProverError.InvalidStatement;
+    const total_steps = std.math.add(u32, base_steps, external_retirements) catch
+        return ProverError.InvalidStatement;
+    return populate(
+        allocator,
+        workspace,
+        exec_trace,
+        witness,
+        opt_chain,
+        public_data,
+        total_steps,
+        external_retirements != 0,
+    );
 }
 
 fn populate(
@@ -270,9 +343,10 @@ fn describeMemoryShards(
     workspace: *ProofWorkspace,
     witness: *const CommitmentWitness,
 ) ProverError!void {
-    const claims = witness.boundary orelse return;
+    const rows = witness.memoryBoundaryRows();
+    if (rows.len == 0) return;
     const statement = &workspace.statement;
-    var remaining = claims.rows.len;
+    var remaining = rows.len;
     while (remaining > 0) {
         if (statement.n_infra + 3 >= MAX_INFRA_COMPONENTS)
             return ProverError.TooManyInfrastructureComponents;
@@ -301,7 +375,17 @@ fn bindCommitmentRoots(
     }
     statement.public_data.program_root = witness.program.tree.root;
 
-    if (witness.boundary) |claims| {
+    if (witness.incremental_boundary_v3) |incremental| {
+        const roots = incremental.roots;
+        if (statement.public_data.initial_rw_root) |root| {
+            if (root != roots.entry) return ProverError.InvalidStatement;
+        }
+        if (statement.public_data.final_rw_root) |root| {
+            if (root != roots.exit) return ProverError.InvalidStatement;
+        }
+        statement.public_data.initial_rw_root = roots.entry;
+        statement.public_data.final_rw_root = roots.exit;
+    } else if (witness.boundary) |claims| {
         const initial_root = if (claims.initial_tree) |tree| tree.root else null;
         const final_root = if (claims.final_tree) |tree| tree.root else null;
         if (statement.public_data.initial_rw_root) |root| {

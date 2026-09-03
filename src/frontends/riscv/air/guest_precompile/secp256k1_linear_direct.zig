@@ -248,10 +248,11 @@ fn writeBytes(
 fn constant(comptime S: type, value: u64) S {
     if (S == M31) return M31.fromU64(value);
     if (S == QM31) return QM31.fromBase(M31.fromU64(value));
-    unreachable;
+    if (@hasDecl(S, "fromBase")) return S.fromBase(M31.fromU64(value));
+    @compileError("secp linear AIR requires a base-field lift");
 }
 
 fn requireSupportedField(comptime S: type) void {
-    if (S != M31 and S != QM31)
-        @compileError("secp linear AIR supports only M31 and QM31");
+    if (S != M31 and S != QM31 and !@hasDecl(S, "fromBase"))
+        @compileError("secp linear AIR requires a base-field lift");
 }

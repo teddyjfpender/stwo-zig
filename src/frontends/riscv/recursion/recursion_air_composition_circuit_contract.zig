@@ -229,7 +229,7 @@ pub const Circuit = struct {
                     witness.oods_seed,
                     word_index,
                 ),
-                .public_wire_boundary => return error.InvalidInputShape,
+                .public_wire_boundary, .transcript_claimed_sum => return error.InvalidInputShape,
             };
             destination[index] = QM31.fromBase(word);
         }

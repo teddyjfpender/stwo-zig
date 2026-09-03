@@ -9,6 +9,10 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
     const dependency_options = .{ .target = target, .optimize = optimize };
 
+    const artifact_store = b.dependency(
+        "stwo_artifact_store",
+        dependency_options,
+    ).module("stwo_artifact_store");
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
     const prover = b.dependency(
         "stwo_prover_engine",
@@ -38,12 +42,45 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    integration.addImport("stwo_artifact_store", artifact_store);
     integration.addImport("stwo_core", core);
     integration.addImport("stwo_prover_api", prover_api);
     integration.addImport("stwo_prover_engine", prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", frontend);
     integration.addImport("interop_postcard", postcard);
+
+    const stage101_metal_facade = b.addModule(
+        "stwo_riscv_cpu_stage101_metal",
+        .{
+            .root_source_file = b.path("stage101_metal_facade.zig"),
+            .target = target,
+            .optimize = optimize,
+        },
+    );
+    stage101_metal_facade.addImport("stwo_artifact_store", artifact_store);
+    stage101_metal_facade.addImport("stwo_core", core);
+    stage101_metal_facade.addImport("stwo_prover_api", prover_api);
+    stage101_metal_facade.addImport("stwo_prover_engine", prover);
+    stage101_metal_facade.addImport("stwo_cpu_backend", cpu_backend);
+    stage101_metal_facade.addImport("stwo_riscv_frontend", frontend);
+    stage101_metal_facade.addImport("interop_postcard", postcard);
+
+    const stage101_degree5_metal_facade = b.addModule(
+        "stwo_riscv_cpu_stage101_degree5_metal",
+        .{
+            .root_source_file = b.path("stage101_degree5_metal_facade.zig"),
+            .target = target,
+            .optimize = optimize,
+        },
+    );
+    stage101_degree5_metal_facade.addImport("stwo_artifact_store", artifact_store);
+    stage101_degree5_metal_facade.addImport("stwo_core", core);
+    stage101_degree5_metal_facade.addImport("stwo_prover_api", prover_api);
+    stage101_degree5_metal_facade.addImport("stwo_prover_engine", prover);
+    stage101_degree5_metal_facade.addImport("stwo_cpu_backend", cpu_backend);
+    stage101_degree5_metal_facade.addImport("stwo_riscv_frontend", frontend);
+    stage101_degree5_metal_facade.addImport("interop_postcard", postcard);
 
     const test_step = b.step(
         "test",
@@ -53,6 +90,7 @@ pub fn build(b: *std.Build) void {
         .b = b,
         .target = target,
         .optimize = optimize,
+        .artifact_store = artifact_store,
         .core = core,
         .prover = prover,
         .prover_api = prover_api,

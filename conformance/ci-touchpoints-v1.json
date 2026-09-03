@@ -341,6 +341,21 @@
         ]
       ]
     },
+    "artifact_store": {
+      "host": "linux",
+      "description": "Host-neutral persistent typed artifact substrate",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/artifact_store/build.zig",
+          "-Doptimize=Debug",
+          "-j2"
+        ]
+      ]
+    },
     "proof_wire": {
       "host": "linux",
       "description": "Independent proof interchange codec package",
@@ -742,6 +757,7 @@
         "riscv_cuda_integration",
         "sm83_metal_integration",
         "cairo_metal_integration",
+        "artifact_store",
         "metal_session",
         "proof_wire",
         "native_examples",
@@ -1102,6 +1118,17 @@
       ],
       "lanes": [
         "package"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/artifact_store"
+      ],
+      "lanes": [
+        "artifact_store",
+        "package",
+        "cairo_metal",
+        "metal_compile"
       ]
     },
     {

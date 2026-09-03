@@ -214,6 +214,21 @@ fn addMetalTools(
     optimize: std.builtin.OptimizeMode,
 ) void {
     const protocol = graph.createPrivateProtocolModules(b, target, optimize);
+    const polynomial_runtime_tests = b.createModule(.{
+        .root_source_file = b.path(
+            "src/backends/metal/polynomial_runtime_test_root.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    protocol.addImports(polynomial_runtime_tests);
+    const polynomial_runtime_test_artifact = b.addTest(.{
+        .root_module = polynomial_runtime_tests,
+    });
+    b.step(
+        "test-metal-polynomial-runtime",
+        "Run focused resident-polynomial codegen and quotient tests",
+    ).dependOn(&b.addRunArtifact(polynomial_runtime_test_artifact).step);
     const tool_product = graph.Product{
         .name = "stwo-native-metal-tools",
         .frontend = .native,
@@ -235,6 +250,7 @@ fn addMetalTools(
         optimize,
         stwo,
     );
+    _ = graph.addArtifactStoreImport(b, tool_product, target, optimize, stwo);
     const metal_session = graph.addMetalSessionImport(
         b,
         tool_product,

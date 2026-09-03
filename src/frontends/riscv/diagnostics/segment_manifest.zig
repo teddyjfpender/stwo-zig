@@ -10,19 +10,25 @@
 const std = @import("std");
 const runner = @import("../runner/mod.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
+const bulk_registry = @import("../isa/bulk_memcpy_private_registry_v1.zig");
+const stack_swap = @import("../isa/stack_swap_candidate_v1.zig");
+const candidate_capability = @import(
+    "../runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
+);
 const memory_state = @import("../runner/memory_state.zig");
 const result_mod = @import("../runner/result.zig");
 const trace_mod = @import("../runner/trace.zig");
 const witness_layout = @import("../witness_layout.zig");
 const segment_statement_v2 = @import("../recursion/segment_statement_v2.zig");
 
-pub const HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v2";
-pub const SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v2";
-pub const SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v2";
+pub const HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v3";
+pub const SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v3";
+pub const SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v3";
 pub const CLAIM_BOUNDARY = "execution-only-not-a-proof";
 pub const SegmentClockFrame = runner.SegmentClockFrame;
 
 const Digest = [32]u8;
+const maximum_external_families: usize = 4;
 
 const HeaderPayload = struct {
     schema: []const u8,
@@ -41,6 +47,12 @@ const HeaderPayload = struct {
 const FamilyRows = struct {
     family: []const u8,
     rows: u64,
+};
+
+const ExternalFamilyRows = struct {
+    family: []const u8,
+    calls: u64,
+    execution_rows: u64,
 };
 
 const BoundaryPayload = struct {
@@ -66,6 +78,7 @@ const SegmentPayload = struct {
     exit: BoundaryPayload,
     core_trace_rows: u64,
     external_trace_rows: u64,
+    external_family_rows: []const ExternalFamilyRows,
     unclassified_core_rows: u64,
     opcode_family_rows: []const FamilyRows,
     completion_reason: ?[]const u8,
@@ -88,6 +101,7 @@ const SummaryPayload = struct {
     total_cycles: u64,
     total_core_trace_rows: u64,
     total_external_trace_rows: u64,
+    external_family_rows: []const ExternalFamilyRows,
     total_unclassified_core_rows: u64,
     opcode_family_rows: []const FamilyRows,
     completion_reason: []const u8,
@@ -123,6 +137,34 @@ pub fn stream(
     clock_frame: runner.SegmentClockFrame,
     writer: *std.Io.Writer,
 ) !void {
+    var observer = NoopObserver{};
+    return streamObserved(
+        allocator,
+        elf_bytes,
+        input,
+        segment_step_budget,
+        strict_completion,
+        clock_frame,
+        writer,
+        &observer,
+    );
+}
+
+/// Append-only observation seam for authorities which must derive compact
+/// state from the exact execution that emitted this canonical journal. The
+/// observer borrows each configured segment only until `observe` returns and
+/// must not retain trace or extension slices. Existing callers use `stream`
+/// and therefore remain byte/API compatible.
+pub fn streamObserved(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    segment_step_budget: usize,
+    strict_completion: bool,
+    clock_frame: runner.SegmentClockFrame,
+    writer: *std.Io.Writer,
+    observer: anytype,
+) !void {
     const profile = try runner.elf_loader.requestedExecutionProfile(elf_bytes);
     return switch (profile) {
         .rv32im_zkvm_v1 => streamForProfile(
@@ -134,6 +176,7 @@ pub fn stream(
             strict_completion,
             clock_frame,
             writer,
+            observer,
         ),
         .rv32im_zkvm_poseidon2_v1 => streamForProfile(
             .rv32im_zkvm_poseidon2_v1,
@@ -144,6 +187,7 @@ pub fn stream(
             strict_completion,
             clock_frame,
             writer,
+            observer,
         ),
         .rv32im_zkvm_keccakf_v1 => streamForProfile(
             .rv32im_zkvm_keccakf_v1,
@@ -154,9 +198,68 @@ pub fn stream(
             strict_completion,
             clock_frame,
             writer,
+            observer,
+        ),
+        .rv32im_zkvm_ethereum_v1 => streamForProfile(
+            .rv32im_zkvm_ethereum_v1,
+            allocator,
+            elf_bytes,
+            input,
+            segment_step_budget,
+            strict_completion,
+            clock_frame,
+            writer,
+            observer,
         ),
     };
 }
+
+/// Candidate-only sibling for the receipt-minted combined Ethereum session.
+/// There is no profile flag or fallback to the default session: `capability`
+/// must be the final combined class and `initCombinedSession` reopens the exact
+/// ELF bytes before execution. The observer receives each configured combined
+/// segment and can transactionally project its two private tapes into the
+/// candidate execution journal.
+pub fn streamCandidateObserved(
+    allocator: std.mem.Allocator,
+    capability: candidate_capability.Capability,
+    reopened_elf: []const u8,
+    input: []const u8,
+    segment_step_budget: usize,
+    strict_completion: bool,
+    clock_frame: runner.SegmentClockFrame,
+    writer: *std.Io.Writer,
+    observer: anytype,
+) !void {
+    try capability.validate();
+    if (capability.executable_class != .combined_candidate or
+        !capability.final_candidate_executable)
+    {
+        return error.FinalEthereumCombinedCandidateCapabilityRequired;
+    }
+    return streamWithAdapter(
+        .rv32im_zkvm_ethereum_v1,
+        CombinedCandidateStreamAdapter,
+        capability,
+        allocator,
+        reopened_elf,
+        input,
+        segment_step_budget,
+        strict_completion,
+        clock_frame,
+        writer,
+        observer,
+    );
+}
+
+const NoopObserver = struct {
+    fn observe(
+        _: *NoopObserver,
+        comptime _: execution_profile.ExecutionProfile,
+        _: anytype,
+        _: Digest,
+    ) !void {}
+};
 
 fn streamForProfile(
     comptime profile: execution_profile.ExecutionProfile,
@@ -167,6 +270,35 @@ fn streamForProfile(
     strict_completion: bool,
     clock_frame: runner.SegmentClockFrame,
     writer: *std.Io.Writer,
+    observer: anytype,
+) !void {
+    return streamWithAdapter(
+        profile,
+        DefaultStreamAdapter(profile),
+        {},
+        allocator,
+        elf_bytes,
+        input,
+        segment_step_budget,
+        strict_completion,
+        clock_frame,
+        writer,
+        observer,
+    );
+}
+
+fn streamWithAdapter(
+    comptime profile: execution_profile.ExecutionProfile,
+    comptime Adapter: type,
+    session_authority: Adapter.SessionAuthority,
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    segment_step_budget: usize,
+    strict_completion: bool,
+    clock_frame: runner.SegmentClockFrame,
+    writer: *std.Io.Writer,
+    observer: anytype,
 ) !void {
     if (segment_step_budget == 0) return error.ZeroSegmentStepBudget;
 
@@ -188,13 +320,15 @@ fn streamForProfile(
         .trace_retention = "segment-owned",
     });
 
-    var session = try runner.ExecutionSession(profile).init(allocator, elf_bytes, .{
-        .input = input,
-        .stop_on_halt_flag = strict_completion,
-        .strict_completion = strict_completion,
-        .trace_retention = .segment_owned,
-        .clock_frame = clock_frame,
-    });
+    var session = try Adapter.initSession(
+        session_authority,
+        allocator,
+        elf_bytes,
+        input,
+        strict_completion,
+        clock_frame,
+        retirementObserver(observer),
+    );
     defer session.deinit();
 
     var continuation: ?runner.ContinuationToken = null;
@@ -204,6 +338,11 @@ fn streamForProfile(
     var total_cycles: u64 = 0;
     var total_core_rows: u64 = 0;
     var total_external_rows: u64 = 0;
+    var total_external_family_storage: [maximum_external_families]ExternalFamilyRows =
+        undefined;
+    const total_external_family_rows = Adapter.initializeExternalFamilyRows(
+        &total_external_family_storage,
+    );
     var total_unclassified_rows: u64 = 0;
     var max_segment_cycles: u64 = 0;
     var total_families = trace_mod.OpcodeFamilyCounts{};
@@ -221,7 +360,7 @@ fn streamForProfile(
         else
             try session.startSegment(segment_step_budget);
         defer configured_segment.deinit();
-        const segment = baseSegment(profile, &configured_segment);
+        const segment = Adapter.baseSegment(&configured_segment);
 
         const entry_cpu = digestCpu(segment.entry_cpu);
         const exit_cpu = digestCpu(segment.exit_cpu);
@@ -266,7 +405,25 @@ fn streamForProfile(
             return error.OpcodeInventoryMismatch;
         const external_rows = std.math.sub(u64, cycles, core_rows) catch
             return error.TraceCycleCountMismatch;
-        try requireExtensionInventory(profile, &configured_segment, external_rows);
+        var external_family_storage: [maximum_external_families]ExternalFamilyRows =
+            undefined;
+        const external_family_rows = try Adapter.segmentExternalFamilyRows(
+            &configured_segment,
+            external_rows,
+            &external_family_storage,
+        );
+        for (external_family_rows, 0..) |family, index| {
+            total_external_family_rows[index].calls = std.math.add(
+                u64,
+                total_external_family_rows[index].calls,
+                family.calls,
+            ) catch return error.ExecutionCycleCountOverflow;
+            total_external_family_rows[index].execution_rows = std.math.add(
+                u64,
+                total_external_family_rows[index].execution_rows,
+                family.execution_rows,
+            ) catch return error.ExecutionCycleCountOverflow;
+        }
         total_cycles = std.math.add(u64, total_cycles, cycles) catch
             return error.ExecutionCycleCountOverflow;
         total_core_rows = std.math.add(u64, total_core_rows, core_rows) catch
@@ -321,6 +478,7 @@ fn streamForProfile(
             ),
             .core_trace_rows = core_rows,
             .external_trace_rows = external_rows,
+            .external_family_rows = external_family_rows,
             .unclassified_core_rows = unclassified_rows,
             .opcode_family_rows = &family_rows,
             .completion_reason = completion_name,
@@ -332,6 +490,7 @@ fn streamForProfile(
             .output_sha256 = if (output_digest != null) &output_hex else null,
             .continuation_sha256 = if (continuation_digest != null) &continuation_hex else null,
         });
+        try observer.observe(profile, &configured_segment, previous_record);
 
         expected_cpu = exit_cpu;
         expected_memory = exit_memory.digest;
@@ -366,6 +525,7 @@ fn streamForProfile(
         .total_cycles = total_cycles,
         .total_core_trace_rows = total_core_rows,
         .total_external_trace_rows = total_external_rows,
+        .external_family_rows = total_external_family_rows,
         .total_unclassified_core_rows = total_unclassified_rows,
         .opcode_family_rows = &total_family_rows,
         .completion_reason = @tagName(final_completion.?),
@@ -383,7 +543,138 @@ fn streamForProfile(
     });
 }
 
-fn baseSegment(
+fn retirementObserver(observer: anytype) ?runner.RetirementObserverV1 {
+    if (comptime @hasDecl(@TypeOf(observer.*), "retirementObserver"))
+        return observer.retirementObserver();
+    return null;
+}
+
+fn DefaultStreamAdapter(comptime profile: execution_profile.ExecutionProfile) type {
+    return struct {
+        const SessionAuthority = void;
+
+        fn initSession(
+            _: SessionAuthority,
+            allocator: std.mem.Allocator,
+            elf_bytes: []const u8,
+            input: []const u8,
+            strict_completion: bool,
+            clock_frame: runner.SegmentClockFrame,
+            retirement_observer: ?runner.RetirementObserverV1,
+        ) !runner.ExecutionSession(profile) {
+            return runner.ExecutionSession(profile).init(allocator, elf_bytes, .{
+                .input = input,
+                .stop_on_halt_flag = strict_completion,
+                .strict_completion = strict_completion,
+                .trace_retention = .segment_owned,
+                .clock_frame = clock_frame,
+                .retirement_observer = retirement_observer,
+            });
+        }
+
+        fn baseSegment(configured: anytype) *result_mod.SegmentResult {
+            return defaultBaseSegment(profile, configured);
+        }
+
+        fn initializeExternalFamilyRows(
+            storage: *[maximum_external_families]ExternalFamilyRows,
+        ) []ExternalFamilyRows {
+            return initializeDefaultExternalFamilyRows(profile, storage);
+        }
+
+        fn segmentExternalFamilyRows(
+            configured: anytype,
+            external_rows: u64,
+            storage: *[maximum_external_families]ExternalFamilyRows,
+        ) ![]ExternalFamilyRows {
+            return defaultSegmentExternalFamilyRows(
+                profile,
+                configured,
+                external_rows,
+                storage,
+            );
+        }
+    };
+}
+
+const CombinedCandidateStreamAdapter = struct {
+    const SessionAuthority = candidate_capability.Capability;
+
+    fn initSession(
+        capability: SessionAuthority,
+        allocator: std.mem.Allocator,
+        elf_bytes: []const u8,
+        input: []const u8,
+        strict_completion: bool,
+        clock_frame: runner.SegmentClockFrame,
+        retirement_observer: ?runner.RetirementObserverV1,
+    ) !candidate_capability.CombinedSession {
+        return capability.initCombinedSession(allocator, elf_bytes, .{
+            .input = input,
+            .stop_on_halt_flag = strict_completion,
+            .strict_completion = strict_completion,
+            .trace_retention = .segment_owned,
+            .clock_frame = clock_frame,
+            .retirement_observer = retirement_observer,
+        });
+    }
+
+    fn baseSegment(configured: anytype) *result_mod.SegmentResult {
+        return &configured.ethereum.base;
+    }
+
+    fn initializeExternalFamilyRows(
+        storage: *[maximum_external_families]ExternalFamilyRows,
+    ) []ExternalFamilyRows {
+        storage[0] = .{
+            .family = execution_profile.keccakf_capability,
+            .calls = 0,
+            .execution_rows = 0,
+        };
+        storage[1] = .{
+            .family = execution_profile.secp256k1_recover_capability,
+            .calls = 0,
+            .execution_rows = 0,
+        };
+        storage[2] = .{
+            .family = bulk_registry.semantic_name,
+            .calls = 0,
+            .execution_rows = 0,
+        };
+        storage[3] = .{
+            .family = stack_swap.registry_request.semantic_name,
+            .calls = 0,
+            .execution_rows = 0,
+        };
+        return storage[0..maximum_external_families];
+    }
+
+    fn segmentExternalFamilyRows(
+        configured: anytype,
+        external_rows: u64,
+        storage: *[maximum_external_families]ExternalFamilyRows,
+    ) ![]ExternalFamilyRows {
+        const rows = initializeExternalFamilyRows(storage);
+        rows[0].calls = try u64FromUsize(configured.ethereum.keccakf_calls.len());
+        rows[0].execution_rows = try u64FromUsize(
+            configured.ethereum.keccakf_execution_rows.rows().len,
+        );
+        rows[1].calls = try u64FromUsize(
+            configured.ethereum.signer_recovery_calls.len(),
+        );
+        rows[1].execution_rows = try u64FromUsize(
+            configured.ethereum.signer_recovery_execution_rows.rows().len,
+        );
+        rows[2].calls = try u64FromUsize(configured.bulk_memcpy.records().len);
+        rows[2].execution_rows = try u64FromUsize(configured.bulk_memcpy.rows().len);
+        rows[3].calls = try u64FromUsize(configured.stack_swap.records().len);
+        rows[3].execution_rows = try u64FromUsize(configured.stack_swap.rows().len);
+        try validateExternalFamilyRows(rows, external_rows);
+        return rows;
+    }
+};
+
+fn defaultBaseSegment(
     comptime profile: execution_profile.ExecutionProfile,
     configured: anytype,
 ) *result_mod.SegmentResult {
@@ -391,17 +682,67 @@ fn baseSegment(
     return &configured.base;
 }
 
-fn requireExtensionInventory(
+fn initializeDefaultExternalFamilyRows(
+    comptime profile: execution_profile.ExecutionProfile,
+    storage: *[maximum_external_families]ExternalFamilyRows,
+) []ExternalFamilyRows {
+    if (comptime profile == .rv32im_zkvm_v1) return storage[0..0];
+    storage[0] = .{
+        .family = if (comptime profile == .rv32im_zkvm_poseidon2_v1)
+            execution_profile.poseidon2_capability
+        else
+            execution_profile.keccakf_capability,
+        .calls = 0,
+        .execution_rows = 0,
+    };
+    if (comptime profile != .rv32im_zkvm_ethereum_v1) return storage[0..1];
+    storage[1] = .{
+        .family = execution_profile.secp256k1_recover_capability,
+        .calls = 0,
+        .execution_rows = 0,
+    };
+    return storage[0..2];
+}
+
+fn defaultSegmentExternalFamilyRows(
     comptime profile: execution_profile.ExecutionProfile,
     configured: anytype,
     external_rows: u64,
-) !void {
+    storage: *[maximum_external_families]ExternalFamilyRows,
+) ![]ExternalFamilyRows {
+    const rows = initializeDefaultExternalFamilyRows(profile, storage);
     if (comptime profile == .rv32im_zkvm_v1) {
         if (external_rows != 0) return error.ExtensionRowInventoryMismatch;
-        return;
+        return rows;
+    } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
+        rows[0].calls = try u64FromUsize(configured.keccakf_calls.len());
+        rows[0].execution_rows = try u64FromUsize(configured.keccakf_execution_rows.rows().len);
+        rows[1].calls = try u64FromUsize(configured.signer_recovery_calls.len());
+        rows[1].execution_rows = try u64FromUsize(
+            configured.signer_recovery_execution_rows.rows().len,
+        );
+    } else {
+        rows[0].calls = try u64FromUsize(configured.calls.len());
+        rows[0].execution_rows = try u64FromUsize(configured.execution_rows.rows().len);
     }
-    const call_count = try u64FromUsize(configured.calls.len());
-    const execution_row_count = try u64FromUsize(configured.execution_rows.rows().len);
+    try validateExternalFamilyRows(rows, external_rows);
+    return rows;
+}
+
+fn validateExternalFamilyRows(
+    rows: []const ExternalFamilyRows,
+    external_rows: u64,
+) !void {
+    var call_count: u64 = 0;
+    var execution_row_count: u64 = 0;
+    for (rows) |family| {
+        if (family.calls != family.execution_rows)
+            return error.ExtensionRowInventoryMismatch;
+        call_count = std.math.add(u64, call_count, family.calls) catch
+            return error.ExecutionCycleCountOverflow;
+        execution_row_count = std.math.add(u64, execution_row_count, family.execution_rows) catch
+            return error.ExecutionCycleCountOverflow;
+    }
     if (call_count != external_rows or execution_row_count != external_rows)
         return error.ExtensionRowInventoryMismatch;
 }
@@ -542,7 +883,7 @@ fn requireDigest(expected: Digest, actual: Digest) !void {
     if (!std.mem.eql(u8, &expected, &actual)) return error.SegmentBoundaryMismatch;
 }
 
-test "segmented manifest is deterministic, chained, and exposes V2 claim boundary" {
+test "segmented manifest is deterministic, chained, and exposes typed inventory" {
     const elf = runner.trace_dump.buildTestElf(5, .{
         0x0010_0093, // ADDI x1, x0, 1.
         0x0010_8093, // ADDI x1, x1, 1.
@@ -612,5 +953,23 @@ test "segmented manifest selects Keccak profile and closes external rows" {
         u8,
         output.written(),
         "\"total_external_trace_rows\":1",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"family\":\"stwo.keccakf-1600.permute-in-place@1\",\"calls\":1,\"execution_rows\":1",
+    ) != null);
+}
+
+test "Ethereum manifest separates Keccak and signer-recovery rows" {
+    const test_elf = @import("../runner/guest_precompile/test_elf.zig");
+    const elf = test_elf.buildEthereum();
+    var output = std.Io.Writer.Allocating.init(std.testing.allocator);
+    defer output.deinit();
+    try stream(std.testing.allocator, &elf, &.{}, 16, false, .leaf_local, &output.writer);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        output.written(),
+        "\"external_family_rows\":[{\"family\":\"stwo.keccakf-1600.permute-in-place@1\",\"calls\":1,\"execution_rows\":1},{\"family\":\"stwo.secp256k1.recover-signer@1\",\"calls\":1,\"execution_rows\":1}]",
     ) != null);
 }

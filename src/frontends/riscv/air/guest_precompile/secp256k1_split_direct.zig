@@ -143,8 +143,8 @@ pub fn evaluateDirect(
 pub fn rowPairs(
     comptime S: type,
     main: *const [Layout.main_columns]S,
-    relations: *const relations_mod.Relations,
-) [batch_count]logup.RowPair {
+    relations: anytype,
+) [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     comptime requireSupportedField(S);
     const active = main[Layout.is_active];
     const negative_1 = main[Layout.negative_1];
@@ -159,7 +159,7 @@ pub fn rowPairs(
     const zero: [field.limb_count]S = @splat(S.zero());
     const lambda = constantValue(S, affine.endomorphism_lambda);
 
-    var events: [event_count]logup.RowPair = undefined;
+    var events: [event_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
     events[0] = productRequest(S, active, &magnitude_2, &lambda, &lambda_product, relations);
     events[1] = linearRequest(S, negative_1, .subtract, &zero, &magnitude_1, &signed_1, relations);
     events[2] = linearRequest(S, negative_2, .subtract, &zero, &lambda_product, &signed_2, relations);
@@ -177,9 +177,12 @@ pub fn rowPairs(
         active,
         relations_mod.combineSplit(S, relations.split, split_tuple),
     );
-    events[5] = logup.RowPair.single(QM31.zero(), QM31.one());
+    events[5] = logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+        relations_mod.InteractionScalar(S).zero(),
+        relations_mod.InteractionScalar(S).one(),
+    );
 
-    var pairs: [batch_count]logup.RowPair = undefined;
+    var pairs: [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
     for (&pairs, 0..) |*pair, index| pair.* = .{
         .n1 = events[2 * index].n1,
         .d1 = events[2 * index].d1,
@@ -204,8 +207,8 @@ fn productRequest(
     lhs: *const [field.limb_count]S,
     rhs: *const [field.limb_count]S,
     result: *const [field.limb_count]S,
-    relations: *const relations_mod.Relations,
-) logup.RowPair {
+    relations: anytype,
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     const tuple = relations_mod.productTuple(
         S,
         scalar(S, @intFromEnum(affine.ModulusKind.scalar)),
@@ -223,8 +226,8 @@ fn linearRequest(
     lhs: *const [field.limb_count]S,
     rhs: *const [field.limb_count]S,
     result: *const [field.limb_count]S,
-    relations: *const relations_mod.Relations,
-) logup.RowPair {
+    relations: anytype,
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     const tuple = relations_mod.linearTuple(
         S,
         scalar(S, @intFromEnum(kind)),
@@ -282,25 +285,40 @@ fn constantValue(comptime S: type, value: u256) [field.limb_count]S {
     return result;
 }
 
-fn request(comptime S: type, coefficient: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, coefficient).neg(), denominator);
+fn request(
+    comptime S: type,
+    coefficient: S,
+    denominator: relations_mod.InteractionScalar(S),
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+    return logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+        lift(S, coefficient).neg(),
+        denominator,
+    );
 }
 
-fn emit(comptime S: type, coefficient: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, coefficient), denominator);
+fn emit(
+    comptime S: type,
+    coefficient: S,
+    denominator: relations_mod.InteractionScalar(S),
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+    return logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+        lift(S, coefficient),
+        denominator,
+    );
 }
 
-fn lift(comptime S: type, value: S) QM31 {
+fn lift(comptime S: type, value: S) relations_mod.InteractionScalar(S) {
     if (S == M31) return QM31.fromBase(value);
     if (S == QM31) return value;
-    @compileError("secp256k1 split AIR supports only M31 and QM31");
+    return value;
 }
 
 fn scalar(comptime S: type, value: anytype) S {
     const canonical: u64 = @intCast(value);
     if (S == M31) return M31.fromU64(canonical);
     if (S == QM31) return QM31.fromBase(M31.fromU64(canonical));
-    @compileError("secp256k1 split AIR supports only M31 and QM31");
+    if (@hasDecl(S, "fromBase")) return S.fromBase(M31.fromU64(canonical));
+    @compileError("secp256k1 split AIR requires a base-field lift");
 }
 
 fn writeValue(row: *[Layout.main_columns]M31, offset: usize, value: affine.Value) void {
@@ -308,6 +326,6 @@ fn writeValue(row: *[Layout.main_columns]M31, offset: usize, value: affine.Value
 }
 
 fn requireSupportedField(comptime S: type) void {
-    if (S != M31 and S != QM31)
-        @compileError("secp256k1 split AIR supports only M31 and QM31");
+    if (S != M31 and S != QM31 and !@hasDecl(S, "fromBase"))
+        @compileError("secp256k1 split AIR requires a base-field lift");
 }

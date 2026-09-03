@@ -12,7 +12,25 @@ test "public data V2 authenticates canonical metadata and mixes one distinct fra
     defer std.testing.allocator.free(words);
 
     const data = try public_data_v2.PublicDataV2.authenticate(words);
+    const view = try segment_v2.authenticateCanonicalWire(words);
+    const reused = try public_data_v2.PublicDataV2.authenticateReusingRoots(
+        words,
+        .{
+            .entry = .{
+                .id = view.statement.entry_snapshot_id,
+                .count = view.statement.entry_snapshot_count,
+                .root = view.statement.entry_continuation_root,
+            },
+            .exit = .{
+                .id = view.statement.exit_snapshot_id,
+                .count = view.statement.exit_snapshot_count,
+                .root = view.statement.exit_continuation_root,
+            },
+        },
+    );
     const metadata = try data.metadata();
+    try reused.validate();
+    try std.testing.expectEqual(metadata, try reused.metadata());
     try std.testing.expectEqual(@as(u32, 0), metadata.segment_index);
     try std.testing.expectEqual(@as(u32, 2), metadata.segment_count);
     try std.testing.expectEqual(@as(u32, 0), metadata.global_cycle_start);

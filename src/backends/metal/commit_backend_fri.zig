@@ -4,6 +4,8 @@ const std = @import("std");
 const work_profile = @import("stwo_prover_api").work_profile;
 const commit_policy = @import("commit_policy.zig");
 const fold_inverses = @import("runtime/fold_inverses.zig");
+const fold_parity = @import("fri_fold_parity.zig");
+const hash_domain = @import("hash_domain.zig");
 const shared_runtime = @import("shared_runtime.zig");
 const telemetry = @import("telemetry.zig");
 
@@ -64,14 +66,23 @@ pub fn Ops(comptime Backend: type) type {
             workspace: *@import("stwo_core").fri.FoldCircleWorkspace,
             ledger: ?*work_profile.FriFoldExecutionLedger,
         ) !void {
+            const M31 = @import("stwo_core").fields.m31.M31;
             const use_resident_inverse = dst.len >= 1 << 13;
+            const check_parity = fold_parity.enabled();
             var inverse_words: ?[]const u32 = null;
-            if (!use_resident_inverse) {
+            var parity_inverses: ?[]const M31 = null;
+            if (!use_resident_inverse or check_parity) {
                 try workspace.ensureCapacity(allocator, dst.len);
                 const py = workspace.py_values[0..dst.len];
                 const inverse_y = workspace.inv_py_values[0..dst.len];
                 try fold_inverses.prepare(py, inverse_y, src_domain.half_coset, .y);
-                inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_y));
+                if (!use_resident_inverse) {
+                    inverse_words = std.mem.bytesAsSlice(
+                        u32,
+                        std.mem.sliceAsBytes(inverse_y),
+                    );
+                }
+                if (check_parity) parity_inverses = inverse_y;
             }
             const alpha_coords = alpha.toM31Array();
             const alpha_words = [4]u32{ alpha_coords[0].v, alpha_coords[1].v, alpha_coords[2].v, alpha_coords[3].v };
@@ -104,6 +115,16 @@ pub fn Ops(comptime Backend: type) type {
             );
             telemetry.record(.metal_fri_circle_fold_dispatch);
             std.log.debug("Metal FRI circle fold: {d:.3}ms", .{gpu_ms});
+            if (check_parity) {
+                const receipt = try fold_parity.validateCircle(
+                    src_columns,
+                    src_domain,
+                    parity_inverses.?,
+                    alpha,
+                    dst,
+                );
+                receipt.print();
+            }
             if (ledger) |active| active.observe(.{
                 .kind = .circle_to_line,
                 .initial_count = src_columns[0].len,
@@ -198,6 +219,16 @@ pub fn Ops(comptime Backend: type) type {
                 );
                 telemetry.record(.metal_fri_line_fold_dispatch);
                 std.log.debug("Metal FRI line fold: {d:.3}ms", .{gpu_ms});
+                if (fold_parity.enabled()) {
+                    const receipt = try fold_parity.validateLine(
+                        current.values,
+                        current.domain(),
+                        inverse_x,
+                        current_alpha,
+                        next.values,
+                    );
+                    receipt.print();
+                }
                 if (owns_current) current.deinit(allocator);
                 current = next;
                 owns_current = true;
@@ -270,6 +301,7 @@ pub fn Ops(comptime Backend: type) type {
         ) !@import("stwo_backend_contracts").fri_ops.FoldLineAndCommitResult(MerkleTree(H)) {
             const M31 = @import("stwo_core").fields.m31.M31;
             const secure_column = @import("stwo_prover_engine").secure_column;
+            const domain = comptime hash_domain.parameters(H);
             if (n_folds == 0 or n_folds >= @bitSizeOf(usize) or
                 evaluation.len() >> @intCast(n_folds) == 0)
             {
@@ -278,7 +310,9 @@ pub fn Ops(comptime Backend: type) type {
 
             const final_count = evaluation.len() >> @intCast(n_folds);
             const source_storage = evaluation.resident_storage;
-            if (source_storage == null or !commit_policy.friFoldCommitUsesResidentMerkle(final_count, n_folds)) {
+            if (source_storage == null or domain == null or
+                !commit_policy.friFoldCommitUsesResidentMerkle(final_count, n_folds))
+            {
                 const folded = try foldLineEvaluationNInternal(
                     allocator,
                     evaluation,
@@ -352,16 +386,17 @@ pub fn Ops(comptime Backend: type) type {
             const inverse_words = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(inverse_values));
             var lease = try shared_runtime.acquire();
             defer lease.deinit();
-            const result = try lease.runtime.foldFriLineAndCommit(
+            const result = try lease.runtime.foldFriLineAndCommitForHash(
                 source_storage.?.handle,
                 @intCast(evaluation.len()),
                 inverse_words,
                 alphas,
                 destination_storage.handle,
                 coordinate_storage.handle,
-                H.leafSeed(),
-                H.nodeSeed(),
-                H.domainPrefixBytes(),
+                domain.?.leaf_seed,
+                domain.?.node_seed,
+                domain.?.domain_prefix_bytes,
+                @intFromEnum(domain.?.family),
             );
             const tree = try MerkleTree(H).fromSharedRuntime(result.tree);
             telemetry.record(.metal_fri_fold_commit_epoch);
@@ -458,6 +493,9 @@ pub fn Ops(comptime Backend: type) type {
         ) !?FriLineCascadeResult(H) {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
             const M31 = @import("stwo_core").fields.m31.M31;
+            const maybe_domain = comptime hash_domain.blake2sParameters(H);
+            if (comptime maybe_domain == null) return null;
+            const domain = maybe_domain.?;
             if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
             if (fold_step != 1 or last_layer_size == 0 or
                 evaluation.len() <= last_layer_size or evaluation.resident_storage == null or
@@ -541,9 +579,9 @@ pub fn Ops(comptime Backend: type) type {
                     @intCast(initial_coset.step_size.v),
                     coordinate_handles,
                     terminal_storage.handle,
-                    H.leafSeed(),
-                    H.nodeSeed(),
-                    H.domainPrefixBytes(),
+                    domain.leaf_seed,
+                    domain.node_seed,
+                    domain.domain_prefix_bytes,
                     &channel_state,
                 )
             else
@@ -558,9 +596,9 @@ pub fn Ops(comptime Backend: type) type {
                     @intCast(initial_coset.step_size.v),
                     coordinate_handles,
                     terminal_storage.handle,
-                    H.leafSeed(),
-                    H.nodeSeed(),
-                    H.domainPrefixBytes(),
+                    domain.leaf_seed,
+                    domain.node_seed,
+                    domain.domain_prefix_bytes,
                     &channel_state,
                 );
             defer allocator.free(runtime_result.trees);

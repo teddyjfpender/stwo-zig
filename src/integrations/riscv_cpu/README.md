@@ -62,6 +62,7 @@ defer statement.deinit(allocator);
 | `verifyRiscV` | Verify proof, statement, and interaction claim |
 | `proveAndVerifyElf` | Execute, prove, and verify an ELF |
 | `proveEthereumBlock` | Host-bound Ethereum block proving helper |
+| `recursive_node_artifact_store_v1` | Project recursive-node artifacts into the shared Zig CAS and canonical stage keys/manifests |
 
 The recursive integration surface is deliberately explicit. Binary-parent
 construction and publication are exported as
@@ -110,6 +111,7 @@ and output-transaction commit.
 ## Dependencies
 
 - `stwo_riscv_frontend`
+- `stwo_artifact_store`
 - `stwo_core`
 - `stwo_cpu_backend`
 - `stwo_prover_api`

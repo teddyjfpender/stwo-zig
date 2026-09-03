@@ -21,7 +21,7 @@ void stwo_zig_metal_runtime_destroy(void *runtime_ptr) {
     }
 }
 
-void *stwo_zig_metal_merkle_commit(
+void *stwo_zig_metal_merkle_commit_v2(
     void *runtime_ptr,
     const uint32_t *const *columns,
     const size_t *column_lengths,
@@ -34,13 +34,17 @@ void *stwo_zig_metal_merkle_commit(
     const uint32_t *leaf_seed,
     const uint32_t *node_seed,
     uint32_t domain_prefix_bytes,
+    uint32_t hash_family,
     char *error_message,
     size_t error_message_len
 ) {
     @autoreleasepool {
-        if (runtime_ptr == NULL || columns == NULL || column_lengths == NULL || column_count == 0 ||
+        if (runtime_ptr == NULL || columns == NULL || column_lengths == NULL ||
+            column_log_sizes == NULL || leaf_seed == NULL || node_seed == NULL ||
+            column_count == 0 ||
             lifting_log_size >= 31u ||
-            (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u)) {
+            (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
+            !stwo_zig_valid_commitment_hash_family_v1(hash_family)) {
             write_error(error_message, error_message_len, @"Invalid Metal Merkle arguments");
             return NULL;
         }
@@ -52,13 +56,28 @@ void *stwo_zig_metal_merkle_commit(
                 write_error(error_message, error_message_len, @"Invalid Metal column shape");
                 return NULL;
             }
+            if (column_lengths[column] > SIZE_MAX - flat_len) {
+                write_error(error_message, error_message_len,
+                            @"Metal column arena exceeds host address space");
+                return NULL;
+            }
             flat_len += column_lengths[column];
+        }
+        if (flat_len > SIZE_MAX / sizeof(uint32_t)) {
+            write_error(error_message, error_message_len,
+                        @"Metal column arena byte size exceeds host address space");
+            return NULL;
         }
         NSUInteger flat_bytes = flat_len * sizeof(uint32_t);
         bool contiguous_columns = true;
         size_t contiguous_words = column_lengths[0];
         for (uint32_t column = 1u; column < column_count; ++column) {
             contiguous_columns &= columns[column] == columns[0] + contiguous_words;
+            if (column_lengths[column] > SIZE_MAX - contiguous_words) {
+                write_error(error_message, error_message_len,
+                            @"Metal contiguous column span exceeds host address space");
+                return NULL;
+            }
             contiguous_words += column_lengths[column];
         }
         size_t page_size = (size_t)getpagesize();
@@ -112,8 +131,15 @@ void *stwo_zig_metal_merkle_commit(
         if (alias_backing) {
             alias_backing_begin = column_min - (column_min % page_size);
             uintptr_t alias_backing_end = column_max;
-            if (alias_backing_end % page_size != 0u)
+            if (alias_backing_end % page_size != 0u) {
+                if (page_size - (alias_backing_end % page_size) >
+                    UINTPTR_MAX - alias_backing_end) {
+                    write_error(error_message, error_message_len,
+                                @"Metal backing page span exceeds host address space");
+                    return NULL;
+                }
                 alias_backing_end += page_size - (alias_backing_end % page_size);
+            }
             alias_backing_bytes = alias_backing_end - alias_backing_begin;
         }
         bool alias_contiguous = flat_bytes >= (1u * 1024u * 1024u) &&
@@ -128,7 +154,22 @@ void *stwo_zig_metal_merkle_commit(
                                            deallocator:nil]
             : [runtime.device newBufferWithLength:flat_bytes
                                            options:gpu_upload ? MTLResourceStorageModePrivate : MTLResourceStorageModeShared];
-        id<MTLBuffer> offsets = [runtime.device newBufferWithLength:column_count * sizeof(uint32_t)
+        // The direct Poseidon Tree1 commitment can span more than 2^32 M31
+        // words even though each individual column remains below log 31.  Its
+        // dedicated leaf kernel consumes u64 offsets.  Compact resident
+        // commitments retain the established u32 ABI and Blake direct
+        // commitments continue to reject an unaddressable layout.
+        bool wide_column_offsets =
+            hash_family == StwoZigCommitmentHashFamilyPoseidon2M31V1;
+        size_t offset_entry_bytes = wide_column_offsets
+            ? sizeof(uint64_t) : sizeof(uint32_t);
+        if ((size_t)column_count > SIZE_MAX / offset_entry_bytes) {
+            write_error(error_message, error_message_len,
+                        @"Metal column-offset table exceeds host address space");
+            return NULL;
+        }
+        id<MTLBuffer> offsets = [runtime.device newBufferWithLength:
+            (NSUInteger)column_count * offset_entry_bytes
                                                             options:MTLResourceStorageModeShared];
         id<MTLBuffer> log_sizes = [runtime.device newBufferWithBytes:column_log_sizes
                                                               length:column_count * sizeof(uint32_t)
@@ -141,25 +182,42 @@ void *stwo_zig_metal_merkle_commit(
             write_error(error_message, error_message_len, @"Metal Merkle allocation failed");
             return NULL;
         }
-        uint32_t *offset_values = offsets.contents;
+        uint32_t *narrow_offset_values = wide_column_offsets ? NULL : offsets.contents;
+        uint64_t *wide_offset_values = wide_column_offsets ? offsets.contents : NULL;
         uint32_t *staging_values = gpu_upload ? NULL : staging.contents;
         size_t cursor = 0;
         for (uint32_t column = 0; column < column_count; ++column) {
-            if (cursor > UINT32_MAX) {
-                write_error(error_message, error_message_len, @"Metal column arena exceeds u32 offsets");
-                return NULL;
-            }
             size_t column_offset = alias_backing
                 ? ((uintptr_t)columns[column] - alias_backing_begin) / sizeof(uint32_t)
                 : cursor;
-            if (column_offset > UINT32_MAX) {
-                write_error(error_message, error_message_len, @"Metal column backing exceeds u32 offsets");
+            size_t column_length = column_lengths[column];
+            if (column_length == 0u || column_offset > SIZE_MAX - (column_length - 1u)) {
+                write_error(error_message, error_message_len,
+                            @"Metal column span exceeds host address space");
                 return NULL;
             }
-            offset_values[column] = (uint32_t)column_offset;
+            bool column_fits_u32 = column_offset <= UINT32_MAX &&
+                column_length - 1u <= UINT32_MAX - column_offset;
+            if (wide_column_offsets) {
+                wide_offset_values[column] = (uint64_t)column_offset;
+            } else {
+                if (!column_fits_u32) {
+                    write_error(error_message, error_message_len,
+                                alias_backing
+                                    ? @"Metal column backing exceeds u32 offsets"
+                                    : @"Metal column arena exceeds u32 offsets");
+                    return NULL;
+                }
+                narrow_offset_values[column] = (uint32_t)column_offset;
+            }
             if (!gpu_upload && !alias_shared)
-                memcpy(staging_values + cursor, columns[column], column_lengths[column] * sizeof(uint32_t));
-            cursor += column_lengths[column];
+                memcpy(staging_values + cursor, columns[column], column_length * sizeof(uint32_t));
+            if (column_length > SIZE_MAX - cursor) {
+                write_error(error_message, error_message_len,
+                            @"Metal column cursor exceeds host address space");
+                return NULL;
+            }
+            cursor += column_length;
         }
 
         uint32_t leaf_count = 1u << lifting_log_size;
@@ -209,9 +267,9 @@ void *stwo_zig_metal_merkle_commit(
                 destination_offsets[level] = layer_word_offsets[level + 1u];
                 parent_counts[level] = leaf_count >> (level + 1u);
             }
-            void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare(
+            void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare_v2(
                 runtime_ptr, child_offsets, destination_offsets, parent_counts,
-                lifting_log_size, node_seed, domain_prefix_bytes,
+                lifting_log_size, node_seed, domain_prefix_bytes, hash_family,
                 error_message, error_message_len);
             if (parent_plan_ptr != NULL)
                 parent_plan = (__bridge_transfer StwoZigMerkleParentChain *)parent_plan_ptr;
@@ -258,8 +316,14 @@ void *stwo_zig_metal_merkle_commit(
             }
             [upload endEncoding];
         }
+        id<MTLComputePipelineState> leaves_pipeline =
+            stwo_zig_commitment_direct_leaves_pipeline(runtime, hash_family);
+        if (leaves_pipeline == nil) {
+            write_error(error_message, error_message_len, @"Unsupported Metal commitment hash family");
+            return NULL;
+        }
         id<MTLComputeCommandEncoder> leaf_encoder = [command computeCommandEncoder];
-        [leaf_encoder setComputePipelineState:runtime.leaves];
+        [leaf_encoder setComputePipelineState:leaves_pipeline];
         [leaf_encoder setBuffer:staging offset:0 atIndex:0];
         [leaf_encoder setBuffer:offsets offset:0 atIndex:1];
         [leaf_encoder setBuffer:log_sizes offset:0 atIndex:2];
@@ -269,8 +333,8 @@ void *stwo_zig_metal_merkle_commit(
         [leaf_encoder setBytes:&lifting_log_size length:sizeof(lifting_log_size) atIndex:5];
         [leaf_encoder setBuffer:leaf_seed_buffer offset:0 atIndex:6];
         [leaf_encoder setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:7];
-        NSUInteger leaf_width = MIN(runtime.leaves.maxTotalThreadsPerThreadgroup,
-                                    runtime.leaves.threadExecutionWidth * 8u);
+        NSUInteger leaf_width = MIN(leaves_pipeline.maxTotalThreadsPerThreadgroup,
+                                    leaves_pipeline.threadExecutionWidth * 8u);
         [leaf_encoder dispatchThreads:MTLSizeMake(leaf_count, 1, 1)
                 threadsPerThreadgroup:MTLSizeMake(leaf_width, 1, 1)];
 
@@ -319,8 +383,8 @@ void *stwo_zig_metal_merkle_commit(
             [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uintptr_t)];
         NSMutableData *resident_counts =
             [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(size_t)];
-        NSData *resident_offsets = [NSData dataWithBytes:offset_values
-            length:(NSUInteger)column_count * sizeof(uint32_t)];
+        NSMutableData *resident_offsets =
+            [NSMutableData dataWithLength:(NSUInteger)column_count * offset_entry_bytes];
         if (resident_begins == nil || resident_counts == nil || resident_offsets == nil) {
             write_error(error_message, error_message_len,
                         @"Metal resident column map allocation failed");
@@ -328,16 +392,48 @@ void *stwo_zig_metal_merkle_commit(
         }
         uintptr_t *begin_values = resident_begins.mutableBytes;
         size_t *count_values = resident_counts.mutableBytes;
+        uint32_t *resident_narrow_offsets = wide_column_offsets
+            ? NULL : resident_offsets.mutableBytes;
+        uint64_t *resident_wide_offsets = wide_column_offsets
+            ? resident_offsets.mutableBytes : NULL;
         for (uint32_t column = 0u; column < column_count; ++column) {
             begin_values[column] = (uintptr_t)columns[column];
             count_values[column] = column_lengths[column];
+            if (wide_column_offsets)
+                resident_wide_offsets[column] = wide_offset_values[column];
+            else
+                resident_narrow_offsets[column] = narrow_offset_values[column];
         }
         tree.residentColumnBuffers = @[ staging ];
         tree.residentColumnHostBegins = resident_begins;
         tree.residentColumnWordCounts = resident_counts;
         tree.residentColumnWordOffsets = resident_offsets;
+        tree.residentColumnOffsetWordBytes = (uint32_t)offset_entry_bytes;
         return (__bridge_retained void *)tree;
     }
+}
+
+void *stwo_zig_metal_merkle_commit(
+    void *runtime_ptr,
+    const uint32_t *const *columns,
+    const size_t *column_lengths,
+    const uint32_t *column_log_sizes,
+    const uint32_t *const *backing_words,
+    const size_t *backing_word_counts,
+    uint32_t backing_count,
+    uint32_t column_count,
+    uint32_t lifting_log_size,
+    const uint32_t *leaf_seed,
+    const uint32_t *node_seed,
+    uint32_t domain_prefix_bytes,
+    char *error_message,
+    size_t error_message_len
+) {
+    return stwo_zig_metal_merkle_commit_v2(
+        runtime_ptr, columns, column_lengths, column_log_sizes,
+        backing_words, backing_word_counts, backing_count, column_count,
+        lifting_log_size, leaf_seed, node_seed, domain_prefix_bytes,
+        StwoZigCommitmentHashFamilyBlake2sV1, error_message, error_message_len);
 }
 
 void stwo_zig_metal_tree_destroy(void *tree) {
@@ -610,10 +706,14 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
         if (tree.residentColumnBuffers == nil || tree.residentColumnBuffers.count == 0u ||
             tree.residentColumnHostBegins == nil || tree.residentColumnWordCounts == nil ||
             tree.residentColumnWordOffsets == nil) return 2;
+        uint32_t offset_word_bytes = tree.residentColumnOffsetWordBytes;
         if (tree.residentColumnBuffers.count != 1u || tree.logSize >= 31u ||
+            (offset_word_bytes != sizeof(uint32_t) &&
+             offset_word_bytes != sizeof(uint64_t)) ||
             tree.residentColumnHostBegins.length != (NSUInteger)column_count * sizeof(uintptr_t) ||
             tree.residentColumnWordCounts.length != (NSUInteger)column_count * sizeof(size_t) ||
-            tree.residentColumnWordOffsets.length != (NSUInteger)column_count * sizeof(uint32_t)) {
+            tree.residentColumnWordOffsets.length !=
+                (NSUInteger)column_count * offset_word_bytes) {
             write_error(error_message, error_message_len,
                         @"Metal resident queried-value map shape mismatch");
             return 0;
@@ -627,13 +727,16 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
 
         const uintptr_t *resident_begins = tree.residentColumnHostBegins.bytes;
         const size_t *resident_counts = tree.residentColumnWordCounts.bytes;
-        const uint32_t *resident_offsets = tree.residentColumnWordOffsets.bytes;
+        const uint32_t *resident_narrow_offsets = offset_word_bytes == sizeof(uint32_t)
+            ? tree.residentColumnWordOffsets.bytes : NULL;
+        const uint64_t *resident_wide_offsets = offset_word_bytes == sizeof(uint64_t)
+            ? tree.residentColumnWordOffsets.bytes : NULL;
         id<MTLBuffer> source = tree.residentColumnBuffers[0];
         size_t source_words = source.length / sizeof(uint32_t);
         NSMutableData *log_data =
             [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint32_t)];
         NSMutableData *offset_data =
-            [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint32_t)];
+            [NSMutableData dataWithLength:(NSUInteger)column_count * offset_word_bytes];
         NSMutableData *matched_data =
             [NSMutableData dataWithLength:(NSUInteger)column_count * sizeof(uint8_t)];
         if (log_data == nil || offset_data == nil || matched_data == nil) {
@@ -642,8 +745,12 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
             return 0;
         }
         uint32_t *logs = log_data.mutableBytes;
-        uint32_t *offsets = offset_data.mutableBytes;
+        uint32_t *narrow_offsets = offset_word_bytes == sizeof(uint32_t)
+            ? offset_data.mutableBytes : NULL;
+        uint64_t *wide_offsets = offset_word_bytes == sizeof(uint64_t)
+            ? offset_data.mutableBytes : NULL;
         uint8_t *matched = matched_data.mutableBytes;
+        NSArray<StwoZigMetalTree *> *single_tree = @[ tree ];
         for (uint32_t column = 0u; column < column_count; ++column) {
             size_t words = column_lengths[column];
             uint32_t resident = column_count;
@@ -655,16 +762,33 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
                     break;
                 }
             }
+            uint64_t resident_offset = resident == column_count ? 0u :
+                (offset_word_bytes == sizeof(uint64_t)
+                    ? resident_wide_offsets[resident]
+                    : (uint64_t)resident_narrow_offsets[resident]);
             if (resident == column_count || words < 2u ||
                 (words & (words - 1u)) != 0u ||
-                (size_t)resident_offsets[resident] > source_words ||
-                words > source_words - (size_t)resident_offsets[resident]) {
+                resident_offset > (uint64_t)source_words ||
+                (uint64_t)words > (uint64_t)source_words - resident_offset) {
                 write_error(error_message, error_message_len,
                             @"Metal queried-value columns do not match the committed tree");
                 return 0;
             }
+            StwoZigResidentColumnBinding binding = {0};
+            if (!stwo_zig_tree_resident_column(
+                    single_tree, columns[column], words, &binding) ||
+                binding.buffer != source ||
+                binding.wordOffset != (size_t)resident_offset ||
+                binding.availableWords != words) {
+                write_error(error_message, error_message_len,
+                            @"Metal queried-value residency resolver disagrees with the committed tree");
+                return 0;
+            }
             matched[resident] = 1u;
-            offsets[column] = resident_offsets[resident];
+            if (offset_word_bytes == sizeof(uint64_t))
+                wide_offsets[column] = resident_offset;
+            else
+                narrow_offsets[column] = (uint32_t)resident_offset;
             uint32_t log_size = (uint32_t)__builtin_ctzll((unsigned long long)words);
             if (log_size > tree.logSize) {
                 write_error(error_message, error_message_len,
@@ -683,8 +807,8 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
         }
 
         id<MTLBuffer> offsets_buffer = [runtime.device
-            newBufferWithBytes:offsets
-            length:(NSUInteger)column_count * sizeof(uint32_t)
+            newBufferWithBytes:offset_data.bytes
+            length:(NSUInteger)column_count * offset_word_bytes
             options:MTLResourceStorageModeShared];
         id<MTLBuffer> logs_buffer = [runtime.device
             newBufferWithBytes:logs
@@ -705,7 +829,9 @@ int32_t stwo_zig_metal_tree_copy_queried_values(
                         @"Metal queried-value command allocation failed");
             return 0;
         }
-        [encoder setComputePipelineState:runtime.decommitGatherTreeValuesResident];
+        [encoder setComputePipelineState:offset_word_bytes == sizeof(uint64_t)
+            ? runtime.decommitGatherTreeValuesResidentWide
+            : runtime.decommitGatherTreeValuesResident];
         [encoder setBuffer:source offset:0u atIndex:0];
         [encoder setBuffer:offsets_buffer offset:0u atIndex:1];
         [encoder setBuffer:logs_buffer offset:0u atIndex:2];

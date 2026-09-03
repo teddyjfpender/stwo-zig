@@ -26,6 +26,7 @@ test {
     _ = @import("recursion/air/direct_constraint_program.zig");
     _ = @import("recursion/air/control_slice_witness.zig");
     _ = @import("recursion/air/control_slice_test.zig");
+    _ = @import("recursion/air/control_slice_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/relation_effect.zig");
     _ = @import("recursion/air/relation_interaction.zig");
     _ = @import("recursion/air/query_bits.zig");

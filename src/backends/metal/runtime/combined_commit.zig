@@ -4,6 +4,7 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const prover = @import("stwo_prover_engine");
 const metal_merkle = @import("../merkle_tree.zig");
+const hash_domain = @import("../hash_domain.zig");
 const precommitted_work = @import("precommitted_work.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
@@ -113,6 +114,9 @@ fn prepareAndCommitOwnedImpl(
     source: ColumnSource,
     work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
+    const maybe_domain = comptime hash_domain.parameters(H);
+    if (comptime maybe_domain == null) return null;
+    const domain = maybe_domain.?;
     const supported_column_count = owned_columns.len == composition_column_count or
         (owned_columns.len >= min_columns and owned_columns.len <= max_columns);
     if (retention_policy != .always or log_blowup_factor != 1 or
@@ -198,7 +202,7 @@ fn prepareAndCommitOwnedImpl(
             try precommitted_work.Audit.beginOwned(work_recorder)
         else {};
     defer if (capture_work) work_audit.deinit();
-    const result = lease.runtime.transformCircleLdeAndCommitPrepared(
+    const result = lease.runtime.transformCircleLdeAndCommitPreparedForHash(
         allocator,
         source_values,
         base_values,
@@ -210,9 +214,10 @@ fn prepareAndCommitOwnedImpl(
         extended_twiddles.twiddles,
         base_log_size,
         extended_log_size,
-        H.leafSeed(),
-        H.nodeSeed(),
-        H.domainPrefixBytes(),
+        domain.leaf_seed,
+        domain.node_seed,
+        domain.domain_prefix_bytes,
+        @intFromEnum(domain.family),
         deferred_recipe,
         false,
     ) catch |err| if (reuse_source) return err else return null;
@@ -340,6 +345,9 @@ fn prepareAndCommitPolysImpl(
     twiddle_source: anytype,
     work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?PreparedCommitment(H) {
+    const maybe_domain = comptime hash_domain.parameters(H);
+    if (comptime maybe_domain == null) return null;
+    const domain = maybe_domain.?;
     if (retention_policy != .always or log_blowup_factor != 1 or
         polys.len != composition_column_count)
         return null;
@@ -404,7 +412,7 @@ fn prepareAndCommitPolysImpl(
             try precommitted_work.Audit.beginPolynomials(work_recorder)
         else {};
     defer if (capture_work) work_audit.deinit();
-    const result = lease.runtime.transformCircleLdeAndCommitPrepared(
+    const result = lease.runtime.transformCircleLdeAndCommitPreparedForHash(
         allocator,
         source_values,
         base_values,
@@ -416,9 +424,10 @@ fn prepareAndCommitPolysImpl(
         extended_twiddles.twiddles,
         base_log_size,
         extended_log_size,
-        H.leafSeed(),
-        H.nodeSeed(),
-        H.domainPrefixBytes(),
+        domain.leaf_seed,
+        domain.node_seed,
+        domain.domain_prefix_bytes,
+        @intFromEnum(domain.family),
         null,
         true,
     ) catch |err| {

@@ -86,12 +86,35 @@ pub fn prepare(
     pre_core_channel: admission.ChannelCheckpointV1,
     capture: *const OuterProofCapture,
 ) Error!PreparedAdmissionV1 {
+    return prepareFromBoundaries(
+        manifest,
+        statement_words,
+        parent_vk_id,
+        claims,
+        audited.wire_boundary,
+        audited.verifier_input_boundary,
+        pre_core_channel,
+        capture,
+    );
+}
+
+/// Cohort-neutral verifier seam. Both the first temporal parent and every
+/// recursively closed node bind the same two independently audited public
+/// boundaries; their context receipt types need not be aliases.
+pub fn prepareFromBoundaries(
+    manifest: *const manifest_mod.Manifest,
+    statement_words: *const StatementWords,
+    parent_vk_id: Digest,
+    claims: *const manifest_mod.ClaimVector,
+    wire_boundary: recursion.binary_global_closure_outer_source.BoundaryEvidenceV2,
+    verifier_input_boundary: recursion.binary_global_closure_outer_source.BoundaryEvidenceV2,
+    pre_core_channel: admission.ChannelCheckpointV1,
+    capture: *const OuterProofCapture,
+) Error!PreparedAdmissionV1 {
     try manifest.validate();
     try claims.validate(manifest);
     try pre_core_channel.validate();
-    if (audited.wire_boundary.tuple_count == 0 or
-        audited.verifier_input_boundary.tuple_count == 0)
-    {
+    if (wire_boundary.tuple_count == 0 or verifier_input_boundary.tuple_count == 0) {
         return error.BoundaryAuthorityMismatch;
     }
 
@@ -120,13 +143,13 @@ pub fn prepare(
             .pre_core_channel = pre_core_channel,
             .claimed_sums = claimed_sums,
             .verifier_input_boundary = qm31Wire(
-                audited.verifier_input_boundary.claimed_sum,
+                verifier_input_boundary.claimed_sum,
             ),
             // V1 has two wire slots.  The temporal-parent closure owns one
             // authenticated aggregate, so the second slot is canonical zero;
             // no fictitious second source is introduced.
             .wire_closure = .{
-                qm31Wire(audited.wire_boundary.claimed_sum),
+                qm31Wire(wire_boundary.claimed_sum),
                 qm31Wire(QM31.zero()),
             },
         },

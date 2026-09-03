@@ -8,8 +8,8 @@ const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 const v1_codegen = @import("lookup_polynomial_codegen.zig");
 
-pub const codegen_version: u16 = 1;
-pub const identity_domain = "stwo/metal/lookup-polynomial-v2-codegen/v1\x00";
+pub const codegen_version: u16 = 3;
+pub const identity_domain = "stwo/metal/lookup-polynomial-v2-codegen/v3\x00";
 pub const Identity = [32]u8;
 
 pub const Entry = struct {
@@ -77,10 +77,11 @@ pub fn emitKernel(
         \\    device const uint *powers [[buffer(4)]],
         \\    device uint *output [[buffer(5)]],
         \\    constant uint &row_count [[buffer(6)]],
-        \\    constant uint2 &denominator_inverses [[buffer(7)]],
+        \\    constant uint *denominator_inverses [[buffer(7)]],
+        \\    constant uint &denominator_count [[buffer(8)]],
         \\    uint row [[thread_position_in_grid]]) {{
         \\    if (row >= row_count) return;
-        \\    uint previous_row = riscv_previous_circle_row(row, row_count);
+        \\    uint previous_row = riscv_previous_circle_row(row, row_count, denominator_count);
         \\
     , .{name});
 
@@ -89,7 +90,7 @@ pub fn emitKernel(
         switch (node.op) {
             .constant => try writer.print("    uint n{} = {}u;\n", .{ index, node.value }),
             .column => try writer.print(
-                "    uint n{} = main_columns[{}u * row_count + row];\n",
+                "    uint n{} = main_columns[riscv_column_offset({}u, row_count, row)];\n",
                 .{ index, node.value },
             ),
             .add => try writer.print(
@@ -158,11 +159,12 @@ pub fn emitKernel(
         );
     }
     try writer.writeAll(
-        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[row >= (row_count >> 1u)]);
-        \\    output[row] = riscv_m31_add(output[row], result.a);
-        \\    output[row_count + row] = riscv_m31_add(output[row_count + row], result.b);
-        \\    output[2u * row_count + row] = riscv_m31_add(output[2u * row_count + row], result.c);
-        \\    output[3u * row_count + row] = riscv_m31_add(output[3u * row_count + row], result.d);
+        \\    uint denominator_index = row / (row_count / denominator_count);
+        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+        \\    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+        \\    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+        \\    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+        \\    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
         \\}
         \\
     );

@@ -254,11 +254,22 @@ pub fn evaluateDirect(
     const first = main[Layout.is_first];
     const last = main[Layout.is_last];
     const one = scalar(S, 1);
+    _ = expected_first;
+    _ = expected_last;
     sink.add(active.mul(active.sub(one)), 2);
     sink.add(first.mul(first.sub(active)), 2);
     sink.add(last.mul(last.sub(active)), 2);
-    sink.add(first.sub(expected_first), 1);
-    sink.add(last.sub(expected_last), 1);
+    // Program boundaries are derived from committed neighbouring rows rather
+    // than prover-selected Tree-0 markers.  This makes the preprocessed root
+    // reconstructible from public geometry while retaining exact group
+    // topology: an active row starts after padding or a previous last row,
+    // and ends before padding or a next first row.
+    sink.add(first.sub(active.mul(
+        one.sub(previous[Layout.is_active]).add(previous[Layout.is_last]),
+    )), 2);
+    sink.add(last.sub(active.mul(
+        one.sub(next[Layout.is_active]).add(next[Layout.is_first]),
+    )), 2);
     sink.add(last.mul(main[Layout.bit_index]), 2);
     sink.add(active.sub(last).mul(
         main[Layout.bit_index].sub(next[Layout.bit_index].add(one)),
@@ -349,8 +360,8 @@ pub fn rowPairs(
     comptime S: type,
     main: *const [Layout.main_columns]S,
     previous: *const [Layout.main_columns]S,
-    relations: *const relations_mod.Relations,
-) [batch_count]logup.RowPair {
+    relations: anytype,
+) [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     comptime requireSupportedField(S);
     _ = previous;
     const active = main[Layout.is_active];
@@ -367,7 +378,7 @@ pub fn rowPairs(
     };
     const after_double = pointView(S, main, Layout.after_double);
 
-    var events: [event_count]logup.RowPair = undefined;
+    var events: [event_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
     const split_0 = splitTuple(S, main, 0, &generator_scalar);
     const split_1 = splitTuple(S, main, 2, &point_scalar);
     events[0] = request(S, first, relations_mod.combineSplit(S, relations.split, split_0));
@@ -448,7 +459,7 @@ pub fn rowPairs(
         last,
         relations_mod.combineProgram(S, relations.program, program_tuple),
     );
-    var result: [batch_count]logup.RowPair = undefined;
+    var result: [batch_count]logup.RowPairFor(relations_mod.InteractionScalar(S)) = undefined;
     for (&result, 0..) |*pair, index| pair.* = .{
         .n1 = events[2 * index].n1,
         .d1 = events[2 * index].d1,
@@ -558,8 +569,8 @@ fn pointRequest(
     lhs: *const [relations_mod.encoded_point_size]S,
     rhs: *const [relations_mod.encoded_point_size]S,
     result: *const [relations_mod.encoded_point_size]S,
-    relations: *const relations_mod.Relations,
-) logup.RowPair {
+    relations: anytype,
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
     const tuple = relations_mod.pointTuple(S, kind, lhs, rhs, result);
     return request(S, coefficient, relations_mod.combinePoint(S, relations.point, tuple));
 }
@@ -603,25 +614,40 @@ fn valueView(
     return main[offset..][0..field.limb_count].*;
 }
 
-fn request(comptime S: type, coefficient: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, coefficient).neg(), denominator);
+fn request(
+    comptime S: type,
+    coefficient: S,
+    denominator: relations_mod.InteractionScalar(S),
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+    return logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+        lift(S, coefficient).neg(),
+        denominator,
+    );
 }
 
-fn emit(comptime S: type, coefficient: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, coefficient), denominator);
+fn emit(
+    comptime S: type,
+    coefficient: S,
+    denominator: relations_mod.InteractionScalar(S),
+) logup.RowPairFor(relations_mod.InteractionScalar(S)) {
+    return logup.RowPairFor(relations_mod.InteractionScalar(S)).single(
+        lift(S, coefficient),
+        denominator,
+    );
 }
 
-fn lift(comptime S: type, value: S) QM31 {
+fn lift(comptime S: type, value: S) relations_mod.InteractionScalar(S) {
     if (S == M31) return QM31.fromBase(value);
     if (S == QM31) return value;
-    @compileError("secp256k1 scalar AIR supports only M31 and QM31");
+    return value;
 }
 
 fn scalar(comptime S: type, value: anytype) S {
     const canonical: u64 = @intCast(value);
     if (S == M31) return M31.fromU64(canonical);
     if (S == QM31) return QM31.fromBase(M31.fromU64(canonical));
-    @compileError("secp256k1 scalar AIR supports only M31 and QM31");
+    if (@hasDecl(S, "fromBase")) return S.fromBase(M31.fromU64(canonical));
+    @compileError("secp256k1 scalar AIR requires a base-field lift");
 }
 
 fn writePoint(row: *[Layout.main_columns]M31, offset: usize, point: affine.Point) void {
@@ -654,6 +680,6 @@ fn allZero(bytes: []const u8) bool {
 }
 
 fn requireSupportedField(comptime S: type) void {
-    if (S != M31 and S != QM31)
-        @compileError("secp256k1 scalar AIR supports only M31 and QM31");
+    if (S != M31 and S != QM31 and !@hasDecl(S, "fromBase"))
+        @compileError("secp256k1 scalar AIR requires a base-field lift");
 }

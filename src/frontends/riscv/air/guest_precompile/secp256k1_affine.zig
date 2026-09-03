@@ -166,6 +166,41 @@ pub const EcdsaRecord = struct {
     split_count: u8,
 };
 
+/// One successful Ethereum-style public-key recovery transaction.
+///
+/// `recovery_id` is deliberately the parity-only 0/1 form admitted by the
+/// guest ABI. `recovery_point.x == r`; its on-curve proof and y parity remove
+/// the ambiguity that ordinary ECDSA verification intentionally leaves open.
+/// The scalar program proves
+///
+///   public_key = r^-1 * (s * recovery_point - digest * G).
+///
+/// Exact tape ranges prevent individually valid arithmetic records from being
+/// reassembled into a different recovery transaction.
+pub const RecoveryRecord = struct {
+    digest_big_endian: [32]u8,
+    r: Value,
+    s: Value,
+    recovery_id: u8,
+    recovery_point: Point,
+    public_key: Point,
+    reduced_digest: Value,
+    inverse_r: Value,
+    inverse_s: Value,
+    negative_digest: Value,
+    generator_scalar: Value,
+    recovery_point_scalar: Value,
+    program_index: u32,
+    product_start: u32,
+    product_count: u32,
+    linear_start: u32,
+    linear_count: u32,
+    point_start: u32,
+    point_count: u32,
+    split_start: u32,
+    split_count: u8,
+};
+
 pub const Tape = struct {
     allocator: std.mem.Allocator,
     products: std.ArrayList(ProductRecord) = .empty,
@@ -176,6 +211,7 @@ pub const Tape = struct {
     scalar_steps: std.ArrayList(ScalarStepRecord) = .empty,
     scalar_programs: std.ArrayList(ScalarProgramRecord) = .empty,
     ecdsa: std.ArrayList(EcdsaRecord) = .empty,
+    recoveries: std.ArrayList(RecoveryRecord) = .empty,
 
     pub fn init(allocator: std.mem.Allocator) Tape {
         return .{ .allocator = allocator };
@@ -190,6 +226,7 @@ pub const Tape = struct {
         self.scalar_steps.deinit(self.allocator);
         self.scalar_programs.deinit(self.allocator);
         self.ecdsa.deinit(self.allocator);
+        self.recoveries.deinit(self.allocator);
         self.* = undefined;
     }
 

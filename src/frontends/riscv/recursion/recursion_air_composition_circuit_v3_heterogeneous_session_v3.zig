@@ -36,7 +36,8 @@ const WitnessV3 = dependency_2.WitnessV3;
 const RecordedHeterogeneousCircuitStorageV3 = dependency_4.RecordedHeterogeneousCircuitStorageV3;
 const takeSecureRecorderInput = dependency_4.takeSecureRecorderInput;
 const reconstructSplitCompositionForLayout = dependency_4.reconstructSplitCompositionForLayout;
-const recordClaimPolicyConstraintsForPolicy = dependency_4.recordClaimPolicyConstraintsForPolicy;
+const recordClaimPolicyConstraintsForManifestPolicy =
+    dependency_4.recordClaimPolicyConstraintsForManifestPolicy;
 const recordCanonicalEmptyProviderConstraints = dependency_4.recordCanonicalEmptyProviderConstraints;
 const writeInputsFromValidatedConfiguration = dependency_4.writeInputsFromValidatedConfiguration;
 const validateManifests = dependency_4.validateManifests;
@@ -76,12 +77,39 @@ pub const RecordedHeterogeneousCircuitV3 = opaque {
         return recordingStorageConst(self).configuration;
     }
 
+    pub fn configurationSnapshotAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !ConfigurationV3 {
+        try self.validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return recordingStorageConst(self).configuration;
+    }
+
     pub fn validate(
         self: *const RecordedHeterogeneousCircuitV3,
         manifests: TrustedManifestsV3,
         air_program_ids: AirProgramIdsV3,
     ) !void {
         try recordingStorageConst(self).validate(manifests, air_program_ids);
+    }
+
+    pub fn validateAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !void {
+        try recordingStorageConst(self).validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
     }
 
     /// Returns a borrow-only row-18 view after replaying the complete cold
@@ -95,12 +123,40 @@ pub const RecordedHeterogeneousCircuitV3 = opaque {
         return @ptrCast(self);
     }
 
+    pub fn validatedViewAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !*const CircuitViewV3 {
+        try self.validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        return @ptrCast(self);
+    }
+
     pub fn validatedAuthority(
         self: *const RecordedHeterogeneousCircuitV3,
         manifests: TrustedManifestsV3,
         air_program_ids: AirProgramIdsV3,
     ) !*const CircuitAuthorityV3 {
         try self.validate(manifests, air_program_ids);
+        return authorityHandle(&recordingStorageConst(self).authority);
+    }
+
+    pub fn validatedAuthorityAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !*const CircuitAuthorityV3 {
+        try self.validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
         return authorityHandle(&recordingStorageConst(self).authority);
     }
 
@@ -179,6 +235,7 @@ pub const HeterogeneousSessionV3 = struct {
     sample_input_authority: capture_layout_v3.SampleInputAuthorityV3,
     segment_layout: capture_layout_v3.CaptureLayoutV3,
     binary_layout: capture_layout_v3.CaptureLayoutV3,
+    authenticated_h1_empty_layout: ?capture_layout_v3.CaptureLayoutV3 = null,
     canonical_empty_layout: ?capture_layout_v3.CanonicalEmptyCaptureLayoutV3,
     canonical_empty_program: ?CanonicalEmptyProgramV3,
     sampled_values: []recorder.Scalar,
@@ -192,8 +249,11 @@ pub const HeterogeneousSessionV3 = struct {
     oods_point: circle.CirclePoint(recorder.Scalar),
     segment_split_composition: recorder.Scalar,
     universal_split_composition: recorder.Scalar,
+    authenticated_h1_empty_split_composition: recorder.Scalar = undefined,
     segment_denominators: recorder.DenominatorCache,
     universal_denominators: recorder.DenominatorCache,
+    authenticated_h1_empty_denominators: recorder.DenominatorCache =
+        .{null} ** circle.M31_CIRCLE_LOG_ORDER,
     program_results: [PROGRAM_KIND_COUNT]?segment_recorder_v3.ProgramResultV3 =
         .{null} ** PROGRAM_KIND_COUNT,
     programs_recorded: bool = false,
@@ -236,6 +296,255 @@ pub const HeterogeneousSessionV3 = struct {
             binary_capture,
             canonical_empty_program,
         );
+    }
+
+    /// Append-only ordinary-H1 construction. The Binary selector is backed by
+    /// the authenticated 12-placement H1 manifest, while Empty retains a
+    /// separately validated universal layout. Candidate 44-claim captures
+    /// cannot pass the descriptor's exact 12-row admission.
+    pub fn createWithAuthenticatedH1(
+        allocator: std.mem.Allocator,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+        segment_capture: anytype,
+        h1_capture: anytype,
+        universal_empty_capture: anytype,
+    ) !*HeterogeneousSessionV3 {
+        return createAuthenticatedH1Inner(
+            allocator,
+            manifests,
+            air_program_ids,
+            h1_manifest,
+            segment_capture,
+            h1_capture,
+            universal_empty_capture,
+            null,
+        );
+    }
+
+    /// The ordinary-H1 Binary program and proofless canonical Empty program
+    /// share the frozen three-selector ABI without sharing capture authority.
+    /// `universal_empty_capture` authenticates only the universal shell from
+    /// which the canonical-empty layout was sealed; H1 retains its distinct
+    /// 12-placement layout and provider row.
+    pub fn createWithAuthenticatedH1AndCanonicalEmpty(
+        allocator: std.mem.Allocator,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+        segment_capture: anytype,
+        h1_capture: anytype,
+        universal_empty_capture: anytype,
+        canonical_empty_program: CanonicalEmptyProgramV3,
+    ) !*HeterogeneousSessionV3 {
+        return createAuthenticatedH1Inner(
+            allocator,
+            manifests,
+            air_program_ids,
+            h1_manifest,
+            segment_capture,
+            h1_capture,
+            universal_empty_capture,
+            canonical_empty_program,
+        );
+    }
+
+    fn createAuthenticatedH1Inner(
+        allocator: std.mem.Allocator,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+        segment_capture: anytype,
+        h1_capture: anytype,
+        universal_empty_capture: anytype,
+        canonical_empty_program: ?CanonicalEmptyProgramV3,
+    ) !*HeterogeneousSessionV3 {
+        try validateManifests(manifests);
+        var segment_layout = try capture_layout_v3.CaptureLayoutV3.initSegment(
+            allocator,
+            manifests.segment,
+            segment_capture,
+        );
+        errdefer segment_layout.deinit();
+        var binary_layout = try capture_layout_v3.CaptureLayoutV3
+            .initAuthenticatedBinaryWithProviderRow(
+            allocator,
+            .ethereum_poseidon_h1_v1,
+            dependency_0.H1_POSEIDON_ROSTER_ROW,
+            h1_manifest,
+            h1_capture,
+        );
+        errdefer binary_layout.deinit();
+        var empty_layout = try capture_layout_v3.CaptureLayoutV3.initBinary(
+            allocator,
+            manifests.universal,
+            universal_empty_capture,
+        );
+        errdefer empty_layout.deinit();
+        var canonical_empty_layout: ?capture_layout_v3.CanonicalEmptyCaptureLayoutV3 =
+            null;
+        errdefer if (canonical_empty_layout) |*layout| layout.deinit();
+        if (canonical_empty_program) |program| {
+            canonical_empty_layout =
+                try capture_layout_v3.CanonicalEmptyCaptureLayoutV3.init(
+                    allocator,
+                    manifests.universal,
+                    &empty_layout,
+                );
+            try program.validateAgainst(
+                manifests.universal,
+                &empty_layout,
+                &canonical_empty_layout.?,
+            );
+            if (!std.meta.eql(air_program_ids.empty_leaf, program.air_program_id))
+                return error.CanonicalEmptyProgramMismatch;
+        }
+        const sample_authority = try capture_layout_v3.SampleInputAuthorityV3.seal(
+            &segment_layout,
+            &binary_layout,
+        );
+        if (empty_layout.sampled_value_count > sample_authority.max_sample_count)
+            return error.InvalidHeterogeneousProgram;
+        const configuration = if (canonical_empty_program) |program|
+            try ConfigurationV3.sealWithAuthenticatedH1AndCanonicalEmpty(
+                manifests,
+                air_program_ids,
+                sample_authority.max_sample_count,
+                h1_manifest,
+                program,
+            )
+        else
+            try ConfigurationV3.sealWithAuthenticatedH1(
+                manifests,
+                air_program_ids,
+                sample_authority.max_sample_count,
+                h1_manifest,
+            );
+        const profile = configuration.graphInputProfile();
+        const input_count = try graph_mod.recursionInputCount(profile);
+        if (input_count >= m31.Modulus) return error.InvalidClaimInputProfile;
+
+        const bindings = try allocator.alloc(
+            graph_mod.RecursionInputBinding,
+            input_count,
+        );
+        errdefer allocator.free(bindings);
+        const sampled_values = try allocator.alloc(
+            recorder.Scalar,
+            sample_authority.max_sample_count,
+        );
+        errdefer allocator.free(sampled_values);
+        const base_inputs = try allocator.alloc(recorder.Scalar, input_count);
+        defer allocator.free(base_inputs);
+
+        const self = try allocator.create(HeterogeneousSessionV3);
+        errdefer allocator.destroy(self);
+        self.* = .{
+            .allocator = allocator,
+            .builder = recorder.Builder.init(allocator),
+            .bindings = bindings,
+            .manifests = manifests,
+            .air_program_ids = air_program_ids,
+            .configuration = configuration,
+            .sample_input_authority = sample_authority,
+            .segment_layout = segment_layout,
+            .binary_layout = binary_layout,
+            .authenticated_h1_empty_layout = empty_layout,
+            .canonical_empty_layout = canonical_empty_layout,
+            .canonical_empty_program = canonical_empty_program,
+            .sampled_values = sampled_values,
+            .parent_binary_selector = undefined,
+            .child_kind_selectors = undefined,
+            .statement_words = undefined,
+            .claim_inputs = undefined,
+            .public_wire_boundary = undefined,
+            .challenges = undefined,
+            .composition_randomness = undefined,
+            .oods_point = undefined,
+            .segment_split_composition = undefined,
+            .universal_split_composition = undefined,
+            .authenticated_h1_empty_split_composition = undefined,
+            .segment_denominators = .{null} ** circle.M31_CIRCLE_LOG_ORDER,
+            .universal_denominators = .{null} ** circle.M31_CIRCLE_LOG_ORDER,
+            .authenticated_h1_empty_denominators = .{null} ** circle.M31_CIRCLE_LOG_ORDER,
+        };
+        errdefer self.builder.deinit();
+
+        const program_constraints = std.math.add(
+            usize,
+            manifests.segment.total_constraints,
+            std.math.add(
+                usize,
+                h1_manifest.total_constraints,
+                manifests.universal.total_constraints,
+            ) catch return error.InvalidHeterogeneousProgram,
+        ) catch return error.InvalidHeterogeneousProgram;
+        const empty_provider_hint = if (canonical_empty_program != null)
+            STATEMENT_WORD_COUNT + sample_authority.max_sample_count + 1
+        else
+            0;
+        try self.builder.reserve(
+            input_count,
+            std.math.add(
+                usize,
+                program_constraints,
+                empty_provider_hint,
+            ) catch return error.InvalidHeterogeneousProgram,
+        );
+        for (base_inputs, bindings, 0..) |*value, *binding, index| {
+            const input = try self.builder.input();
+            const source = graph_mod.expectedRecursionSource(profile, index) orelse
+                return error.InvalidHeterogeneousProgram;
+            value.* = input.value;
+            binding.* = .{ .node_id = input.node_id, .source = source };
+        }
+
+        try self.builder.activate();
+        errdefer if (self.builder.active) self.builder.deactivate();
+        try self.bindInputs(base_inputs, input_count);
+        self.segment_split_composition = try reconstructSplitCompositionForLayout(
+            &self.segment_layout,
+            self.sampled_values[0..self.segment_layout.sampled_value_count],
+            self.oods_point,
+        );
+        self.universal_split_composition = try reconstructSplitCompositionForLayout(
+            &self.binary_layout,
+            self.sampled_values[0..self.binary_layout.sampled_value_count],
+            self.oods_point,
+        );
+        self.authenticated_h1_empty_split_composition =
+            try reconstructSplitCompositionForLayout(
+                &self.authenticated_h1_empty_layout.?,
+                self.sampled_values[0..empty_layout.sampled_value_count],
+                self.oods_point,
+            );
+        try self.bindChildKind();
+        _ = try recordClaimPolicyConstraintsForManifestPolicy(
+            &self.builder,
+            &self.child_kind_selectors,
+            &self.claim_inputs,
+            .ethereum_poseidon_h1_v1,
+            configuration.program_roster.forKind(.empty_leaf).claim_policy,
+        );
+        if (canonical_empty_program) |program| _ =
+            try recordCanonicalEmptyProviderConstraints(
+                &self.builder,
+                self.child_kind_selectors[proofKindIndex(.empty_leaf)],
+                &self.statement_words,
+                self.sampled_values,
+                &self.claim_inputs,
+                &self.challenges,
+                program,
+            );
+        try self.constrainGlobalLogup();
+        try self.builder.check();
+
+        segment_layout = undefined;
+        binary_layout = undefined;
+        empty_layout = undefined;
+        canonical_empty_layout = null;
+        return self;
     }
 
     fn createInner(
@@ -415,10 +724,13 @@ pub const HeterogeneousSessionV3 = struct {
         try self.bindChildKind();
         const empty_policy = configuration.program_roster
             .forKind(.empty_leaf).claim_policy;
-        _ = try recordClaimPolicyConstraintsForPolicy(
+        const binary_manifest_family = configuration.program_roster
+            .forKind(.binary_node).manifest_family;
+        _ = try recordClaimPolicyConstraintsForManifestPolicy(
             &self.builder,
             &self.child_kind_selectors,
             &self.claim_inputs,
+            binary_manifest_family,
             empty_policy,
         );
         if (canonical_empty_program) |program| _ =
@@ -445,6 +757,7 @@ pub const HeterogeneousSessionV3 = struct {
         self.builder.deinit();
         self.segment_layout.deinit();
         self.binary_layout.deinit();
+        if (self.authenticated_h1_empty_layout) |*layout| layout.deinit();
         if (self.canonical_empty_layout) |*layout| layout.deinit();
         self.allocator.free(self.sampled_values);
         self.allocator.free(self.bindings);
@@ -472,6 +785,115 @@ pub const HeterogeneousSessionV3 = struct {
             self.failed = true;
             return err;
         };
+        self.programs_recorded = true;
+    }
+
+    /// Records Segment and Empty through their frozen programs while the
+    /// Binary slot uses the manifest-parametric 12-row H1 recorder. The
+    /// callback is the manifest owner's exact ordered cohort implementation;
+    /// `finishProgram` still enforces every row and placement.
+    pub fn recordProgramsWithAuthenticatedH1(
+        self: *HeterogeneousSessionV3,
+        comptime h1_manifest_contract: type,
+        h1_manifest: *const h1_manifest_contract.Manifest,
+        segment_components: anytype,
+        h1_components: anytype,
+        comptime record_h1_cohort: anytype,
+        empty_components: anytype,
+    ) !void {
+        if (self.finished or self.programs_recorded or self.failed or
+            !self.builder.active or self.authenticated_h1_empty_layout == null)
+        {
+            return error.InvalidHeterogeneousProgram;
+        }
+        self.configuration.validateAgainstAuthenticatedH1(
+            self.manifests,
+            self.air_program_ids,
+            h1_manifest,
+        ) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.recordSegmentProgram(segment_components) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.recordAuthenticatedH1Program(
+            h1_manifest_contract,
+            h1_manifest,
+            h1_components,
+            record_h1_cohort,
+        ) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        var empty_program = self.beginEmptyProgram() catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.program_results[proofKindIndex(.empty_leaf)] =
+            empty_program.recordCompleteUniversalCohort(empty_components) catch |err| {
+                self.failed = true;
+                return err;
+            };
+        self.programs_recorded = true;
+    }
+
+    /// Records the same authenticated ordinary-H1 Binary cohort while Empty
+    /// consumes its separately sealed proofless canonical catalog. Neither
+    /// lane may borrow the other's capture layout or denominator cache.
+    pub fn recordProgramsWithAuthenticatedH1AndCanonicalEmptyCatalog(
+        self: *HeterogeneousSessionV3,
+        comptime h1_manifest_contract: type,
+        h1_manifest: *const h1_manifest_contract.Manifest,
+        segment_components: anytype,
+        h1_components: anytype,
+        comptime record_h1_cohort: anytype,
+        empty_owners: anytype,
+        empty_poseidon: *const segment_recorder_v3.EmptyProgramRecorderV3.PoseidonAdapter,
+        empty_range: *const segment_recorder_v3.EmptyProgramRecorderV3.RangeCheck8x8Adapter,
+    ) !void {
+        if (self.finished or self.programs_recorded or self.failed or
+            !self.builder.active or self.authenticated_h1_empty_layout == null or
+            self.canonical_empty_program == null or
+            self.canonical_empty_layout == null)
+        {
+            return error.InvalidHeterogeneousProgram;
+        }
+        self.configuration.validateAgainstAuthenticatedH1(
+            self.manifests,
+            self.air_program_ids,
+            h1_manifest,
+        ) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.recordSegmentProgram(segment_components) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.recordAuthenticatedH1Program(
+            h1_manifest_contract,
+            h1_manifest,
+            h1_components,
+            record_h1_cohort,
+        ) catch |err| {
+            self.failed = true;
+            return err;
+        };
+        var empty_program = self.beginCanonicalEmptyProgram() catch |err| {
+            self.failed = true;
+            return err;
+        };
+        self.program_results[proofKindIndex(.empty_leaf)] =
+            empty_program.recordCompleteUniversalCatalog(
+                empty_owners,
+                empty_poseidon,
+                empty_range,
+            ) catch |err| {
+                self.failed = true;
+                return err;
+            };
         self.programs_recorded = true;
     }
 
@@ -608,12 +1030,22 @@ pub const HeterogeneousSessionV3 = struct {
             try binary_program.recordCompleteUniversalCohort(binary_components);
     }
 
-    fn beginEmptyProgram(
+    fn recordAuthenticatedH1Program(
         self: *HeterogeneousSessionV3,
-    ) !segment_recorder_v3.EmptyProgramRecorderV3 {
-        return segment_recorder_v3.EmptyProgramRecorderV3.init(
+        comptime h1_manifest_contract: type,
+        h1_manifest: *const h1_manifest_contract.Manifest,
+        h1_components: anytype,
+        comptime record_h1_cohort: anytype,
+    ) !void {
+        const H1ProgramRecorder = segment_recorder_v3.ProgramRecorderForManifest(
+            h1_manifest_contract,
+            .binary_node,
+            dependency_0.H1_PHYSICAL_CLAIM_COUNT,
+        );
+        var binary_program = try H1ProgramRecorder.initAuthenticatedBinary(
             &self.builder,
-            self.configurationManifestUniversal(),
+            h1_manifest,
+            .ethereum_poseidon_h1_v1,
             &self.binary_layout,
             self.sampled_values[0..self.binary_layout.sampled_value_count],
             &self.claim_inputs,
@@ -621,6 +1053,32 @@ pub const HeterogeneousSessionV3 = struct {
             self.composition_randomness,
             self.oods_point,
             &self.universal_denominators,
+        );
+        self.program_results[proofKindIndex(.binary_node)] =
+            try record_h1_cohort(&binary_program, h1_components);
+    }
+
+    fn beginEmptyProgram(
+        self: *HeterogeneousSessionV3,
+    ) !segment_recorder_v3.EmptyProgramRecorderV3 {
+        const layout = if (self.authenticated_h1_empty_layout) |*value|
+            value
+        else
+            &self.binary_layout;
+        const denominators = if (self.authenticated_h1_empty_layout != null)
+            &self.authenticated_h1_empty_denominators
+        else
+            &self.universal_denominators;
+        return segment_recorder_v3.EmptyProgramRecorderV3.init(
+            &self.builder,
+            self.configurationManifestUniversal(),
+            layout,
+            self.sampled_values[0..layout.sampled_value_count],
+            &self.claim_inputs,
+            &self.challenges,
+            self.composition_randomness,
+            self.oods_point,
+            denominators,
         );
     }
 
@@ -631,6 +1089,10 @@ pub const HeterogeneousSessionV3 = struct {
             value
         else
             return error.InvalidHeterogeneousProgram;
+        const denominators = if (self.authenticated_h1_empty_layout != null)
+            &self.authenticated_h1_empty_denominators
+        else
+            &self.universal_denominators;
         return segment_recorder_v3.EmptyProgramRecorderV3.initCanonicalEmpty(
             &self.builder,
             self.configurationManifestUniversal(),
@@ -640,7 +1102,7 @@ pub const HeterogeneousSessionV3 = struct {
             &self.challenges,
             self.composition_randomness,
             self.oods_point,
-            &self.universal_denominators,
+            denominators,
         );
     }
 
@@ -730,6 +1192,107 @@ pub const HeterogeneousSessionV3 = struct {
         return @ptrCast(result);
     }
 
+    /// Finalizes the ordinary-H1 three-selector graph and cold-validates its
+    /// binary descriptor and statistics against the reopened H1 manifest.
+    /// This remains a nonproduction recorder capability.
+    pub fn finishAuthenticatedH1(
+        self: *HeterogeneousSessionV3,
+        h1_manifest: anytype,
+    ) !*RecordedHeterogeneousCircuitV3 {
+        if (self.finished or self.failed or !self.programs_recorded or
+            !self.builder.active or self.authenticated_h1_empty_layout == null)
+        {
+            return error.IncompleteHeterogeneousProgram;
+        }
+        try self.configuration.validateAgainstAuthenticatedH1(
+            self.manifests,
+            self.air_program_ids,
+            h1_manifest,
+        );
+        const segment = self.program_results[proofKindIndex(.segment_leaf)] orelse
+            return error.IncompleteHeterogeneousProgram;
+        const binary = self.program_results[proofKindIndex(.binary_node)] orelse
+            return error.IncompleteHeterogeneousProgram;
+        const empty = self.program_results[proofKindIndex(.empty_leaf)] orelse
+            return error.IncompleteHeterogeneousProgram;
+
+        try self.builder.constrainZero(
+            self.child_kind_selectors[proofKindIndex(.segment_leaf)].mul(
+                self.segment_split_composition.sub(segment.accumulation),
+            ),
+        );
+        try self.builder.constrainZero(
+            self.child_kind_selectors[proofKindIndex(.binary_node)].mul(
+                self.universal_split_composition.sub(binary.accumulation),
+            ),
+        );
+        try self.builder.constrainZero(
+            self.child_kind_selectors[proofKindIndex(.empty_leaf)].mul(
+                self.authenticated_h1_empty_split_composition.sub(
+                    empty.accumulation,
+                ),
+            ),
+        );
+        try self.builder.check();
+        self.builder.deactivate();
+        self.finished = true;
+
+        var recorded = try self.builder.finish();
+        errdefer recorded.deinit();
+        const result = try self.allocator.create(
+            RecordedHeterogeneousCircuitStorageV3,
+        );
+        errdefer self.allocator.destroy(result);
+        result.* = .{
+            .allocator = self.allocator,
+            .recorded = recorded,
+            .bindings = self.bindings,
+            .configuration = self.configuration,
+            .sample_input_authority = self.sample_input_authority,
+            .statistics = .{
+                .constraints_per_kind = .{
+                    segment.constraint_count,
+                    binary.constraint_count,
+                    empty.constraint_count,
+                },
+                .roster_rows_per_kind = .{
+                    segment.row_count,
+                    binary.row_count,
+                    empty.row_count,
+                },
+                .sampled_values = self.sample_input_authority.max_sample_count,
+                .graph_inputs = recorded.input_count,
+                .graph_nodes = recorded.nodes.len,
+                .graph_outputs = recorded.outputs.len,
+            },
+            .authority = undefined,
+        };
+        try result.validateFinalizedRecordingAuthenticatedH1(
+            self.manifests,
+            self.air_program_ids,
+            h1_manifest,
+        );
+        result.authority = try mintCircuitAuthorityFromValidatedRecording(
+            result,
+        );
+        try result.validateAuthenticatedH1(
+            self.manifests,
+            self.air_program_ids,
+            h1_manifest,
+        );
+
+        self.segment_layout.deinit();
+        self.binary_layout.deinit();
+        if (self.authenticated_h1_empty_layout) |*layout| layout.deinit();
+        if (self.canonical_empty_layout) |*layout| layout.deinit();
+        self.allocator.free(self.sampled_values);
+        self.builder.deinit();
+        const allocator = self.allocator;
+        self.* = undefined;
+        allocator.destroy(self);
+        return @ptrCast(result);
+    }
+
     // The retained pointers are deliberately not copied into ConfigurationV3;
     // these helpers make their construction-time custody explicit to Zig's
     // generic recorder without widening the public serialized authority.
@@ -743,6 +1306,42 @@ pub const HeterogeneousSessionV3 = struct {
         self: *const HeterogeneousSessionV3,
     ) *const universal_manifest_mod.Manifest {
         return self.manifests.universal;
+    }
+
+    fn bindInputs(
+        self: *HeterogeneousSessionV3,
+        base_inputs: []const recorder.Scalar,
+        input_count: usize,
+    ) !void {
+        var cursor: usize = 0;
+        self.parent_binary_selector = base_inputs[cursor];
+        cursor += 1;
+        @memcpy(
+            &self.child_kind_selectors,
+            base_inputs[cursor..][0..PROGRAM_KIND_COUNT],
+        );
+        cursor += PROGRAM_KIND_COUNT;
+        @memcpy(
+            &self.statement_words,
+            base_inputs[cursor..][0..STATEMENT_WORD_COUNT],
+        );
+        cursor += STATEMENT_WORD_COUNT;
+        for (self.sampled_values) |*value|
+            value.* = takeSecureRecorderInput(base_inputs, &cursor);
+        for (&self.claim_inputs) |*value|
+            value.* = takeSecureRecorderInput(base_inputs, &cursor);
+        self.public_wire_boundary = takeSecureRecorderInput(base_inputs, &cursor);
+        var challenge_draws: [RELATION_CHALLENGE_COUNT][2]recorder.Scalar =
+            undefined;
+        for (&challenge_draws) |*draw| {
+            draw[0] = takeSecureRecorderInput(base_inputs, &cursor);
+            draw[1] = takeSecureRecorderInput(base_inputs, &cursor);
+        }
+        self.composition_randomness = takeSecureRecorderInput(base_inputs, &cursor);
+        const oods_seed = takeSecureRecorderInput(base_inputs, &cursor);
+        if (cursor != input_count) return error.InvalidHeterogeneousProgram;
+        self.challenges = try recorder.ChallengeSet.init(challenge_draws);
+        self.oods_point = recorder.pointFromSeed(oods_seed);
     }
 
     fn bindChildKind(self: *HeterogeneousSessionV3) !void {
@@ -799,9 +1398,29 @@ pub const HeterogeneousSessionV3 = struct {
         for (self.claim_inputs[0..SEGMENT_PHYSICAL_CLAIM_COUNT]) |claim|
             claimed_total = claimed_total.add(claim);
         const segment = self.child_kind_selectors[proofKindIndex(.segment_leaf)];
+        const binary = self.child_kind_selectors[proofKindIndex(.binary_node)];
+        const empty = self.child_kind_selectors[proofKindIndex(.empty_leaf)];
+        if (self.configuration.program_roster
+            .forKind(.binary_node).manifest_family ==
+            .ethereum_poseidon_h1_v1)
+        {
+            // The statement-domain and verifier-input residuals are constants
+            // in the authenticated H1 child program. Do not relabel either as
+            // this legacy wire-boundary input or duplicate its closure here.
+            try self.builder.constrainZero(segment.mul(
+                claimed_total.add(self.public_wire_boundary),
+            ));
+            try self.builder.constrainZero(empty.mul(
+                claimed_total.add(public_sum),
+            ));
+            try self.builder.constrainZero(
+                binary.add(empty).mul(self.public_wire_boundary),
+            );
+            return;
+        }
         const universal_branch = self.child_kind_selectors[
             proofKindIndex(.binary_node)
-        ].add(self.child_kind_selectors[proofKindIndex(.empty_leaf)]);
+        ].add(empty);
         try self.builder.constrainZero(segment.mul(
             claimed_total.add(self.public_wire_boundary),
         ));

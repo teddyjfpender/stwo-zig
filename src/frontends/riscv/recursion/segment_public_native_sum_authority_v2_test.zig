@@ -199,14 +199,15 @@ test "SegmentV2 native-sum hot evaluation is destination-fail-atomic" {
 
     const last = fixture.owned_public.canonical_words.len - 1;
     const saved_word = fixture.owned_public.canonical_words[last];
-    fixture.owned_public.canonical_words[last] = saved_word.add(M31.one());
+    @constCast(fixture.owned_public.canonical_words)[last] =
+        saved_word.add(M31.one());
     try expectEvaluationFailure(
         &source,
         &prepared,
         fixture.inputs(),
         owned.buffers(),
     );
-    fixture.owned_public.canonical_words[last] = saved_word;
+    @constCast(fixture.owned_public.canonical_words)[last] = saved_word;
     try std.testing.expectEqual(before, owned.destinationDigest());
 
     var aliased = owned.buffers();

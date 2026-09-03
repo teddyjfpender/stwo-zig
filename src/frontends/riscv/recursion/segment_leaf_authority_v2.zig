@@ -94,6 +94,7 @@ pub const VerifierKeyAuthorityV2 = shard_0.VerifierKeyAuthorityV2;
 pub const ManifestV2 = shard_0.ManifestV2;
 /// Native temporal preimage retained separately from every SHA closure ID.
 pub const NativeTemporalContextV2 = shard_0.NativeTemporalContextV2;
+pub const nativeContext = shard_0.nativeContext;
 pub const PerformanceV2 = shard_0.PerformanceV2;
 /// SHA identities consumed by global-closure plumbing.  These byte values are
 /// never accepted where a native temporal `Digest` is required.

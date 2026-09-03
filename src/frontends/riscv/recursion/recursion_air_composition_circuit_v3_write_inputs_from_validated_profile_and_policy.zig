@@ -19,10 +19,15 @@ const capture_layout_v3 = dependency_0.capture_layout_v3;
 const ProofKind = dependency_0.ProofKind;
 const UNIVERSAL_PHYSICAL_CLAIM_COUNT = dependency_0.UNIVERSAL_PHYSICAL_CLAIM_COUNT;
 const SEGMENT_PHYSICAL_CLAIM_COUNT = dependency_0.SEGMENT_PHYSICAL_CLAIM_COUNT;
+const H1_PHYSICAL_CLAIM_COUNT = dependency_0.H1_PHYSICAL_CLAIM_COUNT;
 const EMPTY_PHYSICAL_CLAIM_COUNT = dependency_0.EMPTY_PHYSICAL_CLAIM_COUNT;
 const POSEIDON_PARTIAL_COUNT = dependency_0.POSEIDON_PARTIAL_COUNT;
 const POSEIDON_ROSTER_ROW = dependency_0.POSEIDON_ROSTER_ROW;
 const POSEIDON_AUX_START = dependency_0.POSEIDON_AUX_START;
+const H1_POSEIDON_ROSTER_ROW = dependency_0.H1_POSEIDON_ROSTER_ROW;
+const H1_POSEIDON_AUX_START = dependency_0.H1_POSEIDON_AUX_START;
+const H1_SEMANTIC_CLAIM_INPUT_COUNT =
+    dependency_0.H1_SEMANTIC_CLAIM_INPUT_COUNT;
 const COMPOSITION_CLAIM_INPUT_COUNT = dependency_0.COMPOSITION_CLAIM_INPUT_COUNT;
 const STATEMENT_WORD_COUNT = dependency_0.STATEMENT_WORD_COUNT;
 const PROGRAM_KIND_COUNT = dependency_0.PROGRAM_KIND_COUNT;
@@ -120,6 +125,72 @@ pub const RecordedHeterogeneousCircuitStorageV3 = struct {
             return error.InvalidHeterogeneousProgram;
         }
     }
+
+    /// Cold validation for the append-only ordinary-H1 binary slot. The
+    /// retained configuration is re-admitted from the reopened 12-placement
+    /// manifest; Segment and Empty remain the frozen legacy programs.
+    pub fn validateAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitStorageV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !void {
+        try self.validateFinalizedRecordingAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        try self.authority.validateAgainstValidatedConfiguration(
+            self.configuration,
+            self.graph(),
+            self.bindings,
+        );
+    }
+
+    pub fn validateFinalizedRecordingAuthenticatedH1(
+        self: *const RecordedHeterogeneousCircuitStorageV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !void {
+        try self.configuration.validateAgainstAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        try self.sample_input_authority.validateSelfConsistency();
+        try self.recorded.validate();
+        try validateGraphBindings(
+            self.configuration,
+            self.graph(),
+            self.bindings,
+        );
+        if (self.configuration.sampled_value_count !=
+            self.sample_input_authority.max_sample_count or
+            self.statistics.sampled_values !=
+                self.sample_input_authority.max_sample_count or
+            self.statistics.graph_inputs != self.recorded.input_count or
+            self.statistics.graph_nodes != self.recorded.nodes.len or
+            self.statistics.graph_outputs != self.recorded.outputs.len)
+        {
+            return error.InvalidHeterogeneousProgram;
+        }
+        const expected_rows = [_]u8{
+            @intCast(SEGMENT_PHYSICAL_CLAIM_COUNT),
+            @intCast(H1_PHYSICAL_CLAIM_COUNT),
+            @intCast(UNIVERSAL_PHYSICAL_CLAIM_COUNT),
+        };
+        if (!std.meta.eql(self.statistics.roster_rows_per_kind, expected_rows) or
+            self.statistics.constraints_per_kind[0] !=
+                manifests.segment.total_constraints or
+            self.statistics.constraints_per_kind[1] !=
+                h1_manifest.total_constraints or
+            self.statistics.constraints_per_kind[2] !=
+                manifests.universal.total_constraints)
+        {
+            return error.InvalidHeterogeneousProgram;
+        }
+    }
 };
 
 pub fn takeSecureRecorderInput(
@@ -208,6 +279,48 @@ pub fn writeClaimInputs(
         );
 }
 
+/// Manifest-family-aware claim assembler. Legacy callers continue through
+/// `writeClaimInputs` above with byte-identical placement. Only an explicitly
+/// H1-authenticated binary descriptor may select the compact 12+2 policy.
+pub fn writeClaimInputsForManifest(
+    proof_kind: ProofKind,
+    manifest_family: ManifestFamilyV3,
+    physical_claims: []const QM31,
+    poseidon_partials: []const QM31,
+    destination: *[COMPOSITION_CLAIM_INPUT_COUNT]QM31,
+) Error!void {
+    if (manifest_family != .ethereum_poseidon_h1_v1)
+        return writeClaimInputs(
+            proof_kind,
+            physical_claims,
+            poseidon_partials,
+            destination,
+        );
+    if (proof_kind != .binary_node or
+        physical_claims.len != H1_PHYSICAL_CLAIM_COUNT or
+        poseidon_partials.len != POSEIDON_PARTIAL_COUNT)
+    {
+        return error.InvalidClaimInputCount;
+    }
+    for (physical_claims) |value| try requireCanonicalQm31(value);
+    for (poseidon_partials) |value| try requireCanonicalQm31(value);
+    if (!poseidon_partials[0].add(poseidon_partials[1]).eql(
+        physical_claims[H1_POSEIDON_ROSTER_ROW],
+    )) return error.PoseidonPartialMismatch;
+    const target = std.mem.asBytes(destination);
+    if (overlap(target, std.mem.sliceAsBytes(physical_claims)) or
+        overlap(target, std.mem.sliceAsBytes(poseidon_partials)))
+    {
+        return error.AliasedInput;
+    }
+    destination.* = [_]QM31{QM31.zero()} ** COMPOSITION_CLAIM_INPUT_COUNT;
+    @memcpy(destination[0..H1_PHYSICAL_CLAIM_COUNT], physical_claims);
+    @memcpy(
+        destination[H1_POSEIDON_AUX_START .. H1_POSEIDON_AUX_START + POSEIDON_PARTIAL_COUNT],
+        poseidon_partials,
+    );
+}
+
 pub fn validateClaimInputs(
     proof_kind: ProofKind,
     inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
@@ -248,6 +361,39 @@ pub fn validateClaimInputsForPolicy(
             return error.EmptyClaimInputMustBeZero;
         }
     }
+}
+
+pub fn validateClaimInputsForManifestPolicy(
+    proof_kind: ProofKind,
+    manifest_family: ManifestFamilyV3,
+    policy: ClaimPolicyV3,
+    inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
+) Error!void {
+    if (manifest_family == .common_fold_field_v2) {
+        if (proof_kind != .binary_node or
+            policy != .common_fold_field_v2)
+        {
+            return error.InvalidProgramRoster;
+        }
+        return validateClaimInputs(.binary_node, inputs);
+    }
+    if (manifest_family == .temporal_parent_v3) {
+        if (proof_kind != .binary_node or policy != .temporal_parent)
+            return error.InvalidProgramRoster;
+        return validateClaimInputs(.binary_node, inputs);
+    }
+    if (manifest_family != .ethereum_poseidon_h1_v1)
+        return validateClaimInputsForPolicy(proof_kind, policy, inputs);
+    if (proof_kind != .binary_node or policy != .ethereum_poseidon_h1)
+        return error.InvalidProgramRoster;
+    for (inputs) |value| try requireCanonicalQm31(value);
+    for (inputs[H1_SEMANTIC_CLAIM_INPUT_COUNT..]) |value|
+        if (!value.eql(QM31.zero()))
+            return error.InactiveClaimInputMustBeZero;
+    if (!inputs[H1_POSEIDON_AUX_START].add(
+        inputs[H1_POSEIDON_AUX_START + 1],
+    ).eql(inputs[H1_POSEIDON_ROSTER_ROW]))
+        return error.PoseidonPartialMismatch;
 }
 
 /// Records the V3 claim policy into the recursive arithmetic graph.  The
@@ -303,6 +449,70 @@ pub fn recordClaimPolicyConstraintsForPolicy(
         CLAIM_POLICY_GRAPH_CONSTRAINT_COUNT;
 }
 
+/// H1-aware graph policy with the same three proof-kind selectors. Segment
+/// and empty branches retain their exact legacy constraints; only the binary
+/// branch's physical/partial coordinates are selected by manifest family.
+pub fn recordClaimPolicyConstraintsForManifestPolicy(
+    builder: *recorder.Builder,
+    proof_kind_selectors: *const [PROGRAM_KIND_COUNT]recorder.Scalar,
+    claim_inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar,
+    binary_manifest_family: ManifestFamilyV3,
+    empty_policy: ClaimPolicyV3,
+) Error!usize {
+    if (binary_manifest_family == .common_fold_field_v2) {
+        if (empty_policy != .common_fold_field_v2)
+            return error.InvalidProgramRoster;
+        return recordClaimPolicyConstraintsForPolicy(
+            builder,
+            proof_kind_selectors,
+            claim_inputs,
+            .canonical_empty,
+        );
+    }
+    if (binary_manifest_family == .temporal_parent_v3) {
+        if (empty_policy != .temporal_parent)
+            return error.InvalidProgramRoster;
+        return recordClaimPolicyConstraintsForPolicy(
+            builder,
+            proof_kind_selectors,
+            claim_inputs,
+            .canonical_empty,
+        );
+    }
+    if (binary_manifest_family != .ethereum_poseidon_h1_v1)
+        return recordClaimPolicyConstraintsForPolicy(
+            builder,
+            proof_kind_selectors,
+            claim_inputs,
+            empty_policy,
+        );
+    const segment = proof_kind_selectors[proofKindIndex(.segment_leaf)];
+    const binary = proof_kind_selectors[proofKindIndex(.binary_node)];
+    const empty = proof_kind_selectors[proofKindIndex(.empty_leaf)];
+    for (claim_inputs[H1_SEMANTIC_CLAIM_INPUT_COUNT..]) |claim|
+        try builder.constrainZero(binary.mul(claim));
+    for (claim_inputs, 0..) |claim, index| {
+        if (empty_policy == .canonical_empty_provider and
+            index == CANONICAL_EMPTY_PUBLIC_CLAIM_INDEX) continue;
+        try builder.constrainZero(empty.mul(claim));
+    }
+    const segment_partial_closure = claim_inputs[POSEIDON_AUX_START]
+        .add(claim_inputs[POSEIDON_AUX_START + 1])
+        .sub(claim_inputs[POSEIDON_ROSTER_ROW]);
+    try builder.constrainZero(segment.mul(segment_partial_closure));
+    const h1_partial_closure = claim_inputs[H1_POSEIDON_AUX_START]
+        .add(claim_inputs[H1_POSEIDON_AUX_START + 1])
+        .sub(claim_inputs[H1_POSEIDON_ROSTER_ROW]);
+    try builder.constrainZero(binary.mul(h1_partial_closure));
+    try builder.check();
+    const empty_count: usize = if (empty_policy == .canonical_empty_provider)
+        COMPOSITION_CLAIM_INPUT_COUNT - 1
+    else
+        COMPOSITION_CLAIM_INPUT_COUNT;
+    return (COMPOSITION_CLAIM_INPUT_COUNT -
+        H1_SEMANTIC_CLAIM_INPUT_COUNT) + empty_count + 2;
+}
+
 /// Graph-side custody for the proofless-empty provider.  The empty selector
 /// gates three independent obligations: the exact 412-word publication, the
 /// complete zero sample workspace, and the deterministic public-statement
@@ -353,9 +563,13 @@ pub fn writeInputsFromValidatedConfiguration(
     witness: WitnessV3,
     destination: []QM31,
 ) Error!void {
-    try writeInputsFromValidatedProfileAndPolicy(
+    const descriptor = configuration.program_roster.forKind(
+        witness.proof_kind,
+    );
+    try writeInputsFromValidatedProfileAndManifestPolicy(
         configuration.inputProfile(),
-        configuration.program_roster.forKind(witness.proof_kind).claim_policy,
+        descriptor.manifest_family,
+        descriptor.claim_policy,
         witness,
         destination,
     );
@@ -383,6 +597,22 @@ pub fn writeInputsFromValidatedProfileAndPolicy(
     witness: WitnessV3,
     destination: []QM31,
 ) Error!void {
+    return writeInputsFromValidatedProfileAndManifestPolicy(
+        input_profile,
+        descriptorShape(witness.proof_kind).manifest_family,
+        claim_policy,
+        witness,
+        destination,
+    );
+}
+
+pub fn writeInputsFromValidatedProfileAndManifestPolicy(
+    input_profile: InputProfileV3,
+    manifest_family: ManifestFamilyV3,
+    claim_policy: ClaimPolicyV3,
+    witness: WitnessV3,
+    destination: []QM31,
+) Error!void {
     try input_profile.validate();
     const profile = input_profile.graphProfile();
     const expected_count = graph_mod.recursionInputCount(profile) catch
@@ -392,8 +622,9 @@ pub fn writeInputsFromValidatedProfileAndPolicy(
     {
         return error.InvalidWitnessShape;
     }
-    try validateClaimInputsForPolicy(
+    try validateClaimInputsForManifestPolicy(
         witness.proof_kind,
+        manifest_family,
         claim_policy,
         witness.claim_inputs,
     );
@@ -438,6 +669,7 @@ pub fn writeInputsFromValidatedProfileAndPolicy(
             .claimed_sum => |coordinate| witness.claim_inputs[
                 coordinate.item_index
             ].toM31Array()[coordinate.word_index],
+            .transcript_claimed_sum => return error.InvalidWitnessShape,
             .public_wire_boundary => |coordinate| blk: {
                 if (coordinate.item_index != input_profile.claimed_sum_count)
                     return error.InvalidWitnessShape;
@@ -481,6 +713,7 @@ pub const DescriptorShape = struct {
     source_claim_count: u8,
     program_roster_count: u8,
     poseidon_partial_count: u8,
+    poseidon_roster_row: u8,
 };
 
 pub fn descriptorShape(kind: ProofKind) DescriptorShape {
@@ -491,6 +724,7 @@ pub fn descriptorShape(kind: ProofKind) DescriptorShape {
             .source_claim_count = SEGMENT_PHYSICAL_CLAIM_COUNT,
             .program_roster_count = SEGMENT_PHYSICAL_CLAIM_COUNT,
             .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+            .poseidon_roster_row = POSEIDON_ROSTER_ROW,
         },
         .binary_node => .{
             .manifest_family = .universal_v1,
@@ -498,6 +732,7 @@ pub fn descriptorShape(kind: ProofKind) DescriptorShape {
             .source_claim_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
             .program_roster_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
             .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+            .poseidon_roster_row = POSEIDON_ROSTER_ROW,
         },
         .empty_leaf => .{
             .manifest_family = .universal_v1,
@@ -505,6 +740,7 @@ pub fn descriptorShape(kind: ProofKind) DescriptorShape {
             .source_claim_count = EMPTY_PHYSICAL_CLAIM_COUNT,
             .program_roster_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
             .poseidon_partial_count = 0,
+            .poseidon_roster_row = POSEIDON_ROSTER_ROW,
         },
     };
 }
@@ -516,7 +752,54 @@ pub fn canonicalEmptyDescriptorShape() DescriptorShape {
         .source_claim_count = 1,
         .program_roster_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
         .poseidon_partial_count = 0,
+        .poseidon_roster_row = POSEIDON_ROSTER_ROW,
     };
+}
+
+pub fn h1DescriptorShape() DescriptorShape {
+    return .{
+        .manifest_family = .ethereum_poseidon_h1_v1,
+        .claim_policy = .ethereum_poseidon_h1,
+        .source_claim_count = H1_PHYSICAL_CLAIM_COUNT,
+        .program_roster_count = H1_PHYSICAL_CLAIM_COUNT,
+        .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+        .poseidon_roster_row = H1_POSEIDON_ROSTER_ROW,
+    };
+}
+
+pub fn temporalParentDescriptorShape() DescriptorShape {
+    return .{
+        .manifest_family = .temporal_parent_v3,
+        .claim_policy = .temporal_parent,
+        .source_claim_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
+        .program_roster_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
+        .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+        .poseidon_roster_row = POSEIDON_ROSTER_ROW,
+    };
+}
+
+pub fn commonFoldDescriptorShape() DescriptorShape {
+    return .{
+        .manifest_family = .common_fold_field_v2,
+        .claim_policy = .common_fold_field_v2,
+        .source_claim_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
+        .program_roster_count = UNIVERSAL_PHYSICAL_CLAIM_COUNT,
+        .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+        .poseidon_roster_row = POSEIDON_ROSTER_ROW,
+    };
+}
+
+pub fn descriptorShapeForManifest(
+    kind: ProofKind,
+    family: ManifestFamilyV3,
+) DescriptorShape {
+    if (kind == .binary_node and family == .ethereum_poseidon_h1_v1)
+        return h1DescriptorShape();
+    if (kind == .binary_node and family == .temporal_parent_v3)
+        return temporalParentDescriptorShape();
+    if (kind == .binary_node and family == .common_fold_field_v2)
+        return commonFoldDescriptorShape();
+    return descriptorShape(kind);
 }
 
 pub fn validateManifests(manifests: TrustedManifestsV3) Error!void {

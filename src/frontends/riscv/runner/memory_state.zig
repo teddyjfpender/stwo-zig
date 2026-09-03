@@ -250,7 +250,7 @@ inline fn identityMix(current: u64, value: u64) u64 {
 /// Capture Stark-V's sorted union of initialized and accessed RW words.
 pub fn capture(
     allocator: std.mem.Allocator,
-    memory: *const Memory,
+    memory: *Memory,
     tracker: *const StateChainTracker,
     layout: MemoryLayout,
     segment_role: SegmentRole,
@@ -274,7 +274,7 @@ pub fn capture(
 /// clock invariants; this explicit boundary supplies segment-entry values.
 pub fn captureSegment(
     allocator: std.mem.Allocator,
-    memory: *const Memory,
+    memory: *Memory,
     tracker: *const StateChainTracker,
     layout: MemoryLayout,
     segment_role: SegmentRole,
@@ -296,7 +296,7 @@ pub fn captureSegment(
 
 fn captureImpl(
     allocator: std.mem.Allocator,
-    memory: *const Memory,
+    memory: *Memory,
     tracker: *const StateChainTracker,
     layout: MemoryLayout,
     segment_role: SegmentRole,
@@ -304,18 +304,13 @@ fn captureImpl(
     completion_word_addr: ?u32,
     baseline: ?SegmentBaseline,
 ) !Snapshot {
-    var addresses = std.AutoHashMap(u32, void).init(allocator);
-    defer addresses.deinit();
-    try memory.addAlignedWordAddresses(&addresses);
-    var accessed = tracker.mem_last_clk.keyIterator();
-    while (accessed.next()) |addr| try addresses.put(addr.* & ~@as(u32, 3), {});
+    var addresses = try sortedAddressUnion(allocator, memory, tracker, layout, .proof_memory);
+    defer addresses.deinit(allocator);
 
     var words: std.ArrayList(WordState) = .{};
     errdefer words.deinit(allocator);
-    try words.ensureTotalCapacity(allocator, addresses.count());
-    var iterator = addresses.keyIterator();
-    while (iterator.next()) |addr_ptr| {
-        const addr = addr_ptr.*;
+    try words.ensureTotalCapacity(allocator, addresses.items.len);
+    for (addresses.items) |addr| {
         if (!layout.isRwAddr(addr)) continue;
         const final_word = memory.readU32(addr);
         const final_clock = tracker.mem_last_clk.get(addr) orelse 0;
@@ -336,13 +331,10 @@ fn captureImpl(
             },
         });
     }
-    std.mem.sort(WordState, words.items, {}, lessWord);
 
     var program_words: std.ArrayList(WordState) = .{};
     errdefer program_words.deinit(allocator);
-    var program_iterator = addresses.keyIterator();
-    while (program_iterator.next()) |addr_ptr| {
-        const addr = addr_ptr.*;
+    for (addresses.items) |addr| {
         if (!layout.isProgramAddr(addr)) continue;
         const word = memory.readU32(addr);
         try program_words.append(allocator, .{
@@ -352,7 +344,6 @@ fn captureImpl(
             .final_clock = 0,
         });
     }
-    std.mem.sort(WordState, program_words.items, {}, lessWord);
 
     return .{
         .layout = layout,
@@ -366,34 +357,186 @@ fn captureImpl(
 /// a segment.  This is paid once per boundary, never per instruction.
 pub fn captureSegmentBaseline(
     allocator: std.mem.Allocator,
-    memory: *const Memory,
+    memory: *Memory,
     tracker: *const StateChainTracker,
     layout: MemoryLayout,
 ) !SegmentBaseline {
-    var addresses = std.AutoHashMap(u32, void).init(allocator);
-    defer addresses.deinit();
-    try memory.addAlignedWordAddresses(&addresses);
-    var accessed = tracker.mem_last_clk.keyIterator();
-    while (accessed.next()) |addr| try addresses.put(addr.* & ~@as(u32, 3), {});
+    var addresses = try sortedAddressUnion(allocator, memory, tracker, layout, .rw_only);
+    defer addresses.deinit(allocator);
 
     var words: std.ArrayList(BaselineWord) = .{};
     errdefer words.deinit(allocator);
-    try words.ensureTotalCapacity(allocator, addresses.count());
-    var iterator = addresses.keyIterator();
-    while (iterator.next()) |addr| {
-        if (!layout.isRwAddr(addr.*)) continue;
-        words.appendAssumeCapacity(.{ .addr = addr.*, .value = memory.readU32(addr.*) });
+    try words.ensureTotalCapacity(allocator, addresses.items.len);
+    for (addresses.items) |addr| {
+        if (!layout.isRwAddr(addr)) continue;
+        words.appendAssumeCapacity(.{ .addr = addr, .value = memory.readU32(addr) });
     }
-    std.mem.sort(BaselineWord, words.items, {}, lessBaselineWord);
     return .{ .words = try words.toOwnedSlice(allocator) };
 }
 
-fn lessBaselineWord(_: void, lhs: BaselineWord, rhs: BaselineWord) bool {
-    return lhs.addr < rhs.addr;
+/// Materialize the initialized/accessed address union once in canonical order.
+///
+/// The old boundary path inserted every initialized ELF/input word into a new
+/// hash table twice per segment. Large stateless-block inputs contain more
+/// than a million such words, making bookkeeping dominate execution. The two
+/// source maps already provide duplicate-preserving inventories; append,
+/// sort, and in-place deduplication produce the identical set with one compact
+/// allocation and no per-address hashing.
+fn sortedAddressUnion(
+    allocator: std.mem.Allocator,
+    memory: *Memory,
+    tracker: *const StateChainTracker,
+    layout: MemoryLayout,
+    scope: AddressScope,
+) !std.ArrayList(u32) {
+    const initialized = try memory.canonicalAlignedWordAddresses();
+    var accessed_addresses: std.ArrayList(u32) = .empty;
+    defer accessed_addresses.deinit(allocator);
+    try accessed_addresses.ensureTotalCapacity(allocator, tracker.mem_last_clk.count());
+    var accessed = tracker.mem_last_clk.keyIterator();
+    while (accessed.next()) |addr| {
+        const aligned = addr.* & ~@as(u32, 3);
+        if (scope.includes(layout, aligned))
+            accessed_addresses.appendAssumeCapacity(aligned);
+    }
+
+    std.mem.sortUnstable(u32, accessed_addresses.items, {}, std.sort.asc(u32));
+    var accessed_unique_len: usize = 0;
+    for (accessed_addresses.items) |addr| {
+        if (accessed_unique_len != 0 and
+            accessed_addresses.items[accessed_unique_len - 1] == addr) continue;
+        accessed_addresses.items[accessed_unique_len] = addr;
+        accessed_unique_len += 1;
+    }
+    accessed_addresses.items.len = accessed_unique_len;
+
+    var addresses: std.ArrayList(u32) = .empty;
+    errdefer addresses.deinit(allocator);
+    try addresses.ensureTotalCapacity(
+        allocator,
+        initialized.len + accessed_addresses.items.len,
+    );
+    var initialized_index: usize = 0;
+    var accessed_index: usize = 0;
+    while (initialized_index < initialized.len or
+        accessed_index < accessed_addresses.items.len)
+    {
+        const initialized_addr = if (initialized_index < initialized.len)
+            initialized[initialized_index]
+        else
+            std.math.maxInt(u32);
+        const accessed_addr = if (accessed_index < accessed_addresses.items.len)
+            accessed_addresses.items[accessed_index]
+        else
+            std.math.maxInt(u32);
+        const addr = @min(initialized_addr, accessed_addr);
+        if (initialized_addr == addr) initialized_index += 1;
+        if (accessed_addr == addr) accessed_index += 1;
+        if (scope.includes(layout, addr)) addresses.appendAssumeCapacity(addr);
+    }
+    return addresses;
 }
 
-fn lessWord(_: void, lhs: WordState, rhs: WordState) bool {
-    return lhs.addr < rhs.addr;
+const AddressScope = enum {
+    rw_only,
+    proof_memory,
+
+    fn includes(self: AddressScope, layout: MemoryLayout, addr: u32) bool {
+        return layout.isRwAddr(addr) or
+            (self == .proof_memory and layout.isProgramAddr(addr));
+    }
+};
+
+test "memory state: address union is sorted and duplicate free" {
+    var memory = Memory.init(std.testing.allocator);
+    defer memory.deinit();
+    memory.writeU32(0x3008, 3);
+    memory.writeU32(0x1004, 1);
+    memory.writeU32(0x2000, 2);
+
+    var tracker = StateChainTracker.init(std.testing.allocator);
+    defer tracker.deinit();
+    try tracker.mem_last_clk.put(0x2000, 5);
+    try tracker.mem_last_clk.put(0x2004, 7);
+
+    var addresses = try sortedAddressUnion(
+        std.testing.allocator,
+        &memory,
+        &tracker,
+        testLayout(),
+        .proof_memory,
+    );
+    defer addresses.deinit(std.testing.allocator);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0x1004, 0x2000, 0x2004, 0x3008 },
+        addresses.items,
+    );
+
+    var rw_addresses = try sortedAddressUnion(
+        std.testing.allocator,
+        &memory,
+        &tracker,
+        testLayout(),
+        .rw_only,
+    );
+    defer rw_addresses.deinit(std.testing.allocator);
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0x2000, 0x2004, 0x3008 },
+        rw_addresses.items,
+    );
+}
+
+test "memory state: leaf-local first-access values replace entry snapshot" {
+    var memory = Memory.init(std.testing.allocator);
+    defer memory.deinit();
+    memory.writeU32(0x1000, 0x0000_0013);
+    memory.writeU32(0x2000, 7);
+    memory.writeU32(0x2004, 11);
+    memory.writeU32(0x3000, 13);
+
+    var tracker = StateChainTracker.init(std.testing.allocator);
+    defer tracker.deinit();
+    const layout = testLayout();
+    var baseline = try captureSegmentBaseline(
+        std.testing.allocator,
+        &memory,
+        &tracker,
+        layout,
+    );
+    defer baseline.deinit(std.testing.allocator);
+
+    try tracker.recordMemTransition(0x2000, 3, 7, 17);
+    memory.writeU32(0x2000, 17);
+    try tracker.recordMemTransition(0x2008, 7, 0, 19);
+    memory.writeU32(0x2008, 19);
+    const role = SegmentRole{ .is_first = false, .is_last = false };
+
+    var explicit = try captureSegment(
+        std.testing.allocator,
+        &memory,
+        &tracker,
+        layout,
+        role,
+        0,
+        null,
+        baseline,
+    );
+    defer explicit.deinit(std.testing.allocator);
+    var first_access = try capture(
+        std.testing.allocator,
+        &memory,
+        &tracker,
+        layout,
+        role,
+        0,
+        null,
+    );
+    defer first_access.deinit(std.testing.allocator);
+
+    try std.testing.expectEqualDeep(explicit.words, first_access.words);
+    try std.testing.expectEqualDeep(explicit.program_words, first_access.program_words);
 }
 
 fn testLayout() MemoryLayout {

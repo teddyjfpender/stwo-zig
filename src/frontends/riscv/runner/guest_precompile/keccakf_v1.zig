@@ -149,11 +149,46 @@ pub fn executeWithRecordedClock(
     calls: *call_buffer.Builder,
     execution_rows: *ExecutionRowsBuilder,
 ) !void {
+    return executeWithAggregateRecordedClock(
+        profile,
+        inst_word,
+        execution_clock,
+        segment_external_origin,
+        cpu,
+        memory,
+        layout,
+        tracker,
+        trace,
+        calls.len(),
+        execution_rows.len(),
+        calls,
+        execution_rows,
+    );
+}
+
+/// Combined profiles keep independent typed tapes. Aggregate counts bind the
+/// one shared external-retirement clock without weakening either tape's local
+/// call-index authority.
+pub fn executeWithAggregateRecordedClock(
+    profile: ExecutionProfile,
+    inst_word: u32,
+    execution_clock: u32,
+    segment_external_origin: usize,
+    cpu: *Cpu,
+    memory: *Memory,
+    layout: MemoryLayout,
+    tracker: *StateChainTracker,
+    trace: *Trace,
+    aggregate_calls_before: usize,
+    aggregate_rows_before: usize,
+    calls: *call_buffer.Builder,
+    execution_rows: *ExecutionRowsBuilder,
+) !void {
     const clock_token = try trace.prepareRecordedExternalRetirement(
         execution_clock,
         segment_external_origin,
-        calls.len(),
-        execution_rows.len(),
+        aggregate_calls_before,
+        aggregate_rows_before,
     );
     const prepared = try prepareAndReserve(
         profile,
@@ -168,13 +203,13 @@ pub fn executeWithRecordedClock(
     );
     if (!trace.externalRetirementTokenIsCurrent(
         clock_token,
-        calls.len(),
-        execution_rows.len(),
+        aggregate_calls_before,
+        aggregate_rows_before,
     )) return error.ProfileClockAuthorityMismatch;
     if (!Trace.externalRetirementCommitIsValid(
         clock_token,
-        calls.len() + 1,
-        execution_rows.len() + 1,
+        aggregate_calls_before + 1,
+        aggregate_rows_before + 1,
         prepared.record.execution_clock,
         prepared.row.execution_clock,
     )) return error.ProfileClockAuthorityMismatch;
@@ -246,6 +281,8 @@ fn prepare(
     calls: *const call_buffer.Builder,
 ) Error!Prepared {
     const decoded = try custom0.decode(profile, inst_word);
+    if (decoded.opcode != .keccakf_1600_permute_in_place_v1)
+        return error.InvalidPrecompileEncoding;
     if (execution_clock == 0 or
         access_clock.maximum(execution_clock) > std.math.maxInt(u32))
     {

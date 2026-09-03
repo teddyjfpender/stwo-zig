@@ -85,10 +85,20 @@ test "keccakf trace: output and range mutations fail without counter publication
         subject.generateShard(std.testing.allocator, &.{malformed}, 0, &counters),
     );
     try std.testing.expectEqual(@as(usize, 0), counters.slots);
-    try std.testing.expectError(
-        error.EmptyShard,
-        subject.generateShard(std.testing.allocator, &.{}, 0, &counters),
+    var empty = try subject.generateShard(
+        std.testing.allocator,
+        &.{},
+        0,
+        &counters,
     );
+    defer empty.deinit();
+    try std.testing.expectEqual(subject.minimum_log_size, empty.log_size);
+    try std.testing.expectEqual(@as(u32, 0), empty.n_rows);
+    try std.testing.expectEqual(@as(u32, 0), empty.call_count);
+    for (0..empty.domainSize()) |row| {
+        try std.testing.expect(empty.mainAt(subject.Layout.in_use_a, row).isZero());
+        try std.testing.expect(empty.mainAt(subject.Layout.in_use_b, row).isZero());
+    }
     try std.testing.expectError(
         error.CallIndexOutOfRange,
         subject.generateShard(

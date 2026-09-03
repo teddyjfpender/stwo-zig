@@ -42,6 +42,7 @@ const source_closure = policy.SourceClosure{
         .{ .name = "cairo_product", .source = "src/products/cairo/shared/mod.zig" },
         .{ .name = "stwo_cairo", .source = "src/stwo_cairo_metal.zig" },
         .{ .name = "stwo_cairo_metal", .source = "src/stwo_cairo_metal.zig" },
+        .{ .name = "stwo_artifact_store", .source = "src/artifact_store/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
@@ -63,6 +64,7 @@ const source_closure = policy.SourceClosure{
         "src/interop/output_transaction.zig",
     },
     .allowed_prefixes = &.{
+        "src/artifact_store",
         "src/backend",
         "src/backends/metal",
         "src/core",
@@ -329,11 +331,19 @@ fn createStwoModule(
         context.optimize,
         module,
     );
+    const artifact_store = graph.addArtifactStoreImport(
+        context.b,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
     const metal_session = graph.createMetalSession(
         context.b,
         product(role),
         context.target,
         context.optimize,
+        artifact_store,
     );
     _ = integration_graph.addCairoMetalImport(
         context.b,

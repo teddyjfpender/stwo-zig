@@ -23,6 +23,14 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     );
     const frontend = frontend_dependency.module("stwo_riscv_frontend");
+    const cpu_stage101_metal = b.dependency(
+        "stwo_riscv_cpu_integration",
+        dependency_options,
+    ).module("stwo_riscv_cpu_stage101_metal");
+    const cpu_stage101_degree5_metal = b.dependency(
+        "stwo_riscv_cpu_integration",
+        dependency_options,
+    ).module("stwo_riscv_cpu_stage101_degree5_metal");
     const secp256k1_proof_harness =
         frontend_dependency.module("secp256k1_proof_harness");
     const keccakf_proof_harness =
@@ -54,6 +62,34 @@ pub fn build(b: *std.Build) void {
         "test-keccakf-precompile-proof",
         "Prove compact typed Keccak-f on Metal and verify independently",
     );
+    const stage101_test_step = b.step(
+        "test-stage101-leaf-autoresearch-v1",
+        "Test the isolated exact Poseidon/q193 Stage101 Metal contract",
+    );
+    const stage101_compile_step = b.step(
+        "build-stage101-leaf-autoresearch-v1",
+        "Compile the isolated Stage101 Metal autoresearch command",
+    );
+    const stage101_install_step = b.step(
+        "install-stage101-leaf-autoresearch-v1",
+        "Materialize the isolated Stage101 Metal autoresearch command",
+    );
+    const stage101_benchmark_step = b.step(
+        "benchmark-stage101-leaf-autoresearch-v1",
+        "Run one retained Stage101 leaf on authenticated-AOT Metal",
+    );
+    const d5_sweep_test_step = b.step(
+        "test-stage101-degree5-provider-sweep-v1",
+        "Test the retained q193 D5 provider Metal sweep contract",
+    );
+    const d5_sweep_compile_step = b.step(
+        "build-stage101-degree5-provider-sweep-v1",
+        "Compile the retained q193 D5 provider Metal sweep command",
+    );
+    const d5_sweep_install_step = b.step(
+        "install-stage101-degree5-provider-sweep-v1",
+        "Materialize the retained q193 D5 provider Metal sweep command",
+    );
     if (target.result.os.tag != .macos) {
         const unsupported = b.addFail(
             "stwo_riscv_metal_integration tests require macOS and the Apple Metal SDK",
@@ -62,11 +98,98 @@ pub fn build(b: *std.Build) void {
         authenticated_aot_step.dependOn(&unsupported.step);
         secp256k1_proof_step.dependOn(&unsupported.step);
         keccakf_proof_step.dependOn(&unsupported.step);
+        stage101_test_step.dependOn(&unsupported.step);
+        stage101_compile_step.dependOn(&unsupported.step);
+        stage101_install_step.dependOn(&unsupported.step);
+        stage101_benchmark_step.dependOn(&unsupported.step);
+        d5_sweep_test_step.dependOn(&unsupported.step);
+        d5_sweep_compile_step.dependOn(&unsupported.step);
+        d5_sweep_install_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = integration });
     linkMetalFrameworks(tests);
     test_step.dependOn(&b.addRunArtifact(tests).step);
+
+    const stage101_module = b.createModule(.{
+        .root_source_file = b.path("stage101_leaf_autoresearch_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    stage101_module.addImport("stwo_metal_backend", metal_backend);
+    stage101_module.addImport("stwo_riscv_cpu_stage101_metal", cpu_stage101_metal);
+    stage101_module.addImport("stwo_riscv_frontend", frontend);
+    stage101_module.addImport("stwo_core", core);
+    stage101_module.addImport("stwo_prover_engine", prover);
+    const stage101_tests = b.addTest(.{
+        .root_module = stage101_module,
+        .filters = &.{
+            "Stage101 Metal engine preserves the exact q193 Poseidon protocol",
+            "Stage101 five-second budget is exact and fail closed by stage",
+            "Stage101 worker matrix is current-host evidence not a protocol cap",
+            "Stage101 Metal coverage rejects missing and host fallback work",
+            "Stage101 Poseidon Merkle device family is typed and seedless",
+            "Stage101 Poseidon polynomial residency accepts exact u64 tree maps",
+            "Stage101 degree-five provider AOT roster is four direct plus one lookup",
+        },
+    });
+    linkMetalFrameworks(stage101_tests);
+    stage101_test_step.dependOn(&b.addRunArtifact(stage101_tests).step);
+
+    const stage101_main = b.createModule(.{
+        .root_source_file = b.path("stage101_leaf_autoresearch_main_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    stage101_main.addImport("stage101_leaf_autoresearch_v1", stage101_module);
+    const stage101_executable = b.addExecutable(.{
+        .name = "stage101-metal-autoresearch-v1",
+        .root_module = stage101_main,
+    });
+    linkMetalFrameworks(stage101_executable);
+    stage101_compile_step.dependOn(&stage101_executable.step);
+    const stage101_install = b.addInstallArtifact(stage101_executable, .{});
+    stage101_install_step.dependOn(&stage101_install.step);
+
+    const d5_sweep_module = b.createModule(.{
+        .root_source_file = b.path("stage101_degree5_provider_sweep_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    d5_sweep_module.addImport("stwo_metal_backend", metal_backend);
+    d5_sweep_module.addImport(
+        "stwo_riscv_cpu_stage101_degree5_metal",
+        cpu_stage101_degree5_metal,
+    );
+    d5_sweep_module.addImport("stwo_riscv_frontend", frontend);
+    d5_sweep_module.addImport("stwo_core", core);
+    const d5_sweep_tests = b.addTest(.{
+        .root_module = d5_sweep_module,
+        .filters = &.{
+            "Stage101 D5 retained first arm pins exact q193 log18 topology",
+            "Stage101 D5 backend identity pins authenticated ABI21 custody",
+        },
+    });
+    linkMetalFrameworks(d5_sweep_tests);
+    d5_sweep_test_step.dependOn(&b.addRunArtifact(d5_sweep_tests).step);
+
+    const d5_sweep_main = b.createModule(.{
+        .root_source_file = b.path("stage101_degree5_provider_sweep_main_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    d5_sweep_main.addImport(
+        "stage101_degree5_provider_sweep_v1",
+        d5_sweep_module,
+    );
+    const d5_sweep_executable = b.addExecutable(.{
+        .name = "stage101-degree5-provider-sweep-v1",
+        .root_module = d5_sweep_main,
+    });
+    linkMetalFrameworks(d5_sweep_executable);
+    d5_sweep_compile_step.dependOn(&d5_sweep_executable.step);
+    const d5_sweep_install = b.addInstallArtifact(d5_sweep_executable, .{});
+    d5_sweep_install_step.dependOn(&d5_sweep_install.step);
 
     const configured_bundle = b.option(
         []const u8,
@@ -79,6 +202,7 @@ pub fn build(b: *std.Build) void {
         authenticated_aot_step.dependOn(&missing_bundle.step);
         secp256k1_proof_step.dependOn(&missing_bundle.step);
         keccakf_proof_step.dependOn(&missing_bundle.step);
+        stage101_benchmark_step.dependOn(&missing_bundle.step);
         return;
     };
     if (!std.fs.path.isAbsolute(configured_bundle)) {
@@ -88,6 +212,7 @@ pub fn build(b: *std.Build) void {
         authenticated_aot_step.dependOn(&invalid_bundle.step);
         secp256k1_proof_step.dependOn(&invalid_bundle.step);
         keccakf_proof_step.dependOn(&invalid_bundle.step);
+        stage101_benchmark_step.dependOn(&invalid_bundle.step);
         return;
     }
     const real_tests = b.addTest(.{
@@ -105,6 +230,16 @@ pub fn build(b: *std.Build) void {
     run_real.setEnvironmentVariable("STWO_ZIG_WORKERS", "1");
     run_real.setEnvironmentVariable("STWO_ZIG_MERKLE_WORKERS", "1");
     authenticated_aot_step.dependOn(&run_real.step);
+
+    const run_stage101 = b.addRunArtifact(stage101_executable);
+    run_stage101.step.dependOn(&stage101_install.step);
+    run_stage101.has_side_effects = true;
+    run_stage101.setEnvironmentVariable(
+        "STWO_RISCV_METAL_AOT_BUNDLE",
+        configured_bundle,
+    );
+    if (b.args) |arguments| run_stage101.addArgs(arguments);
+    stage101_benchmark_step.dependOn(&run_stage101.step);
 
     const secp256k1_root = b.createModule(.{
         .root_source_file = b.path("secp256k1_precompile_proof_test.zig"),

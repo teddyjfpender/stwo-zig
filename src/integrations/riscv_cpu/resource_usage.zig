@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const builtin = @import("builtin");
-const process_usage = @import("stwo").prover.measurement.process_usage;
+const process_usage = @import("stwo_prover_engine").measurement.process_usage;
 
 pub const SOURCE = "darwin.proc_pid_rusage.RUSAGE_INFO_V6";
 pub const SCOPE = "self_process_lifetime";

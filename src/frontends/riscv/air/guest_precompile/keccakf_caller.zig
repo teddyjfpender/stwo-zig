@@ -5,10 +5,14 @@
 //! cells as the memory-relation byte source, so arbitrary `u32` words need no
 //! second bit decomposition, byte materialization, or standalone component.
 
+const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
+const access_clock = @import("../../access_clock.zig");
 const logup = @import("../logup.zig");
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
+const custom0 = @import("../../isa/custom0.zig");
+const runner = @import("../../runner/guest_precompile/keccakf_v1.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const witness = @import("keccakf_witness.zig");
 
@@ -43,6 +47,49 @@ pub const batch_count: usize = event_count / 2;
 
 pub const Error = error{InvalidTraceShape};
 pub const BoundaryError = Error || error{ZeroDenominator};
+
+pub const PreflightError = custom0.DecodeError || error{
+    CallIndexMismatch,
+    ExecutionClockMismatch,
+    ExecutionClockOutOfRange,
+    ExecutionOrderMismatch,
+    PointerMismatch,
+    PointerRegisterMismatch,
+    ProgramMismatch,
+};
+
+/// Binds the independently retained execution-row tape to the caller records
+/// before either may reach a commitment. The paired Keccak trace consumes the
+/// records; the declared-program commitment consumes the rows, so this seam is
+/// what makes those two witnesses one transaction.
+pub fn preflight(
+    records: []const call_buffer.Record,
+    rows: []const runner.ExecutionRow,
+    total_steps: u32,
+) PreflightError!void {
+    if (records.len != rows.len) return error.CallIndexMismatch;
+    var previous_clock: u32 = 0;
+    for (records, rows, 0..) |record, row, index| {
+        if (row.call_index != index) return error.CallIndexMismatch;
+        if (record.execution_clock != row.execution_clock)
+            return error.ExecutionClockMismatch;
+        if (record.pc != row.pc) return error.ProgramMismatch;
+        if (record.execution_clock == 0 or record.execution_clock > total_steps or
+            access_clock.maximum(record.execution_clock) > std.math.maxInt(u32))
+        {
+            return error.ExecutionClockOutOfRange;
+        }
+        if (index != 0 and record.execution_clock <= previous_clock)
+            return error.ExecutionOrderMismatch;
+        previous_clock = record.execution_clock;
+        const decoded = try custom0.decode(.rv32im_zkvm_ethereum_v1, row.inst_word);
+        if (decoded.opcode != .keccakf_1600_permute_in_place_v1)
+            return error.ProgramMismatch;
+        if (decoded.rs1 != record.pointer_register)
+            return error.PointerRegisterMismatch;
+        if (record.state_ptr & 7 != 0) return error.PointerMismatch;
+    }
+}
 
 pub fn fill(record: call_buffer.Record) [Layout.main_columns]M31 {
     var row = [_]M31{M31.zero()} ** Layout.main_columns;
@@ -114,8 +161,8 @@ pub fn rowPairs(
     selector_a: S,
     selector_b: S,
     in_use_b: S,
-    relations: *const relations_mod.Relations,
-) Error![batch_count]logup.RowPair {
+    relations: anytype,
+) Error![batch_count]logup.RowPairFor(InteractionScalar(S)) {
     if (caller.len != Layout.main_columns or
         input_state.len != witness.state_cell_count or
         output_state.len != witness.state_cell_count or
@@ -135,7 +182,7 @@ pub fn rowPairs(
         selector_b.mul(in_use_b),
         combine(S, io_b[0..relations_mod.io_arity].*, relations.io),
     );
-    return pairEvents(events);
+    return pairEvents(S, events);
 }
 
 /// Opposite-sign public boundary for the isolated proof gate. Production
@@ -178,12 +225,12 @@ fn coreEvents(
     caller: []const S,
     input_state: []const S,
     output_state: []const S,
-    relations: *const relations_mod.Relations,
-) [event_count]logup.RowPair {
+    relations: anytype,
+) [event_count]logup.RowPairFor(InteractionScalar(S)) {
     const active = caller[Layout.enabler];
     const clock = caller[Layout.execution_clock];
     const pointer_bytes = caller[Layout.pointer_bytes..][0..4].*;
-    var events: [event_count]logup.RowPair = undefined;
+    var events: [event_count]logup.RowPairFor(InteractionScalar(S)) = undefined;
     var index: usize = 0;
     events[index] = request(S, active, combine(S, .{
         caller[Layout.pc],
@@ -266,13 +313,19 @@ fn coreEvents(
     }, relations.base.range_check_8_8_4));
     index += 1;
     while (index < events.len) : (index += 1) {
-        events[index] = logup.RowPair.single(QM31.zero(), QM31.one());
+        events[index] = logup.RowPairFor(InteractionScalar(S)).single(
+            InteractionScalar(S).zero(),
+            InteractionScalar(S).one(),
+        );
     }
     return events;
 }
 
-fn pairEvents(events: [event_count]logup.RowPair) [batch_count]logup.RowPair {
-    var result: [batch_count]logup.RowPair = undefined;
+fn pairEvents(
+    comptime S: type,
+    events: [event_count]logup.RowPairFor(InteractionScalar(S)),
+) [batch_count]logup.RowPairFor(InteractionScalar(S)) {
+    var result: [batch_count]logup.RowPairFor(InteractionScalar(S)) = undefined;
     for (&result, 0..) |*pair, batch| {
         const first = events[2 * batch];
         const second = events[2 * batch + 1];
@@ -286,12 +339,18 @@ fn pairEvents(events: [event_count]logup.RowPair) [batch_count]logup.RowPair {
     return result;
 }
 
-fn request(comptime S: type, active: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, active).neg(), denominator);
+fn request(comptime S: type, active: S, denominator: InteractionScalar(S)) logup.RowPairFor(InteractionScalar(S)) {
+    return logup.RowPairFor(InteractionScalar(S)).single(
+        lift(S, active).neg(),
+        denominator,
+    );
 }
 
-fn emit(comptime S: type, active: S, denominator: QM31) logup.RowPair {
-    return logup.RowPair.single(lift(S, active), denominator);
+fn emit(comptime S: type, active: S, denominator: InteractionScalar(S)) logup.RowPairFor(InteractionScalar(S)) {
+    return logup.RowPairFor(InteractionScalar(S)).single(
+        lift(S, active),
+        denominator,
+    );
 }
 
 fn memoryDenominator(
@@ -300,8 +359,8 @@ fn memoryDenominator(
     address: S,
     clock: S,
     limbs: [4]S,
-    relations: *const relations_mod.Relations,
-) QM31 {
+    relations: anytype,
+) InteractionScalar(S) {
     return combine(S, .{
         address_space, address,  clock,
         limbs[0],      limbs[1], limbs[2],
@@ -360,16 +419,20 @@ fn accessClock(comptime S: type, clock: S, ordinal: u32) S {
     return mulSmall(S, clock.sub(scalar(S, 1)), 4).add(scalar(S, ordinal));
 }
 
-fn combine(comptime S: type, tuple: anytype, relation: anytype) QM31 {
+fn combine(comptime S: type, tuple: anytype, relation: anytype) InteractionScalar(S) {
     if (comptime S == M31) return relation.combineBase(tuple);
     if (comptime S == QM31) return relation.combineSecure(tuple);
-    @compileError("Keccak caller supports M31 and QM31 rows");
+    return relation.combine(tuple);
 }
 
-fn lift(comptime S: type, value: S) QM31 {
+fn lift(comptime S: type, value: S) InteractionScalar(S) {
     if (comptime S == M31) return QM31.fromBase(value);
     if (comptime S == QM31) return value;
-    @compileError("Keccak caller supports M31 and QM31 rows");
+    return value;
+}
+
+fn InteractionScalar(comptime S: type) type {
+    return if (S == M31) QM31 else S;
 }
 
 fn scalar(comptime S: type, value: u32) S {

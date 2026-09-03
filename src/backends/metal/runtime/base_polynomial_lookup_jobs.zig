@@ -238,7 +238,7 @@ pub fn hasResidency(
     return true;
 }
 
-const PhysicalGeometry = struct {
+pub const PhysicalGeometry = struct {
     trace_log_size: u32,
     selector_tree_index: usize,
     selector_column: usize,
@@ -250,7 +250,7 @@ const PhysicalGeometry = struct {
     interaction_column_count: usize,
 };
 
-fn physicalGeometry(capability_value: Capability) PhysicalGeometry {
+pub fn physicalGeometry(capability_value: Capability) PhysicalGeometry {
     return switch (capability_value) {
         inline else => |value| .{
             .trace_log_size = value.trace_log_size,
@@ -329,7 +329,8 @@ fn resolveJob(
     if (!hasGeometryResidency(geometry, trace, residency_handles))
         return error.MissingLookupPolynomialResidency;
     const eval_log_size = component.maxConstraintLogDegreeBound();
-    if (eval_log_size != geometry.trace_log_size + 1 or
+    if (eval_log_size <= geometry.trace_log_size or
+        eval_log_size - geometry.trace_log_size > 3 or
         eval_log_size >= @bitSizeOf(usize))
     {
         return error.InvalidLookupPolynomialProgram;

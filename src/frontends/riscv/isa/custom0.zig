@@ -13,14 +13,18 @@ pub const ExecutionProfile = execution_profile.ExecutionProfile;
 pub const major_opcode: u7 = 0x0b;
 pub const poseidon2_funct7: u7 = 1;
 pub const keccakf_funct7: u7 = 2;
+pub const secp256k1_recover_funct7: u7 = 3;
 pub const poseidon2_fixed_word: u32 =
     (@as(u32, poseidon2_funct7) << 25) | @as(u32, major_opcode);
 pub const keccakf_fixed_word: u32 =
     (@as(u32, keccakf_funct7) << 25) | @as(u32, major_opcode);
+pub const secp256k1_recover_fixed_word: u32 =
+    (@as(u32, secp256k1_recover_funct7) << 25) | @as(u32, major_opcode);
 
 pub const Opcode = enum {
     poseidon2_m31_permute_in_place_v1,
     keccakf_1600_permute_in_place_v1,
+    secp256k1_recover_signer_v1,
 };
 
 pub const Decoded = struct {
@@ -44,6 +48,11 @@ pub inline fn encodeKeccakf(rs1: u5) u32 {
     return keccakf_fixed_word | (@as(u32, rs1) << 15);
 }
 
+/// Encode `stwo.secp256k1.recover.v1 rs1` exactly as fixed by the guest ABI.
+pub inline fn encodeSecp256k1Recover(rs1: u5) u32 {
+    return secp256k1_recover_fixed_word | (@as(u32, rs1) << 15);
+}
+
 /// Decode only the zkVM-owned CUSTOM-0 opcode space under `profile`.
 ///
 /// Non-CUSTOM-0 words are outside this decoder.  The base profile rejects the
@@ -61,6 +70,12 @@ pub inline fn decode(profile: ExecutionProfile, word: u32) DecodeError!Decoded {
             error.InvalidPrecompileEncoding,
         .rv32im_zkvm_keccakf_v1 => if (word == encodeKeccakf(rs1))
             .{ .opcode = .keccakf_1600_permute_in_place_v1, .rs1 = rs1 }
+        else
+            error.InvalidPrecompileEncoding,
+        .rv32im_zkvm_ethereum_v1 => if (word == encodeKeccakf(rs1))
+            .{ .opcode = .keccakf_1600_permute_in_place_v1, .rs1 = rs1 }
+        else if (word == encodeSecp256k1Recover(rs1))
+            .{ .opcode = .secp256k1_recover_signer_v1, .rs1 = rs1 }
         else
             error.InvalidPrecompileEncoding,
     };
@@ -150,6 +165,59 @@ test "Keccak-f encoding is exact and admitted only by its profile" {
             try std.testing.expectError(
                 error.InvalidPrecompileEncoding,
                 decode(.rv32im_zkvm_keccakf_v1, mutated),
+            );
+        }
+    }
+}
+
+test "Ethereum profile combines unchanged Keccak-f and exact signer recovery" {
+    for (0..32) |register_index| {
+        const rs1: u5 = @intCast(register_index);
+        const keccak = try decode(.rv32im_zkvm_ethereum_v1, encodeKeccakf(rs1));
+        try std.testing.expectEqual(Opcode.keccakf_1600_permute_in_place_v1, keccak.opcode);
+        try std.testing.expectEqual(rs1, keccak.rs1);
+
+        const recover_word = encodeSecp256k1Recover(rs1);
+        const recover = try decode(.rv32im_zkvm_ethereum_v1, recover_word);
+        try std.testing.expectEqual(Opcode.secp256k1_recover_signer_v1, recover.opcode);
+        try std.testing.expectEqual(rs1, recover.rs1);
+        try std.testing.expectError(
+            error.RequiredCapabilityUnavailable,
+            decode(.rv32im_zkvm_v1, recover_word),
+        );
+        try std.testing.expectError(
+            error.InvalidPrecompileEncoding,
+            decode(.rv32im_zkvm_poseidon2_v1, recover_word),
+        );
+        try std.testing.expectError(
+            error.InvalidPrecompileEncoding,
+            decode(.rv32im_zkvm_keccakf_v1, recover_word),
+        );
+    }
+
+    const canonical = encodeSecp256k1Recover(11);
+    const rs1_mask: u32 = 0x000f_8000;
+    for (0..32) |bit_index| {
+        const bit_mask = @as(u32, 1) << @intCast(bit_index);
+        if (bit_mask & rs1_mask != 0) continue;
+        const mutated = canonical ^ bit_mask;
+        if (mutated == encodeKeccakf(11)) {
+            const decoded = try decode(.rv32im_zkvm_ethereum_v1, mutated);
+            try std.testing.expectEqual(
+                Opcode.keccakf_1600_permute_in_place_v1,
+                decoded.opcode,
+            );
+            continue;
+        }
+        if (bit_index < 7) {
+            try std.testing.expectError(
+                error.IllegalInstruction,
+                decode(.rv32im_zkvm_ethereum_v1, mutated),
+            );
+        } else {
+            try std.testing.expectError(
+                error.InvalidPrecompileEncoding,
+                decode(.rv32im_zkvm_ethereum_v1, mutated),
             );
         }
     }

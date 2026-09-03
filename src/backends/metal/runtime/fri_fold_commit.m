@@ -7,14 +7,15 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
     const uint32_t *alphas, uint32_t fold_count, void *destination_ptr,
     void *coordinates_ptr,
     const uint32_t *leaf_seed, const uint32_t *node_seed,
-    uint32_t domain_prefix_bytes, StwoZigCommandEpochStats *stats,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, StwoZigCommandEpochStats *stats,
     char *error_message, size_t error_message_len
 ) {
     if (runtime_ptr == NULL || source_ptr == NULL || destination_ptr == NULL || coordinates_ptr == NULL ||
         inverse_x == NULL || alphas == NULL || leaf_seed == NULL || node_seed == NULL ||
         stats == NULL || source_count < 2u || (source_count & (source_count - 1u)) != 0u ||
         fold_count == 0u || fold_count >= 31u ||
-        (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u)) {
+        (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
+        !stwo_zig_valid_commitment_hash_family_v1(hash_family)) {
         write_error(error_message, error_message_len, @"Invalid Metal FRI fold + commitment arguments");
         return NULL;
     }
@@ -147,7 +148,12 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
             write_error(error_message, error_message_len, @"Metal FRI leaf encoder allocation failed");
             return NULL;
         }
-        [leaves setComputePipelineState:runtime.leaves];
+        id<MTLComputePipelineState> leaves_pipeline =
+            stwo_zig_commitment_leaves_pipeline(runtime, hash_family);
+        id<MTLComputePipelineState> parents_pipeline =
+            stwo_zig_commitment_parents_pipeline(runtime, hash_family);
+        if (leaves_pipeline == nil || parents_pipeline == nil) return NULL;
+        [leaves setComputePipelineState:leaves_pipeline];
         [leaves setBuffer:coordinates offset:0u atIndex:0];
         [leaves setBytes:column_offsets length:sizeof(column_offsets) atIndex:1];
         [leaves setBytes:column_logs length:sizeof(column_logs) atIndex:2];
@@ -156,8 +162,8 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
         [leaves setBytes:&tree_log_size length:sizeof(tree_log_size) atIndex:5];
         [leaves setBuffer:leaf_seed_buffer offset:0u atIndex:6];
         [leaves setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:7];
-        NSUInteger leaf_width = MIN(runtime.leaves.maxTotalThreadsPerThreadgroup,
-                                    runtime.leaves.threadExecutionWidth * 8u);
+        NSUInteger leaf_width = MIN(leaves_pipeline.maxTotalThreadsPerThreadgroup,
+                                    leaves_pipeline.threadExecutionWidth * 8u);
         [leaves dispatchThreads:MTLSizeMake(final_count, 1u, 1u)
              threadsPerThreadgroup:MTLSizeMake(leaf_width, 1u, 1u)];
         [leaves endEncoding];
@@ -171,14 +177,14 @@ void *stwo_zig_metal_fri_fold_line_and_commit(
                 write_error(error_message, error_message_len, @"Metal FRI parent encoder allocation failed");
                 return NULL;
             }
-            [parent setComputePipelineState:runtime.parents];
+            [parent setComputePipelineState:parents_pipeline];
             [parent setBuffer:layers[level - 1u] offset:0u atIndex:0];
             [parent setBuffer:layers[level] offset:0u atIndex:1];
             [parent setBytes:&parent_count length:sizeof(parent_count) atIndex:2];
             [parent setBuffer:node_seed_buffer offset:0u atIndex:3];
             [parent setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:4];
-            NSUInteger width = MIN(runtime.parents.maxTotalThreadsPerThreadgroup,
-                                   runtime.parents.threadExecutionWidth * 8u);
+            NSUInteger width = MIN(parents_pipeline.maxTotalThreadsPerThreadgroup,
+                                   parents_pipeline.threadExecutionWidth * 8u);
             [parent dispatchThreads:MTLSizeMake(parent_count, 1u, 1u)
                  threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
             [parent endEncoding];

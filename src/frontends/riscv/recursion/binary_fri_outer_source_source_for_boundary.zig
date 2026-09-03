@@ -1,5 +1,4 @@
 //! Internal shard of binary_fri_outer_source.zig; use the public facade.
-
 const dependency_0 = @import("binary_fri_outer_source_claims.zig");
 const dependency_1 = @import("binary_fri_outer_source_trusted_composition_profile_v1.zig");
 const dependency_2 = @import("binary_fri_outer_source_composition_rows_authority.zig");
@@ -25,6 +24,8 @@ const fri_operations = dependency_0.fri_operations;
 const boundary_operations = dependency_0.boundary_operations;
 const composition_operations = dependency_0.composition_operations;
 const constructors_operations = dependency_0.constructors_operations;
+const boundary_merkle_operations =
+    @import("binary_fri_outer_source_boundary_merkle_operations.zig");
 const M31 = dependency_0.M31;
 const QM31 = dependency_0.QM31;
 const air_digest = dependency_0.air_digest;
@@ -211,6 +212,14 @@ pub fn SourceForBoundary(
         source_authority_digest: air_digest.Digest,
 
         const Self = @This();
+        const BoundaryMerkleOperations = boundary_merkle_operations.Operations(
+            struct {
+                pub const Source = Self;
+                pub const BoundaryType = Boundary;
+                pub const dimensions_value = dimensions;
+                pub const fallback = dependency_6;
+            },
+        );
         const WorkspaceContext = workspace_context.Type(struct {
             pub const Source = Self;
             pub const PreparedAuthorityType = PreparedAuthority;
@@ -219,6 +228,9 @@ pub fn SourceForBoundary(
             pub const Materialized = dependency_7;
             pub const CompositionValues = dependency_8;
             pub const Validation = dependency_9;
+            pub const merkleLeafCount = BoundaryMerkleOperations.merkleLeafCount;
+            pub const merkleInvocationCount = BoundaryMerkleOperations.merkleInvocationCount;
+            pub const sharedPoseidonCallCount = BoundaryMerkleOperations.sharedPoseidonCallCount;
             pub const bundleLogSizesAssumeAuthority =
                 Self.bundleLogSizesAssumeAuthority;
         });
@@ -402,14 +414,30 @@ pub fn SourceForBoundary(
             } else {
                 try Boundary.validateSource(dimensions, self);
             }
-            try self.fri_rows.validate(
-                self.vm_plan,
-                self.recursion_plans[0],
-                self.children,
-            );
+            if (comptime !Boundary.IS_LEGACY and
+                @hasDecl(Boundary, "validateFriRows"))
+            {
+                try Boundary.validateFriRows(dimensions, self, &self.fri_rows);
+            } else {
+                try self.fri_rows.validate(
+                    self.vm_plan,
+                    self.recursion_plans[0],
+                    self.children,
+                );
+            }
             if (self.shared_arithmetic) |input| try input.validate();
             if (self.arithmetic_rows) |*rows| {
-                try rows.validate(self.children, self.shared_arithmetic);
+                if (comptime !Boundary.IS_LEGACY and
+                    @hasDecl(Boundary, "validateArithmeticRows"))
+                {
+                    try Boundary.validateArithmeticRows(
+                        dimensions,
+                        self,
+                        rows,
+                    );
+                } else {
+                    try rows.validate(self.children, self.shared_arithmetic);
+                }
             } else if (self.children[LEFT_CHILD].composition != null) {
                 return error.SourceAuthorityMismatch;
             }
@@ -549,6 +577,7 @@ pub fn SourceForBoundary(
 
         const FriOperations = fri_operations.Operations(struct {
             pub const Source = Self;
+            pub const BoundaryType = Boundary;
             pub const M31 = vm_binary_fri_source.M31;
             pub const query_bits_witness = vm_binary_fri_source.query_bits_witness;
             pub const query_mapping_witness = vm_binary_fri_source.query_mapping_witness;
@@ -582,6 +611,7 @@ pub fn SourceForBoundary(
 
         const ArithmeticOperations = arithmetic_operations.Operations(struct {
             pub const Source = Self;
+            pub const BoundaryType = Boundary;
             pub const M31 = vm_binary_fri_source.M31;
             pub const composition = vm_binary_fri_source.composition;
             pub const multiply_witness = vm_binary_fri_source.multiply_witness;
@@ -662,7 +692,9 @@ pub fn SourceForBoundary(
 
         pub fn bundleLogSizes(self: *const Self) ![ROW_COUNT]u32 {
             const typed = try self.typedRelationLogSizes();
-            return typed ++ .{try traceLogSize(try sharedPoseidonCallCount(self))};
+            return typed ++ .{try traceLogSize(
+                try BoundaryMerkleOperations.sharedPoseidonCallCount(self),
+            )};
         }
 
         pub fn bundleLogSizesAssumeAuthority(self: *const Self) ![ROW_COUNT]u32 {
@@ -673,8 +705,12 @@ pub fn SourceForBoundary(
             const typed = composition_rows.log_sizes ++
                 self.fri_rows.log_sizes ++
                 arithmetic_rows.log_sizes ++
-                .{try traceLogSize(try merkleInvocationCount(self))};
-            return typed ++ .{try traceLogSize(try sharedPoseidonCallCount(self))};
+                .{try traceLogSize(
+                    try BoundaryMerkleOperations.merkleInvocationCount(self),
+                )};
+            return typed ++ .{try traceLogSize(
+                try BoundaryMerkleOperations.sharedPoseidonCallCount(self),
+            )};
         }
 
         /// Installs the exact contiguous rows 18--34 geometry into the full
@@ -690,6 +726,7 @@ pub fn SourceForBoundary(
 
         const MerkleOperations = merkle_operations.Operations(struct {
             pub const Source = Self;
+            pub const BoundaryType = Boundary;
             pub const M31 = vm_binary_fri_source.M31;
             pub const composition = vm_binary_fri_source.composition;
             pub const composition_input_witness = vm_binary_fri_source.composition_input_witness;
@@ -716,8 +753,8 @@ pub fn SourceForBoundary(
             pub const ColumnOffset = vm_binary_fri_source.ColumnOffset;
             pub const columnLogicalRow = dependency_6.columnLogicalRow;
             pub const relationRowsDigest = dependency_6.relationRowsDigest;
-            pub const merkleInvocationCount = dependency_6.merkleInvocationCount;
-            pub const materializeMerkleWorkspace = dependency_6.materializeMerkleWorkspace;
+            pub const merkleInvocationCount = BoundaryMerkleOperations.merkleInvocationCount;
+            pub const materializeMerkleWorkspace = BoundaryMerkleOperations.materializeMerkleWorkspace;
             pub const merkleWorkspaceDigest = dependency_7.merkleWorkspaceDigest;
             pub const validateMerkleDestination = dependency_7.validateMerkleDestination;
             pub const validateDestination = dependency_7.validateDestination;

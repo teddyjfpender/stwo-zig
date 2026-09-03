@@ -323,6 +323,51 @@ test "V2 binary-pair owner fills all trees and audits one complete provider" {
         component_logs[16],
     );
     const manifest = try fixtureManifestForCore(component_logs);
+
+    // A verifier-created common-fold cohort begins with only the authenticated
+    // boundary schedule. Its first Tree-1 replay must promote that schedule
+    // to complete custody, and the retained cohort must support every later
+    // validation replay without returning RowsNotPrepared.
+    {
+        var retained = try BundleV2.initWithBoundarySchedule(
+            allocator,
+            &fixture.source,
+            &boundary_layout,
+            boundary_calls,
+        );
+        defer retained.deinit();
+        try std.testing.expectEqual(
+            bundle_mod.ProviderCustody.pending_shared_schedule,
+            retained.providerCustody(),
+        );
+        try std.testing.expectError(
+            error.RowsNotPrepared,
+            retained.completeProviderCallsPrepared(),
+        );
+        var retained_tree1 = try OwnedManifestTree.init(
+            allocator,
+            &manifest,
+            manifest_mod.MAIN_TREE_INDEX,
+        );
+        defer retained_tree1.deinit();
+        try retained.fillMainInto(&manifest, retained_tree1.columns);
+        try std.testing.expectEqual(
+            bundle_mod.ProviderCustody.complete_shared_schedule_v2,
+            retained.providerCustody(),
+        );
+        try std.testing.expectEqualDeep(
+            schedule.layout,
+            retained.sharedScheduleReceipt().?,
+        );
+        try expectCallSlicesEqual(
+            schedule.calls,
+            try retained.completeProviderCallsPrepared(),
+        );
+        @memset(retained_tree1.storage, M31.zero());
+        try retained.fillMainInto(&manifest, retained_tree1.columns);
+        try std.testing.expect(retained_tree1.anyNonZero());
+    }
+
     var tree0 = try OwnedManifestTree.init(
         allocator,
         &manifest,
@@ -407,6 +452,57 @@ test "V2 binary-pair owner fills all trees and audits one complete provider" {
     try expectCallSlicesEqual(
         prepared_core,
         prepared_complete[core_start..schedule.layout.verifier_core.end],
+    );
+
+    // Fresh verification regenerates Tree 1 on the same cohort. An identical
+    // pass compares every committed provider output with the first capture
+    // and leaves that sealed capture unchanged.
+    const SharedOutput = @TypeOf(bundle.shared_outputs[0]);
+    const sealed_outputs = try allocator.dupe(SharedOutput, bundle.shared_outputs);
+    defer allocator.free(sealed_outputs);
+    @memset(tree1.storage, M31.zero());
+    try bundle.fillMainInto(&manifest, tree1.columns);
+    try std.testing.expect(tree1.anyNonZero());
+    try std.testing.expectEqualSlices(
+        SharedOutput,
+        sealed_outputs,
+        bundle.shared_outputs,
+    );
+
+    // Once sealed, call, layout, and output mutations all fail closed. Every
+    // failed repeat clears the caller-owned destination and remains retryable.
+    @memset(tree1.storage, M31.zero());
+    schedule.calls[core_start].input[0] +%= 1;
+    try std.testing.expectError(
+        error.ProviderIdentityMismatch,
+        bundle.fillMainInto(&manifest, tree1.columns),
+    );
+    try std.testing.expect(tree1.allZero());
+    schedule.calls[core_start].input[0] = original_core_word;
+
+    const original_core_start = bundle.shared_layout.?.verifier_core.start;
+    bundle.shared_layout.?.verifier_core.start -= 1;
+    try std.testing.expectError(
+        error.ProviderIdentityMismatch,
+        bundle.fillMainInto(&manifest, tree1.columns),
+    );
+    try std.testing.expect(tree1.allZero());
+    bundle.shared_layout.?.verifier_core.start = original_core_start;
+
+    const original_output_word = bundle.shared_outputs[0][0];
+    bundle.shared_outputs[0][0] +%= 1;
+    try std.testing.expectError(
+        error.ProviderIdentityMismatch,
+        bundle.fillMainInto(&manifest, tree1.columns),
+    );
+    try std.testing.expect(tree1.allZero());
+    bundle.shared_outputs[0][0] = original_output_word;
+
+    try bundle.fillMainInto(&manifest, tree1.columns);
+    try std.testing.expectEqualSlices(
+        SharedOutput,
+        sealed_outputs,
+        bundle.shared_outputs,
     );
 
     const relations = universal.UniversalRelations.dummy();

@@ -168,6 +168,7 @@ pub const ProofWorkspace = struct {
     /// locals did.
     pub fn create(allocator: std.mem.Allocator) !*ProofWorkspace {
         const self = try allocator.create(ProofWorkspace);
+        self.statement.initializeDescriptorStorage();
         self.statement.n_components = 0;
         self.statement.n_infra = 0;
         self.opcode_error = null;

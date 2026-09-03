@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Replay the pinned real-Ethereum-block comparison authority.
 
-This gate deliberately separates execution, AIR planning, and proof claims.  A
-fast emulator run is not a proof, and the existing Stwo mini-transition is not
-a stateless Ethereum block validator.  The emitted report keeps those facts
-machine-readable while the Stwo segmented recursive product is brought up.
+This gate deliberately separates source porting, execution, AIR planning, and
+proof claims. A built guest is neither an execution receipt nor a proof. The
+emitted report keeps those facts machine-readable while the Stwo segmented
+recursive product is brought up.
 """
 
 from __future__ import annotations
@@ -23,8 +23,15 @@ from pathlib import Path
 from typing import Any
 
 
-SCHEMA = "stwo.autoresearch.ethereum-block-comparison.v3"
-REPORT_SCHEMA = "stwo.autoresearch.ethereum-block-validation.v1"
+BENCHMARK_DIR = Path(__file__).resolve().parent
+if str(BENCHMARK_DIR) not in sys.path:
+    sys.path.insert(0, str(BENCHMARK_DIR))
+import ethereum_block_products as stwo_products  # noqa: E402
+import ethereum_block_benchmark_protocol as benchmark_protocol  # noqa: E402
+
+
+SCHEMA = "stwo.autoresearch.ethereum-block-comparison.v6"
+REPORT_SCHEMA = "stwo.autoresearch.ethereum-block-validation.v4"
 DEFAULT_MANIFEST = Path(__file__).with_name("ethereum_block_mainnet_24628607.json")
 REPO_ROOT = Path(__file__).resolve().parents[2]
 HEX_32 = re.compile(r"^0x[0-9a-f]{64}$")
@@ -108,7 +115,9 @@ def load_manifest(path: Path = DEFAULT_MANIFEST) -> dict[str, Any]:
 
 
 def validate_manifest(value: Any) -> None:
-    root = _exact_keys(value, {"schema", "block", "zisk", "stwo", "claim_boundary"}, "manifest")
+    root = _exact_keys(value, {
+        "schema", "block", "zisk", "stwo", "benchmark_protocol", "claim_boundary",
+    }, "manifest")
     _require(root["schema"] == SCHEMA, "manifest schema differs")
 
     block = _exact_keys(root["block"], {
@@ -247,7 +256,8 @@ def validate_manifest(value: Any) -> None:
     stwo = _exact_keys(root["stwo"], {
         "one_shot_max_steps", "whole_frontend_verified", "proof_system_soundness",
         "independent_proof_verifier_implemented", "full_block_guest_ported",
-        "semantic_projection", "matched_semantic_input_projected",
+        "semantic_projection", "provider", "guest_products", "execution_diagnostics",
+        "matched_semantic_input_projected",
         "full_block_execution_reproduced", "full_block_segment_proofs_verified",
         "full_block_recursive_root_verified",
     }, "stwo")
@@ -317,11 +327,41 @@ def validate_manifest(value: Any) -> None:
              "Stwo payload-request root differs")
     _require(host["chain_id"] == block["chain_id"] and host["schema_id"] == fork["schema_id"],
              "Stwo host validation authority differs")
+    try:
+        stwo_products.validate_manifest(stwo["provider"], stwo["guest_products"])
+        diagnostics = _exact_keys(stwo["execution_diagnostics"], {
+            "keccak_only_full_block",
+        }, "stwo.execution_diagnostics")
+        stwo_products.validate_keccak_diagnostic(diagnostics["keccak_only_full_block"])
+    except stwo_products.ProductContractError as error:
+        raise ContractError(str(error)) from error
+    provider_source = stwo["provider"]["source"]
+    _require({key: provider_source[key] for key in ("repository", "commit", "tree")} == source,
+             "Stwo provider and semantic-projection source identities differ")
+    real_block = stwo["guest_products"]["real_block"]
+    _require({
+        "bytes": real_block["runner_input_bytes"],
+        "sha256": real_block["runner_input_sha256"],
+    } == {key: runner_input[key] for key in ("bytes", "sha256")},
+             "Stwo product and semantic-projection input identities differ")
+    _require({
+        "bytes": real_block["expected_output_bytes"],
+        "sha256": real_block["expected_output_sha256"],
+    } == {"bytes": host["output_bytes"], "sha256": host["output_sha256"]},
+             "Stwo product and host-output identities differ")
+    _require(real_block["transaction_count"] == block["transaction_count"],
+             "Stwo product transaction count differs")
+    keccak_diagnostic = diagnostics["keccak_only_full_block"]
+    _require(keccak_diagnostic["input"]
+             == {key: runner_input[key] for key in ("bytes", "sha256")},
+             "Stwo Keccak-only diagnostic input differs")
+    _require(keccak_diagnostic["execution"]["output_sha256"] == host["output_sha256"],
+             "Stwo Keccak-only diagnostic output differs")
     expected_status = {
         "whole_frontend_verified": False,
         "proof_system_soundness": False,
         "independent_proof_verifier_implemented": False,
-        "full_block_guest_ported": False,
+        "full_block_guest_ported": True,
         "matched_semantic_input_projected": True,
         "full_block_execution_reproduced": False,
         "full_block_segment_proofs_verified": False,
@@ -329,6 +369,11 @@ def validate_manifest(value: Any) -> None:
     }
     for name, status in expected_status.items():
         _require(stwo[name] is status, f"stwo.{name} differs from retained evidence")
+
+    try:
+        benchmark_protocol.validate(root["benchmark_protocol"], root)
+    except benchmark_protocol.BenchmarkProtocolError as error:
+        raise ContractError(str(error)) from error
 
     claim = _exact_keys(root["claim_boundary"], {
         "zisk_stateless_block_execution_reproduced", "zisk_air_plan_reproduced",
@@ -680,6 +725,7 @@ def validate_local(args: argparse.Namespace) -> dict[str, Any]:
         "zisk_execution": execution,
         "zisk_plan": geometry,
         "stwo": manifest["stwo"],
+        "benchmark_protocol": manifest["benchmark_protocol"],
         "claim_boundary": manifest["claim_boundary"],
     }
 
@@ -692,6 +738,26 @@ def validate_projection_files(args: argparse.Namespace) -> dict[str, Any]:
         args.host_output,
         manifest,
     )
+
+
+def validate_stwo_evidence(args: argparse.Namespace) -> dict[str, Any]:
+    manifest = load_manifest(args.manifest)["stwo"]
+    try:
+        if args.command == "validate-stwo-products":
+            return stwo_products.validate_products(
+                args.source_root, manifest["provider"], manifest["guest_products"],
+            )
+        if args.command == "validate-stwo-smoke":
+            return stwo_products.validate_smoke_execution(
+                args.bundle, args.controller, args.runner,
+                manifest["guest_products"]["abi_smoke"],
+            )
+        return stwo_products.validate_keccak_execution(
+            args.bundle, args.controller, args.runner, args.elf,
+            manifest["execution_diagnostics"]["keccak_only_full_block"],
+        )
+    except stwo_products.ProductContractError as error:
+        raise ContractError(str(error)) from error
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -719,6 +785,21 @@ def _parser() -> argparse.ArgumentParser:
     projection.add_argument("--stwo-runner-input", type=Path, required=True)
     projection.add_argument("--host-output", type=Path, required=True)
     projection.set_defaults(action=validate_projection_files)
+
+    products = sub.add_parser("validate-stwo-products")
+    products.add_argument("--source-root", type=Path, required=True)
+    products.set_defaults(action=validate_stwo_evidence)
+
+    smoke = sub.add_parser("validate-stwo-smoke")
+    smoke.add_argument("--bundle", type=Path, required=True)
+    smoke.add_argument("--controller", type=Path, required=True)
+    smoke.add_argument("--runner", type=Path, required=True)
+    smoke.set_defaults(action=validate_stwo_evidence)
+
+    keccak = sub.add_parser("validate-stwo-keccak-diagnostic")
+    for name in ("bundle", "controller", "runner", "elf"):
+        keccak.add_argument(f"--{name}", type=Path, required=True)
+    keccak.set_defaults(action=validate_stwo_evidence)
 
     rpc = sub.add_parser("validate-rpc")
     rpc.add_argument("--endpoint", required=True)

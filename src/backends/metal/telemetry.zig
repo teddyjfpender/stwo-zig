@@ -6,6 +6,9 @@ const runtime = @import("runtime.zig");
 pub const Event = enum {
     host_merkle_commit,
     resident_merkle_commit,
+    /// One resident tree whose leaves and parents were both dispatched through
+    /// the exact Poseidon2-M31 commitment family rather than the BLAKE2s ABI.
+    metal_poseidon2_merkle_commit,
     metal_quotient_dispatch,
     metal_sampled_value_dispatch,
     metal_circle_transform_dispatch,
@@ -89,6 +92,7 @@ pub const Event = enum {
 pub const CounterValues = struct {
     host_merkle_commits: u64 = 0,
     resident_merkle_commits: u64 = 0,
+    metal_poseidon2_merkle_commits: u64 = 0,
     metal_quotient_dispatches: u64 = 0,
     metal_sampled_value_dispatches: u64 = 0,
     metal_circle_transform_dispatches: u64 = 0,
@@ -137,6 +141,7 @@ pub const CounterValues = struct {
         var total: u64 = 0;
         inline for (.{
             self.resident_merkle_commits,
+            self.metal_poseidon2_merkle_commits,
             self.metal_quotient_dispatches,
             self.metal_sampled_value_dispatches,
             self.metal_circle_transform_dispatches,
@@ -322,6 +327,14 @@ pub const ResidentRiscPolynomialError = ClassificationError || error{
     ResidentPolynomialDeclineObserved,
 };
 
+pub const ResidentRiscPolynomialDispatchError = error{
+    NoEligibleBasePolynomialComponents,
+    NoEligibleLookupPolynomialComponents,
+    NoBasePolynomialBatchDispatch,
+    NoLookupPolynomialBatchDispatch,
+    ResidentPolynomialDeclineObserved,
+};
+
 pub const Snapshot = struct {
     counters: CounterValues,
     pipeline_cache: runtime.PipelineCacheStats,
@@ -369,9 +382,9 @@ pub const Delta = struct {
     /// A RISC-V Metal proof may claim resident polynomial execution only when
     /// both frontend-owned component classes were eligible, both resident
     /// batches completed, and no eligible route declined to the host path.
-    pub fn requireResidentRiscPolynomialExecution(
+    pub fn requireResidentRiscPolynomialDispatch(
         self: Delta,
-    ) ResidentRiscPolynomialError!void {
+    ) ResidentRiscPolynomialDispatchError!void {
         const counters = self.counters;
         if (counters.riscv_base_polynomial_eligible_components == 0)
             return error.NoEligibleBasePolynomialComponents;
@@ -383,6 +396,16 @@ pub const Delta = struct {
             return error.NoLookupPolynomialBatchDispatch;
         if (counters.cpu_riscv_polynomial_composition_declines != 0)
             return error.ResidentPolynomialDeclineObserved;
+    }
+
+    /// Stronger generic classification used by callers that permit no host
+    /// work at all.  Stage-specific harnesses may first authenticate the same
+    /// resident dispatch closure, then separately admit and report a bounded
+    /// set of intentional host placements.
+    pub fn requireResidentRiscPolynomialExecution(
+        self: Delta,
+    ) ResidentRiscPolynomialError!void {
+        try self.requireResidentRiscPolynomialDispatch();
         try self.requireAcceleratedWithoutFallbacks();
     }
 };
@@ -392,6 +415,7 @@ const AtomicCounter = std.atomic.Value(u64);
 const CounterBank = struct {
     host_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     resident_merkle_commits: AtomicCounter = AtomicCounter.init(0),
+    metal_poseidon2_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     metal_quotient_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_sampled_value_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_circle_transform_dispatches: AtomicCounter = AtomicCounter.init(0),
@@ -440,6 +464,7 @@ pub fn recordN(event: Event, count: u64) void {
     const counter = switch (event) {
         .host_merkle_commit => &counter_bank.host_merkle_commits,
         .resident_merkle_commit => &counter_bank.resident_merkle_commits,
+        .metal_poseidon2_merkle_commit => &counter_bank.metal_poseidon2_merkle_commits,
         .metal_quotient_dispatch => &counter_bank.metal_quotient_dispatches,
         .metal_sampled_value_dispatch => &counter_bank.metal_sampled_value_dispatches,
         .metal_circle_transform_dispatch => &counter_bank.metal_circle_transform_dispatches,
@@ -663,6 +688,7 @@ test "resident RISC polynomial evidence requires both successful lanes" {
         .pipeline_cache = .{},
     };
     try complete.requireResidentRiscPolynomialExecution();
+    try complete.requireResidentRiscPolynomialDispatch();
     try std.testing.expectEqual(@as(u64, 2), complete.counters.metalDispatchTotal());
 
     var missing = complete;
@@ -700,6 +726,14 @@ test "resident RISC polynomial evidence requires both successful lanes" {
     try std.testing.expectError(
         error.ResidentPolynomialDeclineObserved,
         declined.requireResidentRiscPolynomialExecution(),
+    );
+
+    var unrelated_host_placement = complete;
+    unrelated_host_placement.counters.cpu_small_circle_ldes = 1;
+    try unrelated_host_placement.requireResidentRiscPolynomialDispatch();
+    try std.testing.expectError(
+        error.CpuFallbackObserved,
+        unrelated_host_placement.requireResidentRiscPolynomialExecution(),
     );
 }
 

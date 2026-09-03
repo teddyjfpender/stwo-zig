@@ -9,8 +9,12 @@ const product_policy = @import("../graph/product.zig");
 const riscv_cpu_policy = @import("riscv_cpu_policy.zig");
 const riscv_cpu_modules = @import("riscv_cpu_modules.zig");
 const riscv_cpu_tests = @import("riscv_cpu_tests.zig");
+const ethereum_block_proof = @import("riscv_cpu_ethereum_block_proof.zig");
 const riscv_refinement = @import("riscv_refinement.zig");
 const riscv_poseidon2_pair = @import("riscv_poseidon2_pair.zig");
+const degree_bounded_poseidon = @import("riscv_cpu_degree_bounded_poseidon.zig");
+const degree5_poseidon = @import("riscv_cpu_degree5_poseidon.zig");
+const memory_provider_shards = @import("riscv_cpu_memory_provider_shards.zig");
 const sail_oracle_tests = @import("riscv_sail_oracle_tests.zig");
 const test_filter = @import("riscv_test_filter.zig");
 const product = graph.Product{
@@ -68,7 +72,67 @@ pub fn addProduct(context: Context) void {
     const install_host_trace = context.b.addInstallArtifact(host_trace, .{});
     const trace_step = context.b.step("riscv-trace-dump", "Build RISC-V trace dumper CLI");
     trace_step.dependOn(&install_host_trace.step);
+    const pc_hotspot = addPcHotspotExecutable(
+        context,
+        context.target,
+        context.optimize,
+    );
+    const install_pc_hotspot = context.b.addInstallArtifact(pc_hotspot, .{});
+    context.b.step(
+        "riscv-pc-hotspot-observer",
+        "Build the bounded RISC-V retirement PC-hotspot observer",
+    ).dependOn(&install_pc_hotspot.step);
+    const function_value = addFunctionValueExecutable(
+        context,
+        context.target,
+        context.optimize,
+    );
+    const install_function_value = context.b.addInstallArtifact(function_value, .{});
+    context.b.step(
+        "riscv-function-value-observer",
+        "Build the bounded RISC-V function-load value observer",
+    ).dependOn(&install_function_value.step);
+    const analyze_legacy_semantic = addAnalyzeLegacySemanticExecutable(
+        context,
+        context.target,
+        context.optimize,
+    );
+    const install_analyze_legacy_semantic = context.b.addInstallArtifact(
+        analyze_legacy_semantic,
+        .{},
+    );
+    context.b.step(
+        "riscv-analyze-legacy-semantic-observer",
+        "Build the bounded Revm-42 analyze_legacy semantic observer",
+    ).dependOn(&install_analyze_legacy_semantic.step);
+    const memcpy_hotspot = addMemcpyHotspotExecutable(
+        context,
+        context.target,
+        context.optimize,
+    );
+    const install_memcpy_hotspot = context.b.addInstallArtifact(memcpy_hotspot, .{});
+    context.b.step(
+        "riscv-memcpy-hotspot-observer",
+        "Build the bounded RISC-V memcpy-call hotspot observer",
+    ).dependOn(&install_memcpy_hotspot.step);
+    const memcpy_admission = addMemcpyAdmissionExecutable(
+        context,
+        context.target,
+        context.optimize,
+    );
+    const install_memcpy_admission = context.b.addInstallArtifact(
+        memcpy_admission,
+        .{},
+    );
+    context.b.step(
+        "riscv-memcpy-admission-observer",
+        "Build the exact RISC-V bulk-memcpy admission observer",
+    ).dependOn(&install_memcpy_admission.step);
+    ethereum_block_proof.add(context, product);
     riscv_poseidon2_pair.add(context, product);
+    degree_bounded_poseidon.add(context, product, testContext(context));
+    degree5_poseidon.add(context, product, testContext(context));
+    memory_provider_shards.add(context, product, testContext(context));
     const host_step = context.b.step(
         "stwo-zig-riscv-cpu",
         "Build the focused Sail RV32IM CPU/SIMD proof CLI",
@@ -314,6 +378,156 @@ fn addTraceExecutable(
     root.addOptions("build_identity", graph_identity.buildOptions(b, context.identity));
     return b.addExecutable(.{ .name = name, .root_module = root });
 }
+fn addPcHotspotExecutable(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const b = context.b;
+    const root = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/riscv_pc_hotspot_cli.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    context.protocol.addImports(root);
+    integration_graph.addRiscVCpuStack(
+        b,
+        context.protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
+    root.addOptions(
+        "build_identity",
+        graph_identity.buildOptions(b, context.identity),
+    );
+    return b.addExecutable(.{
+        .name = "riscv-pc-hotspot-observer",
+        .root_module = root,
+    });
+}
+fn addFunctionValueExecutable(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const b = context.b;
+    const root = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/riscv_function_value_cli.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    context.protocol.addImports(root);
+    integration_graph.addRiscVCpuStack(
+        b,
+        context.protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
+    root.addOptions(
+        "build_identity",
+        graph_identity.buildOptions(b, context.identity),
+    );
+    return b.addExecutable(.{
+        .name = "riscv-function-value-observer",
+        .root_module = root,
+    });
+}
+fn addAnalyzeLegacySemanticExecutable(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const b = context.b;
+    const root = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/riscv_analyze_legacy_semantic_cli.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    context.protocol.addImports(root);
+    integration_graph.addRiscVCpuStack(
+        b,
+        context.protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
+    root.addOptions(
+        "build_identity",
+        graph_identity.buildOptions(b, context.identity),
+    );
+    return b.addExecutable(.{
+        .name = "riscv-analyze-legacy-semantic-observer",
+        .root_module = root,
+    });
+}
+fn addMemcpyHotspotExecutable(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const b = context.b;
+    const root = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/riscv_memcpy_hotspot_cli.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    context.protocol.addImports(root);
+    integration_graph.addRiscVCpuStack(
+        b,
+        context.protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
+    root.addOptions(
+        "build_identity",
+        graph_identity.buildOptions(b, context.identity),
+    );
+    return b.addExecutable(.{
+        .name = "riscv-memcpy-hotspot-observer",
+        .root_module = root,
+    });
+}
+fn addMemcpyAdmissionExecutable(
+    context: Context,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+) *std.Build.Step.Compile {
+    const b = context.b;
+    const root = graph.create(b, .{
+        .product = product,
+        .root_source_file = "src/riscv_memcpy_admission_cli.zig",
+        .target = target,
+        .optimize = optimize,
+    });
+    context.protocol.addImports(root);
+    integration_graph.addRiscVCpuStack(
+        b,
+        context.protocol,
+        product,
+        target,
+        optimize,
+        root,
+    );
+    root.addOptions(
+        "build_identity",
+        graph_identity.buildOptions(b, context.identity),
+    );
+    return b.addExecutable(.{
+        .name = "riscv-memcpy-admission-observer",
+        .root_module = root,
+    });
+}
 fn addExecutable(
     context: Context,
     protocol: graph.ProtocolModules,
@@ -403,7 +617,6 @@ fn addRecursiveCspProducer(context: Context) *std.Build.Step.Compile {
         .root_module = root,
     });
 }
-
 fn addRecursionShapeInspector(context: Context) *std.Build.Step.Compile {
     const b = context.b;
     const root = graph.create(b, .{

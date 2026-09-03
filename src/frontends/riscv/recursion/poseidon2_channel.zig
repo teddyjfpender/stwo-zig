@@ -355,6 +355,11 @@ pub const MerkleHasher = struct {
     sponge: Sponge,
 
     pub const Hash = Digest;
+    /// Backend-neutral numeric protocol tag.  A commitment backend may admit
+    /// this family only when it implements the exact pinned Poseidon2-M31
+    /// permutation and leaf sponge; the tag is not a substitute for proof or
+    /// root verification.
+    pub const metal_commitment_hash_family_v1: u32 = 2;
     pub const Children = struct { left: Digest, right: Digest };
     /// Poseidon internal nodes begin directly from their two child digests, so
     /// there is no prehashed byte-domain state to carry between calls.  A void

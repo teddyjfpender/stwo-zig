@@ -46,13 +46,19 @@ test {
     _ = @import("recursion/air/qm31_mul_full_test.zig");
     _ = @import("recursion/air/qm31_mul_test.zig");
     _ = @import("recursion/air/query_bits_test.zig");
+    _ = @import("recursion/air/query_bits_heterogeneous_v2_test.zig");
+    _ = @import("recursion/air/pcs_input_arena_heterogeneous_v2_test.zig");
+    _ = @import("recursion/air/fri_rows_profiles_heterogeneous_v2_test.zig");
+    _ = @import("recursion/air/fri_rows_authority_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/query_mapping_test.zig");
+    _ = @import("recursion/air/query_mapping_witness_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/relation_challenge_test.zig");
     _ = @import("recursion/air/temporal_packed_relation_challenge_v2.zig");
     _ = @import("recursion/air/relation_effect.zig");
     _ = @import("recursion/air/relation_interaction.zig");
     _ = @import("recursion/air/statement_input_test.zig");
     _ = @import("recursion/air/trace_merkle_test.zig");
+    _ = @import("recursion/air/trace_merkle_witness_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/transcript_air_test.zig");
     _ = @import("recursion/air/transcript_binding_test.zig");
     _ = @import("recursion/air/transcript_payload_test.zig");
@@ -67,6 +73,7 @@ test {
     _ = @import("recursion/air/verifier_schedule.zig");
     _ = @import("recursion/air/verifier_randomness_test.zig");
     _ = @import("recursion/air/control_slice_test.zig");
+    _ = @import("recursion/air/control_slice_heterogeneous_v2_test.zig");
     _ = @import("recursion/air/vm_air_composition_input_test.zig");
     _ = @import("recursion/air/vm_public_claim_hash_test.zig");
     _ = @import("recursion/air/vm_public_claim_input_test.zig");

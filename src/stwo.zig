@@ -10,6 +10,7 @@ pub const frontends = @import("frontends/mod.zig");
 pub const integrations = @import("integrations/mod.zig");
 pub const examples = @import("stwo_native_examples");
 pub const interop = @import("interop/mod.zig");
+pub const artifact_store = @import("stwo_artifact_store");
 pub const metal_session = @import("stwo_metal_session");
 pub const std_shims = @import("std_shims/mod.zig");
 pub const tracing = @import("tracing/mod.zig");

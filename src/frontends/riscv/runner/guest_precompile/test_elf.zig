@@ -2,7 +2,11 @@
 
 const std = @import("std");
 const custom0 = @import("../../isa/custom0.zig");
+const bulk_memcpy = @import("../../isa/bulk_memcpy_candidate_v1.zig");
 const execution_profile = @import("../../isa/execution_profile.zig");
+const signer_abi = @import("../../isa/ethereum_signer_recovery.zig");
+const stack_swap = @import("../../isa/stack_swap_candidate_v1.zig");
+const stack_swap_registry = @import("../../isa/stack_swap_private_registry_v1.zig");
 
 const section_strings_offset: usize = 328;
 const note_offset: usize = 384;
@@ -61,6 +65,123 @@ pub fn buildKeccakf(completion: Completion) [keccakf_elf_size]u8 {
         keccakf_data_size,
         .rv32im_zkvm_keccakf_v1,
     );
+}
+
+pub const ethereum_instructions = [_]u32{
+    0x0010_02b7, // LUI x5, 0x100.
+    0x1002_8293, // ADDI x5, x5, 0x100: signer in/out record.
+    custom0.encodeSecp256k1Recover(5),
+    0x0a82_8313, // ADDI x6, x5, 168: adjacent Keccak state.
+    custom0.encodeKeccakf(6),
+    0x0000_0073, // ECALL.
+};
+
+const ethereum_data_size: usize = 384;
+pub const ethereum_elf_size: usize =
+    imageSize(ethereum_instructions.len, ethereum_data_size);
+
+/// Valid fixed d=1, k=1 ECDSA recovery followed by one Keccak-f call.
+pub fn buildEthereum() [ethereum_elf_size]u8 {
+    var elf = buildProgram(
+        ethereum_instructions.len,
+        &ethereum_instructions,
+        ethereum_data_size,
+        .rv32im_zkvm_ethereum_v1,
+    );
+    const data_offset = program_offset + ethereum_instructions.len * @sizeOf(u32);
+    var digest: [32]u8 = @splat(0);
+    digest[31] = 1;
+    const point = std.crypto.ecc.Secp256k1.basePoint.affineCoordinates();
+    const r = point.x.toBytes(.big);
+    const r_scalar = std.crypto.ecc.Secp256k1.scalar.Scalar.fromBytes(r, .big) catch
+        unreachable;
+    const s = r_scalar.add(.one).toBytes(.big);
+    @memcpy(elf[data_offset + signer_abi.digest_offset ..][0..32], &digest);
+    @memcpy(elf[data_offset + signer_abi.r_offset ..][0..32], &r);
+    @memcpy(elf[data_offset + signer_abi.s_offset ..][0..32], &s);
+    put(u32, &elf, data_offset + signer_abi.recovery_id_offset, 0);
+    @memset(
+        elf[data_offset + signer_abi.public_key_offset .. data_offset + signer_abi.record_size],
+        0,
+    );
+    return elf;
+}
+
+pub const ethereum_bulk_memcpy_source: u32 = 0x0010_0100;
+pub const ethereum_bulk_memcpy_destination: u32 = 0x0010_0140;
+pub const ethereum_bulk_memcpy_length: usize = 32;
+pub const ethereum_bulk_memcpy_instructions = [_]u32{
+    0x0010_0537, // LUI a0, 0x100.
+    0x1405_0513, // ADDI a0, a0, 0x140: destination.
+    0x0010_05b7, // LUI a1, 0x100.
+    0x1005_8593, // ADDI a1, a1, 0x100: source.
+    0x0200_0613, // ADDI a2, x0, 32: byte length.
+    bulk_memcpy.fixed_word,
+    0x0000_0073, // ECALL.
+};
+
+const ethereum_bulk_memcpy_data_size: usize = 128;
+pub const ethereum_bulk_memcpy_elf_size: usize =
+    imageSize(ethereum_bulk_memcpy_instructions.len, ethereum_bulk_memcpy_data_size);
+
+/// Minimal candidate-only Ethereum ELF with one sound aligned/disjoint call.
+pub fn buildEthereumBulkMemcpyCandidate() [ethereum_bulk_memcpy_elf_size]u8 {
+    var elf = buildProgram(
+        ethereum_bulk_memcpy_instructions.len,
+        &ethereum_bulk_memcpy_instructions,
+        ethereum_bulk_memcpy_data_size,
+        .rv32im_zkvm_ethereum_v1,
+    );
+    const data_offset = program_offset +
+        ethereum_bulk_memcpy_instructions.len * @sizeOf(u32);
+    for (elf[data_offset..][0..ethereum_bulk_memcpy_length], 0..) |*byte, index|
+        byte.* = @intCast(index + 1);
+    return elf;
+}
+
+pub const ethereum_combined_source: u32 = 0x0010_0100;
+pub const ethereum_combined_bulk_destination: u32 = 0x0010_0140;
+pub const ethereum_combined_swap_rhs: u32 = 0x0010_0180;
+pub const ethereum_combined_word_bytes: usize = 32;
+pub const ethereum_combined_swap_word: u32 =
+    (@as(u32, stack_swap_registry.allocated_funct7) << 25) |
+    (@as(u32, stack_swap.rhs_pointer_register) << 20) |
+    (@as(u32, stack_swap.lhs_pointer_register) << 15) |
+    @as(u32, stack_swap.major_opcode);
+pub const ethereum_combined_instructions = [_]u32{
+    0x0010_0537, // LUI a0, 0x100.
+    0x1405_0513, // ADDI a0, a0, 0x140: bulk destination.
+    0x0010_05b7, // LUI a1, 0x100.
+    0x1005_8593, // ADDI a1, a1, 0x100: bulk source.
+    0x0200_0613, // ADDI a2, x0, 32.
+    bulk_memcpy.fixed_word,
+    0x0010_0537, // LUI a0, 0x100.
+    0x1405_0513, // ADDI a0, a0, 0x140: SWAP lhs.
+    0x0010_05b7, // LUI a1, 0x100.
+    0x1805_8593, // ADDI a1, a1, 0x180: SWAP rhs.
+    ethereum_combined_swap_word,
+    0x0000_006f, // JAL x0, 0: proof-bearing completion boundary.
+};
+
+const ethereum_combined_data_size: usize = 160;
+pub const ethereum_combined_elf_size: usize =
+    imageSize(ethereum_combined_instructions.len, ethereum_combined_data_size);
+
+/// Final synthetic candidate ELF carrying both ordered private members.
+pub fn buildEthereumCombinedCandidate() [ethereum_combined_elf_size]u8 {
+    var elf = buildProgram(
+        ethereum_combined_instructions.len,
+        &ethereum_combined_instructions,
+        ethereum_combined_data_size,
+        .rv32im_zkvm_ethereum_v1,
+    );
+    const data_offset = program_offset +
+        ethereum_combined_instructions.len * @sizeOf(u32);
+    for (elf[data_offset..][0..ethereum_combined_word_bytes], 0..) |*byte, index|
+        byte.* = @intCast(index + 1);
+    for (elf[data_offset + 0x80 ..][0..ethereum_combined_word_bytes], 0..) |*byte, index|
+        byte.* = @intCast(0x80 + index);
+    return elf;
 }
 
 /// Minimal admitted program for temporal-recursion custody tests. Both
@@ -251,6 +372,10 @@ fn buildProgram(
         .rv32im_zkvm_keccakf_v1 => .{
             execution_profile.keccakf_abi_version,
             execution_profile.keccakf_semantic_digest,
+        },
+        .rv32im_zkvm_ethereum_v1 => .{
+            execution_profile.ethereum_abi_version,
+            execution_profile.ethereum_semantic_digest,
         },
         .rv32im_zkvm_v1 => unreachable,
     };

@@ -19,6 +19,24 @@ pub const typed_poseidon2_identity = @import("typed_poseidon2_identity.zig");
 pub const typed_poseidon2_relations = @import("typed_poseidon2_relations.zig");
 pub const typed_poseidon2_witness = @import("typed_poseidon2_witness.zig");
 pub const typed_poseidon2_authority = @import("typed_poseidon2_authority.zig");
+/// Experimental, non-admitted lower-width compiler candidates. These use a
+/// distinct identity domain and are not production `HashComponent` aliases.
+pub const typed_poseidon2_degree_bounded_candidate =
+    @import("typed_poseidon2_degree_bounded_candidate.zig");
+pub const typed_poseidon2_degree_bounded_component =
+    @import("typed_poseidon2_degree_bounded_component.zig");
+pub const typed_poseidon2_degree_bounded_backend =
+    @import("typed_poseidon2_degree_bounded_backend.zig");
+pub const typed_poseidon2_degree_bounded_trace =
+    @import("typed_poseidon2_degree_bounded_trace.zig");
+pub const typed_poseidon2_degree5_component =
+    @import("typed_poseidon2_degree5_component.zig");
+pub const typed_poseidon2_degree5_backend =
+    @import("typed_poseidon2_degree5_backend.zig");
+pub const typed_poseidon2_degree5_trace =
+    @import("typed_poseidon2_degree5_trace.zig");
+pub const typed_poseidon2_degree_bounded_residency =
+    @import("typed_poseidon2_degree_bounded_residency.zig");
 pub const typed_lui = @import("typed_lui.zig");
 pub const typed_lui_authority = @import("typed_lui_authority.zig");
 pub const typed_lui_witness = @import("typed_lui_witness.zig");

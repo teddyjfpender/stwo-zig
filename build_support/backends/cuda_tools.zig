@@ -131,6 +131,7 @@ pub fn addProducts(
         optimize,
         stwo,
     );
+    _ = graph.addArtifactStoreImport(b, tool_product, target, optimize, stwo);
     const metal_session = graph.addMetalSessionImport(
         b,
         tool_product,

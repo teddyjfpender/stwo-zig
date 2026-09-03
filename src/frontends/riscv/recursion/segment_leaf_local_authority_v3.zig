@@ -41,6 +41,7 @@ pub const METADATA_IDENTITY_WORDS: usize =
     POSITION_IDENTITY_WORDS +
     (2 * BOUNDARY_IDENTITY_WORDS) +
     COMPLETION_IDENTITY_WORDS;
+pub const IdentityWords = [METADATA_IDENTITY_WORDS]m31.M31;
 
 comptime {
     if (METADATA_IDENTITY_WORDS != 608)
@@ -156,8 +157,16 @@ pub const MetadataV3 = struct {
     /// Canonical Poseidon identity of the complete global projection,
     /// including both sparse-boundary identities and all local clock custody.
     pub fn identity(self: *const MetadataV3) Error!segment_v2.Digest {
+        const words = try self.identityWords();
+        return channel.hashCanonicalWords(&words, METADATA_ID_DOMAIN);
+    }
+
+    /// Exact algebraic preimage used by `identity`. Recursive ingress retains
+    /// these words so every MetadataV3 field can be constrained rather than
+    /// replacing the relation with a native transport hash.
+    pub fn identityWords(self: *const MetadataV3) Error!IdentityWords {
         try self.validate();
-        var words: [METADATA_IDENTITY_WORDS]stwo_core.fields.m31.M31 = undefined;
+        var words: IdentityWords = undefined;
         var at: usize = 0;
         putScalar(&words, &at, self.format_version);
         putScalar(&words, &at, self.schema_version);
@@ -182,7 +191,7 @@ pub const MetadataV3 = struct {
             for (0..7) |_| putScalar(&words, &at, 0);
         }
         std.debug.assert(at == words.len);
-        return channel.hashCanonicalWords(&words, METADATA_ID_DOMAIN);
+        return words;
     }
 };
 
@@ -205,7 +214,27 @@ pub const SourceV3 = struct {
         return source;
     }
 
+    /// Retained-boundary constructor for deterministic restart. The complete
+    /// current sparse projection must reproduce the retained snapshot
+    /// identities and counts before either retained root is reused.
+    pub fn fromSegmentResultAgainstMetadata(
+        base_statement: span.SpanStatement,
+        result: *const runner_result.SegmentResult,
+        retained: *const MetadataV3,
+    ) Error!SourceV3 {
+        const source = SourceV3{
+            .base_statement = base_statement,
+            .result = result,
+        };
+        _ = try source.metadataAgainstRetained(retained);
+        return source;
+    }
+
     pub fn validate(self: *const SourceV3) Error!void {
+        _ = try self.metadata();
+    }
+
+    fn validateCommon(self: *const SourceV3) Error!u32 {
         try self.base_statement.validate();
         const executed = try executedLeaf(self.base_statement);
         const result = self.result;
@@ -289,17 +318,36 @@ pub const SourceV3 = struct {
         try validateTrackerBoundary(result);
         try validateSnapshotClockLink(result);
         try validateCompletionMemoryLink(result, local_cycles, is_final);
-
-        const projection = try metadataUnchecked(self, local_cycles);
-        try projection.validate();
+        return local_cycles;
     }
 
     pub fn metadata(self: *const SourceV3) Error!MetadataV3 {
-        try self.validate();
-        return metadataUnchecked(
+        const result = try metadataUnchecked(
             self,
-            @intCast(self.result.cycle_count),
+            try self.validateCommon(),
+            null,
         );
+        try result.validate();
+        return result;
+    }
+
+    /// Cold restart twin of `metadata`. Roots are reused only through
+    /// `snapshotIdentityReusingRoot`, then every remaining field is compared
+    /// to the already authenticated STWESG31 projection.
+    pub fn metadataAgainstRetained(
+        self: *const SourceV3,
+        retained: *const MetadataV3,
+    ) Error!MetadataV3 {
+        try retained.validate();
+        const result = try metadataUnchecked(
+            self,
+            try self.validateCommon(),
+            retained,
+        );
+        try result.validate();
+        if (!std.meta.eql(result, retained.*))
+            return error.MemorySnapshotMismatch;
+        return result;
     }
 };
 
@@ -367,17 +415,40 @@ fn executedLeaf(base: span.SpanStatement) Error!span.ExecutedSpan {
 fn metadataUnchecked(
     source: *const SourceV3,
     local_cycles: u32,
+    retained: ?*const MetadataV3,
 ) Error!MetadataV3 {
     const result = source.result;
     const base_words = try source.base_statement.canonicalWords();
-    const entry_snapshot = segment_v2.snapshotIdentity(
-        result.rw_memory.words,
-        .initial_word,
-    );
-    const exit_snapshot = segment_v2.snapshotIdentity(
-        result.rw_memory.words,
-        .final_word,
-    );
+    const entry_snapshot = if (retained) |expected|
+        try segment_v2.snapshotIdentityReusingRoot(
+            .{
+                .id = expected.entry.snapshot_id,
+                .count = expected.entry.snapshot_count,
+                .root = expected.entry.continuation_root,
+            },
+            result.rw_memory.words,
+            .initial_word,
+        )
+    else
+        segment_v2.snapshotIdentity(
+            result.rw_memory.words,
+            .initial_word,
+        );
+    const exit_snapshot = if (retained) |expected|
+        try segment_v2.snapshotIdentityReusingRoot(
+            .{
+                .id = expected.exit.snapshot_id,
+                .count = expected.exit.snapshot_count,
+                .root = expected.exit.continuation_root,
+            },
+            result.rw_memory.words,
+            .final_word,
+        )
+    else
+        segment_v2.snapshotIdentity(
+            result.rw_memory.words,
+            .final_word,
+        );
     return .{
         .base_statement_words = base_words,
         .segment_index = result.segment_index,

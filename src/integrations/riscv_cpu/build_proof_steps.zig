@@ -12,6 +12,352 @@ pub fn add(ctx: anytype) void {
     const postcard = ctx.postcard;
     const integration = ctx.integration;
     const tests = b.addRunArtifact(b.addTest(.{ .root_module = integration }));
+    const stack_swap_root = support.createHarnessModule(
+        b,
+        "stack_swap_candidate_proof_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    stack_swap_root.addImport("stwo_prover_engine", prover);
+    stack_swap_root.addImport("interop_postcard", postcard);
+    const stack_swap_test_names: []const []const u8 = &.{
+        "stack swap runner trace proves, postcards, and cold fresh verifies",
+        "stack swap proof selectors are current-only and power-of-two traces pad",
+    };
+    const stack_swap_compile = b.addTest(.{
+        .root_module = stack_swap_root,
+        .filters = stack_swap_test_names,
+    });
+    const stack_swap_tests = b.addRunArtifact(stack_swap_compile);
+    stack_swap_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-stack-swap-proof",
+        "Prove and cold fresh-verify the nonproduction U256 swap candidate",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        stack_swap_tests,
+        stack_swap_test_names,
+        "atomic U256 swap proof identity guard",
+    ));
+    const stack_swap_vm_root = support.createHarnessModule(
+        b,
+        "stack_swap_vm_integration_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    const stack_swap_vm_test_names: []const []const u8 = &.{
+        "stack swap VM private authority mints one exact declared program root",
+        "stack swap VM component profile is appended and mutation closed",
+        "stack swap VM cancellation requires the exact external base context",
+    };
+    const stack_swap_vm_compile = b.addTest(.{
+        .root_module = stack_swap_vm_root,
+        .filters = stack_swap_vm_test_names,
+    });
+    const stack_swap_vm_tests = b.addRunArtifact(stack_swap_vm_compile);
+    stack_swap_vm_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-stack-swap-vm-integration",
+        "Validate the inactive private U256 swap full-VM boundary",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        stack_swap_vm_tests,
+        stack_swap_vm_test_names,
+        "private U256 swap VM integration guard",
+    ));
+    const degree5_provider_root = support.createHarnessModule(
+        b,
+        "degree5_provider_proof_v1_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    degree5_provider_root.addImport("stwo_prover_api", prover_api);
+    degree5_provider_root.addImport("stwo_prover_engine", prover);
+    degree5_provider_root.addImport("interop_postcard", postcard);
+    const degree5_provider_test_names: []const []const u8 = &.{
+        "degree-five retained provider program and N4 profile are cold and fail closed",
+        "degree-five retained provider log16 postcard cold fresh verifies",
+    };
+    const degree5_provider_compile = b.addTest(.{
+        .root_module = degree5_provider_root,
+        .filters = degree5_provider_test_names,
+    });
+    const degree5_provider_tests = b.addRunArtifact(degree5_provider_compile);
+    degree5_provider_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-degree5-provider-proof",
+        "Prove and cold fresh-verify one retained degree-five provider shard",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        degree5_provider_tests,
+        degree5_provider_test_names,
+        "degree-five retained provider proof identity guard",
+    ));
+    const degree5_provider_order_root = support.createHarnessModule(
+        b,
+        "degree5_provider_order_proof_v2_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    degree5_provider_order_root.addImport("stwo_prover_api", prover_api);
+    degree5_provider_order_root.addImport("stwo_prover_engine", prover);
+    degree5_provider_order_root.addImport("interop_postcard", postcard);
+    const degree5_provider_order_test_names: []const []const u8 = &.{
+        "degree-five ordered provider program binds its compiler projection",
+        "degree-five ordered provider log16 postcard cold fresh verifies",
+    };
+    const degree5_provider_order_compile = b.addTest(.{
+        .root_module = degree5_provider_order_root,
+        .filters = degree5_provider_order_test_names,
+    });
+    const degree5_provider_order_tests = b.addRunArtifact(
+        degree5_provider_order_compile,
+    );
+    degree5_provider_order_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-degree5-provider-order-proof",
+        "Prove and cold fresh-verify one ordered degree-five provider shard",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        degree5_provider_order_tests,
+        degree5_provider_order_test_names,
+        "degree-five ordered provider proof identity guard",
+    ));
+    const candidate_provider_batch_root = support.createHarnessModule(
+        b,
+        "ethereum_candidate_degree5_provider_batch_v1_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    candidate_provider_batch_root.addImport("stwo_prover_engine", prover);
+    const candidate_provider_batch_test_names: []const []const u8 = &.{
+        "candidate D5 batch accounts retained log18 owners and rejects oversized log16",
+        "candidate D5 batch authority rejects CPU RSS and plan mutation",
+        "candidate D5 batch host admission is machine-generic",
+        "candidate D5 validated call authority is pointer closed and rejects descriptor mutation",
+        "candidate D5 prepared and proof batch declarations compile",
+    };
+    const candidate_provider_batch_compile = b.addTest(.{
+        .root_module = candidate_provider_batch_root,
+        .filters = candidate_provider_batch_test_names,
+    });
+    const candidate_provider_batch_tests = b.addRunArtifact(
+        candidate_provider_batch_compile,
+    );
+    candidate_provider_batch_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-candidate-degree5-provider-batch-v1",
+        "Validate runtime-authorized D5 provider batch topology and owners",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        candidate_provider_batch_tests,
+        candidate_provider_batch_test_names,
+        "candidate D5 provider batch identity guard",
+    ));
+    const candidate_leaf_root = support.createHarnessModule(
+        b,
+        "ethereum_candidate_leaf_proof_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    candidate_leaf_root.addImport("stwo_prover_api", prover_api);
+    candidate_leaf_root.addImport("stwo_prover_engine", prover);
+    candidate_leaf_root.addImport("interop_postcard", postcard);
+    const candidate_leaf_test_names: []const []const u8 = &.{
+        "combined candidate leaf postcards, cold verifies, and closes degree-five providers",
+    };
+    const candidate_leaf_compile = b.addTest(.{
+        .root_module = candidate_leaf_root,
+        .filters = candidate_leaf_test_names,
+    });
+    b.step(
+        "build-riscv-ethereum-candidate-leaf-proof",
+        "Compile the combined candidate plus runtime D5 provider batch gate",
+    ).dependOn(&candidate_leaf_compile.step);
+    const candidate_leaf_tests = b.addRunArtifact(candidate_leaf_compile);
+    candidate_leaf_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-ethereum-candidate-leaf-proof",
+        "Prove and cold fresh-verify the combined candidate plus d5 providers",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        candidate_leaf_tests,
+        candidate_leaf_test_names,
+        "combined candidate leaf terminal proof identity guard",
+    ));
+    const omitted_leaf_bundle_root = support.createHarnessModule(
+        b,
+        "ethereum_provider_omitted_leaf_bundle_v1_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    omitted_leaf_bundle_root.addImport("stwo_prover_api", prover_api);
+    omitted_leaf_bundle_root.addImport("stwo_prover_engine", prover);
+    omitted_leaf_bundle_root.addImport("interop_postcard", postcard);
+    const omitted_leaf_bundle_test_names: []const []const u8 = &.{
+        "ordinary omitted-provider bundle frozen APIs type instantiate",
+        "ordinary omitted-provider framing rejects canonical order and identity mutations",
+        "ordinary omitted-provider capture custody rejects identity and ordinal mutations",
+    };
+    const omitted_leaf_bundle_compile = b.addTest(.{
+        .root_module = omitted_leaf_bundle_root,
+        .filters = omitted_leaf_bundle_test_names,
+    });
+    const omitted_leaf_bundle_tests = b.addRunArtifact(
+        omitted_leaf_bundle_compile,
+    );
+    omitted_leaf_bundle_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-ethereum-provider-omitted-leaf-bundle",
+        "Type-check omitted-provider custody and validate its canonical envelope",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omitted_leaf_bundle_tests,
+        omitted_leaf_bundle_test_names,
+        "ordinary omitted-provider cold bundle identity guard",
+    ));
+    const incremental_native_leaf_root = support.createHarnessModule(
+        b,
+        "ethereum_incremental_native_leaf_proof_v3_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    incremental_native_leaf_root.addImport("stwo_prover_api", prover_api);
+    incremental_native_leaf_root.addImport("stwo_prover_engine", prover);
+    incremental_native_leaf_root.addImport("interop_postcard", postcard);
+    const incremental_native_leaf_test_names: []const []const u8 = &.{
+        "incremental native V3 proof cold-decodes and freshly captures q193 PCS",
+    };
+    const incremental_native_leaf_compile = b.addTest(.{
+        .root_module = incremental_native_leaf_root,
+        .filters = incremental_native_leaf_test_names,
+    });
+    const incremental_native_leaf_tests = b.addRunArtifact(
+        incremental_native_leaf_compile,
+    );
+    incremental_native_leaf_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-ethereum-incremental-native-leaf-proof-v3",
+        "Prove, cold-decode, and freshly verify one incremental native V3 leaf",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        incremental_native_leaf_tests,
+        incremental_native_leaf_test_names,
+        "incremental native V3 terminal proof identity guard",
+    ));
+    const incremental_full_leaf_root = support.createHarnessModule(
+        b,
+        "ethereum_incremental_full_leaf_proof_v4_test.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    incremental_full_leaf_root.addImport("stwo_prover_api", prover_api);
+    incremental_full_leaf_root.addImport("stwo_prover_engine", prover);
+    incremental_full_leaf_root.addImport("interop_postcard", postcard);
+    const incremental_full_leaf_test_names: []const []const u8 = &.{
+        "full Ethereum incremental V4 proof coldly verifies q193 capture",
+    };
+    const incremental_full_leaf_compile = b.addTest(.{
+        .root_module = incremental_full_leaf_root,
+        .filters = incremental_full_leaf_test_names,
+    });
+    const incremental_full_leaf_tests = b.addRunArtifact(
+        incremental_full_leaf_compile,
+    );
+    incremental_full_leaf_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-ethereum-incremental-full-leaf-proof-v4",
+        "Prove, cold-decode, and fresh-verify Ethereum plus V4 memory",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        incremental_full_leaf_tests,
+        incremental_full_leaf_test_names,
+        "incremental Ethereum V4 terminal proof identity guard",
+    ));
+    const incremental_full_leaf_replay_producer_root =
+        support.createHarnessModule(
+            b,
+            "ethereum_incremental_full_leaf_replay_producer_v4_test.zig",
+            target,
+            optimize,
+            core,
+            cpu_backend,
+            frontend,
+            integration,
+        );
+    incremental_full_leaf_replay_producer_root.addImport(
+        "stwo_prover_api",
+        prover_api,
+    );
+    incremental_full_leaf_replay_producer_root.addImport(
+        "stwo_prover_engine",
+        prover,
+    );
+    incremental_full_leaf_replay_producer_root.addImport(
+        "interop_postcard",
+        postcard,
+    );
+    const incremental_full_leaf_replay_producer_test_names: []const []const u8 = &.{
+        "VM-free incremental full-leaf producer API type instantiates",
+        "leaf-local completion consumes the actual declared program word",
+        "validated lease copies sources and records one trust boundary",
+        "retained statement decode moves one lease into fresh public custody",
+        "validated lease releases every partial allocation",
+        "validated authority surface stays process-local and exposes lease paths",
+    };
+    const incremental_full_leaf_replay_producer_compile = b.addTest(.{
+        .root_module = incremental_full_leaf_replay_producer_root,
+        .filters = incremental_full_leaf_replay_producer_test_names,
+    });
+    const incremental_full_leaf_replay_producer_tests = b.addRunArtifact(
+        incremental_full_leaf_replay_producer_compile,
+    );
+    incremental_full_leaf_replay_producer_tests.has_side_effects = true;
+    b.step(
+        "test-riscv-ethereum-incremental-full-leaf-replay-producer-v4",
+        "Type-check the VM-free Ethereum incremental leaf producer",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        incremental_full_leaf_replay_producer_tests,
+        incremental_full_leaf_replay_producer_test_names,
+        "incremental Ethereum V4 VM-free producer type guard",
+    ));
     const main_witness_poseidon2_root = support.createHarnessModule(
         b,
         "split_pcs_prepare_test.zig",
@@ -193,6 +539,177 @@ pub fn add(ctx: anytype) void {
         secp256k1_proof_tests,
         &.{secp256k1_proof_name},
         "secp256k1 native proof identity guard",
+    ));
+
+    const ethereum_proof_root = b.createModule(.{
+        .root_source_file = b.path("ethereum_precompile_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    support.addImports(
+        ethereum_proof_root,
+        core,
+        prover_api,
+        prover,
+        cpu_backend,
+        frontend,
+    );
+    const ethereum_proof_name =
+        "Ethereum base Keccak and signer recovery prove and independently verify on CPU";
+    const ethereum_proof_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_proof_name},
+    });
+    b.step(
+        "check-ethereum-precompile-proof",
+        "Compile the joined Ethereum leaf proof and independent-verifier gate",
+    ).dependOn(&ethereum_proof_compile.step);
+    const ethereum_proof_tests = b.addRunArtifact(ethereum_proof_compile);
+    ethereum_proof_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-precompile-proof",
+        "Prove and independently verify base plus Keccak plus signer recovery",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_proof_tests,
+        &.{ethereum_proof_name},
+        "Ethereum joined leaf proof identity guard",
+    ));
+    const ethereum_zero_name =
+        "Ethereum zero-family segment preserves fourteen slots and independently verifies";
+    const ethereum_zero_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_zero_name},
+    });
+    b.step(
+        "check-ethereum-zero-family-proof",
+        "Compile the canonical all-empty Ethereum extension segment proof",
+    ).dependOn(&ethereum_zero_compile.step);
+    const ethereum_zero_tests = b.addRunArtifact(ethereum_zero_compile);
+    ethereum_zero_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-zero-family-proof",
+        "Prove and independently verify an all-empty Ethereum extension segment",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_zero_tests,
+        &.{ethereum_zero_name},
+        "Ethereum zero-family proof identity guard",
+    ));
+    const ethereum_segment_zero_name =
+        "Ethereum nonfinal SegmentV2 zero-extension leaf proves and verifies";
+    const ethereum_segment_zero_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_segment_zero_name},
+    });
+    b.step(
+        "check-ethereum-segment-v2-zero-proof",
+        "Compile the non-final Ethereum SegmentV2 zero-extension proof gate",
+    ).dependOn(&ethereum_segment_zero_compile.step);
+    const ethereum_segment_zero_tests = b.addRunArtifact(
+        ethereum_segment_zero_compile,
+    );
+    ethereum_segment_zero_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-segment-v2-zero-proof",
+        "Prove and verify one non-final Ethereum SegmentV2 zero-extension leaf",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_segment_zero_tests,
+        &.{ethereum_segment_zero_name},
+        "Ethereum SegmentV2 zero-extension proof identity guard",
+    ));
+    const ethereum_segment_signer_name =
+        "Ethereum nonfinal SegmentV2 signer leaf proves and verifies";
+    const ethereum_segment_signer_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_segment_signer_name},
+    });
+    b.step(
+        "check-ethereum-segment-v2-signer-proof",
+        "Compile the non-final Ethereum SegmentV2 signer proof gate",
+    ).dependOn(&ethereum_segment_signer_compile.step);
+    const ethereum_segment_signer_tests = b.addRunArtifact(
+        ethereum_segment_signer_compile,
+    );
+    ethereum_segment_signer_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-segment-v2-signer-proof",
+        "Prove and verify one non-final Ethereum SegmentV2 signer leaf",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_segment_signer_tests,
+        &.{ethereum_segment_signer_name},
+        "Ethereum SegmentV2 signer proof identity guard",
+    ));
+    const ethereum_segment_capture_name =
+        "Ethereum SegmentV3 capture seals count-sensitive extension sidecars";
+    const ethereum_segment_capture_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_segment_capture_name},
+    });
+    b.step(
+        "check-ethereum-segment-v3-capture-proof",
+        "Compile the full dynamic Ethereum SegmentV3 verifier capture gate",
+    ).dependOn(&ethereum_segment_capture_compile.step);
+    const ethereum_segment_capture_tests = b.addRunArtifact(
+        ethereum_segment_capture_compile,
+    );
+    ethereum_segment_capture_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-segment-v3-capture-proof",
+        "Verify dynamic Ethereum capture and count-sensitive sidecar binding",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_segment_capture_tests,
+        &.{ethereum_segment_capture_name},
+        "Ethereum SegmentV3 full capture identity guard",
+    ));
+    const ethereum_segment_extension_name =
+        "Ethereum SegmentV2 extended transcript binds dynamic provider shard count";
+    const ethereum_segment_extension_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_segment_extension_name},
+    });
+    b.step(
+        "check-ethereum-segment-transcript-extension",
+        "Compile the additive Ethereum SegmentV2/V3 transcript extension",
+    ).dependOn(&ethereum_segment_extension_compile.step);
+    const ethereum_segment_extension_tests = b.addRunArtifact(
+        ethereum_segment_extension_compile,
+    );
+    ethereum_segment_extension_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-segment-transcript-extension",
+        "Prove and freshly verify the additive Ethereum segment transcript",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_segment_extension_tests,
+        &.{ethereum_segment_extension_name},
+        "Ethereum SegmentV2/V3 transcript-extension identity guard",
+    ));
+    const ethereum_poseidon_artifact_name =
+        "Ethereum Poseidon2 SegmentV3 artifact verifies full dynamic capture";
+    const ethereum_poseidon_artifact_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{ethereum_poseidon_artifact_name},
+    });
+    b.step(
+        "check-ethereum-poseidon-segment-artifact",
+        "Compile the Poseidon2 Ethereum SegmentV3 artifact round trip",
+    ).dependOn(&ethereum_poseidon_artifact_compile.step);
+    const ethereum_poseidon_artifact_test = b.addRunArtifact(
+        ethereum_poseidon_artifact_compile,
+    );
+    ethereum_poseidon_artifact_test.has_side_effects = true;
+    b.step(
+        "test-ethereum-poseidon-segment-artifact",
+        "Prove, serialize, and verify a Poseidon2 Ethereum SegmentV3 leaf",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        ethereum_poseidon_artifact_test,
+        &.{ethereum_poseidon_artifact_name},
+        "Poseidon2 Ethereum SegmentV3 artifact identity guard",
     ));
 
     const full_recursion_proof_root = b.createModule(.{

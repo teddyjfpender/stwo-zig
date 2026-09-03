@@ -21,16 +21,35 @@ import subprocess
 import sys
 from typing import Any
 
-HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v2"
-SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v2"
-SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v2"
+HEADER_SCHEMA_V2 = "stwo.riscv.segmented-execution-header.v2"
+SEGMENT_SCHEMA_V2 = "stwo.riscv.segmented-execution-segment.v2"
+SUMMARY_SCHEMA_V2 = "stwo.riscv.segmented-execution-summary.v2"
+HEADER_SCHEMA = "stwo.riscv.segmented-execution-header.v3"
+SEGMENT_SCHEMA = "stwo.riscv.segmented-execution-segment.v3"
+SUMMARY_SCHEMA = "stwo.riscv.segmented-execution-summary.v3"
 PLAN_SCHEMA = "stwo.riscv.segmented-execution-capture-plan.v3"
-RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v3"
+RECEIPT_SCHEMA_V3 = "stwo.riscv.segmented-execution-capture-receipt.v3"
+RECEIPT_SCHEMA = "stwo.riscv.segmented-execution-capture-receipt.v4"
 CLAIM_BOUNDARY = "execution-only-not-a-proof"
 PROFILE_BASE = "rv32im-zkvm-v1"
 PROFILE_POSEIDON2 = "rv32im-zkvm-poseidon2-v1"
 PROFILE_KECCAKF = "rv32im-zkvm-keccakf-v1"
-EXECUTION_PROFILES = (PROFILE_BASE, PROFILE_POSEIDON2, PROFILE_KECCAKF)
+PROFILE_ETHEREUM = "rv32im-zkvm-ethereum-v1"
+EXECUTION_PROFILES = (
+    PROFILE_BASE,
+    PROFILE_POSEIDON2,
+    PROFILE_KECCAKF,
+    PROFILE_ETHEREUM,
+)
+EXTERNAL_FAMILIES = {
+    PROFILE_BASE: (),
+    PROFILE_POSEIDON2: ("stwo.poseidon2-m31.permute-in-place@1",),
+    PROFILE_KECCAKF: ("stwo.keccakf-1600.permute-in-place@1",),
+    PROFILE_ETHEREUM: (
+        "stwo.keccakf-1600.permute-in-place@1",
+        "stwo.secp256k1.recover-signer@1",
+    ),
+}
 CLOCK_FRAME_GLOBAL = "global_continuous"
 CLOCK_FRAME_LEAF_LOCAL = "leaf_local"
 CLOCK_FRAME_CLI = {
@@ -143,6 +162,23 @@ def _family_rows(value: Any, label: str) -> dict[str, int]:
     return result
 
 
+def _external_family_rows(value: Any, profile: str, label: str) -> dict[str, tuple[int, int]]:
+    expected = EXTERNAL_FAMILIES[profile]
+    if type(value) is not list or len(value) != len(expected):
+        raise ContractError(f"{label} family count mismatch")
+    result = {}
+    for index, family in enumerate(expected):
+        record = _keys(value[index], ("family", "calls", "execution_rows"), f"{label}[{index}]")
+        if record["family"] != family:
+            raise ContractError(f"{label} family order mismatch")
+        calls = _integer(record["calls"], f"{label}.calls")
+        rows = _integer(record["execution_rows"], f"{label}.execution_rows")
+        if calls != rows:
+            raise ContractError(f"{label} call/execution-row mismatch")
+        result[family] = (calls, rows)
+    return result
+
+
 def _boundary(value: Any, label: str) -> dict[str, Any]:
     value = _keys(
         value,
@@ -213,8 +249,11 @@ def validate_records(
         ),
         "header",
     )
-    if header["schema"] != HEADER_SCHEMA or header["profile"] not in EXECUTION_PROFILES:
+    if header["schema"] not in (HEADER_SCHEMA_V2, HEADER_SCHEMA) or header["profile"] not in EXECUTION_PROFILES:
         raise ContractError("unsupported segmented execution header")
+    typed_external_inventory = header["schema"] == HEADER_SCHEMA
+    segment_schema = SEGMENT_SCHEMA if typed_external_inventory else SEGMENT_SCHEMA_V2
+    summary_schema = SUMMARY_SCHEMA if typed_external_inventory else SUMMARY_SCHEMA_V2
     clock_frame = header["clock_frame"]
     if clock_frame not in (CLOCK_FRAME_GLOBAL, CLOCK_FRAME_LEAF_LOCAL):
         raise ContractError("unsupported segmented execution clock frame")
@@ -247,6 +286,7 @@ def validate_records(
     expected_memory: str | None = None
     expected_clocks: str | None = None
     totals = {family: 0 for family in FAMILIES}
+    external_totals = {family: [0, 0] for family in EXTERNAL_FAMILIES[header["profile"]]}
     total_cycles = total_core = total_external = total_unclassified = 0
     segment_count = 0
     last_segment: dict[str, Any] | None = None
@@ -255,40 +295,31 @@ def validate_records(
     for record_index, record in enumerate(records[1:], 1):
         payload = record["payload"]
         schema = payload.get("schema") if type(payload) is dict else None
-        if schema == SUMMARY_SCHEMA:
+        if schema in (SUMMARY_SCHEMA_V2, SUMMARY_SCHEMA):
+            if schema != summary_schema:
+                raise ContractError("summary schema differs from header version")
             if record_index != len(records) - 1:
                 raise ContractError("summary must be the final journal record")
             summary = payload
             break
+        segment_keys = [
+            "schema", "clock_frame", "previous_record_sha256", "segment_index",
+            "global_first_cycle", "cycle_count", "is_first", "is_last", "entry", "exit",
+            "core_trace_rows", "external_trace_rows",
+        ]
+        if typed_external_inventory:
+            segment_keys.append("external_family_rows")
+        segment_keys.extend((
+            "unclassified_core_rows", "opcode_family_rows", "completion_reason",
+            "completion_address", "completion_value", "completion_clock", "exit_code",
+            "output_bytes", "output_sha256", "continuation_sha256",
+        ))
         payload = _keys(
             payload,
-            (
-                "schema",
-                "clock_frame",
-                "previous_record_sha256",
-                "segment_index",
-                "global_first_cycle",
-                "cycle_count",
-                "is_first",
-                "is_last",
-                "entry",
-                "exit",
-                "core_trace_rows",
-                "external_trace_rows",
-                "unclassified_core_rows",
-                "opcode_family_rows",
-                "completion_reason",
-                "completion_address",
-                "completion_value",
-                "completion_clock",
-                "exit_code",
-                "output_bytes",
-                "output_sha256",
-                "continuation_sha256",
-            ),
+            tuple(segment_keys),
             f"segment {segment_count}",
         )
-        if payload["schema"] != SEGMENT_SCHEMA or payload["previous_record_sha256"] != previous_digest:
+        if payload["schema"] != segment_schema or payload["previous_record_sha256"] != previous_digest:
             raise ContractError("segment schema/hash chain mismatch")
         if payload["clock_frame"] != clock_frame:
             raise ContractError("segment clock frame differs from header")
@@ -318,6 +349,15 @@ def validate_records(
             raise ContractError("leaf-local segment entry clocks were not reset")
         core = _integer(payload["core_trace_rows"], "core_trace_rows")
         external = _integer(payload["external_trace_rows"], "external_trace_rows")
+        if typed_external_inventory:
+            inventory = _external_family_rows(
+                payload["external_family_rows"], header["profile"], "external_family_rows",
+            )
+            if sum(value[0] for value in inventory.values()) != external:
+                raise ContractError("segment external family inventory does not close")
+            for family, value in inventory.items():
+                external_totals[family][0] += value[0]
+                external_totals[family][1] += value[1]
         unclassified = _integer(payload["unclassified_core_rows"], "unclassified_core_rows")
         family_rows = _family_rows(payload["opcode_family_rows"], "opcode_family_rows")
         if core + external != cycles or sum(family_rows.values()) + unclassified != core:
@@ -360,32 +400,22 @@ def validate_records(
         return None
     if last_segment is None or not last_segment["is_last"]:
         raise ContractError("summary does not follow a completed segment")
+    summary_keys = [
+        "schema", "clock_frame", "previous_record_sha256", "claim_boundary", "completed",
+        "segment_count", "total_cycles", "total_core_trace_rows", "total_external_trace_rows",
+    ]
+    if typed_external_inventory:
+        summary_keys.append("external_family_rows")
+    summary_keys.extend((
+        "total_unclassified_core_rows", "opcode_family_rows", "completion_reason", "exit_code",
+        "output_bytes", "output_sha256", "final_cpu_sha256", "final_rw_memory_sha256",
+        "final_access_clocks_sha256", "max_segment_cycle_count",
+        "leaf_local_clock_ranges_within_v3_limit", "segment_statement_v2_global_cycle_limit",
+        "segment_statement_v2_admissible",
+    ))
     summary = _keys(
         summary,
-        (
-            "schema",
-            "clock_frame",
-            "previous_record_sha256",
-            "claim_boundary",
-            "completed",
-            "segment_count",
-            "total_cycles",
-            "total_core_trace_rows",
-            "total_external_trace_rows",
-            "total_unclassified_core_rows",
-            "opcode_family_rows",
-            "completion_reason",
-            "exit_code",
-            "output_bytes",
-            "output_sha256",
-            "final_cpu_sha256",
-            "final_rw_memory_sha256",
-            "final_access_clocks_sha256",
-            "max_segment_cycle_count",
-            "leaf_local_clock_ranges_within_v3_limit",
-            "segment_statement_v2_global_cycle_limit",
-            "segment_statement_v2_admissible",
-        ),
+        tuple(summary_keys),
         "summary",
     )
     if summary["previous_record_sha256"] != previous_digest or summary["claim_boundary"] != CLAIM_BOUNDARY:
@@ -411,6 +441,10 @@ def validate_records(
         and summary["max_segment_cycle_count"]
         == max(record["payload"]["cycle_count"] for record in records[1:-1])
     )
+    if typed_external_inventory:
+        exact = exact and _external_family_rows(
+            summary["external_family_rows"], header["profile"], "summary.external_family_rows",
+        ) == {family: tuple(value) for family, value in external_totals.items()}
     if not exact:
         raise ContractError("summary does not exactly reduce the segment journal")
     v2_limit = _integer(summary["segment_statement_v2_global_cycle_limit"], "v2 limit", 1)
@@ -564,8 +598,9 @@ def _terminate_group(process: subprocess.Popen[bytes]) -> None:
 
 def _receipt(plan: dict[str, Any], journal_path: Path, summary: dict[str, Any]) -> dict[str, Any]:
     journal = journal_path.read_bytes()
-    return {
-        "schema": RECEIPT_SCHEMA,
+    typed_external_inventory = summary["schema"] == SUMMARY_SCHEMA
+    receipt = {
+        "schema": RECEIPT_SCHEMA if typed_external_inventory else RECEIPT_SCHEMA_V3,
         "status": "complete",
         "claim_boundary": CLAIM_BOUNDARY,
         "plan_sha256": _sha(_canonical(plan)),
@@ -575,6 +610,10 @@ def _receipt(plan: dict[str, Any], journal_path: Path, summary: dict[str, Any]) 
         "total_cycles": summary["total_cycles"],
         "total_core_trace_rows": summary["total_core_trace_rows"],
         "total_external_trace_rows": summary["total_external_trace_rows"],
+    }
+    if typed_external_inventory:
+        receipt["external_family_rows"] = summary["external_family_rows"]
+    receipt.update({
         "clock_frame": summary["clock_frame"],
         "max_segment_cycle_count": summary["max_segment_cycle_count"],
         "leaf_local_clock_ranges_within_v3_limit": summary[
@@ -584,7 +623,8 @@ def _receipt(plan: dict[str, Any], journal_path: Path, summary: dict[str, Any]) 
         "final_cpu_sha256": summary["final_cpu_sha256"],
         "final_rw_memory_sha256": summary["final_rw_memory_sha256"],
         "output_sha256": summary["output_sha256"],
-    }
+    })
+    return receipt
 
 
 def _lock_bundle(bundle: Path) -> int:
@@ -679,7 +719,7 @@ def capture_bundle(
                 lines.append(raw)
                 seen += 1
                 payload = json.loads(raw)["payload"]
-                if payload["schema"] == SEGMENT_SCHEMA:
+                if payload["schema"] in (SEGMENT_SCHEMA_V2, SEGMENT_SCHEMA):
                     new_segments += 1
                     if max_new_segments is not None and new_segments >= max_new_segments and not payload["is_last"]:
                         stopped = True

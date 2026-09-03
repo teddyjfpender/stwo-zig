@@ -62,9 +62,17 @@ pub const Claim = struct {
     }
 
     pub fn validate(self: Claim) InitError!void {
-        if (self.call_count == 0 or
-            self.call_count > trace_mod.maximum_calls_per_shard)
-        {
+        if (self.call_count == 0) {
+            if (self.first_call_index != 0 or self.n_rows != 0 or
+                self.log_size != trace_mod.minimum_log_size or
+                !allZero(&self.batch_sums) or
+                !self.component_sum.eql(QM31.zero()))
+            {
+                return error.InvalidClaim;
+            }
+            return;
+        }
+        if (self.call_count > trace_mod.maximum_calls_per_shard) {
             return error.InvalidClaim;
         }
         const end = std.math.add(u32, self.first_call_index, self.call_count) catch
@@ -86,6 +94,11 @@ pub const Claim = struct {
         }
     }
 };
+
+fn allZero(values: []const QM31) bool {
+    for (values) |value| if (!value.eql(QM31.zero())) return false;
+    return true;
+}
 
 pub const Placement = struct {
     preprocessed_offset: usize,

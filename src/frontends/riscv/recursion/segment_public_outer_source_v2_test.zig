@@ -204,9 +204,10 @@ test "V2 public spine rejects publication challenge and wire mutations atomicall
 
     const last = fixture.owned_public.canonical_words.len - 1;
     const saved_word = fixture.owned_public.canonical_words[last];
-    fixture.owned_public.canonical_words[last] = saved_word.add(M31.one());
+    @constCast(fixture.owned_public.canonical_words)[last] =
+        saved_word.add(M31.one());
     try expectWriteFailure(&prepared, &owned, fixture.inputs());
-    fixture.owned_public.canonical_words[last] = saved_word;
+    @constCast(fixture.owned_public.canonical_words)[last] = saved_word;
     try std.testing.expectEqual(before, owned.digest());
 }
 

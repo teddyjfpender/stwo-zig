@@ -69,6 +69,13 @@ pub fn Namespace(comptime context: type) type {
         const TemporalTranscriptOperationTag = context.d_TemporalTranscriptOperationTag;
         const RecordedFrameV2 = context.d_RecordedFrameV2;
         const PreparedTranscriptRowsV2 = context.d_PreparedTranscriptRowsV2;
+        const SCHEMA_VERSION = context.d_SCHEMA_VERSION;
+        const TRANSCRIPT_ROWS_SCHEMA_VERSION =
+            context.d_TRANSCRIPT_ROWS_SCHEMA_VERSION;
+        const PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION =
+            context.d_PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION;
+        const PROOFLESS_EMPTY_TRANSCRIPT_ROWS_SCHEMA_VERSION =
+            context.d_PROOFLESS_EMPTY_TRANSCRIPT_ROWS_SCHEMA_VERSION;
         const TemporalParentPublicV2 = context.d_TemporalParentPublicV2;
         const PreparedRows10Through11V2 = context.d_PreparedRows10Through11V2;
         const Rows10Through17AuthorityV2 = context.d_Rows10Through17AuthorityV2;
@@ -83,6 +90,14 @@ pub fn Namespace(comptime context: type) type {
         pub fn validateTranscriptRowsV2(
             source: *const PreparedTranscriptRowsV2,
         ) Error!void {
+            const expected_replay_schema: u16 = switch (source.schema_version) {
+                TRANSCRIPT_ROWS_SCHEMA_VERSION => SCHEMA_VERSION,
+                PROOFLESS_EMPTY_TRANSCRIPT_ROWS_SCHEMA_VERSION => PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION,
+                else => return error.UnsupportedFormat,
+            };
+            for (source.child_replays) |replay|
+                if (replay.schema_version != expected_replay_schema)
+                    return error.InvalidTranscriptRecorder;
             try validateTranscriptRecording(
                 source.rows,
                 source.operations,

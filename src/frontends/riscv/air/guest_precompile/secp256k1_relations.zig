@@ -24,6 +24,8 @@ pub const table_root_arity: usize = 1 + encoded_point_size;
 pub const ecdsa_arity: usize = 1 + field.limb_count + encoded_point_size +
     2 * field.limb_count;
 pub const byte_arity: usize = 1;
+/// Version, successful status, digest/r/s, recovery-id, affine x/y bytes.
+pub const recovery_arity: usize = 3 + 5 * field.limb_count;
 
 pub fn ProductTuple(comptime S: type) type {
     return [product_arity]S;
@@ -61,7 +63,20 @@ pub fn ByteTuple(comptime S: type) type {
     return [byte_arity]S;
 }
 
+pub fn RecoveryTuple(comptime S: type) type {
+    return [recovery_arity]S;
+}
+
+/// Interaction scalars are secure-field values for native base rows and the
+/// recording scalar itself for recursive compiler replay.
+pub fn InteractionScalar(comptime S: type) type {
+    return if (S == M31) QM31 else S;
+}
+
 pub const Relations = struct {
+    /// Base buses are drawn first so recovery caller rows and ordinary CPU,
+    /// program, and state-chain components share one challenge authority.
+    base: challenges.Relations,
     product: challenges.RelationElements(product_arity),
     linear: challenges.RelationElements(linear_arity),
     point: challenges.RelationElements(point_arity),
@@ -71,12 +86,15 @@ pub const Relations = struct {
     table_root: challenges.RelationElements(table_root_arity),
     ecdsa: challenges.RelationElements(ecdsa_arity),
     byte: challenges.RelationElements(byte_arity),
+    recovery: challenges.RelationElements(recovery_arity),
 
     pub fn draw(allocator: std.mem.Allocator, channel: anytype) !Relations {
-        const values = try channel.drawSecureFelts(allocator, 18);
+        const base = try challenges.Relations.draw(allocator, channel);
+        const values = try channel.drawSecureFelts(allocator, 20);
         defer allocator.free(values);
-        if (values.len != 18) return error.InvalidChallengeDraw;
+        if (values.len != 20) return error.InvalidChallengeDraw;
         return .{
+            .base = base,
             .product = .init(values[0], values[1]),
             .linear = .init(values[2], values[3]),
             .point = .init(values[4], values[5]),
@@ -86,11 +104,13 @@ pub const Relations = struct {
             .table_root = .init(values[12], values[13]),
             .ecdsa = .init(values[14], values[15]),
             .byte = .init(values[16], values[17]),
+            .recovery = .init(values[18], values[19]),
         };
     }
 
     pub fn dummy() Relations {
         return .{
+            .base = .dummy(),
             .product = .dummy(),
             .linear = .dummy(),
             .point = .dummy(),
@@ -100,6 +120,7 @@ pub const Relations = struct {
             .table_root = .dummy(),
             .ecdsa = .dummy(),
             .byte = .dummy(),
+            .recovery = .dummy(),
         };
     }
 };
@@ -224,6 +245,33 @@ pub fn ecdsaTuple(
     return tuple;
 }
 
+/// Canonical successful-recovery relation. The point at `public_key` must be
+/// affine; callers supply only its x/y bytes and the arithmetic row proves its
+/// infinity marker is zero independently.
+pub fn recoveryTuple(
+    comptime S: type,
+    version: S,
+    status: S,
+    digest_big_endian: *const [field.limb_count]S,
+    r: *const [field.limb_count]S,
+    s: *const [field.limb_count]S,
+    recovery_id: S,
+    public_key_xy_big_endian: *const [2 * field.limb_count]S,
+) RecoveryTuple(S) {
+    var tuple: RecoveryTuple(S) = undefined;
+    tuple[0] = version;
+    tuple[1] = status;
+    @memcpy(tuple[2..][0..field.limb_count], digest_big_endian);
+    @memcpy(tuple[2 + field.limb_count ..][0..field.limb_count], r);
+    @memcpy(tuple[2 + 2 * field.limb_count ..][0..field.limb_count], s);
+    tuple[2 + 3 * field.limb_count] = recovery_id;
+    @memcpy(
+        tuple[3 + 3 * field.limb_count ..][0 .. 2 * field.limb_count],
+        public_key_xy_big_endian,
+    );
+    return tuple;
+}
+
 pub fn productTupleForRecord(record: *const affine.ProductRecord) ProductTuple(M31) {
     const lhs = feltBytes(record.witness.lhs);
     const rhs = feltBytes(record.witness.rhs);
@@ -324,87 +372,139 @@ pub fn ecdsaTupleForRecord(record: *const affine.EcdsaRecord) EcdsaTuple(M31) {
     return ecdsaTuple(M31, M31.one(), &digest, &public_key, &r, &s);
 }
 
+pub fn recoveryTupleForRecord(
+    record: *const affine.RecoveryRecord,
+) RecoveryTuple(M31) {
+    const digest = feltBytes(record.digest_big_endian);
+    const r = feltBytesReversed(record.r);
+    const s = feltBytesReversed(record.s);
+    var public_key_big_endian: [2 * field.limb_count]M31 = undefined;
+    for (record.public_key.x, 0..) |byte, index| {
+        public_key_big_endian[field.limb_count - 1 - index] = M31.fromU64(byte);
+    }
+    for (record.public_key.y, 0..) |byte, index| {
+        public_key_big_endian[2 * field.limb_count - 1 - index] = M31.fromU64(byte);
+    }
+    return recoveryTuple(
+        M31,
+        M31.one(),
+        M31.one(),
+        &digest,
+        &r,
+        &s,
+        M31.fromU64(record.recovery_id),
+        &public_key_big_endian,
+    );
+}
+
+fn feltBytesReversed(value: affine.Value) [field.limb_count]M31 {
+    var result: [field.limb_count]M31 = undefined;
+    for (value, 0..) |byte, index| {
+        result[value.len - 1 - index] = M31.fromU64(byte);
+    }
+    return result;
+}
+
 pub fn combineProduct(
     comptime S: type,
-    relation: challenges.RelationElements(product_arity),
+    relation: anytype,
     tuple: ProductTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, product_arity, relation, tuple);
 }
 
 pub fn combineLinear(
     comptime S: type,
-    relation: challenges.RelationElements(linear_arity),
+    relation: anytype,
     tuple: LinearTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, linear_arity, relation, tuple);
 }
 
 pub fn combinePoint(
     comptime S: type,
-    relation: challenges.RelationElements(point_arity),
+    relation: anytype,
     tuple: PointTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, point_arity, relation, tuple);
 }
 
 pub fn combineSplit(
     comptime S: type,
-    relation: challenges.RelationElements(split_arity),
+    relation: anytype,
     tuple: SplitTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, split_arity, relation, tuple);
 }
 
 pub fn combineTable(
     comptime S: type,
-    relation: challenges.RelationElements(table_arity),
+    relation: anytype,
     tuple: TableTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, table_arity, relation, tuple);
 }
 
 pub fn combineProgram(
     comptime S: type,
-    relation: challenges.RelationElements(program_arity),
+    relation: anytype,
     tuple: ProgramTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, program_arity, relation, tuple);
 }
 
 pub fn combineTableRoot(
     comptime S: type,
-    relation: challenges.RelationElements(table_root_arity),
+    relation: anytype,
     tuple: TableRootTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, table_root_arity, relation, tuple);
 }
 
 pub fn combineEcdsa(
     comptime S: type,
-    relation: challenges.RelationElements(ecdsa_arity),
+    relation: anytype,
     tuple: EcdsaTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, ecdsa_arity, relation, tuple);
 }
 
 pub fn combineByte(
     comptime S: type,
-    relation: challenges.RelationElements(byte_arity),
+    relation: anytype,
     tuple: ByteTuple(S),
-) QM31 {
+) InteractionScalar(S) {
     return combine(S, byte_arity, relation, tuple);
+}
+
+pub fn combineRecovery(
+    comptime S: type,
+    relation: anytype,
+    tuple: RecoveryTuple(S),
+) InteractionScalar(S) {
+    return combine(S, recovery_arity, relation, tuple);
 }
 
 fn combine(
     comptime S: type,
     comptime arity: usize,
-    relation: challenges.RelationElements(arity),
+    relation: anytype,
     tuple: [arity]S,
-) QM31 {
-    if (S == M31) return relation.combineBase(tuple);
-    if (S == QM31) return relation.combineSecure(tuple);
-    @compileError("secp256k1 relations support only M31 and QM31");
+) InteractionScalar(S) {
+    return combineAny(S, relation, tuple);
+}
+
+/// Combines either a native relation challenge or the recursion compiler's
+/// graph relation without changing the native M31/QM31 call surface.
+pub fn combineAny(
+    comptime S: type,
+    relation: anytype,
+    tuple: anytype,
+) InteractionScalar(S) {
+    const Value = @TypeOf(tuple[0]);
+    if (comptime Value == M31) return relation.combineBase(tuple);
+    if (comptime Value == QM31) return relation.combineSecure(tuple);
+    return relation.combine(tuple);
 }
 
 fn feltBytes(value: affine.Value) [field.limb_count]M31 {
@@ -417,12 +517,13 @@ fn scalar(comptime S: type, value: anytype) S {
     const canonical: u64 = @intCast(value);
     if (S == M31) return M31.fromU64(canonical);
     if (S == QM31) return QM31.fromBase(M31.fromU64(canonical));
-    @compileError("secp256k1 relations support only M31 and QM31");
+    if (@hasDecl(S, "fromBase")) return S.fromBase(M31.fromU64(canonical));
+    @compileError("secp256k1 relations require a base-field lift");
 }
 
 comptime {
     if (product_arity != 97 or linear_arity != 98 or point_arity != 196 or
         split_arity != 98 or table_arity != 67 or program_arity != 194 or
-        table_root_arity != 66 or ecdsa_arity != 162)
+        table_root_arity != 66 or ecdsa_arity != 162 or recovery_arity != 163)
         @compileError("secp256k1 relation geometry drifted");
 }

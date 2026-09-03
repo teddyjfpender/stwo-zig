@@ -8,6 +8,7 @@ const EvalLibrary = runtime.EvalLibrary;
 const LookupPolynomialPlan = runtime.LookupPolynomialPlan;
 const LookupPolynomialDispatch = runtime.LookupPolynomialDispatch;
 const BasePolynomialOutput = runtime.BasePolynomialOutput;
+const ResidentBuffer = runtime.ResidentBuffer;
 
 pub fn prepareLookupPolynomialAot(
     self: *Runtime,
@@ -58,6 +59,7 @@ pub fn prepareLookupPolynomialFromLibrary(
 pub fn evaluateLookupPolynomialBatch(
     self: *Runtime,
     trees: []const ?*anyopaque,
+    composition_domain: ?*const ResidentBuffer,
     main_columns: []const [*]const u32,
     interaction_columns: []const [*]const u32,
     dispatches: []const LookupPolynomialDispatch,
@@ -75,12 +77,29 @@ pub fn evaluateLookupPolynomialBatch(
         parameter_words.len > std.math.maxInt(u32) or
         outputs.len > std.math.maxInt(u32))
         return MetalError.CompositionEvaluationFailed;
+    if (composition_domain) |scratch| {
+        if (scratch.byte_length == 0 or
+            scratch.byte_length % @sizeOf(u32) != 0 or
+            @intFromPtr(scratch.contents) % @alignOf(u32) != 0)
+        {
+            return MetalError.CompositionEvaluationFailed;
+        }
+    }
     var gpu_ms: f64 = 0;
     var message: [4096]u8 = [_]u8{0} ** 4096;
     if (!ffi.stwo_zig_metal_lookup_polynomial_batch(
         self.handle,
         trees.ptr,
         @intCast(trees.len),
+        if (composition_domain) |scratch| scratch.handle else null,
+        if (composition_domain) |scratch|
+            @as([*]const u32, @ptrCast(@alignCast(scratch.contents)))
+        else
+            null,
+        if (composition_domain) |scratch|
+            scratch.byte_length / @sizeOf(u32)
+        else
+            0,
         main_columns.ptr,
         @intCast(main_columns.len),
         interaction_columns.ptr,

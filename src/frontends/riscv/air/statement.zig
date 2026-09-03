@@ -108,6 +108,28 @@ pub const RiscVStatement = struct {
     n_infra: u32 = 0,
     infra_descs: [MAX_INFRA_COMPONENTS]InfraComponentDesc = undefined,
 
+    /// Initializes every fixed-capacity descriptor slot to a valid canonical
+    /// zero value. Encoders consume only active prefixes, but owned/cold
+    /// reconstructions must never retain undefined enum values in the inactive
+    /// capacity: whole-value custody checks and diagnostic formatters may walk
+    /// those slots after the producing workspace has gone away.
+    pub fn initializeDescriptorStorage(self: *RiscVStatement) void {
+        const empty_component: FamilyComponentDesc = .{
+            .family = .base_alu_reg,
+            .log_size = 0,
+            .n_rows = 0,
+            .n_columns = 0,
+        };
+        const empty_infrastructure: InfraComponentDesc = .{
+            .kind = .program,
+            .log_size = 0,
+            .n_rows = 0,
+            .n_columns = 0,
+        };
+        self.component_descs = .{empty_component} ** MAX_COMPONENTS;
+        self.infra_descs = .{empty_infrastructure} ** MAX_INFRA_COMPONENTS;
+    }
+
     pub fn nPreprocessedColumns(self: *const RiscVStatement) u32 {
         var total = 2 * self.n_components;
         for (0..self.n_infra) |index| {

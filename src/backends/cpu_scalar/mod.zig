@@ -105,7 +105,18 @@ pub const CpuBackend = struct {
             recurrence_execution,
         )) |evaluation| return evaluation;
         const adjusted = execution.adjustedForAvailablePool();
-        try adjusted.validateCapacity();
+        adjusted.validateCapacity() catch |err| {
+            prover_impl.engine.EvaluationDiagnostic.recordFirst(
+                execution.evaluation_diagnostic,
+                .{
+                    .stage = .plan,
+                    .cause = err,
+                    .actual = adjusted.worker_budget.count,
+                    .expected = adjusted.poolCapacity(),
+                },
+            );
+            return err;
+        };
         return riscv_composition.evaluateWithExecution(
             allocator,
             components,
@@ -121,6 +132,7 @@ pub const CpuBackend = struct {
                 .pool_capacity = execution.poolCapacity(),
                 .task_recorder = execution.task_recorder,
                 .work_capture = execution.composition_work_capture,
+                .evaluation_diagnostic = execution.evaluation_diagnostic,
             },
         );
     }

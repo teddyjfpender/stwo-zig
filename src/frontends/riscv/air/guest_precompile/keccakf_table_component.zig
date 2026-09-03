@@ -172,17 +172,16 @@ pub const KeccakTableComponent = struct {
         previous: QM31,
         is_first: QM31,
     ) !QM31 {
-        if (tuple.len != tables.arity) return error.InvalidProofShape;
-        const denominator = switch (self.kind) {
-            .chi => self.relations.chi.combineSecure(tuple[0..tables.arity].*),
-            .xor5 => self.relations.xor5.combineSecure(tuple[0..tables.arity].*),
-        };
-        return logup.pairConstraint(
+        return evaluateRowGeneric(
+            QM31,
+            self.kind,
+            tuple,
+            multiplicity,
             current,
             previous,
             is_first,
             self.claim,
-            logup.RowPair.single(multiplicity, denominator),
+            self.relations,
         );
     }
 
@@ -358,6 +357,40 @@ pub const KeccakTableComponent = struct {
         };
     }
 };
+
+/// Single-source table constraint used by native verification and by the
+/// recursive verifier-program compiler.
+pub fn evaluateRowGeneric(
+    comptime S: type,
+    kind: tables.Kind,
+    tuple: []const S,
+    multiplicity: S,
+    current: S,
+    previous: S,
+    is_first: S,
+    claim: S,
+    relations: anytype,
+) !S {
+    if (tuple.len != tables.arity) return error.InvalidProofShape;
+    const relation = switch (kind) {
+        .chi => relations.chi,
+        .xor5 => relations.xor5,
+    };
+    const denominator = if (comptime S == QM31)
+        relation.combineSecure(tuple[0..tables.arity].*)
+    else if (comptime S == M31)
+        relation.combineBase(tuple[0..tables.arity].*)
+    else
+        relation.combine(tuple[0..tables.arity].*);
+    return logup.pairConstraintGeneric(
+        S,
+        current,
+        previous,
+        is_first,
+        claim,
+        logup.RowPairFor(S).single(multiplicity, denominator),
+    );
+}
 
 const PreparedDomainState = struct {
     allocator: std.mem.Allocator,

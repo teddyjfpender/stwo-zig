@@ -210,9 +210,7 @@ fn cloneObject(object: ImmutableObject, destination: []const u8) !void {
         return error.InvalidImmutableObject;
     const basename = std.fs.path.basename(object.path);
     const digest_hex = std.fmt.bytesToHex(object.object_id, .lower);
-    if (basename.len != digest_hex.len + ".artifact".len or
-        !std.mem.eql(u8, basename[0..digest_hex.len], &digest_hex) or
-        !std.mem.eql(u8, basename[digest_hex.len..], ".artifact"))
+    if (!validContentObjectName(basename, &digest_hex))
         return error.InvalidContentObjectAddress;
 
     const no_follow = try std.posix.fstatat(std.posix.AT.FDCWD, object.path, std.posix.AT.SYMLINK_NOFOLLOW);
@@ -237,6 +235,17 @@ fn cloneObject(object: ImmutableObject, destination: []const u8) !void {
         published_stat.size != source_stat.size or published_stat.mode & 0o222 != 0)
         return error.ImmutableObjectChanged;
     try published.sync();
+}
+
+fn validContentObjectName(basename: []const u8, digest_hex: []const u8) bool {
+    if (basename.len <= digest_hex.len or
+        !std.mem.eql(u8, basename[0..digest_hex.len], digest_hex))
+    {
+        return false;
+    }
+    const suffix = basename[digest_hex.len..];
+    return std.mem.eql(u8, suffix, ".blob") or
+        std.mem.eql(u8, suffix, ".artifact");
 }
 
 fn cloneObjectApfs(source: std.fs.File, destination: []const u8) !bool {

@@ -23,9 +23,10 @@ const riscv_cpu = @import("stwo_riscv_cpu_integration");
 const pcs = @import("stwo_core").pcs;
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const allocator = gpa.allocator();
+    // Match the production CPU/Metal applications. This CLI can retain
+    // multi-million-row execution leaves, where the diagnostic allocator's
+    // per-allocation bookkeeping materially distorts trace-generation timing.
+    const allocator = std.heap.smp_allocator;
 
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);

@@ -4,6 +4,7 @@ const ffi = @import("bindings.zig");
 const protocol_mode = @import("protocol_mode.zig");
 const telemetry = @import("../telemetry.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
+const quotient_internal_parity = @import("../quotient_internal_parity.zig");
 
 const MetalError = runtime.MetalError;
 const Runtime = runtime.Runtime;
@@ -61,6 +62,7 @@ const QuotientCommitConfig = struct {
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
+    hash_family: u32 = 1,
     fri: ?QuotientFriConfig = null,
 };
 
@@ -171,6 +173,39 @@ pub fn computeQuotientsAndCommit(
     };
 }
 
+pub fn computeQuotientsAndCommitForHash(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    provider: anytype,
+    out: anytype,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+) (MetalError || std.mem.Allocator.Error)!QuotientCommitResult {
+    if (!validDomainPrefixBytes(domain_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2)) return MetalError.QuotientFailed;
+    const storage = out.resident_storage orelse return MetalError.QuotientFailed;
+    const result = try computeQuotientsConfigured(
+        self,
+        allocator,
+        provider,
+        out,
+        .{
+            .resident_output = storage.handle,
+            .leaf_seed = leaf_seed,
+            .node_seed = node_seed,
+            .domain_prefix_bytes = domain_prefix_bytes,
+            .hash_family = hash_family,
+        },
+        false,
+    );
+    return .{
+        .gpu_ms = result.gpu_ms,
+        .tree = result.tree orelse return MetalError.CommitmentFailed,
+    };
+}
+
 pub fn computeQuotientsAndCommitWithReceipt(
     self: *Runtime,
     allocator: std.mem.Allocator,
@@ -192,6 +227,40 @@ pub fn computeQuotientsAndCommitWithReceipt(
             .leaf_seed = leaf_seed,
             .node_seed = node_seed,
             .domain_prefix_bytes = domain_prefix_bytes,
+        },
+        true,
+    );
+    return .{
+        .gpu_ms = result.gpu_ms,
+        .tree = result.tree orelse return MetalError.CommitmentFailed,
+        .execution = result.execution orelse return MetalError.QuotientFailed,
+    };
+}
+
+pub fn computeQuotientsAndCommitWithReceiptForHash(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    provider: anytype,
+    out: anytype,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+) (MetalError || std.mem.Allocator.Error)!QuotientCommitExecutionResult {
+    if (!validDomainPrefixBytes(domain_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2)) return MetalError.QuotientFailed;
+    const storage = out.resident_storage orelse return MetalError.QuotientFailed;
+    const result = try computeQuotientsConfigured(
+        self,
+        allocator,
+        provider,
+        out,
+        .{
+            .resident_output = storage.handle,
+            .leaf_seed = leaf_seed,
+            .node_seed = node_seed,
+            .domain_prefix_bytes = domain_prefix_bytes,
+            .hash_family = hash_family,
         },
         true,
     );
@@ -309,9 +378,16 @@ fn computeQuotientsConfigured(
         provider.prepared.contribution_plan.contributions.len
     else
         provider.combined_views.len;
-    const descriptor_width: usize = if (raw_views) 9 else 5;
-    const descriptors = try allocator.alloc(u32, view_count * descriptor_width);
-    defer allocator.free(descriptors);
+    const raw_descriptors: ?[]ffi.RawQuotientSourceViewV2 = if (raw_views)
+        try allocator.alloc(ffi.RawQuotientSourceViewV2, view_count)
+    else
+        null;
+    defer if (raw_descriptors) |descriptors| allocator.free(descriptors);
+    const combined_descriptors: ?[]u32 = if (!raw_views)
+        try allocator.alloc(u32, view_count * 5)
+    else
+        null;
+    defer if (combined_descriptors) |descriptors| allocator.free(descriptors);
     const raw_column_count = if (raw_views)
         provider.prepared.contribution_plan.active_column_indices.len
     else
@@ -342,17 +418,16 @@ fn computeQuotientsConfigured(
             const contributions = provider.prepared.contribution_plan.contributions[contribution_range.start .. contribution_range.start + contribution_range.len];
             for (contributions) |contribution| {
                 const coefficient = contribution.value_coeff.toM31Array();
-                const base = descriptor_index * descriptor_width;
-                descriptors[base..][0..9].* = .{
-                    @intCast(cursor),
-                    @intCast(column.values.len),
-                    @intCast(contribution.batch_index),
-                    @intCast(log_shift + 1),
-                    @intFromBool(column.log_size == provider.lifting_log_size),
-                    coefficient[0].v,
-                    coefficient[1].v,
-                    coefficient[2].v,
-                    coefficient[3].v,
+                raw_descriptors.?[descriptor_index] = .{
+                    .offset = @intCast(cursor),
+                    .length = @intCast(column.values.len),
+                    .batch = @intCast(contribution.batch_index),
+                    .shift = @intCast(log_shift + 1),
+                    .direct = @intFromBool(column.log_size == provider.lifting_log_size),
+                    .coeff_a = coefficient[0].v,
+                    .coeff_b = coefficient[1].v,
+                    .coeff_c = coefficient[2].v,
+                    .coeff_d = coefficient[3].v,
                 };
                 descriptor_index += 1;
             }
@@ -361,8 +436,8 @@ fn computeQuotientsConfigured(
     } else {
         for (provider.combined_views, 0..) |view, index| {
             const coordinate_len = view.coordinates[0].len;
-            const base = index * descriptor_width;
-            descriptors[base..][0..5].* = .{
+            const base = index * 5;
+            combined_descriptors.?[base..][0..5].* = .{
                 @intCast(cursor),
                 @intCast(coordinate_len),
                 @intCast(view.batch_index),
@@ -432,6 +507,7 @@ fn computeQuotientsConfigured(
     const leaf_seed = if (commitment) |*config| &config.leaf_seed else null;
     const node_seed = if (commitment) |*config| &config.node_seed else null;
     const domain_prefix_bytes = if (commitment) |config| config.domain_prefix_bytes else 0;
+    const hash_family = if (commitment) |config| config.hash_family else 1;
     const fri_config = if (commitment) |config| config.fri else null;
     const fri_tree_handles = if (fri_config) |config|
         try allocator.alloc(?*anyopaque, config.coordinates.len)
@@ -442,7 +518,15 @@ fn computeQuotientsConfigured(
     var fri_stats: CommandEpochStats = undefined;
     var fri_inverse_generation_mask: u32 = 0;
     var quotient_work_receipt: ffi.QuotientWorkReceipt = undefined;
-    if (!ffi.stwo_zig_metal_compute_quotients(
+    var internal_parity: ?quotient_internal_parity.ContextV1 = if (quotient_internal_parity.enabled())
+        quotient_internal_parity.ContextV1.init(allocator, provider) catch |err| switch (err) {
+            error.OutOfMemory => return error.OutOfMemory,
+            else => return MetalError.QuotientFailed,
+        }
+    else
+        null;
+    defer if (internal_parity) |*context| context.deinit();
+    const quotient_ok = ffi.stwo_zig_metal_compute_quotients(
         self.handle,
         flat.ptr,
         flat.len,
@@ -451,7 +535,10 @@ fn computeQuotientsConfigured(
         @intCast(raw_column_count),
         provider.backend_residency_handles.ptr,
         @intCast(provider.backend_residency_handles.len),
-        @ptrCast(descriptors.ptr),
+        if (raw_descriptors) |descriptors|
+            @ptrCast(descriptors.ptr)
+        else
+            @ptrCast(combined_descriptors.?.ptr),
         @intCast(view_count),
         raw_views,
         sample_words.ptr,
@@ -469,6 +556,7 @@ fn computeQuotientsConfigured(
         leaf_seed,
         node_seed,
         domain_prefix_bytes,
+        hash_family,
         if (fri_config) |config| config.line_output else null,
         if (fri_config) |config| config.coordinates.ptr else null,
         if (fri_config) |config| config.final_destination else null,
@@ -480,13 +568,41 @@ fn computeQuotientsConfigured(
         if (fri_config != null) &fri_inverse_generation_mask else null,
         if (fri_config != null) &fri_stats else null,
         if (capture_work) &quotient_work_receipt else null,
+        if (internal_parity) |*context| @ptrCast(context) else null,
+        if (internal_parity != null) quotient_internal_parity.ContextV1.observer else null,
         &tree_handle,
         &gpu_ms,
         &message,
         message.len,
-    )) {
+    );
+    if (!quotient_ok) {
+        if (internal_parity) |*context| context.printFailure();
         std.log.err("Metal quotient failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.QuotientFailed;
+    }
+    if (internal_parity) |*context| {
+        const receipt = context.finish() catch |err| {
+            context.printFailure();
+            std.log.err("Metal quotient internal parity failed: {s}", .{@errorName(err)});
+            return MetalError.QuotientFailed;
+        };
+        std.debug.print(
+            "METAL_QUOTIENT_INTERNAL_PARITY=exact log={} rows={} batches={} segments={} workers={} resident={} aliases={} views={} domain_values={} partial_values={} final_values={} sha256={x}\n",
+            .{
+                receipt.lifting_log_size,
+                receipt.row_count,
+                receipt.batch_count,
+                receipt.source_run_count,
+                receipt.oracle_worker_count,
+                receipt.resident_run_count,
+                receipt.page_alias_run_count,
+                receipt.raw_view_count,
+                receipt.domain_values,
+                receipt.partial_values,
+                receipt.final_values,
+                receipt.actual_sha256,
+            },
+        );
     }
     const quotient_execution: ?work_profile.QuotientRowExecution = if (capture_work) blk: {
         const expected_row_count: u64 = @intCast(row_count);
@@ -589,8 +705,14 @@ pub const evaluateCoefficientPlansUnprofiled = sampled_coefficient_ops.evaluateC
 pub const evaluateCoefficientTreePlans = sampled_coefficient_ops.evaluateCoefficientTreePlans;
 pub const evaluateCoefficientTreePlansUnprofiled = sampled_coefficient_ops.evaluateCoefficientTreePlansUnprofiled;
 
+const sampled_barycentric_ops = @import("sampled_barycentric_operations.zig");
+pub const SampledBarycentricEvaluationResult = sampled_barycentric_ops.SampledBarycentricEvaluationResult;
+pub const evaluateBarycentricTreePlans = sampled_barycentric_ops.evaluateBarycentricTreePlans;
+
 const circle_transform_ops = @import("circle_transform_operations.zig");
 pub const transformCircle = circle_transform_ops.transformCircle;
+pub const transformCircleWithBinding = circle_transform_ops.transformCircleWithBinding;
+pub const transformCircleResidentBatch = circle_transform_ops.transformCircleResidentBatch;
 pub const transformCircleResident = circle_transform_ops.transformCircleResident;
 pub const transformCircleLdeInto = circle_transform_ops.transformCircleLdeInto;
 pub const beginCircleLdeBatch = circle_transform_ops.beginCircleLdeBatch;

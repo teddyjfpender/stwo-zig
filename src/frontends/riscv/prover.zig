@@ -16,6 +16,25 @@ pub const guest_precompile = @import("prover/guest_precompile/mod.zig");
 pub const main_trace_plan_execution = @import("prover/main_trace_plan_execution.zig");
 pub const main_trace_plan_execution_production =
     @import("prover/main_trace_plan_execution_production.zig");
+pub const incremental_commitment_witness_v3 =
+    @import("prover/incremental_commitment_witness_v3.zig");
+pub const incremental_bridge_external_v3 =
+    @import("prover/incremental_bridge_external_v3.zig");
+pub const incremental_native_orchestration_v3 =
+    @import("prover/incremental_native_orchestration_v3.zig");
+pub const incremental_native_verifier_v3 =
+    @import("prover/incremental_native_verifier_v3.zig");
+/// Typed authority for independently proved narrow-memory Poseidon provider
+/// shards. Integration code must consume this facade so the frontend retains
+/// sole module ownership of the underlying AIR call and claim types.
+pub const memory_provider_shard_authority =
+    @import("prover/memory_provider_shards/authority.zig");
+pub const memory_provider_shard_joint_proof_authority =
+    @import("prover/memory_provider_shards/joint_proof_authority.zig");
+pub const ethereum_native_provider_omit_protocol_v1 =
+    guest_precompile.ethereum_native_provider_omit_protocol_v1;
+pub const ethereum_native_provider_omit_proof_v1 =
+    guest_precompile.ethereum_native_provider_omit_proof_v1;
 pub const PublicData = types.PublicData;
 pub const PublicDataV2 = @import("air/public_data_v2.zig").PublicDataV2;
 pub const Hasher = types.Hasher;
@@ -32,6 +51,7 @@ pub const MAX_INFRA_COMPONENTS = types.MAX_INFRA_COMPONENTS;
 pub const MAX_EXECUTION_STEPS =
     @import("prover/statement_validation.zig").MAX_EXECUTION_STEPS;
 pub const Proof = types.Proof;
+pub const ProofForEngine = types.ProofForEngine;
 pub const ExtendedProof = types.ExtendedProof;
 pub const OwnedRiscVStatement = types.OwnedRiscVStatement;
 pub const RelationDiagnostic = types.RelationDiagnostic;
@@ -55,12 +75,72 @@ pub const provePoseidon2WithEngineAndPublicDataUsingChannelAndPhaseMeter =
 pub const verifyPoseidon2WithEngine = guest_precompile.verifyPoseidon2WithEngine;
 pub const verifyPoseidon2WithEngineUsingChannel =
     guest_precompile.verifyPoseidon2WithEngineUsingChannel;
+pub const EthereumProveOutputForEngine =
+    guest_precompile.EthereumProveOutputForEngine;
+pub const proveEthereumWithEngine = guest_precompile.proveEthereumWithEngine;
+pub const EthereumExecutionOptions =
+    guest_precompile.ethereum_orchestration.ExecutionOptions;
+pub const proveEthereumWithEngineUsingExecution =
+    guest_precompile.proveEthereumWithEngineUsingExecution;
+pub const proveEthereumWithEngineUsingChannel =
+    guest_precompile.proveEthereumWithEngineUsingChannel;
+pub const verifyEthereumWithEngine = guest_precompile.verifyEthereumWithEngine;
+pub const verifyEthereumWithEngineUsingChannel =
+    guest_precompile.verifyEthereumWithEngineUsingChannel;
+pub const EthereumSegmentProveOutputForEngine =
+    guest_precompile.EthereumSegmentProveOutputForEngine;
+pub const proveEthereumSegmentWithEngine =
+    guest_precompile.proveEthereumSegmentWithEngine;
+pub const proveEthereumSegmentWithEngineUsingExecution =
+    guest_precompile.proveEthereumSegmentWithEngineUsingExecution;
+pub const EthereumSegmentProveDiagnostic =
+    guest_precompile.EthereumSegmentProveDiagnostic;
+pub const proveEthereumSegmentWithEngineUsingExecutionDiagnosed =
+    guest_precompile.proveEthereumSegmentWithEngineUsingExecutionDiagnosed;
+pub const EthereumLeafMatchedAbExecutionAuthorityV1 =
+    guest_precompile.ethereum_leaf_matched_ab_execution_profile_v1.Authority;
+pub const proveEthereumSegmentWithEngineUsingMatchedAbExecutionDiagnosed =
+    guest_precompile.proveEthereumSegmentWithEngineUsingMatchedAbExecutionDiagnosed;
+pub const proveEthereumSegmentWithEngineUsingChannelAndExecutionAndTranscriptExtension =
+    guest_precompile.proveEthereumSegmentWithEngineUsingChannelAndExecutionAndTranscriptExtension;
+pub const proveEthereumSegmentWithEngineUsingChannelAndExecutionAndNativeProviderOmission =
+    guest_precompile.proveEthereumSegmentWithEngineUsingChannelAndExecutionAndNativeProviderOmission;
+pub const verifyEthereumSegmentWithEngineUsingChannelAndTranscriptExtension =
+    guest_precompile.verifyEthereumSegmentWithEngineUsingChannelAndTranscriptExtension;
+pub const verifyEthereumSegmentWithEngineUsingChannelAndNativeProviderOmission =
+    guest_precompile.verifyEthereumSegmentWithEngineUsingChannelAndNativeProviderOmission;
+pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannelAndTranscriptExtension =
+    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannelAndTranscriptExtension;
+pub const EthereumSegmentGeometrySnapshot =
+    guest_precompile.EthereumSegmentGeometrySnapshot;
+pub const inspectEthereumSegmentPreEngineGeometry =
+    guest_precompile.inspectEthereumSegmentPreEngineGeometry;
+pub const EthereumSegmentProviderCallAuthorityV1 =
+    guest_precompile.EthereumSegmentProviderCallAuthorityV1;
+pub const buildEthereumSegmentProviderCallAuthorityV1 =
+    guest_precompile.buildEthereumSegmentProviderCallAuthorityV1;
+pub const verifyEthereumSegmentWithEngine =
+    guest_precompile.verifyEthereumSegmentWithEngine;
+pub const verifyEthereumSegmentWithEngineUsingChannel =
+    guest_precompile.verifyEthereumSegmentWithEngineUsingChannel;
+pub const verifyEthereumSegmentWithEngineAndCapture =
+    guest_precompile.verifyEthereumSegmentWithEngineAndCapture;
+pub const verifyEthereumSegmentWithEngineAndCaptureUsingChannel =
+    guest_precompile.verifyEthereumSegmentWithEngineAndCaptureUsingChannel;
+pub const VerifiedEthereumSegmentV3CaptureForEngine =
+    guest_precompile.VerifiedEthereumSegmentV3CaptureForEngine;
+pub const verifyEthereumSegmentWithEngineAndEthereumV3Capture =
+    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3Capture;
+pub const verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel =
+    guest_precompile.verifyEthereumSegmentWithEngineAndEthereumV3CaptureUsingChannel;
 pub const proveRiscVSegmentV2WithEngine =
     orchestration.runRiscVSegmentV2WithEngine;
 pub const proveRiscVSegmentV2WithEngineUsingChannel =
     orchestration.runRiscVSegmentV2WithEngineUsingChannel;
 pub const proveRiscVSegmentV2WithEngineUsingChannelAndExecution =
     orchestration.runRiscVSegmentV2WithEngineUsingChannelAndExecution;
+pub const proveRiscVSegmentV2WithEngineUsingChannelAndExecutionAndTranscriptExtension =
+    orchestration.runRiscVSegmentV2WithEngineUsingChannelAndExecutionAndTranscriptExtension;
 /// SegmentV2 defaults to the authenticated degree-aware physical lookup
 /// layout. The old physical layout remains available only through the explicit
 /// compatibility symbols below.
@@ -467,6 +547,8 @@ pub const verifyRiscVSegmentV2WithEngine =
     verifier.verifyRiscVSegmentV2WithEngine;
 pub const verifyRiscVSegmentV2WithEngineUsingChannel =
     verifier.verifyRiscVSegmentV2WithEngineUsingChannel;
+pub const verifyRiscVSegmentV2WithEngineUsingChannelAndTranscriptExtension =
+    verifier.verifyRiscVSegmentV2WithEngineUsingChannelAndTranscriptExtension;
 pub const verifyRiscVSegmentV2WithEngineUsingChannelAndCapture =
     verifier.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture;
 pub const verifyRiscVSegmentLookupV1CompatibilityWithEngine =

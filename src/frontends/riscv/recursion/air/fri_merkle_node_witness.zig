@@ -480,7 +480,7 @@ fn hashPackedLeaf(
     return state[0..DIGEST_WORD_COUNT].*;
 }
 
-fn fillLaneRows(
+pub fn fillLaneRows(
     rows: []Row,
     cursor: *usize,
     profile: leaf.LaneProfile,
@@ -521,7 +521,7 @@ fn fillLaneRows(
     }
 }
 
-fn validateLaneRows(
+pub fn validateLaneRows(
     rows: []const Row,
     cursor: *usize,
     profile: leaf.LaneProfile,
@@ -568,7 +568,7 @@ fn validateLaneRows(
     cursor.* = target;
 }
 
-fn rowsForLane(profile: leaf.LaneProfile) Error!usize {
+pub fn rowsForLane(profile: leaf.LaneProfile) Error!usize {
     var count: usize = 0;
     var folded: u32 = 0;
     for (profile.layers) |layer| {
@@ -604,7 +604,7 @@ fn validateWitness(reference: Reference, witness: OpeningWitness) Error!void {
     }
 }
 
-fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
+pub fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
     if (opening.raw_queries.len != profile.query_count or opening.layers.len != profile.layers.len)
         return error.InvalidWitness;
     for (profile.layers, opening.layers) |profile_layer, layer| {
@@ -618,7 +618,7 @@ fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
     }
 }
 
-fn selectOpening(verifier_id: u32, witness: OpeningWitness) ?OpeningSet {
+pub fn selectOpening(verifier_id: u32, witness: OpeningWitness) ?OpeningSet {
     return switch (witness) {
         .segment_leaf => |opening| if (verifier_id == SEGMENT_VERIFIER_ID) opening else null,
         .binary_node => |opening| switch (verifier_id) {
@@ -650,11 +650,11 @@ fn validateRow(row: Row) Error!void {
     }
 }
 
-fn validateRowDirect(row: Row) direct.Error!void {
+pub fn validateRowDirect(row: Row) direct.Error!void {
     validateRow(row) catch return error.InvalidTraceRow;
 }
 
-fn writePreprocessedRow(
+pub fn writePreprocessedRow(
     columns: *[PREPROCESSED_COLUMN_COUNT][]M31,
     logical_row: usize,
     row: Row,
@@ -663,12 +663,12 @@ fn writePreprocessedRow(
     for (columns, values) |column, value| column[logical_row] = value;
 }
 
-fn writeMainRow(columns: *[MAIN_COLUMN_COUNT][]M31, logical_row: usize, row: MainRow) void {
+pub fn writeMainRow(columns: *[MAIN_COLUMN_COUNT][]M31, logical_row: usize, row: MainRow) void {
     const values = row.values();
     for (columns, values) |column, value| column[logical_row] = value;
 }
 
-fn zeroMainRow() MainRow {
+pub fn zeroMainRow() MainRow {
     return .{
         .enabler = M31.zero(),
         .index = M31.zero(),
@@ -745,7 +745,7 @@ fn objectRange(value: anytype) direct.Error!AddressRange {
         return error.AddressOverflow };
 }
 
-fn traceLogSize(row_count: usize) Error!u32 {
+pub fn traceLogSize(row_count: usize) Error!u32 {
     const result: u32 = @max(
         MIN_LOG_SIZE,
         @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(row_count, 1)))),
@@ -754,7 +754,7 @@ fn traceLogSize(row_count: usize) Error!u32 {
     return result;
 }
 
-fn rowsDigest(rows: []const Row) digest.Digest {
+pub fn rowsDigest(rows: []const Row) digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(ROWS_DOMAIN);
     hashInt(&hash, u32, rows.len);

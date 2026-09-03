@@ -17,6 +17,9 @@ pub const proof_admission = @import("proof_admission.zig");
 pub const program_commitment = @import("program_commitment.zig");
 pub const artifact_identity = @import("artifact_identity.zig");
 pub const production_adapter = @import("production_adapter.zig");
+pub const ethereum_statement = @import("ethereum_statement.zig");
+pub const ethereum_proof_admission = @import("ethereum_proof_admission.zig");
+pub const ethereum_lookup_registration = @import("ethereum_lookup_registration.zig");
 
 /// Candidate Keccak-f profile authority. These modules are proof-complete but
 /// remain outside the production profile switch until the caller relation and
@@ -41,6 +44,9 @@ pub const secp256k1_linear_direct = @import("secp256k1_linear_direct.zig");
 pub const secp256k1_affine = @import("secp256k1_affine.zig");
 pub const secp256k1_ecdsa = @import("secp256k1_ecdsa.zig");
 pub const secp256k1_ecdsa_direct = @import("secp256k1_ecdsa_direct.zig");
+pub const secp256k1_recovery = @import("secp256k1_recovery.zig");
+pub const secp256k1_recovery_direct = @import("secp256k1_recovery_direct.zig");
+pub const secp256k1_recovery_caller = @import("secp256k1_recovery_caller.zig");
 pub const secp256k1_relations = @import("secp256k1_relations.zig");
 pub const secp256k1_point_direct = @import("secp256k1_point_direct.zig");
 pub const secp256k1_split_direct = @import("secp256k1_split_direct.zig");

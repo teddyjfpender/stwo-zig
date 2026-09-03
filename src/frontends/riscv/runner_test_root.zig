@@ -18,10 +18,13 @@ test {
     _ = @import("runner/execute.zig");
     _ = @import("runner/guest_precompile/c011_semantic_equivalence_test.zig");
     _ = @import("runner/guest_precompile/call_buffer.zig");
+    _ = @import("runner/guest_precompile/ethereum_runner_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("runner/guest_precompile/poseidon2_v1.zig");
     _ = @import("runner/guest_precompile/poseidon2_clock_authority_test.zig");
     _ = @import("runner/guest_precompile/runner_test.zig");
+    _ = @import("runner/guest_precompile/secp256k1_recover_call_buffer.zig");
+    _ = @import("runner/guest_precompile/secp256k1_recover_v1_test.zig");
     _ = @import("runner/host_integration_test.zig");
     _ = @import("runner/fence_retirement_test.zig");
     _ = @import("runner/generated_retirement.zig");
@@ -48,6 +51,8 @@ test {
     _ = @import("runner/div_retirement_test.zig");
     _ = @import("runner/memory.zig");
     _ = @import("runner/memory_state.zig");
+    _ = @import("runner/minimal_trace/mod.zig");
+    _ = @import("runner/minimal_trace/test.zig");
     _ = @import("runner/mod.zig");
     _ = @import("runner/sail_oracle.zig");
     _ = @import("runner/state_chain.zig");

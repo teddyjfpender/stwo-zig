@@ -24,6 +24,78 @@ typedef struct {
     size_t availableWords;
 } StwoZigResidentColumnBinding;
 
+static id<MTLComputePipelineState> stwo_zig_commitment_leaves_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.leaves;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31Leaves;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_direct_leaves_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.leaves;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31LeavesWide;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_parents_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.parents;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31Parents;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_parents_sparse_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.parentsSparse;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31ParentsSparse;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_parent_tail_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return runtime.parentTailSparse;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31ParentTailSparse;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_leaf_absorb_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family, bool compact
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1)
+        return compact ? runtime.leafAbsorbCompactResident : runtime.leafAbsorbResident;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return compact ? runtime.poseidon2M31LeafAbsorbCompactResident :
+            runtime.poseidon2M31LeafAbsorbResident;
+    return nil;
+}
+
+static id<MTLComputePipelineState> stwo_zig_commitment_fri_leaves_pipeline(
+    StwoZigMetalRuntime *runtime, uint32_t family
+) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1)
+        return runtime.friPackedLeavesResident;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1)
+        return runtime.poseidon2M31FriPackedLeavesResident;
+    return nil;
+}
+
+static uint32_t stwo_zig_commitment_leaf_state_words(uint32_t family) {
+    if (family == StwoZigCommitmentHashFamilyBlake2sV1) return 8u;
+    if (family == StwoZigCommitmentHashFamilyPoseidon2M31V1) return 16u;
+    return 0u;
+}
+
 static bool stwo_zig_tree_resident_column(
     NSArray<StwoZigMetalTree *> *trees,
     const uint32_t *column,
@@ -36,12 +108,22 @@ static bool stwo_zig_tree_resident_column(
         NSArray<id<MTLBuffer>> *buffers = tree.residentColumnBuffers;
         const uintptr_t *begins = tree.residentColumnHostBegins.bytes;
         const size_t *counts = tree.residentColumnWordCounts.bytes;
-        const uint32_t *offsets = tree.residentColumnWordOffsets.bytes;
+        // Direct Poseidon commitments use u64 arena offsets because their
+        // aggregate backing may exceed 2^32 words.  This map only locates the
+        // already proof-owned Metal buffer; it never promotes or uploads a
+        // host slice into residency.
+        uint32_t offset_word_bytes = tree.residentColumnOffsetWordBytes;
+        const uint32_t *narrow_offsets = offset_word_bytes == sizeof(uint32_t)
+            ? tree.residentColumnWordOffsets.bytes : NULL;
+        const uint64_t *wide_offsets = offset_word_bytes == sizeof(uint64_t)
+            ? tree.residentColumnWordOffsets.bytes : NULL;
         NSUInteger count = tree.residentColumnHostBegins.length / sizeof(uintptr_t);
-        if (buffers.count == 1u && begins != NULL && counts != NULL && offsets != NULL &&
+        if (buffers.count == 1u && begins != NULL && counts != NULL &&
+            (narrow_offsets != NULL || wide_offsets != NULL) &&
             tree.residentColumnHostBegins.length == count * sizeof(uintptr_t) &&
             tree.residentColumnWordCounts.length == count * sizeof(size_t) &&
-            tree.residentColumnWordOffsets.length == count * sizeof(uint32_t)) {
+            count <= NSUIntegerMax / offset_word_bytes &&
+            tree.residentColumnWordOffsets.length == count * offset_word_bytes) {
             for (NSUInteger index = 0u; index < count; ++index) {
                 uintptr_t begin = begins[index];
                 size_t words = counts[index];
@@ -50,10 +132,14 @@ static bool stwo_zig_tree_resident_column(
                 size_t offset = (address - begin) / sizeof(uint32_t);
                 if (offset > words || column_words > words - offset) continue;
                 id<MTLBuffer> buffer = buffers[0];
-                size_t device_offset = (size_t)offsets[index] + offset;
-                if (buffer == nil || device_offset > buffer.length / sizeof(uint32_t) ||
-                    column_words > buffer.length / sizeof(uint32_t) - device_offset)
+                uint64_t resident_offset = wide_offsets != NULL
+                    ? wide_offsets[index] : (uint64_t)narrow_offsets[index];
+                size_t buffer_words = buffer.length / sizeof(uint32_t);
+                if (buffer == nil || resident_offset > (uint64_t)buffer_words ||
+                    (uint64_t)offset > (uint64_t)buffer_words - resident_offset)
                     continue;
+                size_t device_offset = (size_t)(resident_offset + (uint64_t)offset);
+                if (column_words > buffer_words - device_offset) continue;
                 binding->tree = tree;
                 binding->buffer = buffer;
                 binding->wordOffset = device_offset;
@@ -79,6 +165,60 @@ static bool stwo_zig_tree_resident_column(
         }
     }
     return false;
+}
+
+// Composition-domain scratch is a proof-local typed owner created from the
+// retained coefficients of already committed columns.  It is deliberately a
+// separate resolver input: arbitrary host trace clones must never enter the
+// proof-resident tree map, while the wider degree-bounded evaluation still
+// needs a no-copy device binding for the generated AIR kernels.
+static bool stwo_zig_composition_domain_column(
+    void *buffer_ptr,
+    const uint32_t *host_begin,
+    size_t host_words,
+    const uint32_t *column,
+    size_t column_words,
+    StwoZigResidentColumnBinding *binding
+) {
+    if (buffer_ptr == NULL || host_begin == NULL || host_words == 0u ||
+        column == NULL || binding == NULL)
+        return false;
+    id<MTLBuffer> buffer = (__bridge id<MTLBuffer>)buffer_ptr;
+    if (buffer == nil || buffer.contents != host_begin ||
+        buffer.length / sizeof(uint32_t) != host_words)
+        return false;
+    uintptr_t begin = (uintptr_t)host_begin;
+    uintptr_t address = (uintptr_t)column;
+    if (address < begin || (address - begin) % sizeof(uint32_t) != 0u)
+        return false;
+    size_t offset = (address - begin) / sizeof(uint32_t);
+    if (offset > host_words || column_words > host_words - offset)
+        return false;
+    binding->tree = nil;
+    binding->buffer = buffer;
+    binding->wordOffset = offset;
+    binding->availableWords = host_words - offset;
+    return true;
+}
+
+static bool stwo_zig_polynomial_input_column(
+    NSArray<StwoZigMetalTree *> *trees,
+    void *composition_buffer,
+    const uint32_t *composition_host_begin,
+    size_t composition_host_words,
+    const uint32_t *column,
+    size_t column_words,
+    StwoZigResidentColumnBinding *binding
+) {
+    return stwo_zig_tree_resident_column(trees, column, column_words, binding) ||
+        stwo_zig_composition_domain_column(
+            composition_buffer,
+            composition_host_begin,
+            composition_host_words,
+            column,
+            column_words,
+            binding
+        );
 }
 
 static uint32_t tree_layer_word_offset(StwoZigMetalTree *tree, NSUInteger level) {
@@ -161,7 +301,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         StwoZigMetalRuntime *runtime = [StwoZigMetalRuntime new];
         runtime.device = device;
         runtime.queue = stwo_zig_metal_profile_queue([device newCommandQueue], device);
-        runtime.riscvPolynomialPipelines = [NSMutableDictionary dictionaryWithCapacity:56u];
+        runtime.riscvPolynomialPipelines = [NSMutableDictionary dictionaryWithCapacity:61u];
         runtime.evalLibraries = [NSMutableDictionary dictionary];
         runtime.evalPipelines = [NSMutableDictionary dictionary];
         runtime.quadraticRecurrenceTrace = make_pipeline(device, library, @"stwo_zig_quadratic_recurrence_trace",
@@ -170,10 +310,16 @@ static StwoZigMetalRuntime *create_runtime_from_library(
                                                             error_message, error_message_len);
         runtime.leaves = make_pipeline(device, library, @"stwo_zig_blake2s_leaves",
                                        error_message, error_message_len);
+        runtime.poseidon2M31Leaves = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaves",
+                                                  error_message, error_message_len);
+        runtime.poseidon2M31LeavesWide = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaves_wide",
+                                                      error_message, error_message_len);
         runtime.proofOfWork = make_pipeline(device, library, @"stwo_zig_blake2s_pow_search",
                                            error_message, error_message_len);
         runtime.parents = make_pipeline(device, library, @"stwo_zig_blake2s_parents",
                                         error_message, error_message_len);
+        runtime.poseidon2M31Parents = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parents",
+                                                   error_message, error_message_len);
         runtime.quotients = make_pipeline(device, library, @"stwo_zig_quotient_rows",
                                           error_message, error_message_len);
         runtime.rawQuotients = make_pipeline(device, library, @"stwo_zig_quotient_rows_raw",
@@ -182,6 +328,22 @@ static StwoZigMetalRuntime *create_runtime_from_library(
                                                error_message, error_message_len);
         runtime.polynomialBasis = make_pipeline(device, library, @"stwo_zig_eval_basis",
                                                 error_message, error_message_len);
+        runtime.sampledBarycentricDomain = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_domain_v1",
+                                                         error_message, error_message_len);
+        runtime.sampledBarycentricScale = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_scale_v1",
+                                                        error_message, error_message_len);
+        runtime.sampledBarycentricParts = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_parts_v1",
+                                                        error_message, error_message_len);
+        runtime.sampledBarycentricInverseDirect = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_inverse_direct_v1",
+                                                                error_message, error_message_len);
+        runtime.sampledBarycentricInverseTree = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_inverse_tree_v1",
+                                                              error_message, error_message_len);
+        runtime.sampledBarycentricFinish = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_finish_v1",
+                                                         error_message, error_message_len);
+        runtime.sampledBarycentricEvaluateMany = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_evaluate_many_v1",
+                                                               error_message, error_message_len);
+        runtime.sampledBarycentricReduce = make_pipeline(device, library, @"stwo_zig_sampled_barycentric_reduce_v1",
+                                                         error_message, error_message_len);
         runtime.circleIfftFirst = make_pipeline(device, library, @"stwo_zig_circle_ifft_first", error_message, error_message_len);
         runtime.circleIfftLayer = make_pipeline(device, library, @"stwo_zig_circle_ifft_layer", error_message, error_message_len);
         runtime.circleRfftLayer = make_pipeline(device, library, @"stwo_zig_circle_rfft_layer", error_message, error_message_len);
@@ -204,6 +366,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.friFold3Resident = make_pipeline(device, library, @"stwo_zig_fri_fold3_resident", error_message, error_message_len);
         runtime.friFold2Resident = make_pipeline(device, library, @"stwo_zig_fri_fold2_resident", error_message, error_message_len);
         runtime.friPackedLeavesResident = make_pipeline(device, library, @"stwo_zig_fri_packed_leaves_resident", error_message, error_message_len);
+        runtime.poseidon2M31FriPackedLeavesResident = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_fri_packed_leaves_resident", error_message, error_message_len);
         runtime.friFinalLineResident = make_pipeline(device, library, @"stwo_zig_fri_final_line_resident", error_message, error_message_len);
         runtime.transcriptInitResident = make_pipeline(device, library, @"stwo_zig_transcript_init_resident", error_message, error_message_len);
         runtime.transcriptMixResident = make_pipeline(device, library, @"stwo_zig_transcript_mix_resident", error_message, error_message_len);
@@ -215,6 +378,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.decommitPrepareTraceQueriesResident = make_pipeline(device, library, @"stwo_zig_decommit_prepare_trace_queries_resident", error_message, error_message_len);
         runtime.decommitGatherTraceValuesResident = make_pipeline(device, library, @"stwo_zig_decommit_gather_trace_values_resident", error_message, error_message_len);
         runtime.decommitGatherTreeValuesResident = make_pipeline(device, library, @"stwo_zig_decommit_gather_tree_values_resident", error_message, error_message_len);
+        runtime.decommitGatherTreeValuesResidentWide = make_pipeline(device, library, @"stwo_zig_decommit_gather_tree_values_resident_wide", error_message, error_message_len);
         runtime.decommitAssembleFriResident = make_pipeline(device, library, @"stwo_zig_decommit_assemble_fri_resident", error_message, error_message_len);
         runtime.decommitSparseParentResident = make_pipeline(device, library, @"stwo_zig_decommit_sparse_parent_resident", error_message, error_message_len);
         runtime.decommitSparseLeavesResident = make_pipeline(device, library, @"stwo_zig_decommit_sparse_leaves_resident", error_message, error_message_len);
@@ -223,6 +387,9 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.qm31ToCoordinates = make_pipeline(device, library, @"stwo_zig_qm31_to_coordinates", error_message, error_message_len);
         runtime.leafAbsorbResident = make_pipeline(device, library, @"stwo_zig_blake2s_leaf_absorb_resident", error_message, error_message_len);
         runtime.leafAbsorbCompactResident = make_pipeline(device, library, @"stwo_zig_blake2s_leaf_absorb_compact_resident", error_message, error_message_len);
+        runtime.poseidon2M31LeafAbsorbResident = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_absorb_resident", error_message, error_message_len);
+        runtime.poseidon2M31LeafAbsorbCompactResident = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_absorb_compact_resident", error_message, error_message_len);
+        runtime.poseidon2M31LeafStateDigestResidentV1 = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1", error_message, error_message_len);
         runtime.parentsPlainSparse = make_pipeline(device, library, @"stwo_zig_blake2s_parents_plain_sparse", error_message, error_message_len);
         runtime.clearArenaSpans = make_pipeline(device, library, @"stwo_zig_clear_arena_spans", error_message, error_message_len);
         runtime.circleExpandSparse = make_pipeline(device, library, @"stwo_zig_circle_expand_sparse", error_message, error_message_len);
@@ -243,6 +410,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.relationScanFinalize = make_pipeline(device, library, @"stwo_zig_relation_scan_finalize", error_message, error_message_len);
         runtime.parentsSparse = make_pipeline(device, library, @"stwo_zig_blake2s_parents_sparse", error_message, error_message_len);
         runtime.parentTailSparse = make_pipeline(device, library, @"stwo_zig_blake2s_parent_tail_sparse", error_message, error_message_len);
+        runtime.poseidon2M31ParentsSparse = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parents_sparse", error_message, error_message_len);
+        runtime.poseidon2M31ParentTailSparse = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parent_tail_sparse", error_message, error_message_len);
         runtime.compactGather = make_pipeline(device, library, @"stwo_zig_compact_gather", error_message, error_message_len);
         runtime.compactRadixHistogram = make_pipeline(device, library, @"stwo_zig_compact_radix_histogram", error_message, error_message_len);
         runtime.compactRadixPrefix = make_pipeline(device, library, @"stwo_zig_compact_radix_prefix", error_message, error_message_len);
@@ -263,237 +432,268 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         // BEGIN GENERATED RISC-V POLYNOMIAL PIPELINES.
         // Keep this block in manifest order. Each content-addressed function
         // name is bound once so the runtime initializer remains auditable.
-        NSString *riscvPolynomialName00 = @"stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a";
+        NSString *riscvPolynomialName00 = @"stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097";
         runtime.riscvPolynomialPipelines[riscvPolynomialName00] = make_pipeline(
             device, library, riscvPolynomialName00, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName00] == nil) return NULL;
-        NSString *riscvPolynomialName01 = @"stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff";
+        NSString *riscvPolynomialName01 = @"stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf";
         runtime.riscvPolynomialPipelines[riscvPolynomialName01] = make_pipeline(
             device, library, riscvPolynomialName01, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName01] == nil) return NULL;
-        NSString *riscvPolynomialName02 = @"stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0";
+        NSString *riscvPolynomialName02 = @"stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba";
         runtime.riscvPolynomialPipelines[riscvPolynomialName02] = make_pipeline(
             device, library, riscvPolynomialName02, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName02] == nil) return NULL;
-        NSString *riscvPolynomialName03 = @"stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3";
+        NSString *riscvPolynomialName03 = @"stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd";
         runtime.riscvPolynomialPipelines[riscvPolynomialName03] = make_pipeline(
             device, library, riscvPolynomialName03, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName03] == nil) return NULL;
-        NSString *riscvPolynomialName04 = @"stwo_zig_base_poly_a972dafabb2bf5eee1d1cdb560f3572e";
+        NSString *riscvPolynomialName04 = @"stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4";
         runtime.riscvPolynomialPipelines[riscvPolynomialName04] = make_pipeline(
             device, library, riscvPolynomialName04, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName04] == nil) return NULL;
-        NSString *riscvPolynomialName05 = @"stwo_zig_base_poly_09e5f90f9696d165cc36093de2564888";
+        NSString *riscvPolynomialName05 = @"stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName05] = make_pipeline(
             device, library, riscvPolynomialName05, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName05] == nil) return NULL;
-        NSString *riscvPolynomialName06 = @"stwo_zig_base_poly_a74fd0125263cc1e887ee5d726ac99a0";
+        NSString *riscvPolynomialName06 = @"stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389";
         runtime.riscvPolynomialPipelines[riscvPolynomialName06] = make_pipeline(
             device, library, riscvPolynomialName06, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName06] == nil) return NULL;
-        NSString *riscvPolynomialName07 = @"stwo_zig_base_poly_3b018614b76f63e7a28e127029c18704";
+        NSString *riscvPolynomialName07 = @"stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba";
         runtime.riscvPolynomialPipelines[riscvPolynomialName07] = make_pipeline(
             device, library, riscvPolynomialName07, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName07] == nil) return NULL;
-        NSString *riscvPolynomialName08 = @"stwo_zig_base_poly_aa55ec34af78d3f2b74d4b3d06c708a8";
+        NSString *riscvPolynomialName08 = @"stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52";
         runtime.riscvPolynomialPipelines[riscvPolynomialName08] = make_pipeline(
             device, library, riscvPolynomialName08, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName08] == nil) return NULL;
-        NSString *riscvPolynomialName09 = @"stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd";
+        NSString *riscvPolynomialName09 = @"stwo_zig_base_poly_a995060c2a616369140d09438c7dac67";
         runtime.riscvPolynomialPipelines[riscvPolynomialName09] = make_pipeline(
             device, library, riscvPolynomialName09, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName09] == nil) return NULL;
-        NSString *riscvPolynomialName10 = @"stwo_zig_base_poly_6301135c98c38c29971098b60b459397";
+        NSString *riscvPolynomialName10 = @"stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName10] = make_pipeline(
             device, library, riscvPolynomialName10, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName10] == nil) return NULL;
-        NSString *riscvPolynomialName11 = @"stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963";
+        NSString *riscvPolynomialName11 = @"stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649";
         runtime.riscvPolynomialPipelines[riscvPolynomialName11] = make_pipeline(
             device, library, riscvPolynomialName11, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName11] == nil) return NULL;
-        NSString *riscvPolynomialName12 = @"stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00";
+        NSString *riscvPolynomialName12 = @"stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1";
         runtime.riscvPolynomialPipelines[riscvPolynomialName12] = make_pipeline(
             device, library, riscvPolynomialName12, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName12] == nil) return NULL;
-        NSString *riscvPolynomialName13 = @"stwo_zig_base_poly_1d58ef609255595a37488e277d52585c";
+        NSString *riscvPolynomialName13 = @"stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315";
         runtime.riscvPolynomialPipelines[riscvPolynomialName13] = make_pipeline(
             device, library, riscvPolynomialName13, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName13] == nil) return NULL;
-        NSString *riscvPolynomialName14 = @"stwo_zig_base_poly_208adea2af3accc5bd53faa7807024bb";
+        NSString *riscvPolynomialName14 = @"stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110";
         runtime.riscvPolynomialPipelines[riscvPolynomialName14] = make_pipeline(
             device, library, riscvPolynomialName14, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName14] == nil) return NULL;
-        NSString *riscvPolynomialName15 = @"stwo_zig_base_poly_9b9a12367c3aeb8830ac01bf757fa64a";
+        NSString *riscvPolynomialName15 = @"stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7";
         runtime.riscvPolynomialPipelines[riscvPolynomialName15] = make_pipeline(
             device, library, riscvPolynomialName15, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName15] == nil) return NULL;
-        NSString *riscvPolynomialName16 = @"stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c";
+        NSString *riscvPolynomialName16 = @"stwo_zig_base_poly_903175038c36e2a6aad8376003874197";
         runtime.riscvPolynomialPipelines[riscvPolynomialName16] = make_pipeline(
             device, library, riscvPolynomialName16, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName16] == nil) return NULL;
-        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_6bd1123655f7e5fc662f4e397524645b";
+        NSString *riscvPolynomialName17 = @"stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954";
         runtime.riscvPolynomialPipelines[riscvPolynomialName17] = make_pipeline(
             device, library, riscvPolynomialName17, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName17] == nil) return NULL;
-        NSString *riscvPolynomialName18 = @"stwo_zig_lookup_poly_60369e534e1e31666bb1684e6745500b";
+        NSString *riscvPolynomialName18 = @"stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e";
         runtime.riscvPolynomialPipelines[riscvPolynomialName18] = make_pipeline(
             device, library, riscvPolynomialName18, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName18] == nil) return NULL;
-        NSString *riscvPolynomialName19 = @"stwo_zig_lookup_poly_cae77cf99f2127b1108dc5c1609cc16b";
+        NSString *riscvPolynomialName19 = @"stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324";
         runtime.riscvPolynomialPipelines[riscvPolynomialName19] = make_pipeline(
             device, library, riscvPolynomialName19, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName19] == nil) return NULL;
-        NSString *riscvPolynomialName20 = @"stwo_zig_lookup_poly_d1b44ec0cc8a532f04e4e39fd0bb648e";
+        NSString *riscvPolynomialName20 = @"stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2";
         runtime.riscvPolynomialPipelines[riscvPolynomialName20] = make_pipeline(
             device, library, riscvPolynomialName20, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName20] == nil) return NULL;
-        NSString *riscvPolynomialName21 = @"stwo_zig_lookup_poly_88bafd2b2b2bb614f3a37e2e93f88f8f";
+        NSString *riscvPolynomialName21 = @"stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f";
         runtime.riscvPolynomialPipelines[riscvPolynomialName21] = make_pipeline(
             device, library, riscvPolynomialName21, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName21] == nil) return NULL;
-        NSString *riscvPolynomialName22 = @"stwo_zig_lookup_poly_f0435e9fbbd4a7a98c7c5162bee7d7a9";
+        NSString *riscvPolynomialName22 = @"stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed";
         runtime.riscvPolynomialPipelines[riscvPolynomialName22] = make_pipeline(
             device, library, riscvPolynomialName22, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName22] == nil) return NULL;
-        NSString *riscvPolynomialName23 = @"stwo_zig_lookup_poly_cc2c95d2bff4c999fee2f44e08222252";
+        NSString *riscvPolynomialName23 = @"stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54";
         runtime.riscvPolynomialPipelines[riscvPolynomialName23] = make_pipeline(
             device, library, riscvPolynomialName23, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName23] == nil) return NULL;
-        NSString *riscvPolynomialName24 = @"stwo_zig_lookup_poly_b52a532ad3c7e42bdece0624fb56b8aa";
+        NSString *riscvPolynomialName24 = @"stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4";
         runtime.riscvPolynomialPipelines[riscvPolynomialName24] = make_pipeline(
             device, library, riscvPolynomialName24, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName24] == nil) return NULL;
-        NSString *riscvPolynomialName25 = @"stwo_zig_lookup_poly_b15f9ad4a9abfc83a7cdec6c46ee4ade";
+        NSString *riscvPolynomialName25 = @"stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName25] = make_pipeline(
             device, library, riscvPolynomialName25, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName25] == nil) return NULL;
-        NSString *riscvPolynomialName26 = @"stwo_zig_lookup_poly_fcc84457fa16172e164408c12324b2c2";
+        NSString *riscvPolynomialName26 = @"stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName26] = make_pipeline(
             device, library, riscvPolynomialName26, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName26] == nil) return NULL;
-        NSString *riscvPolynomialName27 = @"stwo_zig_lookup_poly_ff9bf971cfa80d96e0aa0e50e4b1b89d";
+        NSString *riscvPolynomialName27 = @"stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406";
         runtime.riscvPolynomialPipelines[riscvPolynomialName27] = make_pipeline(
             device, library, riscvPolynomialName27, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName27] == nil) return NULL;
-        NSString *riscvPolynomialName28 = @"stwo_zig_lookup_poly_b63d26046143c546183c7769fee7803a";
+        NSString *riscvPolynomialName28 = @"stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52";
         runtime.riscvPolynomialPipelines[riscvPolynomialName28] = make_pipeline(
             device, library, riscvPolynomialName28, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName28] == nil) return NULL;
-        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_60da0a81177c1f7c118d91080a104856";
+        NSString *riscvPolynomialName29 = @"stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23";
         runtime.riscvPolynomialPipelines[riscvPolynomialName29] = make_pipeline(
             device, library, riscvPolynomialName29, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName29] == nil) return NULL;
-        NSString *riscvPolynomialName30 = @"stwo_zig_lookup_poly_d71f7ff4122659b75334f16e7282cd1e";
+        NSString *riscvPolynomialName30 = @"stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1";
         runtime.riscvPolynomialPipelines[riscvPolynomialName30] = make_pipeline(
             device, library, riscvPolynomialName30, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName30] == nil) return NULL;
-        NSString *riscvPolynomialName31 = @"stwo_zig_lookup_poly_2933fad233d8d72eaaaac264f1f08e46";
+        NSString *riscvPolynomialName31 = @"stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81";
         runtime.riscvPolynomialPipelines[riscvPolynomialName31] = make_pipeline(
             device, library, riscvPolynomialName31, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName31] == nil) return NULL;
-        NSString *riscvPolynomialName32 = @"stwo_zig_lookup_poly_55f49d22b3eefd58176c82e98f534eb1";
+        NSString *riscvPolynomialName32 = @"stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc";
         runtime.riscvPolynomialPipelines[riscvPolynomialName32] = make_pipeline(
             device, library, riscvPolynomialName32, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName32] == nil) return NULL;
-        NSString *riscvPolynomialName33 = @"stwo_zig_lookup_poly_34a73d9627a19782b2486c6dcd96f1fe";
+        NSString *riscvPolynomialName33 = @"stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b";
         runtime.riscvPolynomialPipelines[riscvPolynomialName33] = make_pipeline(
             device, library, riscvPolynomialName33, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName33] == nil) return NULL;
-        NSString *riscvPolynomialName34 = @"stwo_zig_lookup_poly_v2_4495e1dc5d58d71f640d011e5e267fc06fe6adfe54e6405fa20aab1ab4a4f496";
+        NSString *riscvPolynomialName34 = @"stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d";
         runtime.riscvPolynomialPipelines[riscvPolynomialName34] = make_pipeline(
             device, library, riscvPolynomialName34, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName34] == nil) return NULL;
-        NSString *riscvPolynomialName35 = @"stwo_zig_lookup_poly_v2_faadbe548bfa104ae056599d5e4910f9812fc7ddf9179da65d5d5e6fba234d35";
+        NSString *riscvPolynomialName35 = @"stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49";
         runtime.riscvPolynomialPipelines[riscvPolynomialName35] = make_pipeline(
             device, library, riscvPolynomialName35, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName35] == nil) return NULL;
-        NSString *riscvPolynomialName36 = @"stwo_zig_lookup_poly_v2_9ed05c9eac769627c64b0e915e2630d0a51bb6325410ea144d9669b85c480514";
+        NSString *riscvPolynomialName36 = @"stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8";
         runtime.riscvPolynomialPipelines[riscvPolynomialName36] = make_pipeline(
             device, library, riscvPolynomialName36, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName36] == nil) return NULL;
-        NSString *riscvPolynomialName37 = @"stwo_zig_lookup_poly_v2_198678cb3ba8974d902c91452544c7f63c81fc0d10de3a87f612c1e9cb9437a8";
+        NSString *riscvPolynomialName37 = @"stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79";
         runtime.riscvPolynomialPipelines[riscvPolynomialName37] = make_pipeline(
             device, library, riscvPolynomialName37, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName37] == nil) return NULL;
-        NSString *riscvPolynomialName38 = @"stwo_zig_lookup_poly_v2_ec1cb673e29351c380eb472b19293e7ea97ab2030393f54c7bcbb1426ae83aa2";
+        NSString *riscvPolynomialName38 = @"stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6";
         runtime.riscvPolynomialPipelines[riscvPolynomialName38] = make_pipeline(
             device, library, riscvPolynomialName38, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName38] == nil) return NULL;
-        NSString *riscvPolynomialName39 = @"stwo_zig_lookup_poly_v2_edade529adf1f7eb6b09313aad8cc71ff739a71d11e2b40cb6101daf378d8489";
+        NSString *riscvPolynomialName39 = @"stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f";
         runtime.riscvPolynomialPipelines[riscvPolynomialName39] = make_pipeline(
             device, library, riscvPolynomialName39, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName39] == nil) return NULL;
-        NSString *riscvPolynomialName40 = @"stwo_zig_lookup_poly_v2_c95e5383b34ea4ad55aaff5bc8ca9054b9fb9abe15db39e6409374e0dd3b5617";
+        NSString *riscvPolynomialName40 = @"stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc";
         runtime.riscvPolynomialPipelines[riscvPolynomialName40] = make_pipeline(
             device, library, riscvPolynomialName40, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName40] == nil) return NULL;
-        NSString *riscvPolynomialName41 = @"stwo_zig_lookup_poly_v2_b64e1478588595c7a3f7c71371ef1e6f1ceae3dd055c9eb56aa4081cf93e97d1";
+        NSString *riscvPolynomialName41 = @"stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0";
         runtime.riscvPolynomialPipelines[riscvPolynomialName41] = make_pipeline(
             device, library, riscvPolynomialName41, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName41] == nil) return NULL;
-        NSString *riscvPolynomialName42 = @"stwo_zig_lookup_poly_v2_b9e7c8afba03add7dd116b67fd791e19256bc093b6eb47e41ca9ee411608c58a";
+        NSString *riscvPolynomialName42 = @"stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c";
         runtime.riscvPolynomialPipelines[riscvPolynomialName42] = make_pipeline(
             device, library, riscvPolynomialName42, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName42] == nil) return NULL;
-        NSString *riscvPolynomialName43 = @"stwo_zig_lookup_poly_v2_b777199dcff0d3dbb81372f98612beda7bd12bf2d2bc7725f1dab500e07c39d9";
+        NSString *riscvPolynomialName43 = @"stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7";
         runtime.riscvPolynomialPipelines[riscvPolynomialName43] = make_pipeline(
             device, library, riscvPolynomialName43, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName43] == nil) return NULL;
-        NSString *riscvPolynomialName44 = @"stwo_zig_lookup_poly_v2_a0710166b8b3057556c2f5907836c0c82fe3b92fccff4633d504c0ff510b6d93";
+        NSString *riscvPolynomialName44 = @"stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7";
         runtime.riscvPolynomialPipelines[riscvPolynomialName44] = make_pipeline(
             device, library, riscvPolynomialName44, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName44] == nil) return NULL;
-        NSString *riscvPolynomialName45 = @"stwo_zig_lookup_poly_v2_bd8284d4f0c5a7d0cd9dd1f4879d721c70992754e1d5aadf02df9e4f86c15d2c";
+        NSString *riscvPolynomialName45 = @"stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212";
         runtime.riscvPolynomialPipelines[riscvPolynomialName45] = make_pipeline(
             device, library, riscvPolynomialName45, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName45] == nil) return NULL;
-        NSString *riscvPolynomialName46 = @"stwo_zig_lookup_poly_v2_099cc5bddab2ff60effcbef0d7863f6a78e0d7a9fcc78fa43d9603f6798904b3";
+        NSString *riscvPolynomialName46 = @"stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5";
         runtime.riscvPolynomialPipelines[riscvPolynomialName46] = make_pipeline(
             device, library, riscvPolynomialName46, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName46] == nil) return NULL;
-        NSString *riscvPolynomialName47 = @"stwo_zig_lookup_poly_v2_e622d001a5cd368b6efef022e0db61a1ab9e30842ef91e4135c0dc5cbd18eb19";
+        NSString *riscvPolynomialName47 = @"stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a";
         runtime.riscvPolynomialPipelines[riscvPolynomialName47] = make_pipeline(
             device, library, riscvPolynomialName47, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName47] == nil) return NULL;
-        NSString *riscvPolynomialName48 = @"stwo_zig_lookup_poly_v2_1cab02ea628504e58cb4a0dbf15dbca36cccc7cad4f36949bb10265a08cd44cc";
+        NSString *riscvPolynomialName48 = @"stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4";
         runtime.riscvPolynomialPipelines[riscvPolynomialName48] = make_pipeline(
             device, library, riscvPolynomialName48, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName48] == nil) return NULL;
-        NSString *riscvPolynomialName49 = @"stwo_zig_lookup_poly_v2_74e0c5ba6845f3d863a1b821d0f22ea76e38570ccd234b537ea4fb9e8f19bf77";
+        NSString *riscvPolynomialName49 = @"stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc";
         runtime.riscvPolynomialPipelines[riscvPolynomialName49] = make_pipeline(
             device, library, riscvPolynomialName49, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName49] == nil) return NULL;
-        NSString *riscvPolynomialName50 = @"stwo_zig_lookup_poly_v2_e9b9d5d433a734c48921694aa7185fafe3fb15e7bd89dc42261cc4290f894352";
+        NSString *riscvPolynomialName50 = @"stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c";
         runtime.riscvPolynomialPipelines[riscvPolynomialName50] = make_pipeline(
             device, library, riscvPolynomialName50, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName50] == nil) return NULL;
-        NSString *riscvPolynomialName51 = @"stwo_zig_base_poly_36d08376e46f89a95aa87cfd73a8f1b2";
+        NSString *riscvPolynomialName51 = @"stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147";
         runtime.riscvPolynomialPipelines[riscvPolynomialName51] = make_pipeline(
             device, library, riscvPolynomialName51, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName51] == nil) return NULL;
-        NSString *riscvPolynomialName52 = @"stwo_zig_base_poly_a7b649843c680bf1f54376843df20215";
+        NSString *riscvPolynomialName52 = @"stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09";
         runtime.riscvPolynomialPipelines[riscvPolynomialName52] = make_pipeline(
             device, library, riscvPolynomialName52, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName52] == nil) return NULL;
-        NSString *riscvPolynomialName53 = @"stwo_zig_base_poly_ca24287d77f5fc63504b53801a2b2274";
+        NSString *riscvPolynomialName53 = @"stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732";
         runtime.riscvPolynomialPipelines[riscvPolynomialName53] = make_pipeline(
             device, library, riscvPolynomialName53, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName53] == nil) return NULL;
-        NSString *riscvPolynomialName54 = @"stwo_zig_base_poly_0f4cf9db0689add32aaa333e736a8cab";
+        NSString *riscvPolynomialName54 = @"stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c";
         runtime.riscvPolynomialPipelines[riscvPolynomialName54] = make_pipeline(
             device, library, riscvPolynomialName54, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName54] == nil) return NULL;
-        NSString *riscvPolynomialName55 = @"stwo_zig_lookup_poly_092020ad7fba2603f1ea5eec7d354c27";
+        NSString *riscvPolynomialName55 = @"stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7";
         runtime.riscvPolynomialPipelines[riscvPolynomialName55] = make_pipeline(
             device, library, riscvPolynomialName55, error_message, error_message_len);
         if (runtime.riscvPolynomialPipelines[riscvPolynomialName55] == nil) return NULL;
+        NSString *riscvPolynomialName56 = @"stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName56] = make_pipeline(
+            device, library, riscvPolynomialName56, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName56] == nil) return NULL;
+        NSString *riscvPolynomialName57 = @"stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName57] = make_pipeline(
+            device, library, riscvPolynomialName57, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName57] == nil) return NULL;
+        NSString *riscvPolynomialName58 = @"stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName58] = make_pipeline(
+            device, library, riscvPolynomialName58, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName58] == nil) return NULL;
+        NSString *riscvPolynomialName59 = @"stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName59] = make_pipeline(
+            device, library, riscvPolynomialName59, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName59] == nil) return NULL;
+        NSString *riscvPolynomialName60 = @"stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763";
+        runtime.riscvPolynomialPipelines[riscvPolynomialName60] = make_pipeline(
+            device, library, riscvPolynomialName60, error_message, error_message_len);
+        if (runtime.riscvPolynomialPipelines[riscvPolynomialName60] == nil) return NULL;
         // END GENERATED RISC-V POLYNOMIAL PIPELINES.
 
         if (runtime.queue == nil || runtime.quadraticRecurrenceTrace == nil ||
             runtime.quadraticRecurrenceIfftWide == nil ||
             runtime.leaves == nil || runtime.parents == nil ||
+            runtime.poseidon2M31Leaves == nil || runtime.poseidon2M31LeavesWide == nil ||
+            runtime.poseidon2M31Parents == nil ||
             runtime.quotients == nil || runtime.rawQuotients == nil || runtime.polynomialEval == nil ||
-            runtime.polynomialBasis == nil || runtime.circleIfftFirst == nil || runtime.circleIfftLayer == nil ||
+            runtime.polynomialBasis == nil ||
+            runtime.sampledBarycentricDomain == nil ||
+            runtime.sampledBarycentricScale == nil ||
+            runtime.sampledBarycentricParts == nil ||
+            runtime.sampledBarycentricInverseDirect == nil ||
+            runtime.sampledBarycentricInverseTree == nil ||
+            runtime.sampledBarycentricFinish == nil ||
+            runtime.sampledBarycentricEvaluateMany == nil ||
+            runtime.sampledBarycentricReduce == nil ||
+            runtime.circleIfftFirst == nil || runtime.circleIfftLayer == nil ||
             runtime.circleRfftLayer == nil || runtime.circleRfftLast == nil || runtime.circleRescale == nil ||
             runtime.circleExpand == nil || runtime.circleIfftFused == nil || runtime.circleIfftFusedWide == nil ||
             runtime.circleRfftFused == nil ||
@@ -502,12 +702,14 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.quotientDomainPointsResident == nil || runtime.quotientDenominatorsResident == nil ||
             runtime.quotientCombineResident == nil || runtime.quotientCoefficientsResident == nil ||
             runtime.friFoldCircle == nil || runtime.friFoldLine == nil || runtime.friFold3Resident == nil ||
-            runtime.friFold2Resident == nil || runtime.friPackedLeavesResident == nil || runtime.friFinalLineResident == nil ||
+            runtime.friFold2Resident == nil || runtime.friPackedLeavesResident == nil ||
+            runtime.poseidon2M31FriPackedLeavesResident == nil || runtime.friFinalLineResident == nil ||
             runtime.transcriptInitResident == nil || runtime.transcriptMixResident == nil ||
             runtime.transcriptDrawSecureResident == nil || runtime.transcriptDrawQueriesResident == nil ||
             runtime.decommitNormalizeQueriesResident == nil || runtime.decommitPrepareFriQueriesResident == nil ||
             runtime.decommitGatherFriValuesResident == nil || runtime.decommitPrepareTraceQueriesResident == nil ||
             runtime.decommitGatherTraceValuesResident == nil || runtime.decommitGatherTreeValuesResident == nil ||
+            runtime.decommitGatherTreeValuesResidentWide == nil ||
             runtime.qm31ToCoordinates == nil ||
             runtime.proofOfWork == nil ||
             runtime.decommitAssembleFriResident == nil ||
@@ -515,6 +717,8 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.decommitSparseLeavesResident == nil ||
             runtime.decommitSparseLeafGroupResident == nil || runtime.clearArenaSpans == nil ||
             runtime.leafAbsorbResident == nil || runtime.leafAbsorbCompactResident == nil ||
+            runtime.poseidon2M31LeafAbsorbResident == nil || runtime.poseidon2M31LeafAbsorbCompactResident == nil ||
+            runtime.poseidon2M31LeafStateDigestResidentV1 == nil ||
             runtime.parentsPlainSparse == nil ||
             runtime.circleExpandSparse == nil ||
             runtime.circleCopySparse == nil || runtime.circleIfftFirstSparse == nil ||
@@ -526,6 +730,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         if (runtime.relationFused == nil || runtime.relationBlockScan == nil ||
             runtime.relationScanBlocks == nil || runtime.relationScanFinalize == nil ||
             runtime.parentsSparse == nil || runtime.parentTailSparse == nil ||
+            runtime.poseidon2M31ParentsSparse == nil || runtime.poseidon2M31ParentTailSparse == nil ||
             runtime.compactGather == nil || runtime.compactRadixHistogram == nil || runtime.compactRadixPrefix == nil ||
             runtime.compactRadixScatter == nil || runtime.compactHeads == nil || runtime.compactScanLocal == nil ||
             runtime.compactScanBlocks == nil || runtime.compactScanAdd == nil || runtime.compactClearOutputs == nil ||

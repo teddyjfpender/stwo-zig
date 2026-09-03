@@ -1,6 +1,7 @@
 #ifndef STWO_ZIG_AMALGAMATED
 #include "stwo_zig/base.metal"
 #include "stwo_zig/blake2s.metal"
+#include "stwo_zig/poseidon2_m31.metal"
 #endif
 
 inline void transcript_hash_digest_words(
@@ -216,6 +217,52 @@ kernel void stwo_zig_blake2s_parent_tail_sparse(
     for (uint i = 0u; i < 8u; ++i) arena[state_base + i] = digest[i];
     arena[state_base + 8u] = 0u;
     transcript_draw_secure_felts(arena, state_base, alpha_base, 1u);
+}
+
+// Poseidon2 parent tails never mutate a Fiat-Shamir transcript.  The generic
+// Poseidon recursion channel performs its transcript on the typed host side;
+// this kernel is solely the exact Merkle parent compression used by prepared
+// resident commitment plans.  The runtime admits it only when the existing
+// transcript configuration is disabled.
+kernel void stwo_zig_poseidon2_m31_parent_tail_sparse(
+    device uint *arena [[buffer(0)]], constant uint *child_offsets [[buffer(1)]],
+    constant uint *destination_offsets [[buffer(2)]], constant uint *parent_counts [[buffer(3)]],
+    constant uint &level_count [[buffer(4)]], constant uint *unused_node_seed [[buffer(5)]],
+    constant uint &unused_prefix_bytes [[buffer(6)]], constant uint *transcript_config [[buffer(7)]],
+    threadgroup uint *hashes [[threadgroup(0)]], uint thread_index [[thread_index_in_threadgroup]],
+    uint3 threads_in_group [[threads_per_threadgroup]],
+    uint3 group [[threadgroup_position_in_grid]]
+) {
+    (void)unused_node_seed;
+    (void)unused_prefix_bytes;
+    if (level_count == 0u || transcript_config[2] != 0u) return;
+    for (uint level = 0u; level < level_count; ++level) {
+        uint parent_count = parent_counts[level];
+        uint child_words[16], digest[8];
+        if (thread_index < parent_count) {
+            if (level == 0u) {
+                uint source = child_offsets[0] +
+                    (group.x * parent_count + thread_index) * 16u;
+                for (uint lane = 0u; lane < 16u; ++lane)
+                    child_words[lane] = arena[source + lane];
+            } else {
+                for (uint lane = 0u; lane < 16u; ++lane)
+                    child_words[lane] = hashes[thread_index * 16u + lane];
+            }
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        if (thread_index < parent_count) {
+            stwo_zig_poseidon2_parent(child_words, digest);
+            uint destination = destination_offsets[level] +
+                (group.x * parent_count + thread_index) * 8u;
+            for (uint lane = 0u; lane < 8u; ++lane) {
+                hashes[thread_index * 8u + lane] = digest[lane];
+                arena[destination + lane] = digest[lane];
+            }
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    (void)threads_in_group;
 }
 
 kernel void stwo_zig_transcript_draw_queries_resident(

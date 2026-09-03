@@ -183,6 +183,60 @@ test "R-012 authenticated composition DAG compiles exact row-18 authority" {
     try std.testing.expectEqual(@as(usize, 437), preprocessing.rows.len);
 }
 
+test "R-012 recursion transcript claims are append-only and zero-count stable" {
+    const explicit_legacy = circuit.InputProfile{
+        .sampled_value_count = 0,
+        .claimed_sum_count = 0,
+        .relation_challenge_count = 0,
+        .transcript_claimed_sum_count = 0,
+        .public_wire_boundary_count = 0,
+    };
+    try std.testing.expectEqualDeep(PROFILE, explicit_legacy);
+    try std.testing.expectEqual(
+        @as(usize, 424),
+        try circuit.recursionInputCount(explicit_legacy),
+    );
+    try std.testing.expectEqual(
+        @as(u8, 8),
+        @intFromEnum(std.meta.activeTag(circuit.RecursionSource{
+            .public_wire_boundary = .{ .item_index = 0, .word_index = 0 },
+        })),
+    );
+    try std.testing.expectEqual(
+        @as(u8, 9),
+        @intFromEnum(std.meta.activeTag(circuit.RecursionSource{
+            .transcript_claimed_sum = .{ .item_index = 0, .word_index = 0 },
+        })),
+    );
+
+    const extended = circuit.InputProfile{
+        .sampled_value_count = 1,
+        .claimed_sum_count = 2,
+        .relation_challenge_count = 0,
+        .transcript_claimed_sum_count = 3,
+        .public_wire_boundary_count = 1,
+    };
+    const prefix = 1 + 3 + 412;
+    try std.testing.expectEqual(
+        @as(usize, prefix + 4 + 8 + 12 + 4 + 8),
+        try circuit.recursionInputCount(extended),
+    );
+    try std.testing.expectEqualDeep(
+        circuit.RecursionSource{ .transcript_claimed_sum = .{
+            .item_index = 0,
+            .word_index = 0,
+        } },
+        circuit.expectedRecursionSource(extended, prefix + 4 + 8).?,
+    );
+    try std.testing.expectEqualDeep(
+        circuit.RecursionSource{ .public_wire_boundary = .{
+            .item_index = 2,
+            .word_index = 0,
+        } },
+        circuit.expectedRecursionSource(extended, prefix + 4 + 8 + 12).?,
+    );
+}
+
 test "R-012 composition compiler rejects graph reference and schedule mutations" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();

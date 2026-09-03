@@ -61,6 +61,22 @@ test "leaf-local V3: adjacent native segments bind global order and exact state"
 
     const left_metadata = try left.metadata();
     const right_metadata = try right.metadata();
+    const retained_left = try authority.SourceV3
+        .fromSegmentResultAgainstMetadata(
+        left_statement,
+        &left_result,
+        &left_metadata,
+    );
+    try std.testing.expectEqualDeep(
+        left_metadata,
+        try retained_left.metadataAgainstRetained(&left_metadata),
+    );
+    var wrong_retained = left_metadata;
+    wrong_retained.entry.snapshot_count += 1;
+    try std.testing.expectError(
+        error.MemorySnapshotMismatch,
+        retained_left.metadataAgainstRetained(&wrong_retained),
+    );
     try std.testing.expectEqual(@as(u64, 0), left_metadata.global_cycle_start);
     try std.testing.expectEqual(@as(u64, 3), left_metadata.global_cycle_end);
     try std.testing.expectEqual(@as(u64, 3), right_metadata.global_cycle_start);

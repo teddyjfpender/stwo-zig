@@ -295,6 +295,7 @@ pub fn assembleInto(
         n_main,
         n_interaction,
         null,
+        .legacy_role_filtered_v1,
     );
 }
 
@@ -325,6 +326,38 @@ pub fn assembleIntoAuthenticatedLookupV2(
             .manifest = manifest,
             .statement = authenticated_statement,
         },
+        .legacy_role_filtered_v1,
+    );
+}
+
+/// Version-separated selected-lookup assembly for the full-state incremental
+/// boundary. The core geometry and column placement remain byte-identical;
+/// only memory infrastructure components select the split V3 evaluator.
+pub fn assembleIntoAuthenticatedLookupV2WithIncrementalBoundaryV3(
+    comptime direction: Direction,
+    workspace: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    claim: *const statement_mod.RiscVInteractionClaim,
+    relations: *const relation_challenges.Relations,
+    n_main: usize,
+    n_interaction: usize,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+) !void {
+    try authenticated_statement.validateAgainst(statement, manifest);
+    return assembleIntoInternal(
+        direction,
+        workspace,
+        statement,
+        claim,
+        relations,
+        n_main,
+        n_interaction,
+        .{
+            .manifest = manifest,
+            .statement = authenticated_statement,
+        },
+        .full_state_split_multiplicity_v3,
     );
 }
 
@@ -342,6 +375,7 @@ fn assembleIntoInternal(
     n_main: usize,
     n_interaction: usize,
     lookup_v2: ?LookupV2Admission,
+    memory_boundary_policy: riscv_component.MemoryBoundaryPolicy,
 ) !void {
     const components = &workspace.components;
     const component_count: usize = @intCast(statement.n_components);
@@ -562,6 +596,10 @@ fn assembleIntoInternal(
                     .is_active_col_idx = placement.preprocessed_column_offset + 1,
                     .main_col_offset = placement.main_column_offset,
                     .kind = kind,
+                    .memory_boundary_policy = if (kind == .memory)
+                        memory_boundary_policy
+                    else
+                        .legacy_role_filtered_v1,
                     .relations = relations,
                     .interaction_col_offset = placement.interaction_column_offset,
                     .program_claims = claim.program_claims[index],

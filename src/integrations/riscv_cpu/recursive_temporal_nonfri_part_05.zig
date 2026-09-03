@@ -135,7 +135,7 @@ pub fn Namespace(comptime context: type) type {
                     self.lane_payload_counts[1],
                 ) catch return error.ArithmeticOverflow;
                 if (self.format_version != TRANSCRIPT_ROWS_FORMAT_VERSION or
-                    self.schema_version != TRANSCRIPT_ROWS_SCHEMA_VERSION or
+                    !context.d_validTranscriptRowsSchema(self.schema_version) or
                     self.lane_count != temporal.CHILD_COUNT or
                     !allZero(&self.padding) or
                     self.log_size != try transcriptTraceLogSize(self.rows.len) or

@@ -466,11 +466,33 @@ pub fn BundleForSourceScheduleAndManifest(
             columns: *const [poseidon_air.N_MAIN_COLUMNS][]M31,
         ) !void {
             if (self.provider_custody != .complete_shared_schedule_v2) return;
-            if (self.shared_outputs_ready or
-                self.shared_outputs.len != self.shared_calls.len)
-            {
+            if (self.shared_outputs.len != self.shared_calls.len)
                 return error.ProviderIdentityMismatch;
+
+            // Fresh verification rebuilds the authenticated interactions on
+            // the same immutable cohort after proving has already prepared
+            // them. The second pass must compare the complete provider trace
+            // with the first sealed capture; it must never overwrite it.
+            if (self.shared_outputs_ready) {
+                if (!self.main_prepared)
+                    return error.ProviderIdentityMismatch;
+                for (self.shared_outputs, 0..) |output, logical_row| {
+                    const committed = committedRow(
+                        logical_row,
+                        self.provider_log_size,
+                    );
+                    if (!columns.*[0][committed].eql(M31.one()))
+                        return error.ProviderIdentityMismatch;
+                    for (output, 0..) |word, lane| {
+                        if (columns.*[
+                            shared_provider.POSEIDON_OUTPUT_COLUMN_START + lane
+                        ][committed].toU32() != word)
+                            return error.ProviderIdentityMismatch;
+                    }
+                }
+                return;
             }
+            if (self.main_prepared) return error.ProviderIdentityMismatch;
             for (self.shared_outputs, 0..) |*output, logical_row| {
                 const committed = committedRow(logical_row, self.provider_log_size);
                 if (!columns.*[0][committed].eql(M31.one()))

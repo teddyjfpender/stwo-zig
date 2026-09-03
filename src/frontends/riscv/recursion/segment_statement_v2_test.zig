@@ -28,6 +28,19 @@ test "segment statement V2 retains an exact proof-consumable adjacent boundary" 
     defer std.testing.allocator.free(right_words);
     const left_view = try v2.authenticateCanonicalWire(left_words);
     const right_view = try v2.authenticateCanonicalWire(right_words);
+    const left_reused = try v2.authenticateCanonicalWireReusingRoots(
+        left_words,
+        .{
+            .id = left_view.statement.entry_snapshot_id,
+            .count = left_view.statement.entry_snapshot_count,
+            .root = left_view.statement.entry_continuation_root,
+        },
+        .{
+            .id = left_view.statement.exit_snapshot_id,
+            .count = left_view.statement.exit_snapshot_count,
+            .root = left_view.statement.exit_continuation_root,
+        },
+    );
     const receipt = try v2.authenticateAdjacentCanonicalWires(
         left_words,
         right_words,
@@ -55,6 +68,24 @@ test "segment statement V2 retains an exact proof-consumable adjacent boundary" 
     );
     try std.testing.expectEqual(left_view.wire_id, receipt.left_wire_id);
     try std.testing.expectEqual(right_view.wire_id, receipt.right_wire_id);
+    try std.testing.expectEqual(left_view, left_reused);
+    const wrong_entry = v2.SnapshotIdentity{
+        .id = left_view.statement.entry_snapshot_id,
+        .count = left_view.statement.entry_snapshot_count,
+        .root = left_view.statement.entry_continuation_root ^ 1,
+    };
+    try std.testing.expectError(
+        error.BoundaryIdentityMismatch,
+        v2.authenticateCanonicalWireReusingRoots(
+            left_words,
+            wrong_entry,
+            .{
+                .id = left_view.statement.exit_snapshot_id,
+                .count = left_view.statement.exit_snapshot_count,
+                .root = left_view.statement.exit_continuation_root,
+            },
+        ),
+    );
     try std.testing.expect(v2.HOT_VALIDATION_HEAP_ALLOCATIONS == 0);
     try std.testing.expect(v2.ENCODING_FAILS_BEFORE_FIRST_WRITE);
 }
@@ -119,6 +150,65 @@ test "segment statement V2 all-RW continuation roots match the pinned sparse Mer
     try std.testing.expectEqual(
         right_exit_tree.root,
         right_statement.exit_continuation_root,
+    );
+}
+
+test "segment statement V2 parallel continuation roots are worker-count invariant" {
+    const shard_width: u32 = v2.MAX_RW_ADDRESS_EXCLUSIVE >>
+        v2.PARALLEL_SNAPSHOT_SHARD_DEPTH;
+    var words = [_]memory_state.WordState{
+        .{
+            .addr = 0,
+            .initial_word = 0x0100_0203,
+            .final_word = 0x0405_0006,
+            .final_clock = 1,
+        },
+        .{
+            .addr = shard_width - 4,
+            .initial_word = 0x0708_090a,
+            .final_word = 0x0b0c_0d0e,
+            .final_clock = 2,
+        },
+        .{
+            .addr = shard_width,
+            .initial_word = 0x1011_1213,
+            .final_word = 0,
+            .final_clock = 3,
+        },
+        .{
+            .addr = v2.MAX_RW_ADDRESS_EXCLUSIVE - 4,
+            .initial_word = 0x1415_1617,
+            .final_word = 0x1819_1a1b,
+            .final_clock = 4,
+        },
+    };
+    const expected_entry = v2.snapshotIdentity(&words, .initial_word);
+    const expected_exit = v2.snapshotIdentity(&words, .final_word);
+
+    for ([_]usize{ 1, 2, 8, 16 }) |worker_count| {
+        var hasher: v2.ParallelSnapshotHasher = .{};
+        try hasher.initInPlace(worker_count);
+        defer hasher.deinit();
+        try std.testing.expectEqual(
+            expected_entry,
+            try hasher.snapshotIdentity(&words, .initial_word),
+        );
+        try std.testing.expectEqual(
+            expected_exit,
+            try hasher.snapshotIdentity(&words, .final_word),
+        );
+    }
+
+    const reused = try v2.snapshotIdentityReusingRoot(
+        expected_exit,
+        &words,
+        .final_word,
+    );
+    try std.testing.expectEqual(expected_exit, reused);
+    words[1].final_word ^= 1;
+    try std.testing.expectError(
+        error.MemorySnapshotMismatch,
+        v2.snapshotIdentityReusingRoot(expected_exit, &words, .final_word),
     );
 }
 
@@ -363,6 +453,39 @@ test "segment statement V2 runner adapter validates the captured boundary" {
     try std.testing.expectEqual(
         result.exit_access_clocks.register_clocks,
         source.exit_register_clocks,
+    );
+    const ordinary_statement = try source.statement();
+    const retained_entry = v2.SnapshotIdentity{
+        .id = ordinary_statement.entry_snapshot_id,
+        .count = ordinary_statement.entry_snapshot_count,
+        .root = ordinary_statement.entry_continuation_root,
+    };
+    const retained_exit = v2.SnapshotIdentity{
+        .id = ordinary_statement.exit_snapshot_id,
+        .count = ordinary_statement.exit_snapshot_count,
+        .root = ordinary_statement.exit_continuation_root,
+    };
+    try std.testing.expectEqualDeep(
+        ordinary_statement,
+        try source.statementReusingRoots(retained_entry, retained_exit),
+    );
+    const word_count = try source.canonicalWordCount();
+    const ordinary_words = try std.testing.allocator.alloc(M31, word_count);
+    defer std.testing.allocator.free(ordinary_words);
+    const resumed_words = try std.testing.allocator.alloc(M31, word_count);
+    defer std.testing.allocator.free(resumed_words);
+    _ = try source.encodeCanonical(ordinary_words);
+    _ = try source.encodeCanonicalReusingRoots(
+        resumed_words,
+        retained_entry,
+        retained_exit,
+    );
+    try std.testing.expectEqualSlices(M31, ordinary_words, resumed_words);
+    var wrong_count = retained_entry;
+    wrong_count.count += 1;
+    try std.testing.expectError(
+        error.MemorySnapshotMismatch,
+        source.statementReusingRoots(wrong_count, retained_exit),
     );
 
     result.rw_memory.segment_role.is_last = false;

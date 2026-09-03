@@ -46,9 +46,11 @@ def fixture_stream(
     budget: int = 65536,
     clock_frame: str = subject.CLOCK_FRAME_LEAF_LOCAL,
     execution_profile: str = subject.PROFILE_BASE,
+    legacy_v2: bool = False,
 ) -> list[bytes]:
+    typed_inventory = not legacy_v2
     header = {
-        "schema": subject.HEADER_SCHEMA,
+        "schema": subject.HEADER_SCHEMA if typed_inventory else subject.HEADER_SCHEMA_V2,
         "profile": execution_profile,
         "clock_frame": clock_frame,
         "claim_boundary": subject.CLAIM_BOUNDARY,
@@ -64,10 +66,17 @@ def fixture_stream(
     previous = json.loads(lines[-1])["content_sha256"]
     cycles = (3, 3, 2)
     first_cycle = 1
+    external_totals = {family: 0 for family in subject.EXTERNAL_FAMILIES[execution_profile]}
     for index, count in enumerate(cycles):
         last = index == len(cycles) - 1
+        external = int(
+            typed_inventory
+            and execution_profile == subject.PROFILE_ETHEREUM
+            and index < 2
+        )
+        core = count - external
         payload = {
-            "schema": subject.SEGMENT_SCHEMA,
+            "schema": subject.SEGMENT_SCHEMA if typed_inventory else subject.SEGMENT_SCHEMA_V2,
             "clock_frame": clock_frame,
             "previous_record_sha256": previous,
             "segment_index": index,
@@ -81,10 +90,10 @@ def fixture_stream(
                 reset_clocks=clock_frame == subject.CLOCK_FRAME_LEAF_LOCAL,
             ),
             "exit": boundary(str(index + 1), 0x10004 + index * 4),
-            "core_trace_rows": count,
-            "external_trace_rows": 0,
+            "core_trace_rows": core,
+            "external_trace_rows": external,
             "unclassified_core_rows": 0,
-            "opcode_family_rows": families(count),
+            "opcode_family_rows": families(core),
             "completion_reason": "halt_flag" if last else None,
             "completion_address": 0x100000 if last else 0,
             "completion_value": 1 if last else 0,
@@ -94,23 +103,41 @@ def fixture_stream(
             "output_sha256": None,
             "continuation_sha256": None if last else sha(f"continuation-{index}"),
         }
+        if typed_inventory:
+            payload["external_family_rows"] = []
+            for family_index, family in enumerate(subject.EXTERNAL_FAMILIES[execution_profile]):
+                family_count = int(external and family_index == index)
+                payload["external_family_rows"].append({
+                    "family": family,
+                    "calls": family_count,
+                    "execution_rows": family_count,
+                })
+                external_totals[family] += family_count
+            payload = {key: payload[key] for key in (
+                "schema", "clock_frame", "previous_record_sha256", "segment_index",
+                "global_first_cycle", "cycle_count", "is_first", "is_last", "entry", "exit",
+                "core_trace_rows", "external_trace_rows", "external_family_rows",
+                "unclassified_core_rows", "opcode_family_rows", "completion_reason",
+                "completion_address", "completion_value", "completion_clock", "exit_code",
+                "output_bytes", "output_sha256", "continuation_sha256",
+            )}
         line = envelope(payload)
         lines.append(line)
         previous = json.loads(line)["content_sha256"]
         first_cycle += count
     final = json.loads(lines[-1])["payload"]
     summary = {
-        "schema": subject.SUMMARY_SCHEMA,
+        "schema": subject.SUMMARY_SCHEMA if typed_inventory else subject.SUMMARY_SCHEMA_V2,
         "clock_frame": clock_frame,
         "previous_record_sha256": previous,
         "claim_boundary": subject.CLAIM_BOUNDARY,
         "completed": True,
         "segment_count": 3,
         "total_cycles": 8,
-        "total_core_trace_rows": 8,
-        "total_external_trace_rows": 0,
+        "total_core_trace_rows": 8 - sum(external_totals.values()),
+        "total_external_trace_rows": sum(external_totals.values()),
         "total_unclassified_core_rows": 0,
-        "opcode_family_rows": families(8),
+        "opcode_family_rows": families(8 - sum(external_totals.values())),
         "completion_reason": "halt_flag",
         "exit_code": None,
         "output_bytes": None,
@@ -125,6 +152,20 @@ def fixture_stream(
         "segment_statement_v2_global_cycle_limit": 1 << 24,
         "segment_statement_v2_admissible": True,
     }
+    if typed_inventory:
+        summary["external_family_rows"] = [
+            {"family": family, "calls": count, "execution_rows": count}
+            for family, count in external_totals.items()
+        ]
+        summary = {key: summary[key] for key in (
+            "schema", "clock_frame", "previous_record_sha256", "claim_boundary", "completed",
+            "segment_count", "total_cycles", "total_core_trace_rows", "total_external_trace_rows",
+            "external_family_rows", "total_unclassified_core_rows", "opcode_family_rows",
+            "completion_reason", "exit_code", "output_bytes", "output_sha256", "final_cpu_sha256",
+            "final_rw_memory_sha256", "final_access_clocks_sha256", "max_segment_cycle_count",
+            "leaf_local_clock_ranges_within_v3_limit", "segment_statement_v2_global_cycle_limit",
+            "segment_statement_v2_admissible",
+        )}
     lines.append(envelope(summary))
     return lines
 
@@ -135,6 +176,48 @@ class SegmentedExecutionTests(unittest.TestCase):
         summary = subject.validate_records(lines, require_complete=True)
         self.assertEqual(summary["segment_count"], 3)
         self.assertEqual(summary["total_cycles"], 8)
+        self.assertEqual(summary["external_family_rows"], [])
+
+    def test_legacy_v2_streams_remain_replayable(self) -> None:
+        for profile in (subject.PROFILE_BASE, subject.PROFILE_ETHEREUM):
+            lines = fixture_stream(b"elf", execution_profile=profile, legacy_v2=True)
+            summary = subject.validate_records(lines, require_complete=True)
+            self.assertEqual(summary["schema"], subject.SUMMARY_SCHEMA_V2)
+
+    def test_ethereum_external_family_inventory_is_exact_and_mutation_closed(self) -> None:
+        lines = fixture_stream(b"elf", execution_profile=subject.PROFILE_ETHEREUM)
+        summary = subject.validate_records(lines, require_complete=True)
+        self.assertEqual(
+            summary["external_family_rows"],
+            [
+                {"family": subject.EXTERNAL_FAMILIES[subject.PROFILE_ETHEREUM][0],
+                 "calls": 1, "execution_rows": 1},
+                {"family": subject.EXTERNAL_FAMILIES[subject.PROFILE_ETHEREUM][1],
+                 "calls": 1, "execution_rows": 1},
+            ],
+        )
+
+        record = json.loads(lines[1])
+        record["payload"]["external_family_rows"][0]["calls"] = 0
+        mutated = lines.copy()
+        mutated[1] = envelope(record["payload"])
+        with self.assertRaisesRegex(subject.ContractError, "call/execution-row mismatch"):
+            subject.validate_records(mutated, require_complete=True)
+
+        record = json.loads(lines[2])
+        record["payload"]["external_family_rows"].reverse()
+        mutated = lines.copy()
+        mutated[2] = envelope(record["payload"])
+        with self.assertRaisesRegex(subject.ContractError, "family order mismatch"):
+            subject.validate_records(mutated, require_complete=True)
+
+        record = json.loads(lines[-1])
+        record["payload"]["external_family_rows"][1]["calls"] += 1
+        record["payload"]["external_family_rows"][1]["execution_rows"] += 1
+        mutated = lines.copy()
+        mutated[-1] = envelope(record["payload"])
+        with self.assertRaisesRegex(subject.ContractError, "does not exactly reduce"):
+            subject.validate_records(mutated, require_complete=True)
 
     def test_global_clock_mode_retains_access_clock_adjacency(self) -> None:
         lines = fixture_stream(b"elf", clock_frame=subject.CLOCK_FRAME_GLOBAL)
@@ -220,9 +303,18 @@ class SegmentedExecutionTests(unittest.TestCase):
                 segment_steps=65536,
             )
             self.assertEqual(result["status"], "complete")
+            self.assertEqual(result["schema"], subject.RECEIPT_SCHEMA)
+            self.assertEqual(result["external_family_rows"], [])
             self.assertEqual((bundle / "execution.ndjson").read_bytes(), b"".join(lines))
             self.assertEqual(subject.validate_bundle(bundle), result)
             self.assertEqual(len(tuple(bundle.glob("invocation-*.stderr"))), 2)
+            forged_receipt = json.loads((bundle / "receipt.json").read_bytes())
+            forged_receipt["external_family_rows"] = [{
+                "family": "forged", "calls": 1, "execution_rows": 1,
+            }]
+            (bundle / "receipt.json").write_bytes(subject._canonical(forged_receipt) + b"\n")
+            with self.assertRaisesRegex(subject.ContractError, "does not recompute"):
+                subject.validate_bundle(bundle)
             plan = json.loads((bundle / "plan.json").read_bytes())
             self.assertEqual(plan["clock_frame"], subject.CLOCK_FRAME_LEAF_LOCAL)
             self.assertEqual(plan["execution_profile"], subject.PROFILE_BASE)
@@ -242,9 +334,9 @@ class SegmentedExecutionTests(unittest.TestCase):
                 elf_path,
                 None,
                 65536,
-                execution_profile=subject.PROFILE_KECCAKF,
+                execution_profile=subject.PROFILE_ETHEREUM,
             )
-            lines = fixture_stream(b"elf", execution_profile=subject.PROFILE_KECCAKF)
+            lines = fixture_stream(b"elf", execution_profile=subject.PROFILE_ETHEREUM)
             self.assertEqual(
                 subject.validate_records(lines, plan, require_complete=True)["total_cycles"],
                 8,

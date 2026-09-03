@@ -67,6 +67,7 @@ pub fn Namespace(comptime context: type) type {
         const AssemblyProfile = context.d_AssemblyProfile;
         const Claims = context.d_Claims;
         const initAuthority = context.d_initAuthority;
+        const initAuthorityForLogSizes = context.d_initAuthorityForLogSizes;
 
         pub const ProofBundle = struct {
             proof: recursion.engine.Proof,
@@ -520,6 +521,38 @@ pub fn Namespace(comptime context: type) type {
                     segment_transcript_inputs,
                     public_native_sum_lane,
                     authenticated_poseidon_prefix_count,
+                );
+            }
+
+            /// Rebuilds the same authenticated authority at an explicitly
+            /// padded vector of physical component domains.
+            pub fn initForLogSizes(
+                allocator: std.mem.Allocator,
+                circuit: *const circuit_mod.Circuit,
+                pcs_circuit: *const pcs_circuit_mod.Circuit,
+                trace_tree_heights: []const u32,
+                column_log_sizes: []const []const u32,
+                schedule_facts: ScheduleFacts,
+                vm_air_prepared: ?*const recursion.vm_air_composition_circuit.Prepared,
+                verifier_plans: ?VerifierPlans,
+                segment_transcript_inputs: ?SegmentTranscriptInputs,
+                public_native_sum_lane: ?lowering.Lane,
+                authenticated_poseidon_prefix_count: usize,
+                requested_log_sizes: [LogIndex.count]u32,
+            ) !Authority {
+                return initAuthorityForLogSizes(
+                    allocator,
+                    circuit,
+                    pcs_circuit,
+                    trace_tree_heights,
+                    column_log_sizes,
+                    schedule_facts,
+                    vm_air_prepared,
+                    verifier_plans,
+                    segment_transcript_inputs,
+                    public_native_sum_lane,
+                    authenticated_poseidon_prefix_count,
+                    requested_log_sizes,
                 );
             }
 

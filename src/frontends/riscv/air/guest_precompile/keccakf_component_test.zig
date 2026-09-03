@@ -1,6 +1,11 @@
 //! Construction and adapter-surface tests for the Keccak shard component.
 
 const std = @import("std");
+const pcs = @import("stwo_core").pcs;
+const M31 = @import("stwo_core").fields.m31.M31;
+const QM31 = @import("stwo_core").fields.qm31.QM31;
+const prover_accumulation = @import("stwo_prover_engine").air.accumulation;
+const prover_component = @import("stwo_prover_engine").air.component_prover;
 const authority = @import("keccakf_authority.zig");
 const call_buffer = @import("../../runner/guest_precompile/keccakf_call_buffer.zig");
 const component_mod = @import("keccakf_component.zig");
@@ -112,4 +117,98 @@ test "keccakf component: claim and prover/verifier geometry are identical" {
     forged = claim;
     forged.batch_sums = sums;
     try std.testing.expectError(error.InvalidClaim, forged.validate());
+}
+
+test "keccakf component: zero-call prepared evaluator uses authenticated V2 slice" {
+    const allocator = std.testing.allocator;
+    const trace_log_size: u32 = trace_mod.minimum_log_size;
+    const eval_log_size = trace_log_size + 1;
+    const zero_values = [_]M31{M31.zero()} ** (@as(usize, 1) << eval_log_size);
+    const poly = prover_component.Poly{
+        .log_size = eval_log_size,
+        .values = &zero_values,
+        .coefficients = null,
+    };
+
+    const preprocessed_offset: usize = 48;
+    const main_offset: usize = 815;
+    const authenticated_interaction_offset: usize = 352;
+    const preprocessed = try allocator.alloc(
+        prover_component.Poly,
+        preprocessed_offset + component_mod.preprocessed_column_count,
+    );
+    defer allocator.free(preprocessed);
+    @memset(preprocessed, poly);
+    const main = try allocator.alloc(
+        prover_component.Poly,
+        main_offset + component_mod.main_column_count,
+    );
+    defer allocator.free(main);
+    @memset(main, poly);
+    const interaction = try allocator.alloc(
+        prover_component.Poly,
+        authenticated_interaction_offset + component_mod.interaction_column_count,
+    );
+    defer allocator.free(interaction);
+    @memset(interaction, poly);
+    var trees = [_][]const prover_component.Poly{
+        preprocessed,
+        main,
+        interaction,
+    };
+    const trace = prover_component.Trace{
+        .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees),
+    };
+
+    const claim = component_mod.Claim{
+        .log_size = trace_log_size,
+        .n_rows = 0,
+        .first_call_index = 0,
+        .call_count = 0,
+        .batch_sums = @splat(QM31.zero()),
+        .component_sum = QM31.zero(),
+    };
+    const relations = relations_mod.Relations.dummy();
+    const component = try component_mod.KeccakShardComponent.initProver(
+        claim,
+        .{
+            .preprocessed_offset = preprocessed_offset,
+            .main_offset = main_offset,
+            .interaction_offset = authenticated_interaction_offset,
+        },
+        &relations,
+    );
+    var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.one(),
+        eval_log_size,
+        component_mod.constraint_count,
+    );
+    defer accumulator.deinit();
+    try component.evaluateConstraintQuotientsOnDomain(&trace, &accumulator);
+    var result = try accumulator.finalize();
+    defer result.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1) << eval_log_size, result.len());
+    for (0..result.len()) |row| try std.testing.expect(result.at(row).isZero());
+
+    const stale = try component_mod.KeccakShardComponent.initProver(
+        claim,
+        .{
+            .preprocessed_offset = preprocessed_offset,
+            .main_offset = main_offset,
+            .interaction_offset = 372,
+        },
+        &relations,
+    );
+    var stale_accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.one(),
+        eval_log_size,
+        component_mod.constraint_count,
+    );
+    defer stale_accumulator.deinit();
+    try std.testing.expectError(
+        error.InvalidTraceColumnCount,
+        stale.evaluateConstraintQuotientsOnDomain(&trace, &stale_accumulator),
+    );
 }

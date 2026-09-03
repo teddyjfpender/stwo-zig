@@ -48,6 +48,7 @@ pub extern fn stwo_zig_metal_fri_fold_line_and_commit(
     leaf_seed: *const [8]u32,
     node_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    hash_family: u32,
     stats: *CommandEpochStats,
     error_message: [*]u8,
     error_message_len: usize,

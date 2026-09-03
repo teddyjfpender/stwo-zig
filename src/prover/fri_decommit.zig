@@ -12,6 +12,8 @@ const QM31 = qm31.QM31;
 const PackedSecureColumns = packing.PackedSecureColumns;
 const shouldPack = packing.shouldPack;
 const packedQueryPositions = packing.packedQueryPositions;
+const PACKED_LEAF_SIZE: usize =
+    @as(usize, 1) << @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
 
 pub const FriDecommitError = error{ QueryOutOfRange, FoldStepTooLarge };
 pub const ValueEntry = struct { position: usize, value: QM31 };
@@ -68,6 +70,33 @@ pub fn decommitLayerExtended(
     query_positions: []const usize,
     fold_step: u32,
 ) !core_fri.ExtendedFriLayerProof(H) {
+    return decommitLayerExtendedWithRetainedPacking(
+        H,
+        allocator,
+        merkle_tree,
+        column,
+        query_positions,
+        fold_step,
+        null,
+    );
+}
+
+/// Decommits one FRI layer while borrowing the exact packed columns retained
+/// by a backend whose resident queried-value map authenticates host pointer
+/// identity.  The ordinary entrypoint above preserves the existing recreate-
+/// on-open behavior for host commitments and backends without that contract.
+pub fn decommitLayerExtendedWithRetainedPacking(
+    comptime H: type,
+    allocator: std.mem.Allocator,
+    merkle_tree: anytype,
+    column: secure_column.SecureColumnByCoords,
+    query_positions: []const usize,
+    fold_step: u32,
+    retained_packing: ?*const PackedSecureColumns,
+) !core_fri.ExtendedFriLayerProof(H) {
+    if (retained_packing != null and !shouldPack(column.len(), fold_step)) {
+        return error.InvalidColumnSize;
+    }
     const helper = try computeDecommitmentPositionsAndWitnessEvalsFromCoords(
         allocator,
         column,
@@ -90,21 +119,35 @@ pub fn decommitLayerExtended(
         };
     }
     const all_values = try allocator.alloc([]IndexedValue, 1);
-    errdefer {
-        allocator.free(indexed_values);
-        allocator.free(all_values);
-    }
+    // `indexed_values` retains its own preceding error guard until the
+    // complete result is returned.  This guard owns only the outer slice;
+    // overlapping ownership here double-freed the child on a later resident
+    // queried-value rejection.
+    errdefer allocator.free(all_values);
     all_values[0] = indexed_values;
 
     const merkle_decommit = if (shouldPack(column.len(), fold_step)) blk: {
-        var packed_columns = try PackedSecureColumns.init(allocator, column);
-        defer packed_columns.deinit(allocator);
-        const packed_refs = packed_columns.refs();
         const packed_positions = try packedQueryPositions(
             allocator,
             helper.decommitment_positions,
         );
         defer allocator.free(packed_positions);
+        if (retained_packing) |packed_columns| {
+            const packed_len = column.len() / PACKED_LEAF_SIZE;
+            for (packed_columns.columns) |values| {
+                if (values.len != packed_len) return error.InvalidColumnSize;
+            }
+            const packed_refs = packed_columns.refs();
+            break :blk try merkle_tree.decommit(
+                allocator,
+                packed_positions,
+                packed_refs[0..],
+            );
+        }
+
+        var packed_columns = try PackedSecureColumns.init(allocator, column);
+        defer packed_columns.deinit(allocator);
+        const packed_refs = packed_columns.refs();
         break :blk try merkle_tree.decommit(
             allocator,
             packed_positions,

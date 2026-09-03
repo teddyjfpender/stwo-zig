@@ -22,6 +22,7 @@ pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const IDENTITY_DOMAIN: u32 = 0x4c56_4c33; // "LVL3"
 pub const IDENTITY_WORDS: usize = 50;
+pub const IdentityWords = [IDENTITY_WORDS]m31.M31;
 pub const VERIFIED_CAPTURE_REQUIRED = true;
 pub const PRODUCTION_RECURSIVE_ACTIVATION = false;
 
@@ -118,6 +119,14 @@ pub const VerifiedLinkV3 = struct {
         if (!std.meta.eql(self.identity, identity(self)))
             return error.InvalidVerifiedLink;
     }
+
+    /// Exact algebraic preimage used by `identity`. The link remains valid
+    /// only after `validateAgainst` joins these words to a freshly verified
+    /// local statement and receipt.
+    pub fn identityWords(self: *const VerifiedLinkV3) Error!IdentityWords {
+        try self.validateHeader();
+        return identityWordsUnchecked(self);
+    }
 };
 
 fn validateSources(
@@ -170,7 +179,12 @@ fn validateSources(
 }
 
 fn identity(link: *const VerifiedLinkV3) channel.Digest {
-    var words: [IDENTITY_WORDS]u32 = undefined;
+    const words = identityWordsUnchecked(link);
+    return channel.hashCanonicalWords(&words, IDENTITY_DOMAIN);
+}
+
+fn identityWordsUnchecked(link: *const VerifiedLinkV3) IdentityWords {
+    var words: IdentityWords = undefined;
     var at: usize = 0;
     put(&words, &at, link.format_version);
     put(&words, &at, link.schema_version);
@@ -186,25 +200,25 @@ fn identity(link: *const VerifiedLinkV3) channel.Digest {
     put(&words, &at, link.entry_continuation_root);
     put(&words, &at, link.exit_continuation_root);
     std.debug.assert(at == words.len);
-    return channel.hashCanonicalU32s(&words, IDENTITY_DOMAIN);
+    return words;
 }
 
-fn put(words: []u32, at: *usize, value: u32) void {
+fn put(words: []m31.M31, at: *usize, value: u32) void {
     std.debug.assert(value < m31.Modulus);
-    words[at.*] = value;
+    words[at.*] = m31.M31.fromCanonical(value);
     at.* += 1;
 }
 
-fn putDigest(words: []u32, at: *usize, value: channel.Digest) void {
+fn putDigest(words: []m31.M31, at: *usize, value: channel.Digest) void {
     for (value) |word| put(words, at, word);
 }
 
-fn putU32(words: []u32, at: *usize, value: u32) void {
+fn putU32(words: []m31.M31, at: *usize, value: u32) void {
     put(words, at, value & 0xffff);
     put(words, at, value >> 16);
 }
 
-fn putU64(words: []u32, at: *usize, value: u64) void {
+fn putU64(words: []m31.M31, at: *usize, value: u64) void {
     inline for (0..4) |limb|
         put(words, at, @intCast((value >> (16 * limb)) & 0xffff));
 }

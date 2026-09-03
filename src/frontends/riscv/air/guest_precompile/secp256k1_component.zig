@@ -41,9 +41,23 @@ pub fn Claim(comptime Config: type) type {
             trace: *const trace_mod.Trace(Config),
             batch_sums: [Config.batch_count]QM31,
         ) !@This() {
+            return canonicalLogical(trace, @intCast(trace.n_rows), batch_sums);
+        }
+
+        /// Bind a logical empty family to its canonical one-row all-zero
+        /// physical padding trace. Non-empty callers must pass the exact trace
+        /// row count.
+        pub fn canonicalLogical(
+            trace: *const trace_mod.Trace(Config),
+            logical_n_rows: u32,
+            batch_sums: [Config.batch_count]QM31,
+        ) !@This() {
+            if (logical_n_rows != 0 and
+                @as(usize, logical_n_rows) != trace.n_rows)
+                return error.InvalidClaim;
             const result = @This(){
                 .log_size = trace.log_size,
-                .n_rows = @intCast(trace.n_rows),
+                .n_rows = logical_n_rows,
                 .batch_sums = batch_sums,
                 .component_sum = sumClaims(Config, batch_sums),
             };
@@ -52,14 +66,27 @@ pub fn Claim(comptime Config: type) type {
         }
 
         pub fn validate(self: @This()) !void {
+            if (self.n_rows == 0) {
+                if (self.log_size != 1 or !allZero(&self.batch_sums) or
+                    !self.component_sum.eql(QM31.zero()))
+                {
+                    return error.InvalidClaim;
+                }
+                return;
+            }
             if (self.log_size == 0 or self.log_size >= circle.M31_CIRCLE_LOG_ORDER or
-                self.n_rows == 0 or self.n_rows > @as(u64, 1) << @intCast(self.log_size) or
+                self.n_rows > @as(u64, 1) << @intCast(self.log_size) or
                 !sumClaims(Config, self.batch_sums).eql(self.component_sum))
             {
                 return error.InvalidClaim;
             }
         }
     };
+}
+
+fn allZero(values: []const QM31) bool {
+    for (values) |value| if (!value.eql(QM31.zero())) return false;
+    return true;
 }
 
 pub fn Component(comptime Config: type) type {

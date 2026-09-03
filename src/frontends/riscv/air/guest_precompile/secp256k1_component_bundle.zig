@@ -8,6 +8,9 @@ const ecdsa_direct = @import("secp256k1_ecdsa_direct.zig");
 const linear_direct = @import("secp256k1_linear_direct.zig");
 const mul_direct = @import("secp256k1_mul_direct.zig");
 const point_direct = @import("secp256k1_point_direct.zig");
+const recovery_direct = @import("secp256k1_recovery_direct.zig");
+const recovery_caller = @import("secp256k1_recovery_caller.zig");
+const recovery_call_buffer = @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig");
 const scalar_direct = @import("secp256k1_scalar_direct.zig");
 const split_direct = @import("secp256k1_split_direct.zig");
 const table_direct = @import("secp256k1_table_direct.zig");
@@ -27,6 +30,8 @@ pub const SplitTrace = trace_mod.Trace(config.Split);
 pub const ScalarTrace = trace_mod.Trace(config.ScalarProgram);
 pub const TableTrace = trace_mod.Trace(config.Table);
 pub const EcdsaTrace = trace_mod.Trace(config.Ecdsa);
+pub const RecoveryTrace = trace_mod.Trace(config.Recovery);
+pub const RecoveryCallerTrace = trace_mod.Trace(config.RecoveryCaller);
 pub const ByteTrace = trace_mod.Trace(config.ByteTable);
 
 pub const Bundle = struct {
@@ -39,10 +44,12 @@ pub const Bundle = struct {
     scalar: ScalarTrace,
     table: TableTrace,
     ecdsa: EcdsaTrace,
+    recovery: RecoveryTrace,
     byte: ByteTrace,
 
     pub fn deinit(self: *Bundle) void {
         self.byte.deinit();
+        self.recovery.deinit();
         self.ecdsa.deinit();
         self.table.deinit();
         self.scalar.deinit();
@@ -112,18 +119,12 @@ pub fn generate(allocator: std.mem.Allocator, tape: *const affine.Tape) !Bundle 
 
     var scalar_rows: std.ArrayList(ScalarTrace.Row) = .empty;
     defer scalar_rows.deinit(allocator);
-    var scalar_first: std.ArrayList(usize) = .empty;
-    defer scalar_first.deinit(allocator);
-    var scalar_last: std.ArrayList(usize) = .empty;
-    defer scalar_last.deinit(allocator);
     for (tape.scalar_programs.items) |*program| {
-        try scalar_first.append(allocator, scalar_rows.items.len);
         for (0..program.step_count) |ordinal| {
             const row = try scalar_direct.rowFromStep(tape, program, ordinal);
             try scalar_rows.append(allocator, row);
             try countBytes(config.ScalarProgram, &row, &byte_counts);
         }
-        try scalar_last.append(allocator, scalar_rows.items.len - 1);
     }
 
     const table_counts = try allocator.alloc(
@@ -164,57 +165,94 @@ pub fn generate(allocator: std.mem.Allocator, tape: *const affine.Tape) !Bundle 
         try countBytes(config.Ecdsa, &row, &byte_counts);
     }
 
+    var recovery_rows: std.ArrayList(RecoveryTrace.Row) = .empty;
+    defer recovery_rows.deinit(allocator);
+    for (tape.recoveries.items) |*record| {
+        const row = try recovery_direct.rowFromRecord(tape, record);
+        try recovery_rows.append(allocator, row);
+        try countBytes(config.Recovery, &row, &byte_counts);
+    }
+
     var byte_rows: [256]ByteTrace.Row = undefined;
     for (&byte_rows, 0..) |*row, value| {
         row.* = config.ByteTable.row(@intCast(value), M31.fromU64(byte_counts[value]));
     }
 
     var result: Bundle = undefined;
-    result.product_base = try ProductBaseTrace.init(
+    result.product_base = try initPossiblyEmpty(
+        ProductBase,
         allocator,
         product_base_rows.items,
-        &.{},
-        &.{},
     );
     errdefer result.product_base.deinit();
-    result.product_scalar = try ProductScalarTrace.init(
+    result.product_scalar = try initPossiblyEmpty(
+        ProductScalar,
         allocator,
         product_scalar_rows.items,
-        &.{},
-        &.{},
     );
     errdefer result.product_scalar.deinit();
-    result.linear_base = try LinearBaseTrace.init(
+    result.linear_base = try initPossiblyEmpty(
+        LinearBase,
         allocator,
         linear_base_rows.items,
-        &.{},
-        &.{},
     );
     errdefer result.linear_base.deinit();
-    result.linear_scalar = try LinearScalarTrace.init(
+    result.linear_scalar = try initPossiblyEmpty(
+        LinearScalar,
         allocator,
         linear_scalar_rows.items,
-        &.{},
-        &.{},
     );
     errdefer result.linear_scalar.deinit();
-    result.point = try PointTrace.init(allocator, point_rows.items, &.{}, &.{});
+    result.point = try initPossiblyEmpty(config.Point, allocator, point_rows.items);
     errdefer result.point.deinit();
-    result.split = try SplitTrace.init(allocator, split_rows.items, &.{}, &.{});
+    result.split = try initPossiblyEmpty(config.Split, allocator, split_rows.items);
     errdefer result.split.deinit();
-    result.scalar = try ScalarTrace.init(
+    result.scalar = try initPossiblyEmpty(
+        config.ScalarProgram,
         allocator,
         scalar_rows.items,
-        scalar_first.items,
-        scalar_last.items,
     );
     errdefer result.scalar.deinit();
-    result.table = try TableTrace.init(allocator, table_rows.items, &.{}, &.{});
+    result.table = try initPossiblyEmpty(config.Table, allocator, table_rows.items);
     errdefer result.table.deinit();
-    result.ecdsa = try EcdsaTrace.init(allocator, ecdsa_rows.items, &.{}, &.{});
+    result.ecdsa = try initPossiblyEmpty(
+        config.Ecdsa,
+        allocator,
+        ecdsa_rows.items,
+    );
     errdefer result.ecdsa.deinit();
+    result.recovery = try initPossiblyEmpty(
+        config.Recovery,
+        allocator,
+        recovery_rows.items,
+    );
+    errdefer result.recovery.deinit();
     result.byte = try ByteTrace.init(allocator, &byte_rows, &.{}, &.{});
     return result;
+}
+
+pub fn generateRecoveryCaller(
+    allocator: std.mem.Allocator,
+    records: []const recovery_call_buffer.Record,
+) !RecoveryCallerTrace {
+    var rows: std.ArrayList(RecoveryCallerTrace.Row) = .empty;
+    defer rows.deinit(allocator);
+    var active_prefix: std.ArrayList(usize) = .empty;
+    defer active_prefix.deinit(allocator);
+    try rows.ensureTotalCapacity(allocator, records.len);
+    try active_prefix.ensureTotalCapacity(allocator, records.len);
+    for (records, 0..) |record, index| {
+        rows.appendAssumeCapacity(recovery_caller.rowFromRecord(record));
+        active_prefix.appendAssumeCapacity(index);
+    }
+    if (rows.items.len != 0) return RecoveryCallerTrace.init(
+        allocator,
+        rows.items,
+        active_prefix.items,
+        &.{},
+    );
+    const padding = [1]RecoveryCallerTrace.Row{@splat(M31.zero())};
+    return RecoveryCallerTrace.init(allocator, &padding, &.{}, &.{});
 }
 
 fn countBytes(
@@ -236,7 +274,26 @@ fn countBytes(
         return countPairs(table_direct.rangePairs(M31, row), counts);
     if (Config == config.Ecdsa)
         return countPairs(ecdsa_direct.rangePairs(M31, row), counts);
+    if (Config == config.Recovery)
+        return countPairs(recovery_direct.rangePairs(M31, row), counts);
     @compileError("unsupported secp256k1 byte source");
+}
+
+fn initPossiblyEmpty(
+    comptime Config: type,
+    allocator: std.mem.Allocator,
+    rows: []const trace_mod.Trace(Config).Row,
+) !trace_mod.Trace(Config) {
+    if (rows.len != 0) return trace_mod.Trace(Config).init(
+        allocator,
+        rows,
+        &.{},
+        &.{},
+    );
+    const padding = [1]trace_mod.Trace(Config).Row{
+        @splat(M31.zero()),
+    };
+    return trace_mod.Trace(Config).init(allocator, &padding, &.{}, &.{});
 }
 
 fn countPairs(pairs: anytype, counts: *[256]u64) !void {

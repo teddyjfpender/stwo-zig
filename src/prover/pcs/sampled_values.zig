@@ -10,19 +10,23 @@ const circle = @import("stwo_core").circle;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs_core = @import("stwo_core").pcs;
-const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const prover_circle_eval = @import("../poly/circle/evaluation.zig");
 const point_evaluation = @import("../poly/circle/point_evaluation.zig");
 const work_pool_mod = @import("../work_pool.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const sampled_work = @import("sampled_value_work.zig");
+const plan_overlap = @import("sampled_value_plan_overlap.zig");
 const coefficient_plan_ops = @import("sampled_coefficient_plans.zig");
 const CoefficientEvalPlan = coefficient_plan_ops.CoefficientEvalPlan;
 const CoefficientEvalTreePlan = coefficient_plan_ops.CoefficientEvalTreePlan;
+const BarycentricEvalPlan = coefficient_plan_ops.BarycentricEvalPlan;
+const BarycentricEvalTreePlan = coefficient_plan_ops.BarycentricEvalTreePlan;
 const deinitCoefficientEvalPlans = coefficient_plan_ops.deinitCoefficientEvalPlans;
+const deinitBarycentricEvalPlans = coefficient_plan_ops.deinitBarycentricEvalPlans;
 const getOrCreateCoefficientEvalPlan = coefficient_plan_ops.getOrCreateCoefficientEvalPlan;
-const evaluateBarycentricColumn = coefficient_plan_ops.evaluateBarycentricColumn;
+const getOrCreateBarycentricEvalPlan = coefficient_plan_ops.getOrCreateBarycentricEvalPlan;
+const evaluateBarycentricPlan = coefficient_plan_ops.evaluateBarycentricPlan;
 const evaluateCoefficientPlans = coefficient_plan_ops.evaluateCoefficientPlans;
 const coefficientsAreZero = coefficient_plan_ops.coefficientsAreZero;
 
@@ -151,6 +155,26 @@ pub fn evaluateAndReleaseWithWorkRecorder(
         }
     }
 
+    if (comptime @hasDecl(B, "evaluateBarycentricTreePlans") and
+        @hasDecl(B, "quotientResidencyHandle"))
+    {
+        if (try evaluateBarycentricTreesWithBackend(
+            B,
+            H,
+            trees,
+            sampled_points.items,
+            out,
+            allocator,
+            lifting_log_size,
+            barycentric_work_audit,
+        )) {
+            releaseTreeCoefficients(B, H, trees, allocator);
+            if (selected_barycentric_evaluation)
+                finishBarycentricWork(work_recorder, barycentric_work);
+            return TreeVec([][]QM31).initOwned(out);
+        }
+    }
+
     if (comptime @hasDecl(B, "recordSampledValueFallback")) {
         B.recordSampledValueFallback();
     }
@@ -181,6 +205,20 @@ pub fn evaluateAndReleaseWithWorkRecorder(
         }
     }
 
+    if (std.process.hasEnvVarConstant(
+        "STWO_ZIG_PROFILE_SAMPLED_PLAN_OVERLAP",
+    )) {
+        var overlap_timer = try std.time.Timer.start();
+        var overlap = try plan_overlap.derive(
+            allocator,
+            trees,
+            sampled_points.items,
+            lifting_log_size,
+        );
+        defer overlap.deinit();
+        plan_overlap.print(overlap.value, overlap_timer.read());
+    }
+
     // Tests must never create the process-global pool implicitly, but an
     // explicitly scoped proof pool is deterministic transaction authority,
     // not ambient test parallelism. `getGlobalPool` already enforces exactly
@@ -205,6 +243,7 @@ pub fn evaluateAndReleaseWithWorkRecorder(
                 .lifting_log_size = lifting_log_size,
                 .barycentric_cache = &barycentric_cache,
                 .parallel_coefficient_plans = false,
+                .parallel_barycentric_plans = false,
                 .capture_work = capture_work,
                 .coefficient_work = .{},
                 .barycentric_work = .{},
@@ -214,6 +253,13 @@ pub fn evaluateAndReleaseWithWorkRecorder(
 
         const primary_tree = largestTreeIndex(trees, sampled_points.items);
         worker_contexts[primary_tree].parallel_coefficient_plans = true;
+        // This remains an explicit research switch. The measured Stage101 A/B
+        // was byte-identical but wall-neutral and increased CPU/RSS because
+        // inner weight workers displaced the already-active tree workers.
+        worker_contexts[primary_tree].parallel_barycentric_plans =
+            std.process.hasEnvVarConstant(
+                "STWO_ZIG_EXPERIMENTAL_PARALLEL_BARYCENTRIC_WEIGHTS",
+            );
 
         var wait_group: std.Thread.WaitGroup = .{};
         for (worker_contexts, 0..) |*worker_context, tree_idx| {
@@ -343,6 +389,7 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
         lifting_log_size: u32,
         barycentric_cache: *const std.AutoHashMap(u32, prover_circle_eval.BarycentricContext),
         parallel_coefficient_plans: bool,
+        parallel_barycentric_plans: bool,
         capture_work: bool,
         coefficient_work: sampled_work.Audit,
         barycentric_work: sampled_work.Audit,
@@ -370,6 +417,10 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
             defer deinitCoefficientEvalPlans(scratch_allocator, &coefficient_plans);
             var coefficient_plan_index = std.AutoHashMap(u64, usize).init(scratch_allocator);
             defer coefficient_plan_index.deinit();
+            var barycentric_plans = std.ArrayList(BarycentricEvalPlan).empty;
+            defer deinitBarycentricEvalPlans(scratch_allocator, &barycentric_plans);
+            var barycentric_plan_index = std.AutoHashMap(u64, usize).init(scratch_allocator);
+            defer barycentric_plan_index.deinit();
 
             const tree = self.tree;
             for (tree.columns, self.tree_points, 0..) |column, points, column_idx| {
@@ -393,25 +444,16 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
                     );
                     try plan.column_indices.append(scratch_allocator, column_idx);
                 } else {
-                    const evaluation = try prover_circle.CircleEvaluation.init(
-                        canonic.CanonicCoset.new(column.log_size).circleDomain(),
-                        column.values,
-                    );
-                    const context = self.barycentric_cache.getPtr(column.log_size) orelse
-                        return error.ShapeMismatch;
-                    var workspace = prover_circle_eval.BarycentricWorkspace.init();
-                    defer workspace.deinit(scratch_allocator);
-
-                    try evaluateBarycentricColumn(
+                    const plan = try getOrCreateBarycentricEvalPlan(
                         scratch_allocator,
-                        evaluation,
-                        context,
-                        &workspace,
-                        points,
-                        values,
+                        &barycentric_plan_index,
+                        &barycentric_plans,
+                        column.log_size,
                         fold_count,
+                        points,
                         barycentric_work_audit,
                     );
+                    try plan.column_indices.append(scratch_allocator, column_idx);
                 }
             }
 
@@ -424,6 +466,23 @@ fn SampledValueWorkerCtx(comptime B: type, comptime H: type) type {
                     self.parallel_coefficient_plans,
                     coefficient_work_audit,
                 );
+            } else {
+                var workspace = prover_circle_eval.BarycentricWorkspace.init();
+                defer workspace.deinit(scratch_allocator);
+                for (barycentric_plans.items) |plan| {
+                    const context = self.barycentric_cache.getPtr(plan.log_size) orelse
+                        return error.ShapeMismatch;
+                    _ = try evaluateBarycentricPlan(
+                        scratch_allocator,
+                        tree.columns,
+                        self.tree_values,
+                        plan,
+                        context,
+                        &workspace,
+                        self.parallel_barycentric_plans,
+                        barycentric_work_audit,
+                    );
+                }
             }
         }
     };
@@ -441,21 +500,18 @@ fn evaluateTreesSequential(
     coefficient_work: ?*sampled_work.Audit,
     barycentric_work: ?*sampled_work.Audit,
 ) !void {
-    var workspace_cache = std.AutoHashMap(u32, prover_circle_eval.BarycentricWorkspace).init(allocator);
-    defer {
-        var iterator = workspace_cache.valueIterator();
-        while (iterator.next()) |workspace| {
-            var mutable_workspace = workspace.*;
-            mutable_workspace.deinit(allocator);
-        }
-        workspace_cache.deinit();
-    }
+    var barycentric_workspace = prover_circle_eval.BarycentricWorkspace.init();
+    defer barycentric_workspace.deinit(allocator);
 
     for (trees, tree_points_list, out) |*tree, tree_points, tree_values| {
         var coefficient_plans = std.ArrayList(CoefficientEvalPlan).empty;
         defer deinitCoefficientEvalPlans(allocator, &coefficient_plans);
         var coefficient_plan_index = std.AutoHashMap(u64, usize).init(allocator);
         defer coefficient_plan_index.deinit();
+        var barycentric_plans = std.ArrayList(BarycentricEvalPlan).empty;
+        defer deinitBarycentricEvalPlans(allocator, &barycentric_plans);
+        var barycentric_plan_index = std.AutoHashMap(u64, usize).init(allocator);
+        defer barycentric_plan_index.deinit();
 
         for (tree.columns, tree_points, 0..) |column, points, column_idx| {
             if (points.len == 0) continue;
@@ -478,26 +534,16 @@ fn evaluateTreesSequential(
                 );
                 try plan.column_indices.append(allocator, column_idx);
             } else {
-                const evaluation = try prover_circle.CircleEvaluation.init(
-                    canonic.CanonicCoset.new(column.log_size).circleDomain(),
-                    column.values,
-                );
-                const context = barycentric_cache.getPtr(column.log_size) orelse
-                    return error.ShapeMismatch;
-                const workspace = try workspace_cache.getOrPut(column.log_size);
-                if (!workspace.found_existing) {
-                    workspace.value_ptr.* = prover_circle_eval.BarycentricWorkspace.init();
-                }
-                try evaluateBarycentricColumn(
+                const plan = try getOrCreateBarycentricEvalPlan(
                     allocator,
-                    evaluation,
-                    context,
-                    workspace.value_ptr,
-                    points,
-                    values,
+                    &barycentric_plan_index,
+                    &barycentric_plans,
+                    column.log_size,
                     fold_count,
+                    points,
                     barycentric_work,
                 );
+                try plan.column_indices.append(allocator, column_idx);
             }
         }
 
@@ -510,6 +556,21 @@ fn evaluateTreesSequential(
                 false,
                 coefficient_work,
             );
+        } else {
+            for (barycentric_plans.items) |plan| {
+                const context = barycentric_cache.getPtr(plan.log_size) orelse
+                    return error.ShapeMismatch;
+                _ = try evaluateBarycentricPlan(
+                    allocator,
+                    tree.columns,
+                    tree_values,
+                    plan,
+                    context,
+                    &barycentric_workspace,
+                    false,
+                    barycentric_work,
+                );
+            }
         }
     }
 }
@@ -622,6 +683,81 @@ fn evaluateCoefficientTreesWithBackend(
             );
             if (work_audit) |audit| audit.complete = false;
         }
+    }
+    return true;
+}
+
+fn evaluateBarycentricTreesWithBackend(
+    comptime B: type,
+    comptime H: type,
+    trees: []commitment_tree.CommitmentTreeProverForBackend(B, H),
+    tree_points_list: [][][]CirclePointQM31,
+    out: [][][]QM31,
+    allocator: std.mem.Allocator,
+    lifting_log_size: u32,
+    work_audit: ?*sampled_work.Audit,
+) !bool {
+    for (trees) |tree| if (tree.coefficients != null) return false;
+
+    const plan_lists = try allocator.alloc(std.ArrayList(BarycentricEvalPlan), trees.len);
+    defer allocator.free(plan_lists);
+    var initialized: usize = 0;
+    defer for (plan_lists[0..initialized]) |*plans| {
+        deinitBarycentricEvalPlans(allocator, plans);
+    };
+
+    const tree_plans = try allocator.alloc(BarycentricEvalTreePlan, trees.len);
+    defer allocator.free(tree_plans);
+    for (trees, tree_points_list, out, 0..) |
+        tree,
+        tree_points,
+        tree_values,
+        tree_index,
+    | {
+        const resident_tree = B.quotientResidencyHandle(
+            H,
+            tree.commitment,
+        ) orelse return false;
+        var plans = std.ArrayList(BarycentricEvalPlan).empty;
+        errdefer deinitBarycentricEvalPlans(allocator, &plans);
+        var plan_index = std.AutoHashMap(u64, usize).init(allocator);
+        defer plan_index.deinit();
+        for (tree.columns, tree_points, 0..) |column, points, column_index| {
+            if (points.len == 0) continue;
+            const plan = try getOrCreateBarycentricEvalPlan(
+                allocator,
+                &plan_index,
+                &plans,
+                column.log_size,
+                lifting_log_size - column.log_size,
+                points,
+                work_audit,
+            );
+            try plan.column_indices.append(allocator, column_index);
+        }
+        plan_lists[tree_index] = plans;
+        initialized += 1;
+        tree_plans[tree_index] = .{
+            .columns = tree.columns,
+            .tree_values = tree_values,
+            .plans = plan_lists[tree_index].items,
+            .resident_tree = resident_tree,
+        };
+    }
+
+    if (comptime @hasDecl(B, "evaluateBarycentricTreePlansWithReceipt")) {
+        if (work_audit) |audit| {
+            const execution = try B.evaluateBarycentricTreePlansWithReceipt(
+                allocator,
+                tree_plans,
+            );
+            audit.observeBarycentricBackendExecution(execution);
+        } else {
+            try B.evaluateBarycentricTreePlans(allocator, tree_plans);
+        }
+    } else {
+        try B.evaluateBarycentricTreePlans(allocator, tree_plans);
+        if (work_audit) |audit| audit.complete = false;
     }
     return true;
 }

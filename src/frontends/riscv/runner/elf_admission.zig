@@ -17,8 +17,10 @@ pub const Error = error{
     UnsupportedRequiredCapabilities,
     UnsupportedPoseidon2Abi,
     UnsupportedKeccakfAbi,
+    UnsupportedEthereumAbi,
     Poseidon2SemanticDigestMismatch,
     KeccakfSemanticDigestMismatch,
+    EthereumSemanticDigestMismatch,
 };
 
 pub const sht_strtab: u32 = 3;
@@ -217,6 +219,15 @@ fn parseDescriptor(descriptor: []const u8) Error!ExecutionProfile {
                 return error.UnsupportedKeccakfAbi;
             if (!std.mem.eql(u8, descriptor[24..56], &execution_profile.keccakf_semantic_digest))
                 return error.KeccakfSemanticDigestMismatch;
+            break :blk profile;
+        },
+        .rv32im_zkvm_ethereum_v1 => blk: {
+            if (readU64LE(descriptor[12..20]) != execution_profile.ethereum_capability_bits)
+                return error.UnsupportedRequiredCapabilities;
+            if (readU16LE(descriptor[20..22]) != execution_profile.ethereum_abi_version)
+                return error.UnsupportedEthereumAbi;
+            if (!std.mem.eql(u8, descriptor[24..56], &execution_profile.ethereum_semantic_digest))
+                return error.EthereumSemanticDigestMismatch;
             break :blk profile;
         },
     };

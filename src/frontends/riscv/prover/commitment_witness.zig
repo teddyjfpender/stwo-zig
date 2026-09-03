@@ -36,6 +36,130 @@ const types = @import("types.zig");
 const PublicData = types.PublicData;
 const ProverError = types.ProverError;
 
+/// Entry/exit roots authenticated by an incremental multiproof rather than by
+/// two materialized `sparse_merkle.Tree` owners. The roots are values only;
+/// their node/call custody remains in `merkle_rows` and `poseidon_calls`.
+pub const IncrementalRootsV3 = struct {
+    entry: u32,
+    exit: u32,
+};
+
+pub const IncrementalBoundaryV3 = struct {
+    rows: []memory_boundary.Row,
+    roots: IncrementalRootsV3,
+};
+
+/// Exact work removed by one prepared-program construction.  Counts are
+/// derived from retained owners and execution slices, never from timings.
+/// The receipt is process-local diagnostics and enters no statement or proof.
+pub const PreparedProgramWorkReceiptV1 = struct {
+    execution_fetch_rows_scanned: u64,
+    completion_fetch_rows_scanned: u8,
+    fixed_declared_rows: u64,
+    fixed_committed_rows: u64,
+    fixed_sparse_leaves: u64,
+    fixed_sparse_nodes: u64,
+    sparse_tree_builds_elided: u8,
+    sparse_tree_validation_rebuilds_elided: u8,
+    declared_row_decodes_elided: u64,
+    node_poseidon_call_derivations_elided: u64,
+
+    pub fn validate(self: PreparedProgramWorkReceiptV1) !void {
+        const expected_leaves = std.math.mul(
+            u64,
+            self.fixed_committed_rows,
+            4,
+        ) catch return ProverError.InvalidStatement;
+        if (self.execution_fetch_rows_scanned == 0 or
+            self.completion_fetch_rows_scanned > 1 or
+            self.fixed_declared_rows == 0 or
+            self.fixed_committed_rows == 0 or
+            self.fixed_committed_rows > self.fixed_declared_rows or
+            self.fixed_sparse_leaves != expected_leaves or
+            self.fixed_sparse_nodes == 0 or
+            self.sparse_tree_builds_elided != 1 or
+            self.sparse_tree_validation_rebuilds_elided != 1 or
+            self.declared_row_decodes_elided != self.fixed_committed_rows or
+            self.node_poseidon_call_derivations_elided != self.fixed_sparse_nodes)
+        {
+            return ProverError.InvalidStatement;
+        }
+    }
+};
+
+/// Read-only program material retained by one commitment witness.
+///
+/// Ordinary constructors keep owning the complete sparse commitment.  The
+/// prepared-program constructor owns only its leaf-specific row copy; the
+/// fixed tree has already been projected into this witness's owned Merkle-row
+/// and Poseidon-call lists, so retaining a shallow mutable tree alias would be
+/// both unnecessary and an ownership bug.  `rows` and `tree.root` preserve the
+/// existing downstream read surface.
+pub const ProgramWitnessV1 = struct {
+    rows: []const program_commitment.Row,
+    tree: TreeViewV1,
+    custody: CustodyV1,
+
+    pub const TreeViewV1 = struct {
+        root: u32,
+        leaf_count: usize,
+        node_count: usize,
+    };
+
+    pub const CustodyV1 = union(enum) {
+        full_commitment: program_commitment.Commitment,
+        prepared_rows: []program_commitment.Row,
+    };
+
+    pub fn fromOwned(
+        commitment: program_commitment.Commitment,
+    ) ProgramWitnessV1 {
+        return .{
+            .rows = commitment.rows,
+            .tree = .{
+                .root = commitment.tree.root,
+                .leaf_count = commitment.tree.leaves.len,
+                .node_count = commitment.tree.nodes.len,
+            },
+            .custody = .{ .full_commitment = commitment },
+        };
+    }
+
+    fn fromPreparedRows(
+        rows: []program_commitment.Row,
+        root: u32,
+        leaf_count: usize,
+        node_count: usize,
+    ) !ProgramWitnessV1 {
+        const expected_leaves = std.math.mul(usize, rows.len, 4) catch
+            return ProverError.InvalidStatement;
+        if (rows.len == 0 or leaf_count != expected_leaves or node_count == 0)
+            return ProverError.InvalidStatement;
+        for (rows) |row| if (row.root != root)
+            return ProverError.InvalidStatement;
+        return .{
+            .rows = rows,
+            .tree = .{
+                .root = root,
+                .leaf_count = leaf_count,
+                .node_count = node_count,
+            },
+            .custody = .{ .prepared_rows = rows },
+        };
+    }
+
+    pub fn deinit(
+        self: *ProgramWitnessV1,
+        allocator: std.mem.Allocator,
+    ) void {
+        switch (self.custody) {
+            .full_commitment => |*commitment| commitment.deinit(allocator),
+            .prepared_rows => |rows| allocator.free(rows),
+        }
+        self.* = undefined;
+    }
+};
+
 /// Fixes the completion witness the rest of the proof is derived from.
 ///
 /// A caller that supplies no completion gets the canonical self-loop at the
@@ -67,13 +191,19 @@ pub fn bindCompletion(
 
 pub const CommitmentWitness = struct {
     boundary: ?memory_boundary.Claims,
-    program: program_commitment.Commitment,
+    program: ProgramWitnessV1,
     poseidon_calls: std.ArrayList(poseidon2_air.Call),
     merkle_rows: std.ArrayList(merkle_node.NodeRow),
+    /// Present only for the full-state incremental profile. It is deliberately
+    /// separate from legacy `memory_boundary.Claims`: active V3 rows may carry
+    /// zero memory-bus multiplicity and their roots are authenticated by the
+    /// retained multiproof instead of two owned full trees.
+    incremental_boundary_v3: ?IncrementalBoundaryV3 = null,
     /// Present only on an explicitly profiled request. It contains every
     /// completed sparse-tree construction and validation permutation; Tree-1
     /// materialization merges into it before terminal publication.
     poseidon_work: ?poseidon_work.Shard = null,
+    prepared_program_work: ?PreparedProgramWorkReceiptV1 = null,
 
     /// Derives every commitment table for one execution. Owned by the caller.
     pub fn build(
@@ -102,7 +232,7 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = null,
@@ -154,10 +284,237 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = completed,
+        };
+    }
+
+    /// Builds the ordinary program commitment and splices in one already
+    /// authenticated incremental memory multiproof. The pinned table order is
+    /// unchanged: Poseidon calls visit program then memory, while Merkle rows
+    /// visit memory then program.
+    ///
+    /// The supplied slices are copied. This keeps the caller's transition
+    /// owner available for the separately committed bridge component and
+    /// makes this witness's deinit transaction independent.
+    pub fn buildWithIncrementalBoundaryV3(
+        allocator: std.mem.Allocator,
+        exec_trace: *const trace_mod.Trace,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        boundary_rows: []const memory_boundary.Row,
+        incremental_merkle_rows: []const merkle_node.NodeRow,
+        incremental_poseidon_calls: []const poseidon2_air.Call,
+        roots: IncrementalRootsV3,
+    ) !CommitmentWitness {
+        if (boundary_rows.len == 0 or
+            incremental_merkle_rows.len == 0 or
+            incremental_poseidon_calls.len == 0)
+        {
+            return ProverError.InvalidStatement;
+        }
+        for (boundary_rows) |row| {
+            if (row.root != roots.entry and row.root != roots.exit)
+                return ProverError.InvalidStatement;
+        }
+
+        const incremental_rows = try allocator.dupe(
+            memory_boundary.Row,
+            boundary_rows,
+        );
+        errdefer allocator.free(incremental_rows);
+
+        var program = try buildProgram(
+            allocator,
+            exec_trace,
+            opt_memory,
+            completion,
+        );
+        errdefer program.deinit(allocator);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendTreeCalls(allocator, &poseidon_calls, program.tree);
+        try poseidon_calls.appendSlice(allocator, incremental_poseidon_calls);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try merkle_rows.appendSlice(allocator, incremental_merkle_rows);
+        try appendTreeRows(allocator, &merkle_rows, program.tree);
+
+        return .{
+            .boundary = null,
+            .program = .fromOwned(program),
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .incremental_boundary_v3 = .{
+                .rows = incremental_rows,
+                .roots = roots,
+            },
+            .poseidon_work = null,
+        };
+    }
+
+    /// External-profile twin of `buildWithIncrementalBoundaryV3`.
+    ///
+    /// The transition tables retain the same incremental ownership and table
+    /// order. Only declared-program construction is widened to the exact
+    /// statement-ordered execution sources, so host-retired CUSTOM-0 words
+    /// cannot disappear from a joined Ethereum proof.
+    pub fn buildExternalProfileWithIncrementalBoundaryV3(
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        boundary_rows: []const memory_boundary.Row,
+        incremental_merkle_rows: []const merkle_node.NodeRow,
+        incremental_poseidon_calls: []const poseidon2_air.Call,
+        roots: IncrementalRootsV3,
+    ) !CommitmentWitness {
+        if (boundary_rows.len == 0 or
+            incremental_merkle_rows.len == 0 or
+            incremental_poseidon_calls.len == 0)
+        {
+            return ProverError.InvalidStatement;
+        }
+        for (boundary_rows) |row| {
+            if (row.root != roots.entry and row.root != roots.exit)
+                return ProverError.InvalidStatement;
+        }
+
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        if (snapshot.program_words.len == 0)
+            return ProverError.InvalidStatement;
+        const incremental_rows = try allocator.dupe(
+            memory_boundary.Row,
+            boundary_rows,
+        );
+        errdefer allocator.free(incremental_rows);
+
+        var program = try program_commitment.buildDeclaredForProfileSources(
+            allocator,
+            selected_profile,
+            execution_sources,
+            snapshot.program_words,
+            completionFetch(completion),
+        );
+        errdefer program.deinit(allocator);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendTreeCalls(allocator, &poseidon_calls, program.tree);
+        try poseidon_calls.appendSlice(allocator, incremental_poseidon_calls);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try merkle_rows.appendSlice(allocator, incremental_merkle_rows);
+        try appendTreeRows(allocator, &merkle_rows, program.tree);
+
+        return .{
+            .boundary = null,
+            .program = .fromOwned(program),
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .incremental_boundary_v3 = .{
+                .rows = incremental_rows,
+                .roots = roots,
+            },
+            .poseidon_work = null,
+        };
+    }
+
+    /// Prepared-program sibling of
+    /// `buildExternalProfileWithIncrementalBoundaryV3`.
+    ///
+    /// `prepared_program` is a statically typed, process-local borrow. It
+    /// validates its exact owner/token, derives only leaf-specific program
+    /// multiplicities, and returns an owned row slice. This witness copies the
+    /// fixed program calls and node rows into its ordinary contiguous tables;
+    /// no prepared-owner allocation is ever adopted or freed here.
+    pub fn buildExternalProfileWithPreparedProgramAndIncrementalBoundaryV3(
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        prepared_program: anytype,
+        boundary_rows: []const memory_boundary.Row,
+        incremental_merkle_rows: []const merkle_node.NodeRow,
+        incremental_poseidon_calls: []const poseidon2_air.Call,
+        roots: IncrementalRootsV3,
+    ) !CommitmentWitness {
+        if (selected_profile != .rv32im_zkvm_ethereum_v1 or
+            boundary_rows.len == 0 or
+            incremental_merkle_rows.len == 0 or
+            incremental_poseidon_calls.len == 0)
+        {
+            return ProverError.InvalidStatement;
+        }
+        for (boundary_rows) |row| {
+            if (row.root != roots.entry and row.root != roots.exit)
+                return ProverError.InvalidStatement;
+        }
+        try prepared_program.validate();
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        try validatePreparedProgramSnapshot(snapshot, prepared_program);
+
+        const incremental_rows = try allocator.dupe(
+            memory_boundary.Row,
+            boundary_rows,
+        );
+        errdefer allocator.free(incremental_rows);
+
+        var leaf_program = try prepared_program.prepareLeafRows(
+            allocator,
+            execution_sources,
+            completionFetch(completion),
+        );
+        var leaf_program_owned = true;
+        defer if (leaf_program_owned) leaf_program.deinit();
+        try leaf_program.validate();
+        const work = leaf_program.workReceipt();
+        try work.validate();
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try poseidon_calls.appendSlice(
+            allocator,
+            prepared_program.ordered_poseidon_calls,
+        );
+        try poseidon_calls.appendSlice(allocator, incremental_poseidon_calls);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try merkle_rows.appendSlice(allocator, incremental_merkle_rows);
+        try appendTreeRows(
+            allocator,
+            &merkle_rows,
+            prepared_program.commitment.tree,
+        );
+
+        const owned_rows = try leaf_program.takeRows();
+        leaf_program_owned = false;
+        errdefer allocator.free(owned_rows);
+        const program = try ProgramWitnessV1.fromPreparedRows(
+            owned_rows,
+            prepared_program.commitment.tree.root,
+            prepared_program.commitment.tree.leaves.len,
+            prepared_program.commitment.tree.nodes.len,
+        );
+        return .{
+            .boundary = null,
+            .program = program,
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .incremental_boundary_v3 = .{
+                .rows = incremental_rows,
+                .roots = roots,
+            },
+            .poseidon_work = null,
+            .prepared_program_work = work,
         };
     }
 
@@ -206,7 +563,113 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    /// SegmentV2 boundary derivation with an explicitly selected external
+    /// execution profile. The boundary/public-data transaction is identical
+    /// to `buildV2`; only the declared-program source union is widened so
+    /// CUSTOM-0 fetches are decoded and counted under their admitted profile.
+    pub fn buildExternalProfileV2(
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        data: *const public_data_v2.PublicDataV2,
+    ) !CommitmentWitness {
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        const view = try segment_v2.authenticateCanonicalWire(data.words());
+        if (!std.meta.eql(view.wire_id, data.wireId()))
+            return ProverError.InvalidStatement;
+
+        var boundary = try buildV2Boundary(allocator, &view);
+        errdefer boundary.deinit(allocator);
+
+        const core_public = try statement_v2.canonicalCorePublicData(data);
+        var program = try program_commitment.buildDeclaredForProfileSources(
+            allocator,
+            selected_profile,
+            execution_sources,
+            snapshot.program_words,
+            completionFetch(core_public.completion),
+        );
+        errdefer program.deinit(allocator);
+        if (core_public.program_root == null or
+            core_public.program_root.? != program.tree.root)
+        {
+            return ProverError.InvalidStatement;
+        }
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = .fromOwned(program),
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    /// Candidate-only SegmentV2 commitment derivation with an explicit,
+    /// statically typed declared-program decoder.
+    ///
+    /// The boundary, sparse-tree, Merkle, and Poseidon construction is exactly
+    /// the `buildExternalProfileV2` transaction. Only program-word decoding is
+    /// delegated to the caller-owned authority, which must expose the generic
+    /// declared-decoder contract. Existing profile entrypoints and bytes are
+    /// unchanged.
+    pub fn buildExternalDecodeAuthorityV2(
+        allocator: std.mem.Allocator,
+        decode_authority: anytype,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        data: *const public_data_v2.PublicDataV2,
+    ) !CommitmentWitness {
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        const view = try segment_v2.authenticateCanonicalWire(data.words());
+        if (!std.meta.eql(view.wire_id, data.wireId()))
+            return ProverError.InvalidStatement;
+
+        var boundary = try buildV2Boundary(allocator, &view);
+        errdefer boundary.deinit(allocator);
+
+        const core_public = try statement_v2.canonicalCorePublicData(data);
+        var program = try program_commitment.buildDeclaredWithDecodeAuthoritySources(
+            allocator,
+            decode_authority,
+            execution_sources,
+            snapshot.program_words,
+            completionFetch(core_public.completion),
+        );
+        errdefer program.deinit(allocator);
+        if (core_public.program_root == null or
+            core_public.program_root.? != program.tree.root)
+        {
+            return ProverError.InvalidStatement;
+        }
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = null,
@@ -261,7 +724,7 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = completed,
@@ -307,7 +770,57 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
+            .poseidon_calls = poseidon_calls,
+            .merkle_rows = merkle_rows,
+            .poseidon_work = null,
+        };
+    }
+
+    /// Derives the unchanged commitment tables for a versioned execution
+    /// profile whose CUSTOM-0 retirements live in one or more compact row
+    /// tapes.  The tuple is consumed without concatenation; each element must
+    /// expose `pc` and `inst_word`.
+    ///
+    /// Poseidon2 deliberately keeps its existing named wrapper and proof
+    /// identity. Combined profiles use this seam so program, memory, Merkle,
+    /// and Poseidon tables still originate in one transaction.
+    pub fn buildExternalProfile(
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+    ) !CommitmentWitness {
+        var boundary: ?memory_boundary.Claims = if (opt_memory) |snapshot|
+            try memory_boundary.build(allocator, snapshot.words)
+        else
+            null;
+        errdefer if (boundary) |*claims| claims.deinit(allocator);
+        if (boundary) |claims| try claims.validate(allocator);
+
+        const snapshot = opt_memory orelse return ProverError.InvalidStatement;
+        if (snapshot.program_words.len == 0) return ProverError.InvalidStatement;
+        var program = try program_commitment.buildDeclaredForProfileSources(
+            allocator,
+            selected_profile,
+            execution_sources,
+            snapshot.program_words,
+            completionFetch(completion),
+        );
+        errdefer program.deinit(allocator);
+
+        var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
+        errdefer poseidon_calls.deinit(allocator);
+        try appendPoseidonCalls(allocator, &poseidon_calls, program, boundary);
+
+        var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
+        errdefer merkle_rows.deinit(allocator);
+        try appendMerkleRows(allocator, &merkle_rows, program, boundary);
+
+        return .{
+            .boundary = boundary,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = null,
@@ -363,7 +876,7 @@ pub const CommitmentWitness = struct {
 
         return .{
             .boundary = boundary,
-            .program = program,
+            .program = .fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
             .poseidon_work = completed,
@@ -375,7 +888,17 @@ pub const CommitmentWitness = struct {
         self.poseidon_calls.deinit(allocator);
         self.program.deinit(allocator);
         if (self.boundary) |*claims| claims.deinit(allocator);
+        if (self.incremental_boundary_v3) |boundary|
+            allocator.free(boundary.rows);
         self.* = undefined;
+    }
+
+    pub fn memoryBoundaryRows(
+        self: *const CommitmentWitness,
+    ) []const memory_boundary.Row {
+        if (self.incremental_boundary_v3) |boundary| return boundary.rows;
+        if (self.boundary) |claims| return claims.rows;
+        return &.{};
     }
 
     /// Poseidon2 calls in pinned order, **borrowed** from this witness.
@@ -391,7 +914,30 @@ pub const CommitmentWitness = struct {
     pub fn poseidonWorkShard(self: *const CommitmentWitness) ?poseidon_work.Shard {
         return self.poseidon_work;
     }
+
+    pub fn preparedProgramWorkReceipt(
+        self: *const CommitmentWitness,
+    ) ?PreparedProgramWorkReceiptV1 {
+        return self.prepared_program_work;
+    }
 };
+
+fn validatePreparedProgramSnapshot(
+    snapshot: *const memory_state.Snapshot,
+    prepared_program: anytype,
+) !void {
+    if (!std.meta.eql(snapshot.layout, prepared_program.layout.*) or
+        snapshot.program_words.len != prepared_program.declared_rows.len)
+    {
+        return ProverError.InvalidStatement;
+    }
+    for (
+        snapshot.program_words,
+        prepared_program.declared_rows,
+    ) |actual, expected| {
+        if (!std.meta.eql(actual, expected)) return ProverError.InvalidStatement;
+    }
+}
 
 /// Decoded-program commitment over every fetched word.
 ///
@@ -474,10 +1020,10 @@ fn buildProgramWithWorkReceipt(
 
 fn completionFetch(completion: ?public_data_mod.Completion) ?program_table.Fetch {
     const value = completion orelse return null;
-    return if (value.kind == .unretired_self_loop)
-        .{ .pc = value.address, .word = value.value }
-    else
-        null;
+    return switch (value.kind) {
+        .halt_flag => null,
+        .unretired_self_loop, .unretired_program_fetch => .{ .pc = value.address, .word = value.value },
+    };
 }
 
 fn buildV2Boundary(

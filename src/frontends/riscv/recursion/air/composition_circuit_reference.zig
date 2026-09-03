@@ -135,6 +135,10 @@ pub const RecursionSource = union(enum) {
     /// claimed-sum lookup namespace. Appending the tag preserves frozen V1
     /// source tags and default-zero profiles preserve its exact schedule.
     public_wire_boundary: SecureCoordinate,
+    /// Canonical transcript claim vector, distinct from the physical
+    /// declaration-ordered claims above. This tag is append-only: profiles
+    /// with a zero count retain every legacy tag, input index, and identity.
+    transcript_claimed_sum: SecureCoordinate,
 };
 
 pub fn InputBinding(comptime Source: type) type {
@@ -441,6 +445,11 @@ pub fn recursionInputCount(profile: InputProfile) Error!usize {
     count = try addProduct(count, profile.claimed_sum_count, SECURE_VALUE_WORD_COUNT);
     count = try addProduct(
         count,
+        profile.transcript_claimed_sum_count,
+        SECURE_VALUE_WORD_COUNT,
+    );
+    count = try addProduct(
+        count,
         profile.public_wire_boundary_count,
         SECURE_VALUE_WORD_COUNT,
     );
@@ -488,6 +497,12 @@ pub fn expectedRecursionSource(profile: InputProfile, source_index: usize) ?Recu
         return source_value;
     if (secureSource(RecursionSource, .claimed_sum, profile.claimed_sum_count, &index)) |source_value|
         return source_value;
+    if (secureSource(
+        RecursionSource,
+        .transcript_claimed_sum,
+        profile.transcript_claimed_sum_count,
+        &index,
+    )) |source_value| return source_value;
     if (secureSource(
         RecursionSource,
         .public_wire_boundary,
@@ -558,7 +573,7 @@ pub fn recursionSourceIndices(source_value: RecursionSource) [2]u32 {
         .parent_binary_selector => .{ 0, 0 },
         .child_kind_selector => |kind| .{ @intFromEnum(kind), 0 },
         .statement_word => |word_index| .{ word_index, 0 },
-        .sampled_value, .claimed_sum => |coordinate| .{ coordinate.item_index, coordinate.word_index },
+        .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| .{ coordinate.item_index, coordinate.word_index },
         .relation_challenge => |coordinate| .{ coordinate.challenge, coordinate.word_index },
         .composition_randomness, .oods_point => |word_index| .{ 0, word_index },
         .public_wire_boundary => |coordinate| .{ coordinate.item_index, coordinate.word_index },

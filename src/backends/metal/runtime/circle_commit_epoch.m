@@ -20,6 +20,7 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
     const uint32_t *leaf_seed,
     const uint32_t *node_seed,
     uint32_t domain_prefix_bytes,
+    uint32_t hash_family,
     uint32_t *normalization_batch_count,
     uint32_t *forward_skipped_layers,
     uint64_t *merkle_compressions,
@@ -37,7 +38,8 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         coefficients_ready > 1u ||
         base_log_size < 16u || extended_log_size != base_log_size + 1u ||
         extended_log_size >= 31u ||
-        (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u)) {
+        (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
+        !stwo_zig_valid_commitment_hash_family_v1(hash_family)) {
         write_error(error_message, error_message_len, @"Combined Metal commitment shape is unsupported");
         return NULL;
     }
@@ -177,9 +179,9 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
             parent_counts[level] = leaf_count >> (level + 1u);
             parent_compressions += parent_counts[level];
         }
-        void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare(
+        void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare_v2(
             runtime_ptr, child_offsets, destination_offsets, parent_counts,
-            extended_log_size, node_seed, domain_prefix_bytes,
+            extended_log_size, node_seed, domain_prefix_bytes, hash_family,
             error_message, error_message_len);
         if (parent_plan_ptr == NULL) return NULL;
         StwoZigMerkleParentChain *parent_plan =
@@ -548,7 +550,10 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         [fused endEncoding];
 
         id<MTLComputeCommandEncoder> leaf_encoder = [command computeCommandEncoder];
-        [leaf_encoder setComputePipelineState:runtime.leaves];
+        id<MTLComputePipelineState> leaves_pipeline =
+            stwo_zig_commitment_leaves_pipeline(runtime, hash_family);
+        if (leaves_pipeline == nil) return NULL;
+        [leaf_encoder setComputePipelineState:leaves_pipeline];
         [leaf_encoder setBuffer:extended offset:0u atIndex:0];
         [leaf_encoder setBuffer:extended_offsets offset:0u atIndex:1];
         [leaf_encoder setBuffer:column_logs offset:0u atIndex:2];
@@ -558,8 +563,8 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         [leaf_encoder setBytes:&extended_log_size length:sizeof(extended_log_size) atIndex:5];
         [leaf_encoder setBuffer:leaf_seed_buffer offset:0u atIndex:6];
         [leaf_encoder setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:7];
-        NSUInteger leaf_width = MIN(runtime.leaves.maxTotalThreadsPerThreadgroup,
-            runtime.leaves.threadExecutionWidth * 8u);
+        NSUInteger leaf_width = MIN(leaves_pipeline.maxTotalThreadsPerThreadgroup,
+            leaves_pipeline.threadExecutionWidth * 8u);
         [leaf_encoder dispatchThreads:MTLSizeMake(leaf_count, 1u, 1u)
             threadsPerThreadgroup:MTLSizeMake(leaf_width, 1u, 1u)];
         [leaf_encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
@@ -618,6 +623,7 @@ void *stwo_zig_metal_circle_lde_merkle_commit(
         tree.residentColumnHostBegins = resident_begins;
         tree.residentColumnWordCounts = resident_counts;
         tree.residentColumnWordOffsets = resident_offsets;
+        tree.residentColumnOffsetWordBytes = sizeof(uint32_t);
         // Publish execution geometry only after the complete device
         // transaction and retained tree construction have succeeded.
         if (normalization_batch_count != NULL)

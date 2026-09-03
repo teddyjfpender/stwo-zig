@@ -8,8 +8,10 @@ const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
 const decommit_mod = @import("stwo_prover_engine").vcs_lifted.decommit;
 const host_merkle = @import("stwo_prover_engine").vcs_lifted.prover;
+const hash_domain = @import("hash_domain.zig");
 const runtime_mod = @import("runtime.zig");
 const shared_runtime = @import("shared_runtime.zig");
+const telemetry = @import("telemetry.zig");
 
 const M31 = m31.M31;
 
@@ -136,6 +138,12 @@ pub fn MetalMerkleTree(comptime H: type) type {
                 return error.UnsupportedMetalHash;
             }
             if (tracks_shared_runtime) shared_runtime.retainResidentResource();
+            const maybe_domain = comptime hash_domain.parameters(H);
+            if (comptime maybe_domain != null) {
+                if (comptime maybe_domain.?.family == .poseidon2_m31) {
+                    telemetry.record(.metal_poseidon2_merkle_commit);
+                }
+            }
             return .{
                 .storage = .{ .resident = .{
                     .tree = tree,
@@ -177,6 +185,9 @@ pub fn MetalMerkleTree(comptime H: type) type {
             tracks_shared_runtime: bool,
             backings: ?[]const []M31,
         ) !Self {
+            const maybe_domain = comptime hash_domain.parameters(H);
+            if (comptime maybe_domain == null) return error.UnsupportedMetalHash;
+            const domain = maybe_domain.?;
             const log_sizes = try allocator.alloc(u32, columns.len);
             defer allocator.free(log_sizes);
             const word_columns = try allocator.alloc([]const u32, columns.len);
@@ -194,25 +205,27 @@ pub fn MetalMerkleTree(comptime H: type) type {
             }
 
             const tree = if (backings) |values|
-                try runtime.commitColumnsWithBacking(
+                try runtime.commitColumnsWithBackingForHash(
                     allocator,
                     word_columns,
                     log_sizes,
                     max_log_size,
-                    H.leafSeed(),
-                    H.nodeSeed(),
-                    H.domainPrefixBytes(),
+                    domain.leaf_seed,
+                    domain.node_seed,
+                    domain.domain_prefix_bytes,
+                    @intFromEnum(domain.family),
                     values,
                 )
             else
-                try runtime.commitColumns(
+                try runtime.commitColumnsForHash(
                     allocator,
                     word_columns,
                     log_sizes,
                     max_log_size,
-                    H.leafSeed(),
-                    H.nodeSeed(),
-                    H.domainPrefixBytes(),
+                    domain.leaf_seed,
+                    domain.node_seed,
+                    domain.domain_prefix_bytes,
+                    @intFromEnum(domain.family),
                 );
 
             return fromResidentOwned(tree, tracks_shared_runtime);

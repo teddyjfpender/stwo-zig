@@ -279,10 +279,7 @@ pub fn makeState(comptime Owner: type) type {
                 self.memory_row_starts[infra_index] = row_start;
                 if (desc.kind == .memory) row_start = try checkedAdd(row_start, desc.n_rows);
             }
-            const expected = if (self.inputs.witness.boundary) |boundary|
-                boundary.rows.len
-            else
-                0;
+            const expected = self.inputs.witness.memoryBoundaryRows().len;
             if (row_start != expected) return error.InvalidTree2ProductionInput;
         }
 
@@ -664,10 +661,11 @@ pub fn makeState(comptime Owner: type) type {
             context: *task_graph.TaskContext,
         ) !bool {
             const infra_index = try self.requireInfra(task, .memory);
-            const boundary = self.inputs.witness.boundary orelse
+            const boundary_rows = self.inputs.witness.memoryBoundaryRows();
+            if (boundary_rows.len == 0)
                 return error.InvalidTree2ProductionInput;
             const start = self.memory_row_starts[infra_index];
-            const rows = boundary.rows[start .. start + task.n_rows];
+            const rows = boundary_rows[start .. start + task.n_rows];
             return prepared_logup.runInto(
                 memory_interaction.N_SUMS,
                 storage,

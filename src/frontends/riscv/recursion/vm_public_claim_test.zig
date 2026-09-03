@@ -71,6 +71,92 @@ test "R-012 VM public claim digests bind proof fields but output digest excludes
     try std.testing.expect(!std.meta.eql(first.digest, changed_input.digest));
 }
 
+test "R-012 direct transport digests equal V1 claim and admit halt data" {
+    const shape = try claim.Shape.init(3, 3);
+    const data = testPublicData();
+    var encoded = try claim.encode(std.testing.allocator, &data, shape);
+    defer encoded.deinit();
+    try std.testing.expectEqual(
+        encoded.public_input_digest,
+        try claim.publicInputDigestFromData(&data, shape),
+    );
+    try std.testing.expectEqual(
+        encoded.public_output_digest,
+        try claim.publicOutputDigestFromData(&data, shape),
+    );
+    const output_values = [_]claim.PublicOutputValue{
+        .{ .addr = test_output_words[0].addr, .value = test_output_words[0].value },
+        .{ .addr = test_output_words[1].addr, .value = test_output_words[1].value },
+    };
+    try std.testing.expectEqual(
+        encoded.public_input_digest,
+        try claim.publicInputDigestFromProjection(.{
+            .start = data.io_entries.input_start,
+            .len = data.io_entries.input_len,
+            .words = data.io_entries.input_words,
+        }, shape),
+    );
+    try std.testing.expectEqual(
+        encoded.public_output_digest,
+        try claim.publicOutputDigestFromProjection(.{
+            .len_addr = data.io_entries.output_len_addr,
+            .data_addr = data.io_entries.output_data_addr,
+            .len = data.io_entries.output_len,
+            .words = &output_values,
+        }, shape),
+    );
+
+    var halt = data;
+    halt.completion = .{
+        .kind = .halt_flag,
+        .address = 0x20_0000,
+        .value = 1,
+        // Access clocks reserve every fourth value; 9 is the first access
+        // subclock of instruction three and is canonical for this fixture.
+        .clock = 9,
+    };
+    try std.testing.expectEqual(
+        encoded.public_input_digest,
+        try claim.publicInputDigestFromData(&halt, shape),
+    );
+    try std.testing.expectEqual(
+        encoded.public_output_digest,
+        try claim.publicOutputDigestFromData(&halt, shape),
+    );
+    try std.testing.expectError(
+        error.HaltFlagCompletionRequiresClaimV2,
+        claim.encode(std.testing.allocator, &halt, shape),
+    );
+}
+
+test "R-012 clock-free transport projections validate their exact fields" {
+    const shape = try claim.Shape.init(3, 3);
+    var noncanonical_input = test_input_words;
+    noncanonical_input[1] |= 0x100;
+    try std.testing.expectError(
+        error.NonCanonicalInputPadding,
+        claim.publicInputDigestFromProjection(.{
+            .start = 0x20_0000,
+            .len = 5,
+            .words = &noncanonical_input,
+        }, shape),
+    );
+
+    const wrong_output = [_]claim.PublicOutputValue{
+        .{ .addr = 0x10_0004, .value = 4 },
+        .{ .addr = 0x10_000c, .value = 0x8877_6655 },
+    };
+    try std.testing.expectError(
+        error.OutputWordAddressMismatch,
+        claim.publicOutputDigestFromProjection(.{
+            .len_addr = 0x10_0004,
+            .data_addr = 0x10_0008,
+            .len = 4,
+            .words = &wrong_output,
+        }, shape),
+    );
+}
+
 test "R-012 VM public claim fails closed outside the admitted completion profile" {
     const shape = try claim.Shape.init(3, 3);
     var halt = testPublicData();

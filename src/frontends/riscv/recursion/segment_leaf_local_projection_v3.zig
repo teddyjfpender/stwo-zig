@@ -39,19 +39,28 @@ pub const ProjectionV3 = struct {
 
     pub fn init(source: *const global_v3.SourceV3) Error!ProjectionV3 {
         try source.validate();
-        var local_result = source.result.*;
-        local_result.clock_frame = .global_continuous;
-        local_result.global_first_cycle = 1;
-        // Preserve presence and all source custody, but make the borrowed token
-        // visibly non-resumable in the projected frame. The runner still owns
-        // and validates the original leaf-local capability.
-        if (local_result.continuation) |*token|
-            token.clock_frame = .global_continuous;
         const result = ProjectionV3{
             .local_statement = try localStatement(source),
-            .local_result = local_result,
+            .local_result = projectedResult(source),
         };
         try result.validateAgainst(source);
+        return result;
+    }
+
+    /// Restart constructor bound to one cold-authenticated STWESG31 metadata
+    /// value. It preserves the exact projection while allowing SourceV3 to
+    /// replay sparse identities/counts and reuse the retained continuation
+    /// roots instead of rebuilding the full Poseidon tree.
+    pub fn initAgainstRetainedMetadata(
+        source: *const global_v3.SourceV3,
+        retained: *const global_v3.MetadataV3,
+    ) Error!ProjectionV3 {
+        _ = try source.metadataAgainstRetained(retained);
+        const result = ProjectionV3{
+            .local_statement = try localStatementFromMetadata(retained),
+            .local_result = projectedResult(source),
+        };
+        try result.validateAgainstRetainedMetadata(source, retained);
         return result;
     }
 
@@ -84,6 +93,30 @@ pub const ProjectionV3 = struct {
         );
     }
 
+    pub fn validateAgainstRetainedMetadata(
+        self: *const ProjectionV3,
+        source: *const global_v3.SourceV3,
+        retained: *const global_v3.MetadataV3,
+    ) Error!void {
+        if (self.format_version != FORMAT_VERSION or
+            self.schema_version != SCHEMA_VERSION)
+        {
+            return error.UnsupportedVersion;
+        }
+        _ = try source.metadataAgainstRetained(retained);
+        const expected_statement = try localStatementFromMetadata(retained);
+        if (!std.meta.eql(self.local_statement, expected_statement) or
+            !std.meta.eql(self.local_result, projectedResult(source)))
+        {
+            return error.LocalProjectionMismatch;
+        }
+        _ = try segment_v2.SourceV2.fromSegmentResult(
+            placeholderSessionId(),
+            self.local_statement,
+            &self.local_result,
+        );
+    }
+
     /// Revalidates the global-to-local link before deriving the exact V2
     /// source. The caller-supplied session identity remains transcript-bound by
     /// V2 and is deliberately not invented by this adapter.
@@ -99,7 +132,33 @@ pub const ProjectionV3 = struct {
             &self.local_result,
         );
     }
+
+    pub fn sourceV2AgainstRetainedMetadata(
+        self: *const ProjectionV3,
+        source: *const global_v3.SourceV3,
+        retained: *const global_v3.MetadataV3,
+        session_id: segment_v2.Digest,
+    ) Error!segment_v2.SourceV2 {
+        try self.validateAgainstRetainedMetadata(source, retained);
+        return segment_v2.SourceV2.fromSegmentResult(
+            session_id,
+            self.local_statement,
+            &self.local_result,
+        );
+    }
 };
+
+fn projectedResult(source: *const global_v3.SourceV3) runner_result.SegmentResult {
+    var result = source.result.*;
+    result.clock_frame = .global_continuous;
+    result.global_first_cycle = 1;
+    // Preserve presence and all source custody, but make the borrowed token
+    // visibly non-resumable in the projected frame. The runner still owns and
+    // validates the original leaf-local capability.
+    if (result.continuation) |*token|
+        token.clock_frame = .global_continuous;
+    return result;
+}
 
 fn localStatement(source: *const global_v3.SourceV3) Error!span.SpanStatement {
     const metadata = try source.metadata();

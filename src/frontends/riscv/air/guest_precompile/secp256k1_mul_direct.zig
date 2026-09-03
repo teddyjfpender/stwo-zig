@@ -55,7 +55,7 @@ pub fn evaluateGeneric(
     comptime S: type,
     main: *const [Layout.main_columns]S,
     modulus: field.Modulus,
-    challenge: QM31,
+    challenge: relationsScalar(S),
     sink: anytype,
 ) void {
     comptime requireSupportedField(S);
@@ -102,8 +102,8 @@ pub fn polynomialResidual(
     comptime S: type,
     main: *const [Layout.main_columns]S,
     modulus: field.Modulus,
-    challenge: QM31,
-) QM31 {
+    challenge: relationsScalar(S),
+) relationsScalar(S) {
     comptime requireSupportedField(S);
     const lhs = evaluateTraceBytes(S, main, Layout.lhs, field.limb_count, challenge);
     const rhs = evaluateTraceBytes(S, main, Layout.rhs, field.limb_count, challenge);
@@ -115,9 +115,9 @@ pub fn polynomialResidual(
         field.limb_count,
         challenge,
     );
-    const modulus_at = evaluateConstantBytes(modulus.bytes, challenge);
+    const modulus_at = evaluateConstantBytes(S, modulus.bytes, challenge);
     const carries = evaluateTraceCarries(S, main, challenge);
-    const radix_at = QM31.fromBase(M31.fromU64(@intCast(field.radix)));
+    const radix_at = liftBase(S, M31.fromU64(@intCast(field.radix)));
     return lhs.mul(rhs)
         .sub(result)
         .sub(quotient.mul(modulus_at))
@@ -129,9 +129,9 @@ fn evaluateTraceBytes(
     main: *const [Layout.main_columns]S,
     offset: usize,
     count: usize,
-    challenge: QM31,
-) QM31 {
-    var result = QM31.zero();
+    challenge: relationsScalar(S),
+) relationsScalar(S) {
+    var result = relationsScalar(S).zero();
     var index = count;
     while (index != 0) {
         index -= 1;
@@ -140,12 +140,16 @@ fn evaluateTraceBytes(
     return result;
 }
 
-fn evaluateConstantBytes(bytes: [field.limb_count]u8, challenge: QM31) QM31 {
-    var result = QM31.zero();
+fn evaluateConstantBytes(
+    comptime S: type,
+    bytes: [field.limb_count]u8,
+    challenge: relationsScalar(S),
+) relationsScalar(S) {
+    var result = relationsScalar(S).zero();
     var index = field.limb_count;
     while (index != 0) {
         index -= 1;
-        result = result.mul(challenge).addM31(M31.fromU64(bytes[index]));
+        result = result.mul(challenge).add(liftBase(S, M31.fromU64(bytes[index])));
     }
     return result;
 }
@@ -153,11 +157,11 @@ fn evaluateConstantBytes(bytes: [field.limb_count]u8, challenge: QM31) QM31 {
 fn evaluateTraceCarries(
     comptime S: type,
     main: *const [Layout.main_columns]S,
-    challenge: QM31,
-) QM31 {
-    var result = QM31.zero();
-    const radix_at = QM31.fromBase(M31.fromU64(@intCast(field.radix)));
-    const offset_at = QM31.fromBase(M31.fromU64(@intCast(field.carry_offset)));
+    challenge: relationsScalar(S),
+) relationsScalar(S) {
+    var result = relationsScalar(S).zero();
+    const radix_at = liftBase(S, M31.fromU64(@intCast(field.radix)));
+    const offset_at = liftBase(S, M31.fromU64(@intCast(field.carry_offset)));
     var index = field.carry_count;
     while (index != 0) {
         index -= 1;
@@ -180,16 +184,26 @@ fn writeBytes(
 fn constant(comptime S: type, value: u64) S {
     if (S == M31) return M31.fromU64(value);
     if (S == QM31) return QM31.fromBase(M31.fromU64(value));
-    unreachable;
+    if (@hasDecl(S, "fromBase")) return S.fromBase(M31.fromU64(value));
+    @compileError("secp multiplication AIR requires a base-field lift");
 }
 
-fn lift(comptime S: type, value: S) QM31 {
+fn lift(comptime S: type, value: S) relationsScalar(S) {
     if (S == M31) return QM31.fromBase(value);
     if (S == QM31) return value;
-    unreachable;
+    return value;
+}
+
+fn liftBase(comptime S: type, value: M31) relationsScalar(S) {
+    if (S == M31 or S == QM31) return QM31.fromBase(value);
+    return S.fromBase(value);
+}
+
+fn relationsScalar(comptime S: type) type {
+    return if (S == M31) QM31 else S;
 }
 
 fn requireSupportedField(comptime S: type) void {
-    if (S != M31 and S != QM31)
-        @compileError("secp multiplication AIR supports only M31 and QM31");
+    if (S != M31 and S != QM31 and !@hasDecl(S, "fromBase"))
+        @compileError("secp multiplication AIR requires a base-field lift");
 }

@@ -190,6 +190,39 @@ pub const KeccakfSegmentResult = struct {
     }
 };
 
+/// Segment-owned result for the combined Ethereum execution profile. Each
+/// precompile retains an independent local call-index tape.
+pub const EthereumSegmentResult = struct {
+    base: SegmentResult,
+    keccakf_calls: guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *EthereumSegmentResult) void {
+        self.keccakf_calls.deinit();
+        self.keccakf_execution_rows.deinit();
+        self.signer_recovery_calls.deinit();
+        self.signer_recovery_execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Allocation-free ownership transfer from the mutable combined extension.
+pub fn freezeEthereumSegment(
+    base: SegmentResult,
+    extension: *guest_precompile.session_state.Ethereum,
+) EthereumSegmentResult {
+    return .{
+        .base = base,
+        .keccakf_calls = extension.keccakf_calls.freeze(),
+        .keccakf_execution_rows = extension.keccakf_rows.freeze(),
+        .signer_recovery_calls = extension.signer_recovery_calls.freeze(),
+        .signer_recovery_execution_rows = extension.signer_recovery_rows.freeze(),
+    };
+}
+
 /// Owned result of running a RISC-V program to completion.
 pub const RunResult = struct {
     initial_pc: u32,
@@ -257,3 +290,35 @@ pub const KeccakfRunResult = struct {
         self.* = undefined;
     }
 };
+
+/// Owned one-shot result for the combined Ethereum execution profile.
+pub const EthereumRunResult = struct {
+    base: RunResult,
+    keccakf_calls: guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *EthereumRunResult) void {
+        self.keccakf_calls.deinit();
+        self.keccakf_execution_rows.deinit();
+        self.signer_recovery_calls.deinit();
+        self.signer_recovery_execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Transfer an already-frozen segment payload into its one-shot result.
+pub fn ethereumRunFromSegment(
+    base: RunResult,
+    segment: *const EthereumSegmentResult,
+) EthereumRunResult {
+    return .{
+        .base = base,
+        .keccakf_calls = segment.keccakf_calls,
+        .keccakf_execution_rows = segment.keccakf_execution_rows,
+        .signer_recovery_calls = segment.signer_recovery_calls,
+        .signer_recovery_execution_rows = segment.signer_recovery_execution_rows,
+    };
+}
