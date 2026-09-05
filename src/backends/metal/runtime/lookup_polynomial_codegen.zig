@@ -200,10 +200,9 @@ pub const preamble =
     \\using namespace metal;
     \\constant uint RISCV_M31_P = 0x7fffffffu;
     \\struct RiscvQm31 { uint a; uint b; uint c; uint d; };
-    \\inline uint riscv_m31_reduce(ulong v) { v = (v & RISCV_M31_P) + (v >> 31); v = (v & RISCV_M31_P) + (v >> 31); return v == RISCV_M31_P ? 0u : uint(v); }
-    \\inline uint riscv_m31_add(uint a, uint b) { return riscv_m31_reduce(ulong(a) + b); }
+    \\inline uint riscv_m31_add(uint a, uint b) { uint s = a + b; return s >= RISCV_M31_P ? s - RISCV_M31_P : s; }
     \\inline uint riscv_m31_sub(uint a, uint b) { return a >= b ? a - b : a + RISCV_M31_P - b; }
-    \\inline uint riscv_m31_mul(uint a, uint b) { return riscv_m31_reduce(ulong(a) * b); }
+    \\inline uint riscv_m31_mul(uint a, uint b) { ulong p = ulong(a) * b; uint f = uint((p & RISCV_M31_P) + (p >> 31)); return f >= RISCV_M31_P ? f - RISCV_M31_P : f; }
     \\inline uint riscv_m31_neg(uint a) { return a == 0u ? 0u : RISCV_M31_P - a; }
     \\inline ulong riscv_column_offset(uint column, uint rows, uint row) { return ulong(column) * ulong(rows) + ulong(row); }
     \\inline RiscvQm31 riscv_qm_add(RiscvQm31 l, RiscvQm31 r) { return { riscv_m31_add(l.a,r.a), riscv_m31_add(l.b,r.b), riscv_m31_add(l.c,r.c), riscv_m31_add(l.d,r.d) }; }

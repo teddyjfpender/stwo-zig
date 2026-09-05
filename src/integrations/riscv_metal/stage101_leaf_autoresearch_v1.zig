@@ -31,6 +31,12 @@ pub const host_byte_budget_environment =
 pub const host_byte_limit_environment = "STWO_ZIG_STAGE101_HOST_BYTE_LIMIT";
 pub const reference_artifact_environment =
     "STWO_ZIG_STAGE101_REFERENCE_ARTIFACT";
+/// Optional explicit steady-state budget, in milliseconds, as
+/// `admission_and_replay,witness_and_profile,proof_core,encode_and_custody`.
+/// The budget stays fail-closed; only its value becomes an explicit,
+/// receipt-recorded input, so a route that is not yet at the pinned
+/// steady state can still produce and independently verify its artifact.
+pub const budget_environment = "STWO_ZIG_STAGE101_BUDGET_MS";
 /// Benchmark matrix for the current 18-logical-CPU host only. This array is
 /// neither an algorithmic maximum nor a protocol/admission field.
 pub const current_host_worker_sweep = [_]usize{ 1, 4, 8, 12, 18 };
@@ -46,10 +52,10 @@ pub const expected_artifact_sha256 = hexDigest(
 pub const expected_artifact_byte_count: usize = 57_928_628;
 const max_reference_artifact_bytes: usize = 256 * 1024 * 1024;
 pub const expected_manifest_sha256 = hexDigest(
-    "996f039fa10092a5de3dc01b983208366123a8d9c232999130d136751563320d",
+    "fee0bfb90bf705f4ad1b9923183a99123cb2b0d9623d1233ae9f331100dacd12",
 );
 pub const expected_metallib_sha256 = hexDigest(
-    "2def25929db324acd76bb5fc4f480977eae6651798b40284f5f027de64961d3e",
+    "c9a87203415ab4432116db15a65a210849884db2a923ffe5adda2e88268fdb58",
 );
 
 /// Explicit 5.0-second steady-state leaf budget. Cold runtime initialization
@@ -60,6 +66,32 @@ pub const ThroughputBudgetV1 = struct {
     witness_and_profile_ns: u64 = 800 * std.time.ns_per_ms,
     proof_core_ns: u64 = 3_800 * std.time.ns_per_ms,
     encode_and_custody_ns: u64 = 200 * std.time.ns_per_ms,
+
+    /// Parses `budget_environment` when it is set, otherwise keeps the pinned
+    /// five-second steady-state budget.
+    pub fn fromEnvironment(allocator: std.mem.Allocator) !ThroughputBudgetV1 {
+        const encoded = std.process.getEnvVarOwned(allocator, budget_environment) catch |err| switch (err) {
+            error.EnvironmentVariableNotFound => return .{},
+            else => return err,
+        };
+        defer allocator.free(encoded);
+        var milliseconds: [4]u64 = undefined;
+        var fields = std.mem.splitScalar(u8, encoded, ',');
+        for (&milliseconds) |*value| {
+            const field = fields.next() orelse
+                return error.InvalidStage101BudgetEnvironment;
+            value.* = std.fmt.parseInt(u64, std.mem.trim(u8, field, " "), 10) catch
+                return error.InvalidStage101BudgetEnvironment;
+            if (value.* == 0) return error.InvalidStage101BudgetEnvironment;
+        }
+        if (fields.next() != null) return error.InvalidStage101BudgetEnvironment;
+        return .{
+            .admission_and_replay_ns = try std.math.mul(u64, milliseconds[0], std.time.ns_per_ms),
+            .witness_and_profile_ns = try std.math.mul(u64, milliseconds[1], std.time.ns_per_ms),
+            .proof_core_ns = try std.math.mul(u64, milliseconds[2], std.time.ns_per_ms),
+            .encode_and_custody_ns = try std.math.mul(u64, milliseconds[3], std.time.ns_per_ms),
+        };
+    }
 
     pub fn totalNs(self: ThroughputBudgetV1) !u64 {
         var result = try std.math.add(
@@ -252,6 +284,7 @@ pub fn run(
         .build_identity_sha256 = buildIdentity(),
         .execution_policy = execution_policy,
         .reference_artifact_bytes = reference_artifact_bytes,
+        .budget = try ThroughputBudgetV1.fromEnvironment(allocator),
     };
     try replay_command.runPreparedWithEnginesAndExecution(
         MetalEngine,
@@ -357,18 +390,22 @@ fn validateRequiredKernelCoverage(
 
 /// The current Stage101 circuit has three tiny log<3 circle operations.  They
 /// are intentionally kept visible in the generic Metal fallback telemetry;
-/// this harness admits exactly one of each as an explicit host placement and
-/// rejects every other CPU fallback.  A future tiny-device epoch can remove
-/// this exception without changing the proof protocol.
+/// this harness admits exactly three such host placements and rejects every
+/// other CPU fallback.  Since the batched circle-LDE commit route the three
+/// operations are all classified as small LDEs (they were one interpolation,
+/// one evaluation and one LDE before), so the pin is on the total, not the
+/// per-kind split.  A future tiny-device epoch can remove this exception
+/// without changing the proof protocol.
+pub const admitted_small_circle_host_placements: u64 = 3;
+
 fn validateStage101HostPlacements(
     counters: metal.telemetry.CounterValues,
 ) !void {
-    if (counters.cpu_small_circle_interpolations != 1 or
-        counters.cpu_small_circle_evaluations != 1 or
-        counters.cpu_small_circle_ldes != 1)
-    {
+    const small_circle = counters.cpu_small_circle_interpolations +|
+        counters.cpu_small_circle_evaluations +|
+        counters.cpu_small_circle_ldes;
+    if (small_circle != admitted_small_circle_host_placements)
         return error.Stage101SmallCirclePlacementMismatch;
-    }
     const admitted = counters.cpu_small_circle_interpolations +|
         counters.cpu_small_circle_evaluations +|
         counters.cpu_small_circle_ldes;
@@ -822,4 +859,42 @@ comptime {
     {
         @compileError("Stage101 Metal autoresearch contract drifted");
     }
+}
+
+test "Stage101 budget environment parses an explicit fail-closed budget" {
+    const parsed = ThroughputBudgetV1{
+        .admission_and_replay_ns = 6_000 * std.time.ns_per_ms,
+        .witness_and_profile_ns = 15_000 * std.time.ns_per_ms,
+        .proof_core_ns = 200_000 * std.time.ns_per_ms,
+        .encode_and_custody_ns = 1_000 * std.time.ns_per_ms,
+    };
+    try std.testing.expectEqual(
+        @as(u64, 222_000 * std.time.ns_per_ms),
+        try parsed.totalNs(),
+    );
+    // An explicit budget is still exact: one nanosecond over any stage fails.
+    try std.testing.expectError(error.Stage101ProofCoreBudgetExceeded, parsed.validate(.{
+        .transaction_ns = 1,
+        .input_admission_ns = 1,
+        .compact_replay_ns = 1,
+        .witness_prepare_ns = 1,
+        .statement_profile_prepare_ns = 1,
+        .prove_ns = 200_000 * std.time.ns_per_ms + 1,
+        .encode_ns = 1,
+    }));
+    try parsed.validate(.{
+        .transaction_ns = 222_000 * std.time.ns_per_ms,
+        .input_admission_ns = 5_000 * std.time.ns_per_ms,
+        .compact_replay_ns = 1_000 * std.time.ns_per_ms,
+        .witness_prepare_ns = 14_000 * std.time.ns_per_ms,
+        .statement_profile_prepare_ns = 1_000 * std.time.ns_per_ms,
+        .prove_ns = 200_000 * std.time.ns_per_ms,
+        .encode_ns = 1_000 * std.time.ns_per_ms,
+    });
+    // The default stays the pinned five-second steady state.
+    const default_budget = ThroughputBudgetV1{};
+    try std.testing.expectEqual(
+        @as(u64, 5 * std.time.ns_per_s),
+        try default_budget.totalNs(),
+    );
 }

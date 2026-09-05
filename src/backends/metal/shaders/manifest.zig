@@ -48,6 +48,7 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_quadratic_recurrence_trace", .owner = .trace_generation },
     .{ .name = "stwo_zig_transcript_init_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_mix_resident", .owner = .transcript },
+    .{ .name = "stwo_zig_poseidon2_channel_pow_search", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_secure_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .owner = .transcript },
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },

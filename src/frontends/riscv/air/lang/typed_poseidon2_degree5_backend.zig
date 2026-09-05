@@ -112,7 +112,7 @@ pub fn exportDirectProgram(
     candidate: *const candidate_mod.Candidate,
     range: prover_component.ComponentConstraintRangeV1,
 ) !prover_component.OwnedBasePolynomialProgram {
-    try candidate.validate();
+    try candidate.validateRetained();
     const range_end = std.math.add(usize, range.start, range.count) catch
         return error.InvalidCandidateBackendProgram;
     if (range.count == 0 or range_end > component_mod.DIRECT_CONSTRAINTS)
@@ -202,7 +202,7 @@ pub fn exportLookupProgram(
     allocator: std.mem.Allocator,
     candidate: *const candidate_mod.Candidate,
 ) !prover_component.OwnedLookupPolynomialProgram {
-    try candidate.validate();
+    try candidate.validateRetained();
     var arena = symbolic.Arena.init(allocator);
     defer arena.deinit();
     symbolic.begin(&arena);

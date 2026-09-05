@@ -282,3 +282,43 @@ kernel void stwo_zig_transcript_draw_queries_resident(
     }
     arena[state_base + 8u] = counter;
 }
+
+// Exact lowest-nonce search for the Poseidon2-M31 recursion channel proof of
+// work.  `prefix_state` is the rate-8 sponge state after the channel digest
+// has been absorbed and permuted; it does not depend on the nonce, so the host
+// computes it once.  Per candidate the kernel replays `Channel.mixU64` (four
+// 16-bit halves plus the finishing `1`, one permutation) and `Channel.drawU32s`
+// on the resulting digest (absorb eight words, permute, absorb draw counter 0,
+// the DRAW tag, and the finishing `1`, permute) and accepts the nonce when the
+// first squeezed word has at least `pow_bits` trailing zeros.  Candidates are
+// `nonce_base + thread`, and the atomic minimum over a batch yields exactly the
+// lowest valid nonce the sequential host search would return.
+kernel void stwo_zig_poseidon2_channel_pow_search(
+    constant uint *prefix_state [[buffer(0)]],
+    constant ulong &nonce_base [[buffer(1)]],
+    constant uint &nonce_count [[buffer(2)]],
+    constant uint &pow_bits [[buffer(3)]],
+    device atomic_uint &first_match [[buffer(4)]],
+    uint local_nonce [[thread_position_in_grid]]
+) {
+    if (local_nonce >= nonce_count) return;
+    ulong nonce = nonce_base + (ulong)local_nonce;
+    uint low = (uint)nonce, high = (uint)(nonce >> 32u);
+    uint state[16];
+    for (uint lane = 0u; lane < 16u; ++lane) state[lane] = prefix_state[lane];
+    state[0] = m31_add(state[0], low & 0xffffu);
+    state[1] = m31_add(state[1], low >> 16u);
+    state[2] = m31_add(state[2], high & 0xffffu);
+    state[3] = m31_add(state[3], high >> 16u);
+    state[4] = m31_add(state[4], 1u);
+    stwo_zig_poseidon2_permute(state);
+    uint draw[16];
+    for (uint lane = 0u; lane < 8u; ++lane) draw[lane] = state[lane];
+    for (uint lane = 8u; lane < 16u; ++lane) draw[lane] = 0u;
+    stwo_zig_poseidon2_permute(draw);
+    draw[1] = m31_add(draw[1], 0x44524157u);
+    draw[2] = m31_add(draw[2], 1u);
+    stwo_zig_poseidon2_permute(draw);
+    if (ctz(draw[0]) >= pow_bits)
+        atomic_fetch_min_explicit(&first_match, local_nonce, memory_order_relaxed);
+}

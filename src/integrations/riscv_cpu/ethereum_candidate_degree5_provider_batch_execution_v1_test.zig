@@ -78,11 +78,11 @@ test "candidate D5 batch accounts retained log18 owners and rejects oversized lo
         topology18.active_post_stage_a_column_reservation_bytes,
     );
     try std.testing.expectEqual(
-        @as(u16, 1),
+        @as(u16, 2),
         topology18.composition_domain_scratch_concurrent_owners,
     );
     try std.testing.expectEqual(
-        @as(u64, 1_044_381_696),
+        @as(u64, 2_088_763_392),
         topology18.composition_domain_scratch_reservation_bytes,
     );
     try std.testing.expectEqual(
@@ -90,15 +90,15 @@ test "candidate D5 batch accounts retained log18 owners and rejects oversized lo
         topology18.encoded_proof_reservation_bytes,
     );
     try std.testing.expectEqual(
-        @as(u64, 39_410_204_672),
+        @as(u64, 40_454_586_368),
         topology18.aggregate_owner_reservation_bytes,
     );
     try std.testing.expectEqual(
-        @as(u64, 48_000_139_264),
+        @as(u64, 49_044_520_960),
         topology18.total_reservation_bytes,
     );
     try std.testing.expectEqual(
-        @as(u64, 3_539_468_288),
+        @as(u64, 2_495_086_592),
         @as(u64, 48 * gib) - topology18.total_reservation_bytes,
     );
 }
@@ -128,7 +128,7 @@ test "candidate D5 batch authority rejects CPU RSS and plan mutation" {
         scratch_mutation.validateAgainstPlan(&plan),
     );
     scratch_mutation = execution;
-    scratch_mutation.composition_domain_scratch_concurrent_owners = 2;
+    scratch_mutation.composition_domain_scratch_concurrent_owners = 3;
     try std.testing.expectError(
         error.InvalidDegree5ProviderBatchExecution,
         scratch_mutation.validateAgainstPlan(&plan),

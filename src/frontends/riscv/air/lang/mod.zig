@@ -35,6 +35,8 @@ pub const typed_poseidon2_degree5_backend =
     @import("typed_poseidon2_degree5_backend.zig");
 pub const typed_poseidon2_degree5_trace =
     @import("typed_poseidon2_degree5_trace.zig");
+pub const typed_poseidon2_degree5_row_program =
+    @import("typed_poseidon2_degree5_row_program.zig");
 pub const typed_poseidon2_degree_bounded_residency =
     @import("typed_poseidon2_degree_bounded_residency.zig");
 pub const typed_lui = @import("typed_lui.zig");

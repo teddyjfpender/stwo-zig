@@ -314,6 +314,7 @@ pub const Runtime = struct {
     pub const transformCircleLdeAndCommitPrepared = combined_commit_ops.transformCircleLdeAndCommitPrepared;
     pub const transformCircleLdeAndCommitPreparedForHash = combined_commit_ops.transformCircleLdeAndCommitPreparedForHash;
     pub const grindBlake2sProofOfWork = proof_of_work_ops.grindBlake2sProofOfWork;
+    pub const grindPoseidon2ChannelProofOfWork = proof_of_work_ops.grindPoseidon2ChannelProofOfWork;
 };
 
 /// Deferred compatibility hooks that deliberately bypass production admission.

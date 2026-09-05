@@ -1,6 +1,7 @@
 //! Metal source generation for backend-neutral base-field polynomial DAGs.
 
 const std = @import("std");
+const m31_modulus: u32 = @import("stwo_core").fields.m31.Modulus;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 
 pub const codegen_version: u16 = 3;
@@ -79,10 +80,19 @@ pub fn emitKernel(
         \\
     , .{name});
 
+    // Every constraint root is folded into the accumulator as soon as its
+    // node is defined.  The generated kernel is one straight-line function;
+    // deferring all folds to the end kept every root value live across the
+    // whole body and throttled occupancy.  QM31 addition is commutative, so
+    // the fold order is transcript-irrelevant and the result is bit-exact.
+    try writer.writeAll("    RiscvQm31 folded = { 0u, 0u, 0u, 0u };\n");
     for (program.nodes, 0..) |node, index| {
         if (!reachable[index]) continue;
         switch (node.op) {
-            .constant => try writer.print("    uint n{} = {}u;\n", .{ index, node.value }),
+            .constant => try writer.print(
+                "    uint n{} = {}u;\n",
+                .{ index, node.value % m31_modulus },
+            ),
             .column => if (node.value == main_column_count)
                 try writer.print("    uint n{} = selector[row];\n", .{index})
             else
@@ -104,16 +114,16 @@ pub fn emitKernel(
             ),
             .neg => try writer.print("    uint n{} = riscv_m31_neg(n{});\n", .{ index, node.lhs }),
         }
+        for (program.roots, 0..) |root, root_index| {
+            if (root != index) continue;
+            const power_index = program.roots.len - 1 - root_index;
+            try writer.print(
+                "    folded = riscv_qm_add(folded, riscv_qm_mul_base(riscv_load_qm31(powers, {}u), n{}));\n",
+                .{ power_index * 4, root },
+            );
+        }
     }
 
-    try writer.writeAll("    RiscvQm31 folded = { 0u, 0u, 0u, 0u };\n");
-    for (program.roots, 0..) |root, index| {
-        const power_index = program.roots.len - 1 - index;
-        try writer.print(
-            "    folded = riscv_qm_add(folded, riscv_qm_mul_base(riscv_load_qm31(powers, {}u), n{}));\n",
-            .{ power_index * 4, root },
-        );
-    }
     try writer.writeAll(
         \\    uint denominator_index = row / (row_count / denominator_count);
         \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
@@ -156,10 +166,9 @@ pub const preamble =
     \\using namespace metal;
     \\constant uint RISCV_M31_P = 0x7fffffffu;
     \\struct RiscvQm31 { uint a; uint b; uint c; uint d; };
-    \\inline uint riscv_m31_reduce(ulong v) { v = (v & RISCV_M31_P) + (v >> 31); v = (v & RISCV_M31_P) + (v >> 31); return v == RISCV_M31_P ? 0u : uint(v); }
-    \\inline uint riscv_m31_add(uint a, uint b) { return riscv_m31_reduce(ulong(a) + b); }
+    \\inline uint riscv_m31_add(uint a, uint b) { uint s = a + b; return s >= RISCV_M31_P ? s - RISCV_M31_P : s; }
     \\inline uint riscv_m31_sub(uint a, uint b) { return a >= b ? a - b : a + RISCV_M31_P - b; }
-    \\inline uint riscv_m31_mul(uint a, uint b) { return riscv_m31_reduce(ulong(a) * b); }
+    \\inline uint riscv_m31_mul(uint a, uint b) { ulong p = ulong(a) * b; uint f = uint((p & RISCV_M31_P) + (p >> 31)); return f >= RISCV_M31_P ? f - RISCV_M31_P : f; }
     \\inline uint riscv_m31_neg(uint a) { return a == 0u ? 0u : RISCV_M31_P - a; }
     \\inline ulong riscv_column_offset(uint column, uint rows, uint row) { return ulong(column) * ulong(rows) + ulong(row); }
     \\inline RiscvQm31 riscv_qm_add(RiscvQm31 l, RiscvQm31 r) { return { riscv_m31_add(l.a,r.a), riscv_m31_add(l.b,r.b), riscv_m31_add(l.c,r.c), riscv_m31_add(l.d,r.d) }; }

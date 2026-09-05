@@ -819,11 +819,32 @@ static uint32_t merkle_floor_power_of_two(uint32_t value) {
     return 1u << (31u - (uint32_t)__builtin_clz(value));
 }
 
+// Fusing the bottom eight parent levels into one threadgroup kernel trades
+// lane utilization and eight barriers for fewer dispatches.  Measured on the
+// D5 provider leaf (M5 Max) that fusion ran the 2^18-parent level chain about
+// an order of magnitude slower per permutation than the plain per-level
+// kernel, so large first levels take per-level dispatches; only chains whose
+// first level is below this many parents keep the fused bottom.
+// `STWO_ZIG_METAL_MERKLE_BOTTOM_FUSION=0|1` forces one policy for A/B runs.
+static uint32_t merkle_bottom_fusion_max_first_level(void) {
+    static uint32_t cached = 0u;
+    static bool resolved = false;
+    if (!resolved) {
+        const char *override = getenv("STWO_ZIG_METAL_MERKLE_BOTTOM_FUSION");
+        if (override != NULL && override[0] == '0' && override[1] == '\0') cached = 0u;
+        else if (override != NULL && override[0] == '1' && override[1] == '\0') cached = UINT32_MAX;
+        else cached = 1u << 13;
+        resolved = true;
+    }
+    return cached;
+}
+
 static uint32_t merkle_parent_bottom_level_count(
     const uint32_t *children, const uint32_t *destinations, const uint32_t *counts,
     uint32_t level_count, uint32_t width, uint32_t tail_capacity
 ) {
     if (width < 2u || counts[0] <= tail_capacity || counts[0] % width != 0u) return 0u;
+    if (counts[0] >= merkle_bottom_fusion_max_first_level()) return 0u;
     uint32_t bottom_levels = 1u;
     for (uint32_t count = width; count > 1u; count >>= 1u) bottom_levels += 1u;
     if (level_count < bottom_levels) return 0u;

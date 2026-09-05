@@ -1,4 +1,4 @@
-//! Deterministic Metal BLAKE2s nonce search.
+//! Deterministic Metal nonce searches for the BLAKE2s and Poseidon2-M31 channels.
 
 const std = @import("std");
 const runtime = @import("../runtime.zig");
@@ -80,6 +80,36 @@ pub fn grindBlake2sProofOfWork(
         message.len,
     )) {
         std.log.err("Metal proof-of-work search failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.ProofOfWorkFailed;
+    }
+    if (result.dispatch_count == 0) return MetalError.ProofOfWorkFailed;
+    return result;
+}
+
+/// Lowest valid nonce for the Poseidon2-M31 recursion channel.  `prefix_state`
+/// is the nonce-independent sponge state exposed by the channel
+/// (`Channel.powPrefixState`); the device replays the exact `mixU64` and
+/// `drawU32s` permutations per candidate.  Callers must still verify the
+/// returned nonce through the host channel.
+pub fn grindPoseidon2ChannelProofOfWork(
+    self: *Runtime,
+    prefix_state: *const [16]u32,
+    pow_bits: u32,
+) MetalError!Result {
+    if (pow_bits == 0 or pow_bits > 32) return MetalError.ProofOfWorkFailed;
+    var result: Result = .{ .nonce = 0, .gpu_milliseconds = 0, .dispatch_count = 0 };
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    if (!ffi.stwo_zig_metal_poseidon2_channel_pow_search(
+        self.handle,
+        prefix_state,
+        pow_bits,
+        &result.nonce,
+        &result.gpu_milliseconds,
+        &result.dispatch_count,
+        &message,
+        message.len,
+    )) {
+        std.log.err("Metal Poseidon2 proof-of-work search failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.ProofOfWorkFailed;
     }
     if (result.dispatch_count == 0) return MetalError.ProofOfWorkFailed;

@@ -121,7 +121,7 @@ pub const Component = struct {
     }
 
     pub fn validate(self: *const Component) !void {
-        try self.candidate.validate();
+        try self.candidate.validateRetained();
         if (self.candidate.profile != PROFILE or
             self.candidate.geometry.main_columns != MAIN_COLUMNS or
             self.candidate.geometry.interaction_columns != INTERACTION_COLUMNS or

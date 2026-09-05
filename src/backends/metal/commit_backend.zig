@@ -1,6 +1,7 @@
 const std = @import("std");
 const work_profile = @import("stwo_prover_api").work_profile;
 const backend_composition = @import("runtime/backend_composition.zig");
+const base_polynomial_composition = @import("runtime/base_polynomial_composition.zig");
 const column_source_materialization = @import("runtime/column_source_materialization.zig");
 const circle_lde_output_parity = @import("circle_lde_output_parity.zig");
 const commit_policy = @import("commit_policy.zig");
@@ -225,6 +226,14 @@ pub const MetalCommitBackend = struct {
         return (try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits)).nonce;
     }
 
+    /// Device search for the Poseidon2-M31 recursion channel; the generic
+    /// prover re-verifies the nonce on the host channel before use.
+    pub fn grindPoseidon2ChannelProofOfWork(prefix_state: [16]u32, pow_bits: u32) !u64 {
+        var lease = try shared_runtime.acquire();
+        defer lease.deinit();
+        return (try lease.runtime.grindPoseidon2ChannelProofOfWork(&prefix_state, pow_bits)).nonce;
+    }
+
     pub fn initializeRuntime(
         allocator: std.mem.Allocator,
         policy: RuntimeInitializationPolicy,
@@ -260,6 +269,9 @@ pub const MetalCommitBackend = struct {
     }
 
     pub fn shutdown() ShutdownError!void {
+        // Pooled composition-domain scratch buffers belong to the live runtime;
+        // release them before the runtime itself can be torn down.
+        base_polynomial_composition.releasePooledCompositionScratch();
         return shared_runtime.shutdown();
     }
 

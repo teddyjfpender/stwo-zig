@@ -1,18 +1,19 @@
 //! Parallel main-trace writer for the degree-five Poseidon2 candidate.
 //!
-//! Every worker owns its semantic scratch while the compiler authority and
-//! committed column storage are immutable/shared.  Logical rows write to
-//! distinct bit-reversed destinations, so no lock or per-row allocation is
-//! required.  Padding is zero-filled before workers launch.
+//! The candidate semantics are compiled once into a flat row program and
+//! evaluated eight rows at a time in committed (bit-reversed) order, so every
+//! worker streams contiguous column ranges instead of scattering one row
+//! across 239 columns.  Workers own disjoint committed ranges and their own
+//! vector scratch; the compiler authority and column storage are shared and
+//! immutable.  Padding rows are written as zero by the same pass.
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const infra = @import("../../infra_trace.zig");
 const work_pool = @import("stwo_prover_engine").work_pool;
 const candidate_mod = @import("typed_poseidon2_degree_bounded_candidate.zig");
-const poseidon = @import("typed_poseidon2.zig");
 const production = @import("../memory_commitment/poseidon2_air.zig");
-const types = @import("types.zig");
+const row_program = @import("typed_poseidon2_degree5_row_program.zig");
 
 pub const Columns = struct {
     values: [][]M31,
@@ -30,72 +31,85 @@ pub fn generateMain(
     calls: []const production.Call,
     log_size: u32,
 ) !Columns {
-    try candidate.validate();
+    try candidate.validateRetained();
     if (candidate.profile != .degree5 or log_size >= @bitSizeOf(usize))
         return error.InvalidCandidateTrace;
     const size = @as(usize, 1) << @intCast(log_size);
     if (calls.len > size) return error.InvalidTraceShape;
+    // Every committed row (padding included) is written exactly once below,
+    // so the columns need no zero prefill.
     const columns = try allocateColumns(
         allocator,
         candidate.mainColumnCount(),
         size,
     );
     errdefer freeColumns(allocator, columns);
+    var program = try row_program.RowProgram.compile(allocator, candidate);
+    defer program.deinit();
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
+    // Blocks are addressed by committed row; invert the logical->committed
+    // permutation once so each block gathers its eight logical calls.
+    const logical_of = try allocator.alloc(usize, size);
+    defer allocator.free(logical_of);
+    for (table.mapping, 0..) |committed, logical| logical_of[committed] = logical;
 
-    if (work_pool.getGlobalPool()) |pool| {
-        const worker_count = @min(
-            pool.workerCount(),
-            @max(@as(usize, 1), calls.len / 4096),
-        );
-        if (worker_count > 1) {
-            const workers = try allocator.alloc(Worker, worker_count);
-            defer allocator.free(workers);
-            for (workers, 0..) |*worker, index| {
-                worker.* = .{
-                    .allocator = allocator,
-                    .candidate = candidate,
-                    .calls = calls,
-                    .mapping = table.mapping,
-                    .columns = columns,
-                    .logical_start = calls.len * index / worker_count,
-                    .logical_end = calls.len * (index + 1) / worker_count,
-                };
-            }
-            var wait_group = std.Thread.WaitGroup{};
-            for (workers[1..]) |*worker| {
-                pool.spawnWg(&wait_group, Worker.run, .{worker});
-            }
-            Worker.run(&workers[0]);
-            wait_group.wait();
-            for (workers) |worker| if (worker.failure) |failure| return failure;
-            return .{ .values = columns };
+    const block_count = if (size >= row_program.LANES) size / row_program.LANES else 1;
+    const worker_count: usize = if (work_pool.getGlobalPool()) |pool|
+        @min(pool.workerCount(), @max(@as(usize, 1), block_count / min_blocks_per_worker))
+    else
+        1;
+    if (worker_count > 1) {
+        const pool = work_pool.getGlobalPool().?;
+        const workers = try allocator.alloc(Worker, worker_count);
+        defer allocator.free(workers);
+        for (workers, 0..) |*worker, index| {
+            worker.* = .{
+                .allocator = allocator,
+                .program = &program,
+                .calls = calls,
+                .logical_of = logical_of,
+                .columns = columns,
+                .committed_start = row_program.LANES * (block_count * index / worker_count),
+                .committed_end = row_program.LANES * (block_count * (index + 1) / worker_count),
+            };
         }
+        workers[worker_count - 1].committed_end = size;
+        var wait_group = std.Thread.WaitGroup{};
+        for (workers[1..]) |*worker| {
+            pool.spawnWg(&wait_group, Worker.run, .{worker});
+        }
+        Worker.run(&workers[0]);
+        wait_group.wait();
+        for (workers) |worker| if (worker.failure) |failure| return failure;
+        return .{ .values = columns };
     }
 
-    const scratch = try allocator.alloc(M31, candidate.arena.nodeCount());
-    defer allocator.free(scratch);
-    for (calls, 0..) |call, logical_row| {
-        try fillRow(
-            candidate,
-            columns,
-            table.map(logical_row),
-            call,
-            scratch,
-        );
-    }
+    var worker = Worker{
+        .allocator = allocator,
+        .program = &program,
+        .calls = calls,
+        .logical_of = logical_of,
+        .columns = columns,
+        .committed_start = 0,
+        .committed_end = size,
+    };
+    try worker.runFallible();
     return .{ .values = columns };
 }
 
+/// Below this many eight-row blocks per worker the spawn cost outweighs the
+/// streaming write bandwidth a second core adds.
+const min_blocks_per_worker: usize = 512;
+
 const Worker = struct {
     allocator: std.mem.Allocator,
-    candidate: *const candidate_mod.Candidate,
+    program: *const row_program.RowProgram,
     calls: []const production.Call,
-    mapping: []const usize,
+    logical_of: []const usize,
     columns: [][]M31,
-    logical_start: usize,
-    logical_end: usize,
+    committed_start: usize,
+    committed_end: usize,
     failure: ?anyerror = null,
 
     fn run(self: *Worker) void {
@@ -105,93 +119,45 @@ const Worker = struct {
     }
 
     fn runFallible(self: *Worker) !void {
-        const scratch = try self.allocator.alloc(
-            M31,
-            self.candidate.arena.nodeCount(),
-        );
-        defer self.allocator.free(scratch);
-        for (self.calls[self.logical_start..self.logical_end], self.logical_start..) |
-            call,
-            logical_row,
-        | {
-            try fillRow(
-                self.candidate,
-                self.columns,
-                self.mapping[logical_row],
-                call,
-                scratch,
-            );
+        const slots = try self.allocator.alloc(row_program.Block, self.program.slot_count);
+        defer self.allocator.free(slots);
+        const size = self.logical_of.len;
+        var committed = self.committed_start;
+        while (committed < self.committed_end) : (committed += row_program.LANES) {
+            if (committed + row_program.LANES <= size) {
+                self.program.writeBlock(
+                    self.columns,
+                    committed,
+                    self.logical_of[committed..][0..row_program.LANES],
+                    self.calls,
+                    slots,
+                );
+                continue;
+            }
+            // Traces below eight rows: evaluate a full block into staging and
+            // copy only the committed rows that exist.
+            var logical_rows: [row_program.LANES]usize = undefined;
+            for (&logical_rows, 0..) |*logical, lane| {
+                logical.* = if (committed + lane < size)
+                    self.logical_of[committed + lane]
+                else
+                    std.math.maxInt(usize);
+            }
+            const staging = try self.allocator.alloc(M31, self.columns.len * row_program.LANES);
+            defer self.allocator.free(staging);
+            const staging_columns = try self.allocator.alloc([]M31, self.columns.len);
+            defer self.allocator.free(staging_columns);
+            for (staging_columns, 0..) |*column, index|
+                column.* = staging[index * row_program.LANES ..][0..row_program.LANES];
+            self.program.writeBlock(staging_columns, 0, &logical_rows, self.calls, slots);
+            for (self.columns, staging_columns) |column, staged| {
+                const remaining = size - committed;
+                @memcpy(column[committed..][0..remaining], staged[0..remaining]);
+            }
+            return;
         }
     }
 };
-
-fn fillRow(
-    candidate: *const candidate_mod.Candidate,
-    columns: [][]M31,
-    committed_row: usize,
-    call: production.Call,
-    scratch: []M31,
-) !void {
-    if (columns.len != candidate.mainColumnCount() or
-        scratch.len != candidate.arena.nodeCount())
-    {
-        return error.InvalidCandidateTrace;
-    }
-    try evaluateSemantic(candidate, call.input, scratch);
-    columns[0][committed_row] = M31.one();
-    for (call.input, 0..) |word, lane| {
-        columns[1 + lane][committed_row] = M31.fromU64(word);
-    }
-    for (candidate.selected_values, 0..) |value, ordinal| {
-        columns[candidate_mod.MATERIALIZATION_COLUMN_START + ordinal][committed_row] =
-            scratch[types.idIndex(value)];
-    }
-    columns[columns.len - 2][committed_row] =
-        M31.fromU64(@intFromBool(call.wide));
-    columns[columns.len - 1][committed_row] =
-        M31.fromU64(@intFromBool(call.io));
-}
-
-fn evaluateSemantic(
-    candidate: *const candidate_mod.Candidate,
-    input: [candidate_mod.WIDTH]u32,
-    scratch: []M31,
-) !void {
-    const inputs = poseidon.values(candidate.definition.inputs);
-    for (candidate.arena.nodesView(), 0..) |node, index| {
-        scratch[index] = switch (node.key.op) {
-            .constant => |constant| switch (constant) {
-                .field => |value| M31.fromCanonical(value),
-                .unsigned => |value| M31.fromU64(value),
-            },
-            .input => blk: {
-                const value: types.ValueId = @enumFromInt(index);
-                if (value == candidate.gate) break :blk M31.one();
-                for (inputs, 0..) |input_value, lane| {
-                    if (value == input_value) break :blk M31.fromU64(input[lane]);
-                }
-                return error.UnsupportedCandidateExpression;
-            },
-            .add => |operation| scratch[types.idIndex(operation.lhs)].add(
-                scratch[types.idIndex(operation.rhs)],
-            ),
-            .sub => |operation| scratch[types.idIndex(operation.lhs)].sub(
-                scratch[types.idIndex(operation.rhs)],
-            ),
-            .mul => |operation| scratch[types.idIndex(operation.lhs)].mul(
-                scratch[types.idIndex(operation.rhs)],
-            ),
-            .neg => |operand| scratch[types.idIndex(operand)].neg(),
-            .select => |selection| if (!scratch[
-                types.idIndex(selection.selector)
-            ].isZero())
-                scratch[types.idIndex(selection.when_true)]
-            else
-                scratch[types.idIndex(selection.when_false)],
-            .hint_output, .call_output, .machine_derived => return error.UnsupportedCandidateExpression,
-        };
-    }
-}
 
 fn allocateColumns(
     allocator: std.mem.Allocator,
@@ -206,7 +172,6 @@ fn allocateColumns(
     }
     for (columns) |*column| {
         column.* = try allocator.alloc(M31, size);
-        @memset(column.*, M31.zero());
         initialized += 1;
     }
     return columns;

@@ -89,8 +89,7 @@ pub const Adapter = struct {
             u8,
             &self.challenge_binding_sha256,
             &current_binding,
-        ) or self.component.relations != &self.provider_relations.native)
-        {
+        ) or self.component.relations != &self.provider_relations.native) {
             return error.ProviderAuthorityMismatch;
         }
         for (self.component.poseidon_claims, self.admitted_claims) |

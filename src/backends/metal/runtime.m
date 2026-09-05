@@ -412,6 +412,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
         runtime.parentTailSparse = make_pipeline(device, library, @"stwo_zig_blake2s_parent_tail_sparse", error_message, error_message_len);
         runtime.poseidon2M31ParentsSparse = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parents_sparse", error_message, error_message_len);
         runtime.poseidon2M31ParentTailSparse = make_pipeline(device, library, @"stwo_zig_poseidon2_m31_parent_tail_sparse", error_message, error_message_len);
+        runtime.poseidon2ChannelPowSearch = make_pipeline(device, library, @"stwo_zig_poseidon2_channel_pow_search", error_message, error_message_len);
         runtime.compactGather = make_pipeline(device, library, @"stwo_zig_compact_gather", error_message, error_message_len);
         runtime.compactRadixHistogram = make_pipeline(device, library, @"stwo_zig_compact_radix_histogram", error_message, error_message_len);
         runtime.compactRadixPrefix = make_pipeline(device, library, @"stwo_zig_compact_radix_prefix", error_message, error_message_len);
@@ -731,6 +732,7 @@ static StwoZigMetalRuntime *create_runtime_from_library(
             runtime.relationScanBlocks == nil || runtime.relationScanFinalize == nil ||
             runtime.parentsSparse == nil || runtime.parentTailSparse == nil ||
             runtime.poseidon2M31ParentsSparse == nil || runtime.poseidon2M31ParentTailSparse == nil ||
+            runtime.poseidon2ChannelPowSearch == nil ||
             runtime.compactGather == nil || runtime.compactRadixHistogram == nil || runtime.compactRadixPrefix == nil ||
             runtime.compactRadixScatter == nil || runtime.compactHeads == nil || runtime.compactScanLocal == nil ||
             runtime.compactScanBlocks == nil || runtime.compactScanAdd == nil || runtime.compactClearOutputs == nil ||

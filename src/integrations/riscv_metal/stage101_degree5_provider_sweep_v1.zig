@@ -58,18 +58,18 @@ pub const expected_payload_sha256 = hexDigest(
     "0d0272475946a4bd668d52e2e3b178806ea07df391344031855e5893285134bd",
 );
 pub const expected_manifest_sha256 = hexDigest(
-    "996f039fa10092a5de3dc01b983208366123a8d9c232999130d136751563320d",
+    "fee0bfb90bf705f4ad1b9923183a99123cb2b0d9623d1233ae9f331100dacd12",
 );
 pub const expected_metallib_sha256 = hexDigest(
-    "2def25929db324acd76bb5fc4f480977eae6651798b40284f5f027de64961d3e",
+    "c9a87203415ab4432116db15a65a210849884db2a923ffe5adda2e88268fdb58",
 );
 pub const expected_source_sha256 = hexDigest(
-    "be2525ebfad6b8d9eef947507cb34196cedc1fdc6a4d7ab6d8da6ba3e2afe56b",
+    "c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786",
 );
 pub const expected_air_sha256 = hexDigest(
-    "634eca518912f29699578303d308eb42a007e3dcdc5af960754589f9735aafb8",
+    "bf21cda590c2102f9c0d373ad41294d952672e8757fd7e390e9a865df250dc33",
 );
-pub const expected_native_export_count: u32 = 164;
+pub const expected_native_export_count: u32 = 166;
 
 pub const MetalEngine = frontend.recursion.engine.ProverEngineForBackend(
     metal.MetalCommitBackend,
@@ -710,22 +710,20 @@ fn environmentInt(
         return error.InvalidStage101Degree5ProviderEnvironment;
 }
 
+/// Pins the retained q193 log18 shard geometry.  Owner count, wave count,
+/// and the owner-derived reservations are host throughput knobs supplied by
+/// the environment; they never alter shard statements or proof bytes, so the
+/// sweep records them in the receipt instead of pinning one host arm.
 fn requireFirstArm(topology: execution_mod.TopologyReceiptV1) !void {
     if (topology.planner_shard_log_size != 18 or
-        topology.shard_count != 26 or topology.concurrent_owners != 18 or
-        topology.wave_count != 2 or topology.minimum_descriptor_log_size != 17 or
+        topology.shard_count != 26 or topology.concurrent_owners == 0 or
+        topology.wave_count == 0 or topology.minimum_descriptor_log_size != 17 or
         topology.maximum_descriptor_log_size != 18 or
         topology.committed_rows != 6_684_672 or topology.padding_rows != 13_371 or
         topology.max_canonical_proof_bytes_per_shard != 128 * 1024 * 1024 or
-        topology.retained_stage_a_column_reservation_bytes != 19_332_071_424 or
-        topology.retained_stage_a_non_column_reservation_bytes != 13_958_643_712 or
-        topology.active_post_stage_a_column_reservation_bytes != 1_585_446_912 or
-        topology.composition_domain_scratch_concurrent_owners != 1 or
-        topology.composition_domain_scratch_reservation_bytes != 1_044_381_696 or
-        topology.encoded_proof_reservation_bytes != 3_489_660_928 or
-        topology.aggregate_owner_reservation_bytes != 39_410_204_672 or
-        topology.controller_reserve_bytes != 8 * 1024 * 1024 * 1024 or
-        topology.total_reservation_bytes != 48_000_139_264)
+        topology.composition_domain_scratch_concurrent_owners != 2 or
+        topology.composition_domain_scratch_reservation_bytes != 2_088_763_392 or
+        topology.controller_reserve_bytes != 8 * 1024 * 1024 * 1024)
     {
         return error.Stage101Degree5FirstArmTopologyMismatch;
     }
@@ -1023,7 +1021,7 @@ test "Stage101 D5 retained first arm pins exact q193 log18 topology" {
         execution_mod.D5_COMPOSITION_DOMAIN_SCRATCH_COLUMNS,
     );
     try std.testing.expectEqual(
-        @as(u16, 1),
+        @as(u16, 2),
         execution_mod.D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS,
     );
     try std.testing.expectEqual(
@@ -1072,7 +1070,7 @@ test "Stage101 D5 retained first arm pins exact q193 log18 topology" {
 
 test "Stage101 D5 backend identity pins authenticated ABI21 custody" {
     try std.testing.expect(!std.mem.allEqual(u8, &backendIdentity(), 0));
-    try std.testing.expectEqual(@as(u32, 164), expected_native_export_count);
+    try std.testing.expectEqual(@as(u32, 166), expected_native_export_count);
     try std.testing.expectEqual(@as(u64, 3_352_364), expected_elf_byte_count);
     try std.testing.expect(!std.mem.allEqual(u8, &expected_elf_sha256, 0));
     try std.testing.expect(!std.mem.eql(
@@ -1087,7 +1085,7 @@ comptime {
         expected_incremental_memory_call_count != 3_784_119 or
         expected_program_call_count != 2_887_182 or
         expected_full_call_count != 6_671_301 or
-        expected_native_export_count != 164)
+        expected_native_export_count != 166)
     {
         @compileError("Stage101 D5 provider sweep contract drifted");
     }

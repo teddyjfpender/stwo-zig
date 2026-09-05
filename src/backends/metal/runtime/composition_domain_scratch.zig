@@ -21,6 +21,103 @@ const TwiddleTree = prover.poly.twiddles.TwiddleTree([]const M31);
 
 pub const FORMAT_VERSION: u16 = 1;
 
+/// Concurrent owner windows.  Each window holds at most one resident scratch
+/// buffer, so this is also the pool capacity and the peak resident footprint
+/// multiplier.  Two windows let one proof's composition kernels execute while
+/// the next proof expands its coefficients.
+pub const OWNER_WINDOWS: u16 = 2;
+pub const MAX_POOLED_RESIDENTS: usize = OWNER_WINDOWS;
+
+var owner_windows: std.Thread.Semaphore = .{ .permits = OWNER_WINDOWS };
+var pool_mutex: std.Thread.Mutex = .{};
+
+/// Blocks until one owner window is free.  Pair with `releaseOwnerWindow`
+/// after the owner is deinitialized.
+pub fn acquireOwnerWindow() void {
+    owner_windows.wait();
+}
+
+pub fn releaseOwnerWindow() void {
+    owner_windows.post();
+}
+
+/// Resident buffers are recycled by exact byte length instead of being
+/// allocated per proof.  A one-gigabyte shared allocation costs a fresh
+/// page-fault sweep on every first touch; reuse keeps the pages mapped and
+/// the transform binding contract (`byte_length == columns * rows * 4`)
+/// exact.  Slots are keyed by the runtime that created them.
+const PooledResidentV1 = struct {
+    runtime: *metal_runtime.Runtime,
+    resident: metal_runtime.ResidentBuffer,
+};
+
+var pooled_residents: [MAX_POOLED_RESIDENTS]?PooledResidentV1 =
+    [_]?PooledResidentV1{null} ** MAX_POOLED_RESIDENTS;
+var pool_hits: std.atomic.Value(u64) = .init(0);
+var pool_misses: std.atomic.Value(u64) = .init(0);
+
+pub const PoolSnapshotV1 = struct { hits: u64, misses: u64, pooled: usize };
+
+pub fn poolSnapshot() PoolSnapshotV1 {
+    var pooled: usize = 0;
+    for (pooled_residents) |slot| pooled += @intFromBool(slot != null);
+    return .{
+        .hits = pool_hits.load(.monotonic),
+        .misses = pool_misses.load(.monotonic),
+        .pooled = pooled,
+    };
+}
+
+/// Caller holds one owner window.
+fn acquireResident(
+    runtime: *metal_runtime.Runtime,
+    byte_count: usize,
+) !metal_runtime.ResidentBuffer {
+    pool_mutex.lock();
+    defer pool_mutex.unlock();
+    for (&pooled_residents) |*slot| {
+        const entry = slot.* orelse continue;
+        if (entry.runtime == runtime and entry.resident.byte_length == byte_count) {
+            slot.* = null;
+            _ = pool_hits.fetchAdd(1, .monotonic);
+            return entry.resident;
+        }
+    }
+    _ = pool_misses.fetchAdd(1, .monotonic);
+    return runtime.allocateResidentBuffer(byte_count);
+}
+
+/// Caller holds one owner window.  A full pool evicts the incoming buffer so
+/// the resident footprint stays bounded by `MAX_POOLED_RESIDENTS` entries.
+fn releaseResident(
+    runtime: *metal_runtime.Runtime,
+    resident: metal_runtime.ResidentBuffer,
+) void {
+    pool_mutex.lock();
+    defer pool_mutex.unlock();
+    for (&pooled_residents) |*slot| {
+        if (slot.* == null) {
+            slot.* = .{ .runtime = runtime, .resident = resident };
+            return;
+        }
+    }
+    var owned = resident;
+    owned.deinit();
+}
+
+/// Frees every pooled buffer.  Must run before the shared Metal runtime is
+/// torn down and after every composition owner has finished.
+pub fn releasePooledResidents() void {
+    pool_mutex.lock();
+    defer pool_mutex.unlock();
+    for (&pooled_residents) |*slot| {
+        if (slot.*) |*entry| {
+            entry.resident.deinit();
+            slot.* = null;
+        }
+    }
+}
+
 pub const RequestV1 = struct {
     tree_index: usize,
     column_index: usize,
@@ -37,6 +134,7 @@ const EntryV1 = struct {
 
 pub const OwnedV1 = struct {
     allocator: std.mem.Allocator,
+    runtime: *metal_runtime.Runtime,
     source_trace: *const Trace,
     trace: Trace,
     resident: metal_runtime.ResidentBuffer,
@@ -47,8 +145,11 @@ pub const OwnedV1 = struct {
     resident_word_count: usize,
     gpu_milliseconds: f64,
     transform_wall_nanoseconds: u64,
+    host_fill_nanoseconds: u64,
+    host_fill_workers: usize,
     exact_resident_source: bool,
 
+    /// Caller holds one owner window for the whole owner lifetime.
     pub fn init(
         allocator: std.mem.Allocator,
         runtime: *metal_runtime.Runtime,
@@ -94,8 +195,8 @@ pub const OwnedV1 = struct {
             resident_word_count,
             @sizeOf(M31),
         ) catch return error.CompositionDomainScratchSizeOverflow;
-        var resident = try runtime.allocateResidentBuffer(resident_byte_count);
-        errdefer resident.deinit();
+        var resident = try acquireResident(runtime, resident_byte_count);
+        errdefer releaseResident(runtime, resident);
         if (resident.byte_length != resident_byte_count or
             @intFromPtr(resident.contents) % @alignOf(M31) != 0)
         {
@@ -108,6 +209,7 @@ pub const OwnedV1 = struct {
         const entries = try allocator.alloc(EntryV1, unique_count);
         errdefer allocator.free(entries);
 
+        var fill_timer = try std.time.Timer.start();
         for (canonical_requests, columns, entries, 0..) |
             request,
             *destination,
@@ -129,8 +231,6 @@ pub const OwnedV1 = struct {
                 evaluation_size,
             ) catch return error.CompositionDomainScratchSizeOverflow;
             destination.* = resident_values[offset..][0..evaluation_size];
-            @memcpy(destination.*[0..coefficient_values.len], coefficient_values);
-            @memset(destination.*[coefficient_values.len..], M31.zero());
             @constCast(shadow.polys.items[request.tree_index])[request.column_index] = .{
                 .log_size = evaluation_log_size,
                 .values = destination.*,
@@ -143,6 +243,8 @@ pub const OwnedV1 = struct {
                 .resident_word_offset = offset,
             };
         }
+        const host_fill_workers = try fillResidentColumns(allocator, entries, columns);
+        const host_fill_nanoseconds = fill_timer.read();
 
         var transform_timer = try std.time.Timer.start();
         const transform = try runtime.transformCircleResidentBatch(
@@ -158,6 +260,7 @@ pub const OwnedV1 = struct {
             return error.CompositionDomainTransformNotResident;
         var result = OwnedV1{
             .allocator = allocator,
+            .runtime = runtime,
             .source_trace = source_trace,
             .trace = shadow,
             .resident = resident,
@@ -168,6 +271,8 @@ pub const OwnedV1 = struct {
             .resident_word_count = resident_word_count,
             .gpu_milliseconds = transform.gpu_milliseconds,
             .transform_wall_nanoseconds = transform_wall_nanoseconds,
+            .host_fill_nanoseconds = host_fill_nanoseconds,
+            .host_fill_workers = host_fill_workers,
             .exact_resident_source = transform.exact_resident_source,
         };
         try result.validateBorrowed(source_trace);
@@ -202,13 +307,11 @@ pub const OwnedV1 = struct {
             {
                 return error.InvalidCompositionDomainScratch;
             }
-            const source = source_trace.polys.items[entry.request.tree_index]
-                [entry.request.column_index];
+            const source = source_trace.polys.items[entry.request.tree_index][entry.request.column_index];
             const coefficients = source.coefficients orelse
                 return error.MissingCompositionDomainCoefficients;
             const coefficient_values = coefficients.coefficients();
-            const expanded = self.trace.polys.items[entry.request.tree_index]
-                [entry.request.column_index];
+            const expanded = self.trace.polys.items[entry.request.tree_index][entry.request.column_index];
             const expected_offset = std.math.mul(
                 usize,
                 index,
@@ -238,15 +341,68 @@ pub const OwnedV1 = struct {
         }
     }
 
+    /// Caller holds one owner window; the resident buffer returns to the pool.
     pub fn deinit(self: *OwnedV1) void {
         const allocator = self.allocator;
-        self.resident.deinit();
+        releaseResident(self.runtime, self.resident);
         self.trace.polys.deinitDeep(allocator);
         allocator.free(self.entries);
         allocator.free(self.request_storage);
         self.* = undefined;
     }
 };
+
+/// Copies every retained coefficient block into its resident column and
+/// zero-fills the remaining evaluation rows.  Columns are independent, so the
+/// gigabyte-scale fill is split across the shared work pool instead of
+/// streaming through the single owner thread while the lock is held.
+fn fillResidentColumns(
+    allocator: std.mem.Allocator,
+    entries: []const EntryV1,
+    columns: []const []M31,
+) !usize {
+    std.debug.assert(entries.len == columns.len);
+    const minimum_columns_per_worker: usize = 8;
+    const pool = prover.work_pool.getGlobalPool();
+    const worker_count = if (pool) |active|
+        @min(active.workerCount(), @max(@as(usize, 1), entries.len / minimum_columns_per_worker))
+    else
+        1;
+    if (worker_count <= 1) {
+        fillResidentRange(entries, columns);
+        return 1;
+    }
+    const ranges = try allocator.alloc(FillRangeV1, worker_count);
+    defer allocator.free(ranges);
+    for (ranges, 0..) |*range, index| {
+        range.* = .{
+            .entries = entries[entries.len * index / worker_count .. entries.len * (index + 1) / worker_count],
+            .columns = columns[entries.len * index / worker_count .. entries.len * (index + 1) / worker_count],
+        };
+    }
+    var wait_group = std.Thread.WaitGroup{};
+    for (ranges[1..]) |*range| pool.?.spawnWg(&wait_group, FillRangeV1.run, .{range});
+    FillRangeV1.run(&ranges[0]);
+    wait_group.wait();
+    return worker_count;
+}
+
+const FillRangeV1 = struct {
+    entries: []const EntryV1,
+    columns: []const []M31,
+
+    fn run(self: *FillRangeV1) void {
+        fillResidentRange(self.entries, self.columns);
+    }
+};
+
+fn fillResidentRange(entries: []const EntryV1, columns: []const []M31) void {
+    for (entries, columns) |entry, destination| {
+        const source = entry.source_coefficients_ptr[0..entry.source_coefficients_len];
+        @memcpy(destination[0..source.len], source);
+        @memset(destination[source.len..], M31.zero());
+    }
+}
 
 pub fn exactResidentBytes(
     column_count: usize,
@@ -350,7 +506,7 @@ test "Metal composition domain scratch evaluates retained coefficients in one ex
     const coefficient_values = try allocator.alloc(M31, coefficient_count);
     defer allocator.free(coefficient_values);
     for (coefficient_values, 0..) |*value, index| {
-        value.* = M31.fromCanonical(@intCast((index * 29 + 17) % M31.Modulus));
+        value.* = M31.fromCanonical(@intCast((index * 29 + 17) % core.fields.m31.Modulus));
     }
     const coefficients = try prover.poly.circle.CircleCoefficients.initBorrowed(
         coefficient_values,
@@ -385,6 +541,11 @@ test "Metal composition domain scratch evaluates retained coefficients in one ex
     defer prover.poly.twiddles.deinitM31(allocator, &twiddles);
     var runtime = try metal_runtime.Runtime.init();
     defer runtime.deinit();
+    // Pooled residents belong to this runtime; drop them before it goes away.
+    defer releasePooledResidents();
+    acquireOwnerWindow();
+    defer releaseOwnerWindow();
+    const pool_before = poolSnapshot();
     source_tree[0].coefficients = null;
     try std.testing.expectError(
         error.MissingCompositionDomainCoefficients,
@@ -443,6 +604,40 @@ test "Metal composition domain scratch evaluates retained coefficients in one ex
         scratch.validateBorrowed(&source),
     );
     @constCast(scratch.trace.polys.items[0])[0].values = saved_values;
+    try scratch.validateBorrowed(&source);
+
+    // A second owner of the same geometry reuses the pooled resident buffer
+    // instead of allocating, and its evaluation stays exact.
+    const first_contents = @intFromPtr(scratch.resident.contents);
+    scratch.deinit();
+    scratch = try OwnedV1.init(
+        allocator,
+        &runtime,
+        &source,
+        &.{.{
+            .tree_index = 0,
+            .column_index = 0,
+            .trace_log_size = coefficient_log_size,
+            .evaluation_log_size = evaluation_log_size,
+        }},
+        .{
+            .root_coset = twiddles.root_coset,
+            .twiddles = twiddles.twiddles,
+            .itwiddles = twiddles.itwiddles,
+        },
+    );
+    // The rejected first owner allocated (one miss) and returned its buffer
+    // to the pool on the error path; both accepted owners then hit.
+    const pool_after = poolSnapshot();
+    try std.testing.expectEqual(first_contents, @intFromPtr(scratch.resident.contents));
+    try std.testing.expectEqual(pool_before.hits + 2, pool_after.hits);
+    try std.testing.expectEqual(pool_before.misses + 1, pool_after.misses);
+    try std.testing.expectEqual(@as(usize, 0), pool_after.pooled);
+    try std.testing.expectEqualSlices(
+        M31,
+        expected.values,
+        scratch.trace.polys.items[0][0].values,
+    );
     try scratch.validateBorrowed(&source);
 }
 

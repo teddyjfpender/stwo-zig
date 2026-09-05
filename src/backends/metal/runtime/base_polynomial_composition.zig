@@ -39,8 +39,11 @@ const M31TwiddleTree = prover.poly.twiddles.TwiddleTree([]const M31);
 
 const disable_env = "STWO_ZIG_RISCV_METAL_SEMANTICS";
 const parity_env = "STWO_ZIG_RISCV_METAL_COMPOSITION_PARITY";
-pub const COMPOSITION_DOMAIN_SCRATCH_CONCURRENCY: u16 = 1;
-var composition_domain_scratch_mutex: std.Thread.Mutex = .{};
+pub const COMPOSITION_DOMAIN_SCRATCH_CONCURRENCY: u16 = composition_domain_scratch.OWNER_WINDOWS;
+
+/// Frees pooled composition-domain scratch buffers; the Metal backend calls
+/// this before tearing the shared runtime down.
+pub const releasePooledCompositionScratch = composition_domain_scratch.releasePooledResidents;
 /// Below 2^16 evaluation rows, four direct dispatches plus one lookup dispatch
 /// do not amortize the resident command setup. Keep the complete reference
 /// component on the host until this measured crossover; larger components use
@@ -255,10 +258,10 @@ fn evaluateInternal(
     defer allocator.free(expansion_requests);
     var scratch_lock_held = false;
     if (expansion_requests.len != 0) {
-        composition_domain_scratch_mutex.lock();
+        composition_domain_scratch.acquireOwnerWindow();
         scratch_lock_held = true;
     }
-    defer if (scratch_lock_held) composition_domain_scratch_mutex.unlock();
+    defer if (scratch_lock_held) composition_domain_scratch.releaseOwnerWindow();
 
     var lease = shared_runtime.acquireExisting() catch return declineResidentPolynomial();
     defer lease.deinit();
@@ -281,12 +284,15 @@ fn evaluateInternal(
         composition_domain_resident = &owned.resident;
         telemetry.record(.metal_circle_transform_dispatch);
         std.log.info(
-            "resident RISC-V composition-domain input: columns={} log={} bytes={} gpu_ms={d:.3}",
+            "resident RISC-V composition-domain input: columns={} log={} bytes={} gpu_ms={d:.3} fill_ms={d:.3} fill_workers={} transform_ms={d:.3}",
             .{
                 owned.entries.len,
                 owned.evaluation_log_size,
                 owned.resident.byte_length,
                 owned.gpu_milliseconds,
+                @as(f64, @floatFromInt(owned.host_fill_nanoseconds)) / 1e6,
+                owned.host_fill_workers,
+                @as(f64, @floatFromInt(owned.transform_wall_nanoseconds)) / 1e6,
             },
         );
     }
@@ -614,7 +620,7 @@ fn evaluateInternal(
         composition_scratch.?.deinit();
         composition_scratch = null;
         composition_domain_resident = null;
-        composition_domain_scratch_mutex.unlock();
+        composition_domain_scratch.releaseOwnerWindow();
         scratch_lock_held = false;
     }
     if (parallel_on_caller) |index| HostWorker.runParallel(&host_workers[index], pool.?);
@@ -668,7 +674,7 @@ fn evaluateInternal(
         composition_scratch.?.deinit();
         composition_scratch = null;
         composition_domain_resident = null;
-        composition_domain_scratch_mutex.unlock();
+        composition_domain_scratch.releaseOwnerWindow();
         scratch_lock_held = false;
     }
 

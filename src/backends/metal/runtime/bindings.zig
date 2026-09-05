@@ -123,6 +123,16 @@ pub extern fn stwo_zig_metal_blake2s_pow_search(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_poseidon2_channel_pow_search(
+    runtime: *anyopaque,
+    prefix_state: *const [16]u32,
+    pow_bits: u32,
+    nonce: *u64,
+    gpu_milliseconds: *f64,
+    dispatch_count: *u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_pipeline_cache_stats(
     runtime: *anyopaque,
     stats: *PipelineCacheStats,

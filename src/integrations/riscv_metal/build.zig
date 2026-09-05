@@ -3,6 +3,11 @@ const std = @import("std");
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
+    const error_tracing = b.option(
+        bool,
+        "error-tracing",
+        "Keep error return traces in the retained Stage101 commands (diagnostic builds only)",
+    ) orelse false;
     const dependency_options = .{ .target = target, .optimize = optimize };
 
     const core = b.dependency("stwo_core", dependency_options).module("stwo_core");
@@ -152,6 +157,7 @@ pub fn build(b: *std.Build) void {
     stage101_install_step.dependOn(&stage101_install.step);
 
     const d5_sweep_module = b.createModule(.{
+        .error_tracing = error_tracing,
         .root_source_file = b.path("stage101_degree5_provider_sweep_v1.zig"),
         .target = target,
         .optimize = optimize,
@@ -174,6 +180,7 @@ pub fn build(b: *std.Build) void {
     d5_sweep_test_step.dependOn(&b.addRunArtifact(d5_sweep_tests).step);
 
     const d5_sweep_main = b.createModule(.{
+        .error_tracing = error_tracing,
         .root_source_file = b.path("stage101_degree5_provider_sweep_main_v1.zig"),
         .target = target,
         .optimize = optimize,
@@ -186,6 +193,41 @@ pub fn build(b: *std.Build) void {
         .name = "stage101-degree5-provider-sweep-v1",
         .root_module = d5_sweep_main,
     });
+
+    // Semantic-only gates.  A Compile whose emitted binary nothing requests is
+    // passed `-fno-emit-bin`, so `zig build check-*` runs analysis without
+    // LLVM codegen or linking.  A full ReleaseFast product build of either
+    // command is about ten minutes; these are tens of seconds, which is the
+    // difference between iterating on this campaign and waiting on it.
+    const check_step = b.step(
+        "check",
+        "Analyse both Stage101 Metal commands without emitting binaries",
+    );
+    const check_targets = [_]struct {
+        name: []const u8,
+        description: []const u8,
+        module: *std.Build.Module,
+    }{
+        .{
+            .name = "check-stage101-leaf-autoresearch-v1",
+            .description = "Analyse the Stage101 leaf command without emitting a binary",
+            .module = stage101_main,
+        },
+        .{
+            .name = "check-stage101-degree5-provider-sweep-v1",
+            .description = "Analyse the retained D5 provider sweep without emitting a binary",
+            .module = d5_sweep_main,
+        },
+    };
+    for (check_targets) |entry| {
+        const analysis = b.addExecutable(.{
+            .name = entry.name,
+            .root_module = entry.module,
+        });
+        linkMetalFrameworks(analysis);
+        b.step(entry.name, entry.description).dependOn(&analysis.step);
+        check_step.dependOn(&analysis.step);
+    }
     linkMetalFrameworks(d5_sweep_executable);
     d5_sweep_compile_step.dependOn(&d5_sweep_executable.step);
     const d5_sweep_install = b.addInstallArtifact(d5_sweep_executable, .{});

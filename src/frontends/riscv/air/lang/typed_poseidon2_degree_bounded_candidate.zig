@@ -332,6 +332,32 @@ pub const Candidate = struct {
             return error.CandidateIdentityMismatch;
     }
 
+    /// Per-shard hot-path check for an already validated, process-local
+    /// candidate.  It rebinds the identity to the profile, policy, program
+    /// digests, geometry, and selection exactly like `validate`, but skips
+    /// re-deriving the materializer plan: that recursive degree analysis is
+    /// construction-time authority and was costing several seconds per leaf
+    /// when repeated for every shard, export, and trace.  Cold entry points
+    /// keep calling `validate`.
+    pub fn validateRetained(self: *const Candidate) !void {
+        if (self.plan.policy.maximum_constraint_degree !=
+            self.profile.maximumConstraintDegree() or
+            self.plan.policy.row_mask_degree != 0)
+        {
+            return error.CandidateProfileMismatch;
+        }
+        try self.direct_program.authenticate(self.direct_program_digest);
+        if (self.direct_scratch.len != self.direct_program.nodes().len or
+            self.semantic_scratch.len != self.arena.nodeCount() or
+            self.semantic_columns.len != self.arena.nodeCount())
+        {
+            return error.InvalidGeometry;
+        }
+        try self.validateSelectionAndGeometry();
+        if (!std.mem.eql(u8, &self.identity, &self.computeIdentity()))
+            return error.CandidateIdentityMismatch;
+    }
+
     /// Writes one logical row in candidate-native order:
     /// enabler, 16 inputs, canonical selected values, wide, io.
     pub fn fillRow(

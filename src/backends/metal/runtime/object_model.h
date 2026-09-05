@@ -14,6 +14,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Leaves;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeavesWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> proofOfWork;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2ChannelPowSearch;
 @property(nonatomic, strong) id<MTLComputePipelineState> parents;
 @property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Parents;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotients;

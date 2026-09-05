@@ -48,7 +48,11 @@ pub const D5_ACCELERATED_INTERACTION_COLUMNS: u64 = component.INTERACTION_COLUMN
 pub const D5_COMPOSITION_DOMAIN_SCRATCH_COLUMNS: u64 =
     D5_PREPROCESSED_COLUMNS + D5_MAIN_COLUMNS +
     D5_ACCELERATED_INTERACTION_COLUMNS;
-pub const D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS: u16 = 1;
+/// Resident composition-domain scratch owners that may hold their gigabyte
+/// window at once.  Two windows let one shard's composition kernels run while
+/// the next shard's coefficients are being expanded; the reservation below
+/// scales with this count.
+pub const D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS: u16 = 2;
 pub const D5_COMPOSITION_COLUMNS: u64 =
     4 * (@as(u64, 1) << @intCast(D5_COMPOSITION_LOG_SPLIT));
 
@@ -222,10 +226,8 @@ pub const AuthorityV1 = struct {
             .retained_stage_a_column_reservation_bytes = reservations.retained_stage_a_columns,
             .retained_stage_a_non_column_reservation_bytes = reservations.retained_stage_a_non_column,
             .active_post_stage_a_column_reservation_bytes = reservations.active_post_stage_a_columns,
-            .composition_domain_scratch_concurrent_owners =
-                D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS,
-            .composition_domain_scratch_reservation_bytes =
-                reservations.composition_domain_scratch,
+            .composition_domain_scratch_concurrent_owners = D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS,
+            .composition_domain_scratch_reservation_bytes = reservations.composition_domain_scratch,
             .encoded_proof_reservation_bytes = reservations.encoded_proofs,
             .aggregate_owner_reservation_bytes = reservations.aggregate_owner,
             .total_reservation_bytes = total_reserved,
@@ -398,10 +400,8 @@ pub const TopologyReceiptV1 = struct {
             .retained_stage_a_column_reservation_bytes = execution.retained_stage_a_column_reservation_bytes,
             .retained_stage_a_non_column_reservation_bytes = execution.retained_stage_a_non_column_reservation_bytes,
             .active_post_stage_a_column_reservation_bytes = execution.active_post_stage_a_column_reservation_bytes,
-            .composition_domain_scratch_concurrent_owners =
-                execution.composition_domain_scratch_concurrent_owners,
-            .composition_domain_scratch_reservation_bytes =
-                execution.composition_domain_scratch_reservation_bytes,
+            .composition_domain_scratch_concurrent_owners = execution.composition_domain_scratch_concurrent_owners,
+            .composition_domain_scratch_reservation_bytes = execution.composition_domain_scratch_reservation_bytes,
             .encoded_proof_reservation_bytes = execution.encoded_proof_reservation_bytes,
             .aggregate_owner_reservation_bytes = execution.aggregate_owner_reservation_bytes,
             .controller_reserve_bytes = execution.controller_reserve_bytes,
@@ -517,7 +517,7 @@ pub fn validateQ193Plan(
         D5_INTERACTION_COLUMNS != 12 or
         D5_ACCELERATED_INTERACTION_COLUMNS != 8 or
         D5_COMPOSITION_DOMAIN_SCRATCH_COLUMNS != 249 or
-        D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS != 1 or
+        D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS != 2 or
         D5_COMPOSITION_COLUMNS != 16 or
         request.log_blowup_factor != Q193_FRI_LOG_BLOWUP_FACTOR or
         request.retention_policy != .always)
@@ -608,13 +608,18 @@ fn batchReservations(
         retained_stage_a_non_column,
     );
     aggregate = try add(aggregate, active_post_stage_a_columns);
-    aggregate = try add(aggregate, maximum_composition_domain_scratch);
+    const composition_domain_scratch = std.math.mul(
+        u64,
+        maximum_composition_domain_scratch,
+        D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS,
+    ) catch return error.Degree5ProviderBatchExecutionOverflow;
+    aggregate = try add(aggregate, composition_domain_scratch);
     aggregate = try add(aggregate, encoded_proofs);
     return .{
         .retained_stage_a_columns = retained_stage_a_columns,
         .retained_stage_a_non_column = retained_stage_a_non_column,
         .active_post_stage_a_columns = active_post_stage_a_columns,
-        .composition_domain_scratch = maximum_composition_domain_scratch,
+        .composition_domain_scratch = composition_domain_scratch,
         .encoded_proofs = encoded_proofs,
         .aggregate_owner = aggregate,
     };
@@ -706,7 +711,7 @@ comptime {
         D5_INTERACTION_COLUMNS != 12 or
         D5_ACCELERATED_INTERACTION_COLUMNS != 8 or
         D5_COMPOSITION_DOMAIN_SCRATCH_COLUMNS != 249 or
-        D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS != 1 or
+        D5_COMPOSITION_DOMAIN_SCRATCH_CONCURRENT_OWNERS != 2 or
         D5_COMPOSITION_COLUMNS != 16 or
         MAX_CANONICAL_PROOF_BYTES_PER_SHARD != 128 * 1024 * 1024)
     {

@@ -189,7 +189,8 @@ pub fn generateInteraction(
 ) !Interaction {
     const size = @as(usize, 1) << @intCast(log_size);
     if (calls.len == 0 or calls.len > size) return error.InvalidTraceShape;
-    const claim = try expectedClaim(first_call, calls, relations);
+    const count = std.math.cast(u32, calls.len) orelse
+        return error.CallCountOutOfRange;
     const challenges = try ChallengesV1.derive(relations);
     var columns: [interaction_column_count][]M31 = undefined;
     var initialized: usize = 0;
@@ -200,20 +201,64 @@ pub fn generateInteraction(
     }
     const table = try infra.BitReversalTable.init(allocator, log_size);
     defer table.deinit(allocator);
-    var accumulator = rangeSeed(first_call, claim.call_count, challenges.row_power);
+    // One pass derives the running accumulator, its committed coordinates,
+    // and the terminal claim.  This is the same field recurrence as
+    // `expectedClaim`; the call value is evaluated as a base-field power sum
+    // so each call costs seventeen M31-by-QM31 products instead of seventeen
+    // full QM31 products.
+    const powers = CallValuePowersV1.init(challenges.row_power);
+    var accumulator = rangeSeed(first_call, count, challenges.row_power);
     for (0..size) |row| {
         if (row < calls.len) {
+            const call = calls[row];
+            try validateCall(call);
             accumulator = accumulator.mul(challenges.accumulator_power).add(
-                callValue(calls[row], challenges.row_power),
+                powers.callValue(call),
             );
         }
         const coordinates = accumulator.toM31Array();
         const destination = table.map(row);
         for (&columns, coordinates) |column, value| column[destination] = value;
     }
-    if (!accumulator.eql(claim.terminal)) return error.ProviderOrderClaimMismatch;
-    return .{ .columns = columns, .claim = claim };
+    return .{
+        .columns = columns,
+        .claim = .{
+            .format = format_version,
+            .first_call = first_call,
+            .call_count = count,
+            .terminal = accumulator,
+        },
+    };
 }
+
+/// Hoisted `row_power` powers for the base-field call value.
+pub const CallValuePowersV1 = struct {
+    /// `row_power^k` for `k` in `0..=WIDTH + 1`.
+    powers: [poseidon2_air.WIDTH + 2]QM31,
+    /// Domain tag times `row_power^(WIDTH + 1)`.
+    base: QM31,
+
+    pub fn init(row_power: QM31) CallValuePowersV1 {
+        var powers: [poseidon2_air.WIDTH + 2]QM31 = undefined;
+        powers[0] = QM31.one();
+        for (1..powers.len) |index| powers[index] = powers[index - 1].mul(row_power);
+        return .{
+            .powers = powers,
+            .base = domainFelt(0x524f_5731).mul(powers[poseidon2_air.WIDTH + 1]),
+        };
+    }
+
+    /// Field-identical to `callValue(call, row_power)` for canonical calls.
+    pub fn callValue(self: *const CallValuePowersV1, call: poseidon2_air.Call) QM31 {
+        var result = self.base;
+        inline for (0..poseidon2_air.WIDTH) |lane| {
+            result = result.add(
+                self.powers[poseidon2_air.WIDTH - lane].mulM31(M31.fromCanonical(call.input[lane])),
+            );
+        }
+        return result.add(QM31.fromBase(M31.fromCanonical(call.narrow_output.?)));
+    }
+};
 
 pub const ProviderOrderComponent = struct {
     log_size: u32,
@@ -616,6 +661,16 @@ pub const ProviderOrderComponent = struct {
         const main_start: usize = 2;
         const interaction_start = main_start + selected_main_count;
         const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_size);
+        const constants = self.rowConstants();
+        const powers = state.accumulator.random_coeff_powers;
+        const folding = [constraint_count]QM31{
+            powers[powers.len - 1],
+            powers[powers.len - 2],
+            powers[powers.len - 3],
+            powers[powers.len - 4],
+        };
+        const interaction = state.evaluations[interaction_start..][0..4];
+        const selected_columns = state.evaluations[main_start..][0..selected_main_count];
         for (0..state.eval_size) |row| {
             if ((row & (PreparedState.poll_rows - 1)) == 0 and task.isCancelled()) return;
             const previous_row = utils.previousBitReversedCircleDomainIndex(
@@ -623,36 +678,46 @@ pub const ProviderOrderComponent = struct {
                 self.log_size,
                 state.eval_log_size,
             );
-            const current = secureAt(
-                state.evaluations[interaction_start..][0..4],
-                row,
-            );
-            const previous = secureAt(
-                state.evaluations[interaction_start..][0..4],
-                previous_row,
-            );
-            var selected: [selected_main_count]QM31 = undefined;
-            for (&selected, state.evaluations[main_start..][0..selected_main_count]) |
-                *value,
-                column,
-            | value.* = QM31.fromBase(column[row]);
-            const constraints = self.evaluateSelectedRow(
+            const current = secureAt(interaction, row);
+            const previous = secureAt(interaction, previous_row);
+            var selected: [selected_main_count]M31 = undefined;
+            for (&selected, selected_columns) |*value, column| value.* = column[row];
+            const constraints = evaluateSelectedRowPrepared(
+                constants,
                 selected,
                 current,
                 previous,
-                QM31.fromBase(state.evaluations[0][row]),
-                QM31.fromBase(state.evaluations[1][row]),
+                state.evaluations[0][row],
+                state.evaluations[1][row],
             );
-            var folded = QM31.zero();
-            for (constraints, 0..) |constraint, index| {
-                const powers = state.accumulator.random_coeff_powers;
-                folded = folded.add(powers[powers.len - 1 - index].mul(constraint));
-            }
+            var folded = folding[0].mul(constraints[0]);
+            inline for (1..constraint_count) |index|
+                folded = folded.add(folding[index].mul(constraints[index]));
             state.accumulator.accumulate(
                 row,
                 folded.mulM31(state.denominator_inv[row >> denominator_shift]),
             );
         }
+    }
+
+    /// Row-independent terms of `evaluateSelectedGeneric`, hoisted once per
+    /// prepared evaluation.
+    pub fn rowConstants(self: *const @This()) RowConstantsV1 {
+        var powers: [selected_main_count + 1]QM31 = undefined;
+        powers[0] = QM31.one();
+        for (1..powers.len) |index|
+            powers[index] = powers[index - 1].mul(self.challenges.row_power);
+        return .{
+            .powers = powers,
+            .value_base = domainFelt(0x524f_5731).mul(powers[selected_main_count]),
+            .seed_times_accumulator = rangeSeed(
+                self.claim.first_call,
+                self.claim.call_count,
+                self.challenges.row_power,
+            ).mul(self.challenges.accumulator_power),
+            .accumulator_power = self.challenges.accumulator_power,
+            .terminal = self.claim.terminal,
+        };
     }
 
     fn evaluateSelectedRow(
@@ -825,6 +890,48 @@ fn sampledSecure(columns: [][]QM31, offset: usize, point: usize) !QM31 {
     return QM31.fromPartialEvals(values);
 }
 
+/// Hoisted per-component constants for the base-field row evaluator.
+pub const RowConstantsV1 = struct {
+    /// `row_power^k` for `k` in `0..=selected_main_count`.
+    powers: [selected_main_count + 1]QM31,
+    /// Domain tag times `row_power^selected_main_count`.
+    value_base: QM31,
+    /// `rangeSeed * accumulator_power`.
+    seed_times_accumulator: QM31,
+    accumulator_power: QM31,
+    terminal: QM31,
+};
+
+/// Exact field-identical restatement of `evaluateSelectedGeneric(QM31, ..)`
+/// for domain rows whose selected main and selector values are base-field
+/// elements: Horner over QM31 is expanded into a power sum so every selected
+/// felt costs one M31-by-QM31 product, and the shard range seed is folded into
+/// a hoisted constant.  No reassociation crosses a non-commutative boundary,
+/// so the outputs are bitwise identical to the generic evaluator.
+pub fn evaluateSelectedRowPrepared(
+    constants: RowConstantsV1,
+    selected: [selected_main_count]M31,
+    current: QM31,
+    previous: QM31,
+    is_first: M31,
+    is_active: M31,
+) [constraint_count]QM31 {
+    var value = constants.value_base;
+    inline for (0..selected_main_count) |index| {
+        value = value.add(
+            constants.powers[selected_main_count - 1 - index].mulM31(selected[index]),
+        );
+    }
+    const first_expected = constants.seed_times_accumulator.add(value);
+    const continued = previous.mul(constants.accumulator_power).add(value);
+    return .{
+        current.sub(first_expected).mulM31(is_first),
+        current.sub(continued).mulM31(is_active.sub(is_first)),
+        current.sub(previous).mulM31(M31.one().sub(is_active)),
+        previous.sub(constants.terminal).mulM31(is_first),
+    };
+}
+
 fn secureAt(columns: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(columns[0][row], columns[1][row], columns[2][row], columns[3][row]);
 }
@@ -834,5 +941,103 @@ comptime {
         interaction_column_count != 4 or constraint_count != 4)
     {
         @compileError("provider ordered-call AIR geometry drifted");
+    }
+}
+
+test "provider order prepared row evaluator is field-identical to the generic evaluator" {
+    var prng = std.Random.DefaultPrng.init(0x0de5_0001);
+    const random = prng.random();
+    const randomM31 = struct {
+        fn call(r: std.Random) M31 {
+            return M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus));
+        }
+    }.call;
+    const randomQM31 = struct {
+        fn call(r: std.Random) QM31 {
+            return QM31.fromM31(
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            );
+        }
+    }.call;
+    for (0..64) |_| {
+        const challenges = ChallengesV1{
+            .row_power = randomQM31(random),
+            .accumulator_power = randomQM31(random),
+        };
+        const claim = ClaimV1{
+            .format = format_version,
+            .first_call = random.int(u64) >> 2,
+            .call_count = random.int(u32) >> 1,
+            .terminal = randomQM31(random),
+        };
+        const component = ProviderOrderComponent{
+            .log_size = 18,
+            .n_rows = 1,
+            .is_first_col_idx = 0,
+            .is_active_col_idx = 1,
+            .main_col_offset = 0,
+            .main_column_count = 239,
+            .selected_main_columns = legacySelectedMainColumns(),
+            .composition_log_split = 2,
+            .interaction_col_offset = 0,
+            .challenges = challenges,
+            .claim = claim,
+        };
+        const constants = component.rowConstants();
+        for (0..32) |_| {
+            var selected: [selected_main_count]M31 = undefined;
+            var selected_secure: [selected_main_count]QM31 = undefined;
+            for (&selected, &selected_secure) |*felt, *secure| {
+                felt.* = randomM31(random);
+                secure.* = QM31.fromBase(felt.*);
+            }
+            const current = randomQM31(random);
+            const previous = randomQM31(random);
+            const is_first = randomM31(random);
+            const is_active = randomM31(random);
+            const expected = evaluateSelectedGeneric(
+                QM31,
+                selected_secure,
+                current,
+                previous,
+                QM31.fromBase(is_first),
+                QM31.fromBase(is_active),
+                component.challenges.row_power,
+                component.challenges.accumulator_power,
+                claim.first_call,
+                claim.call_count,
+                claim.terminal,
+            );
+            const actual = evaluateSelectedRowPrepared(
+                constants,
+                selected,
+                current,
+                previous,
+                is_first,
+                is_active,
+            );
+            for (expected, actual) |lhs, rhs| try std.testing.expect(lhs.eql(rhs));
+        }
+    }
+}
+
+test "provider order base-field call value is field-identical to the Horner call value" {
+    var prng = std.Random.DefaultPrng.init(0xca11_0001);
+    const random = prng.random();
+    for (0..256) |_| {
+        const power = QM31.fromM31(
+            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            M31.fromCanonical(random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+        );
+        var call = poseidon2_air.Call{ .input = undefined, .narrow_output = 0 };
+        for (&call.input) |*word| word.* = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        call.narrow_output = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        const powers = CallValuePowersV1.init(power);
+        try std.testing.expect(callValue(call, power).eql(powers.callValue(call)));
     }
 }

@@ -46,6 +46,18 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
             return error.InvalidBackendProofOfWorkNonce;
         return nonce;
     }
+    if (comptime Backend != void and
+        @hasDecl(@TypeOf(channel.*), "powPrefixState") and
+        @hasDecl(Backend, "grindPoseidon2ChannelProofOfWork"))
+    {
+        const nonce = try Backend.grindPoseidon2ChannelProofOfWork(
+            channel.powPrefixState(),
+            pow_bits,
+        );
+        if (!channel.verifyPowNonce(pow_bits, nonce))
+            return error.InvalidBackendProofOfWorkNonce;
+        return nonce;
+    }
     return grind(channel, pow_bits);
 }
 

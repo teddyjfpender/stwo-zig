@@ -49,7 +49,7 @@ const countKernelDeclarations = manifest.testing.countKernelDeclarations;
 const kernelDeclaration = manifest.testing.kernelDeclaration;
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 165), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 166), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
