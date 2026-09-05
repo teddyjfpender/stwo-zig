@@ -4,6 +4,7 @@ const std = @import("std");
 const runtime_mod = @import("../runtime.zig");
 const MetalBackend = @import("../commit_backend.zig").MetalCommitBackend;
 const commit_policy = @import("../commit_policy.zig");
+const fold_parity = @import("../fri_fold_parity.zig");
 const core_fri = @import("stwo_core").fri;
 const core_utils = @import("stwo_core").utils;
 const fields = @import("stwo_core").fields;
@@ -11,15 +12,154 @@ const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const circle = @import("stwo_core").circle;
 const line = @import("stwo_core").poly.line;
+const canonic = @import("stwo_core").poly.circle.canonic;
+const queries_mod = @import("stwo_core").queries;
 const secure_column = @import("stwo_prover_engine").secure_column;
+const prover_fri = @import("stwo_prover_engine").fri;
 const merkle_prover = @import("stwo_prover_engine").vcs_lifted.prover;
 const blake2_merkle = @import("stwo_core").vcs_lifted.blake2_merkle;
 const channel_blake2s = @import("stwo_core").channel.blake2s;
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
+const CircleDomain = @import("stwo_core").poly.circle.domain.CircleDomain;
 const Hasher = blake2_merkle.Blake2sMerkleHasher;
 const MerkleChannel = blake2_merkle.Blake2sMerkleChannel;
+
+test "metal: packed FRI retains exact resident opening columns through decommit" {
+    const allocator = std.testing.allocator;
+
+    var values: [16]QM31 = undefined;
+    for (&values, 0..) |*value, index| {
+        const base: u32 = @intCast(index * 4 + 1);
+        value.* = QM31.fromU32Unchecked(base, base + 1, base + 2, base + 3);
+    }
+    var column = try secure_column.SecureColumnByCoords.fromSecureSlice(
+        allocator,
+        &values,
+    );
+    defer column.deinit(allocator);
+
+    var retained = try prover_fri.PackedSecureColumns.init(allocator, column);
+    defer retained.deinit(allocator);
+    const retained_refs = retained.refs();
+    var reference_tree = try merkle_prover.MerkleProverLifted(Hasher).commit(
+        allocator,
+        &retained_refs,
+    );
+    defer reference_tree.deinit(allocator);
+    var resident_tree = try MetalBackend.commitMerkle(
+        Hasher,
+        allocator,
+        &retained_refs,
+    );
+    defer resident_tree.deinit(allocator);
+    try std.testing.expectEqualSlices(
+        u8,
+        &reference_tree.root(),
+        &resident_tree.root(),
+    );
+
+    // Repacking equal values at fresh pointers is not a resident capability.
+    // This reproduces the old proof-lifetime bug and must remain fail-closed.
+    var recreated = try prover_fri.PackedSecureColumns.init(allocator, column);
+    defer recreated.deinit(allocator);
+    const query_positions = [_]usize{ 1, 14 };
+    try std.testing.expectError(
+        error.InvalidColumnSize,
+        prover_fri.decommitLayerExtendedWithRetainedPacking(
+            Hasher,
+            allocator,
+            resident_tree,
+            column,
+            &query_positions,
+            4,
+            &recreated,
+        ),
+    );
+
+    var expected = try prover_fri.decommitLayerExtended(
+        Hasher,
+        allocator,
+        reference_tree,
+        column,
+        &query_positions,
+        4,
+    );
+    defer expected.deinit(allocator);
+    var actual = try prover_fri.decommitLayerExtendedWithRetainedPacking(
+        Hasher,
+        allocator,
+        resident_tree,
+        column,
+        &query_positions,
+        4,
+        &retained,
+    );
+    defer actual.deinit(allocator);
+
+    try std.testing.expectEqualSlices(QM31, expected.proof.fri_witness, actual.proof.fri_witness);
+    try std.testing.expectEqualSlices(
+        Hasher.Hash,
+        expected.proof.decommitment.hash_witness,
+        actual.proof.decommitment.hash_witness,
+    );
+    try std.testing.expectEqual(expected.aux.all_values.len, actual.aux.all_values.len);
+    for (expected.aux.all_values, actual.aux.all_values) |expected_values, actual_values| {
+        try std.testing.expectEqual(expected_values.len, actual_values.len);
+        for (expected_values, actual_values) |expected_value, actual_value| {
+            try std.testing.expectEqual(expected_value.index, actual_value.index);
+            try std.testing.expect(expected_value.value.eql(actual_value.value));
+        }
+    }
+}
+
+test "metal: four-fold FRI prover owns packed resident openings until query" {
+    const allocator = std.testing.allocator;
+    const TestFriProver = prover_fri.FriProver(
+        MetalBackend,
+        Hasher,
+        MerkleChannel,
+    );
+    const domain_log: u32 = 8;
+    const domain = canonic.CanonicCoset.new(domain_log).circleDomain();
+    const values = try allocator.alloc(QM31, domain.size());
+    defer allocator.free(values);
+    @memset(values, QM31.fromU32Unchecked(7, 11, 13, 17));
+    const column = try secure_column.SecureColumnByCoords.fromSecureSlice(
+        allocator,
+        values,
+    );
+
+    var channel = channel_blake2s.Blake2sChannel{};
+    const config = core_fri.FriConfig{
+        .log_blowup_factor = 1,
+        .log_last_layer_degree_bound = 0,
+        .n_queries = 3,
+        .fold_step = 4,
+    };
+    var fri = try TestFriProver.commit(
+        allocator,
+        &channel,
+        config,
+        domain,
+        column,
+    );
+    try std.testing.expect(fri.first_layer.retained_packing != null);
+    try std.testing.expectEqual(@as(usize, 1), fri.inner_layers.len);
+    try std.testing.expect(fri.inner_layers[0].retained_packing != null);
+
+    const raw_queries = [_]usize{ 1, 42, 255 };
+    var queries = try queries_mod.Queries.init(
+        allocator,
+        &raw_queries,
+        domain_log,
+    );
+    defer queries.deinit(allocator);
+    var proof = try fri.decommitOnQueries(allocator, queries);
+    defer proof.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 1), proof.proof.inner_layers.len);
+}
 
 test "metal: resident FRI inverse-y cache matches shifted host domains" {
     const allocator = std.testing.allocator;
@@ -89,6 +229,30 @@ test "metal: resident FRI inverse-y cache matches shifted host domains" {
         try std.testing.expect(!hit_receipt.inverse_generated);
         try std.testing.expectEqualSlices(u32, host_destination, miss_destination);
         try std.testing.expectEqualSlices(u32, host_destination, hit_destination);
+
+        var source_columns: [4][]const M31 = undefined;
+        for (&source_columns, 0..) |*column, coordinate| {
+            const words = source[coordinate * source_count ..][0..source_count];
+            column.* = std.mem.bytesAsSlice(
+                M31,
+                std.mem.sliceAsBytes(words),
+            );
+        }
+        const actual = std.mem.bytesAsSlice(
+            QM31,
+            std.mem.sliceAsBytes(miss_destination),
+        );
+        const parity_receipt = try fold_parity.validateCircle(
+            source_columns,
+            CircleDomain.new(fold_coset),
+            inverses,
+            QM31.fromU32Unchecked(alpha[0], alpha[1], alpha[2], alpha[3]),
+            actual,
+        );
+        try std.testing.expectEqual(
+            fold_parity.Kind.circle_to_line,
+            parity_receipt.kind,
+        );
     }
 }
 

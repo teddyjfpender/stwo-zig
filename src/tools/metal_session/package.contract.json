@@ -7,12 +7,15 @@
   "public_modules": {
     "stwo_metal_session": "mod.zig"
   },
-  "dependencies": {},
+  "dependencies": {
+    "stwo_artifact_store": "../../artifact_store"
+  },
   "injected_modules": [],
   "api_surface": [
     "artifact_manifest",
     "artifact_store",
     "artifact_views",
+    "persistent_artifacts",
     "protocol"
   ],
   "api_contract": {

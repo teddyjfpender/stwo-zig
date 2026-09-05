@@ -105,6 +105,8 @@ pub fn requireExecutionProfile(
     return switch (requested) {
         .rv32im_zkvm_v1 => ElfError.MissingAdmissionNote,
         .rv32im_zkvm_poseidon2_v1 => ElfError.RequiredCapabilityUnavailable,
+        .rv32im_zkvm_keccakf_v1 => ElfError.RequiredCapabilityUnavailable,
+        .rv32im_zkvm_ethereum_v1 => ElfError.RequiredCapabilityUnavailable,
     };
 }
 
@@ -651,7 +653,7 @@ test "ELF admission rejects every descriptor identity mismatch" {
     }
     {
         var elf = makeAdmissionNoteElf();
-        putU16LE(&elf, NOTE_DESCRIPTOR + 10, 2);
+        putU16LE(&elf, NOTE_DESCRIPTOR + 10, 4);
         try std.testing.expectError(ElfError.UnsupportedMachineProfile, requestedExecutionProfile(&elf));
     }
     {
@@ -698,6 +700,30 @@ test "ELF admission rejects every descriptor identity mismatch" {
             elf[NOTE_DESCRIPTOR + 24 + byte_index] ^= 1;
         }
     }
+}
+
+test "ELF admission selects the exact Keccak-f profile identity" {
+    var elf = makeAdmissionNoteElf();
+    putU16LE(&elf, NOTE_DESCRIPTOR + 10, 2);
+    putU64LE(&elf, NOTE_DESCRIPTOR + 12, execution_profile.keccakf_capability_bit);
+    putU16LE(&elf, NOTE_DESCRIPTOR + 20, execution_profile.keccakf_abi_version);
+    @memcpy(
+        elf[NOTE_DESCRIPTOR + 24 .. NOTE_DESCRIPTOR + 56],
+        &execution_profile.keccakf_semantic_digest,
+    );
+    try std.testing.expectEqual(
+        ExecutionProfile.rv32im_zkvm_keccakf_v1,
+        try requestedExecutionProfile(&elf),
+    );
+    try std.testing.expectError(
+        ElfError.RequiredCapabilityUnavailable,
+        requireExecutionProfile(&elf, .rv32im_zkvm_poseidon2_v1),
+    );
+    elf[NOTE_DESCRIPTOR + 24] ^= 1;
+    try std.testing.expectError(
+        ElfError.KeccakfSemanticDigestMismatch,
+        requestedExecutionProfile(&elf),
+    );
 }
 
 test "ELF admission rejects duplicate notes, duplicate sections, and invalid tables" {

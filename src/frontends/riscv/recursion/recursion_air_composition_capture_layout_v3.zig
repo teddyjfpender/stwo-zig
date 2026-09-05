@@ -66,6 +66,10 @@ pub const ManifestFamily = enum(u8) {
     universal_v1 = 1,
     segment_v2 = 2,
     temporal_parent_v3 = 3,
+    ethereum_poseidon_h1_v1 = 4,
+    canonical_empty_field_v2 = 5,
+    common_fold_field_v2 = 6,
+    ethereum_incremental_leaf_wrapper_v4 = 7,
 };
 
 /// Owned, verifier-derived offset table.  `offsets[tree][column]` indexes the
@@ -99,6 +103,7 @@ pub const CaptureLayoutV3 = struct {
             allocator,
             .segment_leaf,
             .segment_v2,
+            POSEIDON_ROSTER_ROW,
             manifest,
             manifest.catalog_identity,
             capture,
@@ -120,6 +125,7 @@ pub const CaptureLayoutV3 = struct {
             allocator,
             .binary_node,
             .universal_v1,
+            POSEIDON_ROSTER_ROW,
             manifest,
             [_]u8{0} ** 32,
             capture,
@@ -136,13 +142,39 @@ pub const CaptureLayoutV3 = struct {
         manifest: anytype,
         capture: anytype,
     ) !CaptureLayoutV3 {
+        return initAuthenticatedBinaryWithProviderRow(
+            allocator,
+            family,
+            POSEIDON_ROSTER_ROW,
+            manifest,
+            capture,
+        );
+    }
+
+    /// Authenticated binary family whose native Poseidon provider occupies a
+    /// nonlegacy physical row. The row is comptime protocol authority because
+    /// it changes the per-column OODS sample geometry.
+    pub fn initAuthenticatedBinaryWithProviderRow(
+        allocator: std.mem.Allocator,
+        comptime family: ManifestFamily,
+        comptime poseidon_roster_row: usize,
+        manifest: anytype,
+        capture: anytype,
+    ) !CaptureLayoutV3 {
         if (family == .universal_v1 or family == .segment_v2)
             return error.InvalidProofKind;
         try manifest.validate();
+        if (poseidon_roster_row >= @as(usize, manifest.roster_count) or
+            manifest.roster_rows[poseidon_roster_row] !=
+                @as(u8, @intCast(poseidon_roster_row)))
+        {
+            return error.ManifestAuthorityMismatch;
+        }
         return initForManifest(
             allocator,
             .binary_node,
             family,
+            poseidon_roster_row,
             manifest,
             [_]u8{0} ** 32,
             capture,
@@ -466,6 +498,7 @@ fn initForManifest(
     allocator: std.mem.Allocator,
     kind: ProofKind,
     family: ManifestFamily,
+    poseidon_roster_row: usize,
     manifest: anytype,
     catalog_identity: [32]u8,
     capture: anytype,
@@ -541,6 +574,7 @@ fn initForManifest(
         for (tree, 0..) |column, column_index| {
             const expected_samples = try expectedSampleCount(
                 manifest,
+                poseidon_roster_row,
                 tree_index,
                 column_index,
             );
@@ -600,6 +634,7 @@ fn deriveCompositionLogSize(manifest: anytype) Error!u32 {
 
 fn expectedSampleCount(
     manifest: anytype,
+    poseidon_roster_row: usize,
     tree: usize,
     column: usize,
 ) Error!usize {
@@ -609,7 +644,7 @@ fn expectedSampleCount(
         const start: usize = @intCast(placement.interaction_offset);
         const end = start + placement.geometry.interaction_columns;
         if (column >= start and column < end) {
-            if (row == POSEIDON_ROSTER_ROW) return 2;
+            if (@as(usize, row) == poseidon_roster_row) return 2;
             const final_start = end - qm31.SECURE_EXTENSION_DEGREE;
             return if (column >= final_start) 2 else 1;
         }

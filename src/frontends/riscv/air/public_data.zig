@@ -49,6 +49,13 @@ pub const CompletionKind = enum(u32) {
     halt_flag = 1,
     /// The canonical `jal x0, 0` at `final_pc`, observed but not retired.
     unretired_self_loop = 2,
+    /// The actual declared-program word at a nonfinal segment boundary.
+    ///
+    /// This is a proof-role boundary fetch, not a runner completion reason.
+    /// SegmentV2 transports therefore never synthesize this value: the
+    /// joined incremental proof derives it from the separately admitted ELF
+    /// and proves it against the declared-program commitment.
+    unretired_program_fetch = 3,
 };
 
 pub const CANONICAL_SELF_LOOP_WORD: u32 = 0x0000_006f;
@@ -64,6 +71,15 @@ pub const Completion = struct {
             .kind = .unretired_self_loop,
             .address = pc,
             .value = CANONICAL_SELF_LOOP_WORD,
+            .clock = 0,
+        };
+    }
+
+    pub fn unretiredProgramFetch(pc: u32, word: u32) Completion {
+        return .{
+            .kind = .unretired_program_fetch,
+            .address = pc,
+            .value = word,
             .clock = 0,
         };
     }
@@ -216,6 +232,14 @@ pub const PublicData = struct {
                     return error.InvalidCompletionAddress;
                 if (completion.value != CANONICAL_SELF_LOOP_WORD)
                     return error.InvalidCompletionValue;
+                if (completion.clock != 0) return error.InvalidCompletionClock;
+            },
+            .unretired_program_fetch => {
+                if (completion.address != self.final_pc)
+                    return error.InvalidCompletionAddress;
+                profile.requireProgramWordAddress(completion.address) catch
+                    return error.InvalidCompletionAddress;
+                if (completion.value == 0) return error.InvalidCompletionValue;
                 if (completion.clock != 0) return error.InvalidCompletionClock;
             },
         }

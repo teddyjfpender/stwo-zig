@@ -101,10 +101,131 @@ pub const guest_precompile_corpus_elf =
     @import("runner/guest_precompile/c011_elf_test_support.zig");
 pub const guest_precompile_main_trace_support =
     @import("air/guest_precompile/main_trace_test_support.zig");
+pub const bulk_memcpy_proof_harness_v1 =
+    @import("air/guest_precompile/bulk_memcpy_proof_harness_v1.zig");
+pub const bulk_memcpy_proof_trace_v1 =
+    @import("air/guest_precompile/bulk_memcpy_trace_v1.zig");
+pub const bulk_memcpy_proof_component_v1 =
+    @import("air/guest_precompile/bulk_memcpy_component_v1.zig");
+pub const bulk_memcpy_word_candidate_v1 =
+    @import("air/guest_precompile/bulk_memcpy_word_candidate_v1.zig");
+pub const bulk_memcpy_relations_v1 =
+    @import("air/guest_precompile/bulk_memcpy_relations_v1.zig");
+pub const stack_swap_proof_harness_v1 =
+    @import("air/guest_precompile/stack_swap_proof_harness_v1.zig");
+pub const stack_swap_proof_component_v1 =
+    @import("air/guest_precompile/stack_swap_component_v1.zig");
+pub const stack_swap_proof_stark_component_v1 =
+    @import("air/guest_precompile/stack_swap_stark_component_v1.zig");
+pub const stack_swap_proof_trace_v1 =
+    @import("air/guest_precompile/stack_swap_trace_v1.zig");
+pub const stack_swap_candidate_abi_v1 =
+    @import("isa/stack_swap_candidate_v1.zig");
+pub const stack_swap_caller_candidate_v1 =
+    @import("air/guest_precompile/stack_swap_caller_candidate_v1.zig");
+pub const stack_swap_word_candidate_v1 =
+    @import("air/guest_precompile/stack_swap_word_candidate_v1.zig");
+pub const stack_swap_relations_v1 =
+    @import("air/guest_precompile/stack_swap_relations_v1.zig");
+pub const stack_swap_private_registry_v1 =
+    @import("isa/stack_swap_private_registry_v1.zig");
+pub const stack_swap_vm_profile_v1 =
+    @import("air/guest_precompile/stack_swap_vm_profile_v1.zig");
+pub const stack_swap_vm_integration_v1 =
+    @import("prover/guest_precompile/stack_swap_vm_integration_v1.zig");
+pub const stack_swap_candidate_dispatch_v1 =
+    @import("runner/guest_precompile/stack_swap_candidate_dispatch_v1.zig");
+pub const ethereum_stack_swap_candidate_authority_v1 =
+    @import("isa/ethereum_stack_swap_candidate_v1.zig");
+pub const ethereum_stack_swap_candidate_decode_v1 =
+    @import("prover/guest_precompile/ethereum_stack_swap_candidate_decode_v1.zig");
+pub const ethereum_stack_swap_candidate_state_v1 =
+    @import("runner/guest_precompile/ethereum_stack_swap_candidate_v1.zig");
+pub const ethereum_stack_swap_candidate_result_v1 =
+    @import("runner/ethereum_stack_swap_candidate_result_v1.zig");
+pub const EthereumStackSwapCandidateExecutionSessionV1 =
+    @import("runner/segment_session.zig").EthereumStackSwapCandidateExecutionSessionV1;
+pub const bulk_memcpy_private_registry_v1 =
+    @import("isa/bulk_memcpy_private_registry_v1.zig");
+pub const bulk_memcpy_vm_profile_v1 =
+    @import("air/guest_precompile/bulk_memcpy_vm_profile_v1.zig");
+pub const bulk_memcpy_candidate_dispatch_v1 =
+    @import("runner/guest_precompile/bulk_memcpy_candidate_dispatch_v1.zig");
+pub const ethereum_bulk_memcpy_candidate_authority_v1 =
+    @import("isa/ethereum_bulk_memcpy_candidate_v1.zig");
+pub const ethereum_bulk_memcpy_candidate_decode_v1 =
+    @import("prover/guest_precompile/ethereum_bulk_memcpy_candidate_decode_v1.zig");
+pub const ethereum_bulk_memcpy_candidate_state_v1 =
+    @import("runner/guest_precompile/ethereum_bulk_memcpy_candidate_v1.zig");
+pub const ethereum_bulk_memcpy_candidate_result_v1 =
+    @import("runner/ethereum_bulk_memcpy_candidate_result_v1.zig");
+pub const EthereumBulkMemcpyCandidateExecutionSessionV1 =
+    @import("runner/segment_session.zig").EthereumBulkMemcpyCandidateExecutionSessionV1;
+pub const ethereum_candidate_combined_authority_v1 =
+    @import("isa/ethereum_candidate_combined_authority_v1.zig");
+pub const ethereum_candidate_private_registry_v1 =
+    @import("isa/ethereum_candidate_private_registry_v1.zig");
+pub const ethereum_candidate_combined_decode_v1 =
+    @import("prover/guest_precompile/ethereum_candidate_combined_decode_v1.zig");
+pub const ethereum_candidate_combined_dispatch_v1 =
+    @import("runner/guest_precompile/ethereum_candidate_combined_dispatch_v1.zig");
+pub const ethereum_candidate_combined_elf_receipt_v1 =
+    @import("runner/guest_precompile/ethereum_candidate_combined_elf_receipt_v1.zig");
+pub const ethereum_candidate_combined_state_v1 =
+    @import("runner/guest_precompile/ethereum_candidate_combined_v1.zig");
+pub const ethereum_candidate_combined_result_v1 =
+    @import("runner/ethereum_candidate_combined_result_v1.zig");
+pub const EthereumCombinedCandidateExecutionSessionV1 =
+    @import("runner/segment_session.zig").EthereumCombinedCandidateExecutionSessionV1;
+pub const ethereum_candidate_execution_capability_v1 = @import(
+    "runner/guest_precompile/ethereum_candidate_execution_capability_v1.zig",
+);
+pub const ethereum_candidate_execution_journal_v1 = @import(
+    "runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig",
+);
+pub const ethereum_candidate_observed_journal_v1 = @import(
+    "runner/guest_precompile/ethereum_candidate_observed_journal_v1.zig",
+);
+pub const bulk_memcpy_lifted_composition_diagnostic_v1 =
+    @import("air/guest_precompile/bulk_memcpy_lifted_composition_diagnostic_v1.zig");
 pub const split_leaf_prepare =
     @import("prover/guest_precompile/split_leaf_prepare.zig");
 pub const split_leaf_statement =
     @import("prover/guest_precompile/split_leaf_statement.zig");
+pub const narrow_memory_provider_proof_harness =
+    @import("prover/memory_provider_shards/proof_harness.zig");
+pub const narrow_memory_provider_joint_protocol =
+    @import("prover/memory_provider_shards/joint_protocol.zig");
+pub const narrow_memory_provider_joint_proof =
+    @import("prover/memory_provider_shards/joint_proof.zig");
+pub const narrow_memory_provider_joint_proof_v2 =
+    @import("prover/memory_provider_shards/joint_provider_proof_v2.zig");
+pub const narrow_memory_provider_full_core_joint_protocol =
+    @import("prover/memory_provider_shards/full_core_joint_protocol.zig");
+pub const narrow_memory_provider_full_core_joint_verifier =
+    @import("prover/memory_provider_shards/full_core_joint_verifier.zig");
+pub const narrow_memory_provider_full_core_provider_proof_v2 =
+    @import("prover/memory_provider_shards/full_core_provider_proof_v2.zig");
+pub const narrow_memory_provider_ethereum_omit_proof_v1 =
+    @import("prover/memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
+pub const narrow_memory_provider_shard_authority =
+    @import("prover/memory_provider_shards/authority.zig");
+pub const narrow_memory_provider_degree5_proof_v1 =
+    @import("prover/memory_provider_shards/degree5_provider_proof_v1.zig");
+pub const narrow_memory_provider_degree5_order_proof_v2 =
+    @import("prover/memory_provider_shards/degree5_provider_order_proof_v2.zig");
+pub const narrow_memory_provider_degree5_ethereum_omit_proof_v1 =
+    @import("prover/memory_provider_shards/degree5_ethereum_omit_provider_proof_v1.zig");
+pub const narrow_memory_provider_ethereum_candidate_protocol_v1 =
+    @import("prover/memory_provider_shards/ethereum_candidate_omit_protocol_v1.zig");
+pub const narrow_memory_provider_degree5_ethereum_candidate_v1 =
+    @import("prover/memory_provider_shards/degree5_ethereum_candidate_provider_v1.zig");
+pub const narrow_memory_provider_order_component =
+    @import("prover/memory_provider_shards/provider_order_component.zig");
+pub const ethereum_leaf_child_field_test =
+    @import("recursion/ethereum_leaf_child_field_test.zig");
+pub const provider_shard_child_field_test =
+    @import("recursion/provider_shard_child_field_test.zig");
 pub const aggregation_test_fixture = @import("aggregation/test_fixture.zig");
 pub const aggregation_types = @import("aggregation/types.zig");
 pub const binary_pair_outer_fixture =
@@ -118,6 +239,18 @@ pub const statement_geometry = @import("prover/statement_geometry.zig");
 pub const proof_workspace = @import("prover/proof_workspace.zig");
 pub const main_trace_plan = @import("prover/main_trace_plan.zig");
 pub const witness_hook = @import("prover/test_witness_hook.zig");
+/// Unstable joined-leaf proof surfaces. These remain outside the production
+/// prover facade until the genuine Ethereum + V4 cold-capture gate succeeds.
+pub const incremental_ethereum_orchestration_v4_internal =
+    @import("prover/incremental_ethereum_orchestration_v3.zig");
+pub const incremental_ethereum_verifier_v4_internal =
+    @import("prover/incremental_ethereum_verifier_v3.zig");
+/// Opt-in omitted-provider route (`--provider-route degree5-omit-v1`). The
+/// native leaf path above is untouched by it; this export exists so the
+/// integration owner can drive the route's prover and cold verifier without
+/// widening the production prover facade.
+pub const incremental_ethereum_omit_orchestration_v4_internal =
+    @import("prover/incremental_ethereum_omit_orchestration_v4.zig");
 
 test {
     @import("std").testing.refAllDecls(@This());

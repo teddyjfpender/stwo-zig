@@ -101,6 +101,15 @@ pub const MAX_PHYSICAL_CLAIM_COUNT: usize = SEGMENT_PHYSICAL_CLAIM_COUNT;
 
 pub const POSEIDON_PARTIAL_COUNT: usize = 2;
 
+/// Append-only H1 binary-family claim policy. The shared V3 input vector stays
+/// 41-wide so legacy graph bytes do not move; H1 uses physical slots 0..11,
+/// provider partials 12/13, and constrains 14..40 to zero.
+pub const H1_PHYSICAL_CLAIM_COUNT: usize = 12;
+pub const H1_POSEIDON_ROSTER_ROW: usize = 11;
+pub const H1_POSEIDON_AUX_START: usize = H1_PHYSICAL_CLAIM_COUNT;
+pub const H1_SEMANTIC_CLAIM_INPUT_COUNT: usize =
+    H1_PHYSICAL_CLAIM_COUNT + POSEIDON_PARTIAL_COUNT;
+
 pub const POSEIDON_ROSTER_ROW: usize =
     @intFromEnum(universal_roster.Component.poseidon2);
 
@@ -189,6 +198,9 @@ pub const Error = graph_mod.Error || recorder.Error || segment_manifest_mod.Erro
 pub const ManifestFamilyV3 = enum(u8) {
     universal_v1 = 1,
     segment_v2 = 2,
+    ethereum_poseidon_h1_v1 = 3,
+    temporal_parent_v3 = 4,
+    common_fold_field_v2 = 5,
 };
 
 pub const ClaimPolicyV3 = enum(u8) {
@@ -196,6 +208,9 @@ pub const ClaimPolicyV3 = enum(u8) {
     universal_with_zero_tail = 2,
     canonical_empty = 3,
     canonical_empty_provider = 4,
+    ethereum_poseidon_h1 = 5,
+    temporal_parent = 6,
+    common_fold_field_v2 = 7,
 };
 
 pub const TrustedManifestsV3 = struct {

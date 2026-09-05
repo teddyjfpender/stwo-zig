@@ -121,6 +121,34 @@ test "blake2s backend: eight-way single-block hashes match scalar messages" {
     }
 }
 
+test "blake2s backend: prepared fixed40 nonce words match complete hashes" {
+    var prng = std.Random.DefaultPrng.init(0x706f_775f_3430_7838);
+    const rng = prng.random();
+    var prefix: [32]u8 = undefined;
+    var nonces: [8]u64 = undefined;
+    var messages: [8][40]u8 = undefined;
+    for (0..32) |_| {
+        rng.bytes(prefix[0..]);
+        for (&nonces) |*nonce| nonce.* = rng.int(u64);
+        const prepared = Blake2sHasher.prepareFixed40NoncePrefix(&prefix);
+        const actual = Blake2sHasher.hashFixed40NonceFirstWords8(
+            &prepared,
+            &nonces,
+        );
+        for (&messages, nonces) |*message, nonce| {
+            @memcpy(message[0..32], prefix[0..]);
+            std.mem.writeInt(u64, message[32..40], nonce, .little);
+        }
+        const expected = Blake2sHasher.hashFixedSingleBlock8(40, &messages);
+        for (actual, expected) |word, digest| {
+            try std.testing.expectEqual(
+                std.mem.readInt(u32, digest[0..4], .little),
+                word,
+            );
+        }
+    }
+}
+
 test "blake2s backend: four-way terminal compression matches scalar messages" {
     var prng = std.Random.DefaultPrng.init(0x6c62_6174_6368_345f);
     var prefix: [64]u8 = undefined;

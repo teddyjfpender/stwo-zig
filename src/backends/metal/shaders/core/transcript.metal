@@ -1,6 +1,7 @@
 #ifndef STWO_ZIG_AMALGAMATED
 #include "stwo_zig/base.metal"
 #include "stwo_zig/blake2s.metal"
+#include "stwo_zig/poseidon2_m31.metal"
 #endif
 
 inline void transcript_hash_digest_words(
@@ -218,6 +219,52 @@ kernel void stwo_zig_blake2s_parent_tail_sparse(
     transcript_draw_secure_felts(arena, state_base, alpha_base, 1u);
 }
 
+// Poseidon2 parent tails never mutate a Fiat-Shamir transcript.  The generic
+// Poseidon recursion channel performs its transcript on the typed host side;
+// this kernel is solely the exact Merkle parent compression used by prepared
+// resident commitment plans.  The runtime admits it only when the existing
+// transcript configuration is disabled.
+kernel void stwo_zig_poseidon2_m31_parent_tail_sparse(
+    device uint *arena [[buffer(0)]], constant uint *child_offsets [[buffer(1)]],
+    constant uint *destination_offsets [[buffer(2)]], constant uint *parent_counts [[buffer(3)]],
+    constant uint &level_count [[buffer(4)]], constant uint *unused_node_seed [[buffer(5)]],
+    constant uint &unused_prefix_bytes [[buffer(6)]], constant uint *transcript_config [[buffer(7)]],
+    threadgroup uint *hashes [[threadgroup(0)]], uint thread_index [[thread_index_in_threadgroup]],
+    uint3 threads_in_group [[threads_per_threadgroup]],
+    uint3 group [[threadgroup_position_in_grid]]
+) {
+    (void)unused_node_seed;
+    (void)unused_prefix_bytes;
+    if (level_count == 0u || transcript_config[2] != 0u) return;
+    for (uint level = 0u; level < level_count; ++level) {
+        uint parent_count = parent_counts[level];
+        uint child_words[16], digest[8];
+        if (thread_index < parent_count) {
+            if (level == 0u) {
+                uint source = child_offsets[0] +
+                    (group.x * parent_count + thread_index) * 16u;
+                for (uint lane = 0u; lane < 16u; ++lane)
+                    child_words[lane] = arena[source + lane];
+            } else {
+                for (uint lane = 0u; lane < 16u; ++lane)
+                    child_words[lane] = hashes[thread_index * 16u + lane];
+            }
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        if (thread_index < parent_count) {
+            stwo_zig_poseidon2_parent(child_words, digest);
+            uint destination = destination_offsets[level] +
+                (group.x * parent_count + thread_index) * 8u;
+            for (uint lane = 0u; lane < 8u; ++lane) {
+                hashes[thread_index * 8u + lane] = digest[lane];
+                arena[destination + lane] = digest[lane];
+            }
+        }
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    (void)threads_in_group;
+}
+
 kernel void stwo_zig_transcript_draw_queries_resident(
     device uint *arena [[buffer(0)]], constant uint &state_base [[buffer(1)]],
     constant uint &destination_base [[buffer(2)]], constant uint &log_domain_size [[buffer(3)]],
@@ -234,4 +281,44 @@ kernel void stwo_zig_transcript_draw_queries_resident(
             arena[destination_base + produced++] = words[i] & mask;
     }
     arena[state_base + 8u] = counter;
+}
+
+// Exact lowest-nonce search for the Poseidon2-M31 recursion channel proof of
+// work.  `prefix_state` is the rate-8 sponge state after the channel digest
+// has been absorbed and permuted; it does not depend on the nonce, so the host
+// computes it once.  Per candidate the kernel replays `Channel.mixU64` (four
+// 16-bit halves plus the finishing `1`, one permutation) and `Channel.drawU32s`
+// on the resulting digest (absorb eight words, permute, absorb draw counter 0,
+// the DRAW tag, and the finishing `1`, permute) and accepts the nonce when the
+// first squeezed word has at least `pow_bits` trailing zeros.  Candidates are
+// `nonce_base + thread`, and the atomic minimum over a batch yields exactly the
+// lowest valid nonce the sequential host search would return.
+kernel void stwo_zig_poseidon2_channel_pow_search(
+    constant uint *prefix_state [[buffer(0)]],
+    constant ulong &nonce_base [[buffer(1)]],
+    constant uint &nonce_count [[buffer(2)]],
+    constant uint &pow_bits [[buffer(3)]],
+    device atomic_uint &first_match [[buffer(4)]],
+    uint local_nonce [[thread_position_in_grid]]
+) {
+    if (local_nonce >= nonce_count) return;
+    ulong nonce = nonce_base + (ulong)local_nonce;
+    uint low = (uint)nonce, high = (uint)(nonce >> 32u);
+    uint state[16];
+    for (uint lane = 0u; lane < 16u; ++lane) state[lane] = prefix_state[lane];
+    state[0] = m31_add(state[0], low & 0xffffu);
+    state[1] = m31_add(state[1], low >> 16u);
+    state[2] = m31_add(state[2], high & 0xffffu);
+    state[3] = m31_add(state[3], high >> 16u);
+    state[4] = m31_add(state[4], 1u);
+    stwo_zig_poseidon2_permute(state);
+    uint draw[16];
+    for (uint lane = 0u; lane < 8u; ++lane) draw[lane] = state[lane];
+    for (uint lane = 8u; lane < 16u; ++lane) draw[lane] = 0u;
+    stwo_zig_poseidon2_permute(draw);
+    draw[1] = m31_add(draw[1], 0x44524157u);
+    draw[2] = m31_add(draw[2], 1u);
+    stwo_zig_poseidon2_permute(draw);
+    if (ctz(draw[0]) >= pow_bits)
+        atomic_fetch_min_explicit(&first_match, local_nonce, memory_order_relaxed);
 }

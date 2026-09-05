@@ -73,6 +73,24 @@ pub const CaptureV1 = struct {
         publication: *const publication_mod.VerifiedPublicationV1,
         artifact: *const artifact_mod.VerifiedTemporalParentArtifactV1,
     ) !CaptureV1 {
+        return initForCohort(
+            cohort_mod.Cohort,
+            allocator,
+            cohort,
+            capture,
+            publication,
+            artifact,
+        );
+    }
+
+    pub fn initForCohort(
+        comptime Cohort: type,
+        allocator: std.mem.Allocator,
+        cohort: *Cohort,
+        capture: *const binary_driver.OuterProofCapture,
+        publication: *const publication_mod.VerifiedPublicationV1,
+        artifact: *const artifact_mod.VerifiedTemporalParentArtifactV1,
+    ) !CaptureV1 {
         try cohort.validate();
         try artifact.validateAgainst(publication);
         try artifact.recursive_admission.validateAgainst(capture);
@@ -352,7 +370,7 @@ fn recordProgram(
     manifest: *const manifest_mod.Manifest,
     layout: *const capture_layout.CaptureLayoutV3,
     profile: composition_v3.InputProfileV3,
-    components: *const cohort_mod.Cohort.Components,
+    components: anytype,
     wire_boundary: QM31,
     verifier_input_boundary: QM31,
 ) !OwnedProgram {
@@ -505,7 +523,7 @@ fn recordProgram(
 
 fn recordCohort(
     program: *ProgramRecorder,
-    components: *const cohort_mod.Cohort.Components,
+    components: anytype,
 ) !composition_v3.segment_recorder_v3.ProgramResultV3 {
     _ = try program.recordTypedComponent(.control, &components.prefix.control);
     _ = try program.recordTypedComponent(.transcript_air, &components.prefix.transcript_air);

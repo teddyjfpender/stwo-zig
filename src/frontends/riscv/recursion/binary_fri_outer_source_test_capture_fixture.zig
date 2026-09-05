@@ -212,7 +212,7 @@ pub fn fullCompositionInputValue(
             if (word >= 4) return error.InvalidFixture;
             break :blk child.capture.oods_seed.toM31Array()[word];
         },
-        .public_wire_boundary => error.InvalidFixture,
+        .public_wire_boundary, .transcript_claimed_sum => error.InvalidFixture,
     };
 }
 

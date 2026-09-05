@@ -653,19 +653,45 @@ pub fn interactionConstraintsGeneric(
 }
 
 pub fn rowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    const main = if (call.narrow_output != null and !call.wide and !call.io) blk: {
-        const output_value = call.narrow_output.?;
-        var interaction_main = [_]M31{M31.zero()} ** N_MAIN_COLUMNS;
-        interaction_main[0] = M31.one();
-        for (call.input, 0..) |value, lane| {
-            interaction_main[INPUT_START + lane] = M31.fromU64(value);
-        }
-        interaction_main[OUTPUT_START] = M31.fromU64(output_value);
-        break :blk interaction_main;
-    } else fill(call);
+    if (call.narrow_output != null and !call.wide and !call.io)
+        return narrowRowPairsFromCall(call, relations);
     var secure: [N_MAIN_COLUMNS]QM31 = undefined;
-    for (&secure, main) |*dst, value| dst.* = QM31.fromBase(value);
+    for (&secure, fill(call)) |*dst, value| dst.* = QM31.fromBase(value);
     return rowPairs(secure, relations);
+}
+
+/// Field-identical specialization of `rowPairsFromCall` for a canonical
+/// narrow call.  With enabler one and wide/io zero the four lookup entries
+/// carry constant numerators (-1, 1, 0, 0), and every denominator is a base
+/// field tuple combined with the relation challenges, so the row never needs
+/// the 445-column main row, its QM31 promotion, or the entry-list copies.
+/// The `-1` numerator is `enabler * (1 - io)` negated exactly as the generic
+/// builder computes it.
+pub fn narrowRowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
+    std.debug.assert(call.narrow_output != null and !call.wide and !call.io);
+    var input: [WIDTH]M31 = undefined;
+    for (&input, call.input) |*value, word| value.* = M31.fromU64(word);
+    const output_value = M31.fromU64(call.narrow_output.?);
+    var narrow = [_]M31{M31.zero()} ** WIDTH;
+    narrow[0] = output_value;
+    var io_tuple: [2 * WIDTH]M31 = undefined;
+    @memcpy(io_tuple[0..WIDTH], &input);
+    @memcpy(io_tuple[WIDTH..], &narrow);
+    const one = QM31.one();
+    return .{
+        .{
+            .n1 = one.neg(),
+            .d1 = relations.poseidon2.combineBase(input),
+            .n2 = one,
+            .d2 = relations.poseidon2.combineBase(narrow),
+        },
+        .{
+            .n1 = QM31.zero(),
+            .d1 = relations.poseidon2.combineBase(narrow),
+            .n2 = QM31.zero(),
+            .d2 = relations.poseidon2_io.combineBase(io_tuple),
+        },
+    };
 }
 
 pub fn rowPairs(main: [N_MAIN_COLUMNS]QM31, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
@@ -780,4 +806,43 @@ const AirTests = @import("poseidon2_air_test.zig").Tests(.{
 
 test "poseidon2 AIR test module is linked" {
     _ = AirTests;
+}
+
+test "poseidon2 narrow row pairs are field-identical to the generic entry builder" {
+    var prng = std.Random.DefaultPrng.init(0x9a11_5001);
+    const random = prng.random();
+    const randomQM31 = struct {
+        fn call(r: std.Random) QM31 {
+            return QM31.fromM31(
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            );
+        }
+    }.call;
+    for (0..32) |_| {
+        var relations: relations_mod.Relations = undefined;
+        inline for (std.meta.fields(relations_mod.Relations)) |field| {
+            @field(relations, field.name) = @TypeOf(@field(relations, field.name)).init(
+                randomQM31(random),
+                randomQM31(random),
+            );
+        }
+        var call = Call{ .input = undefined, .narrow_output = 0 };
+        for (&call.input) |*word| word.* = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        call.narrow_output = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        var interaction_main = [_]M31{M31.zero()} ** N_MAIN_COLUMNS;
+        interaction_main[0] = M31.one();
+        for (call.input, 0..) |value, lane| interaction_main[INPUT_START + lane] = M31.fromU64(value);
+        interaction_main[OUTPUT_START] = M31.fromU64(call.narrow_output.?);
+        var secure: [N_MAIN_COLUMNS]QM31 = undefined;
+        for (&secure, interaction_main) |*dst, value| dst.* = QM31.fromBase(value);
+        const expected = rowPairs(secure, &relations);
+        const actual = narrowRowPairsFromCall(call, &relations);
+        for (expected, actual) |lhs, rhs| {
+            try std.testing.expect(lhs.n1.eql(rhs.n1) and lhs.d1.eql(rhs.d1) and
+                lhs.n2.eql(rhs.n2) and lhs.d2.eql(rhs.d2));
+        }
+    }
 }

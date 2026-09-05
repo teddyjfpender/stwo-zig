@@ -71,6 +71,16 @@ pub const RetirementSupplement = struct {
     expected_memory_relation_terms: u64,
 };
 
+/// Heterogeneous external-retirement coefficient authority. Combined
+/// profiles cannot honestly summarize a 51-word Keccak transaction and a
+/// 43-word signer transaction with one per-row multiplier, so they bind the
+/// exact aggregate beyond the common three-term retirement budget.
+pub const RetirementSupplementV2 = struct {
+    rows: u32,
+    extra_memory_terms: u64,
+    expected_memory_relation_terms: u64,
+};
+
 pub fn validate(
     statement: types.RiscVStatement,
     policy: AdmissionPolicy,
@@ -123,6 +133,87 @@ pub fn validateWithRetirementSupplement(
         MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
         MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
     );
+}
+
+/// Append-only heterogeneous twin of `validateWithRetirementSupplement`.
+/// Existing profile proof bytes and arithmetic retain the V1 wrapper above.
+pub fn validateWithRetirementSupplementV2(
+    statement: types.RiscVStatement,
+    policy: AdmissionPolicy,
+    supplement: RetirementSupplementV2,
+) types.ProverError!void {
+    if (supplement.rows == 0 or supplement.extra_memory_terms == 0)
+        return types.ProverError.InvalidStatement;
+    try validateV1Boundary(statement);
+    return validateGeometryV2(
+        statement,
+        policy,
+        supplement,
+        MAX_PUBLIC_MEMORY_TUPLE_MULTIPLICITY,
+        MAX_PUBLIC_MERKLE_TUPLE_MULTIPLICITY,
+    );
+}
+
+/// Authenticated SegmentV2 counterpart of the heterogeneous retirement
+/// validator. The V2 wire, rather than its compatibility projection, owns the
+/// public memory and Merkle coefficient counts. In particular, a nonfinal
+/// segment is not required to invent a V1 completion event.
+pub fn validateV2WithRetirementSupplementV2(
+    statement: *const statement_v2.RiscVStatementV2,
+    policy: AdmissionPolicy,
+    supplement: RetirementSupplementV2,
+) types.ProverError!void {
+    if (supplement.rows == 0 or supplement.extra_memory_terms == 0)
+        return types.ProverError.InvalidStatement;
+    statement.validate() catch return types.ProverError.InvalidStatement;
+    const public_terms = statement_v2.nativePublicTermCounts(
+        &statement.public_data,
+    ) catch return types.ProverError.InvalidStatement;
+    return validateGeometryV2(
+        statement.core,
+        policy,
+        supplement,
+        public_terms.memory,
+        public_terms.merkle,
+    );
+}
+
+fn validateGeometryV2(
+    statement: types.RiscVStatement,
+    policy: AdmissionPolicy,
+    supplement: RetirementSupplementV2,
+    public_memory_terms: u64,
+    public_merkle_terms: u64,
+) types.ProverError!void {
+    // Reuse every structural and coefficient check by requiring a unit
+    // per-row supplement, then independently replace that temporary bound by
+    // the exact heterogeneous aggregate. The temporary expected value is
+    // derived from common geometry and is never transcript-visible.
+    const baseline = computeExpectedMemoryRelationTerms(
+        statement,
+        supplement.rows,
+        supplement.rows,
+        public_memory_terms,
+    ) catch return types.ProverError.InvalidStatement;
+    try validateGeometry(
+        statement,
+        policy,
+        .{
+            .rows = supplement.rows,
+            .extra_memory_terms_per_row = 1,
+            .expected_memory_relation_terms = baseline,
+        },
+        public_memory_terms,
+        public_merkle_terms,
+    );
+    const exact = computeExpectedMemoryRelationTerms(
+        statement,
+        supplement.rows,
+        supplement.extra_memory_terms,
+        public_memory_terms,
+    ) catch return types.ProverError.InvalidStatement;
+    if (exact != supplement.expected_memory_relation_terms or exact >= m31.Modulus)
+        return types.ProverError.InvalidStatement;
 }
 
 fn validateV1Boundary(statement: types.RiscVStatement) types.ProverError!void {
@@ -312,20 +403,33 @@ fn computeMemoryRelationTerms(
     extra_terms_per_supplemental_row: u8,
     public_terms: u64,
 ) error{Overflow}!u64 {
+    const extra_terms = std.math.mul(
+        u64,
+        supplemental_rows,
+        extra_terms_per_supplemental_row,
+    ) catch return error.Overflow;
+    return computeMemoryRelationTermsWithExtra(
+        total_steps,
+        memory_shards,
+        clock_update_rows,
+        extra_terms,
+        public_terms,
+    );
+}
+
+fn computeMemoryRelationTermsWithExtra(
+    total_steps: u32,
+    memory_shards: []const statement_mod.InfraComponentDesc,
+    clock_update_rows: u32,
+    extra_terms: u64,
+    public_terms: u64,
+) error{Overflow}!u64 {
     var terms = std.math.mul(
         u64,
         total_steps,
         access_clock.MAX_ACCESSES_PER_INSTRUCTION,
     ) catch return error.Overflow;
-    terms = std.math.add(
-        u64,
-        terms,
-        std.math.mul(
-            u64,
-            supplemental_rows,
-            extra_terms_per_supplemental_row,
-        ) catch return error.Overflow,
-    ) catch return error.Overflow;
+    terms = std.math.add(u64, terms, extra_terms) catch return error.Overflow;
     terms = std.math.add(u64, terms, clock_update_rows) catch
         return error.Overflow;
     terms = std.math.add(u64, terms, public_terms) catch
@@ -335,6 +439,35 @@ fn computeMemoryRelationTerms(
             return error.Overflow;
     }
     return terms;
+}
+
+fn computeExpectedMemoryRelationTerms(
+    statement: types.RiscVStatement,
+    supplemental_rows: u32,
+    extra_terms: u64,
+    public_terms: u64,
+) error{ InvalidGeometry, Overflow }!u64 {
+    if (supplemental_rows > statement.total_steps or statement.n_infra < 4 or
+        statement.n_infra > types.MAX_INFRA_COMPONENTS)
+    {
+        return error.InvalidGeometry;
+    }
+    var index: usize = 1;
+    while (index < statement.n_infra and
+        statement.infra_descs[index].kind == .memory) : (index += 1)
+    {}
+    if (index + 2 >= statement.n_infra or
+        statement.infra_descs[index + 2].kind != .clock_update)
+    {
+        return error.InvalidGeometry;
+    }
+    return computeMemoryRelationTermsWithExtra(
+        statement.total_steps,
+        statement.infra_descs[1..index],
+        statement.infra_descs[index + 2].n_rows,
+        extra_terms,
+        public_terms,
+    );
 }
 
 fn validateFamily(

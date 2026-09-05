@@ -137,6 +137,48 @@ kernel void stwo_zig_decommit_gather_trace_values_resident(
     arena[output_base + (first_column + column) * stride + query] = value < 0x7fffffffu ? value : value % 0x7fffffffu;
 }
 
+/// Gathers lifted trace openings directly from an immutable resident Merkle
+/// column arena. Unlike the proof-assembly kernel above, metadata and output
+/// have independent buffers so an already-published tree needs no writable
+/// tail or copy solely to expose its queried values to the host proof object.
+kernel void stwo_zig_decommit_gather_tree_values_resident(
+    device const uint *columns [[buffer(0)]],
+    constant uint *column_offsets [[buffer(1)]],
+    constant uint *column_logs [[buffer(2)]],
+    constant uint &column_count [[buffer(3)]],
+    constant uint &lifting_log [[buffer(4)]],
+    constant uint *queries [[buffer(5)]],
+    constant uint &query_count [[buffer(6)]],
+    device uint *output [[buffer(7)]],
+    uint3 grid_position [[thread_position_in_grid]]
+) {
+    uint query = grid_position.x, column = grid_position.y;
+    if (column >= column_count || query >= query_count) return;
+    uint row = decommit_lifted_index(queries[query], lifting_log, column_logs[column]);
+    output[column * query_count + query] = columns[column_offsets[column] + row];
+}
+
+// Direct Poseidon commitments may retain a column arena wider than the u32
+// word-offset ABI. Match the wide leaf kernel exactly so queried-value
+// openings stay device-resident rather than silently taking a host fallback.
+kernel void stwo_zig_decommit_gather_tree_values_resident_wide(
+    device const uint *columns [[buffer(0)]],
+    constant ulong *column_offsets [[buffer(1)]],
+    constant uint *column_logs [[buffer(2)]],
+    constant uint &column_count [[buffer(3)]],
+    constant uint &lifting_log [[buffer(4)]],
+    constant uint *queries [[buffer(5)]],
+    constant uint &query_count [[buffer(6)]],
+    device uint *output [[buffer(7)]],
+    uint3 grid_position [[thread_position_in_grid]]
+) {
+    uint query = grid_position.x, column = grid_position.y;
+    if (column >= column_count || query >= query_count) return;
+    uint row = decommit_lifted_index(queries[query], lifting_log, column_logs[column]);
+    output[column * query_count + query] =
+        columns[column_offsets[column] + ulong(row)];
+}
+
 kernel void stwo_zig_decommit_gather_fri_values_resident(
     device uint *arena [[buffer(0)]],
     constant uint *coordinate_bases [[buffer(1)]],

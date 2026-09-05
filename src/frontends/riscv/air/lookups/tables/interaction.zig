@@ -15,6 +15,7 @@ const schema = @import("schema.zig");
 
 pub const N_COLUMNS: usize = 4;
 pub const CHUNK_ROWS: usize = 4096;
+const PARALLEL_CHUNKS_PER_WORKER: usize = 2;
 
 pub const Result = struct {
     columns: [N_COLUMNS][]M31,
@@ -56,6 +57,34 @@ pub fn rowPair(
 ) !logup.RowPair {
     const relation_entry = tableEntry(kind, tuple, signed_multiplicity);
     return logup.RowPair.single(relation_entry.numerator, try relation_entry.denominator(relations));
+}
+
+/// Combines a generated table tuple without promoting its base-field values to
+/// secure-field elements. The schema owns the fixed arity, so production table
+/// generation pays one `QM31.mulM31` per coordinate instead of a general
+/// `QM31.mul` while retaining the public `Entry` path as an independent oracle.
+fn denominatorBase(
+    kind: schema.Kind,
+    tuple: schema.Tuple,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    return denominatorBaseValues(kind, tuple.slice(), relations);
+}
+
+fn denominatorBaseValues(
+    kind: schema.Kind,
+    values: []const M31,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    if (values.len != schema.arity(kind)) return error.InvalidArity;
+    return switch (kind) {
+        .bitwise => relations.bitwise.combineBase(values[0..4].*),
+        .range_check_20 => relations.range_check_20.combineBase(values[0..1].*),
+        .range_check_8_11 => relations.range_check_8_11.combineBase(values[0..2].*),
+        .range_check_8_8_4 => relations.range_check_8_8_4.combineBase(values[0..3].*),
+        .range_check_8_8 => relations.range_check_8_8.combineBase(values[0..2].*),
+        .range_check_m31 => relations.range_check_m31.combineBase(values[0..2].*),
+    };
 }
 
 /// Generate one secure singleton cumulative column as four committed M31
@@ -116,12 +145,7 @@ pub fn generateInto(
     // denominator non-zero here makes all following chunk writes infallible.
     for (0..size) |row| {
         const tuple = try schema.tupleAt(counter.kind, row);
-        const relation_entry = tableEntry(
-            counter.kind,
-            tuple,
-            counter.values[row],
-        );
-        if ((try relation_entry.denominator(relations)).isZero())
+        if ((try denominatorBase(counter.kind, tuple, relations)).isZero())
             return error.DivisionByZero;
     }
 
@@ -133,12 +157,7 @@ pub fn generateInto(
         for (denominators[0..chunk_len], 0..) |*denominator, local_row| {
             const row = row_start + local_row;
             const tuple = schema.tupleAt(counter.kind, row) catch unreachable;
-            const relation_entry = tableEntry(
-                counter.kind,
-                tuple,
-                counter.values[row],
-            );
-            denominator.* = relation_entry.denominator(relations) catch unreachable;
+            denominator.* = denominatorBase(counter.kind, tuple, relations) catch unreachable;
         }
         fields.batchInverseInPlace(
             QM31,
@@ -152,7 +171,7 @@ pub fn generateInto(
         ) |denominator_inverse, multiplicity, local_row| {
             const row = row_start + local_row;
             accumulator = accumulator.add(
-                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+                denominator_inverse.mulM31(multiplicity.neg()),
             );
             const current = accumulator.toM31Array();
             const dst = core_utils.bitReverseIndex(
@@ -246,11 +265,12 @@ pub fn generateParallel(
     const table = try infra.BitReversalTable.init(allocator, schema.logSize(counter.kind));
     defer table.deinit(allocator);
 
-    const chunk_count = std.math.divCeil(usize, size, CHUNK_ROWS) catch unreachable;
+    const chunk_rows = parallelChunkRows(size, pool.workerCount());
+    const chunk_count = std.math.divCeil(usize, size, chunk_rows) catch unreachable;
     const chunks = try allocator.alloc(TableChunk, chunk_count);
     defer allocator.free(chunks);
     for (chunks, 0..) |*chunk, index| {
-        const row_start = index * CHUNK_ROWS;
+        const row_start = index * chunk_rows;
         chunk.* = .{
             .allocator = allocator,
             .counter = counter,
@@ -258,7 +278,7 @@ pub fn generateParallel(
             .table = table,
             .columns = &columns,
             .row_start = row_start,
-            .row_end = @min(size, row_start + CHUNK_ROWS),
+            .row_end = @min(size, row_start + chunk_rows),
         };
     }
 
@@ -279,6 +299,23 @@ pub fn generateParallel(
     TableChunk.addOffset(&chunks[0]);
     wait_group.wait();
     return .{ .columns = columns, .claim = claim };
+}
+
+/// Retains two balanced task waves for large tables while preserving the
+/// cache-sized floor for small tables. Batch inversion has one serial field
+/// inverse per chunk, so hundreds of fixed 4096-row tasks add measurable work
+/// once the bounded pool already has enough independent ranges.
+fn parallelChunkRows(size: usize, worker_count: usize) usize {
+    std.debug.assert(size != 0 and worker_count != 0);
+    const target_chunks = std.math.mul(
+        usize,
+        worker_count,
+        PARALLEL_CHUNKS_PER_WORKER,
+    ) catch unreachable;
+    return @max(
+        CHUNK_ROWS,
+        std.math.divCeil(usize, size, target_chunks) catch unreachable,
+    );
 }
 
 const TableChunk = struct {
@@ -308,19 +345,14 @@ const TableChunk = struct {
         for (denominators, 0..) |*denominator, local_row| {
             const row = self.row_start + local_row;
             const tuple = try schema.tupleAt(self.counter.kind, row);
-            const relation_entry = tableEntry(
-                self.counter.kind,
-                tuple,
-                self.counter.values[row],
-            );
-            denominator.* = try relation_entry.denominator(self.relations);
+            denominator.* = try denominatorBase(self.counter.kind, tuple, self.relations);
         }
         try fields.batchInverseInPlace(QM31, denominators, inverses);
 
         var accumulator = QM31.zero();
         for (inverses, self.counter.values[self.row_start..self.row_end], 0..) |denominator_inverse, multiplicity, local_row| {
             accumulator = accumulator.add(
-                QM31.fromBase(multiplicity).neg().mul(denominator_inverse),
+                denominator_inverse.mulM31(multiplicity.neg()),
             );
             const current = accumulator.toM31Array();
             const dst = self.table.map(self.row_start + local_row);
@@ -365,6 +397,31 @@ pub fn evaluate(
         is_first,
         claim,
         relations,
+    );
+}
+
+/// Prepared-domain evaluator for table tuples that remain in the base field.
+/// The LogUp transition is exactly `evaluate`; only relation combination uses
+/// QM31-by-M31 products instead of first promoting every tuple coordinate.
+pub fn evaluateBaseTuple(
+    kind: schema.Kind,
+    tuple: []const M31,
+    signed_multiplicity: M31,
+    current: QM31,
+    previous: QM31,
+    is_first: M31,
+    claim: QM31,
+    relations: *const relations_mod.Relations,
+) !QM31 {
+    return logup.pairConstraint(
+        current,
+        previous,
+        QM31.fromBase(is_first),
+        claim,
+        logup.RowPair.single(
+            QM31.fromBase(signed_multiplicity).neg(),
+            try denominatorBaseValues(kind, tuple, relations),
+        ),
     );
 }
 
@@ -436,7 +493,7 @@ fn generateFullDomainReference(
     defer allocator.free(sums);
     var accumulator = QM31.zero();
     for (sums, inverses, counter.values) |*sum, denominator_inverse, multiplicity| {
-        accumulator = accumulator.add(QM31.fromBase(multiplicity).neg().mul(denominator_inverse));
+        accumulator = accumulator.add(denominator_inverse.mulM31(multiplicity.neg()));
         sum.* = accumulator;
     }
 
@@ -479,6 +536,58 @@ fn sourceTerm(
     };
     @memcpy(relation_entry.values[0..values.len], values);
     return numerator.mul(try (try relation_entry.denominator(relations)).inv());
+}
+
+test "base table denominator matches canonical entry for every schema" {
+    const relations = relations_mod.Relations.dummy();
+    for (0..schema.KIND_COUNT) |index| {
+        const kind: schema.Kind = @enumFromInt(index);
+        for ([_]usize{ 0, 17, schema.size(kind) - 1 }) |row| {
+            const tuple = try schema.tupleAt(kind, row);
+            const canonical = tableEntry(kind, tuple, M31.one());
+            try std.testing.expect(
+                (try denominatorBase(kind, tuple, &relations)).eql(
+                    try canonical.denominator(&relations),
+                ),
+            );
+        }
+        var malformed = try schema.tupleAt(kind, 0);
+        malformed.len -= 1;
+        try std.testing.expectError(
+            error.InvalidArity,
+            denominatorBase(kind, malformed, &relations),
+        );
+
+        const signed_multiplicity = M31.fromU64(19);
+        const current = QM31.fromU32Unchecked(5, 7, 11, 13);
+        const previous = QM31.fromU32Unchecked(17, 23, 29, 31);
+        const is_first = M31.fromU64(37);
+        const claim = QM31.fromU32Unchecked(41, 43, 47, 53);
+        var secure: [schema.MAX_ARITY]QM31 = undefined;
+        const tuple = try schema.tupleAt(kind, 17);
+        for (tuple.slice(), secure[0..tuple.len]) |value, *dst| {
+            dst.* = QM31.fromBase(value);
+        }
+        try std.testing.expect((try evaluateBaseTuple(
+            kind,
+            tuple.slice(),
+            signed_multiplicity,
+            current,
+            previous,
+            is_first,
+            claim,
+            &relations,
+        )).eql(try evaluate(
+            kind,
+            secure[0..tuple.len],
+            QM31.fromBase(signed_multiplicity),
+            current,
+            previous,
+            QM31.fromBase(is_first),
+            claim,
+            &relations,
+        )));
+    }
 }
 
 test "table singleton balances signed source multiplicity for all six domains" {
@@ -596,6 +705,14 @@ test "chunked table interaction rolls back every allocation failure" {
         generateForAllocationTest,
         .{ &counter, &relations },
     );
+}
+
+test "parallel table chunks retain two balanced waves above cache floor" {
+    try std.testing.expectEqual(@as(usize, 4096), parallelChunkRows(1 << 15, 18));
+    try std.testing.expectEqual(@as(usize, 7282), parallelChunkRows(1 << 18, 18));
+    try std.testing.expectEqual(@as(usize, 14564), parallelChunkRows(1 << 19, 18));
+    try std.testing.expectEqual(@as(usize, 29128), parallelChunkRows(1 << 20, 18));
+    try std.testing.expectEqual(@as(usize, 1 << 19), parallelChunkRows(1 << 20, 1));
 }
 
 fn M31QM31(value: u32) QM31 {

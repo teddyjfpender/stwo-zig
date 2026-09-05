@@ -60,6 +60,11 @@ pub fn addRiscVCpuImport(
     integration.addImport("stwo_prover_engine", protocol.prover);
     integration.addImport("stwo_cpu_backend", cpu_backend);
     integration.addImport("stwo_riscv_frontend", riscv_frontend);
+    integration.addImport(
+        "interop_postcard",
+        riscv_frontend.import_table.get("interop_postcard") orelse
+            @panic("canonical RISC-V frontend is missing interop_postcard"),
+    );
     consumer.addImport("stwo_riscv_cpu_integration", integration);
     return integration;
 }

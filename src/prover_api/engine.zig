@@ -24,6 +24,100 @@ pub const CpuCompositionExecutionRequest = struct {
     contention_policy: CpuCompositionContentionPolicy = .strict,
 };
 
+/// First failing phase of one complete prover transaction.
+///
+/// This diagnostic is an observability side channel only. It never replaces
+/// the original error and is not mixed into the proof transcript.
+pub const ProvePhase = enum {
+    execution_authority,
+    statement_admission,
+    base_witness,
+    extension_witness,
+    tree0,
+    tree1,
+    tree2,
+    composition,
+    fri,
+    openings,
+    finalize,
+    capture,
+};
+
+pub const CompositionSubphase = enum {
+    assembly,
+    geometry,
+    evaluation,
+    interpolation_split,
+    commitment,
+};
+
+pub const EvaluationStage = enum {
+    residency,
+    trace_shape,
+    plan,
+    component_evaluation,
+    lift_accumulation,
+    final_length,
+};
+
+pub const EvaluationDiagnostic = struct {
+    stage: EvaluationStage,
+    cause: anyerror,
+    component_index: ?u32 = null,
+    tree_index: ?u32 = null,
+    column_index: ?u32 = null,
+    actual: ?usize = null,
+    expected: ?usize = null,
+
+    pub fn recordFirst(
+        output: ?*?EvaluationDiagnostic,
+        value: EvaluationDiagnostic,
+    ) void {
+        const retained = output orelse return;
+        if (retained.* == null) retained.* = value;
+    }
+};
+
+pub const ProveDiagnostic = struct {
+    phase: ProvePhase,
+    cause: anyerror,
+    composition_subphase: ?CompositionSubphase = null,
+    evaluation: ?EvaluationDiagnostic = null,
+
+    pub fn recordFirst(
+        output: ?*?ProveDiagnostic,
+        phase: ProvePhase,
+        cause: anyerror,
+    ) void {
+        recordFirstAt(output, phase, null, cause);
+    }
+
+    pub fn recordFirstAt(
+        output: ?*?ProveDiagnostic,
+        phase: ProvePhase,
+        composition_subphase: ?CompositionSubphase,
+        cause: anyerror,
+    ) void {
+        recordFirstDetailed(output, phase, composition_subphase, null, cause);
+    }
+
+    pub fn recordFirstDetailed(
+        output: ?*?ProveDiagnostic,
+        phase: ProvePhase,
+        composition_subphase: ?CompositionSubphase,
+        evaluation: ?EvaluationDiagnostic,
+        cause: anyerror,
+    ) void {
+        const retained = output orelse return;
+        if (retained.* == null) retained.* = .{
+            .phase = phase,
+            .cause = cause,
+            .composition_subphase = composition_subphase,
+            .evaluation = evaluation,
+        };
+    }
+};
+
 pub const ProveOptions = struct {
     include_all_preprocessed_columns: bool = false,
     recorder: ?*stage_profile.Recorder = null,
@@ -44,6 +138,76 @@ test "CPU composition execution is a value-only public request" {
         CpuCompositionContentionPolicy.compatibility,
         request.contention_policy,
     );
+}
+
+test "prove diagnostic retains the first error across every typed phase" {
+    inline for (std.meta.fields(ProvePhase)) |field| {
+        const phase: ProvePhase = @enumFromInt(field.value);
+        var diagnostic: ?ProveDiagnostic = null;
+        ProveDiagnostic.recordFirst(
+            &diagnostic,
+            phase,
+            error.InvalidProofShape,
+        );
+        ProveDiagnostic.recordFirst(
+            &diagnostic,
+            .capture,
+            error.InvalidStructure,
+        );
+        const retained = diagnostic orelse return error.MissingDiagnostic;
+        try std.testing.expectEqual(phase, retained.phase);
+        try std.testing.expectEqual(error.InvalidProofShape, retained.cause);
+        try std.testing.expect(retained.composition_subphase == null);
+        try std.testing.expect(retained.evaluation == null);
+    }
+}
+
+test "evaluation diagnostic retains the first existing predicate" {
+    inline for (std.meta.fields(EvaluationStage)) |field| {
+        const stage: EvaluationStage = @enumFromInt(field.value);
+        var diagnostic: ?EvaluationDiagnostic = null;
+        EvaluationDiagnostic.recordFirst(&diagnostic, .{
+            .stage = stage,
+            .cause = error.InvalidProofShape,
+            .component_index = 7,
+            .tree_index = 2,
+            .column_index = 11,
+            .actual = 16,
+            .expected = 32,
+        });
+        EvaluationDiagnostic.recordFirst(&diagnostic, .{
+            .stage = .final_length,
+            .cause = error.InvalidStructure,
+        });
+        const retained = diagnostic orelse return error.MissingDiagnostic;
+        try std.testing.expectEqual(stage, retained.stage);
+        try std.testing.expectEqual(@as(u32, 7), retained.component_index.?);
+        try std.testing.expectEqual(@as(usize, 16), retained.actual.?);
+        try std.testing.expectEqual(error.InvalidProofShape, retained.cause);
+    }
+}
+
+test "prove diagnostic retains the first composition subphase" {
+    inline for (std.meta.fields(CompositionSubphase)) |field| {
+        const subphase: CompositionSubphase = @enumFromInt(field.value);
+        var diagnostic: ?ProveDiagnostic = null;
+        ProveDiagnostic.recordFirstAt(
+            &diagnostic,
+            .composition,
+            subphase,
+            error.InvalidProofShape,
+        );
+        ProveDiagnostic.recordFirstAt(
+            &diagnostic,
+            .composition,
+            .commitment,
+            error.InvalidStructure,
+        );
+        const retained = diagnostic orelse return error.MissingDiagnostic;
+        try std.testing.expectEqual(ProvePhase.composition, retained.phase);
+        try std.testing.expectEqual(subphase, retained.composition_subphase.?);
+        try std.testing.expectEqual(error.InvalidProofShape, retained.cause);
+    }
 }
 
 /// Checks the complete transaction-level surface expected by frontends.

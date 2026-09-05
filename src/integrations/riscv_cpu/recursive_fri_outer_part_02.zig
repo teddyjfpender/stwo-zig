@@ -3,8 +3,10 @@
 pub fn Namespace(comptime context: type) type {
     return struct {
         const std = context.d_std;
+        const M31 = context.d_M31;
         const QM31 = context.d_QM31;
         const recursion = context.d_recursion;
+        const lowering = context.d_lowering;
         const air = context.d_air;
         const schedule = context.d_schedule;
         const manifest_v2 = context.d_manifest_v2;
@@ -91,6 +93,70 @@ pub fn Namespace(comptime context: type) type {
                     &self.public_native_sum_source.authority_digest,
                 )) {
                     return error.V2CoreCohortMismatch;
+                }
+                self.boundary_layout.validate(self.boundary_calls) catch
+                    return error.V2CoreCohortMismatch;
+                if (self.boundary_layout.call_set_complete or
+                    self.boundary_layout.verifier_core_range_populated or
+                    self.boundary_layout.verifier_core.count() catch 1 != 0 or
+                    self.boundary_layout.boundary_prefix_call_count !=
+                        self.boundary_calls.len)
+                {
+                    return error.V2CoreCohortMismatch;
+                }
+            }
+        };
+
+        /// Borrowed inputs for a versioned native verifier whose transcript
+        /// and public-sum arithmetic have already been authenticated by their
+        /// own typed owners.  Unlike `NativeSegmentCoreAuthorityInputsV2`,
+        /// this boundary does not nominally reinterpret a newer public source
+        /// as the frozen SegmentV2 source.  It accepts the common lowering
+        /// capability only after checking the complete graph/evaluation pair,
+        /// and it accepts full q193 query words only after the core checks
+        /// their low-bit projection against the native PCS capture.
+        pub const NativeSegmentCoreAuthorityInputsV4 = struct {
+            captured: *const recursion.captured_fri.Owned,
+            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            verifier_plans: VerifierPlans,
+            public_native_sum_lane: lowering.Lane,
+            public_native_sum_evaluation: lowering.Evaluation,
+            public_native_sum_evaluation_id: [32]u8,
+            full_query_words: []const M31,
+            boundary_layout: *const shared_schedule_v2.SharedPoseidonCallLayoutV2,
+            boundary_calls: []const shared_schedule_v2.Call,
+
+            pub fn validate(self: NativeSegmentCoreAuthorityInputsV4) !void {
+                try self.captured.evaluation.validateAgainst(&self.captured.circuit);
+                try self.captured.pcs_evaluation.validateAgainst(
+                    &self.captured.pcs_circuit,
+                );
+                try self.vm_air.validate();
+                try self.verifier_plans.vm.validate();
+                try self.verifier_plans.recursion.validate();
+                try self.public_native_sum_lane.graph.validate();
+                if (self.verifier_plans.vm.schema != .vm or
+                    self.verifier_plans.recursion.schema != .recursion or
+                    self.public_native_sum_lane.circuit_id !=
+                        public_native_sum.CIRCUIT_ID or
+                    self.public_native_sum_lane.active_in != .segment or
+                    self.public_native_sum_evaluation.values.len !=
+                        self.public_native_sum_lane.graph.nodes.len or
+                    !std.mem.eql(
+                        u8,
+                        &self.public_native_sum_evaluation.circuit_identity,
+                        &self.public_native_sum_lane.circuit_identity,
+                    ) or std.mem.allEqual(
+                    u8,
+                    &self.public_native_sum_evaluation_id,
+                    0,
+                )) return error.V2CoreCohortMismatch;
+                for (self.public_native_sum_lane.graph.outputs) |output| {
+                    if (output >= self.public_native_sum_evaluation.values.len or
+                        !self.public_native_sum_evaluation.values[output].isZero())
+                    {
+                        return error.V2CoreCohortMismatch;
+                    }
                 }
                 self.boundary_layout.validate(self.boundary_calls) catch
                     return error.V2CoreCohortMismatch;

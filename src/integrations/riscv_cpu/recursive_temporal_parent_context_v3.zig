@@ -74,6 +74,37 @@ pub const ContextReceiptV3 = struct {
         return result;
     }
 
+    /// Verifier-side constructor for a recursively re-admitted node pair.
+    /// The generic parameter avoids a dependency cycle with the higher-level
+    /// pair authority; only its already validated temporal capability is read.
+    pub fn initFromVerifiedNodePair(
+        pair: anytype,
+    ) !ContextReceiptV3 {
+        try pair.validate();
+        const authenticated = try pair.authenticatePrepared();
+        const authority = &pair.prepared_root.authority_snapshot;
+        var result = ContextReceiptV3{
+            .statement_version = segment_publication.STATEMENT_VERSION,
+            .parent_height = authenticated.pair.parent_height,
+            .parent_node_index = authenticated.pair.parent_node_index,
+            .session_id = authenticated.pair.session_id,
+            .parent_vk_id = authenticated.pair.aggregator_vk_id,
+            .parent_statement_id = authenticated.pair.parent_statement_id,
+            .pair_context_id = authenticated.pair.context_id,
+            .pair_authority_id = pair.authority_id,
+            .adjacency_id = pair.adjacency_id,
+            .child_lineage_ids = .{
+                authority.children[0].lineage_id,
+                authority.children[1].lineage_id,
+            },
+            .child_publication_ids = pair.child_publication_ids,
+            .identity = undefined,
+        };
+        result.identity = contextIdentity(&result);
+        try result.validate();
+        return result;
+    }
+
     pub fn validate(self: *const ContextReceiptV3) !void {
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or

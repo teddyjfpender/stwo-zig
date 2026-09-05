@@ -18,16 +18,28 @@ pub const CompletionReason = enum {
     max_steps,
 };
 
-pub const CONTINUATION_SCHEMA_VERSION: u32 = 1;
+pub const CONTINUATION_SCHEMA_VERSION: u32 = 2;
+
+/// Clock namespace used by one segmented trace.
+///
+/// The existing SegmentV2 path uses `global_continuous`. Large recursive jobs
+/// use `leaf_local`: every independently proved leaf starts at instruction
+/// clock one, while a versioned outer statement owns its global position.
+/// Keeping this explicit prevents a locally rebased trace from being mistaken
+/// for the existing globally clocked protocol.
+pub const SegmentClockFrame = enum(u8) {
+    global_continuous = 1,
+    leaf_local = 2,
+};
 
 pub const MemoryAccessClock = struct {
     addr: u32,
     clock: u32,
 };
 
-/// Exact predecessor-clock custody at a segment edge.  V1 public data assumes
-/// all initial clocks are zero, so non-first segments must remain on the V2
-/// path and authenticate this boundary explicitly.
+/// Exact predecessor-clock custody at a segment edge. Global-continuous V2
+/// segments authenticate this boundary explicitly. Leaf-local segments reset
+/// it to zero and require a versioned outer state-adjacency statement.
 pub const AccessClockBoundary = struct {
     register_clocks: [32]u32,
     memory_clocks: []MemoryAccessClock,
@@ -66,6 +78,7 @@ inline fn mix(current: u64, value: u64) u64 {
 /// Validation happens before the session mutates any architectural state.
 pub const ContinuationToken = struct {
     schema_version: u32 = CONTINUATION_SCHEMA_VERSION,
+    clock_frame: SegmentClockFrame,
     session_tag: u64,
     next_segment_index: u32,
     next_cycle: u64,
@@ -90,6 +103,7 @@ pub const OutputWord = struct {
 pub const SegmentResult = struct {
     segment_index: u32,
     segment_role: memory_state.SegmentRole,
+    clock_frame: SegmentClockFrame,
     global_first_cycle: u64,
     cycle_count: usize,
     entry_cpu: Cpu,
@@ -163,6 +177,52 @@ pub const Poseidon2SegmentResult = struct {
     }
 };
 
+pub const KeccakfSegmentResult = struct {
+    base: SegmentResult,
+    calls: guest_precompile.keccakf_call_buffer.Frozen,
+    execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *KeccakfSegmentResult) void {
+        self.calls.deinit();
+        self.execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Segment-owned result for the combined Ethereum execution profile. Each
+/// precompile retains an independent local call-index tape.
+pub const EthereumSegmentResult = struct {
+    base: SegmentResult,
+    keccakf_calls: guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *EthereumSegmentResult) void {
+        self.keccakf_calls.deinit();
+        self.keccakf_execution_rows.deinit();
+        self.signer_recovery_calls.deinit();
+        self.signer_recovery_execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Allocation-free ownership transfer from the mutable combined extension.
+pub fn freezeEthereumSegment(
+    base: SegmentResult,
+    extension: *guest_precompile.session_state.Ethereum,
+) EthereumSegmentResult {
+    return .{
+        .base = base,
+        .keccakf_calls = extension.keccakf_calls.freeze(),
+        .keccakf_execution_rows = extension.keccakf_rows.freeze(),
+        .signer_recovery_calls = extension.signer_recovery_calls.freeze(),
+        .signer_recovery_execution_rows = extension.signer_recovery_rows.freeze(),
+    };
+}
+
 /// Owned result of running a RISC-V program to completion.
 pub const RunResult = struct {
     initial_pc: u32,
@@ -216,3 +276,49 @@ pub const Poseidon2RunResult = struct {
         self.* = undefined;
     }
 };
+
+/// Owned result for the explicit Keccak-f extension runner.
+pub const KeccakfRunResult = struct {
+    base: RunResult,
+    calls: guest_precompile.keccakf_call_buffer.Frozen,
+    execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *KeccakfRunResult) void {
+        self.calls.deinit();
+        self.execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Owned one-shot result for the combined Ethereum execution profile.
+pub const EthereumRunResult = struct {
+    base: RunResult,
+    keccakf_calls: guest_precompile.keccakf_call_buffer.Frozen,
+    keccakf_execution_rows: guest_precompile.keccakf_v1.FrozenExecutionRows,
+    signer_recovery_calls: guest_precompile.secp256k1_recover_call_buffer.Frozen,
+    signer_recovery_execution_rows: guest_precompile.secp256k1_recover_v1.FrozenExecutionRows,
+
+    pub fn deinit(self: *EthereumRunResult) void {
+        self.keccakf_calls.deinit();
+        self.keccakf_execution_rows.deinit();
+        self.signer_recovery_calls.deinit();
+        self.signer_recovery_execution_rows.deinit();
+        self.base.deinit();
+        self.* = undefined;
+    }
+};
+
+/// Transfer an already-frozen segment payload into its one-shot result.
+pub fn ethereumRunFromSegment(
+    base: RunResult,
+    segment: *const EthereumSegmentResult,
+) EthereumRunResult {
+    return .{
+        .base = base,
+        .keccakf_calls = segment.keccakf_calls,
+        .keccakf_execution_rows = segment.keccakf_execution_rows,
+        .signer_recovery_calls = segment.signer_recovery_calls,
+        .signer_recovery_execution_rows = segment.signer_recovery_execution_rows,
+    };
+}

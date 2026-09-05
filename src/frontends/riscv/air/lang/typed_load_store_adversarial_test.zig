@@ -29,7 +29,9 @@ test "typed signed-load named sign mask bound alias x0 and placement mutations r
         .{ .name = "memory address selector", .column = 28, .replacement = 0x2004 },
         .{ .name = "destination selector", .column = 29, .replacement = 3 },
         .{ .name = "destination inverse", .column = 47, .replacement = 0 },
-        .{ .name = "placement selector", .column = 48, .replacement = 0 },
+        .{ .name = "committed word index", .column = 48, .replacement = 0 },
+        .{ .name = "committed low20 word limb", .column = 49, .replacement = 0 },
+        .{ .name = "placement selector", .column = 50, .replacement = 0 },
         .{
             .name = "offset-three selected source byte",
             .case = .{ .offset = 3, .selected_byte = 0xff },
@@ -62,6 +64,40 @@ test "typed signed-load named sign mask bound alias x0 and placement mutations r
     }
 }
 
+test "typed load/store admits the exact wide address interval and binds both word limbs" {
+    var authored = try typed_load_store.build(std.testing.allocator, .generated);
+    defer authored.deinit();
+    const bindings = support.typedBindings(&authored);
+    const values = try std.testing.allocator.alloc(M31, authored.arena.nodeCount());
+    defer std.testing.allocator.free(values);
+
+    // The first address is the old 4 MiB ceiling, the second is the real
+    // stateless-validator data base, and the third is the final aligned word
+    // below the authenticated 1 GiB exclusive limit.
+    for ([_]u32{ 0x0040_0000, 0x0800_0000, 0x3fff_fffc }) |address| {
+        var row = try support.honestLbRow(.{ .aligned_address = address });
+        try support.evaluateInto(&authored.arena, &bindings, &row, values);
+        try std.testing.expect(support.rowAccepted(&authored, values));
+
+        const word_index = address >> 2;
+        try std.testing.expectEqual(word_index, row[48].toU32());
+        try std.testing.expectEqual(word_index & ((1 << 20) - 1), row[49].toU32());
+
+        // The selector-derived direct root fixes the complete 28-bit word.
+        row[48] = M31.fromCanonical(word_index ^ 1);
+        try support.evaluateInto(&authored.arena, &bindings, &row, values);
+        try std.testing.expect(!support.directConstraintsZero(&authored, values));
+
+        // The low limb is fixed by its range-checked relation evidence rather
+        // than another redundant polynomial root.
+        row = try support.honestLbRow(.{ .aligned_address = address });
+        row[49] = M31.fromCanonical((word_index + 1) & ((1 << 20) - 1));
+        try support.evaluateInto(&authored.arena, &bindings, &row, values);
+        try std.testing.expect(support.directConstraintsZero(&authored, values));
+        try std.testing.expect(!support.rowAccepted(&authored, values));
+    }
+}
+
 test "typed signed-load sign and aligned-address forgeries require lookup evidence" {
     var authored = try typed_load_store.build(std.testing.allocator, .generated);
     defer authored.deinit();
@@ -83,13 +119,15 @@ test "typed signed-load sign and aligned-address forgeries require lookup eviden
     try std.testing.expect(support.directConstraintsZero(&authored, values));
     try std.testing.expect(!support.rowAccepted(&authored, values));
 
-    var out_of_range = try support.honestLbRow(.{ .aligned_address = 0x3f_fffc });
+    var out_of_range = try support.honestLbRow(.{ .aligned_address = 0x3fff_fffc });
     out_of_range[13] = M31.zero();
     out_of_range[14] = M31.zero();
-    out_of_range[15] = M31.fromCanonical(0x40);
-    out_of_range[16] = M31.zero();
-    out_of_range[18] = M31.fromCanonical(0x40_0000);
-    out_of_range[28] = M31.fromCanonical(0x40_0000);
+    out_of_range[15] = M31.zero();
+    out_of_range[16] = M31.fromCanonical(0x40);
+    out_of_range[18] = M31.fromCanonical(0x4000_0000);
+    out_of_range[28] = M31.fromCanonical(0x4000_0000);
+    out_of_range[48] = M31.fromCanonical(0x1000_0000);
+    out_of_range[49] = M31.zero();
     try support.evaluateInto(&authored.arena, &bindings, &out_of_range, values);
     try std.testing.expect(support.directConstraintsZero(&authored, values));
     try std.testing.expect(!support.rowAccepted(&authored, values));

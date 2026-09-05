@@ -707,6 +707,72 @@ pub const LookupPolynomialCapabilityV1 = struct {
     ) anyerror![]QM31,
 };
 
+/// One contiguous constraint interval owned by a resident sub-program. The
+/// interval is expressed in the component's canonical constraint order; the
+/// backend remains responsible for mapping it onto the corresponding random
+/// coefficient slice.
+pub const ComponentConstraintRangeV1 = struct {
+    start: usize,
+    count: usize,
+};
+
+pub const MAX_BASE_POLYNOMIAL_PARTITIONS_V1: usize = 8;
+
+pub const BasePolynomialPartitionV1 = struct {
+    capability: BasePolynomialCapabilityV1,
+    constraints: ComponentConstraintRangeV1,
+};
+
+/// A component whose complete constraint relation is partitioned between one
+/// or more direct base-polynomial programs and one pairs-batched LogUp program.
+/// This is deliberately a cold exported value rather than another large inline
+/// union payload: dormant support must not inflate every `ComponentProver`
+/// copied by the generic prover.
+pub const BaseLookupPolynomialCapabilitiesV1 = struct {
+    base_partitions: [MAX_BASE_POLYNOMIAL_PARTITIONS_V1]BasePolynomialPartitionV1 = undefined,
+    base_partition_count: usize,
+    lookup: LookupPolynomialCapabilityV1,
+    lookup_constraints: ComponentConstraintRangeV1,
+
+    pub fn validate(self: @This(), total_constraints: usize) !void {
+        if (self.base_partition_count == 0 or
+            self.base_partition_count > self.base_partitions.len or
+            self.lookup_constraints.count == 0)
+        {
+            return error.InvalidBackendCompositionPartition;
+        }
+        const lookup_end = std.math.add(
+            usize,
+            self.lookup_constraints.start,
+            self.lookup_constraints.count,
+        ) catch return error.InvalidBackendCompositionPartition;
+        if (lookup_end > total_constraints) return error.InvalidBackendCompositionPartition;
+        var covered = self.lookup_constraints.count;
+        for (self.base_partitions[0..self.base_partition_count], 0..) |partition, index| {
+            const range = partition.constraints;
+            const range_end = std.math.add(usize, range.start, range.count) catch
+                return error.InvalidBackendCompositionPartition;
+            if (range.count == 0 or range_end > total_constraints or
+                (range.start < lookup_end and self.lookup_constraints.start < range_end))
+                return error.InvalidBackendCompositionPartition;
+            for (self.base_partitions[0..index]) |prior| {
+                const prior_end = prior.constraints.start + prior.constraints.count;
+                if (range.start < prior_end and prior.constraints.start < range_end)
+                    return error.InvalidBackendCompositionPartition;
+            }
+            covered = std.math.add(usize, covered, range.count) catch
+                return error.InvalidBackendCompositionPartition;
+        }
+        if (covered != total_constraints) return error.InvalidBackendCompositionPartition;
+    }
+};
+
+pub const BaseLookupPolynomialCapabilityV1 = struct {
+    export_capabilities: *const fn (
+        ctx: *const anyopaque,
+    ) anyerror!BaseLookupPolynomialCapabilitiesV1,
+};
+
 /// Variable singleton/pair lookup capability authenticated by a pointer-free
 /// compiler authority. This is append-only beside V1: a component must opt in
 /// explicitly, and existing backends may decline it through their ordinary
@@ -765,4 +831,8 @@ pub const BackendCompositionCapability = union(enum) {
     /// Authenticated variable singleton/pair partition used by the versioned
     /// SegmentV2 statement and proof layout.
     lookup_polynomial_v2: LookupPolynomialCapabilityV2,
+    /// Complete component relation split between independently authenticated
+    /// direct and LogUp sub-programs. Backends that do not implement the split
+    /// decline it and retain the reference whole-component evaluator.
+    base_lookup_polynomial_v1: BaseLookupPolynomialCapabilityV1,
 };

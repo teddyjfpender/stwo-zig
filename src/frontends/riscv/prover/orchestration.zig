@@ -400,6 +400,49 @@ fn runRiscVWithEngineAndPublicDataUsingChannelWithControls(
     return output;
 }
 
+/// Explicit additive proof protocol that mixes an authenticated Stage-A
+/// extension after the ordinary full-RISC-V Tree0/Tree1 commitments and before
+/// the one interaction PoW/relation draw. The ordinary entrypoints never
+/// select this route implicitly.
+pub fn runRiscVWithEngineAndPublicDataUsingChannelAndTranscriptExtension(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    exec_trace: *const trace_mod.Trace,
+    opt_chain: ?*const state_chain.StateChainTracker,
+    opt_memory: ?*const memory_state.Snapshot,
+    recorder: ?*stage_profile.Recorder,
+    public_data: PublicData,
+    channel: *Engine.Channel,
+    execution: ExecutionOptions,
+    transcript_extension: anytype,
+) !RunOutputForEngine(Engine, .prove) {
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
+    const workspace = try ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+
+    var output: RunOutputForEngine(Engine, .prove) = undefined;
+    try proveStagesWithTranscriptExtension(
+        Engine,
+        workspace,
+        &output,
+        allocator,
+        pcs_config,
+        exec_trace,
+        opt_chain,
+        opt_memory,
+        recorder,
+        public_data,
+        channel,
+        null,
+        null,
+        execution,
+        null,
+        transcript_extension,
+    );
+    return output;
+}
+
 /// Proves one authenticated resumable runner segment under the V2 transcript.
 /// This entrypoint is deliberately separate from every V1 wrapper: selecting
 /// V2 is a compile-time call-site decision and adds no branch to legacy proof
@@ -467,6 +510,41 @@ pub fn runRiscVSegmentV2WithEngineUsingChannelAndExecution(
         transcript_channel,
         execution,
     );
+}
+
+/// Explicit selected-lookup SegmentV2 proof protocol with an authenticated
+/// Stage-A extension before the one interaction PoW/relation draw. Existing
+/// SegmentV2 entrypoints never select this route implicitly.
+pub fn runRiscVSegmentV2WithEngineUsingChannelAndExecutionAndTranscriptExtension(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    result: *const runner_result.SegmentResult,
+    recorder: ?*stage_profile.Recorder,
+    public_data: public_data_v2.PublicDataV2,
+    transcript_channel: *Engine.Channel,
+    execution: ExecutionOptionsV2,
+    transcript_extension: anytype,
+) !ProveOutputV2ForEngine(Engine) {
+    comptime @import("stwo_prover_api").assertProverEngine(Engine);
+    const workspace = try ProofWorkspace.create(allocator);
+    defer workspace.destroy(allocator);
+
+    var output: ProveOutputV2ForEngine(Engine) = undefined;
+    try proveStagesV2WithTranscriptExtension(
+        Engine,
+        workspace,
+        &output,
+        allocator,
+        pcs_config,
+        result,
+        recorder,
+        public_data,
+        transcript_channel,
+        execution,
+        transcript_extension,
+    );
+    return output;
 }
 
 /// Retained V1 lookup-layout compatibility route. New SegmentV2 proofs use the
@@ -657,5 +735,7 @@ fn runRiscVSegmentV2WithEngineUsingChannelAndExecutionLayout(
 
 const stages = @import("orchestration_stages.zig").Ops(@This());
 const proveStagesV2 = stages.proveStagesV2;
+const proveStagesV2WithTranscriptExtension = stages.proveStagesV2WithTranscriptExtension;
 const proveStages = stages.proveStages;
+const proveStagesWithTranscriptExtension = stages.proveStagesWithTranscriptExtension;
 const deriveV2 = stages.deriveV2;

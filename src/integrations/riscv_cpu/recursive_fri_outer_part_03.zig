@@ -19,6 +19,7 @@ pub fn Namespace(comptime context: type) type {
         const framework = context.d_framework;
         const shared_schedule_v2 = context.d_shared_schedule_v2;
         const public_native_sum = context.d_public_native_sum;
+        const LogIndex = context.d_LogIndex;
         const MAX_ARITHMETIC_EVALUATION_LANES = context.d_MAX_ARITHMETIC_EVALUATION_LANES;
         const PCS_SEGMENT_CIRCUIT_ID = context.d_PCS_SEGMENT_CIRCUIT_ID;
         const PCS_LEFT_CIRCUIT_ID = context.d_PCS_LEFT_CIRCUIT_ID;
@@ -31,6 +32,7 @@ pub fn Namespace(comptime context: type) type {
         const NATIVE_V2_CORE_RETAINS_SELF_POINTERS = context.d_NATIVE_V2_CORE_RETAINS_SELF_POINTERS;
         const NATIVE_V2_CORE_AUTHORITY_TRANSCRIPT_DOMAIN = context.d_NATIVE_V2_CORE_AUTHORITY_TRANSCRIPT_DOMAIN;
         const NativeSegmentCoreAuthorityInputsV2 = context.d_NativeSegmentCoreAuthorityInputsV2;
+        const NativeSegmentCoreAuthorityInputsV4 = context.d_NativeSegmentCoreAuthorityInputsV4;
         const NativeSegmentCoreGeneratedV2 = context.d_NativeSegmentCoreGeneratedV2;
         const NativeSegmentCoreComponentsV2 = context.d_NativeSegmentCoreComponentsV2;
         const initNativeSegmentCoreComponents = context.d_initNativeSegmentCoreComponents;
@@ -71,8 +73,8 @@ pub fn Namespace(comptime context: type) type {
             captured: *const recursion.captured_fri.Owned,
             vm_air_prepared: *const recursion.vm_air_composition_circuit.Prepared,
             verifier_plans: VerifierPlans,
-            public_native_sum_source: *const public_native_sum.SourceV2,
-            public_native_sum_evaluation: *const public_native_sum.OwnedEvaluationV2,
+            public_native_sum_lane: lowering.Lane,
+            public_native_sum_evaluation: lowering.Evaluation,
             public_native_sum_authority_id: [32]u8,
             public_native_sum_evaluation_id: [32]u8,
             authority: Authority,
@@ -101,45 +103,163 @@ pub fn Namespace(comptime context: type) type {
             ) !NativeSegmentCoreV2 {
                 inputs.validate() catch |err|
                     return nativeV2CoreStageFailure("inputs", err);
-                const boundary_prefix_count = inputs.boundary_calls.len;
-                var authority = Authority.init(
-                    allocator,
-                    &inputs.captured.circuit,
-                    &inputs.captured.pcs_circuit,
-                    inputs.captured.trace_tree_heights,
-                    inputs.captured.column_log_sizes,
-                    ScheduleFacts.fromCaptured(inputs.captured),
-                    inputs.vm_air,
-                    inputs.verifier_plans,
-                    null,
-                    inputs.public_native_sum_source.loweringLane(),
-                    boundary_prefix_count,
-                ) catch |err| return nativeV2CoreStageFailure("authority", err);
-                errdefer authority.deinit();
-                var inactive = try inputs.captured.evaluateInactive();
-                errdefer inactive.deinit();
-                var pcs_inactive = try inputs.captured.evaluatePcsInactive();
-                errdefer pcs_inactive.deinit();
-                var prepared_query = try PreparedQueryWitness.initV2(
+                return initAuthenticated(
                     allocator,
                     inputs.captured,
-                    inputs.transcript_prepared,
-                    inputs.transcript_program,
-                    inputs.transcript_execution,
-                    inputs.transcript_plan,
+                    inputs.vm_air,
+                    inputs.verifier_plans,
+                    inputs.public_native_sum_source.loweringLane(),
+                    try inputs.public_native_sum_evaluation.loweringEvaluation(
+                        inputs.public_native_sum_source,
+                    ),
+                    inputs.public_native_sum_evaluation.identity,
+                    .{ .legacy = .{
+                        .prepared = inputs.transcript_prepared,
+                        .program = inputs.transcript_program,
+                        .execution = inputs.transcript_execution,
+                        .plan = inputs.transcript_plan,
+                    } },
+                    inputs.boundary_layout,
+                    inputs.boundary_calls,
+                    null,
                 );
+            }
+
+            /// Versioned sibling for a native capture whose public arithmetic
+            /// graph and complete q193 query words are authenticated by newer
+            /// typed owners.  The frozen SegmentV2 constructor above remains
+            /// byte- and API-identical.
+            pub fn initVersionedV4(
+                allocator: std.mem.Allocator,
+                inputs: NativeSegmentCoreAuthorityInputsV4,
+            ) !NativeSegmentCoreV2 {
+                inputs.validate() catch |err|
+                    return nativeV2CoreStageFailure("versioned-inputs", err);
+                return initAuthenticated(
+                    allocator,
+                    inputs.captured,
+                    inputs.vm_air,
+                    inputs.verifier_plans,
+                    inputs.public_native_sum_lane,
+                    inputs.public_native_sum_evaluation,
+                    inputs.public_native_sum_evaluation_id,
+                    .{ .full_words = inputs.full_query_words },
+                    inputs.boundary_layout,
+                    inputs.boundary_calls,
+                    null,
+                );
+            }
+
+            /// Target-native sibling for role-specific padding remints. The
+            /// requested domains are consumed before any tree allocation, so
+            /// every column is genuinely regenerated at the target.
+            pub fn initVersionedV4ForLogSizes(
+                allocator: std.mem.Allocator,
+                inputs: NativeSegmentCoreAuthorityInputsV4,
+                requested_log_sizes: [LogIndex.count]u32,
+            ) !NativeSegmentCoreV2 {
+                inputs.validate() catch |err|
+                    return nativeV2CoreStageFailure("versioned-padded-inputs", err);
+                return initAuthenticated(
+                    allocator,
+                    inputs.captured,
+                    inputs.vm_air,
+                    inputs.verifier_plans,
+                    inputs.public_native_sum_lane,
+                    inputs.public_native_sum_evaluation,
+                    inputs.public_native_sum_evaluation_id,
+                    .{ .full_words = inputs.full_query_words },
+                    inputs.boundary_layout,
+                    inputs.boundary_calls,
+                    requested_log_sizes,
+                );
+            }
+
+            const QueryAuthorityV4 = union(enum) {
+                legacy: struct {
+                    prepared: *const context.d_segment_transcript_source_v2.PreparedV2,
+                    program: *const recursion.transcript_program_v2.Program,
+                    execution: *const recursion.transcript_program_v2.Execution,
+                    plan: *const schedule.Plan,
+                },
+                full_words: []const M31,
+            };
+
+            fn initAuthenticated(
+                allocator: std.mem.Allocator,
+                captured: *const recursion.captured_fri.Owned,
+                vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+                verifier_plans: VerifierPlans,
+                public_lane: lowering.Lane,
+                public_evaluation: lowering.Evaluation,
+                public_evaluation_id: [32]u8,
+                query_authority: QueryAuthorityV4,
+                boundary_layout: *const shared_schedule_v2.SharedPoseidonCallLayoutV2,
+                boundary_calls: []const shared_schedule_v2.Call,
+                requested_log_sizes: ?[LogIndex.count]u32,
+            ) !NativeSegmentCoreV2 {
+                const boundary_prefix_count = boundary_calls.len;
+                var authority = (if (requested_log_sizes) |logs|
+                    Authority.initForLogSizes(
+                        allocator,
+                        &captured.circuit,
+                        &captured.pcs_circuit,
+                        captured.trace_tree_heights,
+                        captured.column_log_sizes,
+                        ScheduleFacts.fromCaptured(captured),
+                        vm_air,
+                        verifier_plans,
+                        null,
+                        public_lane,
+                        boundary_prefix_count,
+                        logs,
+                    )
+                else
+                    Authority.init(
+                        allocator,
+                        &captured.circuit,
+                        &captured.pcs_circuit,
+                        captured.trace_tree_heights,
+                        captured.column_log_sizes,
+                        ScheduleFacts.fromCaptured(captured),
+                        vm_air,
+                        verifier_plans,
+                        null,
+                        public_lane,
+                        boundary_prefix_count,
+                    )) catch |err| return nativeV2CoreStageFailure("authority", err);
+                errdefer authority.deinit();
+                var inactive = try captured.evaluateInactive();
+                errdefer inactive.deinit();
+                var pcs_inactive = try captured.evaluatePcsInactive();
+                errdefer pcs_inactive.deinit();
+                var prepared_query = switch (query_authority) {
+                    .legacy => |legacy| try PreparedQueryWitness.initV2(
+                        allocator,
+                        captured,
+                        legacy.prepared,
+                        legacy.program,
+                        legacy.execution,
+                        legacy.plan,
+                    ),
+                    .full_words => |words| try PreparedQueryWitness.initFullWordsV2(
+                        allocator,
+                        captured,
+                        words,
+                    ),
+                };
                 errdefer prepared_query.deinit();
 
-                const pcs_input_count = inputs.captured.pcs_circuit.bindings.len;
+                const pcs_input_count = captured.pcs_circuit.bindings.len;
                 const pcs_active_inputs = try allocator.alloc(M31, pcs_input_count);
                 errdefer allocator.free(pcs_active_inputs);
                 const pcs_inactive_inputs = try allocator.alloc(M31, pcs_input_count);
                 errdefer allocator.free(pcs_inactive_inputs);
-                try inputs.captured.pcs_circuit.inputValuesInto(
-                    &inputs.captured.pcs_evaluation,
+                try captured.pcs_circuit.inputValuesInto(
+                    &captured.pcs_evaluation,
                     pcs_active_inputs,
                 );
-                try inputs.captured.pcs_circuit.inputValuesInto(
+                try captured.pcs_circuit.inputValuesInto(
                     &pcs_inactive,
                     pcs_inactive_inputs,
                 );
@@ -149,14 +269,14 @@ pub fn Namespace(comptime context: type) type {
                     authority.lowering_plan.counts(.segment_leaf),
                 );
                 errdefer invocations.deinit();
-                var merkle_paths = try MerklePathBuffers.init(allocator, inputs.captured);
+                var merkle_paths = try MerklePathBuffers.init(allocator, captured);
                 errdefer merkle_paths.deinit();
                 var poseidon_calls = try PoseidonCallBuffers.init(
                     allocator,
                     authority.poseidon2_row_count,
                 );
                 errdefer poseidon_calls.deinit();
-                try poseidon_calls.appendAuthenticatedPrefix(inputs.boundary_calls);
+                try poseidon_calls.appendAuthenticatedPrefix(boundary_calls);
                 var prepared_relation_rows = try PreparedRelationRows.init(
                     allocator,
                     &authority,
@@ -183,13 +303,13 @@ pub fn Namespace(comptime context: type) type {
 
                 var result = NativeSegmentCoreV2{
                     .allocator = allocator,
-                    .captured = inputs.captured,
-                    .vm_air_prepared = inputs.vm_air,
-                    .verifier_plans = inputs.verifier_plans,
-                    .public_native_sum_source = inputs.public_native_sum_source,
-                    .public_native_sum_evaluation = inputs.public_native_sum_evaluation,
-                    .public_native_sum_authority_id = inputs.public_native_sum_source.authority_digest,
-                    .public_native_sum_evaluation_id = inputs.public_native_sum_evaluation.identity,
+                    .captured = captured,
+                    .vm_air_prepared = vm_air,
+                    .verifier_plans = verifier_plans,
+                    .public_native_sum_lane = public_lane,
+                    .public_native_sum_evaluation = public_evaluation,
+                    .public_native_sum_authority_id = public_lane.circuit_identity,
+                    .public_native_sum_evaluation_id = public_evaluation_id,
                     .authority = authority,
                     .inactive = inactive,
                     .pcs_inactive = pcs_inactive,
@@ -210,7 +330,7 @@ pub fn Namespace(comptime context: type) type {
                     .generated_interactions = null,
                     .authority_id = undefined,
                 };
-                result.prepareColdTreesAndCoreCalls(inputs.boundary_layout) catch |err|
+                result.prepareColdTreesAndCoreCalls(boundary_layout) catch |err|
                     return nativeV2CoreStageFailure("cold-trees-and-core-calls", err);
                 return result;
             }
@@ -256,9 +376,7 @@ pub fn Namespace(comptime context: type) type {
                     &self.authority,
                     self.captured,
                     &self.inactive,
-                    try self.public_native_sum_evaluation.loweringEvaluation(
-                        self.public_native_sum_source,
-                    ),
+                    self.public_native_sum_evaluation,
                     &arithmetic_storage,
                 );
                 self.authority.lowering_plan.materializeInto(
@@ -347,8 +465,7 @@ pub fn Namespace(comptime context: type) type {
                 try self.verifier_plans.vm.validate();
                 try self.verifier_plans.recursion.validate();
                 try self.authority.manifest.validate();
-                const expected_public_lane =
-                    self.public_native_sum_source.loweringLane();
+                const expected_public_lane = self.public_native_sum_lane;
                 const retained_public_lane =
                     self.authority.public_native_sum_lane orelse
                     return error.V2CoreCohortMismatch;
@@ -364,11 +481,15 @@ pub fn Namespace(comptime context: type) type {
                     !std.mem.eql(
                         u8,
                         &self.public_native_sum_authority_id,
-                        &self.public_native_sum_source.authority_digest,
+                        &self.public_native_sum_lane.circuit_identity,
                     ) or !std.mem.eql(
                     u8,
+                    &self.public_native_sum_evaluation.circuit_identity,
+                    &self.public_native_sum_lane.circuit_identity,
+                ) or std.mem.allEqual(
+                    u8,
                     &self.public_native_sum_evaluation_id,
-                    &self.public_native_sum_evaluation.identity,
+                    0,
                 ) or
                     self.authority.vm_air.?.prepared != self.vm_air_prepared or
                     self.authority.manifest.roster_count != NATIVE_V2_CORE_ROW_COUNT or
@@ -644,9 +765,7 @@ pub fn Namespace(comptime context: type) type {
                         &self.authority,
                         self.captured,
                         &self.inactive,
-                        try self.public_native_sum_evaluation.loweringEvaluation(
-                            self.public_native_sum_source,
-                        ),
+                        self.public_native_sum_evaluation,
                         &arithmetic_storage,
                     ),
                     &self.invocations,

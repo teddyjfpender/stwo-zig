@@ -107,8 +107,8 @@ pub fn ProgramRecorderForManifest(
             oods_point: circle.CirclePoint(recorder.Scalar),
             denominator_cache: *recorder.DenominatorCache,
         ) !Self {
-            if (proof_kind != .binary_node or
-                program_row_count != universal_roster.COMPONENT_COUNT)
+            if (proof_kind != .binary_node or family == .universal_v1 or
+                family == .segment_v2)
             {
                 return error.InvalidManifest;
             }
@@ -587,13 +587,36 @@ pub fn ProgramRecorderForManifest(
             self: *Self,
             adapter: *const PoseidonAdapter,
         ) Error!usize {
+            return self.recordPoseidonProviderAt(
+                @enumFromInt(POSEIDON_ROW),
+                POSEIDON_AUX_START,
+                adapter,
+            );
+        }
+
+        /// Manifest-parametric native Poseidon replay for an authenticated
+        /// binary family whose provider row and auxiliary-claim slots differ
+        /// from the frozen SegmentV2/universal roster. The concrete manifest
+        /// key and slot are comptime authority; existing callers retain the
+        /// exact row-34/slots-39-40 route above.
+        pub fn recordPoseidonProviderAt(
+            self: *Self,
+            comptime row: manifest_contract.ComponentKey,
+            comptime partial_start: usize,
+            adapter: *const PoseidonAdapter,
+        ) Error!usize {
             try self.requireActive();
-            if (self.next_row != POSEIDON_ROW)
+            const row_index: u8 = @intFromEnum(row);
+            if (self.next_row != row_index or
+                partial_start + poseidon_air.N_SUMS >
+                    COMPOSITION_CLAIM_INPUT_COUNT)
+            {
                 return error.ComponentOrderMismatch;
+            }
             _ = adapter.binding(self.manifest) catch
                 return error.ManifestAuthorityMismatch;
 
-            const placement = self.manifest.placements[POSEIDON_ROW] orelse
+            const placement = self.manifest.placements[row_index] orelse
                 return error.InvalidManifest;
             if (!adapter.placement.eql(placement) or
                 !std.meta.eql(
@@ -627,8 +650,7 @@ pub fn ProgramRecorderForManifest(
                 current_value.* = try self.sampledInteraction(offset, 0);
                 previous_value.* = try self.sampledInteraction(offset, 1);
             }
-            const partial_claims =
-                self.claim_inputs[POSEIDON_AUX_START..COMPOSITION_CLAIM_INPUT_COUNT][0..poseidon_air.N_SUMS].*;
+            const partial_claims = self.claim_inputs[partial_start .. partial_start + poseidon_air.N_SUMS].*;
             const denominator = try recorder.quotientDenominator(
                 placement.geometry.log_size,
                 self.layout.quotient_max_log_degree_bound,

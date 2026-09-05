@@ -143,17 +143,169 @@ pub const EventCounts = struct {
     total: usize,
 };
 
-/// Immutable authentication token over a borrowed canonical segment wire.
+/// Authentication token over a canonical segment wire.
 ///
-/// The saved wire identity makes later use mutation-sensitive even if another
-/// mutable alias to the backing allocation exists.  Every consuming method
-/// re-authenticates the borrowed words and compares that identity before using
-/// retained values.
+/// Ordinary borrowed values remain mutation-sensitive by re-authenticating on
+/// every use. Values minted by `OwnedValidatedLeaseV2` instead point to one
+/// privately owned immutable allocation and reuse its complete authenticated
+/// view after constant-size pointer/value closure checks.
 pub const PublicDataV2 = struct {
     canonical_words: []const M31,
     authenticated_wire_id: Digest,
+    retained_snapshots: ?RetainedSnapshots = null,
+    validated_lease: ?*const ValidatedLeaseV2 = null,
 
     const Self = @This();
+
+    /// Opaque, process-local proof that one immutable owned wire has already
+    /// crossed a complete authentication boundary. It has no wire encoding
+    /// and cannot be reconstructed from a digest.
+    pub const ValidatedLeaseV2 = opaque {};
+
+    pub const RetainedSnapshots = struct {
+        entry: segment_v2.SnapshotIdentity,
+        exit: segment_v2.SnapshotIdentity,
+    };
+
+    pub const ValidationCounterSnapshotV2 = struct {
+        retained_root_authentications: u64,
+        retained_root_authentication_ns: u64,
+        authority_validations: u64,
+        authority_validation_ns: u64,
+        cached_view_reuses: u64,
+        legacy_full_authentications: u64,
+    };
+
+    pub const ValidationCountersV2 = struct {
+        retained_root_authentications: std.atomic.Value(u64) = .init(0),
+        retained_root_authentication_ns: std.atomic.Value(u64) = .init(0),
+        authority_validations: std.atomic.Value(u64) = .init(0),
+        authority_validation_ns: std.atomic.Value(u64) = .init(0),
+        cached_view_reuses: std.atomic.Value(u64) = .init(0),
+        legacy_full_authentications: std.atomic.Value(u64) = .init(0),
+
+        pub fn snapshot(
+            self: *const ValidationCountersV2,
+        ) ValidationCounterSnapshotV2 {
+            return .{
+                .retained_root_authentications = self.retained_root_authentications.load(.acquire),
+                .retained_root_authentication_ns = self.retained_root_authentication_ns.load(.acquire),
+                .authority_validations = self.authority_validations.load(.acquire),
+                .authority_validation_ns = self.authority_validation_ns.load(.acquire),
+                .cached_view_reuses = self.cached_view_reuses.load(.acquire),
+                .legacy_full_authentications = self.legacy_full_authentications.load(.acquire),
+            };
+        }
+
+        pub fn recordAuthorityValidation(
+            self: *ValidationCountersV2,
+            elapsed_ns: u64,
+        ) void {
+            _ = self.authority_validations.fetchAdd(1, .monotonic);
+            _ = self.authority_validation_ns.fetchAdd(elapsed_ns, .monotonic);
+        }
+
+        pub fn recordLegacyFullAuthentication(
+            self: *ValidationCountersV2,
+        ) void {
+            _ = self.legacy_full_authentications.fetchAdd(1, .monotonic);
+        }
+    };
+
+    /// Sole owner of one validated immutable wire. `adoptRetained` consumes
+    /// `owned_words` on success; no mutable slice is exposed afterwards.
+    pub const OwnedValidatedLeaseV2 = struct {
+        storage: *ValidatedLeaseStorageV2,
+        data_value: PublicDataV2,
+
+        pub fn adoptRetained(
+            allocator: std.mem.Allocator,
+            owned_words: []M31,
+            retained: RetainedSnapshots,
+            counters: ?*ValidationCountersV2,
+        ) !OwnedValidatedLeaseV2 {
+            const validation_start = if (counters != null)
+                std.time.nanoTimestamp()
+            else
+                0;
+            const view = try segment_v2.authenticateCanonicalWireReusingRoots(
+                owned_words,
+                retained.entry,
+                retained.exit,
+            );
+            _ = try metadataFromView(&view);
+            const storage = allocator.create(ValidatedLeaseStorageV2) catch
+                return error.OutOfMemory;
+            errdefer allocator.destroy(storage);
+            storage.* = .{
+                .allocator = allocator,
+                .owned_words = owned_words,
+                .retained = retained,
+                .view = view,
+                .counters = counters,
+            };
+            if (counters) |value| {
+                _ = value.retained_root_authentications.fetchAdd(1, .monotonic);
+                _ = value.retained_root_authentication_ns.fetchAdd(
+                    elapsedNanoseconds(validation_start),
+                    .monotonic,
+                );
+            }
+            const token: *const ValidatedLeaseV2 = @ptrCast(storage);
+            return .{
+                .storage = storage,
+                .data_value = .{
+                    .canonical_words = owned_words,
+                    .authenticated_wire_id = view.wire_id,
+                    .retained_snapshots = retained,
+                    .validated_lease = token,
+                },
+            };
+        }
+
+        pub fn initRetained(
+            allocator: std.mem.Allocator,
+            source: *const PublicDataV2,
+            retained: RetainedSnapshots,
+            counters: ?*ValidationCountersV2,
+        ) !OwnedValidatedLeaseV2 {
+            const owned_copy = allocator.dupe(M31, source.words()) catch
+                return error.OutOfMemory;
+            var result = adoptRetained(
+                allocator,
+                owned_copy,
+                retained,
+                counters,
+            ) catch |err| {
+                allocator.free(owned_copy);
+                return err;
+            };
+            errdefer result.deinit();
+            if (!std.meta.eql(
+                result.data_value.wireId(),
+                source.wireId(),
+            )) return error.SourceMutation;
+            return result;
+        }
+
+        pub fn deinit(self: *OwnedValidatedLeaseV2) void {
+            const storage = self.storage;
+            const allocator = storage.allocator;
+            allocator.free(storage.owned_words);
+            allocator.destroy(storage);
+            self.* = undefined;
+        }
+
+        pub fn data(self: *const OwnedValidatedLeaseV2) *const PublicDataV2 {
+            return &self.data_value;
+        }
+
+        pub fn ownedWords(
+            self: *const OwnedValidatedLeaseV2,
+        ) []const M31 {
+            return self.storage.owned_words;
+        }
+    };
 
     pub fn authenticate(canonical_words: []const M31) Error!Self {
         const view = try segment_v2.authenticateCanonicalWire(canonical_words);
@@ -161,6 +313,27 @@ pub const PublicDataV2 = struct {
         return .{
             .canonical_words = canonical_words,
             .authenticated_wire_id = view.wire_id,
+        };
+    }
+
+    /// Authenticate a cold canonical wire against the exact snapshot
+    /// authorities retained by STWESG31. Every sparse tuple, count, digest,
+    /// clock map, and fixed statement field is still replayed. Only the two
+    /// already-bound continuation roots avoid recomputation.
+    pub fn authenticateReusingRoots(
+        canonical_words: []const M31,
+        retained: RetainedSnapshots,
+    ) Error!Self {
+        const view = try segment_v2.authenticateCanonicalWireReusingRoots(
+            canonical_words,
+            retained.entry,
+            retained.exit,
+        );
+        _ = try metadataFromView(&view);
+        return .{
+            .canonical_words = canonical_words,
+            .authenticated_wire_id = view.wire_id,
+            .retained_snapshots = retained,
         };
     }
 
@@ -249,14 +422,59 @@ pub const PublicDataV2 = struct {
         return receipt;
     }
 
+    pub fn authenticatedView(
+        self: *const Self,
+    ) Error!segment_v2.CanonicalWireViewV2 {
+        return self.freshView();
+    }
+
     fn freshView(self: *const Self) Error!segment_v2.CanonicalWireViewV2 {
-        const view = try segment_v2.authenticateCanonicalWire(self.canonical_words);
+        if (self.validated_lease) |token| {
+            const storage: *const ValidatedLeaseStorageV2 = @ptrCast(@alignCast(
+                token,
+            ));
+            if (self.canonical_words.ptr != storage.owned_words.ptr or
+                self.canonical_words.len != storage.owned_words.len or
+                storage.view.words.ptr != storage.owned_words.ptr or
+                storage.view.words.len != storage.owned_words.len or
+                !std.meta.eql(self.authenticated_wire_id, storage.view.wire_id) or
+                self.retained_snapshots == null or
+                !std.meta.eql(self.retained_snapshots.?, storage.retained))
+            {
+                return error.SourceMutation;
+            }
+            if (storage.counters) |value| _ = value.cached_view_reuses
+                .fetchAdd(1, .monotonic);
+            return storage.view;
+        }
+        const view = if (self.retained_snapshots) |retained|
+            try segment_v2.authenticateCanonicalWireReusingRoots(
+                self.canonical_words,
+                retained.entry,
+                retained.exit,
+            )
+        else
+            try segment_v2.authenticateCanonicalWire(self.canonical_words);
         if (!std.meta.eql(view.wire_id, self.authenticated_wire_id))
             return error.SourceMutation;
         _ = try metadataFromView(&view);
         return view;
     }
 };
+
+const ValidatedLeaseStorageV2 = struct {
+    allocator: std.mem.Allocator,
+    owned_words: []M31,
+    retained: PublicDataV2.RetainedSnapshots,
+    view: segment_v2.CanonicalWireViewV2,
+    counters: ?*PublicDataV2.ValidationCountersV2,
+};
+
+fn elapsedNanoseconds(start: i128) u64 {
+    const elapsed = std.time.nanoTimestamp() - start;
+    if (elapsed <= 0) return 0;
+    return std.math.cast(u64, elapsed) orelse std.math.maxInt(u64);
+}
 
 /// Infallible cursor after authentication and count preflight.
 pub const EventCursor = struct {

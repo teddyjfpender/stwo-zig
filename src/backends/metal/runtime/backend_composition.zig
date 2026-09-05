@@ -40,12 +40,13 @@ pub fn computeCompositionEvaluationWithWorkCapture(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     work_capture: ?*composition_work.Capture,
 ) !?prover.secure_column.SecureColumnByCoords {
-    if (try base_polynomial.evaluateWithWorkCapture(
+    if (try base_polynomial.evaluateWithWorkCaptureAndTwiddles(
         allocator,
         components,
         random_coeff,
         trace,
         residency_handles,
+        composition_twiddles,
         work_capture,
     )) |evaluation| return evaluation;
     const twiddle_tree = composition_twiddles orelse return null;
@@ -71,12 +72,13 @@ pub fn computeCompositionEvaluationWithExecution(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     execution: composition_execution.Execution,
 ) !?prover.secure_column.SecureColumnByCoords {
-    if (try base_polynomial.evaluateWithExecution(
+    if (try base_polynomial.evaluateWithExecutionAndTwiddles(
         allocator,
         components,
         random_coeff,
         trace,
         residency_handles,
+        composition_twiddles,
         execution,
     )) |evaluation| return evaluation;
     if (execution.task_recorder != null) {

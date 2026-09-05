@@ -3,7 +3,8 @@
 const std = @import("std");
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 
-pub const codegen_version: u64 = 1;
+pub const codegen_version: u16 = 3;
+pub const identity_domain = "stwo/metal/lookup-polynomial-codegen/v3\x00";
 
 pub const Entry = struct {
     program_id: u64,
@@ -25,6 +26,8 @@ pub fn kernelName(
 
 pub fn programDigest(program: prover_component.OwnedLookupPolynomialProgram) [16]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update(identity_domain);
+    hashInt(&hasher, u16, codegen_version);
     hashU64(&hasher, program.column_count);
     hashU64(&hasher, program.batch_size);
     hashU64(&hasher, program.nodes.len);
@@ -75,10 +78,11 @@ pub fn emitKernel(
         \\    device const uint *powers [[buffer(4)]],
         \\    device uint *output [[buffer(5)]],
         \\    constant uint &row_count [[buffer(6)]],
-        \\    constant uint2 &denominator_inverses [[buffer(7)]],
+        \\    constant uint *denominator_inverses [[buffer(7)]],
+        \\    constant uint &denominator_count [[buffer(8)]],
         \\    uint row [[thread_position_in_grid]]) {{
         \\    if (row >= row_count) return;
-        \\    uint previous_row = riscv_previous_circle_row(row, row_count);
+        \\    uint previous_row = riscv_previous_circle_row(row, row_count, denominator_count);
         \\
     , .{name});
 
@@ -87,7 +91,7 @@ pub fn emitKernel(
         switch (node.op) {
             .constant => try writer.print("    uint n{} = {}u;\n", .{ index, node.value }),
             .column => try writer.print(
-                "    uint n{} = main_columns[{}u * row_count + row];\n",
+                "    uint n{} = main_columns[riscv_column_offset({}u, row_count, row)];\n",
                 .{ index, node.value },
             ),
             .add => try writer.print(
@@ -152,11 +156,12 @@ pub fn emitKernel(
         );
     }
     try writer.writeAll(
-        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[row >= (row_count >> 1u)]);
-        \\    output[row] = riscv_m31_add(output[row], result.a);
-        \\    output[row_count + row] = riscv_m31_add(output[row_count + row], result.b);
-        \\    output[2u * row_count + row] = riscv_m31_add(output[2u * row_count + row], result.c);
-        \\    output[3u * row_count + row] = riscv_m31_add(output[3u * row_count + row], result.d);
+        \\    uint denominator_index = row / (row_count / denominator_count);
+        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+        \\    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+        \\    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+        \\    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+        \\    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
         \\}
         \\
     );
@@ -195,11 +200,11 @@ pub const preamble =
     \\using namespace metal;
     \\constant uint RISCV_M31_P = 0x7fffffffu;
     \\struct RiscvQm31 { uint a; uint b; uint c; uint d; };
-    \\inline uint riscv_m31_reduce(ulong v) { v = (v & RISCV_M31_P) + (v >> 31); v = (v & RISCV_M31_P) + (v >> 31); return v == RISCV_M31_P ? 0u : uint(v); }
-    \\inline uint riscv_m31_add(uint a, uint b) { return riscv_m31_reduce(ulong(a) + b); }
+    \\inline uint riscv_m31_add(uint a, uint b) { uint s = a + b; return s >= RISCV_M31_P ? s - RISCV_M31_P : s; }
     \\inline uint riscv_m31_sub(uint a, uint b) { return a >= b ? a - b : a + RISCV_M31_P - b; }
-    \\inline uint riscv_m31_mul(uint a, uint b) { return riscv_m31_reduce(ulong(a) * b); }
+    \\inline uint riscv_m31_mul(uint a, uint b) { ulong p = ulong(a) * b; uint f = uint((p & RISCV_M31_P) + (p >> 31)); return f >= RISCV_M31_P ? f - RISCV_M31_P : f; }
     \\inline uint riscv_m31_neg(uint a) { return a == 0u ? 0u : RISCV_M31_P - a; }
+    \\inline ulong riscv_column_offset(uint column, uint rows, uint row) { return ulong(column) * ulong(rows) + ulong(row); }
     \\inline RiscvQm31 riscv_qm_add(RiscvQm31 l, RiscvQm31 r) { return { riscv_m31_add(l.a,r.a), riscv_m31_add(l.b,r.b), riscv_m31_add(l.c,r.c), riscv_m31_add(l.d,r.d) }; }
     \\inline RiscvQm31 riscv_qm_sub(RiscvQm31 l, RiscvQm31 r) { return { riscv_m31_sub(l.a,r.a), riscv_m31_sub(l.b,r.b), riscv_m31_sub(l.c,r.c), riscv_m31_sub(l.d,r.d) }; }
     \\inline RiscvQm31 riscv_qm_mul_base(RiscvQm31 v, uint s) { return { riscv_m31_mul(v.a,s), riscv_m31_mul(v.b,s), riscv_m31_mul(v.c,s), riscv_m31_mul(v.d,s) }; }
@@ -211,11 +216,11 @@ pub const preamble =
     \\    return { riscv_m31_add(x0,riscv_m31_sub(riscv_m31_add(y0,y0),y1)), riscv_m31_add(x1,riscv_m31_add(y0,riscv_m31_add(y1,y1))), riscv_m31_add(c0,c2), riscv_m31_add(c1,c3) };
     \\}
     \\inline RiscvQm31 riscv_load_qm31(device const uint *values, uint offset) { return { values[offset], values[offset+1u], values[offset+2u], values[offset+3u] }; }
-    \\inline RiscvQm31 riscv_load_secure_column(device const uint *columns, uint first, uint rows, uint row) { return { columns[(first+0u)*rows+row], columns[(first+1u)*rows+row], columns[(first+2u)*rows+row], columns[(first+3u)*rows+row] }; }
+    \\inline RiscvQm31 riscv_load_secure_column(device const uint *columns, uint first, uint rows, uint row) { return { columns[riscv_column_offset(first+0u,rows,row)], columns[riscv_column_offset(first+1u,rows,row)], columns[riscv_column_offset(first+2u,rows,row)], columns[riscv_column_offset(first+3u,rows,row)] }; }
     \\inline uint riscv_bit_reverse(uint value, uint bits) { return bits == 0u ? value : reverse_bits(value) >> (32u-bits); }
-    \\inline uint riscv_previous_circle_row(uint row, uint rows) {
-    \\    uint log_rows = ctz(rows), natural = riscv_bit_reverse(row, log_rows), half_rows = rows >> 1u;
-    \\    natural = natural < half_rows ? (natural + half_rows - 1u) % half_rows : ((natural - half_rows + 1u) % half_rows) + half_rows;
+    \\inline uint riscv_previous_circle_row(uint row, uint rows, uint denominator_count) {
+    \\    uint log_rows = ctz(rows), natural = riscv_bit_reverse(row, log_rows), half_rows = rows >> 1u, step = denominator_count >> 1u;
+    \\    natural = natural < half_rows ? (natural + half_rows - step) % half_rows : ((natural - half_rows + step) % half_rows) + half_rows;
     \\    return riscv_bit_reverse(natural, log_rows);
     \\}
     \\
@@ -230,6 +235,16 @@ fn hashU32(hasher: *std.crypto.hash.sha2.Sha256, value: u32) void {
 fn hashU64(hasher: *std.crypto.hash.sha2.Sha256, value: usize) void {
     var encoded: [8]u8 = undefined;
     std.mem.writeInt(u64, &encoded, @intCast(value), .little);
+    hasher.update(&encoded);
+}
+
+fn hashInt(
+    hasher: *std.crypto.hash.sha2.Sha256,
+    comptime T: type,
+    value: T,
+) void {
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
     hasher.update(&encoded);
 }
 
@@ -264,5 +279,47 @@ test "lookup polynomial codegen emits paired transition arithmetic" {
     }});
     defer std.testing.allocator.free(source);
     try std.testing.expect(std.mem.indexOf(u8, source, "riscv_previous_circle_row") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "step = denominator_count >> 1u") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "row_count / denominator_count") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "riscv_qm_mul(riscv_qm_mul(delta0, d0), d1)") != null);
+}
+
+test "lookup polynomial codegen widens main and secure-column offsets" {
+    const nodes = try std.testing.allocator.dupe(prover_component.BasePolynomialNode, &.{
+        .{ .op = .column, .value = 444 },
+        .{ .op = .constant, .value = 1 },
+    });
+    const entries = try std.testing.allocator.dupe(prover_component.LookupPolynomialEntry, &.{
+        .{ .numerator = 1, .arity = 1, .values = blk: {
+            var values: [32]u32 = undefined;
+            values[0] = 0;
+            break :blk values;
+        } },
+    });
+    var program = prover_component.OwnedLookupPolynomialProgram{
+        .allocator = std.testing.allocator,
+        .nodes = nodes,
+        .entries = entries,
+        .column_count = 445,
+        .batch_size = 1,
+    };
+    defer program.deinit();
+    const source = try generateLibrary(std.testing.allocator, &.{.{
+        .program_id = 0x400000001,
+        .program = program,
+    }});
+    defer std.testing.allocator.free(source);
+
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        source,
+        "main_columns[riscv_column_offset(444u, row_count, row)]",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        source,
+        "columns[riscv_column_offset(first+3u,rows,row)]",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "444u * row_count + row") == null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "(first+3u)*rows+row") == null);
 }

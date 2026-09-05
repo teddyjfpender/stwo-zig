@@ -37,21 +37,62 @@ pub const ComponentVTable = struct {
     ) anyerror!void,
 };
 
+/// Additive proof-route geometry authority.  The null/default handle preserves
+/// the component's vtable geometry exactly.  A heterogeneous proof may lift a
+/// lower-degree component onto a wider global composition domain without
+/// changing its AIR, masks, or evaluation callbacks.
+pub const CompositionGeometryOverrideV1 = struct {
+    max_constraint_log_degree_bound_delta: u8,
+    composition_log_split: u8,
+
+    pub fn validate(self: CompositionGeometryOverrideV1, base_bound: u32) !void {
+        const delta: u32 = self.max_constraint_log_degree_bound_delta;
+        if (self.composition_log_split == 0 or
+            self.composition_log_split > verifier_types.MAX_COMPOSITION_LOG_SPLIT or
+            base_bound > std.math.maxInt(u32) - delta)
+        {
+            return error.InvalidCompositionGeometryOverride;
+        }
+        const lifted_bound = base_bound + delta;
+        if (lifted_bound <= self.composition_log_split)
+            return error.InvalidCompositionGeometryOverride;
+    }
+};
+
 pub const Component = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentVTable,
+    composition_geometry_override_v1: ?CompositionGeometryOverrideV1 = null,
 
     pub inline fn nConstraints(self: Component) usize {
         return self.vtable.nConstraints(self.ctx);
     }
 
     pub inline fn maxConstraintLogDegreeBound(self: Component) u32 {
-        return self.vtable.maxConstraintLogDegreeBound(self.ctx);
+        const base = self.vtable.maxConstraintLogDegreeBound(self.ctx);
+        const geometry = self.composition_geometry_override_v1 orelse
+            return base;
+        return base + @as(
+            u32,
+            geometry.max_constraint_log_degree_bound_delta,
+        );
     }
 
     pub inline fn compositionLogSplit(self: Component) u32 {
+        if (self.composition_geometry_override_v1) |geometry|
+            return geometry.composition_log_split;
         const get = self.vtable.compositionLogSplit orelse return verifier_types.COMPOSITION_LOG_SPLIT;
         return get(self.ctx);
+    }
+
+    pub fn withCompositionGeometryOverrideV1(
+        self: Component,
+        geometry: CompositionGeometryOverrideV1,
+    ) !Component {
+        try geometry.validate(self.vtable.maxConstraintLogDegreeBound(self.ctx));
+        var result = self;
+        result.composition_geometry_override_v1 = geometry;
+        return result;
     }
 
     pub inline fn traceLogDegreeBounds(self: Component, allocator: std.mem.Allocator) anyerror!TraceLogDegreeBounds {
@@ -449,6 +490,25 @@ test "air components: orchestration" {
 
     try std.testing.expectEqual(@as(u32, 9), components.compositionLogDegreeBound());
     try std.testing.expectEqual(@as(u32, 1), try components.compositionLogSplit());
+
+    const ordinary = comp0.asSplitComponent();
+    const lifted = try ordinary.withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 1,
+        .composition_log_split = 2,
+    });
+    try std.testing.expectEqual(@as(u32, 7), ordinary.maxConstraintLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 1), ordinary.compositionLogSplit());
+    try std.testing.expectEqual(@as(u32, 8), lifted.maxConstraintLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 2), lifted.compositionLogSplit());
+    try std.testing.expect(lifted.ctx == ordinary.ctx);
+    try std.testing.expect(lifted.vtable == ordinary.vtable);
+    try std.testing.expectError(
+        error.InvalidCompositionGeometryOverride,
+        ordinary.withCompositionGeometryOverrideV1(.{
+            .max_constraint_log_degree_bound_delta = 1,
+            .composition_log_split = 0,
+        }),
+    );
 
     var mask_values = MaskValues.initOwned(try alloc.alloc([][]QM31, 0));
     defer mask_values.deinitDeep(alloc);

@@ -2,6 +2,9 @@
 
 const std = @import("std");
 
+pub const MAX_POLYNOMIAL_DENOMINATORS =
+    @import("polynomial_quotient_geometry.zig").MAX_DENOMINATORS;
+
 extern fn stwo_zig_metal_arena_copy_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_witness_feed_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_witness_feed_batch_destroy(batch: ?*anyopaque) void;
@@ -259,7 +262,8 @@ pub fn ResourcePlans(comptime MetalError: type) type {
             power_word_offset: u32,
             power_word_count: u32,
             output_index: u32,
-            denominator_inverses: [2]u32,
+            denominator_count: u32,
+            denominator_inverses: [MAX_POLYNOMIAL_DENOMINATORS]u32,
         };
 
         pub const BasePolynomialOutput = extern struct {
@@ -289,7 +293,8 @@ pub fn ResourcePlans(comptime MetalError: type) type {
             parameter_word_offset: u32,
             parameter_word_count: u32,
             output_index: u32,
-            denominator_inverses: [2]u32,
+            denominator_count: u32,
+            denominator_inverses: [MAX_POLYNOMIAL_DENOMINATORS]u32,
         };
 
         pub const WitnessPlan = extern struct {

@@ -112,6 +112,7 @@ pub const Error = span_statement.Error || error{
     CanonicalPaddingNonZero,
     CanonicalTagMismatch,
     CanonicalWordNonCanonical,
+    ClockFrameMismatch,
     CompletionForbidden,
     CompletionMissing,
     CompletionMismatch,

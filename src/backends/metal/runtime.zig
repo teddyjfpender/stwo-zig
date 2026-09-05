@@ -8,7 +8,7 @@ const command_epoch = @import("command_epoch.zig");
 const shader_manifest = @import("shaders/manifest.zig");
 
 comptime {
-    if (shader_manifest.core_shader_abi != 12) @compileError("Metal core shader ABI drift");
+    if (shader_manifest.core_shader_abi != 22) @compileError("Metal core shader ABI drift");
 }
 
 pub const CommandEpoch = command_epoch.CommandEpoch;
@@ -39,9 +39,12 @@ pub const MetalError = error{
     WitnessFeedFailed,
     TraceGenerationFailed,
     CommandEpochFailed,
+    ProofOfWorkFailed,
 };
 
 const resource_plans = @import("runtime/resource_plans.zig").ResourcePlans(MetalError);
+pub const MAX_POLYNOMIAL_DENOMINATORS =
+    @import("runtime/resource_plans.zig").MAX_POLYNOMIAL_DENOMINATORS;
 
 pub const ArenaCopyPlan = resource_plans.ArenaCopyPlan;
 pub const WitnessFeedPlan = resource_plans.WitnessFeedPlan;
@@ -114,6 +117,19 @@ pub const LdeCommitResult = struct {
     work: LdeCommitWorkReceipt,
 };
 
+/// Opaque commitment-scoped owner for direct shared-memory circle-LDE work.
+/// It is deliberately separate from `CommandEpoch`: every log group keeps its
+/// tuned buffer geometry and kernels while one command buffer removes both the
+/// redundant submissions and completion fences between independent groups.
+pub const CircleLdeBatch = struct {
+    handle: *anyopaque,
+};
+
+pub const CircleLdeBatchStats = struct {
+    encoded_operations: u64,
+    gpu_milliseconds: f64,
+};
+
 /// Counts written by the combined device epoch only after its command buffer
 /// and complete Merkle parent chain succeed.
 pub const LdeCommitWorkReceipt = struct {
@@ -137,6 +153,7 @@ const opening_ops = @import("runtime/opening_operations.zig");
 const resident_ops = @import("runtime/resident_operations.zig");
 const polynomial_ops = @import("runtime/polynomial_operations.zig");
 const combined_commit_ops = @import("runtime/combined_commit_operations.zig");
+const proof_of_work_ops = @import("runtime/proof_of_work.zig");
 
 pub const Runtime = struct {
     handle: *anyopaque,
@@ -177,6 +194,8 @@ pub const Runtime = struct {
     pub const prepareMerkleLeaves = prepared_ops.prepareMerkleLeaves;
     pub const merkleLeavesPrepared = prepared_ops.merkleLeavesPrepared;
     pub const prepareResidentMerkle = prepared_ops.prepareResidentMerkle;
+    pub const prepareResidentMerkleForHash = prepared_ops.prepareResidentMerkleForHash;
+    pub const prepareStagedPoseidonResidentMerkleV1 = prepared_ops.prepareStagedPoseidonResidentMerkleV1;
     pub const residentMerklePrepared = prepared_ops.residentMerklePrepared;
     pub const aliasCommitArena = prepared_ops.aliasCommitArena;
     pub const residentMerkleTreeFromCompletedArena = prepared_ops.residentMerkleTreeFromCompletedArena;
@@ -215,6 +234,7 @@ pub const Runtime = struct {
     pub const foldFriCircleWithReceipt = opening_ops.foldFriCircleWithReceipt;
     pub const foldFriLine = opening_ops.foldFriLine;
     pub const foldFriLineAndCommit = opening_ops.foldFriLineAndCommit;
+    pub const foldFriLineAndCommitForHash = opening_ops.foldFriLineAndCommitForHash;
     pub const foldFriCircleLineCascade = fri_cascade_ops.foldFriCircleLineCascade;
     pub const foldFriCircleLineCascadeWithReceipt = fri_cascade_ops.foldFriCircleLineCascadeWithReceipt;
     pub const foldFriLineCascade = fri_cascade_ops.foldFriLineCascade;
@@ -254,30 +274,47 @@ pub const Runtime = struct {
     pub const memoryRc99Count = resident_ops.memoryRc99Count;
     pub const publicMemorySeed = resident_ops.publicMemorySeed;
     pub const leafAbsorb = resident_ops.leafAbsorb;
+    pub const leafAbsorbForHash = resident_ops.leafAbsorbForHash;
     pub const leafAbsorbCompact = resident_ops.leafAbsorbCompact;
+    pub const leafAbsorbCompactForHash = resident_ops.leafAbsorbCompactForHash;
     pub const parentSeeded = resident_ops.parentSeeded;
+    pub const parentSeededForHash = resident_ops.parentSeededForHash;
     pub const parentPlain = resident_ops.parentPlain;
     pub const qm31ToCoordinates = resident_ops.qm31ToCoordinates;
     pub const felt252Oracle = resident_ops.felt252Oracle;
     pub const commitColumns = resident_ops.commitColumns;
     pub const commitColumnsWithBacking = resident_ops.commitColumnsWithBacking;
+    pub const commitColumnsForHash = resident_ops.commitColumnsForHash;
+    pub const commitColumnsWithBackingForHash = resident_ops.commitColumnsWithBackingForHash;
     pub const computeQuotients = polynomial_ops.computeQuotients;
     pub const computeQuotientsWithReceipt = polynomial_ops.computeQuotientsWithReceipt;
     pub const computeQuotientsAndCommit = polynomial_ops.computeQuotientsAndCommit;
     pub const computeQuotientsAndCommitWithReceipt = polynomial_ops.computeQuotientsAndCommitWithReceipt;
+    pub const computeQuotientsAndCommitForHash = polynomial_ops.computeQuotientsAndCommitForHash;
+    pub const computeQuotientsAndCommitWithReceiptForHash = polynomial_ops.computeQuotientsAndCommitWithReceiptForHash;
     pub const computeQuotientsAndCommitFri = polynomial_ops.computeQuotientsAndCommitFri;
     pub const computeQuotientsAndCommitFriWithReceipt = polynomial_ops.computeQuotientsAndCommitFriWithReceipt;
     pub const evaluateCoefficientPlans = polynomial_ops.evaluateCoefficientPlans;
     pub const evaluateCoefficientPlansUnprofiled = polynomial_ops.evaluateCoefficientPlansUnprofiled;
     pub const evaluateCoefficientTreePlans = polynomial_ops.evaluateCoefficientTreePlans;
     pub const evaluateCoefficientTreePlansUnprofiled = polynomial_ops.evaluateCoefficientTreePlansUnprofiled;
+    pub const evaluateBarycentricTreePlans = polynomial_ops.evaluateBarycentricTreePlans;
     pub const transformCircle = polynomial_ops.transformCircle;
+    pub const transformCircleWithBinding = polynomial_ops.transformCircleWithBinding;
+    pub const transformCircleResidentBatch = polynomial_ops.transformCircleResidentBatch;
     pub const transformCircleResident = polynomial_ops.transformCircleResident;
     pub const transformCircleLde = polynomial_ops.transformCircleLde;
     pub const transformCircleLdeInto = polynomial_ops.transformCircleLdeInto;
+    pub const beginCircleLdeBatch = polynomial_ops.beginCircleLdeBatch;
+    pub const destroyCircleLdeBatch = polynomial_ops.destroyCircleLdeBatch;
+    pub const finishCircleLdeBatch = polynomial_ops.finishCircleLdeBatch;
+    pub const transformCircleLdeIntoBatch = polynomial_ops.transformCircleLdeIntoBatch;
     pub const evaluateRecurrenceComposition = polynomial_ops.evaluateRecurrenceComposition;
     pub const transformCircleLdeAndCommit = combined_commit_ops.transformCircleLdeAndCommit;
     pub const transformCircleLdeAndCommitPrepared = combined_commit_ops.transformCircleLdeAndCommitPrepared;
+    pub const transformCircleLdeAndCommitPreparedForHash = combined_commit_ops.transformCircleLdeAndCommitPreparedForHash;
+    pub const grindBlake2sProofOfWork = proof_of_work_ops.grindBlake2sProofOfWork;
+    pub const grindPoseidon2ChannelProofOfWork = proof_of_work_ops.grindPoseidon2ChannelProofOfWork;
 };
 
 /// Deferred compatibility hooks that deliberately bypass production admission.

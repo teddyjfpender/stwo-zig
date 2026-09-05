@@ -66,29 +66,25 @@ pub fn decommit(
     const Decommitment = vcs_lifted_verifier.MerkleDecommitmentLifted(H);
     const max_log_size = reader.maxLogSize();
 
-    const queried_values = try allocator.alloc([]M31, columns.len);
-    var queried_values_initialized: usize = 0;
-    errdefer {
-        for (queried_values[0..queried_values_initialized]) |column| allocator.free(column);
-        allocator.free(queried_values);
-    }
-
-    for (columns, 0..) |column, i| {
-        if (!std.math.isPowerOfTwo(column.len) or column.len < 2) {
-            return error.InvalidColumnSize;
-        }
-        const log_size: u32 = @intCast(std.math.log2_int(usize, column.len));
-        if (log_size > max_log_size) return error.InvalidColumnSize;
-        const shift = max_log_size - log_size;
-        const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
-
-        queried_values[i] = try allocator.alloc(M31, query_positions.len);
-        queried_values_initialized += 1;
-        for (query_positions, 0..) |position, j| {
-            const column_index = ((position >> shift_amt) << 1) + (position & 1);
-            queried_values[i][j] = column[column_index];
-        }
-    }
+    const queried_values = if (comptime @hasDecl(@TypeOf(reader), "readQueriedValuesBatch")) blk: {
+        if (try reader.readQueriedValuesBatch(
+            allocator,
+            query_positions,
+            columns,
+        )) |resident_values| break :blk resident_values;
+        break :blk try readQueriedValuesHost(
+            allocator,
+            max_log_size,
+            query_positions,
+            columns,
+        );
+    } else try readQueriedValuesHost(
+        allocator,
+        max_log_size,
+        query_positions,
+        columns,
+    );
+    errdefer freeQueriedValues(allocator, queried_values);
 
     var hash_witness = std.ArrayList(H.Hash).empty;
     defer hash_witness.deinit(allocator);
@@ -151,6 +147,42 @@ pub fn decommit(
             .aux = .{ .all_node_values = all_node_values_owned },
         },
     };
+}
+
+fn readQueriedValuesHost(
+    allocator: std.mem.Allocator,
+    max_log_size: u32,
+    query_positions: []const usize,
+    columns: []const []const M31,
+) ![][]M31 {
+    const queried_values = try allocator.alloc([]M31, columns.len);
+    var initialized: usize = 0;
+    errdefer {
+        for (queried_values[0..initialized]) |column| allocator.free(column);
+        allocator.free(queried_values);
+    }
+    for (columns, queried_values) |column, *destination| {
+        if (!std.math.isPowerOfTwo(column.len) or column.len < 2) {
+            return error.InvalidColumnSize;
+        }
+        const log_size: u32 = @intCast(std.math.log2_int(usize, column.len));
+        if (log_size > max_log_size) return error.InvalidColumnSize;
+        const shift = max_log_size - log_size;
+        const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
+        destination.* = try allocator.alloc(M31, query_positions.len);
+        initialized += 1;
+        for (query_positions, destination.*) |position, *value| {
+            const column_index = ((position >> shift_amt) << 1) + (position & 1);
+            if (column_index >= column.len) return error.InvalidColumnSize;
+            value.* = column[column_index];
+        }
+    }
+    return queried_values;
+}
+
+fn freeQueriedValues(allocator: std.mem.Allocator, values: [][]M31) void {
+    for (values) |column| allocator.free(column);
+    allocator.free(values);
 }
 
 fn appendSequentialReads(

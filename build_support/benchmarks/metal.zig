@@ -188,7 +188,7 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         metal_test_module,
     );
-    _ = graph.addNativeExamplesImport(
+    const native_examples = graph.addNativeExamplesImport(
         b,
         context.protocol,
         test_product,
@@ -220,6 +220,33 @@ pub fn addProducts(context: Context) void {
         "Compile and link resident Metal backend tests without executing them",
     );
     metal_check_step.dependOn(&metal_tests.step);
+    const resident_decommit_module = consumer(context, "src/tests.zig");
+    resident_decommit_module.addImport("stwo_cpu_backend", context.cpu_backend);
+    resident_decommit_module.addImport("stwo_metal_backend", context.metal_backend);
+    resident_decommit_module.addImport("stwo_cairo_frontend", context.cairo_frontend);
+    resident_decommit_module.addImport("stwo_metal_session", context.metal_session);
+    resident_decommit_module.addImport("stwo_proof_wire", proof_wire);
+    resident_decommit_module.addImport("stwo_native_examples", native_examples);
+    resident_decommit_module.addImport(
+        "stwo_cairo_metal_integration",
+        context.cairo_metal_integration,
+    );
+    resident_decommit_module.addOptions("test_options", metal_test_options);
+    const resident_decommit_tests = b.addTest(.{
+        .root_module = resident_decommit_module,
+        .filters = &.{
+            "metal: resident lifted Merkle root matches CPU",
+            "metal: forced combined circle LDE and Merkle matches generic path",
+        },
+    });
+    metal_backend.linkRuntime(b, resident_decommit_tests);
+    const run_resident_decommit_tests = b.addRunArtifact(resident_decommit_tests);
+    run_resident_decommit_tests.has_side_effects = true;
+    const resident_decommit_step = b.step(
+        "test-metal-resident-decommit",
+        "Run focused resident Metal Merkle decommit parity tests",
+    );
+    resident_decommit_step.dependOn(&run_resident_decommit_tests.step);
 
     const metal_bench_module = consumer(context, "src/bench/metal/commitment.zig");
     metal_bench_module.addImport("stwo", stwo_module);
@@ -231,6 +258,20 @@ pub fn addProducts(context: Context) void {
     const install_metal_bench = b.addInstallArtifact(metal_bench, .{});
     const metal_bench_step = b.step("metal-bench", "Build resident Metal commitment benchmark");
     metal_bench_step.dependOn(&install_metal_bench.step);
+
+    const circle_lde_bench_module = consumer(context, "src/bench/metal/circle_lde.zig");
+    circle_lde_bench_module.addImport("stwo", stwo_module);
+    const circle_lde_bench = b.addExecutable(.{
+        .name = "metal-circle-lde-bench",
+        .root_module = circle_lde_bench_module,
+    });
+    metal_backend.linkRuntime(b, circle_lde_bench);
+    const install_circle_lde_bench = b.addInstallArtifact(circle_lde_bench, .{});
+    const circle_lde_bench_step = b.step(
+        "metal-circle-lde-bench",
+        "Build isolated Metal circle-LDE benchmark",
+    );
+    circle_lde_bench_step.dependOn(&install_circle_lde_bench.step);
 }
 
 fn consumer(context: Context, root_source_file: []const u8) *std.Build.Module {
@@ -260,7 +301,9 @@ fn addUnavailableProducts(b: *std.Build) void {
         "metal-witness-source",
         "metal-test",
         "metal-check",
+        "test-metal-resident-decommit",
         "metal-bench",
+        "metal-circle-lde-bench",
     }) |name| {
         const step = b.step(name, reason);
         step.dependOn(&failure.step);

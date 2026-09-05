@@ -6,6 +6,7 @@ const segment_core = @import("recursion/segment_core_outer_components_v2.zig");
 const SegmentCoreBundle = segment_core.Bundle(fixture.DIMENSIONS);
 
 comptime {
+    _ = @import("recursion/binary_composition_rows_heterogeneous_v2_test.zig");
     _ = @import("recursion/binary_fri_outer_source_test.zig");
     _ = @import("air/memory_commitment/poseidon2_air.zig");
 }

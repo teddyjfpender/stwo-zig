@@ -1,0 +1,684 @@
+{
+  "schema": "stwo.autoresearch.ethereum-block-comparison.v6",
+  "block": {
+    "chain": "mainnet",
+    "chain_id": 1,
+    "number": 24628607,
+    "rpc_tag": "0x177cd7f",
+    "hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+    "parent_hash": "0x1fed00f48a765a81aa0adaf558d2dd597cc1141562ccbc239d04f40d67011384",
+    "state_root": "0xebe5670f335d9b36b3f3824bcda167b542acc86811784f6c4c073c46f53a6354",
+    "transactions_root": "0xf0b9f5ddf3218e063ff485123edb69ee8d4ec1a234749f140c6a14abf90a4c51",
+    "receipts_root": "0x83fdda090173bcc59479a90af13d53de02c7663e9591167c585a0c8a1e5155dc",
+    "withdrawals_root": "0x1900a10f3fc709da22d5f369affc9b95b5d48794ce637d6aa84c71c92b6a31a8",
+    "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "transaction_count": 66,
+    "gas_used": 7372614,
+    "gas_limit": 60000000,
+    "timestamp": 1773164303
+  },
+  "zisk": {
+    "source": {
+      "repository": "https://github.com/0xPolygonHermez/zisk.git",
+      "commit": "fbbc69bcd2ea9a78d1a438b4a897bc48ff0b00a3",
+      "tree": "5201a988acf28db8c0093509377bca06ee2ef563"
+    },
+    "ethereum_client": {
+      "repository": "https://github.com/0xPolygonHermez/zisk-eth-client.git",
+      "commit": "0887d43621931faba8cdf8da70402091bbe620ff",
+      "tree": "089973debb56ee225804627de86b6e10c3e6bf4d"
+    },
+    "fixture": {
+      "path": "bin/guests/stateless-validator-reth/inputs/mainnet_24628607_66_7_zec_reth.bin",
+      "bytes": 2718960,
+      "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+      "git_blob": "77ce1b475784fd6c008f2ca0a834f9afc7948d2b",
+      "transport": {
+        "schema": "zisk-stdin-frame-authority.v1",
+        "framing": "u64le-length-prefixed-eight-byte-aligned",
+        "frames": [
+          {
+            "index": 0,
+            "header_offset": 0,
+            "payload_offset": 8,
+            "payload_bytes": 37233,
+            "padding_bytes": 7,
+            "sha256": "89845d9725f5d169691bcf5032ad77d6a13dbd33d211333ba3948f168b50a9fa",
+            "codec": "bincode-v2-serde-standard",
+            "semantic_type": "guest_reth::RethInputPublic"
+          },
+          {
+            "index": 1,
+            "header_offset": 37248,
+            "payload_offset": 37256,
+            "payload_bytes": 2681704,
+            "padding_bytes": 0,
+            "sha256": "9c93f7b11fac67fbc97b9a4b924bfd7e799e4ad13d314c350da2b665b6a54473",
+            "codec": "bincode-v2-serde-standard",
+            "semantic_type": "guest_reth::RethInputWitness"
+          }
+        ]
+      }
+    },
+    "guest_elf": {
+      "path": "bin/guests/stateless-validator-reth/elf/zec-reth.elf",
+      "bytes": 5556232,
+      "sha256": "213206cfde4b3e27114406c10ab529bd6a15579443d2f134c3c51d9554b96494",
+      "git_blob": "292f4356c0ff281dac5aa2127e50d13126ecb30c"
+    },
+    "tools": {
+      "version": "1.2.0-alpha",
+      "ziskemu": {
+        "bytes": 7042608,
+        "sha256": "7ab5e1a5f5a79914b9295e1bb633eade7b06ea11e43d0abe0a77612c98abb048"
+      },
+      "cargo_zisk_dev": {
+        "bytes": 35617968,
+        "sha256": "06c7ab1d7018ce35227ceaf00ebe333090f8be649f8fe47d38eb39967d94c5bc"
+      }
+    },
+    "execution": {
+      "steps": 60465946,
+      "sdk_display_cost": 7410148962,
+      "stats_cost_including_initialization": 7410377906,
+      "initialization_cost": 228944,
+      "cost": {
+        "base": 287309824,
+        "main": 4111684328,
+        "opcodes": 698211571,
+        "precompiles": 1432367450,
+        "memory_including_initialization": 880804733,
+        "frops": 758015501
+      },
+      "output": {
+        "bytes": 256,
+        "sha256": "9e95dca7f1e10976ac6f4f73c5cc6c6d003ef87041a57d6feb7b8abc99be0946",
+        "framing": "u8-length-prefixed-block-hash-zero-padded"
+      }
+    },
+    "plan": {
+      "instances": {
+        "Arith": 1,
+        "ArithEq": 1,
+        "Binary": 2,
+        "BinaryAddHi": 1,
+        "BinaryExtensionFull": 1,
+        "Dma": 1,
+        "Dma64Aligned": 1,
+        "DmaPrePost": 1,
+        "DmaUnaligned": 1,
+        "InputData": 1,
+        "Keccakf": 2,
+        "Main": 15,
+        "Mem": 5,
+        "MemAlign": 1,
+        "MemAlignByte": 1,
+        "MemAlignReadByte": 1,
+        "Rom": 1,
+        "RomData": 1
+      },
+      "air_types": 18,
+      "total_instances": 38,
+      "padded_rows": 131596288,
+      "committed_stage_cells": 8556380160,
+      "constant_cells": 196083712,
+      "all_cells": 8752463872,
+      "geometry_sha256": "026501b65f16fcfde42cd7c6723ed63fa545ed0738cce2c8af6c0348a7d45ff8",
+      "global_info": {
+        "bytes": 8744,
+        "sha256": "7d97fee4db934acced1fc1a1b68bf42867fdc8937fa92c3801ef3d3807607c45"
+      }
+    }
+  },
+  "stwo": {
+    "one_shot_max_steps": 16777216,
+    "whole_frontend_verified": false,
+    "proof_system_soundness": false,
+    "independent_proof_verifier_implemented": false,
+    "full_block_guest_ported": true,
+    "semantic_projection": {
+      "schema": "stwo.ethereum.stateless-input-projection.v1",
+      "validator_source": {
+        "repository": "https://github.com/paradigmxyz/stateless.git",
+        "commit": "a134a621bad7229ff7f980e42dfca8e22d101491",
+        "tree": "b08c284d34dbed707db82d1847d611016b3a7ac2"
+      },
+      "fork": {
+        "canonical": "BPO2",
+        "schema_id": 5121,
+        "block_timestamp": 1773164303,
+        "legacy_activation_field": "bpo1_time",
+        "legacy_activation_timestamp": 1767747671,
+        "canonical_mainnet_bpo2_timestamp": 1767747671
+      },
+      "witness": {
+        "state_nodes": 3854,
+        "codes": 120,
+        "legacy_keys": 835,
+        "headers": 1,
+        "embedded_public_keys": 0,
+        "recovered_transaction_public_keys": 66
+      },
+      "canonical_input": {
+        "bytes": 2700688,
+        "sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c",
+        "framing": "u16be-schema-id-plus-ssz"
+      },
+      "stwo_runner_input": {
+        "bytes": 2700692,
+        "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+        "framing": "u32le-payload-length-plus-canonical-input"
+      },
+      "host_validation": {
+        "successful_validation": true,
+        "output_bytes": 43,
+        "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+        "new_payload_request_root": "e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030",
+        "chain_id": 1,
+        "schema_id": 5121
+      }
+    },
+    "provider": {
+      "schema": "stwo.ethereum.alloy-signer-provider.v1",
+      "source": {
+        "repository": "https://github.com/paradigmxyz/stateless.git",
+        "commit": "a134a621bad7229ff7f980e42dfca8e22d101491",
+        "tree": "b08c284d34dbed707db82d1847d611016b3a7ac2",
+        "overlay": {
+          "schema": "stwo.ethereum.guest-source-overlay.v1",
+          "files": [
+            {
+              "path": "Cargo.lock",
+              "bytes": 188337,
+              "sha256": "cf75bfeab69a2f455077978e39bb151a483887e8c2b60449397501def20dd377"
+            },
+            {
+              "path": "Cargo.toml",
+              "bytes": 8167,
+              "sha256": "07c03f38d725c066955b46fbccf5e60d02d09c74348e7805822b3e9f0b6e1d15"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/.cargo/config.toml",
+              "bytes": 284,
+              "sha256": "ed8f9c986a811c252847f6f51809d189928452feec8f037929c5c49bc84b5134"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/Cargo.lock",
+              "bytes": 83133,
+              "sha256": "32e8e32d07dc2dafe2c11939b327bd8cefa20ca539f4e04e6c7bd9270623deff"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/Cargo.toml",
+              "bytes": 2865,
+              "sha256": "1ebb8100702d20965040634fc2b9c91bb5199dc01a38a28bc3196fbb99ceed1b"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/linker.ld",
+              "bytes": 1964,
+              "sha256": "a87d0ba8ce63bf8ba5c0b7046b58aa544734f3ffc4b7dcb5a3eb9ebe50984f7a"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/riscv32imc-unknown-none-elf.json",
+              "bytes": 678,
+              "sha256": "b6e6d50586a8149550664f1e5207c84e4acf74fcf0a26f956fe366a1727a3098"
+            },
+            {
+              "path": "bin/stateless-validator-reth/stwo/src/main.rs",
+              "bytes": 12312,
+              "sha256": "a19515c730d47f29b8e400897a4a89029cfe5dc521dc3c778431729e339cdb5a"
+            },
+            {
+              "path": "crates/stateless-validator-reth/Cargo.toml",
+              "bytes": 1251,
+              "sha256": "655fb069d2ec307d52bf9cb7b3b2c56127cfe0f5187a9c140c183f0f0252a9d5"
+            },
+            {
+              "path": "crates/stateless-validator-reth/src/guest.rs",
+              "bytes": 3255,
+              "sha256": "05d52113a5e0ec9abbcca04add77e375c094343a9517e0bd0fc85c35d4a2abf4"
+            },
+            {
+              "path": "crates/stateless-validator-reth/src/guest/crypto.rs",
+              "bytes": 1402,
+              "sha256": "a6ad6d70d435a268e38b6c7999bf5ff36591c0d3336398388737986eda163771"
+            },
+            {
+              "path": "crates/stateless-validator-reth/src/guest/crypto/stwo.rs",
+              "bytes": 6192,
+              "sha256": "04bb3c2a87b870cf1f6c105c675f662c84cd513ed93e857cbb06706b88b4c880"
+            },
+            {
+              "path": "docs/guest-releases.md",
+              "bytes": 2000,
+              "sha256": "957a927e697fa1cb22166fc47ff162dac041659da88ea2a395104c13ad8deac4"
+            },
+            {
+              "path": "docs/stwo-ethereum-guest.md",
+              "bytes": 2287,
+              "sha256": "6cadd74d10940a62f142dfad787ccd0009004721f92b1026a314de8dc744aaa4"
+            }
+          ],
+          "sha256": "58a4c5312ac18e96ec1420ae75c645664388420d400c40206670264feed0a0b1"
+        }
+      },
+      "scope": {
+        "alloy_transaction_signer_recovery": "native-success-only",
+        "alloy_address_derivation": "native-keccak256-over-recovered-pubkey",
+        "alloy_verify_given_pubkey": "software-k256",
+        "revm_ecrecover": "software-default-crypto",
+        "native_rejection": "fatal-no-fallback",
+        "invalid_result_air_implemented": false
+      },
+      "abi": {
+        "schema": "stwo.ethereum.secp256k1-recover-abi.v1",
+        "instruction": "CUSTOM-0/funct7=3/rs1=record-ptr/rs2=0/funct3=0/rd=0",
+        "instruction_word_x5": "0x0602800b",
+        "alignment": 4,
+        "record_bytes": 168,
+        "fields": [
+          {
+            "name": "digest",
+            "offset": 0,
+            "bytes": 32,
+            "encoding": "big-endian-bytes"
+          },
+          {
+            "name": "r",
+            "offset": 32,
+            "bytes": 32,
+            "encoding": "big-endian-bytes"
+          },
+          {
+            "name": "s",
+            "offset": 64,
+            "bytes": 32,
+            "encoding": "big-endian-bytes"
+          },
+          {
+            "name": "recovery_id",
+            "offset": 96,
+            "bytes": 4,
+            "encoding": "u32-little-endian-0-or-1"
+          },
+          {
+            "name": "public_key_xy",
+            "offset": 100,
+            "bytes": 64,
+            "encoding": "big-endian-bytes"
+          },
+          {
+            "name": "status",
+            "offset": 164,
+            "bytes": 4,
+            "encoding": "u32-little-endian-exactly-1"
+          }
+        ]
+      },
+      "profile": {
+        "name": "rv32im-zkvm-ethereum-v1",
+        "wire_id": 3,
+        "descriptor_schema": 1,
+        "capability_bits": 6,
+        "abi_version": 1,
+        "semantic_digest": "fbe8833de35b29ab155afed58f593d44d2a7257ad4491d953742d394da66cfc2"
+      }
+    },
+    "guest_products": {
+      "schema": "stwo.ethereum.guest-products.v1",
+      "real_guest": {
+        "path": "artifacts/stwo-ethereum-v1/stateless-validator-reth.elf",
+        "bytes": 3352364,
+        "sha256": "b751305c0e350918a4a1e692fcfd620a54f5bce6c50322230e156faca95328fa",
+        "recovery_instruction_sites": 1,
+        "keccak_instruction_sites": 17,
+        "execution_reproduced": false,
+        "execution_receipt": null
+      },
+      "abi_smoke": {
+        "path": "artifacts/stwo-ethereum-v1/recovery-abi-smoke.elf",
+        "bytes": 7076,
+        "sha256": "4b119f7ebaa1d24ead9b46a67b980d26f4b0c8ec6dc2f9eddad07ec23f5a66fc",
+        "recovery_instruction_sites": 1,
+        "keccak_instruction_sites": 1,
+        "expected_address": "7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+        "execution_reproduced": true,
+        "execution_receipt": {
+          "schema": "stwo.ethereum.abi-smoke-execution-receipt.v1",
+          "claim_boundary": "execution-only-not-a-proof",
+          "source": {
+            "head": "434cce339f72cee9f9c82811c5f1b08f353a4f23",
+            "tree": "94ddc97e79d2751e15d1b2c5dbef25444af475a4",
+            "status_sha256": "bf071f527cd48440c2af37122112a0320db912953ba99d0c30ea7b305058a8f5",
+            "clean": false
+          },
+          "controller": {
+            "bytes": 31872,
+            "sha256": "7267e15817e820c200a7ee9bf2331b1fd46c1927234dd4123681be500c7b8d8a"
+          },
+          "runner": {
+            "bytes": 28240208,
+            "sha256": "e5ea20e8889c18b74a3e2347afdd820e129df3f70dc37db1d4ff2007d89c043e"
+          },
+          "bundle": {
+            "plan": {
+              "bytes": 1410,
+              "sha256": "0727f9e1735e981b735885e77609f9593155c02ee59daa48593b2483d59ee38b"
+            },
+            "journal": {
+              "bytes": 4105,
+              "sha256": "15e3a3f2e46a66ed21d464c5f8ac511adf9f05e59a1e9082d7fb093593733968"
+            },
+            "receipt": {
+              "bytes": 817,
+              "sha256": "07e4f11bfe2ff6d35c19e420891137b6dcb8aa0adae404648802657d5ed3b146"
+            },
+            "stderr": {
+              "bytes": 0,
+              "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            }
+          },
+          "execution": {
+            "schema": "stwo.riscv.segmented-execution-capture-receipt.v3",
+            "status": "complete",
+            "claim_boundary": "execution-only-not-a-proof",
+            "plan_sha256": "2134768ce89f6c3ca4213c51d4724a6e7034e0766ef78c234b29805d5a0f14ae",
+            "journal_bytes": 4105,
+            "journal_sha256": "15e3a3f2e46a66ed21d464c5f8ac511adf9f05e59a1e9082d7fb093593733968",
+            "segment_count": 1,
+            "total_cycles": 1256,
+            "total_core_trace_rows": 1254,
+            "total_external_trace_rows": 2,
+            "clock_frame": "leaf_local",
+            "max_segment_cycle_count": 1256,
+            "leaf_local_clock_ranges_within_v3_limit": true,
+            "segment_statement_v2_admissible": true,
+            "final_cpu_sha256": "4c998fe45f681cc219c6eb8be2c72d22d3f2dc49be3f5acd6d55b28ca274a45d",
+            "final_rw_memory_sha256": "18a59fd0007789017d749f54580d8bae8ca1cf81c3e44639cf4896489ceb999c",
+            "output_sha256": "d6f781065c489e6513f45bc3dab82156055056d393c42f49a4defec22b5ee73f"
+          },
+          "proof_generated": false,
+          "independent_proof_verification": false
+        }
+      },
+      "real_block": {
+        "runner_input_path": "artifacts/stwo-ethereum-v1/mainnet-24628607.stwo-input.bin",
+        "runner_input_bytes": 2700692,
+        "runner_input_sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+        "expected_output_path": "artifacts/stwo-ethereum-v1/mainnet-24628607.expected-output.bin",
+        "expected_output_bytes": 43,
+        "expected_output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+        "transaction_count": 66,
+        "execution_reproduced": false,
+        "execution_receipt": null
+      }
+    },
+    "execution_diagnostics": {
+      "keccak_only_full_block": {
+        "schema": "stwo.ethereum.keccak-only-full-block-execution.v1",
+        "profile": "rv32im-zkvm-keccakf-v1",
+        "combined_ethereum_profile": false,
+        "transaction_signer_recovery": "host-supplied-key-plus-software-recovery-and-match",
+        "claim_boundary": "execution-only-not-a-proof",
+        "source": {
+          "head": "434cce339f72cee9f9c82811c5f1b08f353a4f23",
+          "tree": "94ddc97e79d2751e15d1b2c5dbef25444af475a4",
+          "status_sha256": "475d89aa8d99c50005134fbe36fce6c6ba1b9ba81fd86bf02a455d363b2e2e1e",
+          "clean": false,
+          "variant": "byte-equivalent-host-memory-snapshot-optimization"
+        },
+        "controller": {
+          "bytes": 31872,
+          "sha256": "7267e15817e820c200a7ee9bf2331b1fd46c1927234dd4123681be500c7b8d8a"
+        },
+        "runner": {
+          "bytes": 2970336,
+          "sha256": "1704b32d0ef34d3fd17aa2fbb49e883bf1e1f4512b7f4fefe80958a76bd39dff"
+        },
+        "guest_elf": {
+          "bytes": 3342784,
+          "sha256": "c6fb9d6040b1cc04c17684cdcc0bfe4fedb97684d877117d4f002184e7662c05"
+        },
+        "input": {
+          "bytes": 2700692,
+          "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+        },
+        "bundle": {
+          "plan": {
+            "bytes": 1624,
+            "sha256": "d5f2be0f6d629a6c8a94854163a6b2070a89e971c788d3218eff6ee15e5c976f"
+          },
+          "journal": {
+            "bytes": 795194,
+            "sha256": "7b071f128e05bb0cb650e9b083005ba9d79a95fb4bcdf0d432f7aad3b63e8024"
+          },
+          "receipt": {
+            "bytes": 841,
+            "sha256": "4441f88c387bffff574deeea79ba14bbcb581590cc973bfe5072eda9886ea50f"
+          },
+          "stderr": {
+            "bytes": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "execution": {
+          "schema": "stwo.riscv.segmented-execution-capture-receipt.v3",
+          "status": "complete",
+          "claim_boundary": "execution-only-not-a-proof",
+          "plan_sha256": "a13e1e6d478f8fb8e74f68a8b9948dd6921c5560ba052a507708013e8074f989",
+          "journal_bytes": 795194,
+          "journal_sha256": "7b071f128e05bb0cb650e9b083005ba9d79a95fb4bcdf0d432f7aad3b63e8024",
+          "segment_count": 389,
+          "total_cycles": 1630632307,
+          "total_core_trace_rows": 1630599472,
+          "total_external_trace_rows": 32835,
+          "clock_frame": "leaf_local",
+          "max_segment_cycle_count": 4194304,
+          "leaf_local_clock_ranges_within_v3_limit": true,
+          "segment_statement_v2_admissible": false,
+          "final_cpu_sha256": "6e2ccd7680f509c32895709de18be626feb1387f752a9e406e8db1c144a40673",
+          "final_rw_memory_sha256": "c83b36bf24907ba4e259cf390bddc239b450d6cb6f867e270765e04a95bb7ca0",
+          "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+        },
+        "timing": {
+          "authority": "operator-observed-not-v3-receipt-bound",
+          "normative": false,
+          "wall_seconds": 251.39,
+          "user_seconds": 219.23,
+          "system_seconds": 34.5
+        },
+        "proof_generated": false,
+        "segment_proofs_verified": false,
+        "recursive_root_verified": false
+      }
+    },
+    "matched_semantic_input_projected": true,
+    "full_block_execution_reproduced": false,
+    "full_block_segment_proofs_verified": false,
+    "full_block_recursive_root_verified": false
+  },
+  "benchmark_protocol": {
+    "schema": "stwo.ethereum.apples-to-apples-benchmark-protocol.v2",
+    "statement": {
+      "schema": "stwo.ethereum.cross-system-statement-authority.v1",
+      "block": {
+        "chain_id": 1,
+        "number": 24628607,
+        "hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+        "parent_hash": "0x1fed00f48a765a81aa0adaf558d2dd597cc1141562ccbc239d04f40d67011384",
+        "state_root": "0xebe5670f335d9b36b3f3824bcda167b542acc86811784f6c4c073c46f53a6354",
+        "transactions_root": "0xf0b9f5ddf3218e063ff485123edb69ee8d4ec1a234749f140c6a14abf90a4c51",
+        "receipts_root": "0x83fdda090173bcc59479a90af13d53de02c7663e9591167c585a0c8a1e5155dc",
+        "withdrawals_root": "0x1900a10f3fc709da22d5f369affc9b95b5d48794ce637d6aa84c71c92b6a31a8",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 66,
+        "gas_used": 7372614,
+        "timestamp": 1773164303
+      },
+      "inputs": {
+        "equivalence_status": "codec-specific-projections-not-yet-cross-verified",
+        "zisk_transport": {
+          "bytes": 2718960,
+          "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+          "framing": "zisk-stdin-u64le-frames-bincode-v2"
+        },
+        "stwo_transport": {
+          "bytes": 2700692,
+          "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+          "framing": "u32le-payload-length-plus-canonical-input"
+        }
+      },
+      "outputs": {
+        "equivalence_status": "different-public-meanings-not-yet-normalized",
+        "zisk_transport": {
+          "bytes": 256,
+          "sha256": "9e95dca7f1e10976ac6f4f73c5cc6c6d003ef87041a57d6feb7b8abc99be0946",
+          "framing": "u8-length-prefixed-block-hash-zero-padded"
+        },
+        "stwo_transport": {
+          "bytes": 43,
+          "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+          "framing": "payload-request-root-plus-success-chain-and-schema"
+        }
+      },
+      "matched_guest_statement_reproduced": false
+    },
+    "statement_sha256": "c62c634130a6ee6107d18652b2c3998c6b6b32e4cd7d4516007aca44dc376e44",
+    "result_contract": {
+      "schema": "stwo.ethereum.apples-to-apples-benchmark-result.v3",
+      "timing_unit": "nanoseconds",
+      "timing_fields": [
+        "wall_ns",
+        "user_ns",
+        "system_ns"
+      ],
+      "timing_buckets": [
+        {
+          "name": "execution",
+          "starts_at": "admitted-guest-and-input-ready",
+          "ends_at": "final-machine-output-and-execution-custody-ready"
+        },
+        {
+          "name": "witness_generation",
+          "starts_at": "execution-custody-ready",
+          "ends_at": "all-committed-witness-columns-ready"
+        },
+        {
+          "name": "proving",
+          "starts_at": "all-committed-witness-columns-ready",
+          "ends_at": "serialized-proof-and-public-statement-ready"
+        },
+        {
+          "name": "verification",
+          "starts_at": "serialized-proof-and-public-statement-ready",
+          "ends_at": "fresh-verifier-verdict-ready"
+        }
+      ],
+      "total_wall_reconciliation": "total_wall_ns=execution_ns+witness_generation_ns+proving_ns+verification_ns",
+      "trace_generation": {
+        "schema": "stwo.ethereum.trace-generation-breakdown.v2",
+        "modes": [
+          "whole-program-repetitions",
+          "sequential-capture-plus-parallel-replay"
+        ],
+        "whole_program_strategy": "parallel-whole-program-repetitions",
+        "capture_strategy": "sequential-authoritative-capture",
+        "replay_strategy": "parallel-memoryless-replay",
+        "rate_representation": "exact-cycles-over-wall-nanoseconds",
+        "efficiency_representation": "replay-rate-over-capture-rate-times-workers-exact-rational",
+        "total_wall_reconciliation": "mode-conditioned:whole_program_wall_ns-or-capture_wall_ns+replay_wall_ns",
+        "authority_values": [
+          "measured",
+          "modeled"
+        ]
+      },
+      "execution_work": {
+        "schema": "stwo.ethereum.execution-work-authority.v1",
+        "reconciliation": "total_execution_isa_steps=per_execution_isa_steps*multiplicity;total_cpu_ns=user_ns+system_ns",
+        "trace_binding": "strategy=trace_generation.mode;whole-program multiplicity matches;capture multiplicity=1",
+        "hardware_binding": "multiplicity-and-strategy-match-hardware-envelope",
+        "authority_values": [
+          "measured",
+          "modeled"
+        ]
+      },
+      "proof_custody": {
+        "schema": "stwo.ethereum.end-to-end-proof-custody.v3",
+        "scopes": [
+          "leaf",
+          "parent",
+          "final_root"
+        ],
+        "topology": "binary-next-power-of-two-with-trailing-canonical-empty-leaves",
+        "empty_leaf_status": "proofless-height-zero-authority-without-verifier-receipt",
+        "proof_counting": "real-leaf-proofs-plus-recursive-parent-proofs-only",
+        "leaf_parent_status": "admissible-evidence-but-nonpromotable",
+        "complete_requires": "all-real-leaf-proofs-all-empty-authorities-all-parent-proofs-and-freshly-verified-final-root",
+        "statement_binding": {
+          "schema": "stwo.ethereum.block-proof-statement-binding.v1",
+          "root_relation": "proved-root-statement-is-distinct-from-benchmark-statement",
+          "authority": "block-plus-elf-plus-input-plus-output-plus-source-request",
+          "promotion": "requires-matched-guest-statement-reproduced"
+        }
+      },
+      "geometry_fields": [
+        "isa_steps",
+        "core_trace_rows",
+        "external_trace_rows",
+        "external_family_rows",
+        "air_types",
+        "component_instances",
+        "padded_rows",
+        "committed_cells",
+        "constant_cells",
+        "all_cells"
+      ],
+      "security_fields": [
+        "schema",
+        "proof_profile",
+        "native_blake_leaf",
+        "recursive_ethereum_leaf",
+        "recursive_node",
+        "conservative_end_to_end_target_bits",
+        "proof_bytes",
+        "fresh_verification",
+        "independent_verifier"
+      ],
+      "hardware_fields": [
+        "machine_model",
+        "cpu_model",
+        "cpu_logical_cores",
+        "gpu_model",
+        "memory_bytes",
+        "operating_system",
+        "power_source",
+        "thermal_state",
+        "process_count",
+        "thread_count",
+        "process_workers",
+        "accelerator_workers",
+        "execution_multiplicity",
+        "execution_strategy"
+      ],
+      "requirements": {
+        "same_pinned_block": true,
+        "matched_guest_statement": true,
+        "mutually_exclusive_timing_buckets": true,
+        "total_wall_reconciles_exactly": true,
+        "same_hardware": true,
+        "same_security_target": true,
+        "complete_recursive_root": true,
+        "fresh_verification": true
+      }
+    },
+    "promotion_ready": false
+  },
+  "claim_boundary": {
+    "zisk_stateless_block_execution_reproduced": true,
+    "zisk_air_plan_reproduced": true,
+    "zisk_full_block_proof_reproduced": false,
+    "stwo_mini_transition_is_full_ethereum_block": false,
+    "matched_guest_statement_reproduced": false,
+    "stwo_full_block_comparison_ready": false,
+    "performance_comparison_status": "blocked-on-complete-rv32-execution-and-recursive-full-block-proof"
+  }
+}

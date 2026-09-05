@@ -378,6 +378,11 @@ fn prepareColumnsCombinedForBackend(
         return err;
     };
     var transform_arena_cursor: usize = 0;
+    const supports_circle_lde_batch = comptime @hasDecl(B, "CircleLdeBatch") and
+        @hasDecl(B, "interpolateAndEvaluateCircleBuffersBatched");
+    var circle_lde_batch: if (supports_circle_lde_batch) B.CircleLdeBatch else void =
+        if (supports_circle_lde_batch) try B.CircleLdeBatch.init() else {};
+    defer if (supports_circle_lde_batch) circle_lde_batch.deinit();
 
     for (groups.items) |group| {
         const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
@@ -461,7 +466,22 @@ fn prepareColumnsCombinedForBackend(
             extended_values[group_index] = values;
             extended[column_index] = .{ .log_size = extended_log_size, .values = values };
         }
-        const execution: work_profile.M31CircleLdeExecution =
+        const execution: work_profile.M31CircleLdeExecution = if (supports_circle_lde_batch)
+            try B.interpolateAndEvaluateCircleBuffersBatched(
+                &circle_lde_batch,
+                allocator,
+                source_values,
+                base_values,
+                extended_values,
+                transform_buffer,
+                extended_start,
+                extended_stride,
+                base_domain,
+                base_twiddles,
+                extended_domain,
+                extended_twiddles,
+            )
+        else
             try B.interpolateAndEvaluateCircleBuffers(
                 allocator,
                 source_values,
@@ -494,6 +514,7 @@ fn prepareColumnsCombinedForBackend(
             try initialized_indices.append(allocator, column_index);
         }
     }
+    if (supports_circle_lde_batch) try circle_lde_batch.finish();
     std.debug.assert(transform_arena_cursor == transform_arena.len);
     try recordM31TransformCompletion(
         work_recorder,

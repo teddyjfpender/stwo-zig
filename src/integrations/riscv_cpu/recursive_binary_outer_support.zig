@@ -187,6 +187,9 @@ pub fn assertNativeCohortContract(comptime Cohort: type) void {
         "validateAuditedInteractions",
         "verifierSuccessBinding",
         "publishSuccessfulVerifier",
+        "publicationContext",
+        "recursiveStatementWords",
+        "CHILD_TRANSCRIPT_AUTHORITY",
     }) |name| if (!@hasDecl(Cohort, name))
         @compileError(
             "native outer Cohort contract is incomplete: missing " ++ name,

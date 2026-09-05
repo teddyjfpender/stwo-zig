@@ -75,7 +75,7 @@ pub fn buildLuiFromAuthority(
     );
 }
 
-fn ownDirectProgram(
+pub fn ownDirectProgram(
     allocator: std.mem.Allocator,
     arena: *const symbolic.Arena,
     direct: []const symbolic.Scalar,
@@ -159,7 +159,7 @@ pub fn buildLuiLookupsFromAuthority(
     );
 }
 
-fn ownLookupProgram(
+pub fn ownLookupProgram(
     allocator: std.mem.Allocator,
     arena: *const symbolic.Arena,
     lookups: *const SymbolicLookupList,

@@ -184,6 +184,22 @@ pub fn rangeCheck88Typed(
     }, liveness, span);
 }
 
+/// Request `range_check_8_8@1` for one derived byte and one already-typed
+/// byte. This narrow form is used by the wide load/store word-index proof: the
+/// first field authenticates the high eight bits while the second is the
+/// canonical typed zero sentinel.
+pub fn rangeCheck88FirstRefined(
+    arena: *ir.Arena,
+    first: types.ValueId,
+    second: types.ValueId,
+    liveness: types.ValueId,
+    span: source.SourceSpan,
+) Error!Request {
+    return fixedRequest(arena, .range_check_8_8, &.{
+        .{ .refine = first }, .{ .typed = second },
+    }, liveness, span);
+}
+
 pub fn rangeCheck884Refined(
     arena: *ir.Arena,
     first_byte: types.ValueId,

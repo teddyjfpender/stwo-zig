@@ -7,13 +7,13 @@ test "lookup polynomial v2: physical manifest pins the full native cohort" {
     var manifest = subject.Manifest.native();
     try manifest.validate();
     try std.testing.expectEqual(@as(u16, 17), manifest.family_count);
-    try std.testing.expectEqual(@as(u32, 242), manifest.total_lookup_entries);
-    try std.testing.expectEqual(@as(u32, 137), manifest.total_batches);
+    try std.testing.expectEqual(@as(u32, 243), manifest.total_lookup_entries);
+    try std.testing.expectEqual(@as(u32, 138), manifest.total_batches);
     try std.testing.expectEqual(
-        @as(u32, 548),
+        @as(u32, 552),
         manifest.total_interaction_columns,
     );
-    try std.testing.expectEqual(@as(u32, 644), manifest.total_main_columns);
+    try std.testing.expectEqual(@as(u32, 646), manifest.total_main_columns);
     try std.testing.expectEqual(@as(u32, 34), manifest.total_adapters);
 
     var previous_claim_end: u32 = 0;
@@ -95,9 +95,9 @@ test "lookup polynomial v2: statement admission binds shard geometry and activat
     try std.testing.expectEqualDeep(first, second);
     try first.validateAgainst(&statement, &manifest);
     try std.testing.expectEqual(@as(u32, 17), first.component_count);
-    try std.testing.expectEqual(@as(u32, 644), first.opcode_main_columns);
-    try std.testing.expectEqual(@as(u32, 548), first.opcode_interaction_columns);
-    try std.testing.expectEqual(@as(u32, 137), first.detailed_claim_count);
+    try std.testing.expectEqual(@as(u32, 646), first.opcode_main_columns);
+    try std.testing.expectEqual(@as(u32, 552), first.opcode_interaction_columns);
+    try std.testing.expectEqual(@as(u32, 138), first.detailed_claim_count);
 
     var wrong_statement = statement;
     wrong_statement.component_descs[0].n_columns += 1;

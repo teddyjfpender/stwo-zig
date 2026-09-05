@@ -10,7 +10,7 @@ const M31_MODULUS: u32 = 0x7fff_ffff;
 const TREE_COUNT: usize = 4;
 // These are allocation-safety limits, not an AIR mask declaration. Exact mask
 // widths are reconstructed from the production components by the verifier.
-const SAMPLE_WIDTH_LIMITS = [TREE_COUNT]u32{ 2, 2, 2, 1 };
+pub const DEFAULT_SAMPLE_WIDTH_LIMITS = [TREE_COUNT]u32{ 2, 2, 2, 1 };
 const TEST_SAMPLE_WIDTHS = [TREE_COUNT]u32{ 1, 1, 2, 1 };
 
 pub const Config = struct {
@@ -40,6 +40,12 @@ pub const Shape = struct {
     tree_columns: [TREE_COUNT]u32,
     /// Maximum column log size after composition splitting and before FRI.
     max_column_log_size: u32,
+    /// Allocation-safety bounds for sampled values per column in each tree.
+    ///
+    /// The default preserves the released V1 proof-artifact admission policy.
+    /// Profiles whose statically authenticated AIR masks are wider must opt in
+    /// through their statement-derived shape rather than artifact bytes.
+    sample_width_limits: [TREE_COUNT]u32 = DEFAULT_SAMPLE_WIDTH_LIMITS,
     /// In-memory hash width.  For `canonical_m31_words` this must be a
     /// non-zero multiple of four and determines the number of M31 words.
     hash_size: u32,
@@ -60,35 +66,136 @@ pub const Error = error{
     VarintOverflow,
 };
 
+/// Typed, allocation-free localization for the first proof-shape mismatch.
+///
+/// This is diagnostic telemetry only.  `validateWithDiagnostic` executes the
+/// same admission parser and returns the same error set as `validate`.
+pub const DiagnosticStage = enum {
+    commitment_tree_count,
+    sampled_tree_count,
+    sampled_column_count,
+    sampled_width,
+    decommitment_tree_count,
+    queried_tree_count,
+    queried_column_count,
+    fri_inner_layer_count,
+    fri_last_coefficient_count,
+};
+
+pub const Diagnostic = struct {
+    stage: DiagnosticStage,
+    tree: ?u32,
+    index: ?u32,
+    offset: usize,
+    actual: usize,
+    expected: usize,
+};
+
 /// Validate every length prefix and scalar without allocating.
 pub fn validate(raw: []const u8, shape: Shape) Error!void {
+    return validateInternal(raw, shape, null);
+}
+
+/// Run the canonical preflight while retaining only its first exact mismatch.
+pub fn validateWithDiagnostic(
+    raw: []const u8,
+    shape: Shape,
+    diagnostic: *?Diagnostic,
+) Error!void {
+    diagnostic.* = null;
+    return validateInternal(raw, shape, diagnostic);
+}
+
+fn validateInternal(
+    raw: []const u8,
+    shape: Shape,
+    diagnostic: ?*?Diagnostic,
+) Error!void {
     const bounds = try Bounds.init(shape);
     if (raw.len > shape.max_wire_bytes) return error.ProofResourceLimitExceeded;
 
     var cursor = Cursor{ .bytes = raw };
     try expectConfig(&cursor, shape.config);
 
-    try expectCount(&cursor, TREE_COUNT);
+    try expectCountAt(
+        &cursor,
+        TREE_COUNT,
+        diagnostic,
+        .commitment_tree_count,
+        null,
+        null,
+    );
     for (0..TREE_COUNT) |_| try skipHash(&cursor, bounds);
 
-    try expectCount(&cursor, TREE_COUNT);
-    for (shape.tree_columns, SAMPLE_WIDTH_LIMITS) |column_count, sample_width_limit| {
-        try expectCount(&cursor, column_count);
-        for (0..column_count) |_| {
+    try expectCountAt(
+        &cursor,
+        TREE_COUNT,
+        diagnostic,
+        .sampled_tree_count,
+        null,
+        null,
+    );
+    for (shape.tree_columns, shape.sample_width_limits, 0..) |
+        column_count,
+        sample_width_limit,
+        tree_index,
+    | {
+        try expectCountAt(
+            &cursor,
+            column_count,
+            diagnostic,
+            .sampled_column_count,
+            @intCast(tree_index),
+            null,
+        );
+        for (0..column_count) |column_index| {
+            const sample_width_offset = cursor.position;
             const sample_width = try cursor.readUsize();
-            if (sample_width == 0) return error.InvalidProofShape;
+            if (sample_width == 0) {
+                recordMismatch(
+                    diagnostic,
+                    .sampled_width,
+                    @intCast(tree_index),
+                    @intCast(column_index),
+                    sample_width_offset,
+                    sample_width,
+                    1,
+                );
+                return error.InvalidProofShape;
+            }
             if (sample_width > sample_width_limit)
                 return error.ProofResourceLimitExceeded;
             for (0..sample_width) |_| try cursor.readQm31();
         }
     }
 
-    try expectCount(&cursor, TREE_COUNT);
+    try expectCountAt(
+        &cursor,
+        TREE_COUNT,
+        diagnostic,
+        .decommitment_tree_count,
+        null,
+        null,
+    );
     for (0..TREE_COUNT) |_| try skipHashWitness(&cursor, bounds);
 
-    try expectCount(&cursor, TREE_COUNT);
-    for (shape.tree_columns) |column_count| {
-        try expectCount(&cursor, column_count);
+    try expectCountAt(
+        &cursor,
+        TREE_COUNT,
+        diagnostic,
+        .queried_tree_count,
+        null,
+        null,
+    );
+    for (shape.tree_columns, 0..) |column_count, tree_index| {
+        try expectCountAt(
+            &cursor,
+            column_count,
+            diagnostic,
+            .queried_column_count,
+            @intCast(tree_index),
+            null,
+        );
         for (0..column_count) |_| {
             const value_count = try cursor.readUsize();
             if (value_count > bounds.n_queries) return error.ProofResourceLimitExceeded;
@@ -99,10 +206,24 @@ pub fn validate(raw: []const u8, shape: Shape) Error!void {
     _ = try cursor.readVarint(); // proof of work
     try readFriLayer(&cursor, bounds);
 
-    try expectCount(&cursor, bounds.inner_layer_count);
+    try expectCountAt(
+        &cursor,
+        bounds.inner_layer_count,
+        diagnostic,
+        .fri_inner_layer_count,
+        null,
+        null,
+    );
     for (0..bounds.inner_layer_count) |_| try readFriLayer(&cursor, bounds);
 
-    try expectCount(&cursor, bounds.last_layer_coefficients);
+    try expectCountAt(
+        &cursor,
+        bounds.last_layer_coefficients,
+        diagnostic,
+        .fri_last_coefficient_count,
+        null,
+        null,
+    );
     for (0..bounds.last_layer_coefficients) |_| try cursor.readQm31();
 
     if (cursor.position != raw.len) return error.TrailingProofBytes;
@@ -130,6 +251,9 @@ const Bounds = struct {
             return error.InvalidPreflightShape;
         for (shape.tree_columns) |count| {
             if (count == 0) return error.InvalidPreflightShape;
+        }
+        for (shape.sample_width_limits) |limit| {
+            if (limit == 0) return error.InvalidPreflightShape;
         }
         const hash_word_count: usize = switch (shape.hash_encoding) {
             .raw_bytes => 0,
@@ -233,10 +357,61 @@ fn skipHash(cursor: *Cursor, bounds: Bounds) Error!void {
 }
 
 fn expectCount(cursor: *Cursor, expected: anytype) Error!void {
+    return expectCountAt(
+        cursor,
+        expected,
+        null,
+        .commitment_tree_count,
+        null,
+        null,
+    );
+}
+
+fn expectCountAt(
+    cursor: *Cursor,
+    expected: anytype,
+    diagnostic: ?*?Diagnostic,
+    stage: DiagnosticStage,
+    tree: ?u32,
+    index: ?u32,
+) Error!void {
+    const offset = cursor.position;
     const actual = try cursor.readUsize();
     const expected_usize = std.math.cast(usize, expected) orelse
         return error.InvalidPreflightShape;
-    if (actual != expected_usize) return error.InvalidProofShape;
+    if (actual != expected_usize) {
+        recordMismatch(
+            diagnostic,
+            stage,
+            tree,
+            index,
+            offset,
+            actual,
+            expected_usize,
+        );
+        return error.InvalidProofShape;
+    }
+}
+
+fn recordMismatch(
+    diagnostic: ?*?Diagnostic,
+    stage: DiagnosticStage,
+    tree: ?u32,
+    index: ?u32,
+    offset: usize,
+    actual: usize,
+    expected: usize,
+) void {
+    const output = diagnostic orelse return;
+    if (output.* != null) return;
+    output.* = .{
+        .stage = stage,
+        .tree = tree,
+        .index = index,
+        .offset = offset,
+        .actual = actual,
+        .expected = expected,
+    };
 }
 
 fn multiply(left: usize, right: usize) Error!usize {
@@ -418,6 +593,40 @@ test "proof preflight accepts a complete bounded wire without allocation" {
     try validate(raw, shape);
 }
 
+test "proof preflight diagnoses the first exact shape mismatch" {
+    const allocator = std.testing.allocator;
+    const shape = testShape();
+    var raw: std.ArrayList(u8) = .{};
+    defer raw.deinit(allocator);
+    try appendConfig(allocator, &raw, shape);
+    try appendVarint(allocator, &raw, TREE_COUNT);
+    try raw.appendNTimes(allocator, 0, TREE_COUNT * shape.hash_size);
+    try appendVarint(allocator, &raw, TREE_COUNT);
+    const mismatch_offset = raw.items.len;
+    const actual = shape.tree_columns[0] + 1;
+    try appendVarint(allocator, &raw, actual);
+
+    var diagnostic: ?Diagnostic = null;
+    try std.testing.expectError(
+        error.InvalidProofShape,
+        validateWithDiagnostic(raw.items, shape, &diagnostic),
+    );
+    const mismatch = diagnostic orelse return error.MissingDiagnostic;
+    try std.testing.expectEqual(
+        DiagnosticStage.sampled_column_count,
+        mismatch.stage,
+    );
+    try std.testing.expectEqual(@as(?u32, 0), mismatch.tree);
+    try std.testing.expectEqual(@as(?u32, null), mismatch.index);
+    try std.testing.expectEqual(mismatch_offset, mismatch.offset);
+    try std.testing.expectEqual(@as(usize, actual), mismatch.actual);
+    try std.testing.expectEqual(
+        @as(usize, shape.tree_columns[0]),
+        mismatch.expected,
+    );
+    try std.testing.expectError(error.InvalidProofShape, validate(raw.items, shape));
+}
+
 test "proof preflight parses canonical M31-word hashes without allocation" {
     var shape = testShape();
     shape.hash_encoding = .canonical_m31_words;
@@ -477,10 +686,69 @@ test "proof preflight bounds sample widths without assuming exact AIR masks" {
     try excessive.appendNTimes(allocator, 0, TREE_COUNT * shape.hash_size);
     try appendVarint(allocator, &excessive, TREE_COUNT);
     try appendVarint(allocator, &excessive, shape.tree_columns[0]);
-    try appendVarint(allocator, &excessive, SAMPLE_WIDTH_LIMITS[0] + 1);
+    try appendVarint(allocator, &excessive, shape.sample_width_limits[0] + 1);
     try std.testing.expectError(
         error.ProofResourceLimitExceeded,
         validate(excessive.items, shape),
+    );
+}
+
+test "proof preflight admits an authenticated six-point main mask and rejects seven" {
+    const allocator = std.testing.allocator;
+    var shape = testShape();
+    shape.sample_width_limits = .{ 2, 6, 2, 1 };
+
+    var accepted: std.ArrayList(u8) = .{};
+    defer accepted.deinit(allocator);
+    try appendConfig(allocator, &accepted, shape);
+    try appendVarint(allocator, &accepted, TREE_COUNT);
+    try accepted.appendNTimes(allocator, 0, TREE_COUNT * shape.hash_size);
+    try appendSamplesWithWidths(allocator, &accepted, shape, .{ 1, 6, 2, 1 });
+    const valid_tail = try validWire(allocator, shape);
+    defer allocator.free(valid_tail);
+
+    var prefix_cursor = Cursor{ .bytes = valid_tail };
+    try expectConfig(&prefix_cursor, shape.config);
+    try expectCount(&prefix_cursor, TREE_COUNT);
+    try prefix_cursor.skip(TREE_COUNT * shape.hash_size);
+    try expectCount(&prefix_cursor, TREE_COUNT);
+    for (shape.tree_columns, TEST_SAMPLE_WIDTHS) |column_count, width| {
+        try expectCount(&prefix_cursor, column_count);
+        for (0..column_count) |_| {
+            try expectCount(&prefix_cursor, width);
+            try prefix_cursor.skip(width * 4);
+        }
+    }
+    try accepted.appendSlice(allocator, valid_tail[prefix_cursor.position..]);
+    try validate(accepted.items, shape);
+
+    var excessive: std.ArrayList(u8) = .{};
+    defer excessive.deinit(allocator);
+    try appendConfig(allocator, &excessive, shape);
+    try appendVarint(allocator, &excessive, TREE_COUNT);
+    try excessive.appendNTimes(allocator, 0, TREE_COUNT * shape.hash_size);
+    try appendVarint(allocator, &excessive, TREE_COUNT);
+    try appendVarint(allocator, &excessive, shape.tree_columns[0]);
+    try appendVarint(allocator, &excessive, 1);
+    try appendZeroQm31(allocator, &excessive);
+    try appendVarint(allocator, &excessive, shape.tree_columns[1]);
+    try appendVarint(allocator, &excessive, shape.sample_width_limits[1] + 1);
+    try std.testing.expectError(
+        error.ProofResourceLimitExceeded,
+        validate(excessive.items, shape),
+    );
+
+    shape.sample_width_limits[1] = 0;
+    try std.testing.expectError(
+        error.InvalidPreflightShape,
+        validate(accepted.items, shape),
+    );
+}
+
+test "proof preflight V1 sample-width defaults remain unchanged" {
+    try std.testing.expectEqual(
+        DEFAULT_SAMPLE_WIDTH_LIMITS,
+        testShape().sample_width_limits,
     );
 }
 

@@ -44,9 +44,9 @@ pub fn Type(comptime Context: type) type {
         pub const merkle_path_witness = claims.merkle_path_witness;
         pub const merkle_path_poseidon = claims.merkle_path_poseidon;
         pub const MERKLE_PATH_MAIN_COLUMN_COUNT = claims.MERKLE_PATH_MAIN_COLUMN_COUNT;
-        pub const merkleLeafCount = retained.merkleLeafCount;
-        pub const merkleInvocationCount = retained.merkleInvocationCount;
-        pub const sharedPoseidonCallCount = retained.sharedPoseidonCallCount;
+        pub const merkleLeafCount = Context.merkleLeafCount;
+        pub const merkleInvocationCount = Context.merkleInvocationCount;
+        pub const sharedPoseidonCallCount = Context.sharedPoseidonCallCount;
         pub const merkleWorkspaceDigest = materialized.merkleWorkspaceDigest;
         pub const validateMerkleWorkspaceAliases = materialized.validateMerkleWorkspaceAliases;
         pub const traceLogSize = validation.traceLogSize;

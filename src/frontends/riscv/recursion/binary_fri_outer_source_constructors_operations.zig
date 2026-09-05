@@ -73,18 +73,38 @@ pub fn Operations(comptime Context: type) type {
                 children,
             );
             errdefer composition_rows.deinit();
-            var fri_rows = try FriRowsAuthority.init(
-                allocator,
-                vm_plan,
-                recursion_plans[0],
-                children,
-            );
+            var fri_rows = if (comptime @hasDecl(Boundary, "initFriRows"))
+                try Boundary.initFriRows(
+                    allocator,
+                    pair,
+                    vm_plan,
+                    recursion_plans[0],
+                    children,
+                )
+            else
+                try FriRowsAuthority.init(
+                    allocator,
+                    vm_plan,
+                    recursion_plans[0],
+                    children,
+                );
             errdefer fri_rows.deinit();
-            var arithmetic_rows = try ArithmeticRowsAuthority.init(
-                allocator,
-                children,
-                shared_arithmetic,
-            );
+            var arithmetic_rows = if (comptime @hasDecl(
+                Boundary,
+                "initArithmeticRows",
+            ))
+                try Boundary.initArithmeticRows(
+                    allocator,
+                    pair,
+                    children,
+                    shared_arithmetic,
+                )
+            else
+                try ArithmeticRowsAuthority.init(
+                    allocator,
+                    children,
+                    shared_arithmetic,
+                );
             errdefer arithmetic_rows.deinit();
             var merkle_rows = try MerkleRowsAuthority.init(allocator);
             errdefer merkle_rows.deinit();

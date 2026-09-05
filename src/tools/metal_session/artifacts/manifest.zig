@@ -1,6 +1,7 @@
 //! Authenticated artifact identities and proof-protocol manifests.
 
 const std = @import("std");
+const shared_artifacts = @import("stwo_artifact_store");
 
 pub const schema_version: u32 = 1;
 pub const domain = "stwo-zig-artifact-manifest\x00";
@@ -57,34 +58,8 @@ pub const GeneratorIdentity = struct {
     arguments_sha256: [32]u8,
 };
 
-pub const FileIdentity = struct {
-    inode: std.fs.File.INode,
-    size: u64,
-    mtime: i128,
-    ctime: i128,
-
-    pub fn fromStat(stat: std.fs.File.Stat) FileIdentity {
-        return .{
-            .inode = stat.inode,
-            .size = stat.size,
-            .mtime = stat.mtime,
-            .ctime = stat.ctime,
-        };
-    }
-
-    pub fn eql(a: FileIdentity, b: FileIdentity) bool {
-        return a.inode == b.inode and
-            a.size == b.size and
-            a.mtime == b.mtime and
-            a.ctime == b.ctime;
-    }
-};
-
-pub const Measurement = struct {
-    bytes: u64,
-    sha256: [32]u8,
-    identity: FileIdentity,
-};
+pub const FileIdentity = shared_artifacts.FileIdentity;
+pub const Measurement = shared_artifacts.Measurement;
 
 pub const Entry = struct {
     role: Role,
@@ -184,41 +159,8 @@ pub const JsonEvidence = struct {
     }
 };
 
-pub fn measureFile(allocator: std.mem.Allocator, path: []const u8) !Measurement {
-    const canonical = try std.fs.realpathAlloc(allocator, path);
-    defer allocator.free(canonical);
-    const file = try std.fs.openFileAbsolute(canonical, .{});
-    defer file.close();
-
-    const before = try file.stat();
-    if (before.kind != .file) return error.InvalidArtifact;
-    const buffer = try allocator.alloc(u8, 4 * 1024 * 1024);
-    defer allocator.free(buffer);
-    var hasher = std.crypto.hash.sha2.Sha256.init(.{});
-    var bytes: u64 = 0;
-    while (true) {
-        const count = try file.read(buffer);
-        if (count == 0) break;
-        hasher.update(buffer[0..count]);
-        bytes = std.math.add(u64, bytes, count) catch return error.InvalidArtifact;
-    }
-    const after = try file.stat();
-    const before_identity = FileIdentity.fromStat(before);
-    const after_identity = FileIdentity.fromStat(after);
-    if (!before_identity.eql(after_identity) or bytes != before.size)
-        return error.ArtifactChangedDuringMeasurement;
-    return .{
-        .bytes = bytes,
-        .sha256 = hasher.finalResult(),
-        .identity = after_identity,
-    };
-}
-
-pub fn digestBytes(bytes: []const u8) [32]u8 {
-    var digest: [32]u8 = undefined;
-    std.crypto.hash.sha2.Sha256.hash(bytes, &digest, .{});
-    return digest;
-}
+pub const measureFile = shared_artifacts.measureFile;
+pub const digestBytes = shared_artifacts.digestBytes;
 
 pub fn protocolDigest(value: ProofProtocol) ![32]u8 {
     if (value.channel.len == 0 or value.channel.len > std.math.maxInt(u16))

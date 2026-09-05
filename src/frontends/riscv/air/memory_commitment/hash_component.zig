@@ -46,6 +46,15 @@ pub const PoseidonShell = enum {
     universal,
 };
 
+pub const MerkleShell = enum {
+    /// Ordinary sparse-memory Merkle relation ownership.
+    standard,
+    /// Caller half of a split base Poseidon provider.  All Merkle
+    /// multiplicities are AIR-constrained to zero, leaving only the exact
+    /// Poseidon2 input/output residual in this component's LogUp claim.
+    externalized_poseidon_provider,
+};
+
 /// Single authority for the verifier-visible constraint count of a hash
 /// component.  Recursive schedule construction calls this rather than
 /// transcribing the Poseidon shell arithmetic a second time.
@@ -81,6 +90,7 @@ pub const HashComponent = struct {
     main_col_offset: usize,
     interaction_col_offset: usize,
     relations: *const relations_mod.Relations,
+    merkle_shell: MerkleShell = .standard,
     poseidon_shell: PoseidonShell = .narrow_memory,
     merkle_claims: [merkle_node.N_SUMS]QM31 = .{QM31.zero()} ** merkle_node.N_SUMS,
     poseidon_claims: [poseidon2_air.N_SUMS]QM31 = .{QM31.zero()} ** poseidon2_air.N_SUMS,
@@ -97,6 +107,9 @@ pub const HashComponent = struct {
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         component.composition_work_profile = compositionWorkProfileErased;
         component.oods_work_profile = oodsWorkProfileErased;
+        if (self.kind == .poseidon2 and self.poseidon_shell == .narrow_memory) {
+            component.backend_composition_capability = hash_component_backend.capability();
+        }
         return component;
     }
 
@@ -143,19 +156,34 @@ pub const HashComponent = struct {
                 const claims = composition_work_support.values(merkle_node.N_SUMS, 64);
                 try composition_work_support.begin(&expression);
                 defer composition_work_support.end();
-                _ = merkle_node.evaluateGeneric(
-                    Scalar,
-                    main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    claims,
-                    &relations,
-                );
+                switch (self.merkle_shell) {
+                    .standard => _ = merkle_node.evaluateGeneric(
+                        Scalar,
+                        main,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        claims,
+                        &relations,
+                    ),
+                    .externalized_poseidon_provider => _ = merkle_node.evaluateExternalProviderCallerGeneric(
+                        Scalar,
+                        main,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        claims,
+                        &relations,
+                    ),
+                }
                 return composition_work_support.profile(
                     .merkle,
-                    "riscv-merkle-node-evaluate-generic-v1",
+                    switch (self.merkle_shell) {
+                        .standard => "riscv-merkle-node-evaluate-generic-v1",
+                        .externalized_poseidon_provider => "riscv-merkle-node-externalized-provider-v1",
+                    },
                     self.maxConstraintLogDegreeBound(),
                     self.nConstraints(),
                     expression,
@@ -164,6 +192,7 @@ pub const HashComponent = struct {
                         @as(u64, self.log_size),
                         @as(u64, merkle_node.N_MAIN_COLUMNS),
                         @as(u64, merkle_node.N_SUMS),
+                        @as(u64, @intFromEnum(self.merkle_shell)),
                     },
                 );
             },
@@ -234,7 +263,13 @@ pub const HashComponent = struct {
     }
 
     pub fn nConstraints(self: *const @This()) usize {
-        return constraintCount(self.kind, self.poseidon_shell);
+        return switch (self.kind) {
+            .merkle => switch (self.merkle_shell) {
+                .standard => merkle_node.N_CONSTRAINTS,
+                .externalized_poseidon_provider => merkle_node.N_EXTERNAL_PROVIDER_CONSTRAINTS,
+            },
+            .poseidon2 => constraintCount(.poseidon2, self.poseidon_shell),
+        };
     }
 
     pub fn nPreprocessedColumns(self: *const @This()) usize {
@@ -355,16 +390,36 @@ pub const HashComponent = struct {
                     &sums,
                     &previous,
                 );
-                const constraints = merkle_node.evaluate(
-                    main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    self.merkle_claims,
-                    self.relations,
-                );
-                for (constraints) |constraint| accumulator.accumulate(constraint.mul(denominator_inv));
+                switch (self.merkle_shell) {
+                    .standard => {
+                        const constraints = merkle_node.evaluate(
+                            main,
+                            is_active,
+                            is_first,
+                            sums,
+                            previous,
+                            self.merkle_claims,
+                            self.relations,
+                        );
+                        for (constraints) |constraint| accumulator.accumulate(
+                            constraint.mul(denominator_inv),
+                        );
+                    },
+                    .externalized_poseidon_provider => {
+                        const constraints = merkle_node.evaluateExternalProviderCaller(
+                            main,
+                            is_active,
+                            is_first,
+                            sums,
+                            previous,
+                            self.merkle_claims,
+                            self.relations,
+                        );
+                        for (constraints) |constraint| accumulator.accumulate(
+                            constraint.mul(denominator_inv),
+                        );
+                    },
+                }
             },
             .poseidon2 => {
                 const main = try sampleMain(
@@ -615,6 +670,9 @@ pub const HashComponent = struct {
     }
 };
 
+const hash_component_backend =
+    @import("hash_component_backend.zig").Namespace(HashComponent);
+
 const hash_component_prepared_domain = @import("hash_component_prepared_domain.zig").Namespace(.{
     .std = std,
     .M31 = M31,
@@ -630,6 +688,7 @@ const hash_component_prepared_domain = @import("hash_component_prepared_domain.z
     .PREPARED_DENOMINATOR_COUNT = PREPARED_DENOMINATOR_COUNT,
     .prepared_parallel_telemetry = &prepared_parallel_telemetry,
     .HashComponent = HashComponent,
+    .merkleExternalizedProviderConstraints = merkle_node.evaluateExternalProviderCaller,
     .poseidonConstraints = poseidonConstraints,
     .poseidonGeneralConstraints = poseidonGeneralConstraints,
     .readMain = readMain,

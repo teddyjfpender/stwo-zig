@@ -1,9 +1,11 @@
 //! Metal source generation for backend-neutral base-field polynomial DAGs.
 
 const std = @import("std");
+const m31_modulus: u32 = @import("stwo_core").fields.m31.Modulus;
 const prover_component = @import("stwo_prover_engine").air.component_prover;
 
-pub const codegen_version: u64 = 1;
+pub const codegen_version: u16 = 3;
+pub const identity_domain = "stwo/metal/base-polynomial-codegen/v3\x00";
 
 pub const Entry = struct {
     program_id: u64,
@@ -25,6 +27,8 @@ pub fn kernelName(
 
 pub fn programDigest(program: prover_component.OwnedBasePolynomialProgram) [16]u8 {
     var hasher = std.crypto.hash.sha2.Sha256.init(.{});
+    hasher.update(identity_domain);
+    hashInt(&hasher, u16, codegen_version);
     hashU64(&hasher, program.column_count);
     hashU64(&hasher, program.nodes.len);
     for (program.nodes) |node| {
@@ -69,21 +73,31 @@ pub fn emitKernel(
         \\    device const uint *powers [[buffer(2)]],
         \\    device uint *output [[buffer(3)]],
         \\    constant uint &row_count [[buffer(4)]],
-        \\    constant uint2 &denominator_inverses [[buffer(5)]],
+        \\    constant uint *denominator_inverses [[buffer(5)]],
+        \\    constant uint &denominator_count [[buffer(6)]],
         \\    uint row [[thread_position_in_grid]]) {{
         \\    if (row >= row_count) return;
         \\
     , .{name});
 
+    // Every constraint root is folded into the accumulator as soon as its
+    // node is defined.  The generated kernel is one straight-line function;
+    // deferring all folds to the end kept every root value live across the
+    // whole body and throttled occupancy.  QM31 addition is commutative, so
+    // the fold order is transcript-irrelevant and the result is bit-exact.
+    try writer.writeAll("    RiscvQm31 folded = { 0u, 0u, 0u, 0u };\n");
     for (program.nodes, 0..) |node, index| {
         if (!reachable[index]) continue;
         switch (node.op) {
-            .constant => try writer.print("    uint n{} = {}u;\n", .{ index, node.value }),
+            .constant => try writer.print(
+                "    uint n{} = {}u;\n",
+                .{ index, node.value % m31_modulus },
+            ),
             .column => if (node.value == main_column_count)
                 try writer.print("    uint n{} = selector[row];\n", .{index})
             else
                 try writer.print(
-                    "    uint n{} = main_columns[{}u * row_count + row];\n",
+                    "    uint n{} = main_columns[riscv_column_offset({}u, row_count, row)];\n",
                     .{ index, node.value },
                 ),
             .add => try writer.print(
@@ -100,22 +114,23 @@ pub fn emitKernel(
             ),
             .neg => try writer.print("    uint n{} = riscv_m31_neg(n{});\n", .{ index, node.lhs }),
         }
+        for (program.roots, 0..) |root, root_index| {
+            if (root != index) continue;
+            const power_index = program.roots.len - 1 - root_index;
+            try writer.print(
+                "    folded = riscv_qm_add(folded, riscv_qm_mul_base(riscv_load_qm31(powers, {}u), n{}));\n",
+                .{ power_index * 4, root },
+            );
+        }
     }
 
-    try writer.writeAll("    RiscvQm31 folded = { 0u, 0u, 0u, 0u };\n");
-    for (program.roots, 0..) |root, index| {
-        const power_index = program.roots.len - 1 - index;
-        try writer.print(
-            "    folded = riscv_qm_add(folded, riscv_qm_mul_base(riscv_load_qm31(powers, {}u), n{}));\n",
-            .{ power_index * 4, root },
-        );
-    }
     try writer.writeAll(
-        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[row >= (row_count >> 1u)]);
-        \\    output[row] = riscv_m31_add(output[row], result.a);
-        \\    output[row_count + row] = riscv_m31_add(output[row_count + row], result.b);
-        \\    output[2u * row_count + row] = riscv_m31_add(output[2u * row_count + row], result.c);
-        \\    output[3u * row_count + row] = riscv_m31_add(output[3u * row_count + row], result.d);
+        \\    uint denominator_index = row / (row_count / denominator_count);
+        \\    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+        \\    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+        \\    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+        \\    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+        \\    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
         \\}
         \\
     );
@@ -151,11 +166,11 @@ pub const preamble =
     \\using namespace metal;
     \\constant uint RISCV_M31_P = 0x7fffffffu;
     \\struct RiscvQm31 { uint a; uint b; uint c; uint d; };
-    \\inline uint riscv_m31_reduce(ulong v) { v = (v & RISCV_M31_P) + (v >> 31); v = (v & RISCV_M31_P) + (v >> 31); return v == RISCV_M31_P ? 0u : uint(v); }
-    \\inline uint riscv_m31_add(uint a, uint b) { return riscv_m31_reduce(ulong(a) + b); }
+    \\inline uint riscv_m31_add(uint a, uint b) { uint s = a + b; return s >= RISCV_M31_P ? s - RISCV_M31_P : s; }
     \\inline uint riscv_m31_sub(uint a, uint b) { return a >= b ? a - b : a + RISCV_M31_P - b; }
-    \\inline uint riscv_m31_mul(uint a, uint b) { return riscv_m31_reduce(ulong(a) * b); }
+    \\inline uint riscv_m31_mul(uint a, uint b) { ulong p = ulong(a) * b; uint f = uint((p & RISCV_M31_P) + (p >> 31)); return f >= RISCV_M31_P ? f - RISCV_M31_P : f; }
     \\inline uint riscv_m31_neg(uint a) { return a == 0u ? 0u : RISCV_M31_P - a; }
+    \\inline ulong riscv_column_offset(uint column, uint rows, uint row) { return ulong(column) * ulong(rows) + ulong(row); }
     \\inline RiscvQm31 riscv_qm_add(RiscvQm31 l, RiscvQm31 r) { return { riscv_m31_add(l.a,r.a), riscv_m31_add(l.b,r.b), riscv_m31_add(l.c,r.c), riscv_m31_add(l.d,r.d) }; }
     \\inline RiscvQm31 riscv_qm_mul_base(RiscvQm31 v, uint s) { return { riscv_m31_mul(v.a,s), riscv_m31_mul(v.b,s), riscv_m31_mul(v.c,s), riscv_m31_mul(v.d,s) }; }
     \\inline RiscvQm31 riscv_load_qm31(device const uint *values, uint offset) { return { values[offset], values[offset+1u], values[offset+2u], values[offset+3u] }; }
@@ -196,8 +211,63 @@ test "base polynomial codegen preserves root and selector order" {
     }});
     defer std.testing.allocator.free(source);
     try std.testing.expect(std.mem.indexOf(u8, source, "selector[row]") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "denominator_count") != null);
+    try std.testing.expect(std.mem.indexOf(u8, source, "row_count / denominator_count") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "riscv_load_qm31(powers, 4u), n4") != null);
     try std.testing.expect(std.mem.indexOf(u8, source, "riscv_load_qm31(powers, 0u), n2") != null);
+}
+
+test "base polynomial codegen widens retained column offsets before multiplication" {
+    const nodes = try std.testing.allocator.dupe(prover_component.BasePolynomialNode, &.{
+        .{ .op = .column, .value = 254 },
+        .{ .op = .column, .value = 255 },
+        .{ .op = .column, .value = 256 },
+        .{ .op = .column, .value = 339 },
+    });
+    const roots = try std.testing.allocator.dupe(u32, &.{ 0, 1, 2, 3 });
+    var program = prover_component.OwnedBasePolynomialProgram{
+        .allocator = std.testing.allocator,
+        .nodes = nodes,
+        .roots = roots,
+        .column_count = 341,
+    };
+    defer program.deinit();
+    const source = try generateLibrary(std.testing.allocator, &.{.{
+        .program_id = 0x300000002,
+        .program = program,
+    }});
+    defer std.testing.allocator.free(source);
+
+    const retained_log_24_rows: u64 = 1 << 24;
+    try std.testing.expectEqual(@as(u64, 254) << 24, retainedColumnOffset(254, retained_log_24_rows, 0));
+    try std.testing.expectEqual(@as(u64, 255) << 24, retainedColumnOffset(255, retained_log_24_rows, 0));
+    try std.testing.expectEqual(@as(u64, 256) << 24, retainedColumnOffset(256, retained_log_24_rows, 0));
+    try std.testing.expectEqual(@as(u64, 339) << 24, retainedColumnOffset(339, retained_log_24_rows, 0));
+    try std.testing.expectEqual(@as(u32, 83) << 24, @as(u32, 339) *% @as(u32, 1 << 24));
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        source,
+        "main_columns[riscv_column_offset(256u, row_count, row)]",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        source,
+        "main_columns[256u * row_count + row]",
+    ) == null);
+}
+
+fn retainedColumnOffset(column: u32, rows: u64, row: u32) u64 {
+    return @as(u64, column) * rows + row;
+}
+
+fn hashInt(
+    hasher: *std.crypto.hash.sha2.Sha256,
+    comptime T: type,
+    value: T,
+) void {
+    var encoded: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &encoded, value, .little);
+    hasher.update(&encoded);
 }
 
 test "base polynomial codegen omits nodes unreachable from constraint roots" {

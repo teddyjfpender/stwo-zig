@@ -10,11 +10,9 @@ static const size_t stwo_zig_quotient_gpu_flat_pack_min_bytes =
 static const NSUInteger stwo_zig_quotient_max_resident_sources = 4u;
 static const uint32_t stwo_zig_m31_modulus = UINT32_C(0x7fffffff);
 
-// The public raw-view ABI describes offsets in the logical flattened column
-// stream.  This private descriptor replaces that offset with the exact offset
-// in one proof-owned resident buffer and records which of the four bounded
-// source slots owns it.  Keeping the public ABI unchanged leaves the segmented
-// and flat fallbacks byte-for-byte compatible.
+// The host source-view ABI uses u64 logical offsets. This private GPU
+// descriptor replaces that offset with one checked u32 offset in a proof-owned
+// resident buffer and records which of the four bounded source slots owns it.
 typedef struct {
     uint32_t offset, length, batch, shift, direct;
     uint32_t coeff_a, coeff_b, coeff_c, coeff_d;
@@ -43,11 +41,20 @@ _Static_assert(sizeof(StwoZigResidentRawQuotientGroup) == 24u,
                "resident raw quotient group ABI");
 
 typedef struct {
-    size_t logical_offset;
+    uint64_t logical_offset;
     size_t word_count;
     uint32_t physical_offset;
     uint32_t source_slot;
 } StwoZigResidentRawColumn;
+
+typedef struct {
+    size_t first_column;
+    size_t end_column;
+    size_t logical_word_count;
+    bool resident;
+    __unsafe_unretained id<MTLBuffer> resident_source;
+    size_t resident_base_word;
+} StwoZigRawQuotientSourceRunV2;
 
 static uint32_t stwo_zig_reverse_bits_u32(uint32_t value) {
     value = ((value >> 1u) & UINT32_C(0x55555555)) |
@@ -330,8 +337,8 @@ static bool stwo_zig_prepare_resident_quotient_groups(
         *batch_groups_out != nil;
 }
 
-static bool stwo_zig_raw_quotient_view_geometry_is_valid(
-    const StwoZigRawQuotientView *view,
+static bool stwo_zig_raw_quotient_source_view_geometry_is_valid(
+    const StwoZigRawQuotientSourceViewV2 *view,
     uint32_t row_count,
     uint32_t batch_count
 ) {
@@ -350,6 +357,79 @@ static bool stwo_zig_raw_quotient_view_geometry_is_valid(
         return view->shift == 1u && view->length == row_count;
     if (view->shift <= 1u || view->shift >= 32u) return false;
     return (row_count >> (view->shift - 1u)) == view->length;
+}
+
+// Cold host validation binds every source view to exactly one ordered active
+// column before any path-specific mapping. In particular, a logical offset
+// above 2^32 can never alias a low column merely because the GPU-local view is
+// u32-addressed.
+bool stwo_zig_metal_validate_raw_quotient_source_views_v2(
+    const size_t *raw_column_lengths,
+    uint32_t raw_column_count,
+    const StwoZigRawQuotientSourceViewV2 *views,
+    uint32_t view_count,
+    uint32_t row_count,
+    uint32_t batch_count
+) {
+    if (raw_column_lengths == NULL || raw_column_count == 0u ||
+        views == NULL || view_count == 0u)
+        return false;
+
+    uint32_t column = 0u;
+    uint64_t logical_offset = 0u;
+    bool column_seen = false;
+    uint32_t prior_batch = 0u;
+    for (uint32_t view_index = 0u; view_index < view_count; ++view_index) {
+        const StwoZigRawQuotientSourceViewV2 view = views[view_index];
+        if (!stwo_zig_raw_quotient_source_view_geometry_is_valid(
+                &view, row_count, batch_count))
+            return false;
+        if (view.offset != logical_offset) {
+            if (!column_seen || column + 1u >= raw_column_count ||
+                raw_column_lengths[column] > UINT64_MAX - logical_offset)
+                return false;
+            logical_offset += (uint64_t)raw_column_lengths[column];
+            column += 1u;
+            column_seen = false;
+        }
+        if (view.offset != logical_offset ||
+            raw_column_lengths[column] != (size_t)view.length ||
+            (column_seen && view.batch < prior_batch))
+            return false;
+        if ((uint64_t)view.length > UINT64_MAX - view.offset) return false;
+        column_seen = true;
+        prior_batch = view.batch;
+    }
+    return column_seen && column + 1u == raw_column_count;
+}
+
+// Convert a validated wide host descriptor into the unchanged GPU-local ABI.
+// The final addressed word, not only the base, must fit the shader's u32 index.
+bool stwo_zig_metal_local_raw_quotient_view_v2(
+    const StwoZigRawQuotientSourceViewV2 *source,
+    uint64_t local_offset,
+    uint32_t row_count,
+    uint32_t batch_count,
+    StwoZigRawQuotientView *destination
+) {
+    if (destination == NULL ||
+        !stwo_zig_raw_quotient_source_view_geometry_is_valid(
+            source, row_count, batch_count) ||
+        local_offset > UINT32_MAX ||
+        (uint64_t)source->length - 1u > UINT32_MAX - local_offset)
+        return false;
+    *destination = (StwoZigRawQuotientView){
+        .offset = (uint32_t)local_offset,
+        .length = source->length,
+        .batch = source->batch,
+        .shift = source->shift,
+        .direct = source->direct,
+        .coeff_a = source->coeff_a,
+        .coeff_b = source->coeff_b,
+        .coeff_c = source->coeff_c,
+        .coeff_d = source->coeff_d,
+    };
+    return true;
 }
 
 // Resolves every active quotient column through only the residency handles
@@ -400,14 +480,13 @@ static bool stwo_zig_prepare_resident_multi_source_quotient(
     if (column_data == nil || mapped_view_data == nil || sources == nil) return false;
 
     StwoZigResidentRawColumn *columns = column_data.mutableBytes;
-    size_t logical_offset = 0u;
+    uint64_t logical_offset = 0u;
     NSUInteger prior_tree_index = 0u;
     bool have_tree = false;
     for (uint32_t column = 0u; column < raw_column_count; ++column) {
         size_t word_count = raw_column_lengths[column];
         if (raw_columns[column] == NULL || word_count == 0u ||
-            (word_count & (word_count - 1u)) != 0u ||
-            logical_offset > UINT32_MAX)
+            (word_count & (word_count - 1u)) != 0u)
             return false;
 
         StwoZigResidentColumnBinding binding;
@@ -439,34 +518,34 @@ static bool stwo_zig_prepare_resident_multi_source_quotient(
             .physical_offset = (uint32_t)binding.wordOffset,
             .source_slot = (uint32_t)source_slot,
         };
-        if (word_count > SIZE_MAX - logical_offset) return false;
-        logical_offset += word_count;
+        if ((uint64_t)word_count > UINT64_MAX - logical_offset) return false;
+        logical_offset += (uint64_t)word_count;
     }
     if (sources.count == 0u || sources.count > stwo_zig_quotient_max_resident_sources)
         return false;
 
-    const StwoZigRawQuotientView *input_views =
-        (const StwoZigRawQuotientView *)views;
+    const StwoZigRawQuotientSourceViewV2 *input_views =
+        (const StwoZigRawQuotientSourceViewV2 *)views;
     StwoZigResidentRawQuotientView *mapped_views = mapped_view_data.mutableBytes;
     uint32_t column_index = 0u;
     bool column_seen = false;
     bool have_prior_view = false;
-    uint32_t prior_logical_offset = 0u;
+    uint64_t prior_logical_offset = 0u;
     uint32_t prior_batch = 0u;
     for (uint32_t view_index = 0u; view_index < view_count; ++view_index) {
-        StwoZigRawQuotientView view = input_views[view_index];
-        if (!stwo_zig_raw_quotient_view_geometry_is_valid(&view, row_count, batch_count) ||
+        StwoZigRawQuotientSourceViewV2 view = input_views[view_index];
+        if (!stwo_zig_raw_quotient_source_view_geometry_is_valid(&view, row_count, batch_count) ||
             (have_prior_view && view.offset < prior_logical_offset))
             return false;
 
         while (column_index < raw_column_count &&
-               columns[column_index].logical_offset < (size_t)view.offset) {
+               columns[column_index].logical_offset < view.offset) {
             if (!column_seen) return false;
             column_index += 1u;
             column_seen = false;
         }
         if (column_index >= raw_column_count ||
-            columns[column_index].logical_offset != (size_t)view.offset ||
+            columns[column_index].logical_offset != view.offset ||
             columns[column_index].word_count != (size_t)view.length ||
             (column_seen && view.batch < prior_batch))
             return false;
@@ -509,6 +588,7 @@ static bool stwo_zig_prepare_resident_multi_source_quotient(
 static bool stwo_zig_prepare_raw_quotient_views_for_single_source(
     const void *views,
     uint32_t view_count,
+    uint32_t row_count,
     uint32_t batch_count,
     NSData **views_out,
     NSData **batch_offsets_out
@@ -522,21 +602,25 @@ static bool stwo_zig_prepare_raw_quotient_views_for_single_source(
     NSMutableData *mapped_view_data = [NSMutableData dataWithLength:
         (NSUInteger)view_count * sizeof(StwoZigResidentRawQuotientView)];
     if (mapped_view_data == nil) return false;
-    const StwoZigRawQuotientView *input_views =
-        (const StwoZigRawQuotientView *)views;
+    const StwoZigRawQuotientSourceViewV2 *input_views =
+        (const StwoZigRawQuotientSourceViewV2 *)views;
     StwoZigResidentRawQuotientView *mapped_views = mapped_view_data.mutableBytes;
     for (uint32_t view_index = 0u; view_index < view_count; ++view_index) {
-        StwoZigRawQuotientView view = input_views[view_index];
+        StwoZigRawQuotientSourceViewV2 view = input_views[view_index];
+        StwoZigRawQuotientView local;
+        if (!stwo_zig_metal_local_raw_quotient_view_v2(
+                &view, view.offset, row_count, batch_count, &local))
+            return false;
         mapped_views[view_index] = (StwoZigResidentRawQuotientView){
-            .offset = view.offset,
-            .length = view.length,
-            .batch = view.batch,
-            .shift = view.shift,
-            .direct = view.direct,
-            .coeff_a = view.coeff_a,
-            .coeff_b = view.coeff_b,
-            .coeff_c = view.coeff_c,
-            .coeff_d = view.coeff_d,
+            .offset = local.offset,
+            .length = local.length,
+            .batch = local.batch,
+            .shift = local.shift,
+            .direct = local.direct,
+            .coeff_a = local.coeff_a,
+            .coeff_b = local.coeff_b,
+            .coeff_c = local.coeff_c,
+            .coeff_d = local.coeff_d,
             .source_slot = 0u,
         };
     }
@@ -549,45 +633,102 @@ static bool stwo_zig_prepare_raw_quotient_views_for_single_source(
     );
 }
 
-static size_t stwo_zig_quotient_raw_source_run_count(
+static bool stwo_zig_plan_raw_quotient_source_run_v2(
     const uint32_t *const *raw_columns,
     const size_t *raw_column_lengths,
     uint32_t raw_column_count,
-    NSArray<StwoZigMetalTree *> *resident_trees
+    NSArray<StwoZigMetalTree *> *resident_trees,
+    size_t first_column,
+    StwoZigRawQuotientSourceRunV2 *run_out
 ) {
-    size_t runs = 0u;
+    if (raw_columns == NULL || raw_column_lengths == NULL || run_out == NULL ||
+        first_column >= raw_column_count || raw_columns[first_column] == NULL ||
+        raw_column_lengths[first_column] == 0u ||
+        raw_column_lengths[first_column] > UINT32_MAX)
+        return false;
+
+    const size_t addressable_words = (size_t)UINT32_MAX + 1u;
+    size_t end_column = first_column + 1u;
+    size_t run_words = raw_column_lengths[first_column];
+    StwoZigResidentColumnBinding first_binding = {0};
+    bool resident = stwo_zig_tree_resident_column(
+        resident_trees,
+        raw_columns[first_column],
+        raw_column_lengths[first_column],
+        &first_binding
+    );
+    if (resident &&
+        (first_binding.buffer == nil ||
+         first_binding.availableWords < raw_column_lengths[first_column] ||
+         first_binding.wordOffset > SIZE_MAX / sizeof(uint32_t)))
+        return false;
+
+    while (end_column < raw_column_count) {
+        const size_t next_words = raw_column_lengths[end_column];
+        if (raw_columns[end_column] == NULL || next_words == 0u ||
+            next_words > UINT32_MAX || run_words > SIZE_MAX - next_words)
+            break;
+        if (resident) {
+            StwoZigResidentColumnBinding next_binding = {0};
+            if (!stwo_zig_tree_resident_column(
+                    resident_trees,
+                    raw_columns[end_column],
+                    next_words,
+                    &next_binding) ||
+                next_binding.buffer != first_binding.buffer ||
+                next_binding.availableWords < next_words ||
+                next_binding.wordOffset < first_binding.wordOffset)
+                break;
+            const size_t relative_offset =
+                next_binding.wordOffset - first_binding.wordOffset;
+            if (relative_offset > UINT32_MAX ||
+                next_words - 1u > (size_t)UINT32_MAX - relative_offset)
+                break;
+        } else {
+            if (run_words > addressable_words - next_words ||
+                raw_columns[end_column] != raw_columns[first_column] + run_words)
+                break;
+        }
+        run_words += next_words;
+        end_column += 1u;
+    }
+
+    *run_out = (StwoZigRawQuotientSourceRunV2){
+        .first_column = first_column,
+        .end_column = end_column,
+        .logical_word_count = run_words,
+        .resident = resident,
+        .resident_source = resident ? first_binding.buffer : nil,
+        .resident_base_word = resident ? first_binding.wordOffset : 0u,
+    };
+    return true;
+}
+
+static bool stwo_zig_quotient_raw_source_run_count_v2(
+    const uint32_t *const *raw_columns,
+    const size_t *raw_column_lengths,
+    uint32_t raw_column_count,
+    NSArray<StwoZigMetalTree *> *resident_trees,
+    size_t *run_count_out
+) {
+    if (run_count_out == NULL) return false;
+    *run_count_out = 0u;
     size_t column = 0u;
     while (column < raw_column_count) {
-        size_t run_start = column;
-        size_t run_words = raw_column_lengths[column];
-        StwoZigResidentColumnBinding resident_binding;
-        bool resident = stwo_zig_tree_resident_column(
-            resident_trees, raw_columns[column], raw_column_lengths[column],
-            &resident_binding);
-        column += 1u;
-        if (resident) {
-            while (column < raw_column_count) {
-                StwoZigResidentColumnBinding next_binding;
-                if (!stwo_zig_tree_resident_column(
-                        resident_trees, raw_columns[column], raw_column_lengths[column],
-                        &next_binding) ||
-                    next_binding.buffer != resident_binding.buffer ||
-                    run_words > SIZE_MAX - raw_column_lengths[column])
-                    break;
-                run_words += raw_column_lengths[column];
-                column += 1u;
-            }
-        } else {
-            while (column < raw_column_count &&
-                   run_words <= SIZE_MAX - raw_column_lengths[column] &&
-                   raw_columns[column] == raw_columns[run_start] + run_words) {
-                run_words += raw_column_lengths[column];
-                column += 1u;
-            }
-        }
-        runs += 1u;
+        StwoZigRawQuotientSourceRunV2 run;
+        if (!stwo_zig_plan_raw_quotient_source_run_v2(
+                raw_columns,
+                raw_column_lengths,
+                raw_column_count,
+                resident_trees,
+                column,
+                &run) ||
+            run.end_column <= column || *run_count_out == SIZE_MAX)
+            return false;
+        column = run.end_column;
+        *run_count_out += 1u;
     }
-    return runs;
+    return *run_count_out != 0u;
 }
 
 static bool stwo_zig_encode_quotient_flat_pack(

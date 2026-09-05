@@ -1,0 +1,73 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_artifact_store",
+  "version": "0.1.0",
+  "layer": "service",
+  "owner": "artifact-store",
+  "public_modules": {
+    "stwo_artifact_store": "mod.zig"
+  },
+  "dependencies": {},
+  "injected_modules": [],
+  "api_surface": [
+    "ArtifactKindV1",
+    "BlobRefV1",
+    "CopyMethod",
+    "Digest",
+    "ExecutionKeyFieldsV1",
+    "ExecutionKeyV1",
+    "FileIdentity",
+    "IngestPolicy",
+    "InputRefV1",
+    "InputRoleV1",
+    "Measurement",
+    "ObjectRef",
+    "OwnedBlobV1",
+    "OwnedSemanticKeyV1",
+    "OwnedStageManifestV1",
+    "ProfileReceiptRefV1",
+    "SemanticKeyFieldsV1",
+    "SemanticKeyV1",
+    "Snapshot",
+    "StageKindV1",
+    "StageManifestFieldsV1",
+    "StageManifestV1",
+    "StagePhaseV1",
+    "StageStatusV1",
+    "Store",
+    "ValidationReceiptRefV1",
+    "decodeExecutionKey",
+    "decodeSemanticKeyAlloc",
+    "decodeStageManifestAlloc",
+    "digestBytes",
+    "encoding",
+    "manifest",
+    "measureFile",
+    "store",
+    "types",
+    "wire"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "types_test.zig::artifact keys: canonical Zig semantic and execution golden vectors"
+    ],
+    "invariant_tests": [
+      "store_test.zig::artifact store: concurrent store instances publish one object",
+      "store_test.zig::artifact store: zero-byte blob persists across reopened instances",
+      "types_test.zig::artifact manifest: validator version revalidates without changing proof key"
+    ]
+  },
+  "ci": {
+    "lane": "artifact_store",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/artifact_store/build.zig",
+      "-Doptimize=Debug",
+      "-j2"
+    ]
+  }
+}

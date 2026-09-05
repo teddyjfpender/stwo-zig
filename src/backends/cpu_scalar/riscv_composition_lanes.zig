@@ -217,14 +217,10 @@ pub const TileLane = struct {
         const half = tile.bucket.row_count / 2;
         var row = tile.row_start;
         while (row < tile.row_end) : (row += m31.PACK_WIDTH) {
-            var previous_rows: [m31.PACK_WIDTH]usize = undefined;
-            for (&previous_rows, 0..) |*previous, lane| {
-                previous.* = core.utils.previousBitReversedCircleDomainIndex(
-                    row + lane,
-                    tile.bucket.eval_log_size - 1,
-                    tile.bucket.eval_log_size,
-                );
-            }
+            const previous_rows = previousPackedRows(
+                row,
+                tile.bucket.eval_log_size,
+            );
 
             var accumulated = PackedQM31.zero();
             for (tile.bucket.pair_indices) |pair_index| {
@@ -267,6 +263,49 @@ pub const TileLane = struct {
         }
     }
 };
+
+/// Returns the previous trace-domain row for one aligned native row pack.
+///
+/// In the RISC-V composition geometry the trace domain is exactly one log
+/// smaller than the evaluation domain. For four adjacent storage rows, lanes
+/// 0/1 share one bit-reversed base and lanes 2/3 are their adjacent even/odd
+/// successors. Computing the pack together avoids four signed modulo/divide
+/// sequences in the generic offset helper.
+inline fn previousPackedRows(
+    row: usize,
+    eval_log_size: u32,
+) [m31.PACK_WIDTH]usize {
+    if (comptime m31.PACK_WIDTH == 4) {
+        std.debug.assert(eval_log_size >= 2 and row % 4 == 0);
+        const circle = core.utils.bitReverseIndex(row, eval_log_size);
+        const half: usize = @as(usize, 1) << @intCast(eval_log_size - 1);
+        const mask = half - 1;
+        const first = core.utils.bitReverseIndex(
+            (circle -% 1) & mask,
+            eval_log_size,
+        );
+        const second = core.utils.bitReverseIndex(
+            half | ((circle + 1) & mask),
+            eval_log_size,
+        );
+        return .{
+            first,
+            second,
+            if (row == 0) first - 2 else first + 2,
+            if (row + 4 == half * 2) second - 2 else second + 2,
+        };
+    }
+
+    var result: [m31.PACK_WIDTH]usize = undefined;
+    for (&result, 0..) |*previous, lane| {
+        previous.* = core.utils.previousBitReversedCircleDomainIndex(
+            row + lane,
+            eval_log_size - 1,
+            eval_log_size,
+        );
+    }
+    return result;
+}
 
 pub fn buildBuckets(
     allocator: std.mem.Allocator,
@@ -518,7 +557,11 @@ fn evaluatePairV1(
         const first = batch * program.batch_size;
         const has_second = first + 1 < program.entries.len and program.batch_size == 2;
         const current = loadSecure(pair.interaction_columns, batch * 4, row);
-        const previous = gatherSecure(pair.interaction_columns, batch * 4, previous_rows);
+        const previous = gatherSecure(
+            pair.interaction_columns,
+            batch * 4,
+            previous_rows,
+        );
         const claim = PackedQM31.splat(pair.parameters[parameter_cursor + batch]);
         const delta = current.sub(previous).add(claim.mulBase(lookup_selector));
         const first_entry = program.entries[first];
@@ -746,4 +789,25 @@ fn gatherSecure(
         .c0 = .{ .a = coordinates[0], .b = coordinates[1] },
         .c1 = .{ .a = coordinates[2], .b = coordinates[3] },
     };
+}
+
+test "RISC-V composition packed previous rows equal the generic circle offset" {
+    if (comptime m31.PACK_WIDTH != 4) return;
+    for (2..21) |log_size| {
+        const row_count = @as(usize, 1) << @intCast(log_size);
+        var row: usize = 0;
+        while (row < row_count) : (row += m31.PACK_WIDTH) {
+            const actual = previousPackedRows(row, @intCast(log_size));
+            for (actual, 0..) |previous, lane| {
+                try std.testing.expectEqual(
+                    core.utils.previousBitReversedCircleDomainIndex(
+                        row + lane,
+                        @intCast(log_size - 1),
+                        @intCast(log_size),
+                    ),
+                    previous,
+                );
+            }
+        }
+    }
 }

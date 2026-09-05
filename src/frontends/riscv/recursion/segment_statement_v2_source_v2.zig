@@ -22,6 +22,7 @@ const MEMORY_STATE_ID_DOMAIN = dependency_0.MEMORY_STATE_ID_DOMAIN;
 const RangeV2 = dependency_0.RangeV2;
 const RetainedSectionV2 = dependency_0.RetainedSectionV2;
 const SECTION_HEADER_WORDS = dependency_0.SECTION_HEADER_WORDS;
+const SnapshotIdentity = dependency_0.SnapshotIdentity;
 const StatementV2 = dependency_0.StatementV2;
 const Tag = dependency_0.Tag;
 const WIRE_ID_DOMAIN = dependency_0.WIRE_ID_DOMAIN;
@@ -43,6 +44,7 @@ const nonZeroWordCount = dependency_1.nonZeroWordCount;
 const requireDigest = dependency_0.requireDigest;
 const runner_result = dependency_0.runner_result;
 const snapshotIdentity = dependency_1.snapshotIdentity;
+const snapshotIdentityReusingRoot = dependency_1.snapshotIdentityReusingRoot;
 const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
 const validateClockBoundary = dependency_1.validateClockBoundary;
@@ -80,6 +82,8 @@ pub const SourceV2 = struct {
         base_statement: span_statement.SpanStatement,
         result: *const runner_result.SegmentResult,
     ) Error!SourceV2 {
+        if (result.clock_frame != .global_continuous)
+            return error.ClockFrameMismatch;
         if (!std.meta.eql(result.segment_role, result.rw_memory.segment_role))
             return error.InvalidSegmentRole;
         const completion = if (result.completion_reason) |reason|
@@ -168,9 +172,6 @@ pub const SourceV2 = struct {
 
     pub fn statement(self: *const SourceV2) Error!StatementV2 {
         try self.validate();
-        const base_words = try self.base_statement.canonicalWords();
-        const executed = try executedLeaf(self.base_statement);
-        const range = try sourceRange(self, executed);
         const entry_snapshot = snapshotIdentity(
             self.memory_words,
             .initial_word,
@@ -179,6 +180,41 @@ pub const SourceV2 = struct {
             self.memory_words,
             .final_word,
         );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    /// Reuses roots only after the exact current sparse projections reproduce
+    /// both retained snapshot identities and counts. This is the restart path
+    /// for a cold-authenticated STWESG31/PublicDataV2 boundary: it avoids an
+    /// O(nonzero-bytes * tree-depth) Poseidon traversal without accepting a
+    /// detached root or skipping any canonical tuple validation.
+    pub fn statementReusingRoots(
+        self: *const SourceV2,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!StatementV2 {
+        try self.validate();
+        const entry_snapshot = try snapshotIdentityReusingRoot(
+            retained_entry,
+            self.memory_words,
+            .initial_word,
+        );
+        const exit_snapshot = try snapshotIdentityReusingRoot(
+            retained_exit,
+            self.memory_words,
+            .final_word,
+        );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    fn statementFromSnapshots(
+        self: *const SourceV2,
+        entry_snapshot: SnapshotIdentity,
+        exit_snapshot: SnapshotIdentity,
+    ) Error!StatementV2 {
+        const base_words = try self.base_statement.canonicalWords();
+        const executed = try executedLeaf(self.base_statement);
+        const range = try sourceRange(self, executed);
         const entry_memory_clock_id = memoryClockIdentity(self.entry_memory_clocks);
         const exit_memory_clock_id = memoryClockIdentity(self.exit_memory_clocks);
         const job_id = jobIdAssumeCanonical(&base_words);
@@ -267,6 +303,30 @@ pub const SourceV2 = struct {
         destination: []M31,
     ) Error!CanonicalWireViewV2 {
         const statement_v2 = try self.statement();
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    /// Canonical encoder paired with `statementReusingRoots`. The emitted
+    /// bytes are identical to `encodeCanonical`; only the root derivation work
+    /// is elided after exact sparse identity/count replay succeeds.
+    pub fn encodeCanonicalReusingRoots(
+        self: *const SourceV2,
+        destination: []M31,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!CanonicalWireViewV2 {
+        const statement_v2 = try self.statementReusingRoots(
+            retained_entry,
+            retained_exit,
+        );
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    fn encodeWithStatement(
+        self: *const SourceV2,
+        destination: []M31,
+        statement_v2: StatementV2,
+    ) Error!CanonicalWireViewV2 {
         const expected = try checkedWireWordCount(
             statement_v2.entry_snapshot_count,
             statement_v2.exit_snapshot_count,

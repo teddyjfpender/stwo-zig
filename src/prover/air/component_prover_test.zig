@@ -7,8 +7,10 @@ const core_air_components = @import("stwo_core").air.components;
 const m31 = @import("stwo_core").fields.m31;
 const qm31 = @import("stwo_core").fields.qm31;
 const pcs = @import("stwo_core").pcs;
+const canonic = @import("stwo_core").poly.circle.canonic;
 const accumulation = @import("accumulation.zig");
 const oods_work = @import("oods_work.zig");
+const secure_poly = @import("../poly/circle/secure_poly.zig");
 const secure_column = @import("../secure_column.zig");
 const owner = @import("component_prover.zig");
 
@@ -117,12 +119,24 @@ test "prover air component prover: composition accumulation" {
 
         fn evaluateConstraintQuotientsAtPoint(
             _: *const anyopaque,
-            _: CirclePointQM31,
+            point: CirclePointQM31,
             _: *const core_air_components.MaskValues,
             evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
             _: u32,
         ) !void {
-            evaluation_accumulator.accumulate(QM31.fromU32Unchecked(13, 0, 0, 0));
+            const values = domainValues();
+            var col = try SecureColumnByCoords.fromSecureSlice(
+                std.testing.allocator,
+                &values,
+            );
+            defer col.deinit(std.testing.allocator);
+            var polynomial = try secure_poly.interpolateFromEvaluation(
+                std.testing.allocator,
+                canonic.CanonicCoset.new(2).circleDomain(),
+                &col,
+            );
+            defer polynomial.deinit(std.testing.allocator);
+            evaluation_accumulator.accumulate(polynomial.evalAtPoint(point));
         }
 
         fn evaluateConstraintQuotientsOnDomain(
@@ -130,25 +144,59 @@ test "prover air component prover: composition accumulation" {
             _: *const Trace,
             evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
         ) !void {
-            const values = [_]QM31{
+            const values = domainValues();
+            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, &values);
+            defer col.deinit(std.testing.allocator);
+            try evaluation_accumulator.accumulateColumn(2, &col);
+        }
+
+        fn domainValues() [4]QM31 {
+            return .{
                 QM31.fromU32Unchecked(1, 0, 0, 0),
                 QM31.fromU32Unchecked(2, 0, 0, 0),
                 QM31.fromU32Unchecked(3, 0, 0, 0),
                 QM31.fromU32Unchecked(4, 0, 0, 0),
             };
-            var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, values[0..]);
-            defer col.deinit(std.testing.allocator);
-            try evaluation_accumulator.accumulateColumn(2, &col);
         }
     };
 
     const mock = Mock{ .max_log_size = 2 };
-    const components_arr = [_]ComponentProver{mock.asComponent()};
-    try std.testing.expect(components_arr[0].backend_composition_capability == null);
+    var ordinary_component = mock.asComponent();
+    ordinary_component.backend_composition_capability = .{
+        .quadratic_sum_squares_v1 = .{
+            .trace_tree_index = 0,
+            .first_column = 0,
+        },
+    };
+    const components_arr = [_]ComponentProver{ordinary_component};
+    try std.testing.expect(components_arr[0].backend_composition_capability != null);
+    const lifted_component = try components_arr[0]
+        .withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 1,
+        .composition_log_split = 2,
+    });
+    try std.testing.expectEqual(
+        components_arr[0].maxConstraintLogDegreeBound() + 1,
+        lifted_component.maxConstraintLogDegreeBound(),
+    );
+    try std.testing.expectEqual(@as(u32, 1), components_arr[0].compositionLogSplit());
+    try std.testing.expectEqual(@as(u32, 2), lifted_component.compositionLogSplit());
+    try std.testing.expect(lifted_component.ctx == components_arr[0].ctx);
+    try std.testing.expect(lifted_component.vtable == components_arr[0].vtable);
+    try std.testing.expect(lifted_component.backend_composition_capability == null);
+    try std.testing.expect(components_arr[0].backend_composition_capability != null);
+    try std.testing.expect(lifted_component.prepare_domain_evaluator ==
+        components_arr[0].prepare_domain_evaluator);
+    try std.testing.expect(lifted_component.domain_parallel_evaluator ==
+        components_arr[0].domain_parallel_evaluator);
+    const lifted_components_arr = [_]ComponentProver{lifted_component};
     const component_provers = ComponentProvers{
-        .components = components_arr[0..],
+        .components = lifted_components_arr[0..],
         .n_preprocessed_columns = 0,
     };
+    try std.testing.expect(
+        component_provers.components[0].composition_geometry_override_v1 != null,
+    );
 
     var trace = Trace{ .polys = TreeVec([]const Poly).initOwned(try alloc.alloc([]const Poly, 0)) };
     defer trace.polys.deinit(alloc);
@@ -162,9 +210,18 @@ test "prover air component prover: composition accumulation" {
 
     const out = try combined.toVec(alloc);
     defer alloc.free(out);
-    try std.testing.expectEqual(@as(usize, 4), out.len);
-    try std.testing.expect(out[0].eql(QM31.fromU32Unchecked(1, 0, 0, 0)));
-    try std.testing.expect(out[3].eql(QM31.fromU32Unchecked(4, 0, 0, 0)));
+    try std.testing.expectEqual(@as(usize, 8), out.len);
+
+    // The candidate wrapper must perform true polynomial extension.  The
+    // widened domain polynomial therefore evaluates at an arbitrary OODS
+    // point exactly like the intrinsic q1 polynomial; a repeated-index lift
+    // does not have this identity for this nonconstant fixture.
+    var widened_polynomial = try secure_poly.interpolateFromEvaluation(
+        alloc,
+        canonic.CanonicCoset.new(3).circleDomain(),
+        &combined,
+    );
+    defer widened_polynomial.deinit(alloc);
 
     var view = try component_provers.componentsView(alloc);
     defer view.deinit(alloc);
@@ -176,7 +233,7 @@ test "prover air component prover: composition accumulation" {
     var mask = try components.maskPoints(
         alloc,
         circle.SECURE_FIELD_CIRCLE_GEN,
-        mock.max_log_size,
+        lifted_component.maxConstraintLogDegreeBound(),
         true,
     );
     defer mask.deinitDeep(alloc);
@@ -188,9 +245,11 @@ test "prover air component prover: composition accumulation" {
         circle.SECURE_FIELD_CIRCLE_GEN,
         &mask_values,
         QM31.fromU32Unchecked(5, 0, 0, 0),
-        mock.max_log_size,
+        lifted_component.maxConstraintLogDegreeBound(),
     );
-    try std.testing.expect(eval.eql(QM31.fromU32Unchecked(13, 0, 0, 0)));
+    try std.testing.expect(eval.eql(
+        widened_polynomial.evalAtPoint(circle.SECURE_FIELD_CIRCLE_GEN),
+    ));
 
     // The same useful work succeeds through the cold profiled path, but a
     // component with no owner callback must never manufacture a zero receipt.
@@ -198,7 +257,7 @@ test "prover air component prover: composition accumulation" {
     var profiled_mask = try view.maskPointsWithWorkCapture(
         alloc,
         circle.SECURE_FIELD_CIRCLE_GEN,
-        mock.max_log_size,
+        lifted_component.maxConstraintLogDegreeBound(),
         true,
         &absent_mask_capture,
     );
@@ -211,12 +270,12 @@ test "prover air component prover: composition accumulation" {
         circle.SECURE_FIELD_CIRCLE_GEN,
         &mask_values,
         QM31.fromU32Unchecked(5, 0, 0, 0),
-        mock.max_log_size,
+        lifted_component.maxConstraintLogDegreeBound(),
         3,
-        1,
+        2,
         &absent_constraint_capture,
     );
-    try std.testing.expect(profiled_eval.eql(QM31.fromU32Unchecked(13, 0, 0, 0)));
+    try std.testing.expect(profiled_eval.eql(eval));
     try std.testing.expect(absent_constraint_capture.receipt == null);
 }
 

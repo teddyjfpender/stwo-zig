@@ -18,6 +18,7 @@ const shard_0 = @import("segment_statement_v2_contract.zig");
 const shard_1 = @import("segment_statement_v2_canonical_wire_view_v2.zig");
 const shard_2 = @import("segment_statement_v2_source_v2.zig");
 const shard_3 = @import("segment_statement_v2_authenticate_canonical_wire.zig");
+const parallel_root = @import("segment_statement_v2_parallel_root.zig");
 
 pub const Digest = shard_0.Digest;
 pub const BaseStatementWords = shard_0.BaseStatementWords;
@@ -55,6 +56,22 @@ pub const MIN_CANONICAL_WORDS = shard_0.MIN_CANONICAL_WORDS;
 pub const Error = shard_0.Error;
 pub const CompletionKindV2 = shard_0.CompletionKindV2;
 pub const CompletionV2 = shard_0.CompletionV2;
+/// Shared boundary primitives used by later statement versions. Exporting
+/// these through the facade keeps V3 from importing an internal V2 shard or
+/// silently drifting the canonical sparse-state formulas.
+pub const SnapshotIdentity = shard_0.SnapshotIdentity;
+pub const SnapshotSide = shard_1.SnapshotSide;
+pub const SnapshotDigest = shard_1.SnapshotDigest;
+pub const ParallelSnapshotHasher = parallel_root.ParallelSnapshotHasher;
+pub const PARALLEL_SNAPSHOT_MAX_WORKERS = parallel_root.MAX_WORKERS;
+pub const PARALLEL_SNAPSHOT_SHARD_DEPTH = parallel_root.SHARD_DEPTH;
+pub const completionFromRunner = shard_1.completionFromRunner;
+pub const validateMemoryWords = shard_1.validateMemoryWords;
+pub const validateClockBoundary = shard_1.validateClockBoundary;
+pub const snapshotIdentity = shard_1.snapshotIdentity;
+pub const snapshotDigest = shard_1.snapshotDigest;
+pub const snapshotIdentityReusingRoot = shard_1.snapshotIdentityReusingRoot;
+pub const memoryClockIdentity = shard_1.memoryClockIdentity;
 /// Borrowed, exact native source for one segment statement.  The slices stay
 /// owned by the runner result.  `encodeCanonical` retains their canonical
 /// sparse projections in the wire before that result may be released.
@@ -71,6 +88,10 @@ pub const AdjacentReceiptV2 = shard_2.AdjacentReceiptV2;
 /// tuples are checked for strict order, nonzero sparse normalization, bounds,
 /// count/header agreement, and digest agreement before a view is returned.
 pub const authenticateCanonicalWire = shard_3.authenticateCanonicalWire;
+/// Cold-open authentication which replays every retained tuple/digest while
+/// reusing continuation roots from an already authenticated segment source.
+pub const authenticateCanonicalWireReusingRoots =
+    shard_3.authenticateCanonicalWireReusingRoots;
 /// Exact adjacent-span authentication over the retained canonical wires.
 /// This re-authenticates both inputs so a mutation after an earlier decode
 /// cannot reuse a stale view.

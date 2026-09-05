@@ -14,8 +14,9 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const twiddle_source_mod = @import("../poly/twiddle_source.zig");
 const work_pool = @import("../work_pool.zig");
-const stage_profile = @import("stwo_prover_api").stage_profile;
-const work_profile = @import("stwo_prover_api").work_profile;
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
+const work_profile = prover_api.work_profile;
 const prover_fri = @import("../fri.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const commit_polys = @import("commit_polys.zig");
@@ -217,17 +218,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             );
         }
 
-        /// Proves sampled values for already-committed trees.
-        ///
-        /// Inputs:
-        /// - `sampled_points`: per tree -> per column sampled points.
-        ///
-        /// Output:
-        /// - full PCS opening proof with sampled values computed in-prover.
-        ///
-        /// Invariants:
-        /// - sampled-point tree/column shape must match committed trees/columns.
-        /// - every sampled point is folded to each column's log size before evaluation.
+        /// Proves points for committed trees after exact tree/column shape
+        /// validation and per-column log-size folding.
         pub fn proveValues(
             self: Self,
             allocator: std.mem.Allocator,
@@ -243,6 +235,24 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             sampled_points: TreeVec([][]CirclePointQM31),
             recorder: ?*stage_profile.Recorder,
             channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var ignored_phase: prover_api.ProvePhase = .openings;
+            return self.proveValuesWithRecorderAndPhase(
+                allocator,
+                sampled_points,
+                recorder,
+                channel,
+                &ignored_phase,
+            );
+        }
+
+        pub fn proveValuesWithRecorderAndPhase(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+            diagnostic_phase: *prover_api.ProvePhase,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             var owns_scheme = true;
@@ -275,24 +285,19 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             // The downstream method consumes both owners on success and error.
             owns_scheme = false;
             owns_sampled_points = false;
-            return scheme.proveValuesFromSamplesWithRecorder(
+            diagnostic_phase.* = .fri;
+            return scheme.proveValuesFromSamplesWithRecorderAndPhase(
                 allocator,
                 sampled_points_owned,
                 sampled_values,
                 recorder,
                 channel,
+                diagnostic_phase,
             );
         }
 
-        /// Proves sampled values for already-committed trees using precomputed point evaluations.
-        ///
-        /// Inputs:
-        /// - `sampled_points`: per tree -> per column sampled points.
-        /// - `sampled_values`: per tree -> per column sampled values (same shape as points).
-        ///
-        /// Invariants:
-        /// - `sampled_points` and `sampled_values` must match the tree/column shape.
-        /// - Values are assumed to match the committed columns at those points.
+        /// Proves precomputed point evaluations after exact tree/column shape
+        /// validation; values must match the committed columns.
         pub fn proveValuesFromSamples(
             self: Self,
             allocator: std.mem.Allocator,
@@ -316,6 +321,26 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             sampled_values: TreeVec([][]QM31),
             recorder: ?*stage_profile.Recorder,
             channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var ignored_phase: prover_api.ProvePhase = .openings;
+            return self.proveValuesFromSamplesWithRecorderAndPhase(
+                allocator,
+                sampled_points,
+                sampled_values,
+                recorder,
+                channel,
+                &ignored_phase,
+            );
+        }
+
+        pub fn proveValuesFromSamplesWithRecorderAndPhase(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+            diagnostic_phase: *prover_api.ProvePhase,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             defer scheme.deinit(allocator);
@@ -396,6 +421,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
+            diagnostic_phase.* = .fri;
             var fri_root_mix_capture = shell_work_profile.FriRootMixCapture{};
             var fri_prover = blk: {
                 var fri_quotient_stage = try stage_profile.StageScope.begin(
@@ -476,6 +502,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 } else work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .finalize;
             const proof_of_work = blk: {
                 var proof_of_work_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -483,7 +510,11 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = pow_search.grind(channel, scheme.config.pow_bits);
+                const nonce = try pow_search.grindForBackend(
+                    B,
+                    channel,
+                    scheme.config.pow_bits,
+                );
                 channel.mixU64(nonce);
                 break :blk nonce;
             };
@@ -494,6 +525,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .fri;
             var fri_decommit = blk: {
                 var fri_decommit_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -511,6 +543,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .openings;
             var trace_decommit = blk: {
                 var trace_decommit_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -543,6 +576,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .finalize;
             var commitments = try scheme.roots(allocator);
             errdefer commitments.deinit(allocator);
             if (shell_audit) |*audit| {

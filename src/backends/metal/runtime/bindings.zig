@@ -12,6 +12,19 @@ const WitnessLayout = runtime.WitnessLayout;
 const BasePolynomialDispatch = runtime.BasePolynomialDispatch;
 const BasePolynomialOutput = runtime.BasePolynomialOutput;
 const LookupPolynomialDispatch = runtime.LookupPolynomialDispatch;
+const quotient_internal_parity_abi = @import("quotient_internal_parity_abi.zig");
+
+pub const RawQuotientSourceViewV2 = extern struct {
+    offset: u64,
+    length: u32,
+    batch: u32,
+    shift: u32,
+    direct: u32,
+    coeff_a: u32,
+    coeff_b: u32,
+    coeff_c: u32,
+    coeff_d: u32,
+};
 
 pub const QuotientWorkReceipt = extern struct {
     schema_version: u32,
@@ -28,10 +41,70 @@ pub const QuotientWorkReceipt = extern struct {
     batch_inverse_calls: u64,
 };
 
+/// One collision-free `(domain log, normalized point)` sampled-value plan.
+/// Groups keep the point weights shared across commitment trees without
+/// weakening each column's concrete resident-tree custody.
+pub const SampledBarycentricPointPlanV1 = extern struct {
+    log_size: u32,
+    first_group: u32,
+    group_count: u32,
+    reserved: u32 = 0,
+    point: [8]u32,
+    si0: [4]u32,
+    vanishing_rotation: [2]u32,
+};
+
+pub const SampledBarycentricColumnGroupV1 = extern struct {
+    tree_index: u32,
+    first_column: u32,
+    column_count: u32,
+    reserved: u32 = 0,
+};
+
+pub const SampledBarycentricReceiptV1 = extern struct {
+    schema_version: u32,
+    command_buffers: u32,
+    wait_count: u32,
+    reserved: u32,
+    unique_point_count: u64,
+    unique_domain_count: u64,
+    resident_column_evaluations: u64,
+    weight_values: u64,
+    dot_product_terms: u64,
+    inverse_tree_blocks: u64,
+    direct_inversions: u64,
+    reduction_additions: u64,
+    evaluation_threadgroup_width: u32,
+    inverse_threadgroup_width: u32,
+};
+
 comptime {
+    std.debug.assert(@sizeOf(RawQuotientSourceViewV2) == 40);
+    std.debug.assert(@alignOf(RawQuotientSourceViewV2) == 8);
+    std.debug.assert(@offsetOf(RawQuotientSourceViewV2, "length") == 8);
     std.debug.assert(@sizeOf(QuotientWorkReceipt) == 80);
     std.debug.assert(@offsetOf(QuotientWorkReceipt, "row_count") == 16);
+    std.debug.assert(@sizeOf(SampledBarycentricPointPlanV1) == 72);
+    std.debug.assert(@offsetOf(SampledBarycentricPointPlanV1, "point") == 16);
+    std.debug.assert(@sizeOf(SampledBarycentricColumnGroupV1) == 16);
+    std.debug.assert(@sizeOf(SampledBarycentricReceiptV1) == 88);
 }
+
+pub extern fn stwo_zig_metal_validate_raw_quotient_source_views_v2(
+    raw_column_lengths: [*]const usize,
+    raw_column_count: u32,
+    views: [*]const RawQuotientSourceViewV2,
+    view_count: u32,
+    row_count: u32,
+    batch_count: u32,
+) bool;
+pub extern fn stwo_zig_metal_local_raw_quotient_view_v2(
+    source: *const RawQuotientSourceViewV2,
+    local_offset: u64,
+    row_count: u32,
+    batch_count: u32,
+    destination: *quotient_internal_parity_abi.RawViewV1,
+) bool;
 
 pub extern fn stwo_zig_metal_runtime_destroy(runtime: ?*anyopaque) void;
 pub extern fn stwo_zig_metal_runtime_identity(
@@ -39,6 +112,27 @@ pub extern fn stwo_zig_metal_runtime_identity(
     output: ?[*]u8,
     output_len: usize,
 ) usize;
+pub extern fn stwo_zig_metal_blake2s_pow_search(
+    runtime: *anyopaque,
+    prefix_words: *const [8]u32,
+    round_zero_columns: *const [16]u32,
+    pow_bits: u32,
+    nonce: *u64,
+    gpu_milliseconds: *f64,
+    dispatch_count: *u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_poseidon2_channel_pow_search(
+    runtime: *anyopaque,
+    prefix_state: *const [16]u32,
+    pow_bits: u32,
+    nonce: *u64,
+    gpu_milliseconds: *f64,
+    dispatch_count: *u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_pipeline_cache_stats(
     runtime: *anyopaque,
     stats: *PipelineCacheStats,
@@ -248,6 +342,18 @@ pub extern fn stwo_zig_metal_merkle_parent_chain_prepare(
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
+pub extern fn stwo_zig_metal_merkle_parent_chain_prepare_v2(
+    runtime: *anyopaque,
+    child_offsets: [*]const u32,
+    destination_offsets: [*]const u32,
+    parent_counts: [*]const u32,
+    level_count: u32,
+    node_seed: *const [8]u32,
+    prefix_bytes: u32,
+    hash_family: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
 pub extern fn stwo_zig_metal_merkle_leaf_prepare(
     runtime: *anyopaque,
     column_offsets: [*]const u32,
@@ -257,6 +363,19 @@ pub extern fn stwo_zig_metal_merkle_leaf_prepare(
     destination_offset: u32,
     leaf_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_merkle_leaf_prepare_v2(
+    runtime: *anyopaque,
+    column_offsets: [*]const u32,
+    column_log_sizes: [*]const u32,
+    column_count: u32,
+    lifting_log_size: u32,
+    destination_offset: u32,
+    leaf_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
@@ -279,6 +398,37 @@ pub extern fn stwo_zig_metal_resident_merkle_prepare(
     leaf_seed: *const [8]u32,
     node_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_resident_merkle_prepare_v2(
+    runtime: *anyopaque,
+    column_offsets: [*]const u32,
+    column_log_sizes: [*]const u32,
+    column_count: u32,
+    lifting_log_size: u32,
+    layer_offsets: [*]const u32,
+    layer_count: u32,
+    leaf_seed: *const [8]u32,
+    node_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_resident_merkle_prepare_staged_poseidon_v1(
+    runtime: *anyopaque,
+    column_offsets: [*]const u32,
+    column_log_sizes: [*]const u32,
+    column_count: u32,
+    lifting_log_size: u32,
+    layer_offsets: [*]const u32,
+    layer_count: u32,
+    leaf_seed: *const [8]u32,
+    node_seed: *const [8]u32,
+    domain_prefix_bytes: u32,
+    state_offsets: *const [2]u32,
+    state_offset_count: u32,
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
@@ -410,6 +560,9 @@ pub extern fn stwo_zig_metal_base_polynomial_batch(
     runtime: *anyopaque,
     trees: [*]const ?*anyopaque,
     tree_count: u32,
+    composition_domain_buffer: ?*anyopaque,
+    composition_domain_host_begin: ?[*]const u32,
+    composition_domain_word_count: usize,
     main_columns: [*]const [*]const u32,
     total_main_columns: u32,
     dispatches: [*]const BasePolynomialDispatch,
@@ -441,6 +594,9 @@ pub extern fn stwo_zig_metal_lookup_polynomial_batch(
     runtime: *anyopaque,
     trees: [*]const ?*anyopaque,
     tree_count: u32,
+    composition_domain_buffer: ?*anyopaque,
+    composition_domain_host_begin: ?[*]const u32,
+    composition_domain_word_count: usize,
     main_columns: [*]const [*]const u32,
     total_main_columns: u32,
     interaction_columns: [*]const [*]const u32,
@@ -631,12 +787,17 @@ pub const stwo_zig_metal_memory_value_base_trace = resident_data_bindings.stwo_z
 pub const stwo_zig_metal_memory_rc99_count = resident_data_bindings.stwo_zig_metal_memory_rc99_count;
 pub const stwo_zig_metal_public_memory_seed = resident_data_bindings.stwo_zig_metal_public_memory_seed;
 pub const stwo_zig_metal_leaf_absorb = resident_data_bindings.stwo_zig_metal_leaf_absorb;
+pub const stwo_zig_metal_leaf_absorb_v2 = resident_data_bindings.stwo_zig_metal_leaf_absorb_v2;
 pub const stwo_zig_metal_leaf_absorb_compact = resident_data_bindings.stwo_zig_metal_leaf_absorb_compact;
+pub const stwo_zig_metal_leaf_absorb_compact_v2 = resident_data_bindings.stwo_zig_metal_leaf_absorb_compact_v2;
 pub const stwo_zig_metal_parent_seeded = resident_data_bindings.stwo_zig_metal_parent_seeded;
+pub const stwo_zig_metal_parent_seeded_v2 = resident_data_bindings.stwo_zig_metal_parent_seeded_v2;
 pub const stwo_zig_metal_parent_plain = resident_data_bindings.stwo_zig_metal_parent_plain;
 pub const stwo_zig_metal_qm31_to_coordinates = resident_data_bindings.stwo_zig_metal_qm31_to_coordinates;
 pub const stwo_zig_metal_felt252_oracle = resident_data_bindings.stwo_zig_metal_felt252_oracle;
 pub const stwo_zig_metal_merkle_commit = resident_data_bindings.stwo_zig_metal_merkle_commit;
+pub const stwo_zig_metal_merkle_commit_v2 = resident_data_bindings.stwo_zig_metal_merkle_commit_v2;
+pub const stwo_zig_metal_tree_copy_queried_values = resident_data_bindings.stwo_zig_metal_tree_copy_queried_values;
 pub extern fn stwo_zig_metal_compute_quotients(
     runtime: *anyopaque,
     flat_views: [*]const u32,
@@ -664,6 +825,7 @@ pub extern fn stwo_zig_metal_compute_quotients(
     leaf_seed: ?*const [8]u32,
     node_seed: ?*const [8]u32,
     domain_prefix_bytes: u32,
+    hash_family: u32,
     fri_line_output: ?*anyopaque,
     fri_coordinates: ?[*]const *anyopaque,
     fri_final_destination: ?*anyopaque,
@@ -675,6 +837,8 @@ pub extern fn stwo_zig_metal_compute_quotients(
     fri_inverse_generation_mask: ?*u32,
     fri_stats: ?*CommandEpochStats,
     quotient_work_receipt: ?*QuotientWorkReceipt,
+    quotient_parity_context: ?*anyopaque,
+    quotient_parity_observer: ?quotient_internal_parity_abi.ObserverV1,
     tree: *?*anyopaque,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
@@ -702,14 +866,70 @@ pub extern fn stwo_zig_metal_eval_polynomials(
     error_message: [*]u8,
     error_message_len: usize,
 ) bool;
+pub extern fn stwo_zig_metal_eval_barycentric_resident_v1(
+    runtime: *anyopaque,
+    resident_trees: [*]const *anyopaque,
+    tree_count: u32,
+    columns: [*]const [*]const u32,
+    column_lengths: [*]const usize,
+    output_indices: [*]const u32,
+    column_count: u32,
+    point_plans: [*]const SampledBarycentricPointPlanV1,
+    point_plan_count: u32,
+    groups: [*]const SampledBarycentricColumnGroupV1,
+    group_count: u32,
+    output_count: u32,
+    output: [*]u32,
+    receipt: *SampledBarycentricReceiptV1,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
 pub extern fn stwo_zig_metal_circle_transform(
     runtime: *anyopaque,
+    source_resident_buffer: ?*anyopaque,
     columns: [*]const [*]u32,
     column_count: u32,
     log_size: u32,
     twiddles: [*]const u32,
     inverse: bool,
     scale_factor: u32,
+    source_binding: ?*u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_circle_lde_batch_create(
+    runtime: *anyopaque,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_circle_lde_batch_destroy(batch: ?*anyopaque) void;
+pub extern fn stwo_zig_metal_circle_lde_batch_finish(
+    batch: *anyopaque,
+    encoded_operations: *u64,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) bool;
+pub extern fn stwo_zig_metal_circle_lde_batch_enqueue(
+    runtime: *anyopaque,
+    batch: *anyopaque,
+    source_columns: [*]const [*]const u32,
+    base_columns: [*]const [*]u32,
+    transform_words: [*]u32,
+    transform_word_count: usize,
+    extended_start: u32,
+    extended_stride: u32,
+    column_count: u32,
+    base_log_size: u32,
+    extended_log_size: u32,
+    inverse_twiddles: [*]const u32,
+    forward_twiddles: [*]const u32,
+    scale_factor: u32,
+    source_binding: *u32,
+    normalization_batch_count: *u32,
+    forward_skipped_layers: *u32,
     gpu_milliseconds: *f64,
     error_message: [*]u8,
     error_message_len: usize,
@@ -760,6 +980,7 @@ pub extern fn stwo_zig_metal_circle_lde_merkle_commit(
     leaf_seed: *const [8]u32,
     node_seed: *const [8]u32,
     domain_prefix_bytes: u32,
+    hash_family: u32,
     /// Out: actual interpolation normalization batches completed by this
     /// transaction. Coefficient-form input reports zero.
     normalization_batch_count: *u32,

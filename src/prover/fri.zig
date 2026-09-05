@@ -23,7 +23,7 @@ const SecureColumnByCoords = secure_column.SecureColumnByCoords;
 const WorkRecorder = work_profile.Recorder(true);
 const PACKED_LEAF_SIZE: usize = @as(usize, 1) << @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
 const PACKED_COLUMN_COUNT: usize = PACKED_LEAF_SIZE * qm31.SECURE_EXTENSION_DEGREE;
-const PackedSecureColumns = fri_packing.PackedSecureColumns;
+pub const PackedSecureColumns = fri_packing.PackedSecureColumns;
 const shouldPack = fri_packing.shouldPack;
 const packedQueryPositions = fri_packing.packedQueryPositions;
 pub const FriDecommitError = fri_decommit.FriDecommitError;
@@ -459,10 +459,16 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             domain: circle_domain.CircleDomain,
             column: secure_column.SecureColumnByCoords,
             merkle_tree: B.MerkleTree(H),
+            /// Present only for a backend whose resident queried-value map
+            /// authenticates the exact packed host-column pointers committed
+            /// for a multi-fold layer.  This process-local owner is never
+            /// serialized and is consumed with the prover.
+            retained_packing: ?PackedSecureColumns = null,
 
             pub fn deinit(self: *FirstLayerProver, allocator: std.mem.Allocator) void {
-                self.column.deinit(allocator);
                 self.merkle_tree.deinit(allocator);
+                if (self.retained_packing) |*packing| packing.deinit(allocator);
+                self.column.deinit(allocator);
                 self.* = undefined;
             }
         };
@@ -471,13 +477,16 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
             domain: line.LineDomain,
             column: secure_column.SecureColumnByCoords,
             merkle_tree: B.MerkleTree(H),
+            /// Same live pointer-custody owner as `FirstLayerProver`.
+            retained_packing: ?PackedSecureColumns = null,
             /// Number of folds this layer performs (normally FOLD_STEP, may
             /// be smaller for the last inner layer).
             fold_step: u32 = core_fri.FOLD_STEP,
 
             pub fn deinit(self: *InnerLayerProver, allocator: std.mem.Allocator) void {
-                self.column.deinit(allocator);
                 self.merkle_tree.deinit(allocator);
+                if (self.retained_packing) |*packing| packing.deinit(allocator);
+                self.column.deinit(allocator);
                 self.* = undefined;
             }
         };
@@ -662,13 +671,14 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
                 return FriProverError.ShapeMismatch;
             }
 
-            var first_layer_proof = try decommitLayerExtended(
+            var first_layer_proof = try fri_decommit.decommitLayerExtendedWithRetainedPacking(
                 H,
                 allocator,
                 first_layer.merkle_tree,
                 first_layer.column,
                 queries.positions,
                 self.config.fold_step,
+                if (first_layer.retained_packing) |*packing| packing else null,
             );
             errdefer first_layer_proof.deinit(allocator);
 
@@ -681,14 +691,15 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
                 for (inner_layer_proofs.items) |*proof| proof.deinit(allocator);
             }
 
-            for (inner_layers) |layer| {
-                var inner_proof = try decommitLayerExtended(
+            for (inner_layers) |*layer| {
+                var inner_proof = try fri_decommit.decommitLayerExtendedWithRetainedPacking(
                     H,
                     allocator,
                     layer.merkle_tree,
                     layer.column,
                     layer_queries.positions,
                     layer.fold_step,
+                    if (layer.retained_packing) |*packing| packing else null,
                 );
                 errdefer inner_proof.deinit(allocator);
                 try inner_layer_proofs.append(allocator, inner_proof);
@@ -735,6 +746,8 @@ pub fn FriProver(comptime B: type, comptime H: type, comptime MC: type) type {
 
 /// Produces an extended FRI layer proof (proof + aux) for one layer decommitment.
 pub const decommitLayerExtended = fri_decommit.decommitLayerExtended;
+pub const decommitLayerExtendedWithRetainedPacking =
+    fri_decommit.decommitLayerExtendedWithRetainedPacking;
 pub const computeDecommitmentPositionsAndWitnessEvals =
     fri_decommit.computeDecommitmentPositionsAndWitnessEvals;
 pub const decommitLayer = fri_decommit.decommitLayer;

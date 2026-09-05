@@ -28,7 +28,7 @@ pub const FAMILIES = [FAMILY_COUNT]Family{
     .{ .ordinal = 15, .n_main_columns = 67, .n_interaction_batches = 25 }, // div
     .{ .ordinal = 11, .n_main_columns = 20, .n_interaction_batches = 4 }, // jal
     .{ .ordinal = 10, .n_main_columns = 41, .n_interaction_batches = 9 }, // jalr
-    .{ .ordinal = 12, .n_main_columns = 48, .n_interaction_batches = 8 }, // load_store
+    .{ .ordinal = 12, .n_main_columns = 50, .n_interaction_batches = 9 }, // load_store
     .{ .ordinal = 5, .n_main_columns = 37, .n_interaction_batches = 6 }, // lt_imm
     .{ .ordinal = 4, .n_main_columns = 44, .n_interaction_batches = 7 }, // lt_reg
     .{ .ordinal = 8, .n_main_columns = 18, .n_interaction_batches = 4 }, // lui
@@ -37,6 +37,15 @@ pub const FAMILIES = [FAMILY_COUNT]Family{
     .{ .ordinal = 3, .n_main_columns = 51, .n_interaction_batches = 8 }, // shifts_imm
     .{ .ordinal = 2, .n_main_columns = 60, .n_interaction_batches = 10 }, // shifts_reg
     .{ .ordinal = 16, .n_main_columns = 6, .n_interaction_batches = 2 }, // fence
+};
+
+/// Fixed-memory JSON preflight capacity derived from the same closed family
+/// registry that validation uses. Keeping a second handwritten maximum made
+/// valid DIV-bearing proofs serialize successfully but fail fresh verification.
+pub const MAX_OPCODE_INTERACTION_BATCHES: usize = blk: {
+    var maximum: usize = 0;
+    for (FAMILIES) |family| maximum = @max(maximum, family.n_interaction_batches);
+    break :blk maximum;
 };
 
 pub const InfraKind = enum(u32) {

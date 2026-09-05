@@ -34,6 +34,7 @@ const RIGHT_PCS_CIRCUIT_ID = dependency_0.RIGHT_PCS_CIRCUIT_ID;
 const SEGMENT_ARITHMETIC_CAPACITY_CIRCUIT_ID = dependency_0.SEGMENT_ARITHMETIC_CAPACITY_CIRCUIT_ID;
 const ARITHMETIC_ROW_COUNT = dependency_0.ARITHMETIC_ROW_COUNT;
 const ChildInput = dependency_1.ChildInput;
+const AuthenticatedCompositionLane = dependency_1.AuthenticatedCompositionLane;
 const SharedArithmeticInput = dependency_1.SharedArithmeticInput;
 const traceLogSize = dependency_9.traceLogSize;
 const hashInt = dependency_9.hashInt;
@@ -54,6 +55,126 @@ pub const ArithmeticRowsAuthority = struct {
     linear_relation: LinearRelation.Plan,
     log_sizes: [ARITHMETIC_ROW_COUNT]u32,
     authority_digest: air_digest.Digest,
+
+    /// Append-only cold compiler entry for a typed higher-level authority.
+    ///
+    /// The caller must reconstruct `program_lanes` from independently
+    /// validated program descriptors; this function deliberately accepts no
+    /// proof values.  The returned owner copies the lane slice and cold-
+    /// compiles every lowering row, binding, and relation exactly as the
+    /// frozen V1 constructors do.  `validateProgramLanes` repeats that full
+    /// reconstruction before a higher-level descriptor may publish it.
+    pub fn initFromProgramLanes(
+        allocator: std.mem.Allocator,
+        program_lanes: []const lowering.Lane,
+    ) !ArithmeticRowsAuthority {
+        if (program_lanes.len == 0) return error.SourceAuthorityMismatch;
+        const lanes = try allocator.dupe(lowering.Lane, program_lanes);
+        errdefer allocator.free(lanes);
+        const reference = try lowering.Reference.seal(lanes);
+        var plan = try lowering.Plan.init(allocator, reference);
+        errdefer plan.deinit();
+
+        var multiply_definition = try multiply_air.build(allocator, .generated);
+        errdefer multiply_definition.deinit();
+        var inverse_definition = try inverse_air.build(allocator, .generated);
+        errdefer inverse_definition.deinit();
+        var linear_definition = try linear_air.build(allocator, .generated);
+        errdefer linear_definition.deinit();
+        const multiply_binding = try multiply_witness.Binding.canonical(
+            &multiply_definition,
+        );
+        const inverse_binding = try inverse_witness.Binding.canonical(
+            &inverse_definition,
+        );
+        const linear_binding = try linear_witness.Binding.canonical(
+            &linear_definition,
+        );
+
+        var result = ArithmeticRowsAuthority{
+            .allocator = allocator,
+            .lanes = lanes,
+            .reference = reference,
+            .plan = plan,
+            .multiply_definition = multiply_definition,
+            .inverse_definition = inverse_definition,
+            .linear_definition = linear_definition,
+            .multiply_executor = try multiply_witness.Executor.init(
+                &multiply_definition,
+                &multiply_binding,
+            ),
+            .inverse_executor = try inverse_witness.Executor.init(
+                &inverse_definition,
+                &inverse_binding,
+            ),
+            .linear_executor = try linear_witness.Executor.init(
+                &linear_definition,
+                &linear_binding,
+            ),
+            .multiply_relation = try MultiplyRelation.authenticate(
+                &multiply_definition,
+            ),
+            .inverse_relation = try InverseRelation.authenticate(
+                &inverse_definition,
+            ),
+            .linear_relation = try LinearRelation.authenticate(
+                &linear_definition,
+            ),
+            .log_sizes = .{
+                try traceLogSize(plan.multiply_rows.len),
+                try traceLogSize(plan.inverse_rows.len),
+                try traceLogSize(plan.linear_rows.len),
+            },
+            .authority_digest = undefined,
+        };
+        result.authority_digest = arithmeticRowsAuthorityDigest(&result);
+        try result.validateProgramLanes(program_lanes);
+        return result;
+    }
+
+    pub fn validateProgramLanes(
+        self: *const ArithmeticRowsAuthority,
+        program_lanes: []const lowering.Lane,
+    ) !void {
+        if (self.lanes.len != program_lanes.len)
+            return error.SourceAuthorityMismatch;
+        for (self.lanes, program_lanes) |actual, expected| {
+            if (!std.meta.eql(actual.active_in, expected.active_in) or
+                actual.circuit_id != expected.circuit_id or
+                !std.mem.eql(
+                    u8,
+                    &actual.circuit_identity,
+                    &expected.circuit_identity,
+                ) or !std.mem.eql(
+                u8,
+                &actual.graph.identity_digest,
+                &expected.graph.identity_digest,
+            )) return error.SourceAuthorityMismatch;
+            try expected.graph.validate();
+        }
+        try self.reference.validateAuthority();
+        try self.plan.validateAgainstAuthority(self.allocator, self.reference);
+        try self.multiply_relation.validateAgainst(
+            &self.multiply_definition.arena,
+            multiply_air.SEMANTIC_DIGEST,
+            MultiplyRelation.events(&self.multiply_definition),
+        );
+        try self.inverse_relation.validateAgainst(
+            &self.inverse_definition.arena,
+            inverse_air.SEMANTIC_DIGEST,
+            InverseRelation.events(&self.inverse_definition),
+        );
+        try self.linear_relation.validateAgainst(
+            &self.linear_definition.arena,
+            linear_air.SEMANTIC_DIGEST,
+            LinearRelation.events(&self.linear_definition),
+        );
+        if (!std.mem.eql(
+            u8,
+            &self.authority_digest,
+            &arithmeticRowsAuthorityDigest(self),
+        )) return error.SourceAuthorityMismatch;
+    }
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -172,6 +293,155 @@ pub const ArithmeticRowsAuthority = struct {
         result.authority_digest = arithmeticRowsAuthorityDigest(&result);
         try result.validate(children, shared);
         return result;
+    }
+
+    /// Append-only rows-30--32 constructor for a binary parent whose children
+    /// are proofless canonical-empty leaves.  Such children own authenticated
+    /// composition recordings, but deliberately own no PCS/FRI graph or
+    /// Merkle path.  Only the two recorder-minted composition lanes therefore
+    /// enter the lowering plan; scheduler-independent shared arithmetic may be
+    /// appended exactly as on the ordinary proof-bearing path.
+    pub fn initFromAuthenticatedCompositionLanes(
+        allocator: std.mem.Allocator,
+        compositions: [2]AuthenticatedCompositionLane,
+        shared: ?SharedArithmeticInput,
+    ) !ArithmeticRowsAuthority {
+        for (compositions) |lane| try lane.validate();
+        if (compositions[LEFT_CHILD].circuit_id ==
+            compositions[RIGHT_CHILD].circuit_id)
+        {
+            return error.CompositionAuthorityMismatch;
+        }
+        if (shared) |input| try input.validate();
+
+        const lanes = try allocator.alloc(
+            lowering.Lane,
+            2 + @as(usize, @intFromBool(shared != null)),
+        );
+        errdefer allocator.free(lanes);
+        inline for (0..2) |child_index| lanes[child_index] = .{
+            .circuit_id = compositions[child_index].circuit_id,
+            .active_in = .binary,
+            .circuit_identity = compositions[child_index].circuit_identity,
+            .graph = compositions[child_index].graph,
+        };
+        if (shared) |input| lanes[2] = input.lane;
+
+        const reference = try lowering.Reference.seal(lanes);
+        var plan = try lowering.Plan.init(allocator, reference);
+        errdefer plan.deinit();
+        var multiply_definition = try multiply_air.build(allocator, .generated);
+        errdefer multiply_definition.deinit();
+        var inverse_definition = try inverse_air.build(allocator, .generated);
+        errdefer inverse_definition.deinit();
+        var linear_definition = try linear_air.build(allocator, .generated);
+        errdefer linear_definition.deinit();
+        const multiply_binding = try multiply_witness.Binding.canonical(
+            &multiply_definition,
+        );
+        const inverse_binding = try inverse_witness.Binding.canonical(
+            &inverse_definition,
+        );
+        const linear_binding = try linear_witness.Binding.canonical(
+            &linear_definition,
+        );
+
+        var result = ArithmeticRowsAuthority{
+            .allocator = allocator,
+            .lanes = lanes,
+            .reference = reference,
+            .plan = plan,
+            .multiply_definition = multiply_definition,
+            .inverse_definition = inverse_definition,
+            .linear_definition = linear_definition,
+            .multiply_executor = try multiply_witness.Executor.init(
+                &multiply_definition,
+                &multiply_binding,
+            ),
+            .inverse_executor = try inverse_witness.Executor.init(
+                &inverse_definition,
+                &inverse_binding,
+            ),
+            .linear_executor = try linear_witness.Executor.init(
+                &linear_definition,
+                &linear_binding,
+            ),
+            .multiply_relation = try MultiplyRelation.authenticate(
+                &multiply_definition,
+            ),
+            .inverse_relation = try InverseRelation.authenticate(
+                &inverse_definition,
+            ),
+            .linear_relation = try LinearRelation.authenticate(
+                &linear_definition,
+            ),
+            .log_sizes = .{
+                try traceLogSize(plan.multiply_rows.len),
+                try traceLogSize(plan.inverse_rows.len),
+                try traceLogSize(plan.linear_rows.len),
+            },
+            .authority_digest = undefined,
+        };
+        result.authority_digest = arithmeticRowsAuthorityDigest(&result);
+        try result.validateAuthenticatedCompositionLanes(compositions, shared);
+        return result;
+    }
+
+    pub fn validateAuthenticatedCompositionLanes(
+        self: *const ArithmeticRowsAuthority,
+        compositions: [2]AuthenticatedCompositionLane,
+        shared: ?SharedArithmeticInput,
+    ) !void {
+        for (compositions) |lane| try lane.validate();
+        if (compositions[LEFT_CHILD].circuit_id ==
+            compositions[RIGHT_CHILD].circuit_id)
+        {
+            return error.CompositionAuthorityMismatch;
+        }
+        if (shared) |input| try input.validate();
+        try self.reference.validateAuthority();
+        try self.plan.validateAgainst(self.reference);
+        try self.multiply_relation.validateAgainst(
+            &self.multiply_definition.arena,
+            multiply_air.SEMANTIC_DIGEST,
+            MultiplyRelation.events(&self.multiply_definition),
+        );
+        try self.inverse_relation.validateAgainst(
+            &self.inverse_definition.arena,
+            inverse_air.SEMANTIC_DIGEST,
+            InverseRelation.events(&self.inverse_definition),
+        );
+        try self.linear_relation.validateAgainst(
+            &self.linear_definition.arena,
+            linear_air.SEMANTIC_DIGEST,
+            LinearRelation.events(&self.linear_definition),
+        );
+        const expected_len = 2 + @as(usize, @intFromBool(shared != null));
+        if (self.lanes.len != expected_len or
+            (shared != null and !std.meta.eql(self.lanes[2], shared.?.lane)) or
+            !std.mem.eql(
+                u8,
+                &self.authority_digest,
+                &arithmeticRowsAuthorityDigest(self),
+            ))
+        {
+            return error.SourceAuthorityMismatch;
+        }
+        inline for (0..2) |child_index| {
+            const actual = self.lanes[child_index];
+            const expected = compositions[child_index];
+            if (actual.active_in != .binary or
+                actual.circuit_id != expected.circuit_id or
+                !std.mem.eql(
+                    u8,
+                    &actual.circuit_identity,
+                    &expected.circuit_identity,
+                ) or !std.mem.eql(
+                u8,
+                &actual.graph.identity_digest,
+                &expected.graph.identity_digest,
+            )) return error.SourceAuthorityMismatch;
+        }
     }
 
     pub fn deinit(self: *ArithmeticRowsAuthority) void {

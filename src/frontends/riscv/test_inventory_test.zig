@@ -125,6 +125,22 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
         .path = "div_private_test_root.zig",
         .why = "focused private-cutover evidence root",
     },
+    .{
+        .path = "hash_component_prepared_test_root.zig",
+        .why = "focused prepared hash-component evidence root",
+    },
+    .{
+        .path = "lookup_source_ingest_test_root.zig",
+        .why = "focused lookup source-ingest evidence root",
+    },
+    .{
+        .path = "lookup_table_interaction_test_root.zig",
+        .why = "focused lookup-table interaction evidence root",
+    },
+    .{
+        .path = "opcode_interaction_test_root.zig",
+        .why = "focused opcode-interaction evidence root",
+    },
 };
 
 /// Where this package's sources sit, relative to the test's working directory.

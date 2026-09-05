@@ -642,13 +642,14 @@ const PreparedDomainState = struct {
                 log_size,
                 self.eval_log_size,
             );
-            var tuple: [schema.MAX_ARITY]QM31 = undefined;
+            var tuple: [schema.MAX_ARITY]M31 = undefined;
             for (tuple[0..self.n_tuple], evaluations[1..][0..self.n_tuple]) |*value, column| {
-                value.* = QM31.fromBase(column[row]);
+                value.* = column[row];
             }
-            const constraint = try component.evaluateRow(
+            const constraint = try interaction.evaluateBaseTuple(
+                component.kind,
                 tuple[0..self.n_tuple],
-                QM31.fromBase(evaluations[self.main_index][row]),
+                evaluations[self.main_index][row],
                 secureAt(
                     evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
                     row,
@@ -657,7 +658,9 @@ const PreparedDomainState = struct {
                     evaluations[self.interaction_start..][0..interaction.N_COLUMNS],
                     previous_row,
                 ),
-                QM31.fromBase(evaluations[0][row]),
+                evaluations[0][row],
+                component.claim,
+                component.relations,
             );
             const contribution = column_accumulator.random_coeff_powers[0]
                 .mul(constraint)

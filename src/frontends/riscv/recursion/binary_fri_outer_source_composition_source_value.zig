@@ -297,6 +297,11 @@ pub fn compositionSourceValue(
                 item_index - POSEIDON2_PARTIAL_CLAIM_START
             ].toM31Array()[coordinate.word_index];
         },
+        // Frozen binary captures do not retain a distinct canonical
+        // transcript-claim vector. A nonzero append-only recursion profile
+        // must arrive through the typed Ethereum bridge instead of silently
+        // aliasing declaration-ordered claims.
+        .transcript_claimed_sum => error.CompositionAuthorityMismatch,
         .public_wire_boundary => error.CompositionAuthorityMismatch,
         .relation_challenge => |coordinate| blk: {
             var challenge_at: usize = 0;

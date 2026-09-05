@@ -710,10 +710,11 @@ pub fn retainedInputBytes(
         result,
         try checkedMul(inputs.witness.program.rows.len, @sizeOf(program_commitment.Row)),
     );
-    if (inputs.witness.boundary) |boundary| {
+    const boundary_rows = inputs.witness.memoryBoundaryRows();
+    if (boundary_rows.len != 0) {
         result = try checkedAdd(
             result,
-            try checkedMul(boundary.rows.len, @sizeOf(memory_boundary.Row)),
+            try checkedMul(boundary_rows.len, @sizeOf(memory_boundary.Row)),
         );
     }
     result = try checkedAdd(

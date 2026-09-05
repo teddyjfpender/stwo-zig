@@ -372,6 +372,7 @@ pub fn sourceClass(classification: Classification) SourceClass {
             .statement_word => .statement_word,
             .sampled_value => .sampled_value,
             .claimed_sum => .claimed_sum,
+            .transcript_claimed_sum => .transcript_claimed_sum,
             .relation_challenge => .relation_challenge,
             .composition_randomness => .composition_randomness,
             .oods_point => .oods_point,
@@ -404,7 +405,7 @@ pub fn validateRecursionSourceBounds(source_value: RecursionSource) Error!void {
         .parent_binary_selector, .child_kind_selector => {},
         .statement_word => |word_index| if (word_index >= statement.CANONICAL_WORD_COUNT)
             return error.InvalidInputSource,
-        .sampled_value, .claimed_sum => |coordinate| try validateSecure(coordinate),
+        .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,

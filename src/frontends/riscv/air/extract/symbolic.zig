@@ -73,7 +73,7 @@ pub const Arena = struct {
 
 /// The installed arena. `Scalar` methods take no allocator and no context, so
 /// the arena cannot be a parameter; see the module comment.
-var installed: ?*Arena = null;
+threadlocal var installed: ?*Arena = null;
 
 pub fn begin(arena: *Arena) void {
     std.debug.assert(installed == null);
@@ -118,6 +118,10 @@ pub const Scalar = struct {
 
     pub fn mul(self: Scalar, other: Scalar) Scalar {
         return binary(.mul, self, other);
+    }
+
+    pub fn square(self: Scalar) Scalar {
+        return self.mul(self);
     }
 
     pub fn neg(self: Scalar) Scalar {

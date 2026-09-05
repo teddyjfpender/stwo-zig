@@ -240,8 +240,26 @@ pub const Preprocessed = struct {
         reference: *const circuit.Reference,
     ) (Error || circuit.Error)!Preprocessed {
         var compiled = try circuit.compile(allocator, reference);
+        return initTakingCompiled(&compiled);
+    }
+
+    /// Adopts a schedule compiled from the same independently authenticated
+    /// graph. Ownership transfers on entry, including every error path.
+    pub fn initTakingCompiled(
+        compiled_source: *circuit.CompiledSchedule,
+    ) (Error || circuit.Error)!Preprocessed {
+        var compiled = compiled_source.*;
+        compiled_source.* = undefined;
         errdefer compiled.deinit();
+        try circuit.validateCompiledRows(compiled.rows);
+        const expected = circuit.computeScheduleDigest(
+            compiled.reference_digest,
+            compiled.rows,
+        );
+        if (!std.mem.eql(u8, &expected, &compiled.authority_digest))
+            return error.AuthorityMismatch;
         const log_size = try traceLogSize(compiled.rows.len);
+        const allocator = compiled.allocator;
         const reference_digest = compiled.reference_digest;
         const authority_digest = compiled.authority_digest;
         const rows = compiled.releaseRows();
@@ -512,7 +530,7 @@ fn validateVmSource(source_value: VmSource) Error!void {
 
 fn validateRecursionSource(source_value: RecursionSource) Error!void {
     switch (source_value) {
-        .sampled_value, .claimed_sum, .public_wire_boundary => |coordinate| try validateSecure(coordinate),
+        .sampled_value, .claimed_sum, .transcript_claimed_sum, .public_wire_boundary => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,

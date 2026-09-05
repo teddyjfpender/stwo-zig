@@ -42,6 +42,10 @@ pub const MAX_PHYSICAL_CLAIM_COUNT = shard_0.MAX_PHYSICAL_CLAIM_COUNT;
 pub const POSEIDON_PARTIAL_COUNT = shard_0.POSEIDON_PARTIAL_COUNT;
 pub const POSEIDON_ROSTER_ROW = shard_0.POSEIDON_ROSTER_ROW;
 pub const POSEIDON_AUX_START = shard_0.POSEIDON_AUX_START;
+pub const H1_PHYSICAL_CLAIM_COUNT = shard_0.H1_PHYSICAL_CLAIM_COUNT;
+pub const H1_POSEIDON_ROSTER_ROW = shard_0.H1_POSEIDON_ROSTER_ROW;
+pub const H1_POSEIDON_AUX_START = shard_0.H1_POSEIDON_AUX_START;
+pub const H1_SEMANTIC_CLAIM_INPUT_COUNT = shard_0.H1_SEMANTIC_CLAIM_INPUT_COUNT;
 pub const COMPOSITION_CLAIM_INPUT_COUNT = shard_0.COMPOSITION_CLAIM_INPUT_COUNT;
 pub const RELATION_CHALLENGE_COUNT = shard_0.RELATION_CHALLENGE_COUNT;
 pub const STATEMENT_WORD_COUNT = shard_0.STATEMENT_WORD_COUNT;
@@ -132,11 +136,14 @@ pub const reconstructSplitCompositionForLayout = shard_4.reconstructSplitComposi
 /// Strict, allocation-free claim assembler.  Every rejection occurs before
 /// the first destination write, including overlap and canonicity failures.
 pub const writeClaimInputs = shard_4.writeClaimInputs;
+pub const writeClaimInputsForManifest = shard_4.writeClaimInputsForManifest;
 pub const validateClaimInputs = shard_4.validateClaimInputs;
 /// Versioned empty-provider policy.  The legacy empty encoding remains all
 /// zero; only a descriptor authenticated with `canonical_empty_provider` may
 /// place the deterministic public-statement contribution in slot 36.
 pub const validateClaimInputsForPolicy = shard_4.validateClaimInputsForPolicy;
+pub const validateClaimInputsForManifestPolicy =
+    shard_4.validateClaimInputsForManifestPolicy;
 /// Records the V3 claim policy into the recursive arithmetic graph.  The
 /// caller supplies selectors already bound to the parent activation rule; this
 /// function adds no host-only assumption:
@@ -149,6 +156,8 @@ pub const validateClaimInputsForPolicy = shard_4.validateClaimInputsForPolicy;
 /// allocation-free after the caller reserves the cold builder capacity.
 pub const recordClaimPolicyConstraints = shard_4.recordClaimPolicyConstraints;
 pub const recordClaimPolicyConstraintsForPolicy = shard_4.recordClaimPolicyConstraintsForPolicy;
+pub const recordClaimPolicyConstraintsForManifestPolicy =
+    shard_4.recordClaimPolicyConstraintsForManifestPolicy;
 /// Graph-side custody for the proofless-empty provider.  The empty selector
 /// gates three independent obligations: the exact 412-word publication, the
 /// complete zero sample workspace, and the deterministic public-statement
@@ -159,6 +168,11 @@ pub const recordCanonicalEmptyProviderConstraints = shard_4.recordCanonicalEmpty
 /// `ConfigurationV3` and pass its exact `inputProfile()` projection; this
 /// function deliberately performs no manifest or AIR-program authentication.
 pub const writeInputsFromValidatedProfile = shard_4.writeInputsFromValidatedProfile;
+pub const writeInputsFromValidatedProfileAndManifestPolicy =
+    shard_4.writeInputsFromValidatedProfileAndManifestPolicy;
+pub const temporalParentDescriptorShape = shard_4.temporalParentDescriptorShape;
+pub const programDescriptorIdentity = shard_1.programDescriptorIdentity;
+pub const hashManifestRows = authority_validation.hashManifestRows;
 pub const writeInputs = shard_4.writeInputs;
 /// Non-authoritative content digest for diagnostics and mutation detection.
 /// It deliberately does not identify a circuit configuration or AIR program;

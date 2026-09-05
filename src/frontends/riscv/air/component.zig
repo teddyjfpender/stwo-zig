@@ -32,6 +32,7 @@ const composition_work_support = @import("composition_work_support.zig");
 const prepared_execution = @import("component_prepared_execution.zig");
 const interaction_gen = @import("interaction_gen.zig");
 const logup = @import("logup.zig");
+const incremental_boundary_interaction_v3 = @import("memory_commitment/incremental_boundary_interaction_v3.zig");
 const memory_interaction = @import("memory_commitment/interaction.zig");
 const opcode_memory = @import("opcode_memory.zig");
 const prepared_evaluation = @import("prepared_evaluation_owner.zig");
@@ -56,6 +57,14 @@ pub const FamilyComponentDesc = struct {
 /// Constraint role of a component.
 pub const Kind = enum { opcode, program, memory };
 
+/// AIR policy for the otherwise byte-identical eight-column memory-boundary
+/// table. The default preserves every V1 component and proof byte. V3 keeps
+/// Merkle activity independent from the ternary memory-bus multiplicity.
+pub const MemoryBoundaryPolicy = enum(u32) {
+    legacy_role_filtered_v1 = 1,
+    full_state_split_multiplicity_v3 = 3,
+};
+
 /// Number of committed M31 interaction columns for a component kind.
 pub fn nInteractionCols(kind: Kind) u32 {
     return switch (kind) {
@@ -75,6 +84,7 @@ pub const RiscVTraceComponent = struct {
     /// Offset of this component's first column within tree 1 (main trace).
     main_col_offset: usize,
     kind: Kind,
+    memory_boundary_policy: MemoryBoundaryPolicy = .legacy_role_filtered_v1,
     relations: *const relation_challenges.Relations,
     /// Offset of this component's first column within tree 2 (interaction).
     interaction_col_offset: usize = 0,
@@ -204,7 +214,7 @@ pub const RiscVTraceComponent = struct {
                 );
                 try composition_work_support.begin(&expression);
                 defer composition_work_support.end();
-                _ = memory_interaction.evaluateGeneric(
+                _ = self.evaluateMemoryConstraintsGeneric(
                     Scalar,
                     main,
                     is_active,
@@ -214,19 +224,35 @@ pub const RiscVTraceComponent = struct {
                     claims,
                     &relations,
                 );
-                return composition_work_support.profile(
-                    .memory,
-                    "riscv-memory-interaction-evaluate-generic-v1",
-                    self.maxConstraintLogDegreeBound(),
-                    self.nConstraints(),
-                    expression,
-                    .{},
-                    &.{
-                        @as(u64, self.desc.log_size),
-                        8,
-                        @as(u64, memory_interaction.N_SUMS),
-                    },
-                );
+                return switch (self.memory_boundary_policy) {
+                    .legacy_role_filtered_v1 => composition_work_support.profile(
+                        .memory,
+                        "riscv-memory-interaction-evaluate-generic-v1",
+                        self.maxConstraintLogDegreeBound(),
+                        self.nConstraints(),
+                        expression,
+                        .{},
+                        &.{
+                            @as(u64, self.desc.log_size),
+                            8,
+                            @as(u64, memory_interaction.N_SUMS),
+                        },
+                    ),
+                    .full_state_split_multiplicity_v3 => composition_work_support.profile(
+                        .memory,
+                        "riscv-incremental-boundary-interaction-evaluate-generic-v3",
+                        self.maxConstraintLogDegreeBound(),
+                        self.nConstraints(),
+                        expression,
+                        .{},
+                        &.{
+                            @as(u64, self.desc.log_size),
+                            8,
+                            @as(u64, memory_interaction.N_SUMS),
+                            @as(u64, @intFromEnum(self.memory_boundary_policy)),
+                        },
+                    ),
+                };
             },
             .opcode => return error.UnsupportedCompositionWorkProfile,
         }
@@ -500,7 +526,8 @@ pub const RiscVTraceComponent = struct {
                     sums[index] = try sampledSecure(inter, o + index * 4, 0);
                     previous[index] = try sampledSecure(inter, o + index * 4, 1);
                 }
-                const constraints = memory_interaction.evaluate(
+                const constraints = self.evaluateMemoryConstraintsGeneric(
+                    QM31,
                     sampled,
                     is_active,
                     is_first,
@@ -722,6 +749,44 @@ pub const RiscVTraceComponent = struct {
     ) !void {
         try prepared_execution.run(self, state, task_context);
     }
+
+    /// Shared point/domain dispatch. Keeping this on the component makes the
+    /// selected policy identical for prover evaluation, verifier OODS
+    /// evaluation, and work-profile measurement.
+    pub fn evaluateMemoryConstraintsGeneric(
+        self: *const @This(),
+        comptime S: type,
+        main: [8]S,
+        is_active: S,
+        is_first: S,
+        sums: [memory_interaction.N_SUMS]S,
+        previous: [memory_interaction.N_SUMS]S,
+        claims: [memory_interaction.N_SUMS]S,
+        relations: anytype,
+    ) [memory_interaction.N_CONSTRAINTS]S {
+        return switch (self.memory_boundary_policy) {
+            .legacy_role_filtered_v1 => memory_interaction.evaluateGeneric(
+                S,
+                main,
+                is_active,
+                is_first,
+                sums,
+                previous,
+                claims,
+                relations,
+            ),
+            .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateGeneric(
+                S,
+                main,
+                is_active,
+                is_first,
+                sums,
+                previous,
+                claims,
+                relations,
+            ),
+        };
+    }
 };
 
 const PreparedDomainState = struct {
@@ -829,4 +894,58 @@ fn preparedDomainResources(
 
 fn secureAt(coords: []const []const M31, row: usize) QM31 {
     return QM31.fromM31(coords[0][row], coords[1][row], coords[2][row], coords[3][row]);
+}
+
+test "RISC-V component keeps legacy memory default and selects split V3 explicitly" {
+    const relations = relation_challenges.Relations.dummy();
+    const base_component = RiscVTraceComponent{
+        .desc = .{
+            .family = .base_alu_reg,
+            .log_size = 4,
+            .n_rows = 1,
+            .n_columns = 8,
+        },
+        .initial_pc = 0,
+        .total_steps = 1,
+        .is_first_col_idx = 0,
+        .is_active_col_idx = 1,
+        .main_col_offset = 0,
+        .kind = .memory,
+        .relations = &relations,
+    };
+    try std.testing.expectEqual(
+        MemoryBoundaryPolicy.legacy_role_filtered_v1,
+        base_component.memory_boundary_policy,
+    );
+
+    const zero = QM31.zero();
+    const one = QM31.one();
+    const legacy_constraints = base_component.evaluateMemoryConstraintsGeneric(
+        QM31,
+        .{zero} ** 8,
+        one,
+        one,
+        .{zero} ** memory_interaction.N_SUMS,
+        .{zero} ** memory_interaction.N_SUMS,
+        .{zero} ** memory_interaction.N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(
+        !legacy_constraints[memory_interaction.N_SUMS + 1].isZero(),
+    );
+
+    var split_component = base_component;
+    split_component.memory_boundary_policy = .full_state_split_multiplicity_v3;
+    const split_constraints = split_component.evaluateMemoryConstraintsGeneric(
+        QM31,
+        .{zero} ** 8,
+        one,
+        one,
+        .{zero} ** memory_interaction.N_SUMS,
+        .{zero} ** memory_interaction.N_SUMS,
+        .{zero} ** memory_interaction.N_SUMS,
+        &relations,
+    );
+    try std.testing.expect(split_constraints[memory_interaction.N_SUMS].isZero());
+    try std.testing.expect(split_constraints[memory_interaction.N_SUMS + 1].isZero());
 }

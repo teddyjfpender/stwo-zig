@@ -121,7 +121,7 @@ const Fixture = struct {
         try appendTreeRows(allocator, &merkle_rows, program.tree);
         self.witness = .{
             .boundary = boundary,
-            .program = program,
+            .program = commitment_witness.ProgramWitnessV1.fromOwned(program),
             .poseidon_calls = poseidon_calls,
             .merkle_rows = merkle_rows,
         };

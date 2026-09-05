@@ -27,6 +27,8 @@ pub const Execution = struct {
     /// complete receipt leave it empty; the proof boundary then fails profile
     /// completeness without changing ordinary proving behavior.
     composition_work_capture: ?*composition_work.Capture = null,
+    /// Failure-only observer; never consulted by scheduling or proof logic.
+    evaluation_diagnostic: ?*?api.EvaluationDiagnostic = null,
 
     pub fn resolve(request: ?api.CpuCompositionExecutionRequest) !Execution {
         return resolveWithRecorder(request, null);
@@ -142,11 +144,13 @@ pub fn tryBackend(
     recorder: ?*StageRecorder,
     composition_work_capture: ?*composition_work.Capture,
     execution_out: *?Execution,
+    evaluation_diagnostic: ?*?api.EvaluationDiagnostic,
 ) anyerror!?secure_column.SecureColumnByCoords {
     if (comptime B == void) return null;
     if (comptime @hasDecl(B, "computeCompositionEvaluationWithExecution")) {
         var execution = try Execution.resolveWithRecorder(request, recorder);
         execution.composition_work_capture = composition_work_capture;
+        execution.evaluation_diagnostic = evaluation_diagnostic;
         execution_out.* = execution;
         return B.computeCompositionEvaluationWithExecution(
             allocator,

@@ -213,6 +213,26 @@ test "metal: forced combined circle LDE and Merkle matches generic path" {
     const metal_root = try result.tree.root();
     const generic_root: [32]u8 = @bitCast(generic_tree.root());
     try std.testing.expectEqualSlices(u8, &generic_root, &metal_root.hash);
+
+    var word_columns: [column_count][]const u32 = undefined;
+    for (metal_extended, &word_columns) |column, *words| {
+        words.* = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(column));
+    }
+    const queries = [_]usize{ 3, 65_535, 131_070 };
+    const gathered = (try result.tree.tryCopyQueriedValuesFlat(
+        allocator,
+        &word_columns,
+        &queries,
+    )) orelse return error.TestUnexpectedResult;
+    defer allocator.free(gathered);
+    for (metal_extended, 0..) |column, column_index| {
+        for (queries, 0..) |query, query_index| {
+            try std.testing.expectEqual(
+                column[query].v,
+                gathered[column_index * queries.len + query_index],
+            );
+        }
+    }
 }
 
 test "metal: prepared sparse coefficient LDE matches CPU" {

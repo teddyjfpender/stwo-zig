@@ -312,7 +312,7 @@ pub fn hashRecursionInputSource(hash: anytype, source: composition.RecursionSour
         .parent_binary_selector => {},
         .child_kind_selector => |kind| hashInt(hash, u8, @intFromEnum(kind)),
         .statement_word => |word| hashInt(hash, u32, word),
-        .sampled_value, .claimed_sum, .public_wire_boundary => |coordinate| {
+        .sampled_value, .claimed_sum, .transcript_claimed_sum, .public_wire_boundary => |coordinate| {
             hashInt(hash, u32, coordinate.item_index);
             hashInt(hash, u32, coordinate.word_index);
         },

@@ -111,7 +111,218 @@ pub const BuildWithWorkReceipt = struct {
     receipt: poseidon_work.ProducerReceipt,
 };
 
+/// Counts the exact canonical node rows for a strictly increasing leaf-index
+/// stream without evaluating a single hash or retaining any node value.
+///
+/// This is a geometry authority, not a commitment authority: callers must
+/// separately authenticate the corresponding leaf values and root.  The
+/// frontier transition is the same sibling merge as `buildLinearBatched`, so
+/// the returned count is exactly `Tree.nodes.len` for the same indices.  A
+/// private mutable copy lets every level compact in place and caps temporary
+/// storage at one `u32` per leaf.
+pub fn countCanonicalNodeRowsFromSortedIndices(
+    allocator: std.mem.Allocator,
+    sorted_indices: []const u32,
+) Error!usize {
+    if (sorted_indices.len == 0) return 0;
+
+    var frontier = try allocator.dupe(u32, sorted_indices);
+    defer allocator.free(frontier);
+    for (frontier, 0..) |index, position| {
+        if (index >= LEAF_COUNT) return error.IndexOutOfRange;
+        if (position != 0 and frontier[position - 1] >= index) {
+            return if (frontier[position - 1] == index)
+                error.DuplicateLeaf
+            else
+                error.InvalidTree;
+        }
+    }
+
+    var frontier_len = frontier.len;
+    var node_rows: usize = 0;
+    var depth: u32 = LEAF_DEPTH;
+    while (depth > 0) : (depth -= 1) {
+        var source: usize = 0;
+        var destination: usize = 0;
+        while (source < frontier_len) {
+            const parent = frontier[source] >> 1;
+            source += 1;
+            if (source < frontier_len and frontier[source] >> 1 == parent)
+                source += 1;
+            frontier[destination] = parent;
+            destination += 1;
+        }
+        node_rows = std.math.add(usize, node_rows, destination) catch
+            return error.InvalidTree;
+        frontier_len = destination;
+    }
+    if (frontier_len != 1 or frontier[0] != 0) return error.InvalidTree;
+    return node_rows;
+}
+
+/// Research candidate for the same canonical sparse tree as `build`.
+///
+/// The compatibility builder above materializes every level in a hash map,
+/// copies its keys, and sorts them again.  Inputs are already canonical and
+/// sorted, and parent indices preserve that order, so none of those maps or
+/// repeated sorts carry protocol information.  This candidate keeps each
+/// level as one sorted frontier, performs a linear sibling merge, and hashes
+/// four independent parents through the pinned SIMD-equivalent permutation.
+/// Node order remains depth-major and index-major, exactly like `build`.
+///
+/// The retained reference builder and parity tests pin every output byte.
+pub fn buildLinearBatched(
+    allocator: std.mem.Allocator,
+    input: []const Leaf,
+) Error!Tree {
+    const LevelEntry = struct {
+        index: u32,
+        value: NodeValue,
+    };
+    const PendingNode = struct {
+        left_index: u32,
+        left: NodeValue,
+        right: NodeValue,
+    };
+
+    const leaves = try allocator.dupe(Leaf, input);
+    errdefer allocator.free(leaves);
+    std.mem.sort(Leaf, leaves, {}, lessLeaf);
+    for (leaves, 0..) |leaf, index| {
+        try validateLeaf(leaf);
+        if (index != 0 and leaves[index - 1].index == leaf.index)
+            return error.DuplicateLeaf;
+    }
+
+    var current = try allocator.alloc(LevelEntry, leaves.len);
+    defer allocator.free(current);
+    for (leaves, current) |leaf, *entry| {
+        entry.* = .{
+            .index = leaf.index,
+            .value = .{ .value = leaf.value, .multiplicity = 1 },
+        };
+    }
+
+    var nodes: std.ArrayList(Node) = .{};
+    errdefer nodes.deinit(allocator);
+    var depth: u32 = LEAF_DEPTH;
+    while (depth > 0) : (depth -= 1) {
+        const pending = try allocator.alloc(PendingNode, current.len);
+        defer allocator.free(pending);
+        var pending_count: usize = 0;
+        var cursor: usize = 0;
+        const default = NodeValue{
+            .value = poseidon2.DEFAULT_HASHES[depth],
+            .multiplicity = 0,
+        };
+        while (cursor < current.len) {
+            const first = current[cursor];
+            const left_index = first.index & ~@as(u32, 1);
+            var left = default;
+            var right = default;
+            if ((first.index & 1) == 0) {
+                left = first.value;
+                cursor += 1;
+                if (cursor < current.len and
+                    current[cursor].index == left_index + 1)
+                {
+                    right = current[cursor].value;
+                    cursor += 1;
+                }
+            } else {
+                right = first.value;
+                cursor += 1;
+            }
+            pending[pending_count] = .{
+                .left_index = left_index,
+                .left = left,
+                .right = right,
+            };
+            pending_count += 1;
+        }
+
+        const next = try allocator.alloc(LevelEntry, pending_count);
+        errdefer allocator.free(next);
+        try nodes.ensureUnusedCapacity(allocator, pending_count);
+        var parent_index: usize = 0;
+        while (parent_index + 4 <= pending_count) : (parent_index += 4) {
+            var left: [4]u32 = undefined;
+            var right: [4]u32 = undefined;
+            inline for (0..4) |lane| {
+                left[lane] = pending[parent_index + lane].left.value;
+                right[lane] = pending[parent_index + lane].right.value;
+            }
+            const hashes = poseidon2.hashPairs4(left, right);
+            inline for (0..4) |lane| {
+                appendLinearParent(
+                    &nodes,
+                    next,
+                    pending[parent_index + lane],
+                    hashes[lane],
+                    depth,
+                    parent_index + lane,
+                );
+            }
+        }
+        while (parent_index < pending_count) : (parent_index += 1) {
+            const item = pending[parent_index];
+            appendLinearParent(
+                &nodes,
+                next,
+                item,
+                poseidon2.hashPair(item.left.value, item.right.value),
+                depth,
+                parent_index,
+            );
+        }
+
+        allocator.free(current);
+        current = next;
+    }
+
+    const root = if (leaves.len == 0)
+        poseidon2.DEFAULT_HASHES[0]
+    else if (current.len == 1 and current[0].index == 0)
+        current[0].value.value
+    else
+        return error.InvalidTree;
+    return .{
+        .leaves = leaves,
+        .nodes = try nodes.toOwnedSlice(allocator),
+        .root = root,
+    };
+}
+
+fn appendLinearParent(
+    nodes: *std.ArrayList(Node),
+    next: anytype,
+    pending: anytype,
+    hash: u32,
+    depth: u32,
+    index: usize,
+) void {
+    const parent = NodeValue{ .value = hash, .multiplicity = 1 };
+    nodes.appendAssumeCapacity(.{
+        .index = pending.left_index,
+        .depth = depth,
+        .left = pending.left,
+        .right = pending.right,
+        .current = parent,
+    });
+    next[index] = .{
+        .index = pending.left_index / 2,
+        .value = parent,
+    };
+}
+
+/// Canonical production builder. The linear frontier preserves the exact
+/// leaf/node/root bytes of the retained map-and-sort implementation while
+/// removing its repeated level maps and sorts.
 pub fn build(allocator: std.mem.Allocator, input: []const Leaf) Error!Tree {
+    return buildLinearBatched(allocator, input);
+}
+
+fn buildReference(allocator: std.mem.Allocator, input: []const Leaf) Error!Tree {
     const leaves = try allocator.dupe(Leaf, input);
     errdefer allocator.free(leaves);
     std.mem.sort(Leaf, leaves, {}, lessLeaf);
@@ -178,8 +389,8 @@ pub fn build(allocator: std.mem.Allocator, input: []const Leaf) Error!Tree {
     };
 }
 
-/// Exact producer-returned sparse-tree receipt.  The ordinary `build` route is
-/// unchanged and has no profiling branch in its node loop.
+/// Exact producer-returned sparse-tree receipt. The production `build` route
+/// has no profiling branch in its node loop.
 pub fn buildWithWorkReceipt(
     allocator: std.mem.Allocator,
     input: []const Leaf,
@@ -234,6 +445,118 @@ test "sparse Merkle: leaves sort deterministically and use default siblings" {
     try std.testing.expectEqual(@as(u2, 1), tree.nodes[0].left.multiplicity);
     try std.testing.expectEqual(@as(u2, 0), tree.nodes[0].right.multiplicity);
     try tree.validate(std.testing.allocator);
+}
+
+test "sparse Merkle: linear batched frontier is byte-identical" {
+    const allocator = std.testing.allocator;
+    const fixtures = [_][]const Leaf{
+        &.{},
+        &.{.{ .index = 7, .value = 11 }},
+        &.{
+            .{ .index = 9, .value = 7 },
+            .{ .index = 8, .value = 6 },
+            .{ .index = 4, .value = 5 },
+        },
+        &.{
+            .{ .index = 0, .value = 1 },
+            .{ .index = 1, .value = 2 },
+            .{ .index = 2, .value = 3 },
+            .{ .index = 17, .value = 4 },
+            .{ .index = (1 << 29) + 3, .value = 5 },
+            .{ .index = LEAF_COUNT - 1, .value = 6 },
+        },
+    };
+    for (fixtures) |fixture| {
+        var reference = try buildReference(allocator, fixture);
+        defer reference.deinit(allocator);
+        var linear = try buildLinearBatched(allocator, fixture);
+        defer linear.deinit(allocator);
+        try std.testing.expectEqual(reference.root, linear.root);
+        try std.testing.expectEqualSlices(Leaf, reference.leaves, linear.leaves);
+        try std.testing.expectEqualSlices(Node, reference.nodes, linear.nodes);
+
+        const indices = try allocator.alloc(u32, linear.leaves.len);
+        defer allocator.free(indices);
+        for (linear.leaves, indices) |leaf, *index| index.* = leaf.index;
+        try std.testing.expectEqual(
+            linear.nodes.len,
+            try countCanonicalNodeRowsFromSortedIndices(allocator, indices),
+        );
+    }
+}
+
+test "sparse Merkle: count-only frontier rejects noncanonical index order" {
+    const allocator = std.testing.allocator;
+    try std.testing.expectError(
+        error.DuplicateLeaf,
+        countCanonicalNodeRowsFromSortedIndices(allocator, &.{ 4, 4 }),
+    );
+    try std.testing.expectError(
+        error.InvalidTree,
+        countCanonicalNodeRowsFromSortedIndices(allocator, &.{ 5, 4 }),
+    );
+    try std.testing.expectError(
+        error.IndexOutOfRange,
+        countCanonicalNodeRowsFromSortedIndices(allocator, &.{LEAF_COUNT}),
+    );
+}
+
+test "sparse Merkle: linear batched frontier preserves validation errors" {
+    const allocator = std.testing.allocator;
+    try std.testing.expectError(
+        error.DuplicateLeaf,
+        buildLinearBatched(allocator, &.{
+            .{ .index = 3, .value = 1 },
+            .{ .index = 3, .value = 2 },
+        }),
+    );
+    try std.testing.expectError(
+        error.IndexOutOfRange,
+        buildLinearBatched(allocator, &.{.{
+            .index = LEAF_COUNT,
+            .value = 1,
+        }}),
+    );
+    try std.testing.expectError(
+        error.NonCanonicalValue,
+        buildLinearBatched(allocator, &.{.{
+            .index = 0,
+            .value = m31.Modulus,
+        }}),
+    );
+}
+
+test "sparse Merkle autoresearch: compare reference and linear batched frontier" {
+    if (!std.process.hasEnvVarConstant("STWO_SPARSE_MERKLE_AUTORESEARCH"))
+        return error.SkipZigTest;
+
+    const allocator = std.testing.allocator;
+    const leaf_count: usize = 1 << 18;
+    const leaves = try allocator.alloc(Leaf, leaf_count);
+    defer allocator.free(leaves);
+    for (leaves, 0..) |*leaf, index| {
+        leaf.* = .{
+            // Spread leaves over the 30-bit address space while retaining a
+            // one-to-one deterministic index map.
+            .index = @bitReverse(@as(u32, @intCast(index))) >> 2,
+            .value = @intCast(index + 1),
+        };
+    }
+
+    var reference_timer = try std.time.Timer.start();
+    var reference = try buildReference(allocator, leaves);
+    defer reference.deinit(allocator);
+    const reference_ns = reference_timer.read();
+    var linear_timer = try std.time.Timer.start();
+    var linear = try buildLinearBatched(allocator, leaves);
+    defer linear.deinit(allocator);
+    const linear_ns = linear_timer.read();
+    try std.testing.expectEqual(reference.root, linear.root);
+    try std.testing.expectEqualSlices(Node, reference.nodes, linear.nodes);
+    std.debug.print(
+        "SPARSE_MERKLE_AUTORESEARCH leaves={d} nodes={d} reference_ns={d} linear_batched_ns={d}\n",
+        .{ leaf_count, reference.nodes.len, reference_ns, linear_ns },
+    );
 }
 
 test "sparse Merkle: duplicate and out-of-domain leaves fail closed" {

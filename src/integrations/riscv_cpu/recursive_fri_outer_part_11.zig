@@ -91,6 +91,39 @@ pub fn Namespace(comptime context: type) type {
             public_native_sum_lane: ?lowering.Lane,
             authenticated_poseidon_prefix_count: usize,
         ) !Authority {
+            return initAuthorityForLogSizes(
+                allocator,
+                circuit,
+                pcs_circuit,
+                trace_tree_heights,
+                column_log_sizes,
+                schedule_facts,
+                vm_air_prepared,
+                verifier_plans,
+                segment_transcript_inputs,
+                public_native_sum_lane,
+                authenticated_poseidon_prefix_count,
+                null,
+            );
+        }
+
+        /// Additive padding-aware constructor. The requested vector is an
+        /// execution authority, not a geometry relabel: every typed trace is
+        /// allocated and regenerated at the selected domains below.
+        pub fn initAuthorityForLogSizes(
+            allocator: std.mem.Allocator,
+            circuit: *const circuit_mod.Circuit,
+            pcs_circuit: *const pcs_circuit_mod.Circuit,
+            trace_tree_heights: []const u32,
+            column_log_sizes: []const []const u32,
+            schedule_facts: ScheduleFacts,
+            vm_air_prepared: ?*const recursion.vm_air_composition_circuit.Prepared,
+            verifier_plans: ?VerifierPlans,
+            segment_transcript_inputs: ?SegmentTranscriptInputs,
+            public_native_sum_lane: ?lowering.Lane,
+            authenticated_poseidon_prefix_count: usize,
+            requested_log_sizes: ?[LogIndex.count]u32,
+        ) !Authority {
             try circuit.validate();
             try pcs_circuit.validate();
             if ((vm_air_prepared != null) != (verifier_plans != null) or
@@ -660,7 +693,7 @@ pub fn Namespace(comptime context: type) type {
                 return error.ArithmeticOverflow;
             const poseidon2_row_count: u32 = @intCast(poseidon2_row_count_usize);
 
-            const log_sizes = [LogIndex.count]u32{
+            const active_log_sizes = [LogIndex.count]u32{
                 if (vm_air) |authority| authority.prepared.preprocessing.log_size else 0,
                 composition_control_preprocessing.log_size,
                 query_bits_preprocessing.log_size,
@@ -683,6 +716,10 @@ pub fn Namespace(comptime context: type) type {
                 )),
                 try traceLogSize(poseidon2_row_count_usize),
             };
+            const log_sizes = try selectAuthorityLogSizes(
+                active_log_sizes,
+                requested_log_sizes,
+            );
             // A VM composition authority can now be prepared independently as
             // the reusable rows-18--34 core for a versioned outer protocol.  Only
             // an admitted V1 segment boundary requests the frozen all-36 manifest.
@@ -787,6 +824,26 @@ pub fn Namespace(comptime context: type) type {
                 .full_roster = full_roster,
                 .log_sizes = log_sizes,
             };
+        }
+
+        /// Pure padding selector shared by the constructor and hostile
+        /// geometry tests. An explicit request cannot activate a missing
+        /// component, shrink an active domain, or exceed the supported field
+        /// domain.
+        pub fn selectAuthorityLogSizes(
+            active: [LogIndex.count]u32,
+            requested: ?[LogIndex.count]u32,
+        ) ![LogIndex.count]u32 {
+            const selected = requested orelse return active;
+            for (active, selected) |minimum, candidate| {
+                if ((minimum == 0 and candidate != 0) or
+                    (minimum != 0 and
+                        (candidate < minimum or candidate >= 31)))
+                {
+                    return error.AuthorityMismatch;
+                }
+            }
+            return selected;
         }
     };
 }

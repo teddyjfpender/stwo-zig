@@ -196,7 +196,8 @@ pub fn run(
                         previous_row,
                     );
                 }
-                const constraints = memory_interaction.evaluate(
+                const constraints = self.evaluateMemoryConstraintsGeneric(
+                    QM31,
                     sampled,
                     is_active,
                     is_first,

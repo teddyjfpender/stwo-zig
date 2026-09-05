@@ -1,14 +1,21 @@
 //! Resumable RV32IM execution with owned, proof-oriented segment boundaries.
 //!
 //! The architectural state, sparse memory, and decoded-instruction cache live
-//! for the whole session.  Trace and state-chain logs are owned per segment,
-//! while their clocks remain global across resumes.  This is intentionally a
-//! runner substrate: V1 public data assumes zero predecessor clocks and must
-//! not admit a non-first segment; V2 must authenticate the exposed entry clock
-//! boundary together with the sparse-memory root derived from `rw_memory`.
+//! for the whole session. Trace and state-chain logs are owned per segment.
+//! Existing V2 sessions keep clocks global across resumes; the explicit
+//! leaf-local frame resets proof-internal clocks at every boundary so a later
+//! versioned recursive wrapper can own global position without widening M31
+//! clock columns. This is intentionally a runner substrate: V1/V2 admission
+//! continues to fail closed on non-first locally clocked segments.
 
 const std = @import("std");
 const custom0 = @import("../isa/custom0.zig");
+const ethereum_candidate_combined_authority =
+    @import("../isa/ethereum_candidate_combined_authority_v1.zig");
+const ethereum_bulk_memcpy_authority =
+    @import("../isa/ethereum_bulk_memcpy_candidate_v1.zig");
+const ethereum_stack_swap_authority =
+    @import("../isa/ethereum_stack_swap_candidate_v1.zig");
 const execution_profile = @import("../isa/execution_profile.zig");
 const isa_profile = @import("../isa/profile.zig");
 const access_clock = @import("../access_clock.zig");
@@ -20,78 +27,148 @@ const elf_loader = @import("elf_loader.zig");
 const execute_mod = @import("execute.zig");
 const generated_retirement = @import("generated_retirement.zig");
 const guest_precompile = @import("guest_precompile/mod.zig");
+const ethereum_candidate_combined_state =
+    @import("guest_precompile/ethereum_candidate_combined_v1.zig");
+const ethereum_bulk_memcpy_state =
+    @import("guest_precompile/ethereum_bulk_memcpy_candidate_v1.zig");
+const ethereum_stack_swap_state =
+    @import("guest_precompile/ethereum_stack_swap_candidate_v1.zig");
+const extension_state = @import("guest_precompile/session_state.zig");
 const host_mod = @import("../host/mod.zig");
 const trace = @import("trace.zig");
 const state_chain = @import("state_chain.zig");
+const segment_capacity = @import("segment_capacity.zig");
 const memory_state = @import("memory_state.zig");
 const result_mod = @import("result.zig");
+const ethereum_candidate_combined_result =
+    @import("ethereum_candidate_combined_result_v1.zig");
+const ethereum_bulk_memcpy_result =
+    @import("ethereum_bulk_memcpy_candidate_result_v1.zig");
+const ethereum_stack_swap_result =
+    @import("ethereum_stack_swap_candidate_result_v1.zig");
 const access_witness = @import("access_witness.zig");
 const session_support = @import("segment_session_support.zig");
 
 pub const ExecutionProfile = execution_profile.ExecutionProfile;
 pub const HostInterface = host_mod.HostInterface;
+pub const SegmentClockFrame = result_mod.SegmentClockFrame;
+/// Controls whether a resumable session retains the whole execution trace or
+/// transfers each completed range directly to its `SegmentResult`.
+///
+/// `cumulative` preserves the original diagnostic surface. `segment_owned`
+/// is the bounded-memory production path: after every yielded segment the
+/// session retains only the clock origin needed to admit the next row.
+pub const TraceRetention = enum { cumulative, segment_owned };
+
+/// Optional diagnostic observer invoked only after typed core retirement has
+/// committed. The callback cannot influence proof bytes or instruction
+/// semantics; any error poisons the owning execution session before a segment
+/// can be published.
+pub const RetirementObserverV1 = struct {
+    context: *anyopaque,
+    begin_segment_fn: *const fn (*anyopaque, u32) anyerror!void,
+    core_row_fn: *const fn (*anyopaque, trace.TraceRow) anyerror!void,
+
+    pub fn beginSegment(self: RetirementObserverV1, segment_index: u32) !void {
+        return self.begin_segment_fn(self.context, segment_index);
+    }
+
+    pub fn observeCoreRow(
+        self: RetirementObserverV1,
+        row: trace.TraceRow,
+    ) !void {
+        return self.core_row_fn(self.context, row);
+    }
+};
+
+/// Optional, versioned view of the exact architectural boundary immediately
+/// before one decoded core instruction retires. All execution-owned state is
+/// borrowed as const: observers may derive diagnostic custody, but cannot
+/// mutate the guest, reserve transitions, or alter retirement ordering.
+pub const PreRetirementBoundaryV1 = struct {
+    execution_clock: u32,
+    cpu: *const Cpu,
+    memory: *const Memory,
+    memory_layout: memory_state.MemoryLayout,
+    state_chain_tracker: *const state_chain.StateChainTracker,
+};
+
+/// Candidate/diagnostic-only pre-retirement observer. The default-null route
+/// performs no call and preserves the existing post-retirement observer order.
+pub const PreRetirementBoundaryObserverV1 = struct {
+    context: *anyopaque,
+    observe_fn: *const fn (
+        *anyopaque,
+        PreRetirementBoundaryV1,
+    ) anyerror!void,
+
+    pub fn observe(
+        self: PreRetirementBoundaryObserverV1,
+        boundary: PreRetirementBoundaryV1,
+    ) !void {
+        return self.observe_fn(self.context, boundary);
+    }
+};
+
 pub const SessionOptions = struct {
     host: ?HostInterface = null,
     input: []const u8 = &.{},
     stop_on_halt_flag: bool = false,
     strict_completion: bool = false,
+    trace_retention: TraceRetention = .cumulative,
+    clock_frame: SegmentClockFrame = .global_continuous,
+    retirement_observer: ?RetirementObserverV1 = null,
+    pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1 = null,
 };
 
 pub fn ConfiguredSegmentResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1)
-        result_mod.SegmentResult
-    else
-        result_mod.Poseidon2SegmentResult;
+    return ConfiguredSegmentResultForPolicy(profile, false, false);
 }
 
-fn ConfiguredRunResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1)
-        result_mod.RunResult
-    else
-        result_mod.Poseidon2RunResult;
+fn ConfiguredSegmentResultForPolicy(
+    comptime profile: ExecutionProfile,
+    comptime ethereum_stack_swap_candidate: bool,
+    comptime ethereum_bulk_memcpy_candidate: bool,
+) type {
+    if (ethereum_stack_swap_candidate and ethereum_bulk_memcpy_candidate)
+        return ethereum_candidate_combined_result.SegmentResult;
+    if (ethereum_stack_swap_candidate) {
+        if (profile != .rv32im_zkvm_ethereum_v1)
+            @compileError("the SWAP candidate policy requires the Ethereum profile");
+        return ethereum_stack_swap_result.SegmentResult;
+    }
+    if (ethereum_bulk_memcpy_candidate) {
+        if (profile != .rv32im_zkvm_ethereum_v1)
+            @compileError("the bulk-memcpy candidate requires the Ethereum profile");
+        return ethereum_bulk_memcpy_result.SegmentResult;
+    }
+    return switch (profile) {
+        .rv32im_zkvm_v1 => result_mod.SegmentResult,
+        .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2SegmentResult,
+        .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfSegmentResult,
+        .rv32im_zkvm_ethereum_v1 => result_mod.EthereumSegmentResult,
+    };
+}
+
+fn ConfiguredRunResultForPolicy(
+    comptime profile: ExecutionProfile,
+    comptime ethereum_stack_swap_candidate: bool,
+    comptime ethereum_bulk_memcpy_candidate: bool,
+) type {
+    if (ethereum_stack_swap_candidate and ethereum_bulk_memcpy_candidate)
+        return ethereum_candidate_combined_result.RunResult;
+    if (ethereum_stack_swap_candidate) return ethereum_stack_swap_result.RunResult;
+    if (ethereum_bulk_memcpy_candidate) return ethereum_bulk_memcpy_result.RunResult;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => result_mod.RunResult,
+        .rv32im_zkvm_poseidon2_v1 => result_mod.Poseidon2RunResult,
+        .rv32im_zkvm_keccakf_v1 => result_mod.KeccakfRunResult,
+        .rv32im_zkvm_ethereum_v1 => result_mod.EthereumRunResult,
+    };
 }
 
 const SessionStatus = enum { active, complete, poisoned };
 const ExhaustionPolicy = enum { yield, legacy_terminal };
-
-const Poseidon2ExecutionState = struct {
-    calls: guest_precompile.call_buffer.Builder,
-    rows: guest_precompile.poseidon2_v1.ExecutionRowsBuilder,
-    external_step_origin: usize,
-
-    fn init(
-        allocator: std.mem.Allocator,
-        step_budget: usize,
-        external_step_origin: usize,
-    ) !Poseidon2ExecutionState {
-        const limit = @min(step_budget, guest_precompile.call_buffer.max_calls);
-        return .{
-            .calls = try .init(allocator, limit),
-            .rows = try .init(allocator, limit),
-            .external_step_origin = external_step_origin,
-        };
-    }
-
-    fn deinit(self: *Poseidon2ExecutionState) void {
-        self.calls.deinit();
-        self.rows.deinit();
-        self.* = undefined;
-    }
-};
-
-const EmptyExtensionState = struct {
-    fn init(_: std.mem.Allocator, _: usize, _: usize) !EmptyExtensionState {
-        return .{};
-    }
-    fn deinit(_: *EmptyExtensionState) void {}
-};
-
-fn ExtensionState(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_poseidon2_v1)
-        Poseidon2ExecutionState
-    else
-        EmptyExtensionState;
-}
 
 const StepOutcome = struct {
     retired: bool,
@@ -100,6 +177,49 @@ const StepOutcome = struct {
 };
 
 pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
+    return ExecutionSessionWithPolicy(profile, false, false);
+}
+
+/// Explicit nonproduction sibling. Its constructor requires a separately
+/// supplied ELF/registry authority; default sessions cannot opt into it.
+pub fn EthereumStackSwapCandidateExecutionSessionV1() type {
+    return ExecutionSessionWithPolicy(.rv32im_zkvm_ethereum_v1, true, false);
+}
+
+/// Explicit nonproduction sibling for the private bulk-memcpy member. The
+/// ordinary Ethereum session cannot opt into this dispatcher.
+pub fn EthereumBulkMemcpyCandidateExecutionSessionV1() type {
+    return ExecutionSessionWithPolicy(.rv32im_zkvm_ethereum_v1, false, true);
+}
+
+/// Explicit nonproduction sibling for the ordered combined private registry.
+pub fn EthereumCombinedCandidateExecutionSessionV1() type {
+    return ExecutionSessionWithPolicy(.rv32im_zkvm_ethereum_v1, true, true);
+}
+
+fn ExecutionSessionWithPolicy(
+    comptime profile: ExecutionProfile,
+    comptime ethereum_stack_swap_candidate: bool,
+    comptime ethereum_bulk_memcpy_candidate: bool,
+) type {
+    const combined_candidate = ethereum_stack_swap_candidate and
+        ethereum_bulk_memcpy_candidate;
+    const CandidateAuthority = if (combined_candidate)
+        ethereum_candidate_combined_authority.Authority
+    else if (ethereum_stack_swap_candidate)
+        ethereum_stack_swap_authority.Authority
+    else if (ethereum_bulk_memcpy_candidate)
+        ethereum_bulk_memcpy_authority.Authority
+    else
+        void;
+    const ExtensionState = if (combined_candidate)
+        ethereum_candidate_combined_state.State
+    else if (ethereum_stack_swap_candidate)
+        ethereum_stack_swap_state.State
+    else if (ethereum_bulk_memcpy_candidate)
+        ethereum_bulk_memcpy_state.State
+    else
+        extension_state.State(profile);
     return struct {
         const Self = @This();
 
@@ -108,13 +228,17 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         elf_info: elf_loader.ElfInfo,
         cpu: Cpu,
         instruction_cache: decode_cache.Cache,
-        /// Authority-facing trace stays cumulative so retirement transactions
-        /// retain their global-clock/row-index invariant across segments.
-        /// Segment results receive an owned copy of only their appended range.
+        /// The authority-facing trace follows `clock_frame`. Global sessions
+        /// may retain it cumulatively; leaf-local sessions transfer each range
+        /// and restart the next trace at local clock zero.
         execution_trace: trace.Trace,
         host: ?HostInterface,
         stop_on_halt_flag: bool,
         strict_completion: bool,
+        trace_retention: TraceRetention,
+        clock_frame: SegmentClockFrame,
+        retirement_observer: ?RetirementObserverV1,
+        pre_retirement_boundary_observer: ?PreRetirementBoundaryObserverV1,
         input: ?[]u8,
         global_steps: u64 = 0,
         next_segment_index: u32 = 0,
@@ -125,6 +249,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         /// baseline and therefore never confuse these with segment entry.
         memory_initials: std.AutoHashMap(u32, u32),
         pending_continuation: ?result_mod.ContinuationToken = null,
+        candidate_authority: CandidateAuthority,
         session_tag: u64,
         continuation_enabled: bool,
         status: SessionStatus = .active,
@@ -134,7 +259,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             elf_bytes: []const u8,
             options: SessionOptions,
         ) !Self {
-            return initInternal(allocator, elf_bytes, options, true);
+            if (comptime combined_candidate) {
+                return error.EthereumCombinedCandidateAuthorityRequired;
+            } else if (comptime ethereum_stack_swap_candidate) {
+                return error.EthereumStackSwapAuthorityRequired;
+            } else if (comptime ethereum_bulk_memcpy_candidate) {
+                return error.EthereumBulkMemcpyAuthorityRequired;
+            } else {
+                return initInternal(allocator, elf_bytes, options, {}, true);
+            }
         }
 
         /// One-shot construction avoids the continuation-tag ELF scan.  This
@@ -145,15 +278,64 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             elf_bytes: []const u8,
             options: SessionOptions,
         ) !Self {
-            return initInternal(allocator, elf_bytes, options, false);
+            if (comptime combined_candidate) {
+                return error.EthereumCombinedCandidateAuthorityRequired;
+            } else if (comptime ethereum_stack_swap_candidate) {
+                return error.EthereumStackSwapAuthorityRequired;
+            } else if (comptime ethereum_bulk_memcpy_candidate) {
+                return error.EthereumBulkMemcpyAuthorityRequired;
+            } else {
+                return initInternal(allocator, elf_bytes, options, {}, false);
+            }
+        }
+
+        pub fn initCandidate(
+            allocator: std.mem.Allocator,
+            elf_bytes: []const u8,
+            options: SessionOptions,
+            authority: CandidateAuthority,
+        ) !Self {
+            if (comptime ethereum_stack_swap_candidate or
+                ethereum_bulk_memcpy_candidate)
+            {
+                return initInternal(allocator, elf_bytes, options, authority, true);
+            } else {
+                return error.EthereumCandidatePolicyUnavailable;
+            }
+        }
+
+        pub fn initCandidateLegacy(
+            allocator: std.mem.Allocator,
+            elf_bytes: []const u8,
+            options: SessionOptions,
+            authority: CandidateAuthority,
+        ) !Self {
+            if (comptime ethereum_stack_swap_candidate or
+                ethereum_bulk_memcpy_candidate)
+            {
+                return initInternal(allocator, elf_bytes, options, authority, false);
+            } else {
+                return error.EthereumCandidatePolicyUnavailable;
+            }
         }
 
         fn initInternal(
             allocator: std.mem.Allocator,
             elf_bytes: []const u8,
             options: SessionOptions,
+            candidate_authority: CandidateAuthority,
             build_continuation_tag: bool,
         ) !Self {
+            if (comptime ethereum_stack_swap_candidate or
+                ethereum_bulk_memcpy_candidate)
+            {
+                try candidate_authority.validateElf(elf_bytes);
+            }
+            if (options.clock_frame == .leaf_local and
+                (!build_continuation_tag or options.trace_retention != .segment_owned))
+            {
+                return error.LeafLocalClockRequiresSegmentOwnedContinuation;
+            }
             var mem = try Memory.initFallible(allocator);
             errdefer mem.deinit();
             const elf_info = try elf_loader.loadElfForProfile(elf_bytes, &mem, profile);
@@ -182,11 +364,25 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 .host = options.host,
                 .stop_on_halt_flag = options.stop_on_halt_flag,
                 .strict_completion = options.strict_completion,
+                .trace_retention = options.trace_retention,
+                .clock_frame = options.clock_frame,
+                .retirement_observer = options.retirement_observer,
+                .pre_retirement_boundary_observer = options.pre_retirement_boundary_observer,
                 .input = owned_input,
                 .memory_clocks = std.AutoHashMap(u32, u32).init(allocator),
                 .memory_initials = std.AutoHashMap(u32, u32).init(allocator),
+                .candidate_authority = candidate_authority,
                 .session_tag = if (build_continuation_tag)
-                    sessionTag(elf_bytes, options.input, profile)
+                    if (comptime ethereum_stack_swap_candidate or
+                        ethereum_bulk_memcpy_candidate)
+                        try candidate_authority.bindSessionTag(sessionTag(
+                            elf_bytes,
+                            options.input,
+                            profile,
+                            options.clock_frame,
+                        ))
+                    else
+                        sessionTag(elf_bytes, options.input, profile, options.clock_frame)
                 else
                     0,
                 .continuation_enabled = build_continuation_tag,
@@ -208,7 +404,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         pub fn startSegment(
             self: *Self,
             step_budget: usize,
-        ) !ConfiguredSegmentResult(profile) {
+        ) !ConfiguredSegmentResultForPolicy(
+            profile,
+            ethereum_stack_swap_candidate,
+            ethereum_bulk_memcpy_candidate,
+        ) {
             if (!self.continuation_enabled) return error.ContinuationUnavailable;
             if (self.status == .poisoned) return error.SessionPoisoned;
             if (self.status == .complete) return error.SessionComplete;
@@ -228,7 +428,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             self: *Self,
             continuation: result_mod.ContinuationToken,
             step_budget: usize,
-        ) !ConfiguredSegmentResult(profile) {
+        ) !ConfiguredSegmentResultForPolicy(
+            profile,
+            ethereum_stack_swap_candidate,
+            ethereum_bulk_memcpy_candidate,
+        ) {
             if (!self.continuation_enabled) return error.ContinuationUnavailable;
             if (self.status == .poisoned) return error.SessionPoisoned;
             if (self.status == .complete) return error.SessionComplete;
@@ -248,7 +452,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         pub fn runLegacy(
             self: *Self,
             max_steps: usize,
-        ) !ConfiguredRunResult(profile) {
+        ) !ConfiguredRunResultForPolicy(
+            profile,
+            ethereum_stack_swap_candidate,
+            ethereum_bulk_memcpy_candidate,
+        ) {
             if (self.status == .poisoned) return error.SessionPoisoned;
             if (self.status == .complete) return error.SessionComplete;
             if (self.next_segment_index != 0 or self.pending_continuation != null)
@@ -257,7 +465,31 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 self.status = .poisoned;
                 return err;
             };
-            if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+            if (comptime combined_candidate) {
+                errdefer segment.deinit();
+                const result = ethereum_candidate_combined_result.runFromSegment(
+                    segmentToRunResult(&segment.ethereum.base),
+                    &segment,
+                );
+                segment = undefined;
+                return result;
+            } else if (comptime ethereum_stack_swap_candidate) {
+                errdefer segment.deinit();
+                const result = ethereum_stack_swap_result.runFromSegment(
+                    segmentToRunResult(&segment.ethereum.base),
+                    &segment,
+                );
+                segment = undefined;
+                return result;
+            } else if (comptime ethereum_bulk_memcpy_candidate) {
+                errdefer segment.deinit();
+                const result = ethereum_bulk_memcpy_result.runFromSegment(
+                    segmentToRunResult(&segment.ethereum.base),
+                    &segment,
+                );
+                segment = undefined;
+                return result;
+            } else if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
                 errdefer segment.deinit();
                 const base = segmentToRunResult(&segment.base);
                 const result = result_mod.Poseidon2RunResult{
@@ -265,6 +497,24 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     .calls = segment.calls,
                     .execution_rows = segment.execution_rows,
                 };
+                segment = undefined;
+                return result;
+            } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
+                errdefer segment.deinit();
+                const base = segmentToRunResult(&segment.base);
+                const result = result_mod.KeccakfRunResult{
+                    .base = base,
+                    .calls = segment.calls,
+                    .execution_rows = segment.execution_rows,
+                };
+                segment = undefined;
+                return result;
+            } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
+                errdefer segment.deinit();
+                const result = result_mod.ethereumRunFromSegment(
+                    segmentToRunResult(&segment.base),
+                    &segment,
+                );
                 segment = undefined;
                 return result;
             } else {
@@ -277,7 +527,11 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             self: *Self,
             step_budget: usize,
             exhaustion_policy: ExhaustionPolicy,
-        ) !ConfiguredSegmentResult(profile) {
+        ) !ConfiguredSegmentResultForPolicy(
+            profile,
+            ethereum_stack_swap_candidate,
+            ethereum_bulk_memcpy_candidate,
+        ) {
             if (step_budget == 0 and exhaustion_policy == .yield)
                 return error.ZeroSegmentStepBudget;
             if (self.next_segment_index == std.math.maxInt(u32))
@@ -285,7 +539,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
 
             const segment_index = self.next_segment_index;
             const entry_cpu = self.cpu;
-            const trace_start = self.execution_trace.rows.items.len;
+            const trace_start = switch (self.trace_retention) {
+                .cumulative => self.execution_trace.rows.items.len,
+                .segment_owned => 0,
+            };
+            if (self.trace_retention == .segment_owned and
+                self.execution_trace.rows.items.len != 0)
+            {
+                return error.StreamingTraceNotReleased;
+            }
             const first_cycle = std.math.add(u64, self.global_steps, 1) catch
                 return error.ExecutionClockOutOfRange;
 
@@ -294,8 +556,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             // free of architectural side effects.
             var chain_tracker = try self.seedTracker();
             errdefer chain_tracker.deinit();
+            if (exhaustion_policy == .yield) try segment_capacity.reserveLeafLogs(
+                &self.execution_trace,
+                &chain_tracker,
+                step_budget,
+            );
             var memory_baseline: ?memory_state.SegmentBaseline = null;
-            if (exhaustion_policy == .yield) {
+            if (exhaustion_policy == .yield and
+                self.clock_frame == .global_continuous)
+            {
                 memory_baseline = try memory_state.captureSegmentBaseline(
                     self.allocator,
                     &self.memory,
@@ -304,7 +573,8 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 );
             }
             defer if (memory_baseline) |*baseline| baseline.deinit(self.allocator);
-            var entry_access_clocks = if (exhaustion_policy == .yield)
+            var entry_access_clocks = if (exhaustion_policy == .yield and
+                self.clock_frame == .global_continuous)
                 try captureAccessClockBoundary(
                     self.allocator,
                     self.register_clocks,
@@ -313,12 +583,23 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             else
                 emptyAccessClockBoundary();
             errdefer entry_access_clocks.deinit(self.allocator);
-            var extension = try ExtensionState(profile).init(
-                self.allocator,
-                step_budget,
-                self.execution_trace.recordedExternalSteps(),
-            );
+            var extension: ExtensionState = if (comptime ethereum_stack_swap_candidate or
+                ethereum_bulk_memcpy_candidate)
+                try ExtensionState.init(
+                    self.allocator,
+                    step_budget,
+                    self.execution_trace.recordedExternalSteps(),
+                    self.candidate_authority,
+                )
+            else
+                try ExtensionState.init(
+                    self.allocator,
+                    step_budget,
+                    self.execution_trace.recordedExternalSteps(),
+                );
             defer extension.deinit();
+            if (self.retirement_observer) |observer|
+                try observer.beginSegment(segment_index);
 
             var local_steps: usize = 0;
             var completion_reason: ?result_mod.CompletionReason = null;
@@ -337,21 +618,26 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     break;
                 }
 
-                const next_clock = std.math.add(u64, self.global_steps, 1) catch
+                const next_global_clock = std.math.add(u64, self.global_steps, 1) catch
                     return error.ExecutionClockOutOfRange;
-                if (next_clock > std.math.maxInt(u32) or
-                    access_clock.maximum(@intCast(next_clock)) > std.math.maxInt(u32))
+                const retirement_clock: u64 = switch (self.clock_frame) {
+                    .global_continuous => next_global_clock,
+                    .leaf_local => std.math.add(u64, local_steps, 1) catch
+                        return error.ExecutionClockOutOfRange,
+                };
+                if (retirement_clock > std.math.maxInt(u32) or
+                    access_clock.maximum(@intCast(retirement_clock)) > std.math.maxInt(u32))
                 {
                     return error.ExecutionClockOutOfRange;
                 }
                 const outcome = try self.retireOne(
-                    @intCast(next_clock),
+                    @intCast(retirement_clock),
                     &self.execution_trace,
                     &chain_tracker,
                     &extension,
                 );
                 if (outcome.retired) {
-                    self.global_steps = next_clock;
+                    self.global_steps = next_global_clock;
                     local_steps += 1;
                 }
                 completion_reason = outcome.completion_reason;
@@ -360,12 +646,27 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             self.execution_trace.final_pc = self.cpu.pc;
             try self.execution_trace.validateClockAuthority();
 
-            // Extract this segment only after execution.  Retirement keeps one
-            // cumulative trace for its global clock/index invariant, while the
-            // proof boundary owns a compact independent range.
-            var segment_trace = if (exhaustion_policy == .legacy_terminal) blk: {
+            // Extract this segment only after execution. Cumulative mode copies
+            // a compact independent range while retaining the session trace;
+            // segment-owned mode transfers the range and retains only its
+            // authenticated clock origin for the next retirement.
+            var segment_trace = if (exhaustion_policy == .legacy_terminal or
+                self.trace_retention == .segment_owned)
+            blk: {
                 const owned = self.execution_trace;
                 self.execution_trace = trace.Trace.init(self.allocator);
+                self.execution_trace.initial_pc = self.cpu.pc;
+                if (exhaustion_policy == .yield) {
+                    const next_origin: u32 = switch (self.clock_frame) {
+                        .global_continuous => @intCast(self.global_steps),
+                        .leaf_local => 0,
+                    };
+                    try self.execution_trace.bindExtractedClockRange(
+                        next_origin,
+                        next_origin,
+                        0,
+                    );
+                }
                 break :blk owned;
             } else blk: {
                 var owned = trace.Trace.init(self.allocator);
@@ -382,13 +683,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     local_steps,
                     owned.rows.items.len,
                 ) catch return error.ProfileClockAuthorityMismatch;
-                if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
-                    if (extension.calls.len() != external_steps or
-                        extension.rows.len() != external_steps)
-                    {
-                        return error.ProfileClockAuthorityMismatch;
-                    }
-                } else if (external_steps != 0) {
+                if (!extension.validateExternalCount(external_steps)) {
                     return error.ProfileClockAuthorityMismatch;
                 }
                 try owned.bindExtractedClockRange(
@@ -477,7 +772,9 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 emptyAccessClockBoundary();
             errdefer exit_access_clocks.deinit(self.allocator);
 
-            if (exhaustion_policy == .yield) {
+            if (exhaustion_policy == .yield and
+                self.clock_frame == .global_continuous)
+            {
                 // Clone the final maps for the owned segment tracker, then
                 // transfer their originals to the session.  Exactly one
                 // full-map copy is paid per proof boundary; legacy one-shot
@@ -507,6 +804,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 null
             else
                 .{
+                    .clock_frame = self.clock_frame,
                     .session_tag = self.session_tag,
                     .next_segment_index = segment_index + 1,
                     .next_cycle = self.global_steps + 1,
@@ -520,6 +818,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             const base_result = result_mod.SegmentResult{
                 .segment_index = segment_index,
                 .segment_role = role,
+                .clock_frame = self.clock_frame,
                 .global_first_cycle = first_cycle,
                 .cycle_count = local_steps,
                 .entry_cpu = entry_cpu,
@@ -550,12 +849,29 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             self.pending_continuation = continuation;
             self.status = if (completed) .complete else .active;
 
-            if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+            if (comptime combined_candidate) {
+                return ethereum_candidate_combined_result.freezeSegment(
+                    base_result,
+                    &extension,
+                );
+            } else if (comptime ethereum_stack_swap_candidate) {
+                return ethereum_stack_swap_result.freezeSegment(base_result, &extension);
+            } else if (comptime ethereum_bulk_memcpy_candidate) {
+                return ethereum_bulk_memcpy_result.freezeSegment(base_result, &extension);
+            } else if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
                 return .{
                     .base = base_result,
                     .calls = extension.calls.freeze(),
                     .execution_rows = extension.rows.freeze(),
                 };
+            } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
+                return .{
+                    .base = base_result,
+                    .calls = extension.calls.freeze(),
+                    .execution_rows = extension.rows.freeze(),
+                };
+            } else if (comptime profile == .rv32im_zkvm_ethereum_v1) {
+                return result_mod.freezeEthereumSegment(base_result, &extension);
             }
             return base_result;
         }
@@ -563,6 +879,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
         fn seedTracker(self: *const Self) !state_chain.StateChainTracker {
             var tracker = state_chain.StateChainTracker.init(self.allocator);
             errdefer tracker.deinit();
+            if (self.clock_frame == .leaf_local) return tracker;
             tracker.reg_last_clk = self.register_clocks;
             tracker.mem_last_clk = try cloneClockMap(self.allocator, &self.memory_clocks);
             tracker.mem_initial = try cloneClockMap(self.allocator, &self.memory_initials);
@@ -574,7 +891,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             execution_clock: u32,
             exec_trace: *trace.Trace,
             chain_tracker: *state_chain.StateChainTracker,
-            extension: *ExtensionState(profile),
+            extension: *ExtensionState,
         ) !StepOutcome {
             const pc_before = self.cpu.pc;
             isa_profile.requireInstructionAligned(pc_before) catch
@@ -585,21 +902,61 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             {
                 return error.InvalidInstruction;
             }
-            if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+            if (comptime profile != .rv32im_zkvm_v1) {
                 if (@as(u7, @truncate(inst_word)) == custom0.major_opcode) {
-                    try guest_precompile.poseidon2_v1.executeWithRecordedClock(
-                        profile,
-                        inst_word,
-                        execution_clock,
-                        extension.external_step_origin,
-                        &self.cpu,
-                        &self.memory,
-                        self.elf_info.memory_layout,
-                        chain_tracker,
-                        exec_trace,
-                        &extension.calls,
-                        &extension.rows,
-                    );
+                    if (comptime ethereum_stack_swap_candidate or
+                        ethereum_bulk_memcpy_candidate)
+                    {
+                        try extension.executeWithRecordedClock(
+                            inst_word,
+                            execution_clock,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                        );
+                    } else if (comptime profile == .rv32im_zkvm_poseidon2_v1) {
+                        try guest_precompile.poseidon2_v1.executeWithRecordedClock(
+                            profile,
+                            inst_word,
+                            execution_clock,
+                            extension.external_step_origin,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                            &extension.calls,
+                            &extension.rows,
+                        );
+                    } else if (comptime profile == .rv32im_zkvm_keccakf_v1) {
+                        try guest_precompile.keccakf_v1.executeWithRecordedClock(
+                            profile,
+                            inst_word,
+                            execution_clock,
+                            extension.external_step_origin,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                            &extension.calls,
+                            &extension.rows,
+                        );
+                    } else {
+                        try guest_precompile.ethereum_v1.executeWithRecordedClock(
+                            profile,
+                            inst_word,
+                            execution_clock,
+                            &self.cpu,
+                            &self.memory,
+                            self.elf_info.memory_layout,
+                            chain_tracker,
+                            exec_trace,
+                            extension,
+                        );
+                    }
                     return .{ .retired = true };
                 }
             }
@@ -618,6 +975,16 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             if (is_self_loop)
                 return .{ .retired = false, .completion_reason = .self_loop };
 
+            if (self.pre_retirement_boundary_observer) |observer| {
+                try observer.observe(.{
+                    .execution_clock = execution_clock,
+                    .cpu = &self.cpu,
+                    .memory = &self.memory,
+                    .memory_layout = self.elf_info.memory_layout,
+                    .state_chain_tracker = chain_tracker,
+                });
+            }
+
             if (try generated_retirement.retireAtomic(
                 &self.cpu,
                 &self.memory,
@@ -626,7 +993,10 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                 inst,
                 inst_word,
                 execution_clock,
-            )) return .{ .retired = true };
+            )) {
+                try self.observeLastCoreRow(exec_trace);
+                return .{ .retired = true };
+            }
             if (!exec_trace.expectsNextCoreRetirement(execution_clock))
                 return error.InstructionClockMismatch;
 
@@ -744,6 +1114,7 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
                     self.memory.readU32(aligned_addr),
                 );
             }
+            try self.observeLastCoreRow(exec_trace);
             if (halted) return .{
                 .retired = true,
                 .completion_reason = completion_reason,
@@ -752,6 +1123,15 @@ pub fn ExecutionSession(comptime profile: ExecutionProfile) type {
             if (self.cpu.pc == pc_before)
                 return .{ .retired = true, .completion_reason = .stalled_pc };
             return .{ .retired = true };
+        }
+
+        fn observeLastCoreRow(self: *Self, exec_trace: *trace.Trace) !void {
+            const observer = self.retirement_observer orelse return;
+            if (exec_trace.rows.items.len == 0)
+                return error.InvalidRetirementObserverState;
+            try observer.observeCoreRow(
+                exec_trace.rows.items[exec_trace.rows.items.len - 1],
+            );
         }
     };
 }

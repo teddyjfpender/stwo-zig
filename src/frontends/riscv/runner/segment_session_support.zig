@@ -161,11 +161,17 @@ fn snapshotRegisters(cpu: Cpu) [32]u32 {
     return registers;
 }
 
-pub fn sessionTag(elf_bytes: []const u8, input: []const u8, profile: ExecutionProfile) u64 {
+pub fn sessionTag(
+    elf_bytes: []const u8,
+    input: []const u8,
+    profile: ExecutionProfile,
+    clock_frame: result_mod.SegmentClockFrame,
+) u64 {
     var result: u64 = 0xcbf2_9ce4_8422_2325;
     const profile_word: u16 = @intFromEnum(profile);
     result = tagByte(result, @truncate(profile_word));
     result = tagByte(result, @truncate(profile_word >> 8));
+    result = tagByte(result, @intFromEnum(clock_frame));
     for (elf_bytes) |byte| result = tagByte(result, byte);
     result = tagByte(result, 0xff);
     for (input) |byte| result = tagByte(result, byte);

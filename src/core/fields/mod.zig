@@ -175,25 +175,34 @@ const PackedQM31x4 = struct {
 };
 
 inline fn loadPackedQM31x4(ptr: [*]const qm31.QM31) PackedQM31x4 {
-    var result: PackedQM31x4 = undefined;
-    inline for (0..4) |lane| {
-        result.c0a[lane] = ptr[lane].c0.a.v;
-        result.c0b[lane] = ptr[lane].c0.b.v;
-        result.c1a[lane] = ptr[lane].c1.a.v;
-        result.c1b[lane] = ptr[lane].c1.b.v;
-    }
-    return result;
+    comptime std.debug.assert(@sizeOf(qm31.QM31) == 4 * @sizeOf(u32));
+    const raw: *const [16]u32 = @ptrCast(ptr);
+    const row0: m31.Vec4u32 = raw[0..4].*;
+    const row1: m31.Vec4u32 = raw[4..8].*;
+    const row2: m31.Vec4u32 = raw[8..12].*;
+    const row3: m31.Vec4u32 = raw[12..16].*;
+    const low01 = @shuffle(u32, row0, row1, @Vector(4, i32){ 0, 1, -1, -2 });
+    const high01 = @shuffle(u32, row0, row1, @Vector(4, i32){ 2, 3, -3, -4 });
+    const low23 = @shuffle(u32, row2, row3, @Vector(4, i32){ 0, 1, -1, -2 });
+    const high23 = @shuffle(u32, row2, row3, @Vector(4, i32){ 2, 3, -3, -4 });
+    return .{
+        .c0a = @shuffle(u32, low01, low23, @Vector(4, i32){ 0, 2, -1, -3 }),
+        .c0b = @shuffle(u32, low01, low23, @Vector(4, i32){ 1, 3, -2, -4 }),
+        .c1a = @shuffle(u32, high01, high23, @Vector(4, i32){ 0, 2, -1, -3 }),
+        .c1b = @shuffle(u32, high01, high23, @Vector(4, i32){ 1, 3, -2, -4 }),
+    };
 }
 
 inline fn storePackedQM31x4(ptr: [*]qm31.QM31, value: PackedQM31x4) void {
-    inline for (0..4) |lane| {
-        ptr[lane] = qm31.QM31.fromU32Unchecked(
-            value.c0a[lane],
-            value.c0b[lane],
-            value.c1a[lane],
-            value.c1b[lane],
-        );
-    }
+    const low01 = @shuffle(u32, value.c0a, value.c0b, @Vector(4, i32){ 0, 1, -1, -2 });
+    const high01 = @shuffle(u32, value.c0a, value.c0b, @Vector(4, i32){ 2, 3, -3, -4 });
+    const low23 = @shuffle(u32, value.c1a, value.c1b, @Vector(4, i32){ 0, 1, -1, -2 });
+    const high23 = @shuffle(u32, value.c1a, value.c1b, @Vector(4, i32){ 2, 3, -3, -4 });
+    const raw: *[16]u32 = @ptrCast(ptr);
+    raw[0..4].* = @shuffle(u32, low01, low23, @Vector(4, i32){ 0, 2, -1, -3 });
+    raw[4..8].* = @shuffle(u32, low01, low23, @Vector(4, i32){ 1, 3, -2, -4 });
+    raw[8..12].* = @shuffle(u32, high01, high23, @Vector(4, i32){ 0, 2, -1, -3 });
+    raw[12..16].* = @shuffle(u32, high01, high23, @Vector(4, i32){ 1, 3, -2, -4 });
 }
 
 inline fn mulPackedQM31x4(lhs: PackedQM31x4, rhs: PackedQM31x4) PackedQM31x4 {

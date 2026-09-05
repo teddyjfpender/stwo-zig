@@ -7,7 +7,11 @@ pub const control = @import("control.zig");
 pub const control_component = @import("control_component.zig");
 pub const control_relation = @import("control_relation.zig");
 pub const control_slice_witness = @import("control_slice_witness.zig");
+pub const control_slice_heterogeneous_v2 =
+    @import("control_slice_heterogeneous_v2.zig");
 pub const control_witness = @import("control_witness.zig");
+pub const control_witness_heterogeneous_v2 =
+    @import("control_witness_heterogeneous_v2.zig");
 pub const direct_constraint_program = @import("direct_constraint_program.zig");
 pub const fri_merkle_anchor = @import("fri_merkle_anchor.zig");
 pub const fri_merkle_anchor_relation = @import("fri_merkle_anchor_relation.zig");
@@ -56,11 +60,32 @@ pub const qm31_mul_full_relation = @import("qm31_mul_full_relation.zig");
 pub const qm31_mul_full_witness = @import("qm31_mul_full_witness.zig");
 pub const qm31_mul_witness = @import("qm31_mul_witness.zig");
 pub const query_bits = @import("query_bits.zig");
+pub const query_bits_heterogeneous_v2 = @import("query_bits_heterogeneous_v2.zig");
+pub const query_bits_witness_heterogeneous_v2 =
+    @import("query_bits_witness_heterogeneous_v2.zig");
+pub const pcs_input_arena_heterogeneous_v2 =
+    @import("pcs_input_arena_heterogeneous_v2.zig");
+pub const merkle_root_witness_heterogeneous_v2 =
+    @import("merkle_root_witness_heterogeneous_v2.zig");
+pub const fri_merkle_reference_heterogeneous_v2 =
+    @import("fri_merkle_reference_heterogeneous_v2.zig");
+pub const fri_merkle_rows_heterogeneous_v2 =
+    @import("fri_merkle_rows_heterogeneous_v2.zig");
+pub const fri_verifier_control_heterogeneous_v2 =
+    @import("fri_verifier_control_heterogeneous_v2.zig");
+pub const fri_rows_authority_heterogeneous_v2 =
+    @import("fri_rows_authority_heterogeneous_v2.zig");
+pub const fri_rows_program_descriptor_v2 =
+    @import("fri_rows_program_descriptor_v2.zig");
 pub const query_bits_relation = @import("query_bits_relation.zig");
+pub const query_bits_relation_heterogeneous_v2 =
+    @import("query_bits_relation_heterogeneous_v2.zig");
 pub const query_bits_witness = @import("query_bits_witness.zig");
 pub const query_mapping = @import("query_mapping.zig");
 pub const query_mapping_relation = @import("query_mapping_relation.zig");
 pub const query_mapping_witness = @import("query_mapping_witness.zig");
+pub const query_mapping_witness_heterogeneous_v2 =
+    @import("query_mapping_witness_heterogeneous_v2.zig");
 pub const range_check_8_8_bridge = @import("range_check_8_8_bridge.zig");
 pub const relation_effect = @import("relation_effect.zig");
 pub const relation_interaction = @import("relation_interaction.zig");
@@ -85,21 +110,37 @@ pub const segment_publication_input_provider_v2 =
 pub const trace_merkle = @import("trace_merkle.zig");
 pub const trace_merkle_relation = @import("trace_merkle_relation.zig");
 pub const trace_merkle_witness = @import("trace_merkle_witness.zig");
+pub const trace_merkle_witness_heterogeneous_v2 =
+    @import("trace_merkle_witness_heterogeneous_v2.zig");
 pub const transcript_air = @import("transcript_air.zig");
 pub const transcript_air_relation = @import("transcript_air_relation.zig");
 pub const transcript_air_witness = @import("transcript_air_witness.zig");
 pub const transcript_binding = @import("transcript_binding.zig");
 pub const transcript_binding_relation = @import("transcript_binding_relation.zig");
 pub const transcript_binding_witness = @import("transcript_binding_witness.zig");
+pub const transcript_data_rows_heterogeneous_v2 =
+    @import("transcript_data_rows_heterogeneous_v2.zig");
+pub const transcript_execution_program_heterogeneous_v2 =
+    @import("transcript_execution_program_heterogeneous_v2.zig");
 pub const transcript_payload = @import("transcript_payload.zig");
 pub const transcript_payload_relation = @import("transcript_payload_relation.zig");
 pub const transcript_payload_witness = @import("transcript_payload_witness.zig");
 pub const transcript_state = @import("transcript_state.zig");
 pub const transcript_state_relation = @import("transcript_state_relation.zig");
 pub const transcript_state_witness = @import("transcript_state_witness.zig");
+pub const transcript_state_heterogeneous_v2 =
+    @import("transcript_state_heterogeneous_v2.zig");
+pub const transcript_schedule_rows_heterogeneous_v2 =
+    @import("transcript_schedule_rows_heterogeneous_v2.zig");
 pub const transcript_word = @import("transcript_word.zig");
 pub const transcript_word_relation = @import("transcript_word_relation.zig");
 pub const transcript_word_witness = @import("transcript_word_witness.zig");
+pub const ethereum_leaf_link_projection_v1 =
+    @import("ethereum_leaf_link_projection_v1.zig");
+pub const ethereum_leaf_link_source_v1 =
+    @import("ethereum_leaf_link_source_v1.zig");
+pub const ethereum_leaf_child_field_router_v1 =
+    @import("ethereum_leaf_child_field_router_v1.zig");
 pub const universal_challenges = @import("universal_challenges.zig");
 pub const vm_public_logup_control_witness_v2 =
     @import("vm_public_logup_control_witness_v2.zig");

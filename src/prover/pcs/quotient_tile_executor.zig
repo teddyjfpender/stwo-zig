@@ -238,7 +238,98 @@ fn executeBatched(work: *Work, scratch: *Scratch) !void {
 }
 
 fn accumulateTile(work: *const Work, scratch: *Scratch, start: usize, row_count: usize) void {
-    for (work.compact_groups) |group| {
+    accumulateNumeratorInputs(
+        work.compact_groups,
+        work.column_views,
+        work.contribution_ranges,
+        work.contributions,
+        scratch,
+        start,
+        row_count,
+    );
+}
+
+/// Reconstructs only the pre-finalization numerator planes for a bounded row
+/// tile. This is an additive diagnostic seam used by device backends to
+/// compare an in-flight quotient accumulation before denominators and linear
+/// terms can hide its first divergent source run.
+///
+/// The result remains owned by `scratch` and is laid out as
+/// `[batch][coordinate][local_row]`. No transcript or proof path calls this
+/// helper unless an explicit backend diagnostic is enabled.
+pub fn accumulateDirectNumeratorTile(
+    scratch: *Scratch,
+    column_views: []const row_executor.LiftingColumnView,
+    contribution_ranges: []const row_executor.ColumnContributionRange,
+    contributions: []const row_executor.ColumnContribution,
+    start: usize,
+    row_count: usize,
+) !void {
+    if (column_views.len != contribution_ranges.len or row_count == 0 or
+        row_count > scratch.row_capacity)
+    {
+        return error.ShapeMismatch;
+    }
+    const end = std.math.add(usize, start, row_count) catch
+        return error.ShapeMismatch;
+    for (column_views, contribution_ranges) |view, range| {
+        if (range.start > contributions.len or
+            range.len > contributions.len - range.start)
+        {
+            return error.ShapeMismatch;
+        }
+        const required_source = if (view.is_direct)
+            end
+        else blk: {
+            if (view.shift_amt == 0) return error.ShapeMismatch;
+            const last_position = end - 1;
+            break :blk (((last_position >> view.shift_amt) << 1) |
+                (last_position & 1)) + 1;
+        };
+        if (required_source > view.values.len) return error.ShapeMismatch;
+        for (contributions[range.start..][0..range.len]) |contribution| {
+            if (contribution.batch_index >= scratch.batch_count)
+                return error.ShapeMismatch;
+        }
+    }
+    try scratch.clearNumerators(row_count);
+    accumulateNumeratorInputs(
+        &.{},
+        column_views,
+        contribution_ranges,
+        contributions,
+        scratch,
+        start,
+        row_count,
+    );
+}
+
+pub fn directNumeratorValue(
+    scratch: *const Scratch,
+    batch: usize,
+    coordinate: usize,
+    local_row: usize,
+) !M31 {
+    if (batch >= scratch.batch_count or
+        coordinate >= qm31.SECURE_EXTENSION_DEGREE or
+        local_row >= scratch.row_capacity)
+    {
+        return error.ShapeMismatch;
+    }
+    const plane = batch * qm31.SECURE_EXTENSION_DEGREE + coordinate;
+    return scratch.numerators[plane * scratch.row_capacity + local_row];
+}
+
+fn accumulateNumeratorInputs(
+    compact_inputs: []const compact_groups.Group,
+    column_views: []const row_executor.LiftingColumnView,
+    contribution_ranges: []const row_executor.ColumnContributionRange,
+    contributions: []const row_executor.ColumnContribution,
+    scratch: *Scratch,
+    start: usize,
+    row_count: usize,
+) void {
+    for (compact_inputs) |group| {
         compact_groups.accumulate(
             scratch.numerators,
             scratch.row_capacity,
@@ -249,22 +340,22 @@ fn accumulateTile(work: *const Work, scratch: *Scratch, start: usize, row_count:
         );
     }
     var view_index: usize = 0;
-    while (view_index < work.column_views.len) {
+    while (view_index < column_views.len) {
         if (direct_groups.canAccumulate(
-            work.column_views,
-            work.contribution_ranges,
-            work.contributions,
+            column_views,
+            contribution_ranges,
+            contributions,
             view_index,
         )) {
             var views: [4]row_executor.LiftingColumnView = undefined;
             var coefficients: [4][qm31.SECURE_EXTENSION_DEGREE]M31 = undefined;
-            const first_range = work.contribution_ranges[view_index];
-            const batch = work.contributions[first_range.start].batch_index;
+            const first_range = contribution_ranges[view_index];
+            const batch = contributions[first_range.start].batch_index;
             inline for (0..4) |term| {
-                views[term] = work.column_views[view_index + term];
-                const contribution_range = work.contribution_ranges[view_index + term];
+                views[term] = column_views[view_index + term];
+                const contribution_range = contribution_ranges[view_index + term];
                 coefficients[term] =
-                    work.contributions[contribution_range.start].value_coeff.toM31Array();
+                    contributions[contribution_range.start].value_coeff.toM31Array();
             }
             direct_groups.accumulate(
                 scratch.numerators,
@@ -279,9 +370,9 @@ fn accumulateTile(work: *const Work, scratch: *Scratch, start: usize, row_count:
             continue;
         }
 
-        const view = work.column_views[view_index];
-        const contribution_range = work.contribution_ranges[view_index];
-        const column_contributions = work.contributions[contribution_range.start..][0..contribution_range.len];
+        const view = column_views[view_index];
+        const contribution_range = contribution_ranges[view_index];
+        const column_contributions = contributions[contribution_range.start..][0..contribution_range.len];
         for (column_contributions) |contribution| {
             const coefficients = contribution.value_coeff.toM31Array();
             if (view.is_direct and m31.PACK_WIDTH > 1) {

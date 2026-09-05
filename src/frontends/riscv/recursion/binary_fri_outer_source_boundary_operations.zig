@@ -33,8 +33,16 @@ pub fn Operations(comptime Context: type) type {
             relations: *const universal.UniversalRelations,
         ) !PublicBoundaryEvidence {
             try self.requireFullBundleAuthority();
-            if (self.shared_arithmetic == null)
-                return error.MissingCompositionAuthority;
+            if (self.shared_arithmetic == null) {
+                if (comptime !Boundary.IS_LEGACY and @hasDecl(
+                    Boundary,
+                    "validateAuthenticatedChildOnlyWireBoundary",
+                )) {
+                    try Boundary.validateAuthenticatedChildOnlyWireBoundary(
+                        self,
+                    );
+                } else return error.MissingCompositionAuthority;
+            }
             const rows = &self.arithmetic_rows.?;
             var tuple_count: u32 = 0;
             var provenance = std.crypto.hash.sha2.Sha256.init(.{});
@@ -211,10 +219,14 @@ pub fn Operations(comptime Context: type) type {
                 if (seen[child_index])
                     return error.CompositionAuthorityMismatch;
                 seen[child_index] = true;
-                const capture_sample_count = std.math.cast(
-                    u32,
-                    self.children[child_index].capture.sampled_values.len,
-                ) orelse return error.ArithmeticOverflow;
+                const capture_sample_count = if (comptime !Boundary.IS_LEGACY and
+                    @hasDecl(Boundary, "physicalSampleCount"))
+                    try Boundary.physicalSampleCount(self, child_index)
+                else
+                    std.math.cast(
+                        u32,
+                        self.children[child_index].capture.sampled_values.len,
+                    ) orelse return error.ArithmeticOverflow;
                 if (capture_sample_count > lane.profile.sampled_value_count)
                     return error.CompositionAuthorityMismatch;
                 sample_starts[child_index] = capture_sample_count;

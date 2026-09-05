@@ -60,6 +60,59 @@ pub fn proveToRelationsWithWorkReceipt(
     return result;
 }
 
+/// Additive joint-commitment transcript sibling. `extension` contains only
+/// already-committed Stage-A authority. It is mixed after the frozen RISC-V
+/// statement prefix and before the single interaction PoW/relation draw.
+/// Ordinary callers continue to use `proveToRelations` byte-for-byte.
+pub fn proveToRelationsWithExtension(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    extension: anytype,
+) !ProverRelations {
+    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
+        try channel.absorbRiscVPublicClaim();
+    } else {
+        const main_claim = statement.canonicalMainClaim();
+        main_claim.mixInto(channel);
+        statement.mixShardManifest(channel);
+    }
+    extension.mixInto(channel);
+    const nonce = channel.grind(transcript.INTERACTION_POW_BITS);
+    channel.mixU64(nonce);
+    return .{
+        .interaction_pow = nonce,
+        .relations = try relation_challenges.Relations.draw(allocator, channel),
+    };
+}
+
+/// Profiling-only companion to `proveToRelationsWithExtension`. The receipt is
+/// minted only after the extended prefix, PoW, and relation draw succeed.
+pub fn proveToRelationsWithExtensionAndWorkReceipt(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    extension: anytype,
+    authority: *const interaction_witness_work.Authority,
+) !ProverRelations {
+    var result = try proveToRelationsWithExtension(
+        allocator,
+        channel,
+        statement,
+        extension,
+    );
+    const binding = interaction_witness_work.baseSessionDigest(
+        result.interaction_pow,
+        &result.relations,
+    );
+    result.challenge_work_receipt = try interaction_witness_work.completeBaseChallenges(
+        authority,
+        .base,
+        binding,
+    );
+    return result;
+}
+
 pub fn verifyToRelations(
     allocator: std.mem.Allocator,
     channel: anytype,
@@ -73,6 +126,30 @@ pub fn verifyToRelations(
         main_claim.mixInto(channel);
         statement.mixShardManifest(channel);
     }
+    if (!channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, interaction_pow))
+        return transcript.PrefixError.InvalidInteractionProofOfWork;
+    channel.mixU64(interaction_pow);
+    return relation_challenges.Relations.draw(allocator, channel);
+}
+
+/// Verifier half of the additive joint-commitment transcript. The extension
+/// is replayed before the one admitted PoW; no relation challenge is exposed
+/// when the nonce or any earlier authority is invalid.
+pub fn verifyToRelationsWithExtension(
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    interaction_pow: u64,
+    extension: anytype,
+) !relation_challenges.Relations {
+    if (comptime @hasDecl(@TypeOf(channel.*), "absorbRiscVPublicClaim")) {
+        try channel.absorbRiscVPublicClaim();
+    } else {
+        const main_claim = statement.canonicalMainClaim();
+        main_claim.mixInto(channel);
+        statement.mixShardManifest(channel);
+    }
+    extension.mixInto(channel);
     if (!channel.verifyPowNonce(transcript.INTERACTION_POW_BITS, interaction_pow))
         return transcript.PrefixError.InvalidInteractionProofOfWork;
     channel.mixU64(interaction_pow);

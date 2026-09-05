@@ -55,7 +55,7 @@ pub fn typedBindings(
 }
 
 pub fn honestLbRow(case: LbCase) ![ROW_WIDTH]M31 {
-    if (case.aligned_address & 3 != 0 or case.aligned_address > 0x3f_fffc)
+    if (case.aligned_address & 3 != 0 or case.aligned_address > 0x3fff_fffc)
         return error.InvalidAlignedAddress;
     var row = [_]M31{M31.zero()} ** ROW_WIDTH;
     row[0] = m(case.clock);
@@ -93,7 +93,10 @@ pub fn honestLbRow(case: LbCase) ![ROW_WIDTH]M31 {
         row[46] = M31.one();
         row[47] = m(case.rd).invUncheckedNonZero();
     }
-    row[48] = M31.one();
+    const word_index = case.aligned_address >> 2;
+    row[48] = m(word_index);
+    row[49] = m(word_index & ((1 << 20) - 1));
+    row[50] = M31.one();
     return row;
 }
 
@@ -147,6 +150,8 @@ pub fn rowAccepted(
             .range_check_20 => canonical(at(values, fields[0])) < 1 << 20,
             .range_check_m31 => canonical(at(values, fields[0])) < 256 and
                 canonical(at(values, fields[1])) < 128,
+            .range_check_8_8 => canonical(at(values, fields[0])) < 256 and
+                canonical(at(values, fields[1])) < 256,
             else => true,
         };
         if (!valid) return false;
