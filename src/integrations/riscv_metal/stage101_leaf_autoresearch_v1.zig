@@ -10,7 +10,10 @@ const std = @import("std");
 const builtin = @import("builtin");
 const frontend = @import("stwo_riscv_frontend");
 const metal = @import("stwo_metal_backend");
-const cpu_stage101 = @import("stwo_riscv_cpu_stage101_metal");
+// The degree-five facade is a superset of the original Stage101 facade; a
+// file may belong to only one module per compilation, and the opt-in D5 route
+// (stage101_leaf_degree5_provider_v1.zig) needs the wider surface.
+const cpu_stage101 = @import("stwo_riscv_cpu_stage101_degree5_metal");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 
@@ -20,6 +23,9 @@ const throughput_execution = cpu_stage101
 const replay_command = cpu_stage101
     .ethereum_incremental_full_leaf_replay_command_v4;
 const degree5_provider_aot = @import("stage101_degree5_provider_aot_v1.zig");
+/// Opt-in `--provider-route degree5-omit-v1` command; everything else in this
+/// file is the unchanged native leaf path.
+const degree5_provider_route = @import("stage101_leaf_degree5_provider_v1.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const PRODUCTION_ACTIVE = false;
@@ -221,10 +227,35 @@ const ReleaseStateV1 = struct {
     }
 };
 
-/// Run the retained segment-1 experiment. `arguments` are the unchanged
-/// Stage101 CPU command arguments; the AOT bundle is supplied only through the
-/// named environment variable so it never becomes proof input.
+/// Run the retained segment-1 experiment. `arguments` are the Stage101 CPU
+/// command arguments plus an optional `--provider-route <value>` pair, which
+/// is stripped here before anything else reads them: `degree5-omit-v1`
+/// delegates to the opt-in D5 route command, `native` or an absent flag runs
+/// the unchanged native leaf below, and any other value is an error. The AOT
+/// bundle is supplied only through the named environment variable so it never
+/// becomes proof input.
 pub fn run(
+    allocator: std.mem.Allocator,
+    arguments: []const []const u8,
+) !void {
+    var parsed_route = try degree5_provider_route.stripProviderRoute(
+        allocator,
+        arguments,
+    );
+    defer parsed_route.deinit(allocator);
+    switch (parsed_route.route) {
+        .degree5_omit_v1 => return degree5_provider_route.run(
+            allocator,
+            parsed_route.forwarded,
+        ),
+        .native => {},
+    }
+    return runNative(allocator, parsed_route.forwarded);
+}
+
+/// The native leaf path, byte-for-byte the command as it was before the route
+/// flag existed. `arguments` carry no `--provider-route` pair.
+fn runNative(
     allocator: std.mem.Allocator,
     arguments: []const []const u8,
 ) !void {
@@ -851,6 +882,7 @@ test "Stage101 Poseidon polynomial residency accepts exact u64 tree maps" {
 
 comptime {
     _ = degree5_provider_aot;
+    _ = degree5_provider_route;
 }
 
 comptime {

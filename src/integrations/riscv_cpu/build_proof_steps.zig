@@ -259,6 +259,88 @@ pub fn add(ctx: anytype) void {
         shared_batch_test_names,
         "shared D5 provider batch custody guard",
     ));
+    const omitted_envelope_root = support.createHarnessModule(
+        b,
+        "ethereum_incremental_omitted_leaf_proof_artifact_v1_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    omitted_envelope_root.addImport("stwo_prover_engine", prover);
+    omitted_envelope_root.addImport("interop_postcard", postcard);
+    const omitted_envelope_test_names: []const []const u8 = &.{
+        "STWIOL01 envelope: framing round-trips fixed sections and shard artifacts",
+        "STWIOL01 envelope: seal, length and magic tampering are refused",
+        "STWIOL01 envelope: STWIEF04 and STWIOL01 decoders reject each other",
+        "STWIOL01 envelope: omission section round-trips and readmits every field",
+        "STWIOL01 envelope: every mutated omission field is rejected",
+        "STWIOL01 envelope: header shard count must match the omission section",
+        "STWIOL01 envelope: typed encoder and decoders instantiate on the q193 CPU engine",
+        "STWIOL01 envelope declarations compile",
+    };
+    const omitted_envelope_compile = b.addTest(.{
+        .root_module = omitted_envelope_root,
+        .filters = omitted_envelope_test_names,
+    });
+    b.step(
+        "check-ethereum-incremental-omitted-leaf-proof-artifact-v1",
+        "Compile the STWIOL01 omitted-leaf proof envelope codec",
+    ).dependOn(&omitted_envelope_compile.step);
+    const omitted_envelope_tests = b.addRunArtifact(omitted_envelope_compile);
+    omitted_envelope_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-incremental-omitted-leaf-proof-artifact-v1",
+        "Pin STWIOL01 framing, omission-section readmission, and cross-magic refusal",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omitted_envelope_tests,
+        omitted_envelope_test_names,
+        "STWIOL01 omitted-leaf envelope custody guard",
+    ));
+    const omitted_route_body_root = support.createHarnessModule(
+        b,
+        "ethereum_incremental_omitted_leaf_route_v1_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    omitted_route_body_root.addImport("stwo_prover_api", prover_api);
+    omitted_route_body_root.addImport("stwo_prover_engine", prover);
+    omitted_route_body_root.addImport("interop_postcard", postcard);
+    omitted_route_body_root.addImport("stwo_artifact_store", ctx.artifact_store);
+    const omitted_route_body_test_names: []const []const u8 = &.{
+        "Stage101 D5 route body instantiates on the q193 CPU engine",
+        "Stage101 D5 route strips only its own flag and rejects unknown route values",
+        "Stage101 D5 route budget maps stage A into the proof-core window",
+        "Stage101 D5 route receipt rejects unshared relation context and non-zero closure",
+        "Stage101 D5 route pins equal the sweep's retained request",
+        "Stage101 D5 route declarations compile",
+    };
+    const omitted_route_body_compile = b.addTest(.{
+        .root_module = omitted_route_body_root,
+        .filters = omitted_route_body_test_names,
+    });
+    b.step(
+        "check-ethereum-incremental-omitted-leaf-route-v1",
+        "Analyse the engine-generic Stage101 D5 provider route body on the q193 CPU engine",
+    ).dependOn(&omitted_route_body_compile.step);
+    const omitted_route_body_tests = b.addRunArtifact(omitted_route_body_compile);
+    omitted_route_body_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-incremental-omitted-leaf-route-v1",
+        "Pin the Stage101 D5 route dispatch, budget, receipt matrix and comptime pins",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omitted_route_body_tests,
+        omitted_route_body_test_names,
+        "Stage101 D5 provider route body guard",
+    ));
     const candidate_leaf_root = support.createHarnessModule(
         b,
         "ethereum_candidate_leaf_proof_test.zig",

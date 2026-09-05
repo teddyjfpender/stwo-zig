@@ -122,7 +122,15 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
     stage101_module.addImport("stwo_metal_backend", metal_backend);
-    stage101_module.addImport("stwo_riscv_cpu_stage101_metal", cpu_stage101_metal);
+    // The leaf and its opt-in `--provider-route degree5-omit-v1` command
+    // (stage101_leaf_degree5_provider_v1.zig) share one CPU facade: the
+    // degree-five facade is a superset of `stwo_riscv_cpu_stage101_metal`, and
+    // Zig refuses a source file that belongs to two modules of one
+    // compilation, so the narrower facade is not imported here as well.
+    stage101_module.addImport(
+        "stwo_riscv_cpu_stage101_degree5_metal",
+        cpu_stage101_degree5_metal,
+    );
     stage101_module.addImport("stwo_riscv_frontend", frontend);
     stage101_module.addImport("stwo_core", core);
     stage101_module.addImport("stwo_prover_engine", prover);
@@ -136,6 +144,9 @@ pub fn build(b: *std.Build) void {
             "Stage101 Poseidon Merkle device family is typed and seedless",
             "Stage101 Poseidon polynomial residency accepts exact u64 tree maps",
             "Stage101 degree-five provider AOT roster is four direct plus one lookup",
+            "Stage101 D5 route strips only its own flag and rejects unknown route values",
+            "Stage101 D5 route Metal coverage admits only small-circle host placements",
+            "Stage101 D5 route bundle pins reject a drifted manifest",
         },
     });
     linkMetalFrameworks(stage101_tests);
