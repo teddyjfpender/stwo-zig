@@ -167,6 +167,41 @@ backend contract, not any single construct. Reducing it means either fewer insta
 (split prove and verify into separate binaries) or a non-generic backend seam, which is the redesign
 noted above.
 
+### Root cause found and fixed (2026-09-05, commit d09674bf)
+
+The attribution table above was right about *where* (the Metal backend) and wrong about *why*. Timing each
+of the Metal package's eleven focused test roots from a cold cache showed ten of them compile in 1-2 s and
+one, `test-sampled-coefficient-work-receipt`, takes 9 minutes alone. Probing that root's imports one at a
+time with a 90-second cutoff (each probe a one-line test root referencing a single function) walked the
+chain `MetalMerkleTree.deinit` -> `shared_runtime` -> `core_aot` -> `abi_contract`, and there it was:
+
+```zig
+const declaration_digests: [manifest.native_exports.len][64]u8 = build: {
+    @setEvalBranchQuota(10_000_000);
+    for (manifest.native_exports, 0..) |entry, index| {
+        const declaration = kernelDeclaration(manifest.native_amalgamated_source, entry.name) ...
+        result[index] = std.fmt.bytesToHex(canonicalDeclarationDigest(declaration), .lower);
+```
+
+One file-scope comptime table: 166 `std.mem.indexOf` searches over the 1.4 MB amalgamated shader source
+plus 166 SHA-256s, all in the comptime interpreter. Every binary that reaches the Metal runtime resolves it.
+
+The digests now come from a generated file (`shaders/abi_declaration_digests.zig`, produced natively by
+`zig build update-abi-declaration-digests` in 5 s). The contract refuses to compile if export names drift
+from the table, and a runtime test recomputes every digest so a stale table fails closed. All 166 generated
+digests equal the pinned v25 bundle manifest byte for byte, so authenticated admission is unchanged.
+
+| unit, cold cache | before | after |
+| --- | ---: | ---: |
+| `test-sampled-coefficient-work-receipt` | 9m00 | 7 s |
+| `src/backends/metal` `zig build test` | 8m43 | 7 s |
+| `riscv_metal` product check, ReleaseFast | 9m07 | 13 s |
+
+Two lessons worth keeping. First, "it is sema-bound and spread across a huge instantiated graph" was a
+plausible story that the per-root bisect falsified in twenty minutes; the earlier probes had only touched
+the amalgamation's `.len`, which Zig resolves without evaluating the concatenation. Second, when a build
+is slow, time the package's focused roots before theorizing: the outlier is usually one declaration.
+
 ### The thrash, and the guard for it
 
 On 2026-09-04 two agents ran heavy builds at once. Each compilation peaks at 3-15 GB, the machine went to
