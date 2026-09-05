@@ -28,10 +28,6 @@ pub fn build(b: *std.Build) void {
         dependency_options,
     );
     const frontend = frontend_dependency.module("stwo_riscv_frontend");
-    const cpu_stage101_metal = b.dependency(
-        "stwo_riscv_cpu_integration",
-        dependency_options,
-    ).module("stwo_riscv_cpu_stage101_metal");
     const cpu_stage101_degree5_metal = b.dependency(
         "stwo_riscv_cpu_integration",
         dependency_options,
