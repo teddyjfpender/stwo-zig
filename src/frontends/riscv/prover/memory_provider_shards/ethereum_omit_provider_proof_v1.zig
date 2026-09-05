@@ -58,32 +58,75 @@ pub fn Source(comptime Engine: type) type {
         /// Present only for a typed combined-profile adapter whose full native
         /// statement has already authenticated heterogeneous retirements.
         retirement_supplement: ?statement_validation.RetirementSupplementV2 = null,
+        /// Optional O(1) readmission authority for `plan`/`calls`. Every
+        /// corpus readmission this source drives - its own `validate`, the
+        /// shared transcript replay, the provider-local prefix, the admitted
+        /// shard slice, and the aggregate closure - becomes a pointer-closed
+        /// check when it is present. No transcript value, claim, or proof byte
+        /// depends on it.
+        validated_calls: ?*const authority.OwnedValidatedPlanCallAuthorityV1 = null,
 
         pub fn validate(self: @This()) !void {
-            try self.provider_stage_a.validate(self.plan, self.calls);
-            if (self.retirement_supplement) |supplement| {
-                try self.projection.validateAgainstWithRetirementSupplementV2(
-                    self.native,
-                    self.extension,
-                    .proof,
-                    supplement,
-                    self.lookup_manifest,
-                    self.authenticated_lookup,
+            if (self.validated_calls) |token| {
+                try self.provider_stage_a.validateBorrowedValidated(
                     self.plan,
                     self.calls,
-                    try omission.deriveFullGeometry(self.native),
+                    token,
                 );
+                if (self.retirement_supplement) |supplement| {
+                    try self.projection
+                        .validateAgainstWithRetirementSupplementV2Validated(
+                        self.native,
+                        self.extension,
+                        .proof,
+                        supplement,
+                        self.lookup_manifest,
+                        self.authenticated_lookup,
+                        self.plan,
+                        self.calls,
+                        token,
+                        try omission.deriveFullGeometry(self.native),
+                    );
+                } else {
+                    try self.projection.validateAgainstValidated(
+                        self.native,
+                        self.extension,
+                        .proof,
+                        self.lookup_manifest,
+                        self.authenticated_lookup,
+                        self.plan,
+                        self.calls,
+                        token,
+                        try omission.deriveFullGeometry(self.native),
+                    );
+                }
             } else {
-                try self.projection.validateAgainst(
-                    self.native,
-                    self.extension,
-                    .proof,
-                    self.lookup_manifest,
-                    self.authenticated_lookup,
-                    self.plan,
-                    self.calls,
-                    try omission.deriveFullGeometry(self.native),
-                );
+                try self.provider_stage_a.validate(self.plan, self.calls);
+                if (self.retirement_supplement) |supplement| {
+                    try self.projection
+                        .validateAgainstWithRetirementSupplementV2(
+                        self.native,
+                        self.extension,
+                        .proof,
+                        supplement,
+                        self.lookup_manifest,
+                        self.authenticated_lookup,
+                        self.plan,
+                        self.calls,
+                        try omission.deriveFullGeometry(self.native),
+                    );
+                } else {
+                    try self.projection.validateAgainst(
+                        self.native,
+                        self.extension,
+                        .proof,
+                        self.lookup_manifest,
+                        self.authenticated_lookup,
+                        self.plan,
+                        self.calls,
+                        try omission.deriveFullGeometry(self.native),
+                    );
+                }
             }
             try self.shared.validate(
                 self.plan,
@@ -92,6 +135,33 @@ pub fn Source(comptime Engine: type) type {
             );
         }
     };
+}
+
+/// The optional O(1) corpus authority a provider source carries, or `null` for
+/// a source type that has none. Reading it here keeps every seam in this
+/// module on one rule and leaves adapters that predate the token untouched.
+pub fn validatedCallsOf(
+    source: anytype,
+) ?*const authority.OwnedValidatedPlanCallAuthorityV1 {
+    const Source_ = @TypeOf(source);
+    if (comptime !@hasField(Source_, "validated_calls")) return null;
+    return source.validated_calls;
+}
+
+/// Admits one shard's contiguous call slice, using the source's O(1) authority
+/// when it carries one. Both branches return the identical slice.
+pub fn admittedShardForSource(
+    source: anytype,
+    shard_index: u32,
+) ![]const poseidon2_air.Call {
+    if (validatedCallsOf(source)) |token|
+        return harness.admittedShardValidated(
+            token,
+            source.plan,
+            source.calls,
+            shard_index,
+        );
+    return harness.admittedShard(source.plan, source.calls, shard_index);
 }
 
 pub fn proveProviderV2(
@@ -105,11 +175,7 @@ pub fn proveProviderV2(
     const index: usize = @intCast(shard_index);
     if (index >= source.plan.shards.len) return error.ShardIndexOutOfRange;
     const descriptor = source.plan.shards[index];
-    const shard_calls = try harness.admittedShard(
-        source.plan,
-        source.calls,
-        shard_index,
-    );
+    const shard_calls = try admittedShardForSource(source, shard_index);
     const transcript_replay = try replay(Engine, allocator, pcs_config, source);
 
     var scheme = try Engine.init(allocator, pcs_config);
@@ -241,9 +307,8 @@ pub fn verifyProviderFreshV2(
     try validateStatement(Engine, source, statement);
     const index: usize = @intCast(statement.shard_index);
     const descriptor = source.plan.shards[index];
-    const shard_calls = try harness.admittedShard(
-        source.plan,
-        source.calls,
+    const shard_calls = try admittedShardForSource(
+        source,
         statement.shard_index,
     );
     const commitments = proof.commitment_scheme_proof.commitments.items;
@@ -403,13 +468,23 @@ pub fn closeFreshClaimsV1(
         }
         claim.* = receipt.native_claim;
     }
-    const aggregate = try authority.verifyAggregateClosure(
-        source.plan,
-        source.calls,
-        source.shared.relation_context,
-        core.native(),
-        native,
-    );
+    const aggregate = if (validatedCallsOf(source)) |token|
+        try authority.verifyAggregateClosureValidated(
+            token,
+            source.plan,
+            source.calls,
+            source.shared.relation_context,
+            core.native(),
+            native,
+        )
+    else
+        try authority.verifyAggregateClosure(
+            source.plan,
+            source.calls,
+            source.shared.relation_context,
+            core.native(),
+            native,
+        );
     var result = protocol.VerifiedJointClosureV1{
         .format = format_version,
         .plan_identity = source.plan.identity,
@@ -442,6 +517,22 @@ fn replay(
     pcs_config: core_pcs.PcsConfig,
     source: Source(Engine),
 ) !protocol.Replay(Engine) {
+    if (source.validated_calls) |token|
+        return protocol.replaySharedTranscriptValidated(
+            Engine,
+            allocator,
+            pcs_config,
+            source.native,
+            source.extension,
+            source.lookup_manifest,
+            source.authenticated_lookup,
+            source.projection,
+            source.plan,
+            source.calls,
+            token,
+            source.provider_stage_a,
+            source.shared,
+        );
     return protocol.replaySharedTranscript(
         Engine,
         allocator,
@@ -466,6 +557,24 @@ fn localPrefix(
     claim: authority.ProviderShardClaimV1,
     ordered: provider_order.ClaimV1,
 ) !Engine.Channel {
+    if (source.validated_calls) |token|
+        return protocol.providerLocalPrefixValidatedV2(
+            Engine,
+            allocator,
+            pcs_config,
+            source.native,
+            source.extension,
+            source.lookup_manifest,
+            source.authenticated_lookup,
+            source.projection,
+            source.plan,
+            source.calls,
+            token,
+            source.provider_stage_a,
+            source.shared,
+            claim,
+            ordered,
+        );
     return protocol.providerLocalPrefixV2(
         Engine,
         allocator,
@@ -529,6 +638,16 @@ fn validateStatement(
 }
 
 comptime {
+    // Cross-check against the generic shard authority: that module is planning
+    // and algebra only and still declares no AIR-proved ordered call
+    // commitment, while this route proves one. The pair must not silently
+    // converge, which would hide either a lost proof or a stale constant.
+    if (authority.ORDERED_CALL_COMMITMENT_IS_AIR_PROVED ==
+        PROVIDER_ORDERED_CALL_COMMITMENT_IS_AIR_PROVED or
+        authority.CALLER_N_MANIFEST_IMPLEMENTED)
+    {
+        @compileError("ordered-call AIR authority drifted between route and plan");
+    }
     if (provider_tree2_columns != 12 or
         poseidon2_air.N_MAIN_COLUMNS != authority.main_column_count or
         standalone.composition_log_lift != 1 or ACTIVATES_PRODUCTION_PROOF or

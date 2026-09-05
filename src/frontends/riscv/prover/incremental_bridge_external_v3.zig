@@ -414,18 +414,30 @@ fn hashU32(hash: anytype, value: u32) void {
     hash.update(&bytes);
 }
 
+// A real core always commits at least one column per tree, which
+// `PrefixColumnsV3.validate` enforces; these owner tests therefore build the
+// geometry from an explicit minimal prefix instead of a zero-column statement.
+const test_prefix = PrefixColumnsV3{
+    .preprocessed = 1,
+    .main = 1,
+    .interaction = 1,
+};
+
 test "incremental bridge external owner pins geometry and all three trees" {
     const allocator = std.testing.allocator;
-    var core: statement_mod.RiscVStatement = undefined;
-    core.n_components = 0;
-    core.n_infra = 0;
-    const geometry = try GeometryV3.canonical(&core, 2, 0);
-    try geometry.validate(&core, 0);
+    const geometry = try GeometryV3.canonicalAfterPrefix(2, test_prefix);
+    try geometry.validateAfterPrefix(test_prefix);
     try std.testing.expectEqual(@as(u32, 4), geometry.log_size);
-    try std.testing.expectEqual(@as(u32, 2), geometry.total_preprocessed_columns);
-    try std.testing.expectEqual(@as(u32, MAIN_COLUMNS), geometry.total_main_columns);
     try std.testing.expectEqual(
-        @as(u32, INTERACTION_COLUMNS),
+        test_prefix.preprocessed + @as(u32, PREPROCESSED_COLUMNS),
+        geometry.total_preprocessed_columns,
+    );
+    try std.testing.expectEqual(
+        test_prefix.main + @as(u32, MAIN_COLUMNS),
+        geometry.total_main_columns,
+    );
+    try std.testing.expectEqual(
+        test_prefix.interaction + @as(u32, INTERACTION_COLUMNS),
         geometry.total_interaction_columns,
     );
 
@@ -466,14 +478,20 @@ test "incremental bridge external owner pins geometry and all three trees" {
 }
 
 test "incremental bridge external geometry rejects placement and row drift" {
-    var core: statement_mod.RiscVStatement = undefined;
-    core.n_components = 0;
-    core.n_infra = 0;
-    var geometry = try GeometryV3.canonical(&core, 1, 0);
+    var geometry = try GeometryV3.canonicalAfterPrefix(1, test_prefix);
     geometry.placement.main_col_offset += 1;
     try std.testing.expectError(
         error.InvalidIncrementalBridgeGeometry,
-        geometry.validate(&core, 0),
+        geometry.validateAfterPrefix(test_prefix),
+    );
+    // A degenerate prefix is refused before any geometry check.
+    try std.testing.expectError(
+        error.InvalidIncrementalBridgePrefix,
+        GeometryV3.canonicalAfterPrefix(1, .{
+            .preprocessed = 0,
+            .main = 1,
+            .interaction = 1,
+        }),
     );
     const rows = [_]bridge.Row{.{
         .index = 1,
@@ -481,7 +499,7 @@ test "incremental bridge external geometry rejects placement and row drift" {
         .value = 1,
         .mode = .external_entry,
     }};
-    var canonical = try GeometryV3.canonical(&core, 2, 0);
+    var canonical = try GeometryV3.canonicalAfterPrefix(2, test_prefix);
     try std.testing.expectError(
         error.InvalidIncrementalBridgeTrace,
         MainTraceV3.init(std.testing.allocator, &rows, &canonical),

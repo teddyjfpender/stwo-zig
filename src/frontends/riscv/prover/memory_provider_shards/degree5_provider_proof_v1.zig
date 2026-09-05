@@ -489,7 +489,7 @@ pub fn verifyShardFresh(
 fn canonicalProgram(
     candidate: *const candidate_mod.Candidate,
 ) !VerifierProgramAuthorityV1 {
-    try candidate.validate();
+    try candidate.validateRetained();
     if (candidate.profile != .degree5)
         return error.InvalidDegree5VerifierProgram;
     var result = VerifierProgramAuthorityV1{

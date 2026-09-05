@@ -69,6 +69,36 @@ pub const ProjectionV1 = struct {
             authenticated_lookup,
             plan,
             calls,
+            null,
+            full_geometry,
+        );
+    }
+
+    /// Identity-neutral sibling of `init`. The expensive
+    /// `ProviderShardPlanV1.validate(calls)` corpus rehash is replaced by an
+    /// O(1) pointer-closed readmission of an already minted authority; the
+    /// cheap `ethereum_admission.validateV2` boundary is unchanged, and every
+    /// projected field and identity is computed by the same code.
+    pub fn initValidated(
+        full_native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        policy: statement_validation.AdmissionPolicy,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
+        plan: *const provider_authority.ProviderShardPlanV1,
+        calls: []const poseidon2_air.Call,
+        validated: *const provider_authority.OwnedValidatedPlanCallAuthorityV1,
+        full_geometry: statement_geometry.Geometry,
+    ) !ProjectionV1 {
+        try ethereum_admission.validateV2(full_native, extension, policy);
+        return initAfterAdmission(
+            full_native,
+            extension,
+            manifest,
+            authenticated_lookup,
+            plan,
+            calls,
+            validated,
             full_geometry,
         );
     }
@@ -102,6 +132,39 @@ pub const ProjectionV1 = struct {
             authenticated_lookup,
             plan,
             calls,
+            null,
+            full_geometry,
+        );
+    }
+
+    /// Identity-neutral validated sibling of the candidate-only supplement
+    /// route above.
+    pub fn initWithRetirementSupplementV2Validated(
+        full_native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        policy: statement_validation.AdmissionPolicy,
+        supplement: statement_validation.RetirementSupplementV2,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
+        plan: *const provider_authority.ProviderShardPlanV1,
+        calls: []const poseidon2_air.Call,
+        validated: *const provider_authority.OwnedValidatedPlanCallAuthorityV1,
+        full_geometry: statement_geometry.Geometry,
+    ) !ProjectionV1 {
+        try extension.validateV2(full_native);
+        try statement_validation.validateV2WithRetirementSupplementV2(
+            full_native,
+            policy,
+            supplement,
+        );
+        return initAfterAdmission(
+            full_native,
+            extension,
+            manifest,
+            authenticated_lookup,
+            plan,
+            calls,
+            validated,
             full_geometry,
         );
     }
@@ -113,10 +176,14 @@ pub const ProjectionV1 = struct {
         authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
         plan: *const provider_authority.ProviderShardPlanV1,
         calls: []const poseidon2_air.Call,
+        validated: ?*const provider_authority.OwnedValidatedPlanCallAuthorityV1,
         full_geometry: statement_geometry.Geometry,
     ) !ProjectionV1 {
         try authenticated_lookup.validateAgainst(&full_native.core, manifest);
-        try plan.validate(calls);
+        if (validated) |token|
+            try token.validateBorrowed(plan, calls)
+        else
+            try plan.validate(calls);
 
         const omitted_index = try findExactProvider(full_native, plan, calls);
         const projected_core = try projectCore(&full_native.core, omitted_index);
@@ -152,6 +219,7 @@ pub const ProjectionV1 = struct {
             authenticated_lookup,
             plan,
             calls,
+            validated,
             full_geometry,
         );
         return result;
@@ -176,6 +244,35 @@ pub const ProjectionV1 = struct {
             authenticated_lookup,
             plan,
             calls,
+            null,
+            full_geometry,
+        );
+    }
+
+    /// Identity-neutral sibling of `validateAgainst`: same admission, same
+    /// comparisons, same errors, with the corpus rehash replaced by an O(1)
+    /// pointer-closed readmission.
+    pub fn validateAgainstValidated(
+        self: *const ProjectionV1,
+        full_native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        policy: statement_validation.AdmissionPolicy,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
+        plan: *const provider_authority.ProviderShardPlanV1,
+        calls: []const poseidon2_air.Call,
+        validated: *const provider_authority.OwnedValidatedPlanCallAuthorityV1,
+        full_geometry: statement_geometry.Geometry,
+    ) !void {
+        try ethereum_admission.validateV2(full_native, extension, policy);
+        return self.validateAgainstAfterAdmission(
+            full_native,
+            extension,
+            manifest,
+            authenticated_lookup,
+            plan,
+            calls,
+            validated,
             full_geometry,
         );
     }
@@ -208,6 +305,40 @@ pub const ProjectionV1 = struct {
             authenticated_lookup,
             plan,
             calls,
+            null,
+            full_geometry,
+        );
+    }
+
+    /// Identity-neutral validated sibling of the candidate-only supplement
+    /// revalidation above.
+    pub fn validateAgainstWithRetirementSupplementV2Validated(
+        self: *const ProjectionV1,
+        full_native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        policy: statement_validation.AdmissionPolicy,
+        supplement: statement_validation.RetirementSupplementV2,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
+        plan: *const provider_authority.ProviderShardPlanV1,
+        calls: []const poseidon2_air.Call,
+        validated: *const provider_authority.OwnedValidatedPlanCallAuthorityV1,
+        full_geometry: statement_geometry.Geometry,
+    ) !void {
+        try extension.validateV2(full_native);
+        try statement_validation.validateV2WithRetirementSupplementV2(
+            full_native,
+            policy,
+            supplement,
+        );
+        return self.validateAgainstAfterAdmission(
+            full_native,
+            extension,
+            manifest,
+            authenticated_lookup,
+            plan,
+            calls,
+            validated,
             full_geometry,
         );
     }
@@ -220,10 +351,14 @@ pub const ProjectionV1 = struct {
         authenticated_lookup: *const lookup_physical_v2.AuthenticatedStatement,
         plan: *const provider_authority.ProviderShardPlanV1,
         calls: []const poseidon2_air.Call,
+        validated: ?*const provider_authority.OwnedValidatedPlanCallAuthorityV1,
         full_geometry: statement_geometry.Geometry,
     ) !void {
         try authenticated_lookup.validateAgainst(&full_native.core, manifest);
-        try plan.validate(calls);
+        if (validated) |token|
+            try token.validateBorrowed(plan, calls)
+        else
+            try plan.validate(calls);
         if (!std.meta.eql(full_geometry, try deriveFullGeometry(full_native)))
             return error.ProviderGeometryMismatch;
         if (self.format != format_version or

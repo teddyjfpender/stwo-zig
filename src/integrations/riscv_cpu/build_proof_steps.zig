@@ -174,6 +174,91 @@ pub fn add(ctx: anytype) void {
         candidate_provider_batch_test_names,
         "candidate D5 provider batch identity guard",
     ));
+    const omitted_transcript_root = support.createHarnessModule(
+        b,
+        "ethereum_incremental_omitted_provider_transcript_v1_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    omitted_transcript_root.addImport("stwo_prover_engine", prover);
+    const omitted_transcript_test_names: []const []const u8 = &.{
+        "omitted provider transcript v1: route bindings admit exactly the recomputed authorities",
+        "omitted provider transcript v1: route bindings reject every mutated field",
+        "omitted provider transcript v1: route bindings reject a mutated recomputed authority",
+        "omitted provider transcript v1: replayShared reproduces the hand-built channel",
+        "omitted provider transcript v1: replay refuses a frame bound to another projection",
+        "omitted provider transcript v1: local prefix is the ordinary frame plus the leaf omission frame",
+        "omitted provider transcript v1: leaf provider statement binds the omission digest",
+        "omitted provider transcript v1: retype helpers guard transcript types and preserve identity",
+        "omitted provider transcript v1: module stays research only",
+        "omitted provider transcript v1: route source binds the real V4 profile",
+        "omitted provider transcript v1 declarations compile",
+    };
+    const omitted_transcript_compile = b.addTest(.{
+        .root_module = omitted_transcript_root,
+        .filters = omitted_transcript_test_names,
+    });
+    b.step(
+        "check-ethereum-incremental-omitted-provider-transcript-v1",
+        "Compile the omitted-provider shared shard transcript source",
+    ).dependOn(&omitted_transcript_compile.step);
+    const omitted_transcript_tests = b.addRunArtifact(
+        omitted_transcript_compile,
+    );
+    omitted_transcript_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-incremental-omitted-provider-transcript-v1",
+        "Pin the omitted-provider shard transcript order, bindings, and retypes",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omitted_transcript_tests,
+        omitted_transcript_test_names,
+        "omitted-provider shard transcript identity guard",
+    ));
+    const shared_batch_root = support.createHarnessModule(
+        b,
+        "ethereum_candidate_degree5_provider_shared_batch_v1_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    shared_batch_root.addImport("stwo_prover_engine", prover);
+    shared_batch_root.addImport("interop_postcard", postcard);
+    const shared_batch_test_names: []const []const u8 = &.{
+        "shared D5 provider batch: a canonical batch admits its own shards",
+        "shared D5 provider batch: canonical validation rejects every mutated field",
+        "shared D5 provider batch: leaf statement wrapping binds this leaf",
+        "shared D5 provider batch: shard artifacts stay under the canonical cap",
+        "shared D5 provider batch: fresh claims must report the shared context",
+        "shared D5 provider batch: custody surfaces stay byte only and leaf bound",
+        "shared D5 provider batch declarations compile",
+    };
+    const shared_batch_compile = b.addTest(.{
+        .root_module = shared_batch_root,
+        .filters = shared_batch_test_names,
+    });
+    b.step(
+        "check-ethereum-candidate-degree5-provider-shared-batch-v1",
+        "Compile the shared-transcript D5 provider batch prover and verifier",
+    ).dependOn(&shared_batch_compile.step);
+    const shared_batch_tests = b.addRunArtifact(shared_batch_compile);
+    shared_batch_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-candidate-degree5-provider-shared-batch-v1",
+        "Pin shared D5 shard custody, leaf statement binding, and byte caps",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        shared_batch_tests,
+        shared_batch_test_names,
+        "shared D5 provider batch custody guard",
+    ));
     const candidate_leaf_root = support.createHarnessModule(
         b,
         "ethereum_candidate_leaf_proof_test.zig",
@@ -688,6 +773,54 @@ pub fn add(ctx: anytype) void {
         &.{ethereum_segment_extension_name},
         "Ethereum SegmentV2/V3 transcript-extension identity guard",
     ));
+    const omit_validated_parity_name =
+        "Ethereum omitted provider validated and unvalidated routes agree bit for bit";
+    const omit_validated_parity_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{omit_validated_parity_name},
+    });
+    b.step(
+        "check-ethereum-omit-validated-parity-v1",
+        "Compile the validated-vs-unvalidated omission-route parity gate",
+    ).dependOn(&omit_validated_parity_compile.step);
+    const omit_validated_parity_tests = b.addRunArtifact(
+        omit_validated_parity_compile,
+    );
+    omit_validated_parity_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-omit-validated-parity-v1",
+        "Prove both omission routes and require identical outputs",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omit_validated_parity_tests,
+        &.{omit_validated_parity_name},
+        "Ethereum omitted-provider validated-route parity guard",
+    ));
+
+    const omitted_route_instantiation_name =
+        "Ethereum omitted-provider V4 route instantiates against the q193 CPU engine";
+    const omitted_route_instantiation_compile = b.addTest(.{
+        .root_module = ethereum_proof_root,
+        .filters = &.{omitted_route_instantiation_name},
+    });
+    b.step(
+        "check-ethereum-incremental-omitted-route-v4",
+        "Analyse the omitted-provider V4 prover and cold verifier on the q193 CPU engine",
+    ).dependOn(&omitted_route_instantiation_compile.step);
+    const omitted_route_instantiation_tests = b.addRunArtifact(
+        omitted_route_instantiation_compile,
+    );
+    omitted_route_instantiation_tests.has_side_effects = true;
+    b.step(
+        "test-ethereum-incremental-omitted-route-v4",
+        "Run the omitted-provider V4 route instantiation and activation-guard gate",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        omitted_route_instantiation_tests,
+        &.{omitted_route_instantiation_name},
+        "Ethereum omitted-provider V4 route instantiation guard",
+    ));
+
     const ethereum_poseidon_artifact_name =
         "Ethereum Poseidon2 SegmentV3 artifact verifies full dynamic capture";
     const ethereum_poseidon_artifact_compile = b.addTest(.{

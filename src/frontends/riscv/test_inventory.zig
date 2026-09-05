@@ -55,7 +55,14 @@ test {
     _ = @import("outer_parent_transcript_source_test_root.zig");
     _ = @import("owned_statement.zig");
     _ = @import("proof_transcript.zig");
+    _ = @import(
+        "prover/incremental_ethereum_omit_orchestration_v4_test.zig",
+    );
+    _ = @import("prover/incremental_ethereum_omit_protocol_v4_test.zig");
     _ = @import("prover/memory_provider_shards/authority_test.zig");
+    _ = @import(
+        "prover/memory_provider_shards/ethereum_omit_validated_parity_v1_test.zig",
+    );
     _ = @import("recursion_air_test_root.zig");
     _ = @import("recursion_outer_sources_test_root.zig");
     _ = @import("row_window_test_root.zig");
@@ -419,6 +426,8 @@ test {
     _ = @import("air/lang/typed_poseidon2_compat_schedule_test.zig");
     _ = @import("air/lang/typed_poseidon2_compat_test.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_candidate_test.zig");
+    _ = @import("air/lang/typed_poseidon2_degree5_trace_test.zig");
+    _ = @import("prover/memory_provider_shards/provider_order_component.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_component_test.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_backend_test.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_trace_test.zig");

@@ -31,6 +31,10 @@ const minimal = frontend.runner.minimal_trace;
 const memory_state = frontend.runner.memory_state;
 const ethereum_witness = frontend.prover_mod.guest_precompile.ethereum_witness;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
+const omit_protocol =
+    frontend.prover_mod.ethereum_native_provider_omit_protocol_v1;
+const omit_orchestration =
+    frontend.testing.incremental_ethereum_omit_orchestration_v4_internal;
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
@@ -749,6 +753,84 @@ pub const PreparedProofTransactionV4 = struct {
             channel,
             execution,
         );
+    }
+
+    /// Omitted-provider sibling of `proveWithEngineUsingChannel`: the native
+    /// 445-column `poseidon2` infrastructure component leaves Trees 0/1/2 and
+    /// the same calls are proved as degree-five shards under the single
+    /// relation draw the route's transcript performs. The native entry above
+    /// is untouched, so the canonical leaf proof bytes cannot move.
+    ///
+    /// `extension` must already borrow this transaction's own Poseidon call
+    /// list: the route hashes those calls into the shard plan, the manifest
+    /// and therefore the relation draw, so a call slice from any other owner
+    /// would silently prove a different corpus than this leaf committed to.
+    /// The check is the pointer-custody one `ProviderCallViewV1.validateAgainst`
+    /// performs, applied to the borrow the caller actually handed the route.
+    pub fn proveOmittedProviderWithEngineUsingChannel(
+        self: *const Self,
+        comptime Engine: type,
+        allocator: std.mem.Allocator,
+        recorder: ?*@import("stwo_prover_api").stage_profile.Recorder,
+        channel: *Engine.Channel,
+        execution: omit_orchestration.ExecutionOptions,
+        extension: *omit_protocol.Extension(Engine),
+        options: omit_orchestration.OmittedRouteOptionsV1,
+    ) !omit_orchestration.ProveOutputV4Omitted(Engine) {
+        const view = try self.proofView();
+
+        const expected_calls =
+            self.storage.prepared_witness.full.base.poseidonCalls();
+        if (expected_calls.len == 0)
+            return error.MissingIncrementalPreparedProviderCallsV4;
+        if (extension.calls.ptr != expected_calls.ptr or
+            extension.calls.len != expected_calls.len)
+        {
+            return error.InvalidIncrementalPreparedOmittedProviderCallCustodyV4;
+        }
+
+        const output = try omit_orchestration
+            .provePreparedOmittedProviderWithEngineUsingChannel(
+            Engine,
+            allocator,
+            try view.profile.pcsConfig(),
+            &view.replay.execution_trace,
+            &view.replay.state_chain_tracker,
+            &view.prepared_witness.full,
+            &view.geometry.statement,
+            view.role_aware_public,
+            &view.replay.keccakf_calls,
+            &view.replay.keccakf_execution_rows,
+            &view.replay.signer_recovery_calls,
+            &view.replay.signer_recovery_execution_rows,
+            .{
+                .workspace = view.workspace,
+                .geometry = view.geometry,
+                .ethereum_witness = view.ethereum_witness,
+                .extension = view.extension,
+            },
+            view.profile,
+            recorder,
+            channel,
+            execution,
+            extension,
+            options,
+        );
+
+        // The route installs the projected core into the retained workspace
+        // and restores the full core on the way out. If that restore were ever
+        // skipped, `geometry.statement.core == workspace.statement` would no
+        // longer hold and every later borrow of this transaction would read a
+        // projected core. Debug-only: `validateBorrowed` also records a
+        // validation on the counters, so it must not run in release builds.
+        if (std.debug.runtime_safety) {
+            self.validateBorrowed() catch |err| std.debug.panic(
+                "omitted route left the prepared transaction invalid: {s}",
+                .{@errorName(err)},
+            );
+        }
+
+        return output;
     }
 
     pub fn counterSnapshot(self: *const Self) CounterSnapshotV1 {

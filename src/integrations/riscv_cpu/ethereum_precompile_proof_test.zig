@@ -29,6 +29,18 @@ const segment_admission_test = @import(
 const segment_transcript_extension_test = @import(
     "ethereum_segment_transcript_extension_test.zig",
 );
+const omit_validated_parity_test = @import(
+    "ethereum_omit_validated_parity_v1_test.zig",
+);
+const omitted_route_instantiation_test = @import(
+    "ethereum_incremental_omitted_route_instantiation_v4_test.zig",
+);
+
+comptime {
+    // Analysis-only gate: it declares no `run()`, so reference it explicitly
+    // or its instantiation of the omitted route is compiled by nothing.
+    _ = omitted_route_instantiation_test;
+}
 
 const test_config = pcs_core.PcsConfig{
     .pow_bits = 0,
@@ -81,6 +93,10 @@ test "Ethereum SegmentV3 capture seals count-sensitive extension sidecars" {
 
 test "Ethereum SegmentV2 extended transcript binds dynamic provider shard count" {
     try segment_transcript_extension_test.run();
+}
+
+test "Ethereum omitted provider validated and unvalidated routes agree bit for bit" {
+    try omit_validated_parity_test.run();
 }
 
 test "Ethereum Poseidon2 SegmentV3 artifact verifies full dynamic capture" {

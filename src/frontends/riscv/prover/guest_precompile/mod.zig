@@ -40,6 +40,8 @@ pub const ethereum_native_provider_omit_protocol_v1 =
     @import("../memory_provider_shards/ethereum_omit_protocol_v1.zig");
 pub const ethereum_native_provider_omit_proof_v1 =
     @import("../memory_provider_shards/ethereum_omit_provider_proof_v1.zig");
+pub const incremental_ethereum_omit_protocol_v4 =
+    @import("../incremental_ethereum_omit_protocol_v4.zig");
 pub const ethereum_segment_verifier = @import("ethereum_segment_verifier.zig");
 pub const ethereum_leaf_matched_ab_execution_profile_v1 =
     @import("ethereum_leaf_matched_ab_execution_profile_v1.zig");

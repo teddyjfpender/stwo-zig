@@ -140,7 +140,6 @@ pub fn run() !void {
         &first.signer_recovery_calls,
         &first.signer_recovery_execution_rows,
         public_data,
-        global_metadata,
     );
 
     const extension = TestTranscriptExtension(Engine){
@@ -207,7 +206,6 @@ fn runNativeProviderOmission(
     recovery_calls: anytype,
     recovery_rows: anytype,
     public_data: frontend.air.public_data_v2.PublicDataV2,
-    global_metadata: global_v3.MetadataV3,
 ) !void {
     var call_authority = try prover.buildEthereumSegmentProviderCallAuthorityV1(
         allocator,
@@ -295,7 +293,11 @@ fn runNativeProviderOmission(
         prover.guest_precompile.ethereum_segment_orchestration.sequential_execution,
         &prove_extension,
     );
-    defer output.deinit(allocator);
+    var output_proof_moved = false;
+    defer if (output_proof_moved)
+        output.deinitAfterProofMoved(allocator)
+    else
+        output.deinit(allocator);
     const projection = try prove_extension.providerProjection();
     try std.testing.expectEqual(
         output.statement.core.n_infra - 1,
@@ -307,37 +309,18 @@ fn runNativeProviderOmission(
     );
     try std.testing.expect(prove_extension.prover_residual != null);
 
-    const encoded = try support.recursive_artifact.encodeAllocWithLimits(
-        allocator,
-        .{
-            .security_identity_sha256 = support.recursive_security_identity,
-            .statement = &projection.projected_native,
-            .extension = &output.extension,
-            .global = &global_metadata,
-            .base_claim = output.base_claim,
-            .extension_claim = &output.extension_claim,
-            .proof = &output.proof,
-        },
-        support.artifact_limits,
+    // The omitted arm deliberately stops at the prove output and never hands
+    // the projected core to the ordinary SegmentV2 artifact codec: that codec
+    // re-runs `ethereum_proof_admission.validateV2`, whose geometry check
+    // requires the very `.poseidon2` descriptor this projection removes, so a
+    // projected core has no canonical SegmentV2 envelope today. The projection
+    // seal below is the authority that replaces it.
+    try std.testing.expect(projection.omitted_descriptor.kind == .poseidon2);
+    try std.testing.expectEqual(
+        provider_authority.main_column_count,
+        projection.omitted_descriptor.n_columns,
     );
-    defer allocator.free(encoded);
-    var decoded = try support.recursive_artifact.decodeAlloc(
-        allocator,
-        encoded,
-        support.recursive_security_identity,
-        support.artifact_limits,
-    );
-    var decoded_proof_moved = false;
-    defer if (decoded_proof_moved)
-        decoded.deinitAfterProofMoved(allocator)
-    else
-        decoded.deinit(allocator);
-    try std.testing.expect(std.meta.eql(
-        decoded.statement,
-        projection.projected_native,
-    ));
-    try std.testing.expect(std.meta.eql(decoded.extension, output.extension));
-    try std.testing.expect(std.meta.eql(decoded.global, global_metadata));
+    try projection.validateSealAndFull(&output.statement, &output.extension);
 
     var verify_extension = try provider_protocol.Extension(Engine)
         .initForFreshVerify(
@@ -348,16 +331,16 @@ fn runNativeProviderOmission(
             return error.MissingEthereumProviderSharedAuthority,
     );
     var verify_channel = Engine.Channel{};
-    decoded_proof_moved = true;
+    output_proof_moved = true;
     try prover.verifyEthereumSegmentWithEngineUsingChannelAndNativeProviderOmission(
         Engine,
         allocator,
         support.recursive_pcs_config,
         output.statement,
         output.extension,
-        decoded.proof,
-        decoded.base_claim,
-        &decoded.extension_claim,
+        output.proof,
+        output.base_claim,
+        &output.extension_claim,
         &verify_channel,
         &verify_extension,
     );
@@ -371,6 +354,16 @@ fn runNativeProviderOmission(
         return error.MissingEthereumProviderSharedAuthority;
     const fresh_core = verify_extension.fresh_core orelse
         return error.MissingEthereumProviderFreshCore;
+    const verified_projection = try verify_extension.providerProjection();
+    try std.testing.expectEqualSlices(
+        u8,
+        &projection.identity,
+        &verified_projection.identity,
+    );
+    try verified_projection.validateSealAndFull(
+        &output.statement,
+        &output.extension,
+    );
     var lookup_manifest = frontend.air.lookup_physical_manifest_v2
         .Manifest.native();
     const authenticated = try frontend.air.lookup_physical_manifest_v2
@@ -383,7 +376,7 @@ fn runNativeProviderOmission(
         .extension = &output.extension,
         .lookup_manifest = &lookup_manifest,
         .authenticated_lookup = &authenticated,
-        .projection = try verify_extension.providerProjection(),
+        .projection = verified_projection,
         .plan = &plan,
         .calls = call_authority.calls,
         .provider_stage_a = &provider_stage_a,

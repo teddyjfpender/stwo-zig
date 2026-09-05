@@ -245,6 +245,12 @@ pub const incremental_ethereum_orchestration_v4_internal =
     @import("prover/incremental_ethereum_orchestration_v3.zig");
 pub const incremental_ethereum_verifier_v4_internal =
     @import("prover/incremental_ethereum_verifier_v3.zig");
+/// Opt-in omitted-provider route (`--provider-route degree5-omit-v1`). The
+/// native leaf path above is untouched by it; this export exists so the
+/// integration owner can drive the route's prover and cold verifier without
+/// widening the production prover facade.
+pub const incremental_ethereum_omit_orchestration_v4_internal =
+    @import("prover/incremental_ethereum_omit_orchestration_v4.zig");
 
 test {
     @import("std").testing.refAllDecls(@This());

@@ -136,6 +136,9 @@ pub fn commitWithExternalBlocks(
 /// Candidate-only Tree-1 sibling. The canonical projected core and fourteen
 /// Ethereum blocks retain their exact order; typed caller-owned blocks follow
 /// them, and their fixed-table requests join the same multiplicity columns.
+/// `additional_registration` may be `null` when the caller-owned blocks issue no
+/// fixed-table lookups; the canonical Ethereum registration is then used alone,
+/// exactly as in the no-extra-blocks case.
 pub fn commitWithoutNativePoseidonWithExternalBlocks(
     comptime Engine: type,
     allocator: std.mem.Allocator,
@@ -152,7 +155,7 @@ pub fn commitWithoutNativePoseidonWithExternalBlocks(
     recovery_calls: []const @import("../../runner/guest_precompile/secp256k1_recover_call_buffer.zig").Record,
     projection: *const native_provider_omit.ProjectionV1,
     additional_blocks: []const external_tree.BorrowedBlock,
-    additional_registration: external_tree.LookupRegistration,
+    additional_registration: ?external_tree.LookupRegistration,
 ) !external_tree.MainRetained {
     return commitInternal(
         Engine,

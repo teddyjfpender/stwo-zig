@@ -571,6 +571,29 @@ pub fn build(b: *std.Build) void {
         .minimum = 2,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-omit-validated-parity",
+        .description = "Run validated-vs-unvalidated omission-path parity tests",
+        .root = "ethereum_omit_validated_parity_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-incremental-ethereum-omit-protocol-v4",
+        .description = "Run the omitted-provider V4 route pin, frame, and leaf authority tests",
+        .root = "incremental_ethereum_omit_protocol_v4_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"incremental omission route v4:"},
+        .minimum = 7,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-incremental-ethereum-omit-orchestration-v4",
+        .description = "Run the omitted-provider V4 orchestration prologue, geometry, transcript, and binding tests",
+        .root = "incremental_ethereum_omit_orchestration_v4_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"incremental omitted orchestration v4:"},
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-ethereum-matched-ab-omitted-provider-policy",
         .description = "Run matched omitted-provider geometry, plan, and fresh-closure authority tests",
         .root = "ethereum_matched_ab_omitted_provider_policy_test_root.zig",

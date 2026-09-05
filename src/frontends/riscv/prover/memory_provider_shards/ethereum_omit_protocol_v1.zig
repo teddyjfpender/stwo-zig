@@ -29,6 +29,19 @@ pub const FRESH_PROVIDER_CLOSURE_REQUIRED = true;
 pub const Digest = aggregation_hash.Digest;
 const interaction_pow_bits = @import("../../air/transcript/mod.zig").INTERACTION_POW_BITS;
 
+/// The one place this module decides how the complete ordered call corpus is
+/// readmitted. `null` keeps the historical rehash; a token readmits the exact
+/// same plan and call slice in O(1). Both branches accept exactly the same
+/// corpora, so no value derived downstream can differ.
+fn admitCorpus(
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+) !void {
+    if (validated) |token| return token.validateBorrowed(plan, calls);
+    return plan.validate(calls);
+}
+
 pub fn SharedRelationAuthorityV1(comptime Engine: type) type {
     return struct {
         format: u32,
@@ -160,7 +173,29 @@ pub fn ProviderStageAManifestV1(comptime Engine: type) type {
             calls: []const poseidon2_air.Call,
             providers: []const joint.ProviderStageARecord(Engine),
         ) !Self {
-            try plan.validate(calls);
+            return initInternal(plan, calls, null, providers);
+        }
+
+        /// Identity-neutral sibling of `init`: the complete corpus is
+        /// readmitted in O(1) through an already minted authority instead of
+        /// being rehashed. Every field and the manifest identity are produced
+        /// by the same code.
+        pub fn initValidated(
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+            providers: []const joint.ProviderStageARecord(Engine),
+        ) !Self {
+            return initInternal(plan, calls, validated, providers);
+        }
+
+        fn initInternal(
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+            providers: []const joint.ProviderStageARecord(Engine),
+        ) !Self {
+            try admitCorpus(plan, calls, validated);
             var result = Self{
                 .format = format_version,
                 .plan_identity = plan.identity,
@@ -170,7 +205,7 @@ pub fn ProviderStageAManifestV1(comptime Engine: type) type {
                 .identity = undefined,
             };
             result.identity = providerManifestIdentity(Engine, &result);
-            try result.validate(plan, calls);
+            try result.validateInternal(plan, calls, validated);
             return result;
         }
 
@@ -180,7 +215,34 @@ pub fn ProviderStageAManifestV1(comptime Engine: type) type {
             calls: []const poseidon2_air.Call,
             roots: []const harness.StageACommitment(Engine),
         ) !OwnedProviderStageAManifestV1(Engine) {
-            try plan.validate(calls);
+            return createFromRootsInternal(allocator, plan, calls, null, roots);
+        }
+
+        /// Identity-neutral sibling of `createFromRoots`.
+        pub fn createFromRootsValidated(
+            allocator: std.mem.Allocator,
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+            roots: []const harness.StageACommitment(Engine),
+        ) !OwnedProviderStageAManifestV1(Engine) {
+            return createFromRootsInternal(
+                allocator,
+                plan,
+                calls,
+                validated,
+                roots,
+            );
+        }
+
+        fn createFromRootsInternal(
+            allocator: std.mem.Allocator,
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+            roots: []const harness.StageACommitment(Engine),
+        ) !OwnedProviderStageAManifestV1(Engine) {
+            try admitCorpus(plan, calls, validated);
             if (roots.len != plan.shards.len)
                 return error.InvalidEthereumProviderStageARootCount;
             const providers = try allocator.alloc(
@@ -194,7 +256,12 @@ pub fn ProviderStageAManifestV1(comptime Engine: type) type {
                     index,
                     root,
                 );
-            const manifest = try Self.init(plan, calls, providers);
+            const manifest = try Self.initInternal(
+                plan,
+                calls,
+                validated,
+                providers,
+            );
             return .{ .providers = providers, .manifest = manifest };
         }
 
@@ -203,7 +270,26 @@ pub fn ProviderStageAManifestV1(comptime Engine: type) type {
             plan: *const authority.ProviderShardPlanV1,
             calls: []const poseidon2_air.Call,
         ) !void {
-            try plan.validate(calls);
+            return self.validateInternal(plan, calls, null);
+        }
+
+        /// Identity-neutral sibling of `validate`.
+        pub fn validateBorrowedValidated(
+            self: *const Self,
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+        ) !void {
+            return self.validateInternal(plan, calls, validated);
+        }
+
+        fn validateInternal(
+            self: *const Self,
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+        ) !void {
+            try admitCorpus(plan, calls, validated);
             if (self.format != format_version or
                 !aggregation_hash.eql(self.plan_identity, plan.identity) or
                 !aggregation_hash.eql(self.session, plan.session) or
@@ -241,6 +327,11 @@ pub fn Extension(comptime Engine: type) type {
         plan: *const authority.ProviderShardPlanV1,
         calls: []const poseidon2_air.Call,
         provider_stage_a: *const ProviderStageAManifestV1(Engine),
+        /// Optional O(1) readmission authority for `plan`/`calls`. When it is
+        /// present every corpus readmission this extension performs is a
+        /// pointer-closed check instead of a full rehash; nothing else about
+        /// the extension changes.
+        validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1 = null,
         projection: omission.ProjectionV1 = undefined,
         projection_ready: bool = false,
         prover_residual: ?QM31 = null,
@@ -256,11 +347,32 @@ pub fn Extension(comptime Engine: type) type {
             calls: []const poseidon2_air.Call,
             provider_stage_a: *const ProviderStageAManifestV1(Engine),
         ) !Self {
-            try provider_stage_a.validate(plan, calls);
+            return initInternal(plan, calls, null, provider_stage_a);
+        }
+
+        /// Identity-neutral sibling of `init`. The token is retained so every
+        /// later corpus readmission on this extension is O(1).
+        pub fn initValidated(
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+            provider_stage_a: *const ProviderStageAManifestV1(Engine),
+        ) !Self {
+            return initInternal(plan, calls, validated, provider_stage_a);
+        }
+
+        fn initInternal(
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+            provider_stage_a: *const ProviderStageAManifestV1(Engine),
+        ) !Self {
+            try provider_stage_a.validateInternal(plan, calls, validated);
             return .{
                 .plan = plan,
                 .calls = calls,
                 .provider_stage_a = provider_stage_a,
+                .validated = validated,
             };
         }
 
@@ -275,6 +387,49 @@ pub fn Extension(comptime Engine: type) type {
             return result;
         }
 
+        /// Identity-neutral sibling of `initForFreshVerify`.
+        pub fn initForFreshVerifyValidated(
+            plan: *const authority.ProviderShardPlanV1,
+            calls: []const poseidon2_air.Call,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+            provider_stage_a: *const ProviderStageAManifestV1(Engine),
+            expected_shared_relation: SharedRelationAuthorityV1(Engine),
+        ) !Self {
+            var result = try initValidated(
+                plan,
+                calls,
+                validated,
+                provider_stage_a,
+            );
+            result.expected_shared_relation = expected_shared_relation;
+            return result;
+        }
+
+        /// Explicit validated entry to `prepareProjectedCore`. The retained
+        /// token must be the one this extension was built with; the projected
+        /// core, its identity, and the installed workspace are unchanged.
+        pub fn prepareProjectedCoreValidated(
+            self: *Self,
+            native: *const statement_v2.RiscVStatementV2,
+            extension: *const ethereum_statement.Statement,
+            manifest: *const lookup_physical_v2.Manifest,
+            authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+            validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+            workspace_core: *statement.RiscVStatement,
+            full_geometry: statement_geometry.Geometry,
+        ) !void {
+            if (self.validated != validated)
+                return error.InvalidValidatedProviderPlanCallAuthority;
+            return self.prepareProjectedCore(
+                native,
+                extension,
+                manifest,
+                authenticated,
+                workspace_core,
+                full_geometry,
+            );
+        }
+
         pub fn prepareProjectedCore(
             self: *Self,
             native: *const statement_v2.RiscVStatementV2,
@@ -285,16 +440,29 @@ pub fn Extension(comptime Engine: type) type {
             full_geometry: statement_geometry.Geometry,
         ) !void {
             if (self.projection_ready) return error.ProjectionAlreadyPrepared;
-            self.projection = try omission.ProjectionV1.init(
-                native,
-                extension,
-                .proof,
-                manifest,
-                authenticated,
-                self.plan,
-                self.calls,
-                full_geometry,
-            );
+            self.projection = if (self.validated) |token|
+                try omission.ProjectionV1.initValidated(
+                    native,
+                    extension,
+                    .proof,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    token,
+                    full_geometry,
+                )
+            else
+                try omission.ProjectionV1.init(
+                    native,
+                    extension,
+                    .proof,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    full_geometry,
+                );
             try self.projection.installProjectedCore(
                 workspace_core,
                 native,
@@ -335,18 +503,32 @@ pub fn Extension(comptime Engine: type) type {
             supplement: statement_validation.RetirementSupplementV2,
         ) !void {
             if (self.projection_ready) return error.ProjectionAlreadyPrepared;
-            self.projection = try omission.ProjectionV1
-                .initWithRetirementSupplementV2(
-                native,
-                extension,
-                .proof,
-                supplement,
-                manifest,
-                authenticated,
-                self.plan,
-                self.calls,
-                full_geometry,
-            );
+            self.projection = if (self.validated) |token|
+                try omission.ProjectionV1
+                    .initWithRetirementSupplementV2Validated(
+                    native,
+                    extension,
+                    .proof,
+                    supplement,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    token,
+                    full_geometry,
+                )
+            else
+                try omission.ProjectionV1.initWithRetirementSupplementV2(
+                    native,
+                    extension,
+                    .proof,
+                    supplement,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    full_geometry,
+                );
             try self.projection.installProjectedCore(
                 workspace_core,
                 native,
@@ -646,18 +828,35 @@ pub fn Extension(comptime Engine: type) type {
             manifest: *const lookup_physical_v2.Manifest,
             authenticated: *const lookup_physical_v2.AuthenticatedStatement,
         ) !void {
-            try self.provider_stage_a.validate(self.plan, self.calls);
-            const projection = try self.providerProjection();
-            try projection.validateAgainst(
-                native,
-                extension,
-                .proof,
-                manifest,
-                authenticated,
+            try self.provider_stage_a.validateInternal(
                 self.plan,
                 self.calls,
-                try omission.deriveFullGeometry(native),
+                self.validated,
             );
+            const projection = try self.providerProjection();
+            if (self.validated) |token|
+                try projection.validateAgainstValidated(
+                    native,
+                    extension,
+                    .proof,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    token,
+                    try omission.deriveFullGeometry(native),
+                )
+            else
+                try projection.validateAgainst(
+                    native,
+                    extension,
+                    .proof,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    try omission.deriveFullGeometry(native),
+                );
             if (!std.meta.eql(core.*, projection.projected_native.core))
                 return error.ProjectedCoreMismatch;
         }
@@ -671,19 +870,38 @@ pub fn Extension(comptime Engine: type) type {
             authenticated: *const lookup_physical_v2.AuthenticatedStatement,
             supplement: statement_validation.RetirementSupplementV2,
         ) !void {
-            try self.provider_stage_a.validate(self.plan, self.calls);
-            const projection = try self.providerProjection();
-            try projection.validateAgainstWithRetirementSupplementV2(
-                native,
-                extension,
-                .proof,
-                supplement,
-                manifest,
-                authenticated,
+            try self.provider_stage_a.validateInternal(
                 self.plan,
                 self.calls,
-                try omission.deriveFullGeometry(native),
+                self.validated,
             );
+            const projection = try self.providerProjection();
+            if (self.validated) |token|
+                try projection
+                    .validateAgainstWithRetirementSupplementV2Validated(
+                    native,
+                    extension,
+                    .proof,
+                    supplement,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    token,
+                    try omission.deriveFullGeometry(native),
+                )
+            else
+                try projection.validateAgainstWithRetirementSupplementV2(
+                    native,
+                    extension,
+                    .proof,
+                    supplement,
+                    manifest,
+                    authenticated,
+                    self.plan,
+                    self.calls,
+                    try omission.deriveFullGeometry(native),
+                );
             if (!std.meta.eql(core.*, projection.projected_native.core))
                 return error.ProjectedCoreMismatch;
         }
@@ -712,17 +930,97 @@ pub fn replaySharedTranscript(
     provider_stage_a: *const ProviderStageAManifestV1(Engine),
     shared: SharedRelationAuthorityV1(Engine),
 ) !Replay(Engine) {
-    try provider_stage_a.validate(plan, calls);
-    try projection.validateAgainst(
+    return replaySharedTranscriptInternal(
+        Engine,
+        allocator,
+        pcs_config,
         native,
         extension,
-        .proof,
         manifest,
         authenticated,
+        projection,
         plan,
         calls,
-        try omission.deriveFullGeometry(native),
+        null,
+        provider_stage_a,
+        shared,
     );
+}
+
+/// Identity-neutral sibling of `replaySharedTranscript`. The replayed channel,
+/// drawn relations, and returned authority are produced by the same code; only
+/// the corpus readmission becomes O(1).
+pub fn replaySharedTranscriptValidated(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    native: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    projection: *const omission.ProjectionV1,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+    provider_stage_a: *const ProviderStageAManifestV1(Engine),
+    shared: SharedRelationAuthorityV1(Engine),
+) !Replay(Engine) {
+    return replaySharedTranscriptInternal(
+        Engine,
+        allocator,
+        pcs_config,
+        native,
+        extension,
+        manifest,
+        authenticated,
+        projection,
+        plan,
+        calls,
+        validated,
+        provider_stage_a,
+        shared,
+    );
+}
+
+fn replaySharedTranscriptInternal(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    native: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    projection: *const omission.ProjectionV1,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+    provider_stage_a: *const ProviderStageAManifestV1(Engine),
+    shared: SharedRelationAuthorityV1(Engine),
+) !Replay(Engine) {
+    try provider_stage_a.validateInternal(plan, calls, validated);
+    if (validated) |token|
+        try projection.validateAgainstValidated(
+            native,
+            extension,
+            .proof,
+            manifest,
+            authenticated,
+            plan,
+            calls,
+            token,
+            try omission.deriveFullGeometry(native),
+        )
+    else
+        try projection.validateAgainst(
+            native,
+            extension,
+            .proof,
+            manifest,
+            authenticated,
+            plan,
+            calls,
+            try omission.deriveFullGeometry(native),
+        );
     try shared.validate(plan, provider_stage_a, projection);
     var channel = Engine.Channel{};
     pcs_config.mixInto(&channel);
@@ -773,7 +1071,7 @@ pub fn providerLocalPrefixV2(
     claim: authority.ProviderShardClaimV1,
     ordered_call_claim: provider_order.ClaimV1,
 ) !Engine.Channel {
-    var replay = try replaySharedTranscript(
+    return providerLocalPrefixInternalV2(
         Engine,
         allocator,
         pcs_config,
@@ -784,6 +1082,81 @@ pub fn providerLocalPrefixV2(
         projection,
         plan,
         calls,
+        null,
+        provider_stage_a,
+        shared,
+        claim,
+        ordered_call_claim,
+    );
+}
+
+/// Identity-neutral sibling of `providerLocalPrefixV2`. The returned channel
+/// is byte-for-byte the one the unvalidated route produces.
+pub fn providerLocalPrefixValidatedV2(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    native: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    projection: *const omission.ProjectionV1,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated: *const authority.OwnedValidatedPlanCallAuthorityV1,
+    provider_stage_a: *const ProviderStageAManifestV1(Engine),
+    shared: SharedRelationAuthorityV1(Engine),
+    claim: authority.ProviderShardClaimV1,
+    ordered_call_claim: provider_order.ClaimV1,
+) !Engine.Channel {
+    return providerLocalPrefixInternalV2(
+        Engine,
+        allocator,
+        pcs_config,
+        native,
+        extension,
+        manifest,
+        authenticated,
+        projection,
+        plan,
+        calls,
+        validated,
+        provider_stage_a,
+        shared,
+        claim,
+        ordered_call_claim,
+    );
+}
+
+fn providerLocalPrefixInternalV2(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    native: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    projection: *const omission.ProjectionV1,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+    provider_stage_a: *const ProviderStageAManifestV1(Engine),
+    shared: SharedRelationAuthorityV1(Engine),
+    claim: authority.ProviderShardClaimV1,
+    ordered_call_claim: provider_order.ClaimV1,
+) !Engine.Channel {
+    var replay = try replaySharedTranscriptInternal(
+        Engine,
+        allocator,
+        pcs_config,
+        native,
+        extension,
+        manifest,
+        authenticated,
+        projection,
+        plan,
+        calls,
+        validated,
         provider_stage_a,
         shared,
     );

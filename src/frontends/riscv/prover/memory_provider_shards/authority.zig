@@ -520,7 +520,50 @@ pub fn verifyAggregateClosure(
     core: CorePoseidonClaimV1,
     provider_shards: []const ProviderShardClaimV1,
 ) !AggregateClosureV1 {
-    try plan.validate(calls);
+    return verifyAggregateClosureInternal(
+        null,
+        plan,
+        calls,
+        relation,
+        core,
+        provider_shards,
+    );
+}
+
+/// Identity-neutral sibling of `verifyAggregateClosure`.  The only difference
+/// is that the complete plan/call corpus is readmitted through an already
+/// minted `OwnedValidatedPlanCallAuthorityV1` in O(1) instead of being
+/// rehashed.  Every claim, sum, and returned field is computed identically.
+pub fn verifyAggregateClosureValidated(
+    validated: *const OwnedValidatedPlanCallAuthorityV1,
+    plan: *const ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    relation: PoseidonRelationContextV1,
+    core: CorePoseidonClaimV1,
+    provider_shards: []const ProviderShardClaimV1,
+) !AggregateClosureV1 {
+    return verifyAggregateClosureInternal(
+        validated,
+        plan,
+        calls,
+        relation,
+        core,
+        provider_shards,
+    );
+}
+
+fn verifyAggregateClosureInternal(
+    validated: ?*const OwnedValidatedPlanCallAuthorityV1,
+    plan: *const ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    relation: PoseidonRelationContextV1,
+    core: CorePoseidonClaimV1,
+    provider_shards: []const ProviderShardClaimV1,
+) !AggregateClosureV1 {
+    if (validated) |token|
+        try token.validateBorrowed(plan, calls)
+    else
+        try plan.validate(calls);
     try relation.validate(plan.session);
     if (!aggregation_hash.eql(core.plan_identity, plan.identity))
         return error.PlanIdentityMismatch;

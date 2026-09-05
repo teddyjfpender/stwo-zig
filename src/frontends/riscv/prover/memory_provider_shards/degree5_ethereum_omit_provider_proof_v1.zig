@@ -86,10 +86,60 @@ pub fn commitStageAV1(
     calls: []const poseidon2_air.Call,
     shard_index: u32,
 ) !harness.StageACommitment(Engine) {
+    return commitStageAInternalV1(
+        Engine,
+        allocator,
+        pcs_config,
+        expected_program,
+        plan,
+        calls,
+        null,
+        shard_index,
+    );
+}
+
+/// Identity-neutral sibling of `commitStageAV1`. The committed Stage-A trees
+/// and both returned roots are produced by the same code; only the per-shard
+/// corpus readmission becomes O(1).
+pub fn commitStageAValidatedV1(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: core_pcs.PcsConfig,
+    expected_program: VerifierProgramAuthorityV2,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated_calls: *const authority.OwnedValidatedPlanCallAuthorityV1,
+    shard_index: u32,
+) !harness.StageACommitment(Engine) {
+    return commitStageAInternalV1(
+        Engine,
+        allocator,
+        pcs_config,
+        expected_program,
+        plan,
+        calls,
+        validated_calls,
+        shard_index,
+    );
+}
+
+fn commitStageAInternalV1(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: core_pcs.PcsConfig,
+    expected_program: VerifierProgramAuthorityV2,
+    plan: *const authority.ProviderShardPlanV1,
+    calls: []const poseidon2_air.Call,
+    validated_calls: ?*const authority.OwnedValidatedPlanCallAuthorityV1,
+    shard_index: u32,
+) !harness.StageACommitment(Engine) {
     var candidate = try candidate_mod.Candidate.init(allocator, .degree5);
     defer candidate.deinit();
     try expected_program.validateCandidate(&candidate);
-    const shard_calls = try harness.admittedShard(plan, calls, shard_index);
+    const shard_calls = if (validated_calls) |token|
+        try harness.admittedShardValidated(token, plan, calls, shard_index)
+    else
+        try harness.admittedShard(plan, calls, shard_index);
     const index = std.math.cast(usize, shard_index) orelse
         return error.ShardIndexOutOfRange;
     const descriptor = plan.shards[index];
@@ -241,6 +291,37 @@ pub fn proveProviderPreparedWithTranscriptV2(
     );
 }
 
+/// Explicit validated entry to the prepared shared-transcript prover. The
+/// token must be the one the source carries, which is also the one the
+/// prepared Stage-A transaction was minted with; every produced statement,
+/// claim, and proof byte is identical to the unvalidated route.
+pub fn proveProviderPreparedValidatedWithTranscriptV2(
+    comptime Engine: type,
+    comptime TranscriptAdapter: type,
+    allocator: std.mem.Allocator,
+    pcs_config: core_pcs.PcsConfig,
+    expected_program: VerifierProgramAuthorityV2,
+    execution_profile: ExecutionProfileV2,
+    source: anytype,
+    validated_calls: *const authority.OwnedValidatedPlanCallAuthorityV1,
+    shard_index: u32,
+    prepared: *PreparedStageATransactionV1(Engine),
+) !ProviderProofOutputV1(Engine) {
+    if (omit_proof.validatedCallsOf(source) != validated_calls)
+        return error.InvalidValidatedProviderPlanCallAuthority;
+    return proveProviderWithTranscriptInternalV1(
+        Engine,
+        TranscriptAdapter,
+        allocator,
+        pcs_config,
+        expected_program,
+        execution_profile,
+        source,
+        shard_index,
+        prepared,
+    );
+}
+
 fn proveProviderWithTranscriptInternalV1(
     comptime Engine: type,
     comptime TranscriptAdapter: type,
@@ -258,9 +339,9 @@ fn proveProviderWithTranscriptInternalV1(
         return error.ShardIndexOutOfRange;
     if (index >= source.plan.shards.len) return error.ShardIndexOutOfRange;
     const descriptor = source.plan.shards[index];
-    const shard_calls = try harness.admittedShard(
-        source.plan,
-        source.calls,
+    const validated_calls = omit_proof.validatedCallsOf(source);
+    const shard_calls = try omit_proof.admittedShardForSource(
+        source,
         shard_index,
     );
     const stage_a = source.provider_stage_a.providers[index];
@@ -269,14 +350,25 @@ fn proveProviderWithTranscriptInternalV1(
     var local_candidate_live = false;
     defer if (local_candidate_live) local_candidate.deinit();
     const candidate: *candidate_mod.Candidate = if (prepared) |transaction| blk: {
-        try transaction.validateBorrowed(
-            expected_program,
-            source.plan,
-            source.calls,
-            shard_index,
-            stage_a.preprocessed_root,
-            stage_a.main_root,
-        );
+        if (validated_calls) |token|
+            try transaction.validateBorrowedValidated(
+                expected_program,
+                source.plan,
+                source.calls,
+                token,
+                shard_index,
+                stage_a.preprocessed_root,
+                stage_a.main_root,
+            )
+        else
+            try transaction.validateBorrowed(
+                expected_program,
+                source.plan,
+                source.calls,
+                shard_index,
+                stage_a.preprocessed_root,
+                stage_a.main_root,
+            );
         break :blk &transaction.candidate;
     } else blk: {
         local_candidate = try candidate_mod.Candidate.init(allocator, .degree5);
@@ -291,7 +383,17 @@ fn proveProviderWithTranscriptInternalV1(
         source,
     );
 
-    var scheme = if (prepared) |transaction|
+    var scheme = if (prepared) |transaction| if (validated_calls) |token|
+        try transaction.takeSchemeValidated(
+            expected_program,
+            source.plan,
+            source.calls,
+            token,
+            shard_index,
+            stage_a.preprocessed_root,
+            stage_a.main_root,
+        )
+    else
         try transaction.takeScheme(
             expected_program,
             source.plan,
@@ -299,9 +401,7 @@ fn proveProviderWithTranscriptInternalV1(
             shard_index,
             stage_a.preprocessed_root,
             stage_a.main_root,
-        )
-    else
-        try Engine.init(allocator, pcs_config);
+        ) else try Engine.init(allocator, pcs_config);
     var scheme_owned = true;
     errdefer if (scheme_owned) Engine.deinit(&scheme, allocator);
     if (prepared == null) {
@@ -548,6 +648,39 @@ pub fn verifyProviderFreshWithTranscriptV2(
     );
 }
 
+/// Explicit validated entry to the shared-transcript fresh verifier. The
+/// verified claim and every identity it carries are unchanged.
+pub fn verifyProviderFreshValidatedWithTranscriptV2(
+    comptime Engine: type,
+    comptime TranscriptAdapter: type,
+    allocator: std.mem.Allocator,
+    pcs_config: core_pcs.PcsConfig,
+    expected_program: VerifierProgramAuthorityV2,
+    expected_execution_profile: ExecutionProfileV2,
+    source: anytype,
+    validated_calls: *const authority.OwnedValidatedPlanCallAuthorityV1,
+    statement: ProviderStatementV1,
+    proof_in: @import("stwo_core").proof.StarkProof(Engine.Hasher),
+) !FreshDegree5ProviderClaimV1 {
+    if (omit_proof.validatedCallsOf(source) != validated_calls) {
+        var owned = proof_in;
+        owned.deinit(allocator);
+        return error.InvalidValidatedProviderPlanCallAuthority;
+    }
+    return verifyProviderFreshWithTranscriptInternalV1(
+        Engine,
+        TranscriptAdapter,
+        allocator,
+        pcs_config,
+        expected_program,
+        expected_execution_profile,
+        source,
+        statement,
+        proof_in,
+        null,
+    );
+}
+
 fn verifyProviderFreshWithTranscriptInternalV1(
     comptime Engine: type,
     comptime TranscriptAdapter: type,
@@ -570,9 +703,8 @@ fn verifyProviderFreshWithTranscriptInternalV1(
     try validateStatement(source, expected_program, statement);
     const index: usize = @intCast(statement.shard_index);
     const descriptor = source.plan.shards[index];
-    const shard_calls = try harness.admittedShard(
-        source.plan,
-        source.calls,
+    const shard_calls = try omit_proof.admittedShardForSource(
+        source,
         statement.shard_index,
     );
     const commitments = proof.commitment_scheme_proof.commitments.items;
@@ -860,6 +992,22 @@ fn replaySharedOrdinary(
     pcs_config: core_pcs.PcsConfig,
     source: Source(Engine),
 ) !protocol.Replay(Engine) {
+    if (source.validated_calls) |token|
+        return protocol.replaySharedTranscriptValidated(
+            Engine,
+            allocator,
+            pcs_config,
+            source.native,
+            source.extension,
+            source.lookup_manifest,
+            source.authenticated_lookup,
+            source.projection,
+            source.plan,
+            source.calls,
+            token,
+            source.provider_stage_a,
+            source.shared,
+        );
     return protocol.replaySharedTranscript(
         Engine,
         allocator,
@@ -884,6 +1032,24 @@ fn providerLocalPrefixOrdinary(
     claim: authority.ProviderShardClaimV1,
     ordered: provider_order.ClaimV1,
 ) !Engine.Channel {
+    if (source.validated_calls) |token|
+        return protocol.providerLocalPrefixValidatedV2(
+            Engine,
+            allocator,
+            pcs_config,
+            source.native,
+            source.extension,
+            source.lookup_manifest,
+            source.authenticated_lookup,
+            source.projection,
+            source.plan,
+            source.calls,
+            token,
+            source.provider_stage_a,
+            source.shared,
+            claim,
+            ordered,
+        );
     return protocol.providerLocalPrefixV2(
         Engine,
         allocator,
