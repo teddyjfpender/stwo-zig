@@ -25,6 +25,21 @@ pub fn build(b: *std.Build) void {
     });
     addImports(backend, core, backend_contracts, prover_api, prover);
 
+    const abi_digests_update = b.addExecutable(.{
+        .name = "abi-declaration-digests-update",
+        .root_module = b.createModule(.{
+            .root_source_file = b.path("abi_declaration_digests_update.zig"),
+            .target = target,
+            .optimize = optimize,
+        }),
+    });
+    const run_abi_digests_update = b.addRunArtifact(abi_digests_update);
+    run_abi_digests_update.addArg(b.pathFromRoot("shaders/abi_declaration_digests.zig"));
+    b.step(
+        "update-abi-declaration-digests",
+        "Regenerate shaders/abi_declaration_digests.zig natively after a kernel declaration change",
+    ).dependOn(&run_abi_digests_update.step);
+
     const test_step = b.step(
         "test",
         "Compile the stwo_metal_backend package tests",
