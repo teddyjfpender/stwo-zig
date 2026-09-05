@@ -197,6 +197,15 @@ digests equal the pinned v25 bundle manifest byte for byte, so authenticated adm
 | `src/backends/metal` `zig build test` | 8m43 | 7 s |
 | `riscv_metal` product check, ReleaseFast | 9m07 | 13 s |
 
+End-to-end validation of the fix: a cold ReleaseFast build of the D5 sweep now takes 57 s (compile 53 s,
+2 GB), and the rebuilt binary reproduces the pinned proof identity exactly (`ordered_proof_identity_sha256`
+89ee5ce2ec0ed975…, fresh 64ed3a589c76248a…, 19,856,500 bytes; Stage A 1.27 s, Metal prove 2.34 s, CPU
+verify 3.54 s). The build-and-verify loop went from about eleven minutes to about two.
+
+The run also tripped over the `/private/tmp` purge a second time (212 pinned leaf-source files this time).
+`scripts/restore_campaign_inputs.py <materialization-v2.json> <cas>` now restores every pinned path from the
+content-addressed store and verifies size and SHA-256, so that is a one-command fix from here on.
+
 Two lessons worth keeping. First, "it is sema-bound and spread across a huge instantiated graph" was a
 plausible story that the per-root bisect falsified in twenty minutes; the earlier probes had only touched
 the amalgamation's `.len`, which Zig resolves without evaluating the concatenation. Second, when a build
