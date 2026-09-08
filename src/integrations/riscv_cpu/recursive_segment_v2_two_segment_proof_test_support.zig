@@ -1,0 +1,188 @@
+//! Two actual native proofs and detached outer candidates for one tiny complete
+//! execution. Candidate publication is not detached verification or recursive
+//! parent acceptance. The caller admits each key and freshly verifies both
+//! directories before using them as parent inputs.
+const std = @import("std");
+const M31 = @import("stwo_core").fields.m31.M31;
+const frontend = @import("stwo_riscv_frontend");
+const integration = @import("stwo_riscv_cpu_integration");
+const recursion = frontend.recursion;
+const span = recursion.span_statement;
+const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
+const workload = @import("recursive_segment_v2_two_segment_test_support.zig");
+const leaf = integration.recursive_segment_v2_leaf_outer;
+const detached = integration.recursive_segment_v2_detached_proof;
+const command = integration.recursive_segment_v2_detached_command;
+const verifier = integration.recursive_segment_v2_detached_verifier;
+const ProducerAllocator = integration.recursive_segment_v2_outer_engine.ProducerAllocator;
+
+pub const Options = struct {
+    native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+    /// Each directory must be new. Neither child may overwrite prior evidence.
+    child_directories: [2][]const u8,
+    /// Different actual child geometries may require different admitted keys.
+    /// Null exports a candidate key, never an independently trusted key.
+    admitted_outer_keys: [2]?*const verifier.KeyV1 = .{ null, null },
+};
+
+pub const ChildCandidate = struct {
+    segment_index: u32,
+    first_cycle: u64,
+    retired_cycles: u64,
+    completed: bool,
+    hashes: command.CandidateHashesV1,
+    expected_wire_sha256: [32]u8,
+    circuit_identity: [32]u8,
+    native_ingress_ns: u64,
+    detached_prepare_ns: u64,
+    detached_prove_ns: u64,
+    transaction_ns: u64,
+    /// Preparation/outer payloads passed through this caller allocator. The
+    /// native producer has its own separately logged counter. Neither includes
+    /// device caches or size-routed mmap allocations; measure process RSS outside.
+    producer_peak_bytes: usize,
+};
+
+pub const Receipt = struct {
+    children: [2]ChildCandidate,
+    /// Canonical host admission only. No parent AIR/proof is constructed here.
+    folded_statement: span.SpanStatement,
+    address_count: usize,
+    transaction_ns: u64,
+};
+
+/// NativeEngine selects only native proving. Existing shared ingress freshly
+/// decodes/verifies native proofs on CPU; detached outer proving remains the
+/// existing CPU route. The caller owns Metal initialization/shutdown policy.
+/// No producer capture, native proof, cohort, trace or candidate buffer escapes.
+pub fn producePair(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    address_count: usize,
+    options: Options,
+) !Receipt {
+    if (options.child_directories[0].len == 0 or options.child_directories[1].len == 0 or
+        std.mem.eql(u8, options.child_directories[0], options.child_directories[1]))
+        return error.InvalidTwoSegmentCandidateDirectories;
+    try options.native_keys.validate();
+    var timer = try std.time.Timer.start();
+    var pair = try workload.OwnedPair.init(allocator, address_count);
+    var pair_owned = true;
+    defer if (pair_owned) pair.deinit();
+    const statements = try workload.fixtureStatements(allocator, &pair);
+    const admission = try pair.admitStatements(ingress.digest("recursive-v2-session"), statements);
+    _ = try span.RootStatement.init(admission.folded);
+    const results = [_]*const frontend.runner.SegmentResult{ &pair.first.base, &pair.second.base };
+    var children: [2]ChildCandidate = undefined;
+    for (results, statements, admission.sources, 0..) |result, statement, source, index| {
+        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options, index);
+    }
+    const folded_statement = admission.folded;
+    pair.deinit();
+    pair_owned = false;
+    return .{
+        .children = children,
+        .folded_statement = folded_statement,
+        .address_count = address_count,
+        .transaction_ns = timer.read(),
+    };
+}
+
+fn produceChild(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    result: *const frontend.runner.SegmentResult,
+    statement: span.SpanStatement,
+    source: recursion.segment_statement_v2.SourceV2,
+    options: Options,
+    index: usize,
+) !ChildCandidate {
+    var timer = try std.time.Timer.start();
+    // Expected public input comes from independently checked execution/source
+    // admission, not a claim recovered from the candidate outer proof.
+    const words = try allocator.alloc(M31, try source.canonicalWordCount());
+    defer allocator.free(words);
+    _ = try source.encodeCanonical(words);
+    const expected = try frontend.air.public_data_v2.PublicDataV2.authenticate(words);
+    const expected_json = try command.encodeExpected(allocator, &expected);
+    defer allocator.free(expected_json);
+    var memory = ProducerAllocator{};
+    defer std.debug.assert(memory.isEmpty());
+    var candidate_receipt: ChildCandidate = undefined;
+    {
+        const producer_allocator = memory.allocator();
+        const lifecycle_before = if (comptime NativeEngine != leaf.Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
+        const telemetry_before = if (comptime NativeEngine != leaf.Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
+        var native_timer = try std.time.Timer.start();
+        var prepared = try ingress.prepareTemporalNativeLeafWithEngine(
+            NativeEngine,
+            producer_allocator,
+            result,
+            statement,
+            options.native_keys,
+        );
+        defer prepared.deinit();
+        const native_ingress_ns = native_timer.read();
+        if (comptime NativeEngine != leaf.Engine) {
+            const after = NativeEngine.Backend.runtimeLifecycleSnapshot();
+            if (!after.initialized or !std.meta.eql(after.identity, lifecycle_before.identity) or
+                after.initialization_count != lifecycle_before.initialization_count or
+                after.shutdown_count != lifecycle_before.shutdown_count or after.active_call_leases != 0)
+                return error.NativeMetalRuntimeChanged;
+            const delta = (try NativeEngine.Backend.telemetrySnapshot()).delta(telemetry_before);
+            try delta.requireMetalDispatch();
+            if (delta.counters.metal_poseidon2_merkle_commits == 0)
+                return error.NativeMetalPoseidonDispatchMissing;
+            std.debug.print("SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment={d} dispatches={d} poseidon_commits={d}\n", .{
+                index, delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits,
+            });
+        }
+        const captured_words = prepared.capture.public_data.data.words();
+        if (captured_words.len != expected.words().len)
+            return error.TwoSegmentExpectedStatementMismatch;
+        for (captured_words, expected.words()) |actual, wanted|
+            if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
+        var candidate = try detached.produce(producer_allocator, &prepared, options.admitted_outer_keys[index]);
+        defer candidate.deinit();
+        const hashes = try command.retainCandidate(
+            allocator,
+            options.child_directories[index],
+            candidate.key_json,
+            candidate.claims,
+            candidate.proof_bytes,
+        );
+        var directory = try std.fs.cwd().openDir(options.child_directories[index], .{});
+        defer directory.close();
+        var expected_file = try directory.createFile("expected-wire.json", .{ .exclusive = true });
+        defer expected_file.close();
+        try expected_file.writeAll(expected_json);
+        candidate_receipt = .{
+            .segment_index = result.segment_index,
+            .first_cycle = statement.body.executed.first_cycle,
+            .retired_cycles = statement.body.executed.cycle_count,
+            .completed = result.completion_reason != null,
+            .hashes = hashes,
+            .expected_wire_sha256 = command.hash(expected_json),
+            .circuit_identity = candidate.circuit_identity,
+            .native_ingress_ns = native_ingress_ns,
+            .detached_prepare_ns = candidate.prepare_ns,
+            .detached_prove_ns = candidate.prove_ns,
+            .transaction_ns = 0,
+            .producer_peak_bytes = 0,
+        };
+    }
+    // Candidate buffers and each proof/preparation owner are gone before the
+    // next child begins. The caller-owned pair of execution witnesses remains
+    // live until producePair returns; it is outside this payload counter.
+    try memory.requireEmpty();
+    candidate_receipt.producer_peak_bytes = memory.peakBytes();
+    candidate_receipt.transaction_ns = timer.read();
+    std.debug.print("SEGMENT_V2_TWO_CHILD_CANDIDATE segment={d} first_cycle={d} retired_cycles={d} completed={} directory={s} native_backend={s} proof_bytes={d} native_ingress_ns={d} outer_prepare_ns={d} outer_prove_ns={d} transaction_ns={d} producer_peak_bytes={d} producer_live_bytes_after_destroy={d} status=unverified_candidate parent_proof_created=false\n", .{
+        candidate_receipt.segment_index,      candidate_receipt.first_cycle,       candidate_receipt.retired_cycles,
+        candidate_receipt.completed,          options.child_directories[index],    if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
+        candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns, candidate_receipt.detached_prepare_ns,
+        candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,    candidate_receipt.producer_peak_bytes,
+        memory.snapshot().active_bytes,
+    });
+    return candidate_receipt;
+}

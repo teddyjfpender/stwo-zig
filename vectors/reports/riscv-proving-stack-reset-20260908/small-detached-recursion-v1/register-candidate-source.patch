@@ -1,0 +1,3131 @@
+diff --git a/src/frontends/riscv/air/public_data_v2_test_support.zig b/src/frontends/riscv/air/public_data_v2_test_support.zig
+index 662c84e9..6df7c2e9 100644
+--- a/src/frontends/riscv/air/public_data_v2_test_support.zig
++++ b/src/frontends/riscv/air/public_data_v2_test_support.zig
+@@ -24,9 +24,18 @@ pub const Fixture = struct {
+     right_exit_register_clocks: [32]u32,
+ 
+     pub fn init() !Fixture {
+-        const state0 = try machineState(0x1000, 0, "rw-0");
+-        const state1 = try machineState(0x1008, 1, "rw-1");
+-        const state2 = try machineState(0x1010, 2, "rw-2");
++        return initWithRegister7(0);
++    }
++
++    /// Same program, clocks and sparse-memory topology; x7 is unchanged by
++    /// this execution. Build every statement identity from the selected state.
++    pub fn initWithRegister7(value: u32) !Fixture {
++        var state0 = try machineState(0x1000, 0, "rw-0");
++        var state1 = try machineState(0x1008, 1, "rw-1");
++        var state2 = try machineState(0x1010, 2, "rw-2");
++        state0.registers[7] = value;
++        state1.registers[7] = value;
++        state2.registers[7] = value;
+         const job = try span.JobContext.init(
+             try span.CompleteExecution.init(
+                 protocol.PROTOCOL_ID_WORDS,
+diff --git a/src/frontends/riscv/build.zig b/src/frontends/riscv/build.zig
+index a181409d..e8f956b8 100644
+--- a/src/frontends/riscv/build.zig
++++ b/src/frontends/riscv/build.zig
+@@ -863,12 +863,24 @@ pub fn build(b: *std.Build) void {
+         .description = "Run the V2 rows 10 and 11 statement authority gates",
+         .root = "segment_statement_outer_source_v2_test_root.zig",
+         .imports_prover_engine = true,
++        .filters = &.{"V2 row-11"},
++        .minimum = 3,
+     });
+     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+         .step = "test-recursion-segment-public-source-v2",
+         .description = "Run the V2 rows 12 through 17 public-spine source gates",
+         .root = "segment_public_outer_source_v2_test_root.zig",
+         .imports_prover_engine = true,
++        .filters = &.{ "V2 public spine", "V2 public-spine" },
++        .minimum = 5,
++    });
++    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
++        .step = "test-recursion-segment-native-sum-v2",
++        .description = "Run the SegmentV2 native-sum graph and register-input authority gates",
++        .root = "segment_public_native_sum_authority_v2_test_root.zig",
++        .imports_prover_engine = true,
++        .filters = &.{ "SegmentV2 native-sum", "SegmentV2 publication provider plan" },
++        .minimum = 9,
+     });
+     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+         .step = "test-recursion-segment-public-components-v2",
+diff --git a/src/frontends/riscv/recursion/air/mod.zig b/src/frontends/riscv/recursion/air/mod.zig
+index 9a870a67..5957ecb3 100644
+--- a/src/frontends/riscv/recursion/air/mod.zig
++++ b/src/frontends/riscv/recursion/air/mod.zig
+@@ -106,6 +106,7 @@ pub const statement_input_witness = @import("statement_input_witness.zig");
+ pub const statement_semantics_input = @import("statement_semantics_input.zig");
+ pub const statement_semantics_input_relation = @import("statement_semantics_input_relation.zig");
+ pub const statement_semantics_input_witness = @import("statement_semantics_input_witness.zig");
++pub const segment_public_outer_air_v2 = @import("segment_public_outer_air_v2.zig");
+ pub const segment_boundary_components_v2 = @import("segment_boundary_components_v2.zig");
+ pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
+ pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+index 8d6e9879..585d2427 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+@@ -120,6 +120,8 @@ pub const writeTraceInto = shard_1.writeTraceInto;
+ /// Exact logical relation multiset for closure/audit consumers.  Padding rows
+ /// are inactive and intentionally absent from this compact publication.
+ pub const writeStatementRelationEventsInto = shard_1.writeStatementRelationEventsInto;
++/// Canonical statement tuple shared by source writers and detached verifiers.
++pub const statementEvent = shard_1.statementEvent;
+ /// Allocation-free source preflight over the uncompensated public boundary.
+ ///
+ /// This value is useful for typed-AIR authoring and trace-shape validation,
+diff --git a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+index d77fab43..6e6d3004 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+@@ -46,22 +46,22 @@ pub const StatementSemanticsV2 = struct {
+     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
+ 
+     pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
+-    pub const PREPROCESSED_COLUMN_COUNT: usize = 16;
++    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
+     pub const PARAMETER_COUNT: usize = 0;
+     pub const LOGICAL_INPUT_COUNT: usize =
+         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
+     pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
+-    pub const RELATION_EVENT_COUNT: usize = 7;
++    pub const RELATION_EVENT_COUNT: usize = 9;
+     pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-    pub const INTERACTION_BATCH_COUNT: usize = 4;
+-    pub const INTERACTION_COLUMN_COUNT: usize = 16;
++    pub const INTERACTION_BATCH_COUNT: usize = 5;
++    pub const INTERACTION_COLUMN_COUNT: usize = 20;
+     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+ 
+     // Regenerated from the typed IR by the focused source test. This value is
+     // deliberately pinned before the component can be authenticated.
+     pub const SEMANTIC_DIGEST_HEX =
+-        "4af9b4d32b2f77041729ab8fc458bf845d39a1246984b54878a7cc9ce33f6915";
++        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
+     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
+         SEMANTIC_DIGEST_HEX,
+         "invalid V2 statement-semantics digest",
+@@ -97,6 +97,9 @@ pub const StatementSemanticsV2 = struct {
+             "recursion_segment_leaf_v2_statement_semantics_verifier_b_index",
+             "recursion_segment_leaf_v2_statement_semantics_expected_header",
+             "recursion_segment_leaf_v2_statement_semantics_boundary_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
++            "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
+         };
+     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
+         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
+@@ -163,6 +166,9 @@ pub const StatementSemanticsV2 = struct {
+         verifier_b_index: types.ValueId,
+         expected_header: types.ValueId,
+         boundary_bridge_mask: types.ValueId,
++        register_byte_bridge_mask: types.ValueId,
++        register_low_byte_index: types.ValueId,
++        register_high_byte_index: types.ValueId,
+ 
+         pub fn physical(
+             self: PreprocessedColumns,
+@@ -184,6 +190,9 @@ pub const StatementSemanticsV2 = struct {
+                 self.verifier_b_index,
+                 self.expected_header,
+                 self.boundary_bridge_mask,
++                self.register_byte_bridge_mask,
++                self.register_low_byte_index,
++                self.register_high_byte_index,
+             };
+         }
+     };
+@@ -350,6 +359,10 @@ pub const StatementSemanticsV2 = struct {
+                 self.preprocessed.boundary_bridge_mask,
+                 &boundary_bridge_tuple,
+             );
++            const register_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_low_byte_index, self.main.source_low_byte, zero, zero, zero };
++            const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
++            try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
+         }
+     };
+ 
+@@ -413,7 +426,7 @@ pub const StatementSemanticsV2 = struct {
+             index,
+         | value.* = try arena.input(
+             name,
+-            if (index < 9 or index == 15) .selector else .felt,
++            if (index < 9 or index == 15 or index == 16) .selector else .felt,
+             span,
+         );
+         const preprocessed = PreprocessedColumns{
+@@ -433,6 +446,9 @@ pub const StatementSemanticsV2 = struct {
+             .verifier_b_index = preprocessed_values[13],
+             .expected_header = preprocessed_values[14],
+             .boundary_bridge_mask = preprocessed_values[15],
++            .register_byte_bridge_mask = preprocessed_values[16],
++            .register_low_byte_index = preprocessed_values[17],
++            .register_high_byte_index = preprocessed_values[18],
+         };
+         const one = try arena.constantField(1, span);
+         const byte_radix = try arena.constantField(256, span);
+@@ -550,6 +566,10 @@ pub const StatementSemanticsV2 = struct {
+             zero,
+             zero,
+         };
++        // These are the existing range-checked u16 decomposition bytes; the
++        // admitted preprocessing selects only canonical register-limb rows.
++        const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
++        const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
+         const events = [RELATION_EVENT_COUNT]types.EffectId{
+             try relation_effect.append(&arena, .{
+                 .domain = .recursion_statement_word,
+@@ -593,6 +613,18 @@ pub const StatementSemanticsV2 = struct {
+                 .values = &boundary_bridge_tuple,
+                 .weight = preprocessed.boundary_bridge_mask,
+             }, span),
++            try relation_effect.append(&arena, .{
++                .domain = .recursion_wire,
++                .role = .emit,
++                .values = &register_low_tuple,
++                .weight = preprocessed.register_byte_bridge_mask,
++            }, span),
++            try relation_effect.append(&arena, .{
++                .domain = .recursion_wire,
++                .role = .emit,
++                .values = &register_high_tuple,
++                .weight = preprocessed.register_byte_bridge_mask,
++            }, span),
+         };
+         return .{
+             .arena = arena,
+@@ -625,7 +657,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
+-            if (local_index < 9 or local_index == 15) .selector else .felt,
++            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
+         );
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
+index 4f69e438..f183a8cf 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
+@@ -8,7 +8,9 @@
+ //! 2. four published QM31 relation sums and their published total (20 M31
+ //!    words); and
+ //! 3. `(z, alpha)` for registers, memory, program and Merkle relations (32
+-//!    M31 words).
++//!    M31 words); and
++//! 4. 256 register bytes already decomposed and range-checked by row 11,
++//!    relayed by row 15 at their fixed appended graph-input coordinates.
+ //!
+ //! The graph independently recomputes `statement_v2.nativeRelationSums`,
+ //! including the retained continuation-tree leaf and empty-root compensation,
+@@ -20,8 +22,9 @@
+ //! 11 proves canonical tags, u16 limbs, byte decompositions, retained-section
+ //! order/ranges and the exact raw-wire bridge.  The arithmetic graph consumes
+ //! that bridge tuple-by-tuple.  Existing `arithmetic_circuit` operations have
+-//! no lookup/bit-decomposition primitive, so the graph specializes optional
+-//! event topology and byte constants only after re-authenticating the
++//! no lookup/bit-decomposition primitive, so register bytes consume the
++//! existing row-11 constraints. Sparse-memory event topology and its byte
++//! constants remain specialized only after re-authenticating the
+ //! verifier-owned canonical wire.  The complete graph digest, exact node use
+ //! counts, wire identity and `PreparedV2` source identities are sealed
+ //! together.  No digest-trusted witness controls this specialization.
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+index 0b6e0039..80f11614 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+@@ -27,6 +27,7 @@ const program_decode = dependency_0.program_decode;
+ const public_source = dependency_0.public_source;
+ const span_statement = dependency_0.span_statement;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const wire_statement = dependency_0.wire_statement;
+ 
+ pub fn buildGraph(
+@@ -49,7 +50,7 @@ pub fn buildGraph(
+         .builder = &builder,
+         .relations = &graph_inputs.relations,
+     };
+-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire);
++    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes);
+ 
+     for (0..DOMAIN_COUNT) |index| {
+         _ = try builder.markOutput(try builder.sub(
+@@ -73,6 +74,7 @@ pub fn addBoundaryTerms(
+     accumulator: *RelationAccumulator,
+     view: *const wire_statement.CanonicalWireViewV2,
+     wire: []const arithmetic.Value,
++    bytes: []const arithmetic.Value,
+ ) Error!void {
+     const base = try view.statement.base();
+     const executed = switch (base.body) {
+@@ -115,8 +117,8 @@ pub fn addBoundaryTerms(
+     }, .negative);
+ 
+     for (0..32) |register| {
+-        const entry_value = executed.entry.registers[register];
+-        const exit_value = executed.exit.registers[register];
++        const entry = bytes[register_bytes.byteIndex(.entry, register, 0)..][0..4];
++        const exit = bytes[register_bytes.byteIndex(.exit, register, 0)..][0..4];
+         const entry_clock = try fixedU32(
+             accumulator.builder,
+             wire,
+@@ -131,19 +133,19 @@ pub fn addBoundaryTerms(
+             baseValue(0),
+             baseValue(@as(u32, @intCast(register))),
+             entry_clock,
+-            baseValue(@as(u8, @truncate(entry_value))),
+-            baseValue(@as(u8, @truncate(entry_value >> 8))),
+-            baseValue(@as(u8, @truncate(entry_value >> 16))),
+-            baseValue(@as(u8, @truncate(entry_value >> 24))),
++            entry[0],
++            entry[1],
++            entry[2],
++            entry[3],
+         }, .positive);
+         try accumulator.add(.memory_access, &.{
+             baseValue(0),
+             baseValue(@as(u32, @intCast(register))),
+             exit_clock,
+-            baseValue(@as(u8, @truncate(exit_value))),
+-            baseValue(@as(u8, @truncate(exit_value >> 8))),
+-            baseValue(@as(u8, @truncate(exit_value >> 16))),
+-            baseValue(@as(u8, @truncate(exit_value >> 24))),
++            exit[0],
++            exit[1],
++            exit[2],
++            exit[3],
+         }, .negative);
+     }
+ 
+@@ -304,6 +306,8 @@ pub fn inputSource(
+             .limb = @intCast(suffix % 8),
+         } };
+     }
++    suffix -= CHALLENGE_WORD_COUNT;
++    if (suffix < register_bytes.BYTE_COUNT) return .{ .register_byte = @intCast(suffix) };
+     return error.InputBindingMismatch;
+ }
+ 
+@@ -340,6 +344,10 @@ pub fn fillInputValues(
+             at += 1;
+         };
+     }
++    for (0..register_bytes.BYTE_COUNT) |index| {
++        destination[at] = QM31.fromBase(register_bytes.value(inputs.owned_public_data.data.words(), index));
++        at += 1;
++    }
+     std.debug.assert(at == destination.len);
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+index 5ee89dc4..a71e7738 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+@@ -14,8 +14,9 @@ pub const span_statement = @import("span_statement.zig");
+ pub const wire_statement = @import("segment_statement_v2.zig");
+ pub const graph_mod = @import("air/composition_circuit.zig");
+ pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+-pub const FORMAT_VERSION: u16 = 2;
++pub const FORMAT_VERSION: u16 = 3;
+ pub const SCHEMA_VERSION: u16 = 1;
+ pub const CIRCUIT_ID: u32 = public_source.NATIVE_SUM_CIRCUIT_ID;
+ pub const DOMAIN_COUNT: usize = 4;
+@@ -24,7 +25,7 @@ pub const PUBLISHED_WORD_COUNT: usize =
+ pub const CHALLENGE_WORD_COUNT: usize = public_source.CHALLENGE_WORD_COUNT;
+ pub const OUTPUT_COUNT: usize = 5;
+ pub const INPUT_SUFFIX_WORD_COUNT: usize =
+-    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT;
++    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT;
+ pub const AUTHORITY_DOMAIN =
+     "stwo-zig/typed-air/segment-v2-native-public-sum-authority/v1\x00";
+ pub const EVALUATION_DOMAIN =
+@@ -82,6 +83,7 @@ pub const InputSourceV2 = union(enum) {
+     published_sum_word: PublishedCoordinateV2,
+     published_total_word: PublishedTotalCoordinateV2,
+     native_challenge_word: ChallengeCoordinateV2,
++    register_byte: u8,
+ };
+ 
+ pub const InputBindingV2 = struct {
+@@ -181,6 +183,7 @@ pub const AuthoredGraph = struct {
+ 
+ pub const GraphInputs = struct {
+     wire: []const arithmetic.Value,
++    register_bytes: []const arithmetic.Value,
+     published_sums: [DOMAIN_COUNT]arithmetic.Value,
+     published_total: arithmetic.Value,
+     relations: [DOMAIN_COUNT]BoundRelation,
+@@ -295,6 +298,7 @@ pub fn bindGraphInputs(
+     }
+     return .{
+         .wire = values[0..wire_count],
++        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT ..],
+         .published_sums = published_sums,
+         .published_total = published_total,
+         .relations = relations,
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+index a42f2cce..4223f476 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+@@ -521,6 +521,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
+                 hashInt(&hash, u8, @intFromEnum(coordinate.relation));
+                 hashInt(&hash, u8, coordinate.limb);
+             },
++            .register_byte => |index| hashInt(&hash, u8, index),
+         }
+     }
+     return hash.finalResult();
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+index f12c1512..1bb07808 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+@@ -19,6 +19,8 @@ const fixed_profile = @import("fixed_profile.zig");
+ const protocol = @import("protocol.zig");
+ const channel = @import("poseidon2_channel.zig");
+ const schedule = @import("air/verifier_schedule.zig");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
++const lowering = @import("air/verifier_arithmetic_lowering.zig");
+ 
+ const Fixture = fixture_support.Fixture;
+ 
+@@ -75,7 +77,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+     const wire_count = fixture.owned_public.data.words().len;
+     try std.testing.expectEqual(
+         wire_count + subject.PUBLISHED_WORD_COUNT +
+-            subject.CHALLENGE_WORD_COUNT,
++            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         source.bindings.len,
+     );
+     for (source.bindings, 0..) |binding, index| {
+@@ -106,7 +108,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 )),
+                 coordinate.publication_index,
+             );
+-        } else {
++        } else if (suffix < subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT) {
+             const coordinate = binding.source.native_challenge_word;
+             const challenge_index = suffix - subject.PUBLISHED_WORD_COUNT;
+             try std.testing.expectEqual(
+@@ -117,10 +119,67 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 @as(u3, @intCast(challenge_index % 8)),
+                 coordinate.limb,
+             );
++        } else {
++            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
+         }
+     }
+ }
+ 
++test "SegmentV2 native-sum register inputs preserve graph and preprocessing across canonical statements" {
++    const allocator = std.testing.allocator;
++    var first = try Fixture.initWithRegister7(allocator, 0x01020304);
++    defer first.deinit();
++    var second = try Fixture.initWithRegister7(allocator, 0x05060708);
++    defer second.deinit();
++    const first_prepared = try public_source.preflight(first.inputs());
++    const second_prepared = try public_source.preflight(second.inputs());
++    var first_source = try subject.SourceV2.init(allocator, &first_prepared, first.inputs());
++    defer first_source.deinit();
++    var second_source = try subject.SourceV2.init(allocator, &second_prepared, second.inputs());
++    defer second_source.deinit();
++    try std.testing.expect(!std.meta.eql(first_source.wire_id, second_source.wire_id));
++    try std.testing.expectEqualDeep(first_prepared.manifest.log_sizes, second_prepared.manifest.log_sizes);
++    try std.testing.expectEqualSlices(@import("air/composition_circuit.zig").Node, first_source.owned_graph.nodes, second_source.owned_graph.nodes);
++    try std.testing.expectEqualSlices(u32, first_source.owned_graph.outputs, second_source.owned_graph.outputs);
++    try std.testing.expectEqualDeep(first_source.owned_graph.graph.identity_digest, second_source.owned_graph.graph.identity_digest);
++    try std.testing.expectEqualDeep(first_source.bindings, second_source.bindings);
++
++    // The shared lowering owner requires both proof modes. Keep one identical
++    // companion lane in both plans; only the segment lane varies in this test.
++    var companion = first_source.loweringLane();
++    companion.active_in = .binary;
++    companion.circuit_id += 1;
++    const first_lanes = [_]lowering.Lane{ first_source.loweringLane(), companion };
++    const second_lanes = [_]lowering.Lane{ second_source.loweringLane(), companion };
++    var first_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&first_lanes));
++    defer first_plan.deinit();
++    var second_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&second_lanes));
++    defer second_plan.deinit();
++    try std.testing.expectEqualDeep(first_plan.multiply_rows, second_plan.multiply_rows);
++    try std.testing.expectEqualDeep(first_plan.inverse_rows, second_plan.inverse_rows);
++    try std.testing.expectEqualDeep(first_plan.linear_rows, second_plan.linear_rows);
++    try std.testing.expectEqualDeep(first_plan.public_terms, second_plan.public_terms);
++
++    var first_values = try OwnedEvaluation.init(allocator, &first_source);
++    defer first_values.deinit();
++    var second_values = try OwnedEvaluation.init(allocator, &second_source);
++    defer second_values.deinit();
++    _ = try first_source.evaluateInto(&first_prepared, first.inputs(), first_values.buffers());
++    _ = try second_source.evaluateInto(&second_prepared, second.inputs(), second_values.buffers());
++    try std.testing.expect(!std.meta.eql(first_values.destinationDigest(), second_values.destinationDigest()));
++    const byte_index = register_bytes.byteIndex(.entry, 7, 0);
++    const existing_inputs = first.owned_public.data.words().len + subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT;
++    const input_index = register_bytes.inputIndex(existing_inputs, byte_index);
++    try std.testing.expect(first_source.bindings[input_index].use_count > 0);
++    try std.testing.expectEqual(@as(u32, 4), first_values.scratch_inputs[input_index].toM31Array()[0].toU32());
++    try std.testing.expectEqual(@as(u32, 8), second_values.scratch_inputs[input_index].toM31Array()[0].toU32());
++    // Even a canonical byte cannot be substituted while preserving the native
++    // public sums. Row11/15 relation tests separately prove the byte's source.
++    first_values.scratch_inputs[input_index] = QM31.fromBase(M31.fromCanonical(5));
++    try first_source.circuit.evaluateIntoAssumeValid(first_values.scratch_inputs, first_values.scratch_values);
++    try std.testing.expect(!try first_source.circuit.outputsAreZero(first_values.scratch_values));
++}
++
+ test "SegmentV2 native-sum owned evaluation is a compact lowering handoff" {
+     var fixture = try Fixture.init(std.testing.allocator);
+     defer fixture.deinit();
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+index 2b368fa6..6ab325b6 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+@@ -48,6 +48,7 @@ const source_v2 = dependency_0.source_v2;
+ const statement_v1 = dependency_0.statement_v1;
+ const statement_v2 = dependency_0.statement_v2;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const sumsEql = dependency_0.sumsEql;
+ const traceLogSize = dependency_0.traceLogSize;
+ const universal = dependency_0.universal;
+@@ -140,8 +141,8 @@ pub const PreparedV2 = struct {
+         return .{
+             .source36_statement_word_emits = wire_count,
+             .row11_statement_word_consumes = wire_count,
+-            .row11_boundary_bridge_emits = wire_count,
+-            .row15_boundary_bridge_consumes = wire_count,
++            .row11_boundary_bridge_emits = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
++            .row15_boundary_bridge_consumes = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+             .rows13_16_arithmetic_wire_emits = self.lowering_obligation.input_count,
+         };
+     }
+@@ -277,7 +278,7 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
+             u32,
+             try checkedAdd(
+                 data.words().len,
+-                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
++                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+             ),
+         ) orelse return error.ArithmeticOverflow,
+         .identity = undefined,
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+index 4cc9a5f1..b9c9d622 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+@@ -22,10 +22,11 @@ pub const schedule = @import("air/verifier_schedule.zig");
+ pub const control_v2 = @import("air/vm_public_logup_control_v2.zig");
+ pub const control_relation_v2 = @import("air/vm_public_logup_control_relation_v2.zig");
+ pub const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+ pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 2;
+-pub const MANIFEST_VERSION: u16 = 4;
++pub const SCHEMA_VERSION: u16 = 3;
++pub const MANIFEST_VERSION: u16 = 5;
+ pub const FIRST_ROW: usize = @intFromEnum(roster.Component.vm_public_claim_input);
+ pub const ROW_COUNT: usize = 6;
+ pub const LAST_ROW: usize = FIRST_ROW + ROW_COUNT - 1;
+@@ -218,7 +219,7 @@ pub const ClosureLedgerV2 = struct {
+             self.source36_statement_word_emits !=
+                 self.row11_statement_word_consumes or
+             self.row11_boundary_bridge_emits !=
+-                self.row11_statement_word_consumes or
++                try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT) or
+             self.row15_boundary_bridge_consumes !=
+                 self.row11_boundary_bridge_emits or
+             self.row8_challenge_word_emits != CHALLENGE_WORD_COUNT or
+@@ -294,7 +295,7 @@ pub const ManifestV2 = struct {
+                 control_witness_v2.TRACE_LOG_SIZE or
+             allZeroBytes(&self.control_source_id) or
+             self.logical_rows[rowIndex(.vm_public_claim_semantics_input)] !=
+-                self.wire_word_count)
++                try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT))
+         {
+             return error.InvalidManifest;
+         }
+@@ -337,7 +338,7 @@ pub const LoweringObligationV2 = struct {
+     pub fn validate(self: *const LoweringObligationV2) Error!void {
+         const expected_inputs = try checkedAddU32(
+             self.boundary_word_count,
+-            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
++            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         );
+         if (self.format_version != FORMAT_VERSION or
+             self.schema_version != SCHEMA_VERSION or
+@@ -365,7 +366,7 @@ pub fn deriveCounts(
+     var relay_relation_events = try checkedMul(PUBLICATION_WORD_COUNT, 3);
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+-        try checkedMul(wire_words, 3),
++        try checkedMul(try checkedAdd(wire_words, register_bytes.BYTE_COUNT), 3),
+     );
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+@@ -383,7 +384,7 @@ pub fn deriveCounts(
+         .publication_header = PUBLICATION_HEADER_WORD_COUNT,
+         .native_public_sums = NATIVE_PUBLIC_SUM_WORD_COUNT,
+         .publication_seal = PUBLICATION_SEAL_WORD_COUNT,
+-        .boundary_bridge = wire_words,
++        .boundary_bridge = try checkedAdd(wire_words, register_bytes.BYTE_COUNT),
+         .native_challenges = CHALLENGE_WORD_COUNT,
+         .control_relay = CONTROL_LOGICAL_ROW_COUNT,
+         .relay_relation_events = relay_relation_events,
+@@ -414,6 +415,7 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
+ 
+ pub fn eventCountFromManifest(manifest: *const ManifestV2) Error!u32 {
+     var relay_rows = try checkedAddU32(PUBLICATION_WORD_COUNT, manifest.wire_word_count);
++    relay_rows = try checkedAddU32(relay_rows, register_bytes.BYTE_COUNT);
+     relay_rows = try checkedAddU32(relay_rows, CHALLENGE_WORD_COUNT);
+     var result = try checkedMulU32(relay_rows, 3);
+     result = try checkedAddU32(result, manifest.authority_poseidon_call_count);
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+index 2767140d..98ecdb11 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+@@ -12,6 +12,7 @@ const subject = @import("segment_public_outer_source_v2.zig");
+ const fixture_support = @import("segment_public_outer_test_support.zig");
+ const control_air_v2 = @import("air/vm_public_logup_control_v2.zig");
+ const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+ const Fixture = fixture_support.Fixture;
+ 
+@@ -29,7 +30,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+     try std.testing.expectEqual(subject.PUBLICATION_HEADER_WORD_COUNT, counts.publication_header);
+     try std.testing.expectEqual(subject.NATIVE_PUBLIC_SUM_WORD_COUNT, counts.native_public_sums);
+     try std.testing.expectEqual(subject.PUBLICATION_SEAL_WORD_COUNT, counts.publication_seal);
+-    try std.testing.expectEqual(wire.len, counts.boundary_bridge);
++    try std.testing.expectEqual(wire.len + register_bytes.BYTE_COUNT, counts.boundary_bridge);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, counts.native_challenges);
+     try std.testing.expectEqual(subject.CONTROL_LOGICAL_ROW_COUNT, counts.control_relay);
+     try std.testing.expectEqual(
+@@ -42,7 +43,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         counts.authority_relation_events,
+     );
+     try std.testing.expectEqual(
+-        3 * (subject.PUBLICATION_WORD_COUNT + wire.len +
++        3 * (subject.PUBLICATION_WORD_COUNT + wire.len + register_bytes.BYTE_COUNT +
+             subject.CHALLENGE_WORD_COUNT) +
+             counts.authority_relation_events +
+             subject.CONTROL_RELATION_EVENT_COUNT,
+@@ -117,7 +118,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         );
+     }
+ 
+-    for (owned.boundary_bridge, wire, 0..) |row, value, index| {
++    for (owned.boundary_bridge[0..wire.len], wire, 0..) |row, value, index| {
+         try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
+         try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
+         try std.testing.expectEqual(@as(u32, @intCast(index)), row.source_fields[1]);
+@@ -127,6 +128,16 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
+         try std.testing.expectEqual(@as(u32, 0), row.control_mask);
+     }
++    for (owned.boundary_bridge[wire.len..], 0..) |row, byte_index| {
++        try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
++        try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
++        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.bridgeIndex(wire.len, byte_index))), row.source_fields[1]);
++        try std.testing.expect(row.value.eql(register_bytes.value(wire, byte_index)));
++        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.inputIndex(wire.len + subject.ARITHMETIC_PUBLICATION_WORD_COUNT + subject.CHALLENGE_WORD_COUNT, byte_index))), row.arithmetic_node_id);
++        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_mask);
++        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
++        try std.testing.expectEqual(@as(u32, 0), row.control_mask);
++    }
+ 
+     for (owned.native_challenges, 0..) |row, index| {
+         try std.testing.expectEqual(subject.RelaySourceKindV2.native_challenge, row.source_kind);
+@@ -445,10 +456,10 @@ fn expectExactRelationProjection(owned: *const OwnedDestinations, wire_len: usiz
+             control_emits += @intFromBool(event.multiplicity == 1);
+         }
+     }
+-    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len, source_wire_consumes);
++    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len + register_bytes.BYTE_COUNT, source_wire_consumes);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, source_challenge_consumes);
+     try std.testing.expectEqual(
+-        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT,
++        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         arithmetic_emits,
+     );
+     try std.testing.expectEqual(@as(usize, 1), control_emits);
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+index a6f32bc8..82a90eef 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+@@ -54,6 +54,7 @@ const relation_challenge_witness = dependency_0.relation_challenge_witness;
+ const roster = dependency_0.roster;
+ const source_v2 = dependency_0.source_v2;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const universal = dependency_0.universal;
+ const validateDestinationGeometry = dependency_1.validateDestinationGeometry;
+ const wireTuple = dependency_1.wireTuple;
+@@ -209,6 +210,26 @@ pub fn writeAssumeValid(
+         );
+     }
+ 
++    // Row 11 emitted these exact bytes after its existing u16 decomposition
++    // and range checks. Reuse the ordinary relay with distinct coordinates;
++    // no new value is accepted solely from the native-sum graph producer.
++    for (0..register_bytes.BYTE_COUNT) |byte_index| {
++        const index = register_bytes.bridgeIndex(wire.len, byte_index);
++        const node = register_bytes.inputIndex(wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT, byte_index);
++        const value = register_bytes.value(wire, byte_index);
++        const row = RelayRowV2{
++            .source_kind = .boundary_bridge,
++            .source_fields = .{ BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
++            .value = value,
++            .arithmetic_mask = 1,
++            .arithmetic_node_id = @intCast(node),
++            .arithmetic_use_count = inputUseCount(arithmetic_use_counts, node),
++        };
++        destinations.boundary_bridge[index] = row;
++        const source_tuple = wireTuple(BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), value);
++        writeRelayEvents(&sink, .vm_public_claim_semantics_input, index, row, .recursion_wire, &source_tuple);
++    }
++
+     for (challenges, 0..) |challenge, index| {
+         const node = wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + index;
+         const row = RelayRowV2{
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_test_support.zig b/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
+index 29968f7c..d3085f8c 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
+@@ -43,7 +43,11 @@ pub const Fixture = struct {
+     vm_plan: schedule.Plan,
+ 
+     pub fn init(allocator: std.mem.Allocator) !Fixture {
+-        const support_fixture = try public_data_support.Fixture.init();
++        return initWithRegister7(allocator, 0);
++    }
++
++    pub fn initWithRegister7(allocator: std.mem.Allocator, value: u32) !Fixture {
++        const support_fixture = try public_data_support.Fixture.initWithRegister7(value);
+         const source = support_fixture.rightSource();
+         const words = try public_data_support.encode(allocator, &source);
+         defer allocator.free(words);
+diff --git a/src/frontends/riscv/recursion/segment_range_authority_v2.zig b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+index 550cf763..31252ed6 100644
+--- a/src/frontends/riscv/recursion/segment_range_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+@@ -87,7 +87,9 @@ pub const SourceAuthorityV2 = struct {
+             self.table_kind != range_bridge.TABLE_KIND or
+             self.table_log_size != lookup_schema.logSize(self.table_kind) or
+             self.table_size != lookup_schema.size(self.table_kind) or
+-            statement.Air.RELATION_EVENT_COUNT != 7 or
++            // The appended byte exports are recursion_wire events; request
++            // ordinals3/4/5 remain the complete three-lane range source.
++            statement.Air.RELATION_EVENT_COUNT != 9 or
+             !statement.ROW_35_REQUEST_SET_COMPLETE)
+         {
+             return error.InvalidSourceAuthority;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+index c770c5a8..75d8ac4d 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+@@ -1,6 +1,7 @@
+ //! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
+ 
+ pub const std = @import("std");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ pub const stwo_core = @import("stwo_core");
+ 
+ pub const M31 = stwo_core.fields.m31.M31;
+@@ -33,9 +34,9 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
+     Air.authenticate,
+ )).@"fn".return_type.?).error_union.error_set;
+ 
+-pub const FORMAT_VERSION: u16 = 3;
+-pub const SCHEMA_VERSION: u16 = 2;
+-pub const MANIFEST_VERSION: u16 = 3;
++pub const FORMAT_VERSION: u16 = 4;
++pub const SCHEMA_VERSION: u16 = 3;
++pub const MANIFEST_VERSION: u16 = 4;
+ pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
+ pub const ROUTING_ROW_11: u8 =
+     @intFromEnum(roster.Component.statement_semantics_input);
+@@ -122,6 +123,8 @@ pub const ClosureLedgerV2 = struct {
+     row11_statement_payload_consumes: u32,
+     row11_boundary_wire_emits: u32,
+     row15_boundary_wire_consumes: u32,
++    row11_register_byte_emits: u32,
++    row15_register_byte_consumes: u32,
+     boundary_bridge_circuit_id: u32 = Air.BOUNDARY_BRIDGE_CIRCUIT_ID,
+     source37_custom_logup_consumes: u32 = source_v2.LOGUP_PUBLICATION_WORD_COUNT,
+     source37_verifier_id: u32 = source_v2.SEGMENT_V2_VERIFIER_ID,
+@@ -143,6 +146,8 @@ pub const ClosureLedgerV2 = struct {
+             self.row11_boundary_wire_emits == 0 or
+             self.row11_boundary_wire_emits !=
+                 self.row15_boundary_wire_consumes or
++            self.row11_register_byte_emits != register_bytes.BYTE_COUNT or
++            self.row15_register_byte_consumes != self.row11_register_byte_emits or
+             self.boundary_bridge_circuit_id !=
+                 public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID or
+             self.source37_custom_logup_consumes !=
+@@ -170,8 +175,8 @@ comptime {
+         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
+         VM_PUBLIC_LOGUP_ROW_16 != 16 or
+         HEADER_LIMB_COUNT != 8 or
+-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 7 or
+-        Air.INTERACTION_BATCH_COUNT != 4 or Air.INTERACTION_COLUMN_COUNT != 16 or
++        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 9 or
++        Air.INTERACTION_BATCH_COUNT != 5 or Air.INTERACTION_COLUMN_COUNT != 20 or
+         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
+             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
+     {
+@@ -205,6 +210,7 @@ pub const ManifestV2 = struct {
+     routing_row_11: u8 = ROUTING_ROW_11,
+     range_provider_row_35: u8 = RANGE_PROVIDER_ROW_35,
+     wire_word_count: u32,
++    register_byte_count: u32 = register_bytes.BYTE_COUNT,
+     context_word_count: u32 = source_v2.CONTEXT_WORD_COUNT,
+     header_limb_count: u32 = HEADER_LIMB_COUNT,
+     logical_row_count: u32,
+@@ -229,6 +235,7 @@ pub const ManifestV2 = struct {
+             self.routing_row_11 != ROUTING_ROW_11 or
+             self.range_provider_row_35 != RANGE_PROVIDER_ROW_35 or
+             self.context_word_count != source_v2.CONTEXT_WORD_COUNT or
++            self.register_byte_count != register_bytes.BYTE_COUNT or
+             self.header_limb_count != HEADER_LIMB_COUNT or
+             self.wire_id_limb_request_count != WIRE_ID_LIMB_COUNT or
+             !self.range_request_source_complete or
+@@ -285,6 +292,9 @@ pub const PreprocessedRowV2 = struct {
+     verifier_b_index: u32,
+     expected_header: u32,
+     boundary_bridge_mask: u32,
++    register_byte_bridge_mask: u32 = 0,
++    register_low_byte_index: u32 = 0,
++    register_high_byte_index: u32 = 0,
+ 
+     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
+         return .{
+@@ -304,6 +314,9 @@ pub const PreprocessedRowV2 = struct {
+             felt(self.verifier_b_index),
+             felt(self.expected_header),
+             felt(self.boundary_bridge_mask),
++            felt(self.register_byte_bridge_mask),
++            felt(self.register_low_byte_index),
++            felt(self.register_high_byte_index),
+         };
+     }
+ };
+@@ -453,6 +466,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     hash.scalar(manifest.routing_row_11);
+     hash.scalar(manifest.range_provider_row_35);
+     hash.u32Value(manifest.wire_word_count);
++    hash.u32Value(manifest.register_byte_count);
+     hash.u32Value(manifest.context_word_count);
+     hash.u32Value(manifest.header_limb_count);
+     hash.u32Value(manifest.logical_row_count);
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+index f34c3846..5c305e3c 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+@@ -198,6 +198,8 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
+         .row11_statement_payload_consumes = transcript_count,
+         .row11_boundary_wire_emits = prepared.manifest.wire_word_count,
+         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
++        .row11_register_byte_emits = prepared.manifest.register_byte_count,
++        .row15_register_byte_consumes = prepared.manifest.register_byte_count,
+     };
+     try result.validate();
+     return result;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+index e11932ac..29ba8b80 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+@@ -237,6 +237,8 @@ pub fn wireRow(
+ ) LogicalRowV2 {
+     const value = view.words[index];
+     const is_u16 = wireWordIsU16(view, index);
++    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
++    std.debug.assert(register_byte == null or is_u16);
+     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
+     return .{
+         .preprocessing = .{
+@@ -256,6 +258,9 @@ pub fn wireRow(
+             .verifier_b_index = 0,
+             .expected_header = 0,
+             .boundary_bridge_mask = 1,
++            .register_byte_bridge_mask = @intFromBool(register_byte != null),
++            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
++            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
+         },
+         .main = .{
+             .enabler = M31.one(),
+@@ -384,6 +389,16 @@ pub fn writeEvents(
+             main.source_value,                    M31.zero(),
+             M31.zero(),                           M31.zero(),
+         }),
++        event(logical_row, 7, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_low_byte_index),
++            main.source_low_byte,                 M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
++        event(logical_row, 8, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_high_byte_index),
++            main.source_high_byte,                M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
+     };
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+index 3f1f64c4..bc0767de 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+@@ -1,4 +1,5 @@
+ const std = @import("std");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ const stwo_core = @import("stwo_core");
+ 
+ const M31 = stwo_core.fields.m31.M31;
+@@ -180,6 +181,8 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     var wire_id_consumes: usize = 0;
+     var wire_consumes: usize = 0;
+     var boundary_wire_emits: usize = 0;
++    var register_byte_emits: usize = 0;
++    var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
+     for (owned.events) |event| {
+         try event.validate();
+         if (event.multiplicity == 0) continue;
+@@ -203,6 +206,19 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+             try std.testing.expect(event.tuple[2].eql(fixture.words[index]));
+             boundary_wire_emits += 1;
+         }
++        if (event.ordinal == 7 or event.ordinal == 8) {
++            try std.testing.expectEqual(@as(u32, 1), event.multiplicity);
++            try std.testing.expectEqual(air_v2.StatementSemanticsV2.BOUNDARY_BRIDGE_CIRCUIT_ID, event.tuple[0].toU32());
++            const coordinate = event.tuple[1].toU32();
++            try std.testing.expect(coordinate >= fixture.words.len);
++            const byte_index = coordinate - fixture.words.len;
++            try std.testing.expect(byte_index < register_bytes.BYTE_COUNT);
++            try std.testing.expect(!seen_register_bytes[byte_index]);
++            seen_register_bytes[byte_index] = true;
++            try std.testing.expect(event.tuple[2].eql(register_bytes.value(fixture.words, byte_index)));
++            try std.testing.expect(event.tuple[3].isZero() and event.tuple[4].isZero() and event.tuple[5].isZero());
++            register_byte_emits += 1;
++        }
+     }
+     try std.testing.expectEqual(
+         fixture.words.len + source_v2.CONTEXT_WORD_COUNT,
+@@ -212,6 +228,16 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     try std.testing.expectEqual(@as(usize, 16), wire_id_consumes);
+     try std.testing.expectEqual(fixture.words.len, wire_consumes);
+     try std.testing.expectEqual(fixture.words.len, boundary_wire_emits);
++    try std.testing.expectEqual(register_bytes.BYTE_COUNT, register_byte_emits);
++    for (seen_register_bytes) |seen| try std.testing.expect(seen);
++    try std.testing.expectEqual(register_bytes.BYTE_COUNT, closure.row11_register_byte_emits);
++    try std.testing.expectEqual(closure.row11_register_byte_emits, closure.row15_register_byte_consumes);
++    var missing_byte = closure;
++    missing_byte.row11_register_byte_emits -= 1;
++    try std.testing.expectError(error.SourceMismatch, missing_byte.validate());
++    var duplicated_byte = closure;
++    duplicated_byte.row15_register_byte_consumes += 1;
++    try std.testing.expectError(error.SourceMismatch, duplicated_byte.validate());
+     try std.testing.expectEqual(
+         @as(usize, manifest.range_request_count),
+         owned.ranges.len,
+@@ -483,3 +509,27 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     try std.testing.expectEqual(counter_before, counterDigest(range_workspace.counter.values));
+     owned.logical_rows[0][0] = owned.logical_rows[0][0].sub(M31.one());
+ }
++
++test "V2 row-11 register byte bridge reuses constrained decomposition" {
++    const prepared_rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
++    var fixture = try Fixture.init(std.testing.allocator);
++    defer fixture.deinit();
++    const view = try fixture.data.authenticatedView();
++    var authority = try subject.AuthorityV2.init(std.testing.allocator);
++    defer authority.deinit();
++    var workspace = subject.WorkspaceV2{};
++    const word_index = register_bytes.wireWordIndex(register_bytes.byteIndex(.entry, 5, 0));
++    const row = prepared_rows.wireRow(&view, word_index);
++    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.register_byte_bridge_mask);
++    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.source_u16_mask);
++    try prepared_rows.validateDirectRow(&workspace, &authority, row.runtime());
++    inline for (.{ "source_low_byte", "source_high_byte" }) |field| {
++        var changed = row;
++        @field(changed.main, field) = @field(changed.main, field).add(M31.one());
++        try std.testing.expectError(error.DirectConstraintFailure, prepared_rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++    }
++    // Non-register words still emit their original raw word only.
++    const header = prepared_rows.wireRow(&view, 0);
++    try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
++    try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
++}
+diff --git a/src/frontends/riscv/testing.zig b/src/frontends/riscv/testing.zig
+index 16ec528b..94b4c053 100644
+--- a/src/frontends/riscv/testing.zig
++++ b/src/frontends/riscv/testing.zig
+@@ -95,6 +95,7 @@ pub const typed_mulh = @import("air/lang/typed_mulh.zig");
+ pub const typed_mulh_witness = @import("air/lang/typed_mulh_witness.zig");
+ pub const mulh_legacy_test_oracle =
+     @import("runner/witness/mulh_legacy_test_oracle.zig");
++pub const public_data_v2_test_support = @import("air/public_data_v2_test_support.zig");
+ pub const guest_precompile_test_elf =
+     @import("runner/guest_precompile/test_elf.zig");
+ pub const guest_precompile_corpus_elf =
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index 2c8ef434..355ad7b7 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -39,6 +39,81 @@ pub fn add(ctx: anytype) void {
+         "test-recursive-segment-v2-leaf-outer",
+         "Run the focused V2 recursive leaf handoff and mutation gates",
+     ).dependOn(&segment_v2_leaf_outer_tests.step);
++    const segment_v2_verifier_components_root = support.createHarnessModule(
++        b,
++        "recursive_segment_v2_verifier_components_test_root.zig",
++        target,
++        optimize,
++        core,
++        cpu_backend,
++        frontend,
++        integration,
++    );
++    segment_v2_verifier_components_root.addImport("stwo_prover_engine", prover);
++    const segment_v2_verifier_components_names: []const []const u8 = &.{
++        "SegmentV2 witness-free verifier owns all39 canonical adapters and untrusted claims",
++        "SegmentV2 witness-free verifier rejects malformed admission and inactive or provider claims",
++        "SegmentV2 witness-free verifier releases its owner after initial definition allocation failure",
++    };
++    const segment_v2_verifier_components_compile = b.addTest(.{
++        .root_module = segment_v2_verifier_components_root,
++        .filters = segment_v2_verifier_components_names,
++    });
++    b.step(
++        "check-recursive-segment-v2-witness-free-verifier",
++        "Compile the canonical SegmentV2 verifier without native witness owners",
++    ).dependOn(&segment_v2_verifier_components_compile.step);
++    const segment_v2_verifier_components_run = b.addRunArtifact(segment_v2_verifier_components_compile);
++    segment_v2_verifier_components_run.has_side_effects = true;
++    b.step(
++        "test-recursive-segment-v2-witness-free-verifier",
++        "Check all39 canonical witness-free adapters, input rejection and allocation cleanup",
++    ).dependOn(support.ProofTestGuard.add(
++        b,
++        segment_v2_verifier_components_run,
++        segment_v2_verifier_components_names,
++        "SegmentV2 witness-free verifier guard",
++    ));
++    const segment_v2_public_inputs_names: []const []const u8 = &.{
++        "SegmentV2 expected public claim matches the active row36 AIR",
++        "SegmentV2 expected public claim rejects changed wire keys manifest and claim",
++        "SegmentV2 expected public claim rejects a zero relation denominator",
++    };
++    const segment_v2_public_inputs_compile = b.addTest(.{
++        .root_module = segment_v2_verifier_components_root,
++        .filters = segment_v2_public_inputs_names,
++    });
++    const segment_v2_public_inputs_run = b.addRunArtifact(segment_v2_public_inputs_compile);
++    segment_v2_public_inputs_run.has_side_effects = true;
++    b.step(
++        "test-recursive-segment-v2-public-inputs",
++        "Bind canonical expected statement and temporal context to the existing row36 claim",
++    ).dependOn(support.ProofTestGuard.add(
++        b,
++        segment_v2_public_inputs_run,
++        segment_v2_public_inputs_names,
++        "SegmentV2 expected public input guard",
++    ));
++    const segment_v2_detached_transcript_names: []const []const u8 = &.{
++        "SegmentV2 detached fixed projection excludes source seals and pins circuit facts",
++        "SegmentV2 detached transcript binds dynamic expected wire without specializing the key",
++        "SegmentV2 detached claims share fixed lowering and expected row36 closure",
++    };
++    const segment_v2_detached_transcript_compile = b.addTest(.{
++        .root_module = segment_v2_verifier_components_root,
++        .filters = segment_v2_detached_transcript_names,
++    });
++    const segment_v2_detached_transcript_run = b.addRunArtifact(segment_v2_detached_transcript_compile);
++    segment_v2_detached_transcript_run.has_side_effects = true;
++    b.step(
++        "test-recursive-segment-v2-detached-transcript",
++        "Check independently pinned fixed projection and dynamic SegmentV2 statement/claim frames",
++    ).dependOn(support.ProofTestGuard.add(
++        b,
++        segment_v2_detached_transcript_run,
++        segment_v2_detached_transcript_names,
++        "SegmentV2 detached transcript guard",
++    ));
+     const segment_v2_noncore_owner_root = support.createHarnessModule(
+         b,
+         "recursive_segment_v2_noncore_owner_test_root.zig",
+@@ -1736,6 +1811,26 @@ pub fn add(ctx: anytype) void {
+     selected_fixed_run.addArg("verify-leaf-fixed-program-v5");
+     if (b.args) |args| selected_fixed_run.addArgs(args);
+     b.step("run-ethereum-selected-fixed-program-leaf-verifier", "Freshly verify a schema5 native proof with independent retained ELF admission").dependOn(&selected_fixed_run.step);
++    const detached_command = support.createHarnessModule(b, "recursive_segment_v2_verifier_components_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
++    detached_command.addImport("stwo_prover_engine", prover);
++    detached_command.addImport("stwo_prover_api", prover_api);
++    detached_command.addImport("interop_postcard", postcard);
++    const detached_command_names: []const []const u8 = &.{
++        "SegmentV2 detached command requires separate circuit and statement authority",
++        "SegmentV2 detached command owns and canonically admits expected wire",
++        "SegmentV2 detached command rejects unsupported claims version and empty proof",
++    };
++    const detached_command_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_command_names });
++    b.step("test-recursive-segment-v2-detached-command", "Check bounded detached transport and independent public-input admission").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_command_tests), detached_command_names, "SegmentV2 detached transport guard"));
++    const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
++    detached_runner.addImport("stwo_prover_engine", prover);
++    detached_runner.addImport("stwo_prover_api", prover_api);
++    detached_runner.addImport("interop_postcard", postcard);
++    const detached_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-verify", .root_module = detached_runner });
++    b.step("build-recursive-segment-v2-detached-verifier", "Build SegmentV2 verification without native preparation").dependOn(&b.addInstallArtifact(detached_exe, .{}).step);
++    const detached_run = b.addRunArtifact(detached_exe);
++    if (b.args) |args| detached_run.addArgs(args);
++    b.step("run-recursive-segment-v2-detached-verifier", "Verify DIRECTORY KEY_SHA256 EXPECTED_WIRE_JSON").dependOn(&detached_run.step);
+     const ethereum_root_verifier = support.createHarnessModule(b, "ethereum_wrapper_root_command_v1.zig", target, optimize, core, cpu_backend, frontend, integration);
+     ethereum_root_verifier.addImport("stwo_prover_engine", prover);
+     ethereum_root_verifier.addImport("stwo_prover_api", prover_api);
+diff --git a/src/integrations/riscv_cpu/mod.zig b/src/integrations/riscv_cpu/mod.zig
+index 76524b3a..5ea4bd7a 100644
+--- a/src/integrations/riscv_cpu/mod.zig
++++ b/src/integrations/riscv_cpu/mod.zig
+@@ -223,6 +223,12 @@ pub const recursive_segment_v2_noncore_owner = @import("recursive_segment_v2_non
+ pub const recursive_segment_v2_outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+ pub const recursive_segment_v2_outer_admission_v2 = @import("recursive_segment_v2_outer_admission_v2.zig");
+ pub const recursive_segment_v2_outer_engine = @import("recursive_segment_v2_outer_engine.zig");
++pub const recursive_segment_v2_verifier_components = @import("recursive_segment_v2_verifier_components.zig");
++pub const recursive_segment_v2_public_inputs = @import("recursive_segment_v2_public_inputs.zig");
++pub const recursive_segment_v2_detached_transcript = @import("recursive_segment_v2_detached_transcript.zig");
++pub const recursive_segment_v2_detached_verifier = @import("recursive_segment_v2_detached_verifier.zig");
++pub const recursive_segment_v2_detached_proof = @import("recursive_segment_v2_detached_proof.zig");
++pub const recursive_segment_v2_detached_command = @import("recursive_segment_v2_detached_command.zig");
+ pub const recursive_segment_v2_tuple_closure_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
+ pub const recursive_segment_v2_verified_artifact = @import("recursive_segment_v2_verified_artifact.zig");
+ pub const recursive_segment_v2_verified_publication = @import("recursive_segment_v2_verified_publication.zig");
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index 331f80e0..d9d5a96f 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -39,8 +39,14 @@ fn run(comptime Metal: type) !void {
+         std.debug.print("SEGMENT_V2_MEMORY_EXECUTION status=passed\n", .{});
+         return;
+     }
++    if (args.len == 2 and std.mem.eql(u8, args[1], "--check-two-segment-workload")) {
++        try gate.checkTwoSegmentWorkload(allocator);
++        std.debug.print("SEGMENT_V2_TWO_SEGMENT_EXECUTION status=passed\n", .{});
++        return;
++    }
+     var steps: ?usize = null;
+     var memory_addresses: ?usize = null;
++    var initial_register7: ?u32 = null;
+     var backend: NativeBackend = .cpu;
+     var backend_seen = false;
+     var aot_bundle: ?[]const u8 = null;
+@@ -56,6 +62,9 @@ fn run(comptime Metal: type) !void {
+         } else if (std.mem.eql(u8, key, "--memory-addresses")) {
+             if (memory_addresses != null) return error.DuplicateArgument;
+             memory_addresses = std.fmt.parseInt(usize, value, 10) catch return error.InvalidMemoryAddressCount;
++        } else if (std.mem.eql(u8, key, "--initial-register7")) {
++            if (initial_register7 != null) return error.DuplicateArgument;
++            initial_register7 = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialRegister7;
+         } else if (std.mem.eql(u8, key, "--native-backend")) {
+             if (backend_seen) return error.DuplicateArgument;
+             backend_seen = true;
+@@ -71,12 +80,12 @@ fn run(comptime Metal: type) !void {
+             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
+             aot_manifest = digest;
+         } else {
+-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16) [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+             return error.InvalidArguments;
+         }
+     }
+     if (memory_addresses) |count| {
+-        if (steps != null) return error.ConflictingWorkloadArguments;
++        if (steps != null or initial_register7 != null) return error.ConflictingWorkloadArguments;
+         switch (count) {
+             1, 4, 16 => {},
+             else => return error.InvalidMemoryAddressCount,
+@@ -88,8 +97,8 @@ fn run(comptime Metal: type) !void {
+         else => return error.InvalidNativeStepCount,
+     }
+     std.debug.print(
+-        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d}\n",
+-        .{ selected_steps, @tagName(backend), memory_addresses orelse 0 },
++        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
++        .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
+     );
+     switch (backend) {
+         .cpu => {
+@@ -97,7 +106,7 @@ fn run(comptime Metal: type) !void {
+             if (memory_addresses) |count|
+                 try gate.runMemoryProof(allocator, count)
+             else
+-                try gate.runSizedProof(allocator, selected_steps);
++                try gate.runSizedProofWithRegister7(allocator, selected_steps, initial_register7 orelse 0);
+         },
+         .metal => {
+             if (comptime Metal == void) {
+@@ -133,12 +142,12 @@ fn run(comptime Metal: type) !void {
+                 if (memory_addresses) |count|
+                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
+                 else
+-                    try gate.runSizedProofWithNativeEngine(NativeEngine, allocator, selected_steps);
++                    try gate.runSizedProofWithInitialRegister7(NativeEngine, allocator, selected_steps, initial_register7 orelse 0);
+                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.NativeMetalRuntimeNotReleased;
+             }
+         },
+     }
+     // Native admission, producer/cohort and returned verifier capture owners
+     // have all been destroyed before process-level completion.
+-    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0 });
++    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+index a18bf492..538b320d 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+@@ -58,6 +58,15 @@ pub fn runSizedProofWithNativeEngine(comptime NativeEngine: type, allocator: std
+     try ingress.runSizedGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, native_steps);
+ }
+ 
++/// Same program and geometry; only the authenticated untouched x7 value changes.
++pub fn runSizedProofWithRegister7(allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
++    try runSizedProofWithInitialRegister7(outer_engine.Engine, allocator, native_steps, initial_register7);
++}
++
++pub fn runSizedProofWithInitialRegister7(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
++    try ingress.runSizedGateWithInitialRegister7(NativeEngine, allocator, SizedProofHook, native_steps, initial_register7);
++}
++
+ pub fn runMemoryProof(allocator: std.mem.Allocator, address_count: usize) !void {
+     try runMemoryProofWithNativeEngine(outer_engine.Engine, allocator, address_count);
+ }
+@@ -70,6 +79,10 @@ pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
+     try @import("recursive_segment_v2_memory_workload_test_support.zig").checkWorkload(allocator);
+ }
+ 
++pub fn checkTwoSegmentWorkload(allocator: std.mem.Allocator) !void {
++    try @import("recursive_segment_v2_two_segment_test_support.zig").checkWorkload(allocator);
++}
++
+ pub const memory_native_steps = @import("recursive_segment_v2_memory_workload_test_support.zig").native_steps;
+ 
+ pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+@@ -97,6 +110,7 @@ const SizedProofHook = struct {
+                 verified.receipt.producer_live_bytes_after_destroy,
+             },
+         );
++        try integration.recursive_segment_v2_detached_proof.retainIfRequested(allocator, prepared);
+     }
+ };
+ 
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+index 6bfc3476..dfe81315 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+@@ -57,7 +57,7 @@ pub fn runGateWithHook(
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
+ ) !void {
+-    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null);
++    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null, 0);
+ }
+ 
+ /// Same native proof and recursive admission, without the independent
+@@ -76,12 +76,22 @@ pub fn runSizedGateWithNativeEngine(
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
+     native_steps: usize,
++) !void {
++    return runSizedGateWithInitialRegister7(NativeEngine, allocator, Hook, native_steps, 0);
++}
++
++pub fn runSizedGateWithInitialRegister7(
++    comptime NativeEngine: type,
++    allocator: std.mem.Allocator,
++    comptime Hook: type,
++    native_steps: usize,
++    initial_register7: u32,
+ ) !void {
+     switch (native_steps) {
+         1, 4, 16, 64 => {},
+         else => return error.InvalidNativeStepCount,
+     }
+-    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null);
++    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null, initial_register7);
+ }
+ 
+ pub fn runMemoryGateWithNativeEngine(
+@@ -94,7 +104,7 @@ pub fn runMemoryGateWithNativeEngine(
+         1, 4, 16 => {},
+         else => return error.InvalidMemoryAddressCount,
+     }
+-    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count);
++    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count, 0);
+ }
+ 
+ /// Execution-only regression for the genuine step-4 failure: a JAL-to-self
+@@ -102,19 +112,25 @@ pub fn runMemoryGateWithNativeEngine(
+ /// uses the exact ELF and checks that the proof path will admit below.
+ pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+     const elf = frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
+-    for ([_]usize{ 1, 4, 16, 64 }) |steps| {
+-        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+-        defer session.deinit();
+-        var first = try session.startSegment(steps);
+-        defer first.deinit();
+-        try validateSizedExecution(&first.base, steps, steps);
+-        var second = try session.resumeSegment(first.base.continuation.?, 16);
+-        defer second.deinit();
+-        try validateSizedExecution(&second.base, steps + 16, 16);
++    for ([_]u32{ 0, 0x01020304, 0x05060708 }) |initial_register7| {
++        for ([_]usize{ 1, 4, 16, 64 }) |steps| {
++            var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
++            defer session.deinit();
++            session.cpu.regs[7] = initial_register7;
++            var first = try session.startSegment(steps);
++            defer first.deinit();
++            try validateSizedExecution(&first.base, steps, steps, initial_register7);
++            var second = try session.resumeSegment(first.base.continuation.?, 16);
++            defer second.deinit();
++            try validateSizedExecution(&second.base, steps + 16, 16, initial_register7);
++            try std.testing.expectEqualDeep(first.base.exit_cpu, second.base.entry_cpu);
++        }
+     }
+ }
+ 
+-fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps: usize, segment_steps: usize) !void {
++fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps: usize, segment_steps: usize, initial_register7: u32) !void {
++    try std.testing.expectEqual(initial_register7, result.entry_cpu.regs[7]);
++    try std.testing.expectEqual(initial_register7, result.exit_cpu.regs[7]);
+     try std.testing.expectEqual(segment_steps, result.cycle_count);
+     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
+     try std.testing.expect(result.continuation != null);
+@@ -139,8 +155,8 @@ fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps:
+     };
+     std.debug.print(
+         "SEGMENT_V2_LADDER_EXECUTION segment_cycles={d} cumulative_cycles={d} " ++
+-            "retired_addi={d} retired_bne={d} exit_pc={x} counter={d} accumulator={d}\n",
+-        .{ result.cycle_count, cumulative_steps, addi_count, bne_count, result.exit_cpu.pc, result.exit_cpu.regs[5], result.exit_cpu.regs[6] },
++            "retired_addi={d} retired_bne={d} exit_pc={x} counter={d} accumulator={d} initial_register7={x}\n",
++        .{ result.cycle_count, cumulative_steps, addi_count, bne_count, result.exit_cpu.pc, result.exit_cpu.regs[5], result.exit_cpu.regs[6], initial_register7 },
+     );
+ }
+ 
+@@ -151,6 +167,7 @@ fn runGateWithHookForSteps(
+     native_steps: usize,
+     comptime full_regression: bool,
+     memory_addresses: ?usize,
++    initial_register7: u32,
+ ) !void {
+     comptime {
+         if (!@hasDecl(Hook, "run"))
+@@ -180,6 +197,8 @@ fn runGateWithHookForSteps(
+     const elf_bytes: []const u8 = if (memory_addresses != null) &memory_elf else &elf;
+     var session = try runner.Poseidon2ExecutionSession.init(allocator, elf_bytes, .{});
+     defer session.deinit();
++    if (memory_addresses != null and initial_register7 != 0) return error.ConflictingWorkloadArguments;
++    session.cpu.regs[7] = initial_register7;
+     var left_profile = try session.startSegment(native_steps);
+     defer left_profile.deinit();
+     const left_result = &left_profile.base;
+@@ -192,8 +211,9 @@ fn runGateWithHookForSteps(
+             try memory_workload.validateSegment(left_result, count, native_steps, native_steps);
+             try memory_workload.validateSegment(right_result, count, native_steps + 16, 16);
+         } else {
+-            try validateSizedExecution(left_result, native_steps, native_steps);
+-            try validateSizedExecution(right_result, native_steps + 16, 16);
++            try validateSizedExecution(left_result, native_steps, native_steps, initial_register7);
++            try validateSizedExecution(right_result, native_steps + 16, 16, initial_register7);
++            try std.testing.expectEqualDeep(left_result.exit_cpu, right_result.entry_cpu);
+         }
+     }
+ 
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+index 30488800..304b88db 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+@@ -14,6 +14,27 @@ pub fn validateSegment(
+     address_count: usize,
+     cumulative_steps: usize,
+     segment_steps: usize,
++) !void {
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false);
++}
++
++/// Same independent instruction/memory model with an explicit completed-leaf
++/// boundary. The terminal self-loop is observed but is not a retired row.
++pub fn validateCompletedSegment(
++    result: *const runner.SegmentResult,
++    address_count: usize,
++    cumulative_steps: usize,
++    segment_steps: usize,
++) !void {
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true);
++}
++
++fn validateSegmentWithCompletion(
++    result: *const runner.SegmentResult,
++    address_count: usize,
++    cumulative_steps: usize,
++    segment_steps: usize,
++    completed: bool,
+ ) !void {
+     switch (address_count) {
+         1, 4, 16 => {},
+@@ -23,8 +44,16 @@ pub fn validateSegment(
+         return error.InvalidMemoryWorkloadSteps;
+     try std.testing.expectEqual(segment_steps, result.cycle_count);
+     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
+-    try std.testing.expect(result.continuation != null);
+-    try std.testing.expect(result.completion_reason == null);
++    if (completed) {
++        try std.testing.expectEqual(@as(usize, 2 + 3 * fixture.recursion_memory_updates), cumulative_steps);
++        try std.testing.expect(result.continuation == null);
++        try std.testing.expectEqual(runner.CompletionReason.self_loop, result.completion_reason orelse return error.ExpectedMemoryWorkloadCompletion);
++        try std.testing.expect(result.segment_role.is_last);
++    } else {
++        try std.testing.expect(result.continuation != null);
++        try std.testing.expect(result.completion_reason == null);
++        try std.testing.expect(!result.segment_role.is_last);
++    }
+     const first_step = cumulative_steps - segment_steps;
+     var words: [16]u32 = @splat(0);
+     var entry_words = words;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
+index 88ff6f0b..3818fd2b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
+@@ -11,6 +11,7 @@ const core_mod = @import("recursive_fri_outer.zig");
+ const tuple_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
+ const contract = @import("recursive_segment_v2_outer_cohort_contract.zig");
+ const support = @import("recursive_segment_v2_outer_cohort_support.zig");
++const verifier_components_mod = @import("recursive_segment_v2_verifier_components.zig");
+ 
+ const M31 = stwo_core.fields.m31.M31;
+ const QM31 = stwo_core.fields.qm31.QM31;
+@@ -60,6 +61,8 @@ const componentBit = support.componentBit;
+ const rangeMask = support.rangeMask;
+ const allZero = support.allZero;
+ const CLOSURE_DIAGNOSTIC_ENV = "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC";
++const CIRCUIT_CENSUS_ENV = "STWO_SEGMENT_V2_CIRCUIT_CENSUS";
++var circuit_census_sequence = std.atomic.Value(u64).init(0);
+ pub const Error = contract.Error;
+ 
+ /// The complete cohort accepts one authority and nothing else. In particular,
+@@ -76,6 +79,7 @@ pub const Cohort = struct {
+     pub const AuthorityInput = *const leaf_outer.PreparedNativeV2LeafOuter;
+     pub const GeneratedInteractionsV2 = CohortGeneratedInteractionsV2;
+     pub const Components = CohortComponents;
++    pub const VerifierComponents = verifier_components_mod.OwnedComponentsV1;
+ 
+     /// Verifier-owned, pointer-free authority for the successful outer proof.
+     pub const PublicationAuthorityV1 = contract.PublicationAuthorityV1;
+@@ -466,6 +470,91 @@ pub const Cohort = struct {
+         errdefer clearTree(destination);
+         try self.noncore.fillPreprocessedInto(manifest_value, destination);
+         try self.core.fillPreprocessedInto(manifest_value, destination);
++        if (std.process.hasEnvVarConstant(CIRCUIT_CENSUS_ENV))
++            self.printCircuitCensus(destination);
++    }
++
++    /// Diagnostic-only inventory of the actual materialized Tree 0 and all
++    /// lowering constants, including unused graph constants. No new authority
++    /// is minted. Invocation order distinguishes producer Tree 0 from the
++    /// subsequent verifier reconstruction in the engine's surrounding phases.
++    fn printCircuitCensus(self: *const Self, columns: []const []const M31) void {
++        const invocation = circuit_census_sequence.fetchAdd(1, .monotonic);
++        std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=outer_tree0_filled invocation={d} prepared_sha256={s} manifest_sha256={s}\n", .{
++            invocation,
++            std.fmt.bytesToHex(self.prepared_identity, .lower),
++            std.fmt.bytesToHex(self.complete_manifest.seal, .lower),
++        });
++        for (self.complete_manifest.roster_rows[0..self.complete_manifest.roster_count]) |row| {
++            const placement = self.complete_manifest.placements[row].?;
++            const offset: usize = placement.preprocessed_offset;
++            const count: usize = placement.geometry.preprocessed_columns;
++            var values = std.crypto.hash.sha2.Sha256.init(.{});
++            var words: usize = 0;
++            for (columns[offset..][0..count]) |column| {
++                censusHashU64(&values, column.len);
++                for (column) |word| censusHashM31(&values, word);
++                words += column.len;
++            }
++            std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=outer_tree0_filled invocation={d} row={d} log_size={d} columns={d} words={d} values_sha256={s}\n", .{
++                invocation, row, placement.geometry.log_size, count, words, std.fmt.bytesToHex(values.finalResult(), .lower),
++            });
++        }
++        for (self.core.authority.arithmetic_reference.lanes, 0..) |lane, lane_index| {
++            var edges = std.crypto.hash.sha2.Sha256.init(.{});
++            var constants = std.crypto.hash.sha2.Sha256.init(.{});
++            var coordinates = std.crypto.hash.sha2.Sha256.init(.{});
++            var public_values = std.crypto.hash.sha2.Sha256.init(.{});
++            var input_count: usize = 0;
++            var constant_count: usize = 0;
++            var term_count: usize = 0;
++            censusHashU64(&edges, lane.graph.nodes.len);
++            for (lane.graph.nodes, 0..) |node, node_index| {
++                censusHashU64(&edges, @intFromEnum(node.op));
++                switch (node.op) {
++                    .input => input_count += 1,
++                    .constant => |value| {
++                        constant_count += 1;
++                        censusHashU64(&constants, node_index);
++                        for (value) |word| censusHashM31(&constants, M31.fromCanonical(word));
++                    },
++                    .add, .sub, .mul => |operands| {
++                        censusHashU64(&edges, operands.lhs);
++                        censusHashU64(&edges, operands.rhs);
++                    },
++                    .neg, .inverse => |operand| censusHashU64(&edges, operand),
++                }
++            }
++            censusHashU64(&edges, lane.graph.outputs.len);
++            for (lane.graph.outputs) |output| censusHashU64(&edges, output);
++            for (self.core.authority.lowering_plan.public_terms) |term| {
++                if (term.lane != lane_index) continue;
++                term_count += 1;
++                censusHashU64(&coordinates, term.lane);
++                censusHashU64(&coordinates, @intFromEnum(term.active_in));
++                censusHashU64(&coordinates, @intFromEnum(term.role));
++                censusHashU64(&coordinates, term.circuit_id);
++                censusHashU64(&coordinates, term.node_id);
++                censusHashU64(&coordinates, term.multiplicity);
++                for (term.value.toM31Array()) |word| censusHashM31(&public_values, word);
++            }
++            std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=lowering_after_tree0 invocation={d} lane={d} circuit_id={d} mode={s} nodes={d} inputs={d} constants={d} outputs={d} public_terms={d} node_edges_sha256={s} constant_values_sha256={s} public_coordinates_sha256={s} public_values_sha256={s} graph_sha256={s}\n", .{
++                invocation,                                      lane_index,                                          lane.circuit_id,                                       @tagName(lane.active_in),                                lane.graph.nodes.len,                                   input_count, constant_count, lane.graph.outputs.len, term_count,
++                std.fmt.bytesToHex(edges.finalResult(), .lower), std.fmt.bytesToHex(constants.finalResult(), .lower), std.fmt.bytesToHex(coordinates.finalResult(), .lower), std.fmt.bytesToHex(public_values.finalResult(), .lower), std.fmt.bytesToHex(lane.graph.identity_digest, .lower),
++            });
++        }
++    }
++
++    fn censusHashU64(hash: *std.crypto.hash.sha2.Sha256, value: u64) void {
++        var bytes: [8]u8 = undefined;
++        std.mem.writeInt(u64, &bytes, value, .little);
++        hash.update(&bytes);
++    }
++
++    fn censusHashM31(hash: *std.crypto.hash.sha2.Sha256, value: M31) void {
++        var bytes: [4]u8 = undefined;
++        std.mem.writeInt(u32, &bytes, value.toU32(), .little);
++        hash.update(&bytes);
+     }
+ 
+     pub fn fillMainInto(
+@@ -717,6 +806,30 @@ pub const Cohort = struct {
+         return generated;
+     }
+ 
++    /// Project the already admitted circuit parameters into the witness-free
++    /// verifier factory. Its adapters own their definitions and retain none of
++    /// this cohort's witness, native capture, or generated interaction storage.
++    pub fn initVerifierComponents(
++        self: *const Self,
++        relations: *const universal.UniversalRelations,
++        claims: *const manifest_mod.ClaimVector,
++        poseidon_partials: [2]QM31,
++    ) !*VerifierComponents {
++        try self.validateEnvelope();
++        try claims.validate(self.complete_manifest);
++        return VerifierComponents.init(
++            self.allocator,
++            self.complete_manifest,
++            .{
++                .query_reference = self.core.authority.query_bits_reference,
++                .poseidon_active_rows = std.math.cast(u32, self.core.poseidonCallCount()) orelse
++                    return error.ArithmeticOverflow,
++            },
++            relations,
++            .{ .values = claims.values, .poseidon_partials = poseidon_partials },
++        );
++    }
++
+     pub fn initComponents(
+         self: *Self,
+         generated: *const CohortGeneratedInteractionsV2,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+index 20504249..047b68e7 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+@@ -627,15 +627,12 @@ pub fn EngineKernel(comptime Cohort: type) type {
+                 };
+ 
+             const transcript_after_ns = phase_timer.lap();
+-            var components = try cohort.initComponents(
+-                &generated,
++            const components = try cohort.initVerifierComponents(
+                 &relations,
+-                &provider_relations,
++                &claims,
++                generated.core.poseidon2_partials,
+             );
+             defer components.deinit();
+-            var gate = try manifest_mod.ProofGate.init(manifest);
+-            try components.appendToGate(manifest, &gate);
+-            try gate.sealGate(manifest);
+ 
+             const components_ns = phase_timer.lap();
+             const publication_authority =
+@@ -653,7 +650,7 @@ pub fn EngineKernel(comptime Cohort: type) type {
+                 recursion.engine.Hasher,
+                 recursion.engine.MerkleChannel,
+                 allocator,
+-                try gate.verifierSlice(),
++                try components.verifierComponents(),
+                 &channel,
+                 &scheme,
+                 proof,
+@@ -900,6 +897,7 @@ fn assertCohortContract(comptime Cohort: type) void {
+         "AuthorityInputs",
+         "GeneratedInteractionsV2",
+         "Components",
++        "VerifierComponents",
+         "PublicationAuthorityV1",
+         "init",
+         "deinit",
+@@ -916,6 +914,7 @@ fn assertCohortContract(comptime Cohort: type) void {
+         "claimVector",
+         "rebuildGeneratedInteractions",
+         "initComponents",
++        "initVerifierComponents",
+         "publicationAuthority",
+     }) |name| if (!@hasDecl(Cohort, name))
+         @compileError("segment V2 outer Cohort contract is incomplete: missing " ++ name);
+diff --git a/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig b/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig
+new file mode 100644
+index 00000000..354ef039
+--- /dev/null
++++ b/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig
+@@ -0,0 +1,48 @@
++//! Coordinates shared by statement byte exports and native-sum graph inputs.
++//! These bytes already have decomposition and range constraints in row 11.
++const std = @import("std");
++const M31 = @import("stwo_core").fields.m31.M31;
++const wire = @import("segment_statement_v2.zig");
++const span = @import("span_statement.zig");
++
++pub const Side = enum { entry, exit };
++pub const BYTE_COUNT: usize = 2 * 32 * 4;
++
++pub fn byteIndex(side: Side, register: usize, byte: usize) usize {
++    std.debug.assert(register < 32 and byte < 4);
++    return @as(usize, @intFromEnum(side)) * 128 + register * 4 + byte;
++}
++
++pub fn wireWordIndex(byte_index: usize) usize {
++    std.debug.assert(byte_index < BYTE_COUNT);
++    const state = if (byte_index < 128) span.canonical_layout.entry_state_start else span.canonical_layout.exit_state_start;
++    return wire.fixed_layout.base_statement + state +
++        span.canonical_layout.machine_state_registers_start_offset + (byte_index % 128) / 2;
++}
++
++pub fn firstByteIndexForWireWord(wire_index: usize) ?usize {
++    inline for (.{ Side.entry, Side.exit }) |side| {
++        const start = wireWordIndex(byteIndex(side, 0, 0));
++        if (wire_index >= start and wire_index - start < 64)
++            return byteIndex(side, 0, 0) + (wire_index - start) * 2;
++    }
++    return null;
++}
++
++pub fn bridgeIndex(wire_word_count: usize, byte_index: usize) usize {
++    std.debug.assert(byte_index < BYTE_COUNT);
++    return wire_word_count + byte_index;
++}
++
++pub fn inputIndex(existing_input_count: usize, byte_index: usize) usize {
++    std.debug.assert(byte_index < BYTE_COUNT);
++    return existing_input_count + byte_index;
++}
++
++/// Witness extraction only; row 11 supplies the proof of this decomposition.
++pub fn value(words: []const M31, byte_index: usize) M31 {
++    const word = words[wireWordIndex(byte_index)].toU32();
++    std.debug.assert(word <= std.math.maxInt(u16));
++    const shift: u5 = @intCast((byte_index % 2) * 8);
++    return M31.fromCanonical((word >> shift) & 0xff);
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig
+new file mode 100644
+index 00000000..8f06904c
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig
+@@ -0,0 +1,220 @@
++//! Durable small SegmentV2 proof transport. The caller supplies circuit admission
++//! and expected statement separately; candidate storage confers no authority.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontend = @import("stwo_riscv_frontend");
++const verifier = @import("recursive_segment_v2_detached_verifier.zig");
++const M31 = core.fields.m31.M31;
++const PublicData = frontend.air.public_data_v2.PublicDataV2;
++pub const MAX_KEY_BYTES: usize = 64 * 1024 * 1024;
++pub const MAX_INPUT_BYTES: usize = 128 * 1024;
++const VERSION: u32 = 1;
++
++pub fn hash(bytes: []const u8) [32]u8 {
++    var result: [32]u8 = undefined;
++    std.crypto.hash.sha2.Sha256.hash(bytes, &result, .{});
++    return result;
++}
++
++pub const OwnedKeyV1 = opaque {
++    const Storage = struct { allocator: std.mem.Allocator, parsed: std.json.Parsed(verifier.KeyV1) };
++    pub fn admit(allocator: std.mem.Allocator, bytes: []const u8, independent_sha256: [32]u8) !*OwnedKeyV1 {
++        if (bytes.len == 0 or bytes.len > MAX_KEY_BYTES) return error.DetachedKeySizeMismatch;
++        if (!std.meta.eql(hash(bytes), independent_sha256)) return error.DetachedKeyHashMismatch;
++        const parsed = try std.json.parseFromSlice(verifier.KeyV1, allocator, bytes, .{ .allocate = .alloc_always });
++        errdefer parsed.deinit();
++        try parsed.value.validate();
++        const storage = try allocator.create(Storage);
++        storage.* = .{ .allocator = allocator, .parsed = parsed };
++        return @ptrCast(storage);
++    }
++    pub fn key(self: *const OwnedKeyV1) *const verifier.KeyV1 {
++        const storage: *const Storage = @ptrCast(@alignCast(self));
++        return &storage.parsed.value;
++    }
++    pub fn deinit(self: *OwnedKeyV1) void {
++        const storage: *Storage = @ptrCast(@alignCast(self));
++        const allocator = storage.allocator;
++        storage.parsed.deinit();
++        allocator.destroy(storage);
++    }
++};
++
++pub const OwnedExpectedV1 = struct {
++    allocator: std.mem.Allocator,
++    words: []M31,
++    data: PublicData,
++    pub fn decode(allocator: std.mem.Allocator, bytes: []const u8) !OwnedExpectedV1 {
++        if (bytes.len == 0 or bytes.len > MAX_INPUT_BYTES) return error.DetachedPublicInputSizeMismatch;
++        const parsed = try std.json.parseFromSlice([]const u32, allocator, bytes, .{});
++        defer parsed.deinit();
++        if (parsed.value.len == 0) return error.DetachedPublicInputSizeMismatch;
++        const words = try allocator.alloc(M31, parsed.value.len);
++        errdefer allocator.free(words);
++        for (parsed.value, words) |value, *word| {
++            if (value >= core.fields.m31.Modulus) return error.DetachedNoncanonicalPublicWord;
++            word.* = M31.fromCanonical(value);
++        }
++        return .{ .allocator = allocator, .words = words, .data = try PublicData.authenticate(words) };
++    }
++    pub fn deinit(self: *OwnedExpectedV1) void {
++        self.allocator.free(self.words);
++        self.* = undefined;
++    }
++};
++
++pub fn encodeExpected(allocator: std.mem.Allocator, expected: *const PublicData) ![]u8 {
++    _ = try expected.metadata();
++    const words = try allocator.alloc(u32, expected.words().len);
++    defer allocator.free(words);
++    for (expected.words(), words) |word, *value| value.* = word.toU32();
++    const bytes = try std.json.Stringify.valueAlloc(allocator, words, .{});
++    errdefer allocator.free(bytes);
++    if (bytes.len > MAX_INPUT_BYTES) return error.DetachedPublicInputSizeMismatch;
++    return bytes;
++}
++
++pub const ClaimsFileV1 = struct {
++    version: u32 = VERSION,
++    claims: verifier.ClaimsV1,
++    proof_bytes: usize,
++    proof_sha256: [32]u8,
++};
++
++pub fn decodeClaims(allocator: std.mem.Allocator, bytes: []const u8) !ClaimsFileV1 {
++    if (bytes.len == 0 or bytes.len > MAX_INPUT_BYTES) return error.DetachedClaimsSizeMismatch;
++    const parsed = try std.json.parseFromSlice(ClaimsFileV1, allocator, bytes, .{});
++    defer parsed.deinit();
++    const value = parsed.value;
++    if (value.version != VERSION) return error.DetachedClaimsVersionMismatch;
++    if (value.proof_bytes == 0 or value.proof_bytes > verifier.MAX_PROOF_BYTES) return error.DetachedProofSizeMismatch;
++    return value; // Fixed arrays and scalars only; AIR claim admission follows.
++}
++
++pub const CandidateHashesV1 = struct {
++    key_sha256: [32]u8,
++    claims_sha256: [32]u8,
++    proof_sha256: [32]u8,
++    proof_bytes: usize,
++};
++
++/// Creates a new explicit directory. Hashes describe stored bytes, never an
++/// independent circuit admission. Failed candidates remain available to debug.
++pub fn retainCandidate(allocator: std.mem.Allocator, directory: []const u8, key_json: []const u8, claims: verifier.ClaimsV1, proof: []const u8) !CandidateHashesV1 {
++    if (key_json.len == 0 or key_json.len > MAX_KEY_BYTES) return error.DetachedKeySizeMismatch;
++    if (proof.len == 0 or proof.len > verifier.MAX_PROOF_BYTES) return error.DetachedProofSizeMismatch;
++    const proof_sha256 = hash(proof);
++    const claims_json = try std.json.Stringify.valueAlloc(allocator, ClaimsFileV1{ .claims = claims, .proof_bytes = proof.len, .proof_sha256 = proof_sha256 }, .{});
++    defer allocator.free(claims_json);
++    if (claims_json.len > MAX_INPUT_BYTES) return error.DetachedClaimsSizeMismatch;
++    try std.fs.cwd().makeDir(directory);
++    var dir = try std.fs.cwd().openDir(directory, .{});
++    defer dir.close();
++    try writeNew(dir, "key.json", key_json);
++    try writeNew(dir, "claims.json", claims_json);
++    try writeNew(dir, "proof.bin", proof);
++    return .{ .key_sha256 = hash(key_json), .claims_sha256 = hash(claims_json), .proof_sha256 = proof_sha256, .proof_bytes = proof.len };
++}
++
++fn writeNew(dir: std.fs.Dir, name: []const u8, bytes: []const u8) !void {
++    var file = try dir.createFile(name, .{ .exclusive = true });
++    defer file.close();
++    try file.writeAll(bytes);
++}
++
++pub const ReceiptV1 = struct {
++    endpoint: []const u8 = "verified_segment_v2_detached_development_q3",
++    development_only: bool = true,
++    verified: bool = true,
++    native_inputs_used: bool = false,
++    key_sha256: [32]u8,
++    expected_wire_sha256: [32]u8,
++    claims_sha256: [32]u8,
++    proof_sha256: [32]u8,
++    proof_bytes: usize,
++    request_ns: u64,
++    verify_ns: u64,
++    transcript_digest: [8]u32,
++};
++
++pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8) !ReceiptV1 {
++    var request_timer = try std.time.Timer.start();
++    var dir = try std.fs.cwd().openDir(directory, .{});
++    defer dir.close();
++    const key_json = try dir.readFileAlloc(allocator, "key.json", MAX_KEY_BYTES);
++    defer allocator.free(key_json);
++    const key = try OwnedKeyV1.admit(allocator, key_json, independent_key_sha256);
++    defer key.deinit();
++    const expected_json = try std.fs.cwd().readFileAlloc(allocator, expected_wire_path, MAX_INPUT_BYTES);
++    defer allocator.free(expected_json);
++    var expected = try OwnedExpectedV1.decode(allocator, expected_json);
++    defer expected.deinit();
++    const claims_json = try dir.readFileAlloc(allocator, "claims.json", MAX_INPUT_BYTES);
++    defer allocator.free(claims_json);
++    const input = try decodeClaims(allocator, claims_json);
++    const proof = try dir.readFileAlloc(allocator, "proof.bin", input.proof_bytes);
++    defer allocator.free(proof);
++    if (proof.len != input.proof_bytes or !std.meta.eql(hash(proof), input.proof_sha256)) return error.DetachedProofIdentityMismatch;
++    var timer = try std.time.Timer.start();
++    const terminal = try verifier.verify(allocator, key.key(), &expected.data, input.claims, proof);
++    const verify_ns = timer.read();
++    return .{ .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
++}
++
++pub const ArgumentsV1 = struct { directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8 };
++pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
++    if (args.len != 3 or args[0].len == 0 or args[1].len != 64 or args[2].len == 0 or std.mem.startsWith(u8, args[0], "--")) return error.ExpectedDirectoryIndependentKeyAndPublicWire;
++    var key: [32]u8 = undefined;
++    _ = try std.fmt.hexToBytes(&key, args[1]);
++    return .{ .directory = args[0], .independent_key_sha256 = key, .expected_wire_path = args[2] };
++}
++
++pub fn main() !void {
++    const allocator = std.heap.smp_allocator;
++    const args = try std.process.argsAlloc(allocator);
++    defer std.process.argsFree(allocator, args);
++    const input = try parseArguments(args[1..]);
++    const receipt = try verifyDirectory(allocator, input.directory, input.independent_key_sha256, input.expected_wire_path);
++    const json = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
++    defer allocator.free(json);
++    try std.fs.File.stdout().writeAll(json);
++    try std.fs.File.stdout().writeAll("\n");
++}
++
++test "SegmentV2 detached command requires separate circuit and statement authority" {
++    const pin = "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
++    const parsed = try parseArguments(&.{ "candidate", pin, "expected.json" });
++    try std.testing.expectEqualStrings("expected.json", parsed.expected_wire_path);
++    try std.testing.expectError(error.ExpectedDirectoryIndependentKeyAndPublicWire, parseArguments(&.{ "candidate", pin }));
++    try std.testing.expectError(error.DetachedKeyHashMismatch, OwnedKeyV1.admit(std.testing.allocator, "{}", @splat(0)));
++}
++
++test "SegmentV2 detached command owns and canonically admits expected wire" {
++    const fixture = try frontend.testing.public_data_v2_test_support.Fixture.initWithRegister7(0x01020304);
++    const source = fixture.rightSource();
++    const words = try frontend.testing.public_data_v2_test_support.encode(std.testing.allocator, &source);
++    defer std.testing.allocator.free(words);
++    const public = try PublicData.authenticate(words);
++    const json = try encodeExpected(std.testing.allocator, &public);
++    defer std.testing.allocator.free(json);
++    var owned = try OwnedExpectedV1.decode(std.testing.allocator, json);
++    defer owned.deinit();
++    try std.testing.expect(owned.words.ptr != words.ptr);
++    try std.testing.expectEqualDeep(try public.metadata(), try owned.data.metadata());
++    try std.testing.expectError(error.DetachedNoncanonicalPublicWord, OwnedExpectedV1.decode(std.testing.allocator, "[2147483647]"));
++    try std.testing.expectError(error.DetachedPublicInputSizeMismatch, OwnedExpectedV1.decode(std.testing.allocator, "[]"));
++}
++
++test "SegmentV2 detached command rejects unsupported claims version and empty proof" {
++    const claims: verifier.ClaimsV1 = .{ .values = @splat(core.fields.qm31.QM31.zero()), .poseidon_partials = @splat(core.fields.qm31.QM31.zero()) };
++    var input = ClaimsFileV1{ .claims = claims, .proof_bytes = 1, .proof_sha256 = @splat(0) };
++    input.version = 2;
++    const bad_version = try std.json.Stringify.valueAlloc(std.testing.allocator, input, .{});
++    defer std.testing.allocator.free(bad_version);
++    try std.testing.expectError(error.DetachedClaimsVersionMismatch, decodeClaims(std.testing.allocator, bad_version));
++    input.version = VERSION;
++    input.proof_bytes = 0;
++    const empty_proof = try std.json.Stringify.valueAlloc(std.testing.allocator, input, .{});
++    defer std.testing.allocator.free(empty_proof);
++    try std.testing.expectError(error.DetachedProofSizeMismatch, decodeClaims(std.testing.allocator, empty_proof));
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig
+new file mode 100644
+index 00000000..08a36c54
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig
+@@ -0,0 +1,169 @@
++//! Produce the tiny detached transcript using the existing admitted SegmentV2
++//! witness and AIR writers. A returned candidate is not a verification receipt.
++const std = @import("std");
++const frontend = @import("stwo_riscv_frontend");
++const recursion = frontend.recursion;
++const postcard = @import("interop_postcard");
++const engine = @import("recursive_segment_v2_outer_engine.zig");
++const cohort_mod = @import("recursive_segment_v2_outer_cohort.zig");
++const leaf = @import("recursive_segment_v2_leaf_outer.zig");
++const transcript = @import("recursive_segment_v2_detached_transcript.zig");
++const verifier = @import("recursive_segment_v2_detached_verifier.zig");
++const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
++const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
++const Engine = engine.Engine;
++const TreeStorage = storage.TreeStorageFor(Engine);
++
++pub const Candidate = struct {
++    allocator: std.mem.Allocator,
++    key_json: []u8,
++    proof_bytes: []u8,
++    claims: verifier.ClaimsV1,
++    circuit_identity: [32]u8,
++    prepare_ns: u64,
++    prove_ns: u64,
++
++    pub fn deinit(self: *Candidate) void {
++        self.allocator.free(self.proof_bytes);
++        self.allocator.free(self.key_json);
++        self.* = undefined;
++    }
++};
++
++/// Opt-in retained candidate alongside the existing complete-proof parity
++/// oracle. A separate verifier process must accept the artifact after this
++/// process exits. Environment variables select local development artifacts,
++/// never change protocol parameters or grant verification authority.
++pub fn retainIfRequested(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter) !void {
++    const directory = std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_DETACHED_OUTPUT") catch |err| switch (err) {
++        error.EnvironmentVariableNotFound => return,
++        else => return err,
++    };
++    defer allocator.free(directory);
++    const command = @import("recursive_segment_v2_detached_command.zig");
++    const key_path = std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_DETACHED_KEY") catch |err| switch (err) {
++        error.EnvironmentVariableNotFound => null,
++        else => return err,
++    };
++    defer if (key_path) |path| allocator.free(path);
++    const key_pin = std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_DETACHED_KEY_SHA256") catch |err| switch (err) {
++        error.EnvironmentVariableNotFound => null,
++        else => return err,
++    };
++    defer if (key_pin) |pin| allocator.free(pin);
++    if ((key_path == null) != (key_pin == null)) return error.MissingDetachedKeyAdmission;
++    var owned_key: ?*command.OwnedKeyV1 = null;
++    defer if (owned_key) |key| key.deinit();
++    if (key_path) |path| {
++        var pin: [32]u8 = undefined;
++        if (key_pin.?.len != 64) return error.InvalidDetachedKeyPin;
++        _ = try std.fmt.hexToBytes(&pin, key_pin.?);
++        const bytes = try std.fs.cwd().readFileAlloc(allocator, path, command.MAX_KEY_BYTES);
++        defer allocator.free(bytes);
++        owned_key = try command.OwnedKeyV1.admit(allocator, bytes, pin);
++    }
++    var candidate = try produce(allocator, prepared, if (owned_key) |key| key.key() else null);
++    defer candidate.deinit();
++    const hashes = try command.retainCandidate(allocator, directory, candidate.key_json, candidate.claims, candidate.proof_bytes);
++    // This expected statement is a producer-side convenience. The verifier
++    // command receives an explicit caller-selected expected-wire path.
++    const expected_json = try command.encodeExpected(allocator, &prepared.capture.public_data.data);
++    defer allocator.free(expected_json);
++    var dir = try std.fs.cwd().openDir(directory, .{});
++    defer dir.close();
++    var expected_file = try dir.createFile("expected-wire.json", .{ .exclusive = true });
++    defer expected_file.close();
++    try expected_file.writeAll(expected_json);
++    std.debug.print("SEGMENT_V2_DETACHED_CANDIDATE directory={s} circuit_identity={s} key_sha256={s} proof_sha256={s} proof_bytes={d} reused_admitted_key={} prepare_ns={d} prove_ns={d} status=unverified\n", .{
++        directory, std.fmt.bytesToHex(candidate.circuit_identity, .lower), std.fmt.bytesToHex(hashes.key_sha256, .lower), std.fmt.bytesToHex(hashes.proof_sha256, .lower), hashes.proof_bytes, owned_key != null, candidate.prepare_ns, candidate.prove_ns,
++    });
++}
++
++/// If an independently admitted key is supplied, require the exact same fixed
++/// projection, including Tree0 and every lowering anchor. Matching dimensions
++/// alone cannot admit a changed circuit. Without a supplied key this exports a
++/// candidate for admission; it does not self-authorize a verifier.
++pub fn produce(
++    allocator: std.mem.Allocator,
++    prepared: *const leaf.PreparedNativeV2LeafOuter,
++    admitted_key: ?*const verifier.KeyV1,
++) !Candidate {
++    var timer = try std.time.Timer.start();
++    var cohort = try cohort_mod.Cohort.init(allocator, prepared);
++    defer cohort.deinit();
++    const manifest = cohort.manifest();
++    var scheme = try Engine.init(allocator, transcript.PCS_CONFIG);
++    scheme.setCoefficientRetentionPolicy(.never);
++    var scheme_moved = false;
++    defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
++    var channel = Engine.Channel{};
++    var preprocessed = try TreeStorage.init(allocator, manifest, 0);
++    defer preprocessed.deinit();
++    try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
++    try preprocessed.commit(&scheme, &channel);
++    try Engine.flushPendingCommit(&scheme, allocator, &channel);
++    var roots = try scheme.roots(allocator);
++    defer roots.deinit(allocator);
++    if (roots.items.len != 1) return error.SegmentDetachedPreprocessedCommitmentMismatch;
++    var wire_terms: std.ArrayList(recursion.air.verifier_arithmetic_lowering.PublicWireTerm) = .empty;
++    defer wire_terms.deinit(allocator);
++    for (cohort.core.authority.lowering_plan.public_terms) |term|
++        if (term.active_in == .segment) try wire_terms.append(allocator, term);
++    const candidate_key = verifier.KeyV1{
++        .manifest = manifest.*,
++        .preprocessed_root = roots.items[0],
++        .parameters = .{
++            .query_reference = cohort.core.authority.query_bits_reference,
++            .poseidon_active_rows = std.math.cast(u32, cohort.core.poseidonCallCount()) orelse return error.ArithmeticOverflow,
++        },
++        .source_manifest = prepared.authority_prepared.source.manifest,
++        .admitted_keys = prepared.authority_prepared.source.verifier_keys,
++        .wire_terms = wire_terms.items,
++    };
++    const identity = try candidate_key.identity();
++    const key = admitted_key orelse &candidate_key;
++    if (!std.meta.eql(identity, try key.identity()))
++        return error.SegmentDetachedFixedCircuitMismatch;
++    const key_json = try std.json.Stringify.valueAlloc(allocator, key.*, .{});
++    errdefer allocator.free(key_json);
++    const prepare_ns = timer.lap();
++    var main = try TreeStorage.init(allocator, manifest, 1);
++    defer main.deinit();
++    try cohort.fillMainInto(manifest, main.columns);
++    try main.commit(&scheme, &channel);
++    try Engine.flushPendingCommit(&scheme, allocator, &channel);
++    const expected = &prepared.capture.public_data.data;
++    try transcript.mixAdmission(&channel, key, expected);
++    const relations = try recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
++    const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
++    var interaction = try TreeStorage.init(allocator, manifest, 2);
++    defer interaction.deinit();
++    const generated = try cohort.fillInteractionInto(manifest, &relations, &providers, interaction.columns);
++    var claim_vector = try cohort.claimVector(&generated);
++    _ = try cohort.auditGlobalClosure(&generated, &claim_vector, &relations, &providers);
++    const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials };
++    try transcript.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
++    try interaction.commit(&scheme, &channel);
++    var components = try cohort.initComponents(&generated, &relations, &providers);
++    defer components.deinit();
++    var gate = try manifest_mod.ProofGate.init(manifest);
++    try components.appendToGate(manifest, &gate);
++    try gate.sealGate(manifest);
++    scheme_moved = true;
++    var extended = try Engine.prove(allocator, try gate.proverSlice(), &channel, scheme, .{});
++    defer extended.deinit(allocator);
++    var encoded: std.ArrayList(u8) = .empty;
++    defer encoded.deinit(allocator);
++    try postcard.serializeProof(recursion.engine.Hasher, encoded.writer(allocator), extended.proof);
++    if (encoded.items.len == 0 or encoded.items.len > verifier.MAX_PROOF_BYTES)
++        return error.SegmentDetachedProofSizeMismatch;
++    return .{
++        .allocator = allocator,
++        .key_json = key_json,
++        .proof_bytes = try encoded.toOwnedSlice(allocator),
++        .claims = claims,
++        .circuit_identity = identity,
++        .prepare_ns = prepare_ns,
++        .prove_ns = timer.read(),
++    };
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+new file mode 100644
+index 00000000..944b8377
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+@@ -0,0 +1,266 @@
++//! Explicit development transcript for detached SegmentV2 verification.
++//! Structural validation and a caller-supplied independent pin do not establish
++//! that a compiler emitted a fixed circuit. Admission policy must additionally
++//! establish that Tree0 and all constant/output anchors are statement-independent.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontend = @import("stwo_riscv_frontend");
++const recursion = frontend.recursion;
++const air = recursion.air;
++const manifest_mod = air.segment_outer_adapter_manifest_v2;
++const lowering = air.verifier_arithmetic_lowering;
++const source = recursion.segment_leaf_authority_v2;
++const components = @import("recursive_segment_v2_verifier_components.zig");
++const public_inputs = @import("recursive_segment_v2_public_inputs.zig");
++const PublicData = frontend.air.public_data_v2.PublicDataV2;
++const QM31 = core.fields.qm31.QM31;
++const Digest = recursion.poseidon2_channel.Digest;
++pub const VERSION: u32 = 1;
++pub const DEVELOPMENT_ONLY = true;
++pub const PCS_CONFIG = recursion.outer_parent_child_admission.OUTER_PCS_CONFIG;
++pub const INTERACTION_POW_BITS = recursion.outer_parent_child_admission.INTERACTION_POW_BITS;
++
++/// Exact fixed facts consumed by detached verification. Manifest authority IDs
++/// are template bookkeeping: only canonical program geometry enters this key
++/// identity. No capture, source receipt, observed claim, or call-buffer digest
++/// belongs here. Constant terms must come from independently admitted lowering.
++pub const ProfileV1 = enum(u8) { development_q3_v1 = 1 };
++
++pub const KeyV1 = struct {
++    profile: ProfileV1 = .development_q3_v1,
++    pcs_config: core.pcs.PcsConfig = PCS_CONFIG,
++    version: u32 = VERSION,
++    manifest: manifest_mod.Manifest,
++    preprocessed_root: Digest,
++    parameters: components.AdmissionParametersV1,
++    source_manifest: source.ManifestV2,
++    admitted_keys: source.VerifierKeyAuthorityV2,
++    wire_terms: []const lowering.PublicWireTerm,
++
++    pub fn identity(self: *const KeyV1) ![32]u8 {
++        if (self.version != VERSION or self.profile != .development_q3_v1) return error.InvalidSegmentDetachedVersion;
++        if (!std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.InvalidSegmentDetachedProfile;
++        _ = try self.parameters.validate(&self.manifest);
++        try self.source_manifest.validate();
++        try self.admitted_keys.validate();
++        if (self.source_manifest.trace_log_size != self.manifest.placements[36].?.geometry.log_size or
++            self.wire_terms.len == 0 or self.wire_terms.len >= core.fields.m31.Modulus or
++            std.mem.allEqual(u32, &self.preprocessed_root, 0))
++            return error.InvalidSegmentDetachedCircuit;
++        for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus)
++            return error.InvalidSegmentDetachedCircuit;
++        var hash = std.crypto.hash.sha2.Sha256.init(.{});
++        hash.update("stwo-zig/segment-v2-detached-development-circuit/v1\x00");
++        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, manifest_mod.TRANSCRIPT_FORMAT_VERSION, INTERACTION_POW_BITS, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
++        hash.update(&manifest_mod.programGeometryShaId(&self.manifest));
++        hash.update(&air.universal_challenges.registryOrderDigest());
++        for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
++        for (self.preprocessed_root) |word| hashWord(&hash, word);
++        hash.update(&self.parameters.query_reference.authority_digest);
++        hashWord(&hash, self.parameters.poseidon_active_rows);
++        for (self.source_manifest.identity) |word| hashWord(&hash, word);
++        for (self.admitted_keys.identity) |word| hashWord(&hash, word);
++        hashWord(&hash, @intCast(self.wire_terms.len));
++        for (self.wire_terms) |term| {
++            if (term.active_in != .segment or term.role == .request or
++                term.circuit_id >= core.fields.m31.Modulus or term.node_id >= core.fields.m31.Modulus or
++                term.multiplicity == 0 or term.multiplicity >= core.fields.m31.Modulus or
++                (term.role == .consume and (!term.value.isZero() or term.multiplicity != 1)))
++                return error.InvalidSegmentDetachedCircuit;
++            try canonical(term.value);
++            for ([_]u32{ term.lane, @intFromEnum(term.active_in), @intFromEnum(term.role), term.circuit_id, term.node_id, term.multiplicity }) |word|
++                hashWord(&hash, word);
++            for (term.value.toM31Array()) |word| hashWord(&hash, word.toU32());
++        }
++        return hash.finalResult();
++    }
++
++    pub fn validate(self: *const KeyV1) !void {
++        _ = try self.identity();
++    }
++
++    /// Validate canonical fields against an independently pinned projection.
++    /// This value is not an immutable owner or a compiler-policy certificate;
++    /// callers must retain admitted key storage with their normal key custody.
++    pub fn admit(candidate: KeyV1, independently_pinned_identity: [32]u8) !KeyV1 {
++        if (!std.mem.eql(u8, &independently_pinned_identity, &try candidate.identity()))
++            return error.SegmentDetachedCircuitPinMismatch;
++        return candidate;
++    }
++
++    pub fn wireClaim(self: *const KeyV1, relations: *const components.Relations) !QM31 {
++        try self.validate();
++        const challenge = try relations.getExact(.recursion_wire);
++        var total = QM31.zero();
++        for (self.wire_terms) |term| total = total.add(try lowering.publicTermClaim(challenge, term));
++        return total;
++    }
++};
++
++pub const FixedAdmissionV1 = KeyV1;
++
++/// Called after Tree0/Tree1 commitments and before relation draws. The wire
++/// uses the existing canonical PublicDataV2 frame; fixed identity has its own
++/// explicit version and never includes a source-specific manifest seal.
++pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const PublicData) !void {
++    const fixed_identity = try admission.identity();
++    _ = try expected.metadata();
++    const shape = try source.ManifestV2.init(expected.words().len);
++    if (!std.meta.eql(shape, admission.source_manifest)) return error.SegmentV2PublicInputManifestMismatch;
++    channel.mixU32s(&.{ 0x5344_4131, VERSION, manifest_mod.COMPONENT_COUNT }); // SDA1
++    var pin_words: [8]u32 = undefined;
++    for (&pin_words, 0..) |*word, index|
++        word.* = std.mem.readInt(u32, fixed_identity[index * 4 ..][0..4], .little);
++    channel.mixU32s(&pin_words);
++    try expected.mixInto(channel);
++}
++
++/// Claims remain untrusted until STARK verification. The two independent
++/// checks bind row36 to expected public input and all39 rows to fixed lowering
++/// anchors. Neither public boundary is accepted as a supplied scalar.
++pub fn mixClaimsAndBoundary(
++    channel: anytype,
++    admission: *const KeyV1,
++    expected: *const PublicData,
++    claims: components.ClaimsV1,
++    relations: *const components.Relations,
++) !void {
++    const wire_claim = try admission.wireClaim(relations);
++    _ = try claims.vector(&admission.manifest);
++    try public_inputs.verifyStatementClaim(expected, &admission.admitted_keys, &admission.source_manifest, relations, claims.values[36]);
++    var total = wire_claim;
++    for (claims.values) |claim| total = total.add(claim);
++    if (!total.isZero()) return error.SegmentDetachedClaimClosureMismatch;
++    channel.mixU32s(&.{ 0x5344_4331, VERSION, manifest_mod.COMPONENT_COUNT }); // SDC1
++    // Roster order is fixed by the admitted canonical manifest. A source-
++    // dependent ClaimVector seal is deliberately not a transcript input.
++    channel.mixFelts(&claims.values);
++    channel.mixU32s(&.{ 0x5344_4231, VERSION, @intCast(admission.wire_terms.len), 2 }); // SDB1
++    channel.mixFelts(&.{wire_claim});
++    channel.mixFelts(&claims.poseidon_partials);
++}
++
++fn canonical(value: QM31) !void {
++    for (value.toM31Array()) |word| if (word.toU32() >= core.fields.m31.Modulus)
++        return error.InvalidSegmentDetachedCircuit;
++}
++
++fn hashWord(hash: anytype, value: u32) void {
++    var bytes: [4]u8 = undefined;
++    std.mem.writeInt(u32, &bytes, value, .little);
++    hash.update(&bytes);
++}
++
++const fixture = frontend.testing.public_data_v2_test_support;
++const test_terms = [_]lowering.PublicWireTerm{
++    .{ .lane = 0, .active_in = .segment, .role = .emit, .circuit_id = 1, .node_id = 0, .value = QM31.one(), .multiplicity = 1 },
++    .{ .lane = 0, .active_in = .segment, .role = .consume, .circuit_id = 1, .node_id = 1, .value = QM31.zero(), .multiplicity = 1 },
++};
++
++// Structural fixture only: the pin in these tests is not a compiled-circuit
++// admission or evidence that a production lowering is statement-independent.
++fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
++    const source_manifest = try source.ManifestV2.init(word_count);
++    const boundary = try recursion.segment_leaf_outer_authority_v2.OuterManifestV2.init(source_manifest);
++    var logs: air.universal_manifest.LogSizes = @splat(4);
++    logs[11] = source_manifest.trace_log_size;
++    logs[17] = air.vm_public_logup_control_witness_v2.TRACE_LOG_SIZE;
++    logs[34] = 10;
++    logs[35] = air.range_check_8_8_bridge.LOG_SIZE;
++    const catalog = try air.segment_outer_typed_catalog_v2.build(logs, boundary.components);
++    const manifest = try manifest_mod.assemble(&catalog, .{
++        .transcript_manifest_id = @splat(transcript_template_id),
++        .statement_manifest_id = @splat(2),
++        .public_manifest_id = @splat(3),
++        .boundary_manifest_id = boundary.identity,
++        .boundary_authority_sha_id = boundary.authority_sha_id,
++        .provider_authority_sha_id = recursion.segment_publication_input_provider_authority_v2.sourceAuthorityShaId(),
++    });
++    const lane: air.query_bits_witness.LaneProfile = .{ .query_count = 3, .lifting_log_size = 4, .trace_tree_count = 4, .fri_layer_count = 2 };
++    return .{
++        .manifest = manifest,
++        .preprocessed_root = fixture.id("fixed-tree0"),
++        .parameters = .{ .query_reference = try air.query_bits_witness.Reference.seal(lane, lane), .poseidon_active_rows = 1 },
++        .source_manifest = source_manifest,
++        .admitted_keys = try source.VerifierKeyAuthorityV2.init(fixture.id("segment-key"), fixture.id("parent-key")),
++        .wire_terms = &test_terms,
++    };
++}
++
++test "SegmentV2 detached fixed projection excludes source seals and pins circuit facts" {
++    const key = try testKey(1000, 1);
++    const other_template = try testKey(1000, 9);
++    const pin = try key.identity();
++    _ = try KeyV1.admit(key, pin);
++    try std.testing.expect(!std.mem.eql(u8, &key.manifest.seal, &other_template.manifest.seal));
++    try std.testing.expectEqual(pin, try other_template.identity());
++    var changed = key;
++    changed.preprocessed_root = fixture.id("other-tree0");
++    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, KeyV1.admit(changed, pin));
++    changed = key;
++    changed.pcs_config.fri_config.n_queries += 1;
++    try std.testing.expectError(error.InvalidSegmentDetachedProfile, changed.validate());
++    changed = key;
++    changed.version += 1;
++    try std.testing.expectError(error.InvalidSegmentDetachedVersion, changed.validate());
++    var terms = test_terms;
++    changed = key;
++    changed.wire_terms = &terms;
++    terms[0].value = QM31.fromU32Unchecked(2, 0, 0, 0);
++    try std.testing.expectError(error.SegmentDetachedCircuitPinMismatch, KeyV1.admit(changed, pin));
++    terms = test_terms;
++    terms[1].value = QM31.one();
++    try std.testing.expectError(error.InvalidSegmentDetachedCircuit, changed.validate());
++}
++
++test "SegmentV2 detached transcript binds dynamic expected wire without specializing the key" {
++    const allocator = std.testing.allocator;
++    var input = try fixture.Fixture.init();
++    var other = try fixture.Fixture.initWithRegister7(42);
++    const words = try fixture.encode(allocator, &input.leftSource());
++    defer allocator.free(words);
++    const other_words = try fixture.encode(allocator, &other.leftSource());
++    defer allocator.free(other_words);
++    const data = try PublicData.authenticate(words);
++    const other_data = try PublicData.authenticate(other_words);
++    const key = try testKey(words.len, 1);
++    const pin = try key.identity();
++    var left = recursion.poseidon2_channel.Channel{};
++    var right = recursion.poseidon2_channel.Channel{};
++    try mixAdmission(&left, &key, &data);
++    try mixAdmission(&right, &key, &other_data);
++    try std.testing.expect(!std.meta.eql(left.digestWords(), right.digestWords()));
++    try std.testing.expectEqual(pin, try key.identity());
++    // A caller cannot present a mutated borrowed wire as an admitted input.
++    const saved = words[0];
++    defer words[0] = saved;
++    words[0] = saved.add(core.fields.m31.M31.one());
++    const before = left;
++    if (mixAdmission(&left, &key, &data)) |_| return error.TestExpectedError else |_| {}
++    try std.testing.expectEqualDeep(before, left);
++}
++
++test "SegmentV2 detached claims share fixed lowering and expected row36 closure" {
++    const allocator = std.testing.allocator;
++    var input = try fixture.Fixture.init();
++    const words = try fixture.encode(allocator, &input.leftSource());
++    defer allocator.free(words);
++    const data = try PublicData.authenticate(words);
++    const key = try testKey(words.len, 1);
++    const relations = components.Relations.dummy();
++    const expected_statement = try public_inputs.statementClaim(&data, &key.admitted_keys, &key.source_manifest, &relations);
++    const expected_wire = try key.wireClaim(&relations);
++    var claims: components.ClaimsV1 = .{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
++    claims.values[36] = expected_statement;
++    claims.values[0] = expected_wire.add(expected_statement).neg();
++    var channel = recursion.poseidon2_channel.Channel{};
++    try mixClaimsAndBoundary(&channel, &key, &data, claims, &relations);
++    const before = channel;
++    claims.values[36] = claims.values[36].add(QM31.one());
++    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, mixClaimsAndBoundary(&channel, &key, &data, claims, &relations));
++    try std.testing.expectEqualDeep(before, channel);
++    claims.values[36] = expected_statement;
++    claims.values[0] = claims.values[0].add(QM31.one());
++    try std.testing.expectError(error.SegmentDetachedClaimClosureMismatch, mixClaimsAndBoundary(&channel, &key, &data, claims, &relations));
++    try std.testing.expectEqualDeep(before, channel);
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig
+new file mode 100644
+index 00000000..a4ab5579
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig
+@@ -0,0 +1,138 @@
++//! SegmentV2 STARK verification using only fixed admission, expected public
++//! input and canonical proof data. No native capture or prepared leaf enters
++//! this module. The key must be admitted independently by the caller.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontend = @import("stwo_riscv_frontend");
++const recursion = frontend.recursion;
++const postcard = @import("interop_postcard");
++const transcript = @import("recursive_segment_v2_detached_transcript.zig");
++const components = @import("recursive_segment_v2_verifier_components.zig");
++const support = @import("recursive_binary_outer_support.zig");
++const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
++const Scheme = core.pcs.verifier.CommitmentSchemeVerifier(recursion.engine.Hasher, recursion.engine.MerkleChannel);
++pub const KeyV1 = transcript.KeyV1;
++pub const ClaimsV1 = components.ClaimsV1;
++pub const ProofCapture = core.pcs.verifier.VerifiedProofCapture(recursion.engine.Hasher);
++pub const MAX_PROOF_BYTES = @import("recursive_temporal_secure_parent_artifact_v1.zig").MAX_CANONICAL_PROOF_BYTES;
++
++/// Derive decoder allocation bounds only from the admitted canonical AIRs.
++/// Preparing these fixed adapters may allocate, but no proof length, claim or
++/// opening controls those allocations. The subsequent wire walk allocates none.
++pub fn proofPreflightShape(allocator: std.mem.Allocator, key: *const KeyV1) !postcard.proof_preflight.Shape {
++    try key.validate();
++    const dummy_relations = components.Relations.dummy();
++    const dummy_claims = ClaimsV1{ .values = @splat(core.fields.qm31.QM31.zero()), .poseidon_partials = @splat(core.fields.qm31.QM31.zero()) };
++    const owner = try components.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, &dummy_relations, dummy_claims);
++    defer owner.deinit();
++    const admitted = core.air.components.Components{
++        .components = try owner.verifierComponents(),
++        .n_preprocessed_columns = key.manifest.total_preprocessed_columns,
++    };
++    const composition_split = try admitted.compositionLogSplit();
++    const composition_log = core.verifier_types.compositionMaskLogSize(admitted.compositionLogDegreeBound(), composition_split) orelse
++        return error.SegmentDetachedPreflightShapeMismatch;
++    const composition_columns = core.verifier_types.compositionColumnCount(composition_split, core.fields.qm31.SECURE_EXTENSION_DEGREE) orelse
++        return error.SegmentDetachedPreflightShapeMismatch;
++    var logs = try admitted.columnLogSizes(allocator);
++    defer logs.deinitDeep(allocator);
++    const point = core.circle.secureFieldPointFromRandomSeed(core.fields.qm31.QM31.one());
++    var masks = try admitted.maskPoints(allocator, point, composition_log, false);
++    defer masks.deinitDeep(allocator);
++    if (logs.items.len != manifest_mod.TREE_COUNT or masks.items.len != manifest_mod.TREE_COUNT)
++        return error.SegmentDetachedPreflightShapeMismatch;
++    var tree_columns: [manifest_mod.TREE_COUNT + 1]u32 = undefined;
++    var sample_width_limits: [manifest_mod.TREE_COUNT + 1]u32 = @splat(1);
++    var max_column_log_size = composition_log;
++    for (logs.items, masks.items, 0..) |tree_logs, tree_masks, tree| {
++        if (tree_logs.len != tree_masks.len) return error.SegmentDetachedPreflightShapeMismatch;
++        tree_columns[tree] = std.math.cast(u32, tree_logs.len) orelse return error.ArithmeticOverflow;
++        for (tree_logs, tree_masks) |log, mask| {
++            max_column_log_size = @max(max_column_log_size, log);
++            sample_width_limits[tree] = @max(sample_width_limits[tree], std.math.cast(u32, mask.len) orelse return error.ArithmeticOverflow);
++        }
++    }
++    tree_columns[manifest_mod.TREE_COUNT] = std.math.cast(u32, composition_columns) orelse return error.ArithmeticOverflow;
++    const config = key.pcs_config;
++    return .{
++        .config = .{
++            .pow_bits = config.pow_bits,
++            .log_blowup_factor = config.fri_config.log_blowup_factor,
++            .n_queries = config.fri_config.n_queries,
++            .log_last_layer_degree_bound = config.fri_config.log_last_layer_degree_bound,
++            .fold_step = config.fri_config.fold_step,
++            .lifting_log_size = config.lifting_log_size,
++        },
++        .tree_columns = tree_columns,
++        .max_column_log_size = max_column_log_size,
++        .sample_width_limits = sample_width_limits,
++        .hash_size = @sizeOf(recursion.engine.Hasher.Hash),
++        .hash_encoding = .canonical_m31_words,
++        .max_wire_bytes = MAX_PROOF_BYTES,
++    };
++}
++
++pub fn verify(
++    allocator: std.mem.Allocator,
++    key: *const KeyV1,
++    expected: *const frontend.air.public_data_v2.PublicDataV2,
++    claims: ClaimsV1,
++    proof_bytes: []const u8,
++) !recursion.poseidon2_channel.Digest {
++    return verifyImpl(allocator, key, expected, claims, proof_bytes, null);
++}
++
++/// Retain authenticated openings only for the next recursive producer. This
++/// output is witness data and does not admit that producer's parent circuit.
++pub fn verifyWithCapture(
++    allocator: std.mem.Allocator,
++    key: *const KeyV1,
++    expected: *const frontend.air.public_data_v2.PublicDataV2,
++    claims: ClaimsV1,
++    proof_bytes: []const u8,
++    capture: *ProofCapture,
++) !recursion.poseidon2_channel.Digest {
++    return verifyImpl(allocator, key, expected, claims, proof_bytes, capture);
++}
++
++fn verifyImpl(
++    allocator: std.mem.Allocator,
++    key: *const KeyV1,
++    expected: *const frontend.air.public_data_v2.PublicDataV2,
++    claims: ClaimsV1,
++    proof_bytes: []const u8,
++    capture: ?*ProofCapture,
++) !recursion.poseidon2_channel.Digest {
++    try key.validate();
++    _ = try expected.metadata();
++    _ = try claims.vector(&key.manifest);
++    if (proof_bytes.len == 0 or proof_bytes.len > MAX_PROOF_BYTES)
++        return error.SegmentDetachedProofSizeMismatch;
++    try postcard.proof_preflight.validate(proof_bytes, try proofPreflightShape(allocator, key));
++    var stream = std.io.fixedBufferStream(proof_bytes);
++    var proof = try postcard.deserializeProof(recursion.engine.Hasher, allocator, stream.reader());
++    var proof_owned = true;
++    defer if (proof_owned) proof.deinit(allocator);
++    if (stream.pos != proof_bytes.len) return error.SegmentDetachedProofTrailingBytes;
++    if (!std.meta.eql(proof.commitment_scheme_proof.config, key.pcs_config))
++        return error.SegmentDetachedProofConfigMismatch;
++    const commitments = proof.commitment_scheme_proof.commitments.items;
++    if (commitments.len != manifest_mod.TREE_COUNT + 1 or !std.meta.eql(commitments[0], key.preprocessed_root))
++        return error.SegmentDetachedPreprocessedCommitmentMismatch;
++    var scheme = try Scheme.init(allocator, key.pcs_config);
++    defer scheme.deinit(allocator);
++    var channel = recursion.poseidon2_channel.Channel{};
++    for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], &channel);
++    try transcript.mixAdmission(&channel, key, expected);
++    const relations = try components.Relations.draw(allocator, &channel);
++    try transcript.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
++    try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], &channel);
++    const owned_components = try components.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, &relations, claims);
++    defer owned_components.deinit();
++    const moved = support.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
++    if (capture) |output|
++        try core.verifier.verifyWithProofCapture(recursion.engine.Hasher, recursion.engine.MerkleChannel, allocator, try owned_components.verifierComponents(), &channel, &scheme, moved, output)
++    else
++        try core.verifier.verify(recursion.engine.Hasher, recursion.engine.MerkleChannel, allocator, try owned_components.verifierComponents(), &channel, &scheme, moved);
++    return recursion.protocol.transcriptId(channel.digestWords(), channel.n_draws);
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig
+new file mode 100644
+index 00000000..2a744938
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier_runner.zig
+@@ -0,0 +1,4 @@
++//! Standalone consumer: fixed-key pin, expected public wire, claims and proof.
++pub fn main() !void {
++    return @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_command.main();
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig b/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig
+new file mode 100644
+index 00000000..303b20e6
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig
+@@ -0,0 +1,142 @@
++//! Expected-public binding for the existing SegmentV2 statement source.
++//! Row36 emits only statement/context tuples, so its authenticated STARK claim
++//! can be compared directly with this verifier-derived positive sum. Internal
++//! lookup closure and the AIR's emission multiplicity remain unchanged.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontend = @import("stwo_riscv_frontend");
++const source = frontend.recursion.segment_leaf_authority_v2;
++const PublicData = frontend.air.public_data_v2.PublicDataV2;
++const universal = frontend.recursion.air.universal_challenges;
++const QM31 = core.fields.qm31.QM31;
++
++/// The caller independently admits the source manifest and both verifier key
++/// IDs. Expected wire metadata is authenticated here; a supplied context hash
++/// or producer receipt cannot stand in for its canonical temporal preimage.
++pub fn statementClaim(
++    expected: *const PublicData,
++    admitted_keys: *const source.VerifierKeyAuthorityV2,
++    admitted_source_manifest: *const source.ManifestV2,
++    relations: *const universal.UniversalRelations,
++) !QM31 {
++    const metadata = try expected.metadata();
++    try admitted_keys.validate();
++    try admitted_source_manifest.validate();
++    const exact_manifest = try source.ManifestV2.init(expected.words().len);
++    if (!std.meta.eql(exact_manifest, admitted_source_manifest.*))
++        return error.SegmentV2PublicInputManifestMismatch;
++    const context = try source.nativeContext(&metadata, admitted_keys, admitted_source_manifest);
++    const context_words = try context.canonicalWords();
++    try relations.validate();
++    const challenge = relations.get(source.STATEMENT_RELATION_DOMAIN);
++    var claim = QM31.zero();
++    for (expected.words(), 0..) |word, index| {
++        const event = source.statementEvent(source.WIRE_SCOPE, index, word);
++        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
++    }
++    for (context_words, 0..) |word, index| {
++        const event = source.statementEvent(source.CONTEXT_SCOPE, index, word);
++        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
++    }
++    return claim;
++}
++
++/// Checks public-input equality; it does not verify the STARK. The caller must
++/// also verify the same row36 claim through the canonical component adapter.
++pub fn verifyStatementClaim(
++    expected: *const PublicData,
++    admitted_keys: *const source.VerifierKeyAuthorityV2,
++    admitted_source_manifest: *const source.ManifestV2,
++    relations: *const universal.UniversalRelations,
++    claimed_sum: QM31,
++) !void {
++    for (claimed_sum.toM31Array()) |limb|
++        if (limb.toU32() >= core.fields.m31.Modulus)
++            return error.SegmentV2PublicInputClaimMismatch;
++    if (!(try statementClaim(expected, admitted_keys, admitted_source_manifest, relations)).eql(claimed_sum))
++        return error.SegmentV2PublicInputClaimMismatch;
++}
++
++const fixture = frontend.testing.public_data_v2_test_support;
++
++fn testKeys() !source.VerifierKeyAuthorityV2 {
++    return source.VerifierKeyAuthorityV2.init(fixture.id("segment-key"), fixture.id("parent-key"));
++}
++
++test "SegmentV2 expected public claim matches the active row36 AIR" {
++    const allocator = std.testing.allocator;
++    var input = try fixture.Fixture.init();
++    const words = try fixture.encode(allocator, &input.leftSource());
++    defer allocator.free(words);
++    const data = try PublicData.authenticate(words);
++    const keys = try testKeys();
++    const manifest = try source.ManifestV2.init(words.len);
++    const relations = universal.UniversalRelations.dummy();
++    const expected = try statementClaim(&data, &keys, &manifest, &relations);
++    try verifyStatementClaim(&data, &keys, &manifest, &relations, expected);
++
++    // Exercise the actual typed relation, rather than a second tuple formula.
++    const Air = frontend.recursion.segment_leaf_outer_air_v2.Statement;
++    var definition = try Air.build(allocator);
++    defer definition.deinit();
++    const plan = try Air.authenticate(&definition);
++    const context = try source.nativeContext(&try data.metadata(), &keys, &manifest);
++    const context_words = try context.canonicalWords();
++    var actual = QM31.zero();
++    inline for (.{ words, context_words[0..] }, .{ source.WIRE_SCOPE, source.CONTEXT_SCOPE }) |values, scope| {
++        for (values, 0..) |value, index| {
++            const event = source.statementEvent(scope, index, value);
++            const row = Air.logicalRow(event.tuple[2], core.fields.m31.M31.one(), event.tuple[0], event.tuple[1]);
++            const claims = try plan.rowClaims(&definition.arena, Air.SEMANTIC_DIGEST, .{definition.event}, row, &relations);
++            actual = actual.add(claims.total());
++        }
++    }
++    try std.testing.expect(expected.eql(actual));
++}
++
++test "SegmentV2 expected public claim rejects changed wire keys manifest and claim" {
++    const allocator = std.testing.allocator;
++    var original = try fixture.Fixture.init();
++    var changed = try fixture.Fixture.initWithRegister7(42);
++    const words = try fixture.encode(allocator, &original.leftSource());
++    defer allocator.free(words);
++    const changed_words = try fixture.encode(allocator, &changed.leftSource());
++    defer allocator.free(changed_words);
++    const data = try PublicData.authenticate(words);
++    const other = try PublicData.authenticate(changed_words);
++    const keys = try testKeys();
++    const manifest = try source.ManifestV2.init(words.len);
++    const relations = universal.UniversalRelations.dummy();
++    const claim = try statementClaim(&data, &keys, &manifest, &relations);
++    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, verifyStatementClaim(&other, &keys, &manifest, &relations, claim));
++    const other_keys = try source.VerifierKeyAuthorityV2.init(fixture.id("other-segment-key"), keys.recursive_parent_vk_id);
++    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, verifyStatementClaim(&data, &other_keys, &manifest, &relations, claim));
++    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, verifyStatementClaim(&data, &keys, &manifest, &relations, claim.add(QM31.one())));
++    const other_manifest = try source.ManifestV2.init(words.len + 1);
++    try std.testing.expectError(error.SegmentV2PublicInputManifestMismatch, statementClaim(&data, &keys, &other_manifest, &relations));
++    // Mutate the retained borrowed wire after authentication. Even a formerly
++    // authenticated PublicData value must recheck its current ingress bytes.
++    const saved = words[0];
++    defer words[0] = saved;
++    words[0] = saved.add(core.fields.m31.M31.one());
++    if (statementClaim(&data, &keys, &manifest, &relations)) |_| {
++        return error.TestExpectedError;
++    } else |_| {}
++}
++
++test "SegmentV2 expected public claim rejects a zero relation denominator" {
++    const allocator = std.testing.allocator;
++    var input = try fixture.Fixture.init();
++    const words = try fixture.encode(allocator, &input.leftSource());
++    defer allocator.free(words);
++    const data = try PublicData.authenticate(words);
++    const keys = try testKeys();
++    const manifest = try source.ManifestV2.init(words.len);
++    var relations = universal.UniversalRelations.dummy();
++    const domain = @intFromEnum(source.STATEMENT_RELATION_DOMAIN);
++    const first = source.statementEvent(source.WIRE_SCOPE, 0, words[0]);
++    var element = universal.Elements.init(3, QM31.zero(), relations.elements[domain].alpha);
++    element.z = try element.combineBase(&first.tuple);
++    relations.elements[domain] = element;
++    try std.testing.expectError(error.DivisionByZero, statementClaim(&data, &keys, &manifest, &relations));
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+new file mode 100644
+index 00000000..3985ef70
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+@@ -0,0 +1,146 @@
++//! Two owned, consecutive memory witnesses for a complete tiny execution.
++//! This materializes inputs only; it does not prove either child or a parent.
++const std = @import("std");
++const frontend = @import("stwo_riscv_frontend");
++const runner = frontend.runner;
++const recursion = frontend.recursion;
++const span = recursion.span_statement;
++const wire = recursion.segment_statement_v2;
++const model = @import("recursive_segment_v2_memory_workload_test_support.zig");
++const fixture = frontend.testing.guest_precompile_test_elf;
++
++pub const first_steps = model.native_steps;
++pub const total_steps: usize = 2 + 3 * fixture.recursion_memory_updates;
++pub const second_steps = total_steps - first_steps;
++// The existing final JAL x0,0 is an unretired completion observation. A budget
++// of 34 stops before observing it; 35 returns 34 retired rows and completion.
++pub const second_budget = second_steps + 1;
++
++pub const Admission = struct {
++    /// Borrow the pair's owned memory/clock arrays. Do not retain after pair
++    /// destruction or mutate the pair while consuming these sources.
++    sources: [2]wire.SourceV2,
++    folded: span.SpanStatement,
++};
++
++pub const OwnedPair = struct {
++    first: runner.Poseidon2SegmentResult,
++    second: runner.Poseidon2SegmentResult,
++    address_count: usize,
++
++    pub fn init(allocator: std.mem.Allocator, address_count: usize) !OwnedPair {
++        const elf = try fixture.buildRecursionMemory(address_count);
++        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
++        defer session.deinit();
++        var first = try session.startSegment(first_steps);
++        errdefer first.deinit();
++        const continuation = first.base.continuation orelse return error.ExpectedFirstSegmentContinuation;
++        var second = try session.resumeSegment(continuation, second_budget);
++        errdefer second.deinit();
++        var result = OwnedPair{ .first = first, .second = second, .address_count = address_count };
++        try result.validate();
++        // Runner publication transfers trace, tracker, frozen call/row buffers,
++        // captured IO, snapshots and copied access clocks into each result.
++        // Snapshot.program_words owns copied WordStates, not ELF/session memory.
++        // No session/ELF pointer survives; checkWorkload validates after teardown.
++        return result;
++    }
++
++    pub fn deinit(self: *OwnedPair) void {
++        self.second.deinit();
++        self.first.deinit();
++        self.* = undefined;
++    }
++
++    pub fn validate(self: *const OwnedPair) !void {
++        try model.validateSegment(&self.first.base, self.address_count, first_steps, first_steps);
++        try model.validateCompletedSegment(&self.second.base, self.address_count, total_steps, second_steps);
++        try std.testing.expectEqual(@as(u32, 0), self.first.base.segment_index);
++        try std.testing.expectEqual(@as(u32, 1), self.second.base.segment_index);
++        try std.testing.expect(self.first.base.segment_role.is_first);
++        try std.testing.expect(!self.second.base.segment_role.is_first);
++        try std.testing.expectEqualDeep(self.first.base.exit_cpu, self.second.base.entry_cpu);
++        try std.testing.expectEqualDeep(self.first.base.rw_memory.program_words, self.second.base.rw_memory.program_words);
++    }
++
++    /// Full mutable-input admission, using the canonical V2 and span owners.
++    /// Keys, circuit profiles, canonical wire allocation and proofs belong to
++    /// the caller. No cached validation state is published by this helper.
++    pub fn admitStatements(self: *const OwnedPair, session_id: span.Digest, statements: [2]span.SpanStatement) !Admission {
++        try self.validate();
++        const sources = [2]wire.SourceV2{
++            try wire.SourceV2.fromSegmentResult(session_id, statements[0], &self.first.base),
++            try wire.SourceV2.fromSegmentResult(session_id, statements[1], &self.second.base),
++        };
++        try wire.requireAdjacentSources(&sources[0], &sources[1]);
++        return .{ .sources = sources, .folded = try span.SpanStatement.fold(statements[0], statements[1]) };
++    }
++};
++
++/// Execution/source-admission gate, deliberately requiring no native proof.
++pub fn checkWorkload(allocator: std.mem.Allocator) !void {
++    for (fixture.recursion_memory_address_counts) |address_count| {
++        var pair = try OwnedPair.init(allocator, address_count);
++        defer pair.deinit();
++        // init's session and stack ELF have already been destroyed here.
++        try pair.validate();
++        const statements = try fixtureStatements(allocator, &pair);
++        const session_id = digest("two-segment-memory-session");
++        const admitted = try pair.admitStatements(session_id, statements);
++        _ = try span.RootStatement.init(admitted.folded);
++        try std.testing.expectEqual(@as(u64, total_steps), admitted.folded.body.executed.cycle_count);
++        try std.testing.expectError(error.SlotsNotAdjacent, span.SpanStatement.fold(statements[1], statements[0]));
++        try std.testing.expectError(error.SlotsNotAdjacent, span.SpanStatement.fold(statements[0], statements[0]));
++        try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[1], &admitted.sources[0]));
++        try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[0], &admitted.sources[0]));
++        var gap = statements[0];
++        gap.body.executed.cycle_count -= 1;
++        try gap.validate();
++        try std.testing.expectError(error.CycleDiscontinuity, span.SpanStatement.fold(gap, statements[1]));
++        var changed_state = statements[1];
++        changed_state.body.executed.entry.registers[5] ^= 1;
++        try changed_state.validate();
++        try std.testing.expectError(error.StateDiscontinuity, span.SpanStatement.fold(statements[0], changed_state));
++        try std.testing.expectError(error.BaseStatementMismatch, wire.SourceV2.fromSegmentResult(session_id, changed_state, &pair.second.base));
++        // The old prefix validator must not bless a terminal child, and the
++        // explicit completed validator must not bless the first prefix.
++        try std.testing.expectError(error.TestUnexpectedResult, model.validateSegment(&pair.second.base, address_count, total_steps, second_steps));
++        try std.testing.expectError(error.TestExpectedEqual, model.validateCompletedSegment(&pair.first.base, address_count, first_steps, first_steps));
++        {
++            const original = pair.second.base.execution_trace.rows.items[0].mem_val;
++            defer pair.second.base.execution_trace.rows.items[0].mem_val = original;
++            // Step 64 is the pending store after the first segment's load/add.
++            pair.second.base.execution_trace.rows.items[0].mem_val ^= 1;
++            try std.testing.expectError(error.TestExpectedEqual, pair.validate());
++        }
++        std.debug.print("SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count={d} first_retired={d} second_retired={d} second_budget={d} completed=true canonical_adjacent=true session_destroyed=true proofs_created=0\n", .{ address_count, first_steps, second_steps, second_budget });
++    }
++}
++
++// Test-only statement construction uses existing canonical identities and
++// constructors. It does not supply an admitted verifier key or a proof.
++fn fixtureStatements(allocator: std.mem.Allocator, pair: *const OwnedPair) ![2]span.SpanStatement {
++    var program = try frontend.air.program.commitment.buildDeclared(allocator, pair.first.base.execution_trace.rows.items, pair.first.base.rw_memory.program_words, null);
++    defer program.deinit(allocator);
++    const io = digest("two-segment-memory-empty-io");
++    const input = digest("two-segment-memory-input");
++    const output = digest("two-segment-memory-output");
++    const initial = try span.MachineState.init(pair.first.base.entry_cpu.pc, pair.first.base.entry_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .initial_word).id, io);
++    const shared = try span.MachineState.init(pair.first.base.exit_cpu.pc, pair.first.base.exit_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .final_word).id, io);
++    const final = try span.MachineState.init(pair.second.base.exit_cpu.pc, pair.second.base.exit_cpu.regs, wire.snapshotDigest(pair.second.base.rw_memory.words, .final_word).id, io);
++    var program_digest: span.Digest = @splat(0);
++    program_digest[0] = program.tree.root;
++    const job = try span.JobContext.init(try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, program_digest, initial, final, input, output, total_steps), 2);
++    return .{
++        try span.SpanStatement.segmentLeaf(job, pair.first.base.segment_index, try span.ExecutedSpan.init(pair.first.base.segment_index, 1, pair.first.base.global_first_cycle - 1, first_steps, initial, shared, try span.EdgeClaim.present(input), span.EdgeClaim.absent())),
++        try span.SpanStatement.segmentLeaf(job, pair.second.base.segment_index, try span.ExecutedSpan.init(pair.second.base.segment_index, 1, pair.second.base.global_first_cycle - 1, second_steps, shared, final, span.EdgeClaim.absent(), try span.EdgeClaim.present(output))),
++    };
++}
++
++fn digest(label: []const u8) span.Digest {
++    return recursion.poseidon2_channel.hashBytes(label, 0x5632_504f);
++}
++
++test "two-segment memory witnesses close a complete execution with canonical admission" {
++    try checkWorkload(std.testing.allocator);
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+new file mode 100644
+index 00000000..792e5a80
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+@@ -0,0 +1,332 @@
++//! Witness-free components for the admitted SegmentV2 39-row circuit.
++//! The caller must independently admit the exact manifest, preprocessing root,
++//! and shape parameters. This owner authenticates the canonical AIRs and owns
++//! their verifier adapters; supplied claims remain untrusted STARK inputs.
++const std = @import("std");
++const core = @import("stwo_core");
++const frontend = @import("stwo_riscv_frontend");
++const air = frontend.recursion.air;
++const manifest_mod = air.segment_outer_adapter_manifest_v2;
++const native_parameters = @import("recursive_fri_component_parameters.zig");
++const provider = air.universal_shared_provider;
++const range = air.range_check_8_8_bridge;
++const M31 = core.fields.m31.M31;
++const QM31 = core.fields.qm31.QM31;
++pub const Relations = air.universal_challenges.UniversalRelations;
++
++const Entry = struct { Air: type, row: manifest_mod.ComponentKey, requires_location: bool = false };
++// Reuse the universal roster, replacing only the admitted V2 overrides. Each
++// adapter authenticates its geometry against the canonical V2 typed catalog.
++const logical_rows = rows: {
++    var result: [manifest_mod.COMPONENT_COUNT - 2]Entry = undefined;
++    for (air.universal_catalog.LOGICAL_ROWS, 0..) |entry, index| result[index] = .{
++        .Air = switch (index) {
++            11 => frontend.recursion.segment_statement_outer_source_v2.Air,
++            12 => air.segment_public_outer_air_v2.PublicationHeader,
++            13 => air.segment_public_outer_air_v2.NativePublicSums,
++            14 => air.segment_public_outer_air_v2.PublicationSeal,
++            15 => air.segment_public_outer_air_v2.StatementBoundary,
++            16 => air.segment_public_outer_air_v2.NativeChallenges,
++            17 => air.segment_public_outer_air_v2.ControlRelay,
++            else => entry.Air,
++        },
++        .row = @enumFromInt(@intFromEnum(entry.row)),
++        .requires_location = entry.requires_location,
++    };
++    result[34] = .{ .Air = frontend.recursion.segment_leaf_outer_air_v2.Statement, .row = .statement_source_v2 };
++    result[35] = .{ .Air = frontend.recursion.segment_leaf_outer_air_v2.PublicLogUp, .row = .public_logup_source_v2 };
++    result[36] = .{ .Air = air.segment_publication_input_provider_v2, .row = .segment_publication_input_provider_v2 };
++    break :rows result;
++};
++
++pub const AdmissionParametersV1 = struct {
++    query_reference: air.query_bits_witness.Reference,
++    poseidon_active_rows: u32,
++
++    pub fn validate(self: AdmissionParametersV1, manifest: *const manifest_mod.Manifest) ![manifest_mod.COMPONENT_COUNT]u32 {
++        try manifest.validate();
++        var logs: [manifest_mod.COMPONENT_COUNT]u32 = undefined;
++        for (manifest.placements, &logs) |placement, *log|
++            log.* = (placement orelse return error.InvalidSegmentVerifierAdmission).geometry.log_size;
++        try self.query_reference.validate();
++        const query_rows = try std.math.add(u64, self.query_reference.vm.query_count, try std.math.mul(u64, 2, self.query_reference.recursion.query_count));
++        if (query_rows > (@as(u64, 1) << @intCast(logs[@intFromEnum(manifest_mod.ComponentKey.query_bits)])) or
++            self.poseidon_active_rows > (@as(u64, 1) << @intCast(logs[@intFromEnum(manifest_mod.ComponentKey.poseidon2)])))
++            return error.InvalidSegmentVerifierAdmission;
++        return logs;
++    }
++};
++
++pub const ClaimsV1 = struct {
++    values: [manifest_mod.COMPONENT_COUNT]QM31,
++    poseidon_partials: [2]QM31,
++
++    pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
++        var result = try manifest_mod.ClaimVector.init(manifest);
++        for (self.values, 0..) |value, index| {
++            try canonical(value);
++            try result.bind(@enumFromInt(index), value);
++        }
++        for (self.poseidon_partials) |partial| try canonical(partial);
++        if (!self.poseidon_partials[0].add(self.poseidon_partials[1]).eql(self.values[@intFromEnum(manifest_mod.ComponentKey.poseidon2)]))
++            return error.InvalidSegmentVerifierClaims;
++        try (frontend.recursion.segment_statement_outer_components_v2.ClaimsV2{ .row10_inactive = self.values[10], .row11_statement = self.values[11] }).validate();
++        try result.sealClaims(manifest);
++        return result;
++    }
++};
++
++fn Component(comptime entry: anytype) type {
++    @setEvalBranchQuota(500_000);
++    return switch (entry.row) {
++        .statement_source_v2 => air.segment_boundary_components_v2.StatementAdapter,
++        .public_logup_source_v2 => air.segment_boundary_components_v2.PublicLogUpAdapter,
++        .segment_publication_input_provider_v2 => air.segment_publication_input_provider_component_v2.AdapterForManifest(manifest_mod),
++        else => air.universal_typed_component.ComponentForManifest(entry.Air, air.universal_relation_binding.Binding(entry.Air), manifest_mod),
++    };
++}
++fn Tuple(comptime definitions: bool) type {
++    var types: [logical_rows.len]type = undefined;
++    for (logical_rows, 0..) |entry, index| types[index] = if (definitions) entry.Air.Definition else Component(entry);
++    return std.meta.Tuple(&types);
++}
++
++pub const OwnedComponentsV1 = opaque {
++    const Self = @This();
++    const Storage = struct {
++        allocator: std.mem.Allocator,
++        manifest: manifest_mod.Manifest,
++        parameters: AdmissionParametersV1,
++        relations: Relations,
++        providers: provider.SharedProviderRelations,
++        definitions: Tuple(true),
++        initialized: usize = 0,
++        logical: Tuple(false),
++        range_definition: range.Definition,
++        range_initialized: bool = false,
++        range_executor: range.Executor,
++        poseidon: provider.Poseidon2AdapterForManifest(manifest_mod),
++        range_component: provider.RangeCheck8x8AdapterForManifest(manifest_mod),
++        gate: manifest_mod.ProofGate,
++    };
++
++    pub fn init(allocator: std.mem.Allocator, manifest: *const manifest_mod.Manifest, parameters: AdmissionParametersV1, relations: *const Relations, claims: ClaimsV1) !*Self {
++        const logs = try parameters.validate(manifest);
++        _ = try claims.vector(manifest);
++        try relations.validate();
++        const gate = try manifest_mod.ProofGate.init(manifest);
++        const storage = try allocator.create(Storage);
++        storage.* = .{
++            .allocator = allocator,
++            .manifest = manifest.*,
++            .parameters = parameters,
++            .relations = relations.*,
++            .providers = undefined,
++            .definitions = undefined,
++            .logical = undefined,
++            .range_definition = undefined,
++            .range_executor = undefined,
++            .poseidon = undefined,
++            .range_component = undefined,
++            .gate = gate,
++        };
++        const self: *Self = @ptrCast(storage);
++        errdefer self.deinit();
++        storage.providers = try provider.SharedProviderRelations.init(&storage.relations);
++        inline for (logical_rows, 0..) |entry, index| {
++            storage.definitions[index] = if (entry.requires_location) try entry.Air.build(allocator, .generated) else try entry.Air.build(allocator);
++            storage.initialized += 1;
++            const relation = if (comptime entry.row == .statement_source_v2 or entry.row == .public_logup_source_v2)
++                try entry.Air.authenticate(&storage.definitions[index])
++            else
++                try air.universal_relation_binding.Binding(entry.Air).authenticate(&storage.definitions[index]);
++            storage.logical[index] = try Component(entry).init(&storage.definitions[index], relation, &storage.manifest, @enumFromInt(@intFromEnum(entry.row)), logs[@intFromEnum(entry.row)], try parametersFor(entry, parameters), &storage.relations, claims.values[@intFromEnum(entry.row)]);
++            if (comptime index < air.universal_catalog.LOGICAL_ROWS.len) try storage.gate.append(&storage.manifest, try storage.logical[index].binding(&storage.manifest));
++        }
++        storage.poseidon = try provider.Poseidon2AdapterForManifest(manifest_mod).init(&storage.manifest, logs[34], parameters.poseidon_active_rows, &storage.providers, &storage.relations, claims.poseidon_partials);
++        try storage.gate.append(&storage.manifest, try storage.poseidon.binding(&storage.manifest));
++        storage.range_definition = try range.build(allocator);
++        storage.range_initialized = true;
++        storage.range_executor = try range.Executor.init(&storage.range_definition, &try range.Binding.canonical(&storage.range_definition));
++        storage.range_component = try provider.RangeCheck8x8AdapterForManifest(manifest_mod).init(&storage.range_definition, &storage.range_executor, &storage.manifest, &storage.providers, &storage.relations, claims.values[35]);
++        try storage.gate.append(&storage.manifest, try storage.range_component.binding(&storage.manifest));
++        inline for (air.universal_catalog.LOGICAL_ROWS.len..logical_rows.len) |index|
++            try storage.gate.append(&storage.manifest, try storage.logical[index].binding(&storage.manifest));
++        try storage.gate.sealGate(&storage.manifest);
++        return self;
++    }
++
++    pub fn deinit(self: *Self) void {
++        const storage: *Storage = @ptrCast(@alignCast(self));
++        inline for (0..logical_rows.len) |index| if (index < storage.initialized) storage.definitions[index].deinit();
++        if (storage.range_initialized) storage.range_definition.deinit();
++        storage.allocator.destroy(storage);
++    }
++
++    /// Every pointer in these adapters targets this immutable heap owner.
++    pub fn verifierComponents(self: *const Self) ![]const core.air.components.Component {
++        const storage: *const Storage = @ptrCast(@alignCast(self));
++        return storage.gate.verifierSlice();
++    }
++
++    /// Populate an empty proof gate from this owner's admitted AIRs.
++    /// The copied adapters borrow this immutable owner, which must
++    /// outlive the gate. The selected manifest remains an explicit input.
++    pub fn appendToGate(self: *const Self, manifest: *const manifest_mod.Manifest, gate: *manifest_mod.ProofGate) !void {
++        if (gate.count != 0 or gate.sealed) return error.InvalidSegmentVerifierAdmission;
++        const storage: *const Storage = @ptrCast(@alignCast(self));
++        try storage.gate.validate(manifest);
++        gate.* = storage.gate;
++    }
++};
++
++fn parametersFor(comptime entry: anytype, admitted: AdmissionParametersV1) ![Component(entry).PARAMETER_COLUMN_COUNT]M31 {
++    const row = @intFromEnum(entry.row);
++    if (comptime row >= 36 or row == 10 or row == 11)
++        return @splat(M31.zero());
++    if (comptime row < 10)
++        return @field(frontend.recursion.segment_transcript_outer_components_v2.Parameters.segmentV2(), @tagName(entry.row));
++    if (comptime row < 18) {
++        const fields = .{ "publication_header", "native_public_sums", "publication_seal", "boundary_bridge", "native_challenges", "control_relay" };
++        return @field(frontend.recursion.segment_public_outer_components_v2.Parameters.segmentV2(), fields[row - 12]);
++    }
++    return switch (entry.row) {
++        .vm_air_composition_input => native_parameters.vmInputParameters(.segment_leaf),
++        .vm_air_composition_control => air.control_slice_witness.ProofKind.segment_leaf.selectors()[0..2].*,
++        .query_bits => try native_parameters.queryBitsParameters(admitted.query_reference, .segment_leaf),
++        .query_mapping => native_parameters.queryMappingParameters(.segment_leaf),
++        .merkle_root => native_parameters.merkleRootParameters(.segment_leaf),
++        .trace_merkle => native_parameters.traceMerkleParameters(.segment_leaf),
++        .pcs_deep_input => native_parameters.pcsParameters(.segment_leaf),
++        .fri_merkle_leaf => native_parameters.friLeafParameters(.segment_leaf),
++        .fri_merkle_node => air.fri_merkle_leaf_witness.ProofKind.segment_leaf.selectors()[0..2].*,
++        .fri_merkle_anchor => native_parameters.friAnchorParameters(.segment_leaf),
++        .fri_verifier_control => native_parameters.controlParameters(.segment_leaf),
++        .fri_verifier_input => native_parameters.inputParameters(.segment_leaf),
++        .qm31_mul, .qm31_inv, .linear_ops => air.fri_verifier_input_witness.ProofKind.segment_leaf.selectors(),
++        .merkle_path => .{},
++        else => unreachable,
++    };
++}
++fn canonical(value: QM31) !void {
++    for (value.toM31Array()) |limb| if (limb.toU32() >= core.fields.m31.Modulus) return error.InvalidSegmentVerifierClaims;
++}
++
++// A catalog-only fixture deliberately has no native capture, source rows, or
++// prepared cohort. These IDs are test inputs, not a detached key admission.
++fn testAdmission() !struct { manifest: manifest_mod.Manifest, parameters: AdmissionParametersV1 } {
++    const boundary_manifest = frontend.recursion.segment_leaf_outer_authority_v2;
++    const boundary_air = frontend.recursion.segment_leaf_outer_air_v2;
++    const Fixtures = struct {
++        fn boundaryComponents(
++            statement_log_size: u8,
++        ) [boundary_manifest.COMPONENT_COUNT]boundary_manifest.ComponentGeometryV2 {
++            return .{
++                .{
++                    .kind = .statement_source,
++                    .component_tag = boundary_manifest.STATEMENT_COMPONENT_TAG,
++                    .logical_rows = (@as(u32, 1) << @intCast(statement_log_size - 1)) + 1,
++                    .trace_log_size = statement_log_size,
++                    .trace_rows = @as(u32, 1) << @intCast(statement_log_size),
++                    .preprocessed_columns = boundary_air.Statement.PREPROCESSED_COLUMN_COUNT,
++                    .main_columns = boundary_air.Statement.PHYSICAL_MAIN_COLUMN_COUNT,
++                    .interaction_columns = boundary_air.Statement.INTERACTION_COLUMN_COUNT,
++                    .direct_constraints = boundary_air.Statement.DIRECT_CONSTRAINT_COUNT,
++                    .interaction_batches = boundary_air.Statement.INTERACTION_BATCH_COUNT,
++                    .protocol_constraint_degree = boundary_air.Statement.REFERENCE_MAXIMUM_CONSTRAINT_DEGREE,
++                    .semantic_digest = boundary_air.Statement.SEMANTIC_DIGEST,
++                },
++                .{
++                    .kind = .public_logup_source,
++                    .component_tag = boundary_manifest.PUBLIC_LOGUP_COMPONENT_TAG,
++                    .logical_rows = boundary_manifest.PUBLIC_LOGUP_LOGICAL_ROWS,
++                    .trace_log_size = boundary_manifest.PUBLIC_LOGUP_TRACE_LOG_SIZE,
++                    .trace_rows = boundary_manifest.PUBLIC_LOGUP_TRACE_ROWS,
++                    .preprocessed_columns = boundary_air.PublicLogUp.PREPROCESSED_COLUMN_COUNT,
++                    .main_columns = boundary_air.PublicLogUp.PHYSICAL_MAIN_COLUMN_COUNT,
++                    .interaction_columns = boundary_air.PublicLogUp.INTERACTION_COLUMN_COUNT,
++                    .direct_constraints = boundary_air.PublicLogUp.DIRECT_CONSTRAINT_COUNT,
++                    .interaction_batches = boundary_air.PublicLogUp.INTERACTION_BATCH_COUNT,
++                    .protocol_constraint_degree = boundary_air.PublicLogUp.REFERENCE_MAXIMUM_CONSTRAINT_DEGREE,
++                    .semantic_digest = boundary_air.PublicLogUp.SEMANTIC_DIGEST,
++                },
++            };
++        }
++    };
++    var logs: air.universal_manifest.LogSizes = @splat(4);
++    logs[11] = 8;
++    logs[17] = air.vm_public_logup_control_witness_v2.TRACE_LOG_SIZE;
++    logs[34] = 5;
++    logs[35] = range.LOG_SIZE;
++    const catalog = try air.segment_outer_typed_catalog_v2.build(logs, Fixtures.boundaryComponents(8));
++    const manifest = try manifest_mod.assemble(&catalog, .{
++        .transcript_manifest_id = @splat(1),
++        .statement_manifest_id = @splat(2),
++        .public_manifest_id = @splat(3),
++        .boundary_manifest_id = @splat(4),
++        .boundary_authority_sha_id = @splat(5),
++        .provider_authority_sha_id = frontend.recursion.segment_publication_input_provider_authority_v2.sourceAuthorityShaId(),
++    });
++    const lane: air.query_bits_witness.LaneProfile = .{ .query_count = 3, .lifting_log_size = 4, .trace_tree_count = 4, .fri_layer_count = 2 };
++    return .{ .manifest = manifest, .parameters = .{ .query_reference = try air.query_bits_witness.Reference.seal(lane, lane), .poseidon_active_rows = 1 } };
++}
++
++test "SegmentV2 witness-free verifier owns all39 canonical adapters and untrusted claims" {
++    var admitted = try testAdmission();
++    var relations = Relations.dummy();
++    var claims: ClaimsV1 = .{ .values = @splat(QM31.one()), .poseidon_partials = .{ QM31.one(), QM31.zero() } };
++    claims.values[10] = QM31.zero();
++    const expected_manifest = admitted.manifest;
++    const owner = try OwnedComponentsV1.init(std.testing.allocator, &admitted.manifest, admitted.parameters, &relations, claims);
++    defer owner.deinit();
++    // Destroy every external input before querying or exporting the adapters.
++    admitted = undefined;
++    relations = undefined;
++    claims = undefined;
++    const components = try owner.verifierComponents();
++    try std.testing.expectEqual(@as(usize, 39), components.len);
++    var constraints: usize = 0;
++    for (components) |component| constraints += component.nConstraints();
++    try std.testing.expectEqual(@as(usize, expected_manifest.total_constraints), constraints);
++    const storage: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(owner));
++    inline for (logical_rows, 0..) |entry, index| {
++        _ = try storage.logical[index].binding(&expected_manifest);
++        const expected = if (comptime entry.row == .statement_input) QM31.zero() else QM31.one();
++        try std.testing.expect(storage.logical[index].claimed_sum.eql(expected));
++    }
++    _ = try storage.poseidon.binding(&expected_manifest);
++    _ = try storage.range_component.binding(&expected_manifest);
++    var gate = try manifest_mod.ProofGate.init(&expected_manifest);
++    try owner.appendToGate(&expected_manifest, &gate);
++    try std.testing.expectEqual(@as(usize, 39), (try gate.verifierSlice()).len);
++    try std.testing.expectError(error.InvalidSegmentVerifierAdmission, owner.appendToGate(&expected_manifest, &gate));
++}
++
++test "SegmentV2 witness-free verifier rejects malformed admission and inactive or provider claims" {
++    var admitted = try testAdmission();
++    const relations = Relations.dummy();
++    var claims: ClaimsV1 = .{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
++    claims.values[10] = QM31.one();
++    try std.testing.expectError(error.InactiveRowInvariantMismatch, OwnedComponentsV1.init(std.testing.allocator, &admitted.manifest, admitted.parameters, &relations, claims));
++    claims.values[10] = QM31.zero();
++    claims.poseidon_partials[0] = QM31.one();
++    try std.testing.expectError(error.InvalidSegmentVerifierClaims, OwnedComponentsV1.init(std.testing.allocator, &admitted.manifest, admitted.parameters, &relations, claims));
++    claims.poseidon_partials[0] = QM31.zero();
++    admitted.parameters.poseidon_active_rows = 33;
++    try std.testing.expectError(error.InvalidSegmentVerifierAdmission, OwnedComponentsV1.init(std.testing.allocator, &admitted.manifest, admitted.parameters, &relations, claims));
++    admitted.parameters.poseidon_active_rows = 1;
++    admitted.manifest.placements[38] = null;
++    try std.testing.expectError(error.ManifestSealMismatch, OwnedComponentsV1.init(std.testing.allocator, &admitted.manifest, admitted.parameters, &relations, claims));
++}
++
++test "SegmentV2 witness-free verifier releases its owner after initial definition allocation failure" {
++    const admitted = try testAdmission();
++    const relations = Relations.dummy();
++    const claims: ClaimsV1 = .{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
++    for (0..3) |fail_index| {
++        var failing = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = fail_index });
++        try std.testing.expectError(error.OutOfMemory, OwnedComponentsV1.init(failing.allocator(), &admitted.manifest, admitted.parameters, &relations, claims));
++        try std.testing.expect(failing.has_induced_failure);
++        try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
++    }
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig
+new file mode 100644
+index 00000000..4b31d8df
+--- /dev/null
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig
+@@ -0,0 +1,10 @@
++//! Canonical SegmentV2 verifier adapters without native proof or witness owners.
++comptime {
++    // Zig collects tests only from the test root's module. These focused
++    // builds own the source files here; production runners use the integration
++    // module exports and never also import the files into their root module.
++    _ = @import("recursive_segment_v2_verifier_components.zig");
++    _ = @import("recursive_segment_v2_public_inputs.zig");
++    _ = @import("recursive_segment_v2_detached_transcript.zig");
++    _ = @import("recursive_segment_v2_detached_command.zig");
++}

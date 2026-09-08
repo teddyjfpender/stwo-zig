@@ -627,15 +627,12 @@ pub fn EngineKernel(comptime Cohort: type) type {
                 };
 
             const transcript_after_ns = phase_timer.lap();
-            var components = try cohort.initComponents(
-                &generated,
+            const components = try cohort.initVerifierComponents(
                 &relations,
-                &provider_relations,
+                &claims,
+                generated.core.poseidon2_partials,
             );
             defer components.deinit();
-            var gate = try manifest_mod.ProofGate.init(manifest);
-            try components.appendToGate(manifest, &gate);
-            try gate.sealGate(manifest);
 
             const components_ns = phase_timer.lap();
             const publication_authority =
@@ -653,7 +650,7 @@ pub fn EngineKernel(comptime Cohort: type) type {
                 recursion.engine.Hasher,
                 recursion.engine.MerkleChannel,
                 allocator,
-                try gate.verifierSlice(),
+                try components.verifierComponents(),
                 &channel,
                 &scheme,
                 proof,
@@ -900,6 +897,7 @@ fn assertCohortContract(comptime Cohort: type) void {
         "AuthorityInputs",
         "GeneratedInteractionsV2",
         "Components",
+        "VerifierComponents",
         "PublicationAuthorityV1",
         "init",
         "deinit",
@@ -916,6 +914,7 @@ fn assertCohortContract(comptime Cohort: type) void {
         "claimVector",
         "rebuildGeneratedInteractions",
         "initComponents",
+        "initVerifierComponents",
         "publicationAuthority",
     }) |name| if (!@hasDecl(Cohort, name))
         @compileError("segment V2 outer Cohort contract is incomplete: missing " ++ name);

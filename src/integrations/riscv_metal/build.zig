@@ -148,6 +148,8 @@ pub fn build(b: *std.Build) void {
         .dependOn(&small_recursive_run.step);
     b.step("check-recursive-segment-v2-concrete-outer-proof", "Compile the shared small recursive CPU/Metal proof driver")
         .dependOn(&small_recursive_executable.step);
+    b.step("build-recursive-segment-v2-concrete-outer-proof", "Install the shared small recursive CPU/Metal proof driver")
+        .dependOn(&b.addInstallArtifact(small_recursive_executable, .{}).step);
 
     const tests = b.addTest(.{ .root_module = integration });
     const ethereum_node_root = b.createModule(.{

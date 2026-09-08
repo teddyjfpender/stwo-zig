@@ -498,7 +498,7 @@ comptime {
         SealRelation.Runtime != RelayRuntime or
         BoundaryRelation.Runtime != RelayRuntime or
         ChallengesRelation.Runtime != RelayRuntime or
-        SumsFramework.INTERACTION_COLUMN_COUNT != 12 or
+        SumsFramework.INTERACTION_COLUMN_COUNT != air_v2.NativePublicSums.INTERACTION_COLUMN_COUNT or
         ControlFramework.INTERACTION_COLUMN_COUNT != 4)
     {
         @compileError("V2 public component geometry drifted");

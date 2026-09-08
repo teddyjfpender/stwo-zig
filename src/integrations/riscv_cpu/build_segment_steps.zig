@@ -39,6 +39,82 @@ pub fn add(ctx: anytype) void {
         "test-recursive-segment-v2-leaf-outer",
         "Run the focused V2 recursive leaf handoff and mutation gates",
     ).dependOn(&segment_v2_leaf_outer_tests.step);
+    const segment_v2_verifier_components_root = support.createHarnessModule(
+        b,
+        "recursive_segment_v2_verifier_components_test_root.zig",
+        target,
+        optimize,
+        core,
+        cpu_backend,
+        frontend,
+        integration,
+    );
+    segment_v2_verifier_components_root.addImport("stwo_prover_engine", prover);
+    const segment_v2_verifier_components_names: []const []const u8 = &.{
+        "SegmentV2 witness-free verifier owns all39 canonical adapters and untrusted claims",
+        "SegmentV2 witness-free verifier rejects malformed admission and inactive or provider claims",
+        "SegmentV2 witness-free verifier releases its owner after initial definition allocation failure",
+        "SegmentV2 witness-free recording keeps all39 claims and two provider partials symbolic",
+    };
+    const segment_v2_verifier_components_compile = b.addTest(.{
+        .root_module = segment_v2_verifier_components_root,
+        .filters = segment_v2_verifier_components_names,
+    });
+    b.step(
+        "check-recursive-segment-v2-witness-free-verifier",
+        "Compile the canonical SegmentV2 verifier without native witness owners",
+    ).dependOn(&segment_v2_verifier_components_compile.step);
+    const segment_v2_verifier_components_run = b.addRunArtifact(segment_v2_verifier_components_compile);
+    segment_v2_verifier_components_run.has_side_effects = true;
+    b.step(
+        "test-recursive-segment-v2-witness-free-verifier",
+        "Check all39 canonical witness-free adapters, input rejection and allocation cleanup",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        segment_v2_verifier_components_run,
+        segment_v2_verifier_components_names,
+        "SegmentV2 witness-free verifier guard",
+    ));
+    const segment_v2_public_inputs_names: []const []const u8 = &.{
+        "SegmentV2 expected public claim matches the active row36 AIR",
+        "SegmentV2 expected public claim rejects changed wire keys manifest and claim",
+        "SegmentV2 expected public claim rejects a zero relation denominator",
+    };
+    const segment_v2_public_inputs_compile = b.addTest(.{
+        .root_module = segment_v2_verifier_components_root,
+        .filters = segment_v2_public_inputs_names,
+    });
+    const segment_v2_public_inputs_run = b.addRunArtifact(segment_v2_public_inputs_compile);
+    segment_v2_public_inputs_run.has_side_effects = true;
+    b.step(
+        "test-recursive-segment-v2-public-inputs",
+        "Bind canonical expected statement and temporal context to the existing row36 claim",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        segment_v2_public_inputs_run,
+        segment_v2_public_inputs_names,
+        "SegmentV2 expected public input guard",
+    ));
+    const segment_v2_detached_transcript_names: []const []const u8 = &.{
+        "SegmentV2 detached fixed projection excludes source seals and pins circuit facts",
+        "SegmentV2 detached transcript binds dynamic expected wire without specializing the key",
+        "SegmentV2 detached claims share fixed lowering and expected row36 closure",
+    };
+    const segment_v2_detached_transcript_compile = b.addTest(.{
+        .root_module = segment_v2_verifier_components_root,
+        .filters = segment_v2_detached_transcript_names,
+    });
+    const segment_v2_detached_transcript_run = b.addRunArtifact(segment_v2_detached_transcript_compile);
+    segment_v2_detached_transcript_run.has_side_effects = true;
+    b.step(
+        "test-recursive-segment-v2-detached-transcript",
+        "Check independently pinned fixed projection and dynamic SegmentV2 statement/claim frames",
+    ).dependOn(support.ProofTestGuard.add(
+        b,
+        segment_v2_detached_transcript_run,
+        segment_v2_detached_transcript_names,
+        "SegmentV2 detached transcript guard",
+    ));
     const segment_v2_noncore_owner_root = support.createHarnessModule(
         b,
         "recursive_segment_v2_noncore_owner_test_root.zig",
@@ -1736,6 +1812,29 @@ pub fn add(ctx: anytype) void {
     selected_fixed_run.addArg("verify-leaf-fixed-program-v5");
     if (b.args) |args| selected_fixed_run.addArgs(args);
     b.step("run-ethereum-selected-fixed-program-leaf-verifier", "Freshly verify a schema5 native proof with independent retained ELF admission").dependOn(&selected_fixed_run.step);
+    const detached_command = support.createHarnessModule(b, "recursive_segment_v2_verifier_components_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    detached_command.addImport("stwo_prover_engine", prover);
+    detached_command.addImport("stwo_prover_api", prover_api);
+    detached_command.addImport("interop_postcard", postcard);
+    const detached_command_names: []const []const u8 = &.{
+        "SegmentV2 detached command requires separate circuit and statement authority",
+        "SegmentV2 detached command owns and canonically admits expected wire",
+        "SegmentV2 detached command rejects unsupported claims version and empty proof",
+    };
+    const detached_command_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_command_names });
+    b.step("test-recursive-segment-v2-detached-command", "Check bounded detached transport and independent public-input admission").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_command_tests), detached_command_names, "SegmentV2 detached transport guard"));
+    const detached_child_names: []const []const u8 = &.{"SegmentV2 detached child owns genuine capture and exact recorded transcript"};
+    const detached_child_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_child_names });
+    b.step("test-recursive-segment-v2-detached-child", "Replay a pinned real child proof for recursion after caller input destruction").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_child_tests), detached_child_names, "SegmentV2 detached child guard"));
+    const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+    detached_runner.addImport("stwo_prover_engine", prover);
+    detached_runner.addImport("stwo_prover_api", prover_api);
+    detached_runner.addImport("interop_postcard", postcard);
+    const detached_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-verify", .root_module = detached_runner });
+    b.step("build-recursive-segment-v2-detached-verifier", "Build SegmentV2 verification without native preparation").dependOn(&b.addInstallArtifact(detached_exe, .{}).step);
+    const detached_run = b.addRunArtifact(detached_exe);
+    if (b.args) |args| detached_run.addArgs(args);
+    b.step("run-recursive-segment-v2-detached-verifier", "Verify DIRECTORY KEY_SHA256 EXPECTED_WIRE_JSON").dependOn(&detached_run.step);
     const ethereum_root_verifier = support.createHarnessModule(b, "ethereum_wrapper_root_command_v1.zig", target, optimize, core, cpu_backend, frontend, integration);
     ethereum_root_verifier.addImport("stwo_prover_engine", prover);
     ethereum_root_verifier.addImport("stwo_prover_api", prover_api);
@@ -2444,6 +2543,10 @@ pub fn add(ctx: anytype) void {
         .name = "recursive-segment-v2-concrete-outer-proof",
         .root_module = segment_v2_concrete_outer_runner_root,
     });
+    b.step(
+        "build-recursive-segment-v2-concrete-outer-proof",
+        "Install the small complete-proof runner for fresh-process development checks",
+    ).dependOn(&b.addInstallArtifact(segment_v2_concrete_outer_runner, .{}).step);
     const run_segment_v2_concrete_outer = b.addRunArtifact(
         segment_v2_concrete_outer_runner,
     );

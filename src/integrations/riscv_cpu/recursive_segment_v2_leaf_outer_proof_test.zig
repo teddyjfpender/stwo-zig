@@ -57,7 +57,7 @@ pub fn runGateWithHook(
     allocator: std.mem.Allocator,
     comptime Hook: type,
 ) !void {
-    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null);
+    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null, 0);
 }
 
 /// Same native proof and recursive admission, without the independent
@@ -77,11 +77,21 @@ pub fn runSizedGateWithNativeEngine(
     comptime Hook: type,
     native_steps: usize,
 ) !void {
+    return runSizedGateWithInitialRegister7(NativeEngine, allocator, Hook, native_steps, 0);
+}
+
+pub fn runSizedGateWithInitialRegister7(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    comptime Hook: type,
+    native_steps: usize,
+    initial_register7: u32,
+) !void {
     switch (native_steps) {
         1, 4, 16, 64 => {},
         else => return error.InvalidNativeStepCount,
     }
-    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null);
+    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null, initial_register7);
 }
 
 pub fn runMemoryGateWithNativeEngine(
@@ -94,7 +104,7 @@ pub fn runMemoryGateWithNativeEngine(
         1, 4, 16 => {},
         else => return error.InvalidMemoryAddressCount,
     }
-    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count);
+    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count, 0);
 }
 
 /// Execution-only regression for the genuine step-4 failure: a JAL-to-self
@@ -102,19 +112,25 @@ pub fn runMemoryGateWithNativeEngine(
 /// uses the exact ELF and checks that the proof path will admit below.
 pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
     const elf = frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
-    for ([_]usize{ 1, 4, 16, 64 }) |steps| {
-        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
-        defer session.deinit();
-        var first = try session.startSegment(steps);
-        defer first.deinit();
-        try validateSizedExecution(&first.base, steps, steps);
-        var second = try session.resumeSegment(first.base.continuation.?, 16);
-        defer second.deinit();
-        try validateSizedExecution(&second.base, steps + 16, 16);
+    for ([_]u32{ 0, 0x01020304, 0x05060708 }) |initial_register7| {
+        for ([_]usize{ 1, 4, 16, 64 }) |steps| {
+            var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+            defer session.deinit();
+            session.cpu.regs[7] = initial_register7;
+            var first = try session.startSegment(steps);
+            defer first.deinit();
+            try validateSizedExecution(&first.base, steps, steps, initial_register7);
+            var second = try session.resumeSegment(first.base.continuation.?, 16);
+            defer second.deinit();
+            try validateSizedExecution(&second.base, steps + 16, 16, initial_register7);
+            try std.testing.expectEqualDeep(first.base.exit_cpu, second.base.entry_cpu);
+        }
     }
 }
 
-fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps: usize, segment_steps: usize) !void {
+fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps: usize, segment_steps: usize, initial_register7: u32) !void {
+    try std.testing.expectEqual(initial_register7, result.entry_cpu.regs[7]);
+    try std.testing.expectEqual(initial_register7, result.exit_cpu.regs[7]);
     try std.testing.expectEqual(segment_steps, result.cycle_count);
     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
     try std.testing.expect(result.continuation != null);
@@ -139,8 +155,8 @@ fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps:
     };
     std.debug.print(
         "SEGMENT_V2_LADDER_EXECUTION segment_cycles={d} cumulative_cycles={d} " ++
-            "retired_addi={d} retired_bne={d} exit_pc={x} counter={d} accumulator={d}\n",
-        .{ result.cycle_count, cumulative_steps, addi_count, bne_count, result.exit_cpu.pc, result.exit_cpu.regs[5], result.exit_cpu.regs[6] },
+            "retired_addi={d} retired_bne={d} exit_pc={x} counter={d} accumulator={d} initial_register7={x}\n",
+        .{ result.cycle_count, cumulative_steps, addi_count, bne_count, result.exit_cpu.pc, result.exit_cpu.regs[5], result.exit_cpu.regs[6], initial_register7 },
     );
 }
 
@@ -151,6 +167,7 @@ fn runGateWithHookForSteps(
     native_steps: usize,
     comptime full_regression: bool,
     memory_addresses: ?usize,
+    initial_register7: u32,
 ) !void {
     comptime {
         if (!@hasDecl(Hook, "run"))
@@ -180,6 +197,8 @@ fn runGateWithHookForSteps(
     const elf_bytes: []const u8 = if (memory_addresses != null) &memory_elf else &elf;
     var session = try runner.Poseidon2ExecutionSession.init(allocator, elf_bytes, .{});
     defer session.deinit();
+    if (memory_addresses != null and initial_register7 != 0) return error.ConflictingWorkloadArguments;
+    session.cpu.regs[7] = initial_register7;
     var left_profile = try session.startSegment(native_steps);
     defer left_profile.deinit();
     const left_result = &left_profile.base;
@@ -192,8 +211,9 @@ fn runGateWithHookForSteps(
             try memory_workload.validateSegment(left_result, count, native_steps, native_steps);
             try memory_workload.validateSegment(right_result, count, native_steps + 16, 16);
         } else {
-            try validateSizedExecution(left_result, native_steps, native_steps);
-            try validateSizedExecution(right_result, native_steps + 16, 16);
+            try validateSizedExecution(left_result, native_steps, native_steps, initial_register7);
+            try validateSizedExecution(right_result, native_steps + 16, 16, initial_register7);
+            try std.testing.expectEqualDeep(left_result.exit_cpu, right_result.entry_cpu);
         }
     }
 
@@ -208,17 +228,17 @@ fn runGateWithHookForSteps(
     const public_output = digest("recursive-v2-poseidon-output");
     const initial_state = try machineState(
         left_result.entry_cpu,
-        digest("recursive-v2-rw-entry"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id,
         digest("recursive-v2-io-entry"),
     );
     const shared_state = try machineState(
         left_result.exit_cpu,
-        digest("recursive-v2-rw-shared"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id,
         digest("recursive-v2-io-shared"),
     );
     const final_state = try machineState(
         right_result.exit_cpu,
-        digest("recursive-v2-rw-exit"),
+        segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id,
         digest("recursive-v2-io-exit"),
     );
     const total_cycles = try std.math.add(
@@ -777,24 +797,24 @@ pub fn runTemporalPairGateWithHook(
     const public_output = digest("recursive-v2-poseidon-output");
     const initial_state = try machineState(
         left_result.entry_cpu,
-        digest("recursive-v2-rw-entry"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id,
         digest("recursive-v2-io-entry"),
     );
     const shared_state = try machineState(
         left_result.exit_cpu,
-        digest("recursive-v2-rw-shared"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id,
         digest("recursive-v2-io-shared"),
     );
     const right_entry_state = try machineState(
         right_result.entry_cpu,
-        digest("recursive-v2-rw-shared"),
+        segment_v2.snapshotDigest(right_result.rw_memory.words, .initial_word).id,
         digest("recursive-v2-io-shared"),
     );
     if (!std.meta.eql(shared_state, right_entry_state))
         return error.InvalidTemporalBoundary;
     const final_state = try machineState(
         right_result.exit_cpu,
-        digest("recursive-v2-rw-exit"),
+        segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id,
         digest("recursive-v2-io-exit"),
     );
     const total_cycles = try std.math.add(
@@ -869,6 +889,18 @@ pub fn prepareTemporalNativeLeaf(
     statement: span.SpanStatement,
     keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
 ) !subject.PreparedNativeV2LeafOuter {
+    return prepareTemporalNativeLeafWithEngine(Engine, allocator, result, statement, keys);
+}
+
+/// The native producer may use Metal; canonical serialization, allocation
+/// preflight and fresh native verification retain the shared CPU authority.
+pub fn prepareTemporalNativeLeafWithEngine(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    result: *const runner.SegmentResult,
+    statement: span.SpanStatement,
+    keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+) !subject.PreparedNativeV2LeafOuter {
     const source = try segment_v2.SourceV2.fromSegmentResult(
         digest("recursive-v2-session"),
         statement,
@@ -880,15 +912,19 @@ pub fn prepareTemporalNativeLeaf(
         words,
     );
 
+    var native_memory = integration.recursive_segment_v2_outer_engine.ProducerAllocator{};
+    defer std.debug.assert(native_memory.isEmpty());
+    const native_allocator = native_memory.allocator();
     var output = try prover.proveRiscVSegmentV2WithEngine(
-        Engine,
-        allocator,
+        NativeEngine,
+        native_allocator,
         test_config,
         result,
         null,
         public_data,
     );
-    defer output.deinit(allocator);
+    var native_output_owned = true;
+    defer if (native_output_owned) output.deinit(native_allocator);
 
     var proof_bytes: std.ArrayList(u8) = .empty;
     defer proof_bytes.deinit(allocator);
@@ -897,9 +933,26 @@ pub fn prepareTemporalNativeLeaf(
         proof_bytes.writer(allocator),
         output.proof,
     );
+    // Same ownership handoff as the single-leaf route: the canonical wire
+    // belongs to this ingress, while the claim is a copied array/scalar value.
+    // Neither fresh decoding nor verification may observe the prover object.
+    const native_statement = output.statement;
+    if (native_statement.public_data.canonical_words.ptr != words.ptr or
+        native_statement.public_data.canonical_words.len != words.len)
+        return error.NativeStatementOwnerMismatch;
+    const native_claim = try allocator.create(@TypeOf(output.interaction_claim.*));
+    defer allocator.destroy(native_claim);
+    @memcpy(std.mem.asBytes(native_claim), std.mem.asBytes(output.interaction_claim));
+    output.deinit(native_allocator);
+    native_output_owned = false;
+    try native_memory.requireEmpty();
+    std.debug.print(
+        "SEGMENT_V2_NATIVE_MEMORY path=temporal segment={d} backend={s} scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes={d} producer_live_bytes_after_destroy={d} canonical_proof_bytes={d} before_fresh_decode=true\n",
+        .{ result.segment_index, if (comptime NativeEngine == Engine) "cpu" else "metal", native_memory.peakBytes(), native_memory.snapshot().active_bytes, proof_bytes.items.len },
+    );
     try recursion.proof_ingress.validateV2ForVerifierConfig(
         proof_bytes.items,
-        &output.statement,
+        &native_statement,
         test_config,
         proof_bytes.items.len,
     );
@@ -921,9 +974,9 @@ pub fn prepareTemporalNativeLeaf(
         Engine,
         allocator,
         test_config,
-        output.statement,
+        native_statement,
         decoded_proof,
-        output.interaction_claim,
+        native_claim,
         &verifier_channel,
         &capture,
     );
@@ -970,7 +1023,7 @@ pub fn prepareTemporalNativeLeaf(
         allocator,
         &capture,
         test_config,
-        output.interaction_claim.interaction_pow,
+        native_claim.interaction_pow,
         keys,
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },

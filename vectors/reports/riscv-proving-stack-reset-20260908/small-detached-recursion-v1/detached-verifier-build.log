@@ -1,0 +1,35 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 72s
+test-recursive-segment-v2-detached-transcript
++- SegmentV2 detached transcript guard failure
+error: the native recursion proof root compiled 0 tests; expected exactly 3
+test-recursive-segment-v2-detached-command
++- SegmentV2 detached transport guard failure
+error: the native recursion proof root compiled 0 tests; expected exactly 3
+test-recursive-segment-v2-public-inputs
++- SegmentV2 expected public input guard failure
+error: the native recursion proof root compiled 0 tests; expected exactly 3
+
+Build Summary: 13/19 steps succeeded; 3 failed; 3/3 tests passed
+test-recursive-segment-v2-witness-free-verifier success
++- SegmentV2 witness-free verifier guard success
+   +- run test 3 passed 291ms MaxRSS:7M
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+test-recursive-segment-v2-public-inputs transitive failure
++- SegmentV2 expected public input guard failure
+   +- run test success 262ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 5s MaxRSS:652M
+test-recursive-segment-v2-detached-transcript transitive failure
++- SegmentV2 detached transcript guard failure
+   +- run test success 280ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 5s MaxRSS:652M
+test-recursive-segment-v2-detached-command transitive failure
++- SegmentV2 detached transport guard failure
+   +- run test success 274ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 5s MaxRSS:654M
+build-recursive-segment-v2-detached-verifier success
++- install recursive-segment-v2-detached-verify success
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native success 53s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/b41a3591a42b99a53e422ba05d262927/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x7e9db79a -Zccf29a69bb65c4ca --maxrss 25769803776 -j1 test-recursive-segment-v2-witness-free-verifier test-recursive-segment-v2-public-inputs test-recursive-segment-v2-detached-transcript test-recursive-segment-v2-detached-command build-recursive-segment-v2-detached-verifier -Doptimize=ReleaseSafe --summary all

@@ -33,9 +33,9 @@ test "leaf-local V3: deterministic local projection enters authenticated V2 cust
     defer right_result.deinit();
 
     const states = States{
-        .entry = try machineFromCpu(left_result.entry_cpu, digest("rw-entry")),
-        .shared = try machineFromCpu(left_result.exit_cpu, digest("rw-shared")),
-        .exit = try machineFromCpu(right_result.exit_cpu, digest("rw-exit")),
+        .entry = try machineFromCpu(left_result.entry_cpu, segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id),
+        .shared = try machineFromCpu(left_result.exit_cpu, segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id),
+        .exit = try machineFromCpu(right_result.exit_cpu, segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id),
     };
     const job = try span.JobContext.init(
         try span.CompleteExecution.init(
@@ -138,8 +138,8 @@ test "leaf-local V3: a globally positioned nonfinal leaf projects without a resu
         try span.CompleteExecution.init(
             protocol.PROTOCOL_ID_WORDS,
             digest("middle-program"),
-            try machineFromCpu(first.entry_cpu, digest("middle-rw-entry")),
-            try machineFromCpu(final.exit_cpu, digest("middle-rw-exit")),
+            try machineFromCpu(first.entry_cpu, segment_v2.snapshotDigest(first.rw_memory.words, .initial_word).id),
+            try machineFromCpu(final.exit_cpu, segment_v2.snapshotDigest(final.rw_memory.words, .final_word).id),
             digest("middle-input"),
             digest("middle-output"),
             5,
@@ -149,8 +149,8 @@ test "leaf-local V3: a globally positioned nonfinal leaf projects without a resu
     const statement = try leafStatement(
         job,
         &middle,
-        try machineFromCpu(middle.entry_cpu, digest("middle-rw-shared-entry")),
-        try machineFromCpu(middle.exit_cpu, digest("middle-rw-shared-exit")),
+        try machineFromCpu(middle.entry_cpu, segment_v2.snapshotDigest(middle.rw_memory.words, .initial_word).id),
+        try machineFromCpu(middle.exit_cpu, segment_v2.snapshotDigest(middle.rw_memory.words, .final_word).id),
         span.EdgeClaim.absent(),
         span.EdgeClaim.absent(),
     );

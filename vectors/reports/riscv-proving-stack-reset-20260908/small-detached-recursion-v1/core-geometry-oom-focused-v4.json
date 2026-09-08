@@ -1,0 +1,22 @@
+{
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/core",
+    "test-air-components",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 4.476370096206665,
+  "source_sha256": {
+    "src/core/air/components.zig": "eb8b2103a3146b998a193a31b061aaf7d3dac47ba934c9b4c53278401326dc26",
+    "src/core/pcs/utils.zig": "c764e4146f5966646b61df8f44e5ba1d2432027b49d3b633b37c99ffb3defa30",
+    "src/core/build.zig": "89eb48a494853106b8d2300fda90f878c6f922b3ed0138541ab9f6b2f74640bd",
+    "src/core/air_components_test_root.zig": "a364a8267ec25e7be65a91383470d3c6b574e9d196385a357c6d8aa8f1a0569e"
+  },
+  "source_unchanged": true,
+  "log_sha256": "b74b27a06a13c61a0e699eb3107c7bed1d99babe011311d374924a88d4277f3b"
+}

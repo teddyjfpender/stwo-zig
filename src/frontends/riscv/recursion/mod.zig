@@ -1,6 +1,7 @@
 //! Recursion protocol namespace.
 
 pub const air = @import("air/mod.zig");
+pub const segment_public_claim_hash_authority_v2 = @import("segment_public_claim_hash_authority_v2.zig");
 pub const arithmetic_circuit = @import("arithmetic_circuit.zig");
 pub const binary_arithmetic_rows_heterogeneous_v2 =
     @import("binary_arithmetic_rows_heterogeneous_v2.zig");

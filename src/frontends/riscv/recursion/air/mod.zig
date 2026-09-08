@@ -106,6 +106,7 @@ pub const statement_input_witness = @import("statement_input_witness.zig");
 pub const statement_semantics_input = @import("statement_semantics_input.zig");
 pub const statement_semantics_input_relation = @import("statement_semantics_input_relation.zig");
 pub const statement_semantics_input_witness = @import("statement_semantics_input_witness.zig");
+pub const segment_public_outer_air_v2 = @import("segment_public_outer_air_v2.zig");
 pub const segment_boundary_components_v2 = @import("segment_boundary_components_v2.zig");
 pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
 pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");

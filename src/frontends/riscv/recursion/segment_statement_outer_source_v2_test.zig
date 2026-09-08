@@ -1,4 +1,5 @@
 const std = @import("std");
+const register_bytes = @import("segment_register_byte_layout_v1.zig");
 const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
@@ -180,6 +181,8 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     var wire_id_consumes: usize = 0;
     var wire_consumes: usize = 0;
     var boundary_wire_emits: usize = 0;
+    var register_byte_emits: usize = 0;
+    var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
     for (owned.events) |event| {
         try event.validate();
         if (event.multiplicity == 0) continue;
@@ -203,6 +206,19 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
             try std.testing.expect(event.tuple[2].eql(fixture.words[index]));
             boundary_wire_emits += 1;
         }
+        if (event.ordinal == 7 or event.ordinal == 8) {
+            try std.testing.expectEqual(@as(u32, 1), event.multiplicity);
+            try std.testing.expectEqual(air_v2.StatementSemanticsV2.BOUNDARY_BRIDGE_CIRCUIT_ID, event.tuple[0].toU32());
+            const coordinate = event.tuple[1].toU32();
+            try std.testing.expect(coordinate >= fixture.words.len);
+            const byte_index = coordinate - fixture.words.len;
+            try std.testing.expect(byte_index < register_bytes.BYTE_COUNT);
+            try std.testing.expect(!seen_register_bytes[byte_index]);
+            seen_register_bytes[byte_index] = true;
+            try std.testing.expect(event.tuple[2].eql(register_bytes.value(fixture.words, byte_index)));
+            try std.testing.expect(event.tuple[3].isZero() and event.tuple[4].isZero() and event.tuple[5].isZero());
+            register_byte_emits += 1;
+        }
     }
     try std.testing.expectEqual(
         fixture.words.len + source_v2.CONTEXT_WORD_COUNT,
@@ -212,6 +228,16 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     try std.testing.expectEqual(@as(usize, 16), wire_id_consumes);
     try std.testing.expectEqual(fixture.words.len, wire_consumes);
     try std.testing.expectEqual(fixture.words.len, boundary_wire_emits);
+    try std.testing.expectEqual(register_bytes.BYTE_COUNT, register_byte_emits);
+    for (seen_register_bytes) |seen| try std.testing.expect(seen);
+    try std.testing.expectEqual(register_bytes.BYTE_COUNT, closure.row11_register_byte_emits);
+    try std.testing.expectEqual(closure.row11_register_byte_emits, closure.row15_register_byte_consumes);
+    var missing_byte = closure;
+    missing_byte.row11_register_byte_emits -= 1;
+    try std.testing.expectError(error.SourceMismatch, missing_byte.validate());
+    var duplicated_byte = closure;
+    duplicated_byte.row15_register_byte_consumes += 1;
+    try std.testing.expectError(error.SourceMismatch, duplicated_byte.validate());
     try std.testing.expectEqual(
         @as(usize, manifest.range_request_count),
         owned.ranges.len,
@@ -482,4 +508,28 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
     );
     try std.testing.expectEqual(counter_before, counterDigest(range_workspace.counter.values));
     owned.logical_rows[0][0] = owned.logical_rows[0][0].sub(M31.one());
+}
+
+test "V2 row-11 register byte bridge reuses constrained decomposition" {
+    const prepared_rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
+    var fixture = try Fixture.init(std.testing.allocator);
+    defer fixture.deinit();
+    const view = try fixture.data.authenticatedView();
+    var authority = try subject.AuthorityV2.init(std.testing.allocator);
+    defer authority.deinit();
+    var workspace = subject.WorkspaceV2{};
+    const word_index = register_bytes.wireWordIndex(register_bytes.byteIndex(.entry, 5, 0));
+    const row = prepared_rows.wireRow(&view, word_index);
+    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.register_byte_bridge_mask);
+    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.source_u16_mask);
+    try prepared_rows.validateDirectRow(&workspace, &authority, row.runtime());
+    inline for (.{ "source_low_byte", "source_high_byte" }) |field| {
+        var changed = row;
+        @field(changed.main, field) = @field(changed.main, field).add(M31.one());
+        try std.testing.expectError(error.DirectConstraintFailure, prepared_rows.validateDirectRow(&workspace, &authority, changed.runtime()));
+    }
+    // Non-register words still emit their original raw word only.
+    const header = prepared_rows.wireRow(&view, 0);
+    try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
+    try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
 }

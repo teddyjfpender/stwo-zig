@@ -237,6 +237,8 @@ pub fn wireRow(
 ) LogicalRowV2 {
     const value = view.words[index];
     const is_u16 = wireWordIsU16(view, index);
+    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
+    std.debug.assert(register_byte == null or is_u16);
     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
     return .{
         .preprocessing = .{
@@ -256,6 +258,9 @@ pub fn wireRow(
             .verifier_b_index = 0,
             .expected_header = 0,
             .boundary_bridge_mask = 1,
+            .register_byte_bridge_mask = @intFromBool(register_byte != null),
+            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
+            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
         },
         .main = .{
             .enabler = M31.one(),
@@ -382,6 +387,16 @@ pub fn writeEvents(
         event(logical_row, 6, .recursion_wire, .emit, pp.boundary_bridge_mask, &.{
             felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.source_index),
             main.source_value,                    M31.zero(),
+            M31.zero(),                           M31.zero(),
+        }),
+        event(logical_row, 7, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
+            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_low_byte_index),
+            main.source_low_byte,                 M31.zero(),
+            M31.zero(),                           M31.zero(),
+        }),
+        event(logical_row, 8, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
+            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_high_byte_index),
+            main.source_high_byte,                M31.zero(),
             M31.zero(),                           M31.zero(),
         }),
     };

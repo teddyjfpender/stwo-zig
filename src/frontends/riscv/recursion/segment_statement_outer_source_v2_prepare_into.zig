@@ -198,6 +198,8 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
         .row11_statement_payload_consumes = transcript_count,
         .row11_boundary_wire_emits = prepared.manifest.wire_word_count,
         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
+        .row11_register_byte_emits = prepared.manifest.register_byte_count,
+        .row15_register_byte_consumes = prepared.manifest.register_byte_count,
     };
     try result.validate();
     return result;

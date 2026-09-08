@@ -1,0 +1,30 @@
+[
+  {
+    "id": [
+      "outer_tree0_filled",
+      null
+    ],
+    "changes": {
+      "prepared_sha256": [
+        "c520fd5740c8cd306ad214d25175aa5a14d14e065133cec9cdaa3e69b58f8762",
+        "21323ff38cec5b105209043b0b3e789b49dd4c4d4817a2831f685d1c9b97ba03"
+      ],
+      "manifest_sha256": [
+        "916644837dd6fac9407e1edda5da8b008201365cbfc91b30771f1b85af217f00",
+        "556726b3843a85529a23afc4cea122b94dfeb53600b44e166ecedb83958bae9b"
+      ]
+    }
+  },
+  {
+    "id": [
+      "outer_tree0_filled",
+      "13"
+    ],
+    "changes": {
+      "values_sha256": [
+        "2bebfc6565339504a7611afe2d553531e5d2e449d9a59ec75348903e6c9ca42a",
+        "2a54f29e768730dc23ec258bb3defe4401568fa555ee042f249134b9e8b91305"
+      ]
+    }
+  }
+]

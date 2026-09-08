@@ -19,6 +19,8 @@ const fixed_profile = @import("fixed_profile.zig");
 const protocol = @import("protocol.zig");
 const channel = @import("poseidon2_channel.zig");
 const schedule = @import("air/verifier_schedule.zig");
+const register_bytes = @import("segment_register_byte_layout_v1.zig");
+const lowering = @import("air/verifier_arithmetic_lowering.zig");
 
 const Fixture = fixture_support.Fixture;
 
@@ -75,7 +77,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
     const wire_count = fixture.owned_public.data.words().len;
     try std.testing.expectEqual(
         wire_count + subject.PUBLISHED_WORD_COUNT +
-            subject.CHALLENGE_WORD_COUNT,
+            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
         source.bindings.len,
     );
     for (source.bindings, 0..) |binding, index| {
@@ -106,7 +108,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
                 )),
                 coordinate.publication_index,
             );
-        } else {
+        } else if (suffix < subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT) {
             const coordinate = binding.source.native_challenge_word;
             const challenge_index = suffix - subject.PUBLISHED_WORD_COUNT;
             try std.testing.expectEqual(
@@ -117,8 +119,65 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
                 @as(u3, @intCast(challenge_index % 8)),
                 coordinate.limb,
             );
+        } else {
+            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
         }
     }
+}
+
+test "SegmentV2 native-sum register inputs preserve graph and preprocessing across canonical statements" {
+    const allocator = std.testing.allocator;
+    var first = try Fixture.initWithRegister7(allocator, 0x01020304);
+    defer first.deinit();
+    var second = try Fixture.initWithRegister7(allocator, 0x05060708);
+    defer second.deinit();
+    const first_prepared = try public_source.preflight(first.inputs());
+    const second_prepared = try public_source.preflight(second.inputs());
+    var first_source = try subject.SourceV2.init(allocator, &first_prepared, first.inputs());
+    defer first_source.deinit();
+    var second_source = try subject.SourceV2.init(allocator, &second_prepared, second.inputs());
+    defer second_source.deinit();
+    try std.testing.expect(!std.meta.eql(first_source.wire_id, second_source.wire_id));
+    try std.testing.expectEqualDeep(first_prepared.manifest.log_sizes, second_prepared.manifest.log_sizes);
+    try std.testing.expectEqualSlices(@import("air/composition_circuit.zig").Node, first_source.owned_graph.nodes, second_source.owned_graph.nodes);
+    try std.testing.expectEqualSlices(u32, first_source.owned_graph.outputs, second_source.owned_graph.outputs);
+    try std.testing.expectEqualDeep(first_source.owned_graph.graph.identity_digest, second_source.owned_graph.graph.identity_digest);
+    try std.testing.expectEqualDeep(first_source.bindings, second_source.bindings);
+
+    // The shared lowering owner requires both proof modes. Keep one identical
+    // companion lane in both plans; only the segment lane varies in this test.
+    var companion = first_source.loweringLane();
+    companion.active_in = .binary;
+    companion.circuit_id += 1;
+    const first_lanes = [_]lowering.Lane{ first_source.loweringLane(), companion };
+    const second_lanes = [_]lowering.Lane{ second_source.loweringLane(), companion };
+    var first_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&first_lanes));
+    defer first_plan.deinit();
+    var second_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&second_lanes));
+    defer second_plan.deinit();
+    try std.testing.expectEqualDeep(first_plan.multiply_rows, second_plan.multiply_rows);
+    try std.testing.expectEqualDeep(first_plan.inverse_rows, second_plan.inverse_rows);
+    try std.testing.expectEqualDeep(first_plan.linear_rows, second_plan.linear_rows);
+    try std.testing.expectEqualDeep(first_plan.public_terms, second_plan.public_terms);
+
+    var first_values = try OwnedEvaluation.init(allocator, &first_source);
+    defer first_values.deinit();
+    var second_values = try OwnedEvaluation.init(allocator, &second_source);
+    defer second_values.deinit();
+    _ = try first_source.evaluateInto(&first_prepared, first.inputs(), first_values.buffers());
+    _ = try second_source.evaluateInto(&second_prepared, second.inputs(), second_values.buffers());
+    try std.testing.expect(!std.meta.eql(first_values.destinationDigest(), second_values.destinationDigest()));
+    const byte_index = register_bytes.byteIndex(.entry, 7, 0);
+    const existing_inputs = first.owned_public.data.words().len + subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT;
+    const input_index = register_bytes.inputIndex(existing_inputs, byte_index);
+    try std.testing.expect(first_source.bindings[input_index].use_count > 0);
+    try std.testing.expectEqual(@as(u32, 4), first_values.scratch_inputs[input_index].toM31Array()[0].toU32());
+    try std.testing.expectEqual(@as(u32, 8), second_values.scratch_inputs[input_index].toM31Array()[0].toU32());
+    // Even a canonical byte cannot be substituted while preserving the native
+    // public sums. Row11/15 relation tests separately prove the byte's source.
+    first_values.scratch_inputs[input_index] = QM31.fromBase(M31.fromCanonical(5));
+    try first_source.circuit.evaluateIntoAssumeValid(first_values.scratch_inputs, first_values.scratch_values);
+    try std.testing.expect(!try first_source.circuit.outputsAreZero(first_values.scratch_values));
 }
 
 test "SegmentV2 native-sum owned evaluation is a compact lowering handoff" {
@@ -373,6 +432,11 @@ const EmptyFixture = struct {
         segment.memory_words = &.{};
         segment.entry_memory_clocks = &.{};
         segment.exit_memory_clocks = &.{};
+        const empty_snapshot = @import("segment_statement_v2.zig").snapshotDigest(&.{}, .initial_word).id;
+        segment.base_statement.job.complete.initial_state.rw_memory = empty_snapshot;
+        segment.base_statement.job.complete.final_state.rw_memory = empty_snapshot;
+        segment.base_statement.body.executed.entry.rw_memory = empty_snapshot;
+        segment.base_statement.body.executed.exit.rw_memory = empty_snapshot;
         const words = try public_data_support.encode(allocator, &segment);
         defer allocator.free(words);
         const borrowed = try public_data_v2.PublicDataV2.authenticate(words);
@@ -548,4 +612,45 @@ fn expectEvaluationFailure(
     if (source.evaluateInto(prepared, inputs, buffers)) |_| {
         return error.TestExpectedError;
     } else |_| {}
+}
+
+test "SegmentV2 native-sum graph independently binds every Span snapshot digest limb" {
+    const allocator = std.testing.allocator;
+    var fixture = try Fixture.init(allocator);
+    defer fixture.deinit();
+    const prepared = try public_source.preflight(fixture.inputs());
+    var source = try subject.SourceV2.init(allocator, &prepared, fixture.inputs());
+    defer source.deinit();
+    var owned = try OwnedEvaluation.init(allocator, &source);
+    defer owned.deinit();
+    _ = try source.evaluateInto(&prepared, fixture.inputs(), owned.buffers());
+    const wire = @import("segment_statement_v2.zig");
+    const span = @import("span_statement.zig");
+    const relation_output_count = subject.DOMAIN_COUNT + 1;
+    try std.testing.expectEqual(relation_output_count + 16, source.circuit.outputs().len);
+    inline for (.{
+        .{ span.canonical_layout.entry_state_start, wire.fixed_layout.entry_snapshot_id },
+        .{ span.canonical_layout.exit_state_start, wire.fixed_layout.exit_snapshot_id },
+    }, 0..) |side, side_index| {
+        const state_start = wire.fixed_layout.base_statement + side[0] + span.canonical_layout.machine_state_rw_digest_start_offset;
+        for (0..8) |limb| {
+            // Exercise both directions without a host admission call masking
+            // the AIR relation: only one independent equality may fail.
+            for ([_]usize{ state_start + limb, side[1] + limb }) |input_index| {
+                const original = owned.scratch_inputs[input_index];
+                defer owned.scratch_inputs[input_index] = original;
+                owned.scratch_inputs[input_index] = original.add(QM31.one());
+                try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
+                try std.testing.expect(!try source.circuit.outputsAreZero(owned.scratch_values));
+                for (source.circuit.outputs(), 0..) |output, output_index| {
+                    try std.testing.expectEqual(
+                        output_index != relation_output_count + side_index * 8 + limb,
+                        owned.scratch_values[output].isZero(),
+                    );
+                }
+            }
+        }
+    }
+    try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
+    try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
 }

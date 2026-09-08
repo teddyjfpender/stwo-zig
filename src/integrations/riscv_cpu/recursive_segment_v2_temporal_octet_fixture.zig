@@ -71,20 +71,20 @@ pub fn runTemporalOctetGateWithHook(
     var states: [LEAF_COUNT + 1]span.MachineState = undefined;
     states[0] = try ingress.machineState(
         results[0].entry_cpu,
-        boundaryDigest(0, .rw),
-        boundaryDigest(0, .public_io),
+        recursion.segment_statement_v2.snapshotDigest(results[0].rw_memory.words, .initial_word).id,
+        publicIoDigest(0),
     );
     for (results, 0..) |result, index| {
         states[index + 1] = try ingress.machineState(
             result.exit_cpu,
-            boundaryDigest(@intCast(index + 1), .rw),
-            boundaryDigest(@intCast(index + 1), .public_io),
+            recursion.segment_statement_v2.snapshotDigest(result.rw_memory.words, .final_word).id,
+            publicIoDigest(@intCast(index + 1)),
         );
         if (index != 0) {
             const entry = try ingress.machineState(
                 result.entry_cpu,
-                boundaryDigest(@intCast(index), .rw),
-                boundaryDigest(@intCast(index), .public_io),
+                recursion.segment_statement_v2.snapshotDigest(result.rw_memory.words, .initial_word).id,
+                publicIoDigest(@intCast(index)),
             );
             if (!std.meta.eql(entry, states[index]))
                 return error.InvalidTemporalBoundary;
@@ -152,13 +152,8 @@ pub fn runTemporalOctetGateWithHook(
     try Hook.run(allocator, &prepared);
 }
 
-const BoundaryKind = enum(u32) {
-    public_io = 0x4f43_0000,
-    rw = 0x5257_0000,
-};
-
-fn boundaryDigest(index: u32, kind: BoundaryKind) span.Digest {
-    return ingress.scalarDigest(@intFromEnum(kind) + index);
+fn publicIoDigest(index: u32) span.Digest {
+    return ingress.scalarDigest(0x4f43_0000 + index);
 }
 
 /// Derive an eight-instruction homogeneous program from the repository-owned

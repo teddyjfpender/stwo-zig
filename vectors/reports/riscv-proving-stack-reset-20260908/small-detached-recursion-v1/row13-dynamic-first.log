@@ -1,0 +1,25 @@
+test-recursion-segment-claim-hash-v2
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursion/segment_public_claim_hash_authority_v2.zig:377:48: error: @intCast must have a known result type
+    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@intCast(call_index * CALL_WIRE_GROUP_COUNT + group)) } ++ words[group * 4 ..][0..4].*;
+                                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursion/segment_public_claim_hash_authority_v2.zig:377:47: note: result type is unknown due to anytype parameter
+    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@intCast(call_index * CALL_WIRE_GROUP_COUNT + group)) } ++ words[group * 4 ..][0..4].*;
+                                          ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursion/segment_public_claim_hash_authority_v2.zig:377:48: note: use @as to provide explicit result type
+referenced by:
+    writeInto: recursion/segment_public_claim_hash_authority_v2.zig:299:49
+    test.isolated row13 V2 witness replays authority calls and bind step atomically: vm_public_claim_hash_authority_v2_test_root.zig:59:26
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/vm_public_claim_hash_authority_v2_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "isolated row13 V2" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-recursion-segment-claim-hash-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/735d7229169efdf9743fef4d209a359d/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xa8a6ed61 -Z9fabc8e719f19683 --maxrss 25769803776 -j1 test-recursion-segment-claim-hash-v2 -Doptimize=ReleaseSafe --summary all

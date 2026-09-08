@@ -22,10 +22,13 @@ pub const schedule = @import("air/verifier_schedule.zig");
 pub const control_v2 = @import("air/vm_public_logup_control_v2.zig");
 pub const control_relation_v2 = @import("air/vm_public_logup_control_relation_v2.zig");
 pub const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
+pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+
+const AUTHORITY_EVENTS_PER_CALL = 1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 2;
-pub const MANIFEST_VERSION: u16 = 4;
+pub const SCHEMA_VERSION: u16 = 5;
+pub const MANIFEST_VERSION: u16 = 7;
 pub const FIRST_ROW: usize = @intFromEnum(roster.Component.vm_public_claim_input);
 pub const ROW_COUNT: usize = 6;
 pub const LAST_ROW: usize = FIRST_ROW + ROW_COUNT - 1;
@@ -218,7 +221,7 @@ pub const ClosureLedgerV2 = struct {
             self.source36_statement_word_emits !=
                 self.row11_statement_word_consumes or
             self.row11_boundary_bridge_emits !=
-                self.row11_statement_word_consumes or
+                try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT) or
             self.row15_boundary_bridge_consumes !=
                 self.row11_boundary_bridge_emits or
             self.row8_challenge_word_emits != CHALLENGE_WORD_COUNT or
@@ -294,7 +297,7 @@ pub const ManifestV2 = struct {
                 control_witness_v2.TRACE_LOG_SIZE or
             allZeroBytes(&self.control_source_id) or
             self.logical_rows[rowIndex(.vm_public_claim_semantics_input)] !=
-                self.wire_word_count)
+                try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT))
         {
             return error.InvalidManifest;
         }
@@ -317,6 +320,10 @@ pub const ManifestV2 = struct {
     }
 };
 
+/// Four relation equalities, their total, and both complete snapshot digests.
+pub const NATIVE_SUM_ZERO_OUTPUT_COUNT: u8 =
+    ARITHMETIC_PUBLICATION_WORD_COUNT / 4 + 2 * @typeInfo(Digest).array.len;
+
 pub const LoweringObligationV2 = struct {
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
@@ -325,7 +332,7 @@ pub const LoweringObligationV2 = struct {
     native_sum_and_total_word_count: u16 = ARITHMETIC_PUBLICATION_WORD_COUNT,
     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
     input_count: u32,
-    zero_output_count: u8 = 5,
+    zero_output_count: u8 = NATIVE_SUM_ZERO_OUTPUT_COUNT,
     requires_qm31_composition: bool = true,
     requires_alpha_power_horner: bool = true,
     requires_checked_inverse: bool = true,
@@ -337,7 +344,7 @@ pub const LoweringObligationV2 = struct {
     pub fn validate(self: *const LoweringObligationV2) Error!void {
         const expected_inputs = try checkedAddU32(
             self.boundary_word_count,
-            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
+            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
         );
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or
@@ -345,7 +352,7 @@ pub const LoweringObligationV2 = struct {
             self.native_sum_and_total_word_count !=
                 ARITHMETIC_PUBLICATION_WORD_COUNT or
             self.challenge_word_count != CHALLENGE_WORD_COUNT or
-            self.input_count != expected_inputs or self.zero_output_count != 5 or
+            self.input_count != expected_inputs or self.zero_output_count != NATIVE_SUM_ZERO_OUTPUT_COUNT or
             !self.requires_qm31_composition or
             !self.requires_alpha_power_horner or
             !self.requires_checked_inverse or
@@ -365,14 +372,14 @@ pub fn deriveCounts(
     var relay_relation_events = try checkedMul(PUBLICATION_WORD_COUNT, 3);
     relay_relation_events = try checkedAdd(
         relay_relation_events,
-        try checkedMul(wire_words, 3),
+        try checkedMul(try checkedAdd(wire_words, register_bytes.BYTE_COUNT), 3),
     );
     relay_relation_events = try checkedAdd(
         relay_relation_events,
         try checkedMul(CHALLENGE_WORD_COUNT, 3),
     );
     const authority_relation_events = try checkedAdd(
-        authority_call_count,
+        try checkedMul(authority_call_count, AUTHORITY_EVENTS_PER_CALL),
         AUTHORITY_BIND_EVENT_COUNT,
     );
     const relation_events = try checkedAdd(
@@ -383,7 +390,7 @@ pub fn deriveCounts(
         .publication_header = PUBLICATION_HEADER_WORD_COUNT,
         .native_public_sums = NATIVE_PUBLIC_SUM_WORD_COUNT,
         .publication_seal = PUBLICATION_SEAL_WORD_COUNT,
-        .boundary_bridge = wire_words,
+        .boundary_bridge = try checkedAdd(wire_words, register_bytes.BYTE_COUNT),
         .native_challenges = CHALLENGE_WORD_COUNT,
         .control_relay = CONTROL_LOGICAL_ROW_COUNT,
         .relay_relation_events = relay_relation_events,
@@ -403,9 +410,9 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
         .control_relay = manifest.logical_rows[rowIndex(.vm_public_logup_control)],
         .relay_relation_events = manifest.relation_event_count -
             CONTROL_RELATION_EVENT_COUNT -
-            manifest.authority_poseidon_call_count -
+            manifest.authority_poseidon_call_count * AUTHORITY_EVENTS_PER_CALL -
             AUTHORITY_BIND_EVENT_COUNT,
-        .authority_relation_events = manifest.authority_poseidon_call_count +
+        .authority_relation_events = manifest.authority_poseidon_call_count * AUTHORITY_EVENTS_PER_CALL +
             AUTHORITY_BIND_EVENT_COUNT,
         .control_relation_events = CONTROL_RELATION_EVENT_COUNT,
         .relation_events = manifest.relation_event_count,
@@ -414,9 +421,10 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
 
 pub fn eventCountFromManifest(manifest: *const ManifestV2) Error!u32 {
     var relay_rows = try checkedAddU32(PUBLICATION_WORD_COUNT, manifest.wire_word_count);
+    relay_rows = try checkedAddU32(relay_rows, register_bytes.BYTE_COUNT);
     relay_rows = try checkedAddU32(relay_rows, CHALLENGE_WORD_COUNT);
     var result = try checkedMulU32(relay_rows, 3);
-    result = try checkedAddU32(result, manifest.authority_poseidon_call_count);
+    result = try checkedAddU32(result, try checkedMulU32(manifest.authority_poseidon_call_count, AUTHORITY_EVENTS_PER_CALL));
     result = try checkedAddU32(result, AUTHORITY_BIND_EVENT_COUNT);
     return checkedAddU32(result, CONTROL_RELATION_EVENT_COUNT);
 }

@@ -514,9 +514,37 @@ const Fixture = struct {
     right_exit_register_clocks: [32]u32,
 
     fn init() !Fixture {
-        const s0 = try machineState(0x1000, 0, "rw-0");
-        const s1 = try machineState(0x1008, 1, "rw-1");
-        const s2 = try machineState(0x1010, 2, "rw-2");
+        const left_words: [2]memory_state.WordState = .{
+            .{
+                .addr = 0x2000,
+                .initial_word = 11,
+                .final_word = 12,
+                .final_clock = 3,
+            },
+            .{
+                .addr = 0x2004,
+                .initial_word = 0,
+                .final_word = 0,
+                .final_clock = 0,
+            },
+        };
+        const right_words: [2]memory_state.WordState = .{
+            .{
+                .addr = 0x2000,
+                .initial_word = 12,
+                .final_word = 13,
+                .final_clock = 7,
+            },
+            .{
+                .addr = 0x2004,
+                .initial_word = 0,
+                .final_word = 9,
+                .final_clock = 6,
+            },
+        };
+        const s0 = try machineState(0x1000, 0, v2.snapshotDigest(&left_words, .initial_word).id);
+        const s1 = try machineState(0x1008, 1, v2.snapshotDigest(&left_words, .final_word).id);
+        const s2 = try machineState(0x1010, 2, v2.snapshotDigest(&right_words, .final_word).id);
         const job = try span.JobContext.init(
             try span.CompleteExecution.init(
                 protocol.PROTOCOL_ID_WORDS,
@@ -566,34 +594,8 @@ const Fixture = struct {
                     ),
                 ),
             },
-            .left_words = .{
-                .{
-                    .addr = 0x2000,
-                    .initial_word = 11,
-                    .final_word = 12,
-                    .final_clock = 3,
-                },
-                .{
-                    .addr = 0x2004,
-                    .initial_word = 0,
-                    .final_word = 0,
-                    .final_clock = 0,
-                },
-            },
-            .right_words = .{
-                .{
-                    .addr = 0x2000,
-                    .initial_word = 12,
-                    .final_word = 13,
-                    .final_clock = 7,
-                },
-                .{
-                    .addr = 0x2004,
-                    .initial_word = 0,
-                    .final_word = 9,
-                    .final_clock = 6,
-                },
-            },
+            .left_words = left_words,
+            .right_words = right_words,
             .left_exit_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
             .right_entry_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
             .right_exit_memory_clocks = .{
@@ -684,10 +686,10 @@ fn encode(allocator: std.mem.Allocator, source: *const v2.SourceV2) ![]M31 {
     return words;
 }
 
-fn machineState(pc: u32, value: u32, rw_label: []const u8) !span.MachineState {
+fn machineState(pc: u32, value: u32, rw_digest: channel.Digest) !span.MachineState {
     var registers = [_]u32{0} ** 32;
     registers[1] = value;
-    return span.MachineState.init(pc, registers, id(rw_label), .{0} ** 8);
+    return span.MachineState.init(pc, registers, rw_digest, .{0} ** 8);
 }
 
 fn cpuFromMachine(machine: span.MachineState) Cpu {
@@ -725,3 +727,30 @@ const RecordingChannel = struct {
         self.identity = channel.hashCanonicalWords(words, v2.WIRE_ID_DOMAIN);
     }
 };
+
+test "segment statement V2 binds Span memory digests to actual snapshots" {
+    var fixture = try Fixture.init();
+    const valid = fixture.leftSource();
+    try valid.validate();
+    var forged_span = valid.base_statement;
+    // This was previously a valid native source: PC, registers, clocks and
+    // sparse memory are unchanged, but the published intermediate root lies.
+    forged_span.body.executed.exit.rw_memory = id("disconnected-span-memory");
+    try forged_span.validate();
+    var forged_source = valid;
+    forged_source.base_statement = forged_span;
+    try std.testing.expectError(error.MemorySnapshotMismatch, forged_source.validate());
+    try std.testing.expectError(error.MemorySnapshotMismatch, forged_source.statement());
+
+    var forged_statement = try valid.statement();
+    forged_statement.base_statement_words = try forged_span.canonicalWords();
+    try std.testing.expectError(error.MemorySnapshotMismatch, forged_statement.validate());
+
+    // Encoding/decoding the honest pair still retains the exact digest link.
+    const words = try encode(std.testing.allocator, &valid);
+    defer std.testing.allocator.free(words);
+    const admitted = try v2.authenticateCanonicalWire(words);
+    const base = try admitted.statement.base();
+    try std.testing.expectEqualDeep(base.body.executed.entry.rw_memory, admitted.statement.entry_snapshot_id);
+    try std.testing.expectEqualDeep(base.body.executed.exit.rw_memory, admitted.statement.exit_snapshot_id);
+}

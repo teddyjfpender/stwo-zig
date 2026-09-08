@@ -48,6 +48,7 @@ const source_v2 = dependency_0.source_v2;
 const statement_v1 = dependency_0.statement_v1;
 const statement_v2 = dependency_0.statement_v2;
 const std = dependency_0.std;
+const register_bytes = dependency_0.register_bytes;
 const sumsEql = dependency_0.sumsEql;
 const traceLogSize = dependency_0.traceLogSize;
 const universal = dependency_0.universal;
@@ -140,8 +141,8 @@ pub const PreparedV2 = struct {
         return .{
             .source36_statement_word_emits = wire_count,
             .row11_statement_word_consumes = wire_count,
-            .row11_boundary_bridge_emits = wire_count,
-            .row15_boundary_bridge_consumes = wire_count,
+            .row11_boundary_bridge_emits = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+            .row15_boundary_bridge_consumes = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
             .rows13_16_arithmetic_wire_emits = self.lowering_obligation.input_count,
         };
     }
@@ -277,7 +278,7 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
             u32,
             try checkedAdd(
                 data.words().len,
-                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
+                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
             ),
         ) orelse return error.ArithmeticOverflow,
         .identity = undefined,

@@ -1,0 +1,13 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-v2-producer",
+    "--native-steps",
+    "4",
+    "--initial-register7",
+    "0x01020304",
+    "--native-backend",
+    "cpu"
+  ],
+  "exit_code": 0,
+  "process_ns": 6598414334
+}

@@ -270,9 +270,9 @@ fn statesFor(
     right: *const runner.SegmentResult,
 ) !States {
     return .{
-        .entry = try machineFromCpu(left.entry_cpu, digest("rw-entry")),
-        .shared = try machineFromCpu(left.exit_cpu, digest("rw-shared")),
-        .exit = try machineFromCpu(right.exit_cpu, digest("rw-exit")),
+        .entry = try machineFromCpu(left.entry_cpu, segment_v2.snapshotDigest(left.rw_memory.words, .initial_word).id),
+        .shared = try machineFromCpu(left.exit_cpu, segment_v2.snapshotDigest(left.rw_memory.words, .final_word).id),
+        .exit = try machineFromCpu(right.exit_cpu, segment_v2.snapshotDigest(right.rw_memory.words, .final_word).id),
     };
 }
 

@@ -1,0 +1,5 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/register-detached-verifier",
+  "sha256": "7cbde367142a8c15413c503a01671671ed4a9cb2aa1b7bef7f63a0b5fda32ef3",
+  "build_log": "detached-verifier-build.log"
+}

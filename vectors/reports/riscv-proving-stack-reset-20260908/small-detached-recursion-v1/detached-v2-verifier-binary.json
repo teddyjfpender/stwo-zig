@@ -1,0 +1,6 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-v2-verifier",
+  "sha256": "977a51c746b02cfb5d5291c9f9d71ab55613ad2b596f68afb5e5ad904fce4841",
+  "build_log": "detached-v2-gates-first.log",
+  "source_provenance": "Built by detached-v2-gates-first.log before later shared core OOM fixes; do not attribute the producer source snapshot to this binary. Rebuild from a stable snapshot for final acceptance."
+}

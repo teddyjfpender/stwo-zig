@@ -1,0 +1,6 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/two-child-cpu-producer",
+  "sha256": "020185ebd0bd9ec93b5464ed13ba2827d0ed01da28d2b7dd903cdc64d3cd40fe",
+  "source_patch": "two-child-cpu-source.patch",
+  "build_log": "two-child-cpu-build-first.log"
+}

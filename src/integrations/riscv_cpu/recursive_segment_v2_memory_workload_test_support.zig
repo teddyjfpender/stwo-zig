@@ -15,6 +15,27 @@ pub fn validateSegment(
     cumulative_steps: usize,
     segment_steps: usize,
 ) !void {
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false);
+}
+
+/// Same independent instruction/memory model with an explicit completed-leaf
+/// boundary. The terminal self-loop is observed but is not a retired row.
+pub fn validateCompletedSegment(
+    result: *const runner.SegmentResult,
+    address_count: usize,
+    cumulative_steps: usize,
+    segment_steps: usize,
+) !void {
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true);
+}
+
+fn validateSegmentWithCompletion(
+    result: *const runner.SegmentResult,
+    address_count: usize,
+    cumulative_steps: usize,
+    segment_steps: usize,
+    completed: bool,
+) !void {
     switch (address_count) {
         1, 4, 16 => {},
         else => return error.InvalidMemoryAddressCount,
@@ -23,8 +44,16 @@ pub fn validateSegment(
         return error.InvalidMemoryWorkloadSteps;
     try std.testing.expectEqual(segment_steps, result.cycle_count);
     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
-    try std.testing.expect(result.continuation != null);
-    try std.testing.expect(result.completion_reason == null);
+    if (completed) {
+        try std.testing.expectEqual(@as(usize, 2 + 3 * fixture.recursion_memory_updates), cumulative_steps);
+        try std.testing.expect(result.continuation == null);
+        try std.testing.expectEqual(runner.CompletionReason.self_loop, result.completion_reason orelse return error.ExpectedMemoryWorkloadCompletion);
+        try std.testing.expect(result.segment_role.is_last);
+    } else {
+        try std.testing.expect(result.continuation != null);
+        try std.testing.expect(result.completion_reason == null);
+        try std.testing.expect(!result.segment_role.is_last);
+    }
     const first_step = cumulative_steps - segment_steps;
     var words: [16]u32 = @splat(0);
     var entry_words = words;

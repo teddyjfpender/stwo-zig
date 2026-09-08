@@ -1,6 +1,18 @@
 # Small native and recursive proof loop
 
-The CPU and Metal routes use one guest fixture, native Poseidon protocol,
+The small detached route now proves both segments of a completed memory
+workload using CPU or Metal native proving, followed by CPU outer proving.
+A separate verifier checks both serialized proofs, exact coverage, memory and
+clock continuation using explicit keys and expected public inputs. This is a
+verified proof bundle in the q1/native, q3/outer development profile; succinct
+parent recursion and production-security measurements remain pending.
+
+Current retained evidence and rejection cases are indexed in
+[the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
+
+## Retained native-assisted benchmark route
+
+The earlier CPU and Metal measurements below use one guest fixture, native Poseidon protocol,
 canonical serialization, and fresh CPU native verification. Both then run the
 same 39-component, 47-domain CPU outer proof. This is the existing q1/native,
 q3/outer development profile, not the secure CSP profile or a detached root.

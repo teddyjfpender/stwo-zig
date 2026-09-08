@@ -1,0 +1,17 @@
+test-recursion-segment-claim-hash-v2
++- stwo_riscv_frontend test count floor
+   +- run test 1/2 passed, 1 failed
+error: 'vm_public_claim_hash_authority_v2_test_root.test.isolated row13 V2 identity and authenticated relation plan' failed: ROW13_STATIC_PROFILE=.{ .arena_nodes = 107, .compiled_nodes = 49, .direct_constraints = 39, .relation_events = 13, .interaction_batches = 7, .interaction_columns = 28, .maximum_constraint_degree = 2 }
+expected 108, found 107
+Field arena_nodes incorrect. expected 108, found 107
+error: while executing test 'vm_public_claim_hash_authority_v2_test_root.test.isolated row13 V2 witness replays authority calls and bind step atomically', the following test command failed:
+./.zig-cache/o/ab64700f89f93c1743f628afb59c8463/test --cache-dir=./.zig-cache --seed=0xa8c5a0d7 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursion-segment-claim-hash-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 8s MaxRSS:614M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4649b30d35029cff0e938c3871bfc71f/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xa8c5a0d7 -Z273abe85f920cf8c --maxrss 25769803776 -j1 test-recursion-segment-claim-hash-v2 -Doptimize=ReleaseSafe --summary all

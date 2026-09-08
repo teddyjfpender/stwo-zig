@@ -27,6 +27,7 @@ const program_decode = dependency_0.program_decode;
 const public_source = dependency_0.public_source;
 const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
+const register_bytes = dependency_0.register_bytes;
 const wire_statement = dependency_0.wire_statement;
 
 pub fn buildGraph(
@@ -49,7 +50,7 @@ pub fn buildGraph(
         .builder = &builder,
         .relations = &graph_inputs.relations,
     };
-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire);
+    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes);
 
     for (0..DOMAIN_COUNT) |index| {
         _ = try builder.markOutput(try builder.sub(
@@ -63,6 +64,22 @@ pub fn buildGraph(
         total,
         graph_inputs.published_total,
     ));
+    // Separate zero outputs prevent cancellation between digest limbs. Both
+    // sides are authenticated dynamic wire inputs; no snapshot value is a
+    // circuit constant and no extra hash witness is trusted here.
+    inline for (.{
+        .{ span_statement.canonical_layout.entry_state_start, wire_statement.fixed_layout.entry_snapshot_id },
+        .{ span_statement.canonical_layout.exit_state_start, wire_statement.fixed_layout.exit_snapshot_id },
+    }) |side| {
+        const state_digest_start = wire_statement.fixed_layout.base_statement + side[0] +
+            span_statement.canonical_layout.machine_state_rw_digest_start_offset;
+        for (0..@typeInfo(wire_statement.Digest).array.len) |limb| {
+            _ = try builder.markOutput(try builder.sub(
+                graph_inputs.wire[state_digest_start + limb],
+                graph_inputs.wire[side[1] + limb],
+            ));
+        }
+    }
     return .{
         .circuit = try builder.finish(),
         .term_counts = accumulator.counts,
@@ -73,6 +90,7 @@ pub fn addBoundaryTerms(
     accumulator: *RelationAccumulator,
     view: *const wire_statement.CanonicalWireViewV2,
     wire: []const arithmetic.Value,
+    bytes: []const arithmetic.Value,
 ) Error!void {
     const base = try view.statement.base();
     const executed = switch (base.body) {
@@ -115,8 +133,8 @@ pub fn addBoundaryTerms(
     }, .negative);
 
     for (0..32) |register| {
-        const entry_value = executed.entry.registers[register];
-        const exit_value = executed.exit.registers[register];
+        const entry = bytes[register_bytes.byteIndex(.entry, register, 0)..][0..4];
+        const exit = bytes[register_bytes.byteIndex(.exit, register, 0)..][0..4];
         const entry_clock = try fixedU32(
             accumulator.builder,
             wire,
@@ -131,19 +149,19 @@ pub fn addBoundaryTerms(
             baseValue(0),
             baseValue(@as(u32, @intCast(register))),
             entry_clock,
-            baseValue(@as(u8, @truncate(entry_value))),
-            baseValue(@as(u8, @truncate(entry_value >> 8))),
-            baseValue(@as(u8, @truncate(entry_value >> 16))),
-            baseValue(@as(u8, @truncate(entry_value >> 24))),
+            entry[0],
+            entry[1],
+            entry[2],
+            entry[3],
         }, .positive);
         try accumulator.add(.memory_access, &.{
             baseValue(0),
             baseValue(@as(u32, @intCast(register))),
             exit_clock,
-            baseValue(@as(u8, @truncate(exit_value))),
-            baseValue(@as(u8, @truncate(exit_value >> 8))),
-            baseValue(@as(u8, @truncate(exit_value >> 16))),
-            baseValue(@as(u8, @truncate(exit_value >> 24))),
+            exit[0],
+            exit[1],
+            exit[2],
+            exit[3],
         }, .negative);
     }
 
@@ -304,6 +322,8 @@ pub fn inputSource(
             .limb = @intCast(suffix % 8),
         } };
     }
+    suffix -= CHALLENGE_WORD_COUNT;
+    if (suffix < register_bytes.BYTE_COUNT) return .{ .register_byte = @intCast(suffix) };
     return error.InputBindingMismatch;
 }
 
@@ -339,6 +359,10 @@ pub fn fillInputValues(
             destination[at] = QM31.fromBase(word);
             at += 1;
         };
+    }
+    for (0..register_bytes.BYTE_COUNT) |index| {
+        destination[at] = QM31.fromBase(register_bytes.value(inputs.owned_public_data.data.words(), index));
+        at += 1;
     }
     std.debug.assert(at == destination.len);
 }

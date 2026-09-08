@@ -251,6 +251,12 @@ pub const StatementV2 = struct {
         const decoded_base = try self.base();
         const executed = try executedLeaf(decoded_base);
         const range = try statementRange(decoded_base, executed);
+        // Snapshot identities are recomputed from the retained canonical
+        // sections by wire admission. Bind the Span's public boundary to them.
+        if (!std.meta.eql(executed.entry.rw_memory, self.entry_snapshot_id) or
+            !std.meta.eql(executed.exit.rw_memory, self.exit_snapshot_id))
+            return error.MemorySnapshotMismatch;
+
         const expected_job_id = jobIdAssumeCanonical(&self.base_statement_words);
         const expected_base_id = baseStatementIdAssumeCanonical(
             &self.base_statement_words,

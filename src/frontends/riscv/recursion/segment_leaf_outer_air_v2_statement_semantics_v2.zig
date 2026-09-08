@@ -46,22 +46,22 @@ pub const StatementSemanticsV2 = struct {
     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
 
     pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
-    pub const PREPROCESSED_COLUMN_COUNT: usize = 16;
+    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
     pub const PARAMETER_COUNT: usize = 0;
     pub const LOGICAL_INPUT_COUNT: usize =
         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
     pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
-    pub const RELATION_EVENT_COUNT: usize = 7;
+    pub const RELATION_EVENT_COUNT: usize = 9;
     pub const LOOKUP_BATCH_SIZE: u8 = 2;
-    pub const INTERACTION_BATCH_COUNT: usize = 4;
-    pub const INTERACTION_COLUMN_COUNT: usize = 16;
+    pub const INTERACTION_BATCH_COUNT: usize = 5;
+    pub const INTERACTION_COLUMN_COUNT: usize = 20;
     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 
     // Regenerated from the typed IR by the focused source test. This value is
     // deliberately pinned before the component can be authenticated.
     pub const SEMANTIC_DIGEST_HEX =
-        "4af9b4d32b2f77041729ab8fc458bf845d39a1246984b54878a7cc9ce33f6915";
+        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
         SEMANTIC_DIGEST_HEX,
         "invalid V2 statement-semantics digest",
@@ -97,6 +97,9 @@ pub const StatementSemanticsV2 = struct {
             "recursion_segment_leaf_v2_statement_semantics_verifier_b_index",
             "recursion_segment_leaf_v2_statement_semantics_expected_header",
             "recursion_segment_leaf_v2_statement_semantics_boundary_bridge_mask",
+            "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
+            "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
+            "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
         };
     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
@@ -163,6 +166,9 @@ pub const StatementSemanticsV2 = struct {
         verifier_b_index: types.ValueId,
         expected_header: types.ValueId,
         boundary_bridge_mask: types.ValueId,
+        register_byte_bridge_mask: types.ValueId,
+        register_low_byte_index: types.ValueId,
+        register_high_byte_index: types.ValueId,
 
         pub fn physical(
             self: PreprocessedColumns,
@@ -184,6 +190,9 @@ pub const StatementSemanticsV2 = struct {
                 self.verifier_b_index,
                 self.expected_header,
                 self.boundary_bridge_mask,
+                self.register_byte_bridge_mask,
+                self.register_low_byte_index,
+                self.register_high_byte_index,
             };
         }
     };
@@ -350,6 +359,10 @@ pub const StatementSemanticsV2 = struct {
                 self.preprocessed.boundary_bridge_mask,
                 &boundary_bridge_tuple,
             );
+            const register_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_low_byte_index, self.main.source_low_byte, zero, zero, zero };
+            const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
+            try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
+            try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
         }
     };
 
@@ -413,7 +426,7 @@ pub const StatementSemanticsV2 = struct {
             index,
         | value.* = try arena.input(
             name,
-            if (index < 9 or index == 15) .selector else .felt,
+            if (index < 9 or index == 15 or index == 16) .selector else .felt,
             span,
         );
         const preprocessed = PreprocessedColumns{
@@ -433,6 +446,9 @@ pub const StatementSemanticsV2 = struct {
             .verifier_b_index = preprocessed_values[13],
             .expected_header = preprocessed_values[14],
             .boundary_bridge_mask = preprocessed_values[15],
+            .register_byte_bridge_mask = preprocessed_values[16],
+            .register_low_byte_index = preprocessed_values[17],
+            .register_high_byte_index = preprocessed_values[18],
         };
         const one = try arena.constantField(1, span);
         const byte_radix = try arena.constantField(256, span);
@@ -550,6 +566,10 @@ pub const StatementSemanticsV2 = struct {
             zero,
             zero,
         };
+        // These are the existing range-checked u16 decomposition bytes; the
+        // admitted preprocessing selects only canonical register-limb rows.
+        const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
+        const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
         const events = [RELATION_EVENT_COUNT]types.EffectId{
             try relation_effect.append(&arena, .{
                 .domain = .recursion_statement_word,
@@ -593,6 +613,18 @@ pub const StatementSemanticsV2 = struct {
                 .values = &boundary_bridge_tuple,
                 .weight = preprocessed.boundary_bridge_mask,
             }, span),
+            try relation_effect.append(&arena, .{
+                .domain = .recursion_wire,
+                .role = .emit,
+                .values = &register_low_tuple,
+                .weight = preprocessed.register_byte_bridge_mask,
+            }, span),
+            try relation_effect.append(&arena, .{
+                .domain = .recursion_wire,
+                .role = .emit,
+                .values = &register_high_tuple,
+                .weight = preprocessed.register_byte_bridge_mask,
+            }, span),
         };
         return .{
             .arena = arena,
@@ -625,7 +657,7 @@ pub const StatementSemanticsV2 = struct {
             value,
             expected_name,
             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
-            if (local_index < 9 or local_index == 15) .selector else .felt,
+            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
         );
     }
 };

@@ -39,8 +39,15 @@ fn run(comptime Metal: type) !void {
         std.debug.print("SEGMENT_V2_MEMORY_EXECUTION status=passed\n", .{});
         return;
     }
+    if (args.len == 2 and std.mem.eql(u8, args[1], "--check-two-segment-workload")) {
+        try gate.checkTwoSegmentWorkload(allocator);
+        std.debug.print("SEGMENT_V2_TWO_SEGMENT_EXECUTION status=passed\n", .{});
+        return;
+    }
     var steps: ?usize = null;
     var memory_addresses: ?usize = null;
+    var two_segment_output: ?[]const u8 = null;
+    var initial_register7: ?u32 = null;
     var backend: NativeBackend = .cpu;
     var backend_seen = false;
     var aot_bundle: ?[]const u8 = null;
@@ -56,6 +63,13 @@ fn run(comptime Metal: type) !void {
         } else if (std.mem.eql(u8, key, "--memory-addresses")) {
             if (memory_addresses != null) return error.DuplicateArgument;
             memory_addresses = std.fmt.parseInt(usize, value, 10) catch return error.InvalidMemoryAddressCount;
+        } else if (std.mem.eql(u8, key, "--initial-register7")) {
+            if (initial_register7 != null) return error.DuplicateArgument;
+            initial_register7 = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialRegister7;
+        } else if (std.mem.eql(u8, key, "--two-segment-output")) {
+            if (two_segment_output != null) return error.DuplicateArgument;
+            if (value.len == 0) return error.InvalidArguments;
+            two_segment_output = value;
         } else if (std.mem.eql(u8, key, "--native-backend")) {
             if (backend_seen) return error.DuplicateArgument;
             backend_seen = true;
@@ -71,12 +85,13 @@ fn run(comptime Metal: type) !void {
             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
             aot_manifest = digest;
         } else {
-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16) [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--two-segment-output NEW_DIRECTORY]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
             return error.InvalidArguments;
         }
     }
+    if (two_segment_output != null and memory_addresses == null) return error.MissingMemoryAddressCount;
     if (memory_addresses) |count| {
-        if (steps != null) return error.ConflictingWorkloadArguments;
+        if (steps != null or initial_register7 != null) return error.ConflictingWorkloadArguments;
         switch (count) {
             1, 4, 16 => {},
             else => return error.InvalidMemoryAddressCount,
@@ -88,16 +103,18 @@ fn run(comptime Metal: type) !void {
         else => return error.InvalidNativeStepCount,
     }
     std.debug.print(
-        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d}\n",
-        .{ selected_steps, @tagName(backend), memory_addresses orelse 0 },
+        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
+        .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
     );
     switch (backend) {
         .cpu => {
             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
-            if (memory_addresses) |count|
+            if (two_segment_output) |directory|
+                try producePair(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, directory)
+            else if (memory_addresses) |count|
                 try gate.runMemoryProof(allocator, count)
             else
-                try gate.runSizedProof(allocator, selected_steps);
+                try gate.runSizedProofWithRegister7(allocator, selected_steps, initial_register7 orelse 0);
         },
         .metal => {
             if (comptime Metal == void) {
@@ -130,15 +147,47 @@ fn run(comptime Metal: type) !void {
                     .{ std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
                 );
                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
-                if (memory_addresses) |count|
+                if (two_segment_output) |directory| {
+                    try producePair(NativeEngine, allocator, memory_addresses.?, directory);
+                    try Backend.shutdown();
+                } else if (memory_addresses) |count|
                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
                 else
-                    try gate.runSizedProofWithNativeEngine(NativeEngine, allocator, selected_steps);
+                    try gate.runSizedProofWithInitialRegister7(NativeEngine, allocator, selected_steps, initial_register7 orelse 0);
                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.NativeMetalRuntimeNotReleased;
             }
         },
     }
+    if (two_segment_output != null) {
+        std.debug.print("SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend={s} owners_destroyed=true parent_proof_created=false\n", .{@tagName(backend)});
+        return;
+    }
     // Native admission, producer/cohort and returned verifier capture owners
     // have all been destroyed before process-level completion.
-    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0 });
+    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
+}
+
+fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, directory: []const u8) !void {
+    const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
+    const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
+    const recursion = @import("stwo_riscv_frontend").recursion;
+    try std.fs.cwd().makeDir(directory);
+    const left = try std.fs.path.join(allocator, &.{ directory, "child-0" });
+    defer allocator.free(left);
+    const right = try std.fs.path.join(allocator, &.{ directory, "child-1" });
+    defer allocator.free(right);
+    const receipt = try pair.producePair(NativeEngine, allocator, address_count, .{
+        .native_keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+            ingress.digest("recursive-v2-segment-vk"),
+            ingress.digest("recursive-v2-parent-vk"),
+        ),
+        .child_directories = .{ left, right },
+    });
+    const bytes = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
+    defer allocator.free(bytes);
+    var dir = try std.fs.cwd().openDir(directory, .{});
+    defer dir.close();
+    var file = try dir.createFile("candidate-receipt.json", .{ .exclusive = true });
+    defer file.close();
+    try file.writeAll(bytes);
 }

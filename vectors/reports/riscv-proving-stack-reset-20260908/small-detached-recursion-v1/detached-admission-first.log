@@ -1,0 +1,15 @@
+
+Build Summary: 12/12 steps succeeded; 9/9 tests passed
+test-recursive-segment-v2-witness-free-verifier success
++- SegmentV2 witness-free verifier guard success
+   +- run test 3 passed 282ms MaxRSS:7M
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+test-recursive-segment-v2-public-inputs success
++- SegmentV2 expected public input guard success
+   +- run test 3 passed 269ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:565M
+test-recursive-segment-v2-detached-transcript success
++- SegmentV2 detached transcript guard success
+   +- run test 3 passed 264ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 5s MaxRSS:545M
+

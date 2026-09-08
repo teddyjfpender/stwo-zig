@@ -242,7 +242,7 @@ pub const SourceV2 = struct {
 
     /// Zero-allocation and fail-atomic hot evaluation. Scratch buffers are
     /// disposable on failure; `destination_values` is byte-for-byte unchanged
-    /// unless the complete graph replays and all five outputs are zero.
+    /// unless the complete graph replays and all relation and snapshot-binding outputs are zero.
     pub fn evaluateInto(
         self: *const SourceV2,
         prepared: *const public_source.PreparedV2,
@@ -521,6 +521,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
                 hashInt(&hash, u8, @intFromEnum(coordinate.relation));
                 hashInt(&hash, u8, coordinate.limb);
             },
+            .register_byte => |index| hashInt(&hash, u8, index),
         }
     }
     return hash.finalResult();
@@ -541,7 +542,7 @@ pub fn ownedEvaluationIdentity(evaluation: *const OwnedEvaluationV2) [32]u8 {
 comptime {
     if (CIRCUIT_ID != 42 or DOMAIN_COUNT != 4 or
         PUBLISHED_WORD_COUNT != 20 or CHALLENGE_WORD_COUNT != 32 or
-        OUTPUT_COUNT != 5 or HOT_HEAP_ALLOCATIONS != 0 or
+        OUTPUT_COUNT != 21 or HOT_HEAP_ALLOCATIONS != 0 or
         !DESTINATION_FAILS_ATOMICALLY or !POINTER_STABLE_OWNERSHIP or
         !EXACT_GRAPH_AND_USE_COUNTS_SEALED or
         !ROW11_OWNS_CANONICAL_PARSING or

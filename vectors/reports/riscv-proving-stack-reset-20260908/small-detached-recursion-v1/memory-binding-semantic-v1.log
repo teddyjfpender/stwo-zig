@@ -1,0 +1,21 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 96s
+
+Build Summary: 16/16 steps succeeded; 42/42 tests passed
+test-segment-statement-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 21 passed 302ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:464M
+test-recursion-segment-statement-source-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 4 passed 292ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 13s MaxRSS:989M
+test-recursion-segment-native-sum-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 11 passed 460ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 6s MaxRSS:546M
+test-recursion-segment-public-source-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 6 passed 318ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:555M
+

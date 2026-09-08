@@ -1,0 +1,55 @@
+test-air-components
++- core component geometry test identity guard
+   +- run test 0/1 passed, 1 failed, 1 leaked
+error: 'air.components.test.air components: orchestration' failed: fail_index: 16/17
+allocated bytes: 477
+freed bytes: 469
+allocations: 16
+deallocations: 15
+allocation that was made to fail: 
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/air/components.zig:453:54: 0x102cf3007 in checkColumnLogSizeAllocations (test)
+            var sizes = try components.columnLogSizes(allocator);
+                                                     ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1146:9: 0x102cf39f7 in test.air components: orchestration (test)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x102cc019b in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x102cbecbf in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x102cbc887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xa829ffffffffffff in ??? (???)
+[gpa] (err): memory address 0x102ea0098 leaked: 
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/air/components.zig:453:54: 0x102cf3007 in checkColumnLogSizeAllocations (test)
+            var sizes = try components.columnLogSizes(allocator);
+                                                     ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1146:9: 0x102cf39f7 in test.air components: orchestration (test)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x102cc019b in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x102cbecbf in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x102cbc887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xa829ffffffffffff in ??? (???)
+error: while executing test 'air.components.test.air components: orchestration', the following test command failed:
+./.zig-cache/o/c12141d11a636f7d1d07bd085c43ead1/test --cache-dir=./.zig-cache --seed=0x689ba13a --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed; 1 leaked
+test-air-components transitive failure
++- core component geometry test identity guard transitive failure
+   +- run test 0/1 passed, 1 failed, 1 leaked
+      +- compile test ReleaseSafe native success 3s MaxRSS:334M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/615a050a6a021bab7437094d94ace854/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core .zig-cache /Users/theodorepender/.cache/zig --seed 0x689ba13a -Z2b2a05adf7d9c0f7 --maxrss 25769803776 -j1 test-air-components -Doptimize=ReleaseSafe --summary all

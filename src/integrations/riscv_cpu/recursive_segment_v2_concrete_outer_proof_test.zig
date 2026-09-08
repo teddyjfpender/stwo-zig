@@ -58,6 +58,15 @@ pub fn runSizedProofWithNativeEngine(comptime NativeEngine: type, allocator: std
     try ingress.runSizedGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, native_steps);
 }
 
+/// Same program and geometry; only the authenticated untouched x7 value changes.
+pub fn runSizedProofWithRegister7(allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
+    try runSizedProofWithInitialRegister7(outer_engine.Engine, allocator, native_steps, initial_register7);
+}
+
+pub fn runSizedProofWithInitialRegister7(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
+    try ingress.runSizedGateWithInitialRegister7(NativeEngine, allocator, SizedProofHook, native_steps, initial_register7);
+}
+
 pub fn runMemoryProof(allocator: std.mem.Allocator, address_count: usize) !void {
     try runMemoryProofWithNativeEngine(outer_engine.Engine, allocator, address_count);
 }
@@ -68,6 +77,10 @@ pub fn runMemoryProofWithNativeEngine(comptime NativeEngine: type, allocator: st
 
 pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
     try @import("recursive_segment_v2_memory_workload_test_support.zig").checkWorkload(allocator);
+}
+
+pub fn checkTwoSegmentWorkload(allocator: std.mem.Allocator) !void {
+    try @import("recursive_segment_v2_two_segment_test_support.zig").checkWorkload(allocator);
 }
 
 pub const memory_native_steps = @import("recursive_segment_v2_memory_workload_test_support.zig").native_steps;
@@ -97,6 +110,7 @@ const SizedProofHook = struct {
                 verified.receipt.producer_live_bytes_after_destroy,
             },
         );
+        try integration.recursive_segment_v2_detached_proof.retainIfRequested(allocator, prepared);
     }
 };
 

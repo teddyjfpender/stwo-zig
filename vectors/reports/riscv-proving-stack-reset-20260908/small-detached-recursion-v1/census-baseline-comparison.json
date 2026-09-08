@@ -1,0 +1,39 @@
+{
+  "scope": "4 vs16 steps, same ELF; native component geometry may differ, so this is a diagnostic and not by itself a same-profile key-reuse test",
+  "changed_preprocessed_rows": [
+    4,
+    5,
+    13,
+    30,
+    31,
+    32
+  ],
+  "changed_graph_lanes": {
+    "1": {
+      "node_edges_sha256": [
+        "decc5d99d75cb985a01135e4bd0226a71c4d829f2dbe73033ed56540601a555d",
+        "c05f73736d4cc8815f1a15a5274f065daf54d73395d0deb608f07c3667488ca6"
+      ],
+      "constant_values_sha256": [
+        "2a9bc2d2b78803cbd3fc4177bf92f549f5f84dc440f7d14559420e2ace95c481",
+        "ae683f05c0f4ba2f41e446d971f7a7a2727a23fd4a24c9d91468924b63de4d28"
+      ],
+      "public_coordinates_sha256": [
+        "74db7222636de80dd6a9fb0561cdd36c71a77c221d19dd5a3333232b77772c24",
+        "79260d727e36f8ef15284f683a03b9bdf87065fd38f65122e4645d5d01f111ae"
+      ],
+      "public_values_sha256": [
+        "758744fa6affb788b7d59b05d7885669fcb0233ace5d41d0cac4e4c546618618",
+        "99c30ff6103a59525b0f611180502c9f712cb18e6655f239f60e0d838750c770"
+      ],
+      "graph_sha256": [
+        "4fb94c63d1f214d4120fb842dbf732fafbd38639e3b056a2efef0d62cf72e1b0",
+        "2abcd7784044c6b1bbd90a28678a4c263d733b22fdae55aa4d6c32390749c592"
+      ]
+    }
+  },
+  "log_sha256": {
+    "census-baseline-4-build.log": "0ea11a85177efe602952f032b4697119b87af0e120674840546bb9d6f085bde4",
+    "census-baseline-16.log": "9c849b8e3a9bbd5a1ec0dc5cff3d40174eb290d2f5156a98cf080fadd1c1b65b"
+  }
+}

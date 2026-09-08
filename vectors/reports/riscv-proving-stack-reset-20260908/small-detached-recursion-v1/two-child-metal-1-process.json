@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/two-child-metal-producer",
+    "--memory-addresses",
+    "1",
+    "--two-segment-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/two-child-metal-1",
+    "--native-backend",
+    "metal",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+    "--aot-manifest-sha256",
+    "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+  ],
+  "exit_code": 0,
+  "process_ns": 6561196125
+}

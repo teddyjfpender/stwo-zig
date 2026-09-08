@@ -21,8 +21,10 @@ const air = @import("air/vm_public_claim_hash_authority_v2.zig");
 const roster = @import("air/universal_roster.zig");
 const universal = @import("air/universal_challenges.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const FORMAT_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 2;
+pub const CALL_WIRE_CIRCUIT_ID = air.CALL_WIRE_CIRCUIT_ID;
+pub const CALL_WIRE_GROUP_COUNT = air.CALL_WIRE_GROUP_COUNT;
 pub const RELAY_ROW_COUNT: usize = public_source.NATIVE_PUBLIC_SUM_WORD_COUNT;
 pub const ROSTER_ROW: u8 = @intFromEnum(roster.Component.vm_public_claim_hash);
 pub const HOT_HEAP_ALLOCATIONS: usize = 0;
@@ -104,7 +106,7 @@ pub const PreparedV2 = struct {
     }
 
     pub fn eventCount(self: *const PreparedV2) Error!usize {
-        return try checkedAdd(try self.callCount(), 1);
+        return try checkedAdd(std.math.mul(usize, try self.callCount(), 1 + CALL_WIRE_GROUP_COUNT) catch return error.ArithmeticOverflow, 1);
     }
 
     pub fn validate(self: *const PreparedV2) Error!void {
@@ -171,23 +173,26 @@ pub const RowV2 = struct {
     control_node_id: u32,
     control_use_count: u32,
     poseidon_tuple: [air.POSEIDON_TUPLE_WIDTH]M31,
+    call_wire_nodes: [CALL_WIRE_GROUP_COUNT]u32,
 
     pub fn values(self: RowV2) LogicalRowV2 {
         var result: LogicalRowV2 = undefined;
         result[0] = felt(self.row_mask);
         result[1] = self.relay_value;
-        result[2] = felt(self.row_mask);
-        result[3] = felt(self.relay_mask);
-        result[4] = felt(self.authority_mask);
-        result[5] = felt(self.bind_mask);
-        for (self.source_fields, 0..) |word, index| result[6 + index] = felt(word);
-        result[11] = felt(self.arithmetic_circuit_id);
-        result[12] = felt(self.arithmetic_node_id);
-        result[13] = felt(self.arithmetic_use_count);
-        result[14] = felt(self.control_circuit_id);
-        result[15] = felt(self.control_node_id);
-        result[16] = felt(self.control_use_count);
-        @memcpy(result[17 .. 17 + air.POSEIDON_TUPLE_WIDTH], &self.poseidon_tuple);
+        @memcpy(result[2..][0..air.POSEIDON_TUPLE_WIDTH], &self.poseidon_tuple);
+        const start = air.PHYSICAL_MAIN_COLUMN_COUNT;
+        result[start] = felt(self.row_mask);
+        result[start + 1] = felt(self.relay_mask);
+        result[start + 2] = felt(self.authority_mask);
+        result[start + 3] = felt(self.bind_mask);
+        for (self.source_fields, 0..) |word, index| result[start + 4 + index] = felt(word);
+        result[start + 9] = felt(self.arithmetic_circuit_id);
+        result[start + 10] = felt(self.arithmetic_node_id);
+        result[start + 11] = felt(self.arithmetic_use_count);
+        result[start + 12] = felt(self.control_circuit_id);
+        result[start + 13] = felt(self.control_node_id);
+        result[start + 14] = felt(self.control_use_count);
+        for (self.call_wire_nodes, 0..) |word, index| result[start + 15 + index] = felt(word);
         result[result.len - 1] = M31.zero();
         return result;
     }
@@ -241,6 +246,10 @@ pub fn writeInto(
             tupleForCall(call_scratch[index])
         else
             zero_tuple;
+        var call_wire_nodes: [CALL_WIRE_GROUP_COUNT]u32 = @splat(0);
+        if (authority_active) for (&call_wire_nodes, 0..) |*node, group| {
+            node.* = @intCast(index * CALL_WIRE_GROUP_COUNT + group);
+        };
         const row = RowV2{
             .relay_value = relay.value,
             .relay_mask = @intFromBool(relay_active),
@@ -254,6 +263,7 @@ pub fn writeInto(
             .control_node_id = relay.control_node_id,
             .control_use_count = relay.control_use_count,
             .poseidon_tuple = poseidon_tuple,
+            .call_wire_nodes = call_wire_nodes,
         };
         destination.* = row.values();
         if (authority_active) {
@@ -285,6 +295,11 @@ pub fn writeInto(
             );
             event_at += 1;
         }
+        if (authority_active) for (0..CALL_WIRE_GROUP_COUNT) |group| {
+            const tuple = callWireTupleFromWords(index, group, &poseidon_tuple);
+            relation_events[event_at] = relationEvent(index, @intCast(5 + group), .recursion_wire, .emit, &tuple);
+            event_at += 1;
+        };
     }
     std.debug.assert(event_at == relation_events.len);
 }
@@ -297,6 +312,7 @@ fn validateGeometry(
     relation_events: []const RelationEventV2,
 ) Error!void {
     const call_count = try prepared.callCount();
+    if (call_count > (m31.Modulus - 1) / CALL_WIRE_GROUP_COUNT) return error.ArithmeticOverflow;
     if (relays.len != RELAY_ROW_COUNT or calls.len != call_count or
         logical_rows.len != prepared.logical_row_count or
         relation_events.len != try prepared.eventCount())
@@ -340,6 +356,25 @@ fn validateCall(call: poseidon2_air.Call) Error!void {
         return error.InvalidAuthorityCall;
     for (call.input) |word| if (word >= m31.Modulus)
         return error.InvalidAuthorityCall;
+}
+
+/// Shared exact public tuple projection; expected callers regenerate calls
+/// from expected public data and fixed admitted descriptors first.
+pub fn callWireTuples(call_index: usize, call: poseidon2_air.Call) [CALL_WIRE_GROUP_COUNT][6]M31 {
+    const words = tupleForCall(call);
+    var tuples: [CALL_WIRE_GROUP_COUNT][6]M31 = undefined;
+    for (&tuples, 0..) |*tuple, group| tuple.* = callWireTupleFromWords(call_index, group, &words);
+    return tuples;
+}
+
+pub fn callWireTuple(call_index: usize, group: usize, call: poseidon2_air.Call) [6]M31 {
+    return callWireTupleFromWords(call_index, group, &tupleForCall(call));
+}
+
+fn callWireTupleFromWords(call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]M31) [6]M31 {
+    std.debug.assert(group < CALL_WIRE_GROUP_COUNT);
+    std.debug.assert(call_index <= (m31.Modulus - 1 - group) / CALL_WIRE_GROUP_COUNT);
+    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group))) } ++ words[group * 4 ..][0..4].*;
 }
 
 fn tupleForCall(call: poseidon2_air.Call) [air.POSEIDON_TUPLE_WIDTH]M31 {

@@ -4,6 +4,8 @@
 //! committed-witness rejection without turning their implementation files into
 //! cross-package relative-import entry points.
 
+pub const recursion_air_composition_v3 = @import("recursion/recursion_air_composition_circuit_v3_test_support.zig");
+
 pub const clock_update_component_test =
     @import("air/clock_update_component_test.zig");
 pub const relation_export_components_test =
@@ -95,6 +97,7 @@ pub const typed_mulh = @import("air/lang/typed_mulh.zig");
 pub const typed_mulh_witness = @import("air/lang/typed_mulh_witness.zig");
 pub const mulh_legacy_test_oracle =
     @import("runner/witness/mulh_legacy_test_oracle.zig");
+pub const public_data_v2_test_support = @import("air/public_data_v2_test_support.zig");
 pub const guest_precompile_test_elf =
     @import("runner/guest_precompile/test_elf.zig");
 pub const guest_precompile_corpus_elf =

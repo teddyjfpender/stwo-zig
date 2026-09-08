@@ -156,6 +156,14 @@ pub const SourceV2 = struct {
         }
 
         try validateMemoryWords(self.memory_words, self.segment_role, range.end);
+        // The Span boundary and native sparse projection must name the same
+        // memory state. This checks actual source bytes, not a cached receipt.
+        const entry_snapshot = dependency_1.snapshotDigest(self.memory_words, .initial_word);
+        const exit_snapshot = dependency_1.snapshotDigest(self.memory_words, .final_word);
+        if (!std.meta.eql(executed.entry.rw_memory, entry_snapshot.id) or
+            !std.meta.eql(executed.exit.rw_memory, exit_snapshot.id))
+            return error.MemorySnapshotMismatch;
+
         try validateClockBoundary(
             self.entry_register_clocks,
             self.entry_memory_clocks,

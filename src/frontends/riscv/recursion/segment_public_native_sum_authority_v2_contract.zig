@@ -14,17 +14,18 @@ pub const span_statement = @import("span_statement.zig");
 pub const wire_statement = @import("segment_statement_v2.zig");
 pub const graph_mod = @import("air/composition_circuit.zig");
 pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
+pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const FORMAT_VERSION: u16 = 4;
+pub const SCHEMA_VERSION: u16 = 2;
 pub const CIRCUIT_ID: u32 = public_source.NATIVE_SUM_CIRCUIT_ID;
 pub const DOMAIN_COUNT: usize = 4;
 pub const PUBLISHED_WORD_COUNT: usize =
     public_source.ARITHMETIC_PUBLICATION_WORD_COUNT;
 pub const CHALLENGE_WORD_COUNT: usize = public_source.CHALLENGE_WORD_COUNT;
-pub const OUTPUT_COUNT: usize = 5;
+pub const OUTPUT_COUNT: usize = public_source.NATIVE_SUM_ZERO_OUTPUT_COUNT;
 pub const INPUT_SUFFIX_WORD_COUNT: usize =
-    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT;
+    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT;
 pub const AUTHORITY_DOMAIN =
     "stwo-zig/typed-air/segment-v2-native-public-sum-authority/v1\x00";
 pub const EVALUATION_DOMAIN =
@@ -82,6 +83,7 @@ pub const InputSourceV2 = union(enum) {
     published_sum_word: PublishedCoordinateV2,
     published_total_word: PublishedTotalCoordinateV2,
     native_challenge_word: ChallengeCoordinateV2,
+    register_byte: u8,
 };
 
 pub const InputBindingV2 = struct {
@@ -181,6 +183,7 @@ pub const AuthoredGraph = struct {
 
 pub const GraphInputs = struct {
     wire: []const arithmetic.Value,
+    register_bytes: []const arithmetic.Value,
     published_sums: [DOMAIN_COUNT]arithmetic.Value,
     published_total: arithmetic.Value,
     relations: [DOMAIN_COUNT]BoundRelation,
@@ -295,6 +298,7 @@ pub fn bindGraphInputs(
     }
     return .{
         .wire = values[0..wire_count],
+        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT ..],
         .published_sums = published_sums,
         .published_total = published_total,
         .relations = relations,

@@ -120,6 +120,8 @@ pub const writeTraceInto = shard_1.writeTraceInto;
 /// Exact logical relation multiset for closure/audit consumers.  Padding rows
 /// are inactive and intentionally absent from this compact publication.
 pub const writeStatementRelationEventsInto = shard_1.writeStatementRelationEventsInto;
+/// Canonical statement tuple shared by source writers and detached verifiers.
+pub const statementEvent = shard_1.statementEvent;
 /// Allocation-free source preflight over the uncompensated public boundary.
 ///
 /// This value is useful for typed-AIR authoring and trace-shape validation,
@@ -147,6 +149,8 @@ pub const VerifiedNativePublicLogUpPublicationV2 = shard_2.VerifiedNativePublicL
 /// replays the canonical encoder and checks the final digest before exposing
 /// calls to the single shared row-34 provider.
 pub const AuthorityHashPoseidonPlanV2 = shard_2.AuthorityHashPoseidonPlanV2;
+pub const authorityHashCallCount = shard_2.authorityHashCallCount;
+pub const appendExpectedAuthorityHashCalls = shard_2.appendExpectedAuthorityHashCalls;
 pub const VerifierInputEventV2 = shard_2.VerifierInputEventV2;
 pub const preparePublicLogUpInto = shard_2.preparePublicLogUpInto;
 /// Allocation-free, fail-atomic construction from verifier-owned custody.

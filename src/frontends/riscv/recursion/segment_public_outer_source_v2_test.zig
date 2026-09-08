@@ -12,6 +12,7 @@ const subject = @import("segment_public_outer_source_v2.zig");
 const fixture_support = @import("segment_public_outer_test_support.zig");
 const control_air_v2 = @import("air/vm_public_logup_control_v2.zig");
 const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
+const register_bytes = @import("segment_register_byte_layout_v1.zig");
 
 const Fixture = fixture_support.Fixture;
 
@@ -29,7 +30,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
     try std.testing.expectEqual(subject.PUBLICATION_HEADER_WORD_COUNT, counts.publication_header);
     try std.testing.expectEqual(subject.NATIVE_PUBLIC_SUM_WORD_COUNT, counts.native_public_sums);
     try std.testing.expectEqual(subject.PUBLICATION_SEAL_WORD_COUNT, counts.publication_seal);
-    try std.testing.expectEqual(wire.len, counts.boundary_bridge);
+    try std.testing.expectEqual(wire.len + register_bytes.BYTE_COUNT, counts.boundary_bridge);
     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, counts.native_challenges);
     try std.testing.expectEqual(subject.CONTROL_LOGICAL_ROW_COUNT, counts.control_relay);
     try std.testing.expectEqual(
@@ -37,12 +38,12 @@ test "V2 public spine writes exact recursion-local bridge rows" {
         counts.control_relation_events,
     );
     try std.testing.expectEqual(
-        @as(usize, prepared.authority_hash_plan.poseidon_call_count) +
+        @as(usize, prepared.authority_hash_plan.poseidon_call_count) * (1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT) +
             subject.AUTHORITY_BIND_EVENT_COUNT,
         counts.authority_relation_events,
     );
     try std.testing.expectEqual(
-        3 * (subject.PUBLICATION_WORD_COUNT + wire.len +
+        3 * (subject.PUBLICATION_WORD_COUNT + wire.len + register_bytes.BYTE_COUNT +
             subject.CHALLENGE_WORD_COUNT) +
             counts.authority_relation_events +
             subject.CONTROL_RELATION_EVENT_COUNT,
@@ -117,13 +118,23 @@ test "V2 public spine writes exact recursion-local bridge rows" {
         );
     }
 
-    for (owned.boundary_bridge, wire, 0..) |row, value, index| {
+    for (owned.boundary_bridge[0..wire.len], wire, 0..) |row, value, index| {
         try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
         try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
         try std.testing.expectEqual(@as(u32, @intCast(index)), row.source_fields[1]);
         try std.testing.expect(value.eql(row.value));
         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_mask);
         try std.testing.expectEqual(@as(u32, @intCast(index)), row.arithmetic_node_id);
+        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
+        try std.testing.expectEqual(@as(u32, 0), row.control_mask);
+    }
+    for (owned.boundary_bridge[wire.len..], 0..) |row, byte_index| {
+        try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
+        try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
+        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.bridgeIndex(wire.len, byte_index))), row.source_fields[1]);
+        try std.testing.expect(row.value.eql(register_bytes.value(wire, byte_index)));
+        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.inputIndex(wire.len + subject.ARITHMETIC_PUBLICATION_WORD_COUNT + subject.CHALLENGE_WORD_COUNT, byte_index))), row.arithmetic_node_id);
+        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_mask);
         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
         try std.testing.expectEqual(@as(u32, 0), row.control_mask);
     }
@@ -445,10 +456,10 @@ fn expectExactRelationProjection(owned: *const OwnedDestinations, wire_len: usiz
             control_emits += @intFromBool(event.multiplicity == 1);
         }
     }
-    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len, source_wire_consumes);
+    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len + register_bytes.BYTE_COUNT, source_wire_consumes);
     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, source_challenge_consumes);
     try std.testing.expectEqual(
-        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT,
+        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
         arithmetic_emits,
     );
     try std.testing.expectEqual(@as(usize, 1), control_emits);

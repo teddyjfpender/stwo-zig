@@ -863,12 +863,32 @@ pub fn build(b: *std.Build) void {
         .description = "Run the V2 rows 10 and 11 statement authority gates",
         .root = "segment_statement_outer_source_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{"V2 row-11"},
+        .minimum = 3,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-public-source-v2",
         .description = "Run the V2 rows 12 through 17 public-spine source gates",
         .root = "segment_public_outer_source_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{ "V2 public spine", "V2 public-spine" },
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-segment-claim-hash-v2",
+        .description = "Check dynamic statement-authority hashing and fixed preprocessing",
+        .root = "vm_public_claim_hash_authority_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"isolated row13 V2"},
+        .minimum = 2,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-segment-native-sum-v2",
+        .description = "Run the SegmentV2 native-sum graph and register-input authority gates",
+        .root = "segment_public_native_sum_authority_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "SegmentV2 native-sum", "SegmentV2 publication provider plan" },
+        .minimum = 9,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-public-components-v2",
