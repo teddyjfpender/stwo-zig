@@ -1,0 +1,7 @@
+{
+  "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/1be6632da43df1ac4774b6a2a3c13e6d/recursive-segment-v2-concrete-outer-proof",
+  "retained": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/baseline/cpu",
+  "sha256": "4812ea9ce6c1ade413461e76dc47b021fb8986e4fef2fd10109689b84536eb1f",
+  "source_patch": "baseline-source.patch",
+  "new_sources": "baseline-new-source"
+}

@@ -1,0 +1,7 @@
+{
+  "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/d9a60217dff0a4a3bba7bac0ead9efaf/recursive-segment-v2-concrete-outer-proof-metal",
+  "retained": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/baseline/metal",
+  "sha256": "bb28b9812b3baa1fd2b4b2229b642ad3ff4f9a87bc3c5fd79e3419f3154a405a",
+  "source_patch": "baseline-source.patch",
+  "new_sources": "baseline-new-source"
+}

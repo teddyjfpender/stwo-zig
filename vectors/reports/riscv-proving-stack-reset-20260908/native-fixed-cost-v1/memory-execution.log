@@ -1,0 +1,13 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 exit_pc=1100
+expected 0, found 1
+expected 20, found 21
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=1 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 exit_pc=1100
+expected 0, found 1
+expected 5, found 4
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=4 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 exit_pc=1100
+expected 0, found 1
+expected 2, found 3
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=6 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION status=passed

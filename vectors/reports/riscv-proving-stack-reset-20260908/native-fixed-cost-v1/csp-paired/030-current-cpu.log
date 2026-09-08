@@ -1,0 +1,4 @@
+[negative] ecdsa_secp256k1_bad_signature: execute and reject
+[1/1] ecdsa_secp256k1/32: execute, prove, verify
+  prove=4.712s verify=0.176s proof=3282.4KiB rss=8.56GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/030-current-cpu.json

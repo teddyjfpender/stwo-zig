@@ -20,6 +20,37 @@ preparation, proving, publication and verification separately before expanding
 the workload. Its current verifier still requires admitted native-child data;
 that is a distinct boundary from the detached Ethereum key-and-proof root.
 
+## Current bounded milestone: small native fixed cost
+
+The CPU/Metal fixed-cost round is complete. Canonical four-lane Poseidon hashing
+removes 2.357 seconds from measured CPU main/interaction Merkle intervals without
+changing constraints, transcript framing or proof parameters. At 64 instructions,
+three-sample median complete requests improve 8.963→5.340s (CPU) and
+5.074→3.978s (Metal); fresh native verification improves about57% on both routes.
+No Metal device-kernel speedup is inferred from the shared host improvement.
+
+The 1/4/16/64 instruction arms and two memory fixtures total84 freshly verified
+small lifecycle runs. The supported memory ladder starts from zero and varies
+1/4/16 addresses with128-byte spacing at64 instructions: measured sparse-node
+calls grow450/473/569 and Merkle/Poseidon logs9/9/10. Native commitment height21
+still exposes the fixed lookup floor. The earlier initialized-word fixture is
+retained as historical evidence and superseded for memory-growth measurement.
+
+The canonical scalar/SIMD/streaming/parallel Merkle gate passes19 tests in311ms
+runtime after a4s compile. Integration compilation remains roughly two minutes;
+this round does not claim to fix that remaining DevEx cost. The maintained CSP
+paired runner now lives in `scripts/`, with its superseded autoresearch source
+removed. All16 CSP cases passed CPU/Metal proof and policy checks over two rounds
+(128 launches,640 timed samples); no repeated latency/memory increase above5%.
+Strict quiet-host admission failed, so normative performance promotion is pending.
+
+See [the evidence index](../../vectors/reports/riscv-proving-stack-reset-20260908/native-fixed-cost-v1/README.md)
+and [runnable commands](small-recursive-benchmark.md). This accepts one native
+child and its native-assisted outer proof under unchanged development parameters;
+whole-block production and detached recursive-root milestones remain open.
+Further refactoring should follow the remaining measured cost and ownership
+boundaries, with the small complete-proof loop as the first gate.
+
 ## Baseline and limits
 
 - Retained Metal segment19: 2,097,152 cycles; proving351.929739s,
@@ -119,7 +150,7 @@ use actual host budgets and report memory before allocating. No new job on a
 live job's observation timeout. Keep source and failing input identities durable.
 RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
 
-## Current status
+## Earlier reset checkpoints
 
 - Checkpoints committed; no scaling optimization or CSP performance promotion is claimed.
 - Opt-in ordinary-route composition timing implemented in two existing backend
@@ -171,7 +202,7 @@ the first gate remains open. The known time concentration is sufficient to selec
 the small reproducer; no instruction-frontend replacement is justified by this run.
 
 
-## Current small-recursion checkpoint and next boundary
+## Earlier small-recursion checkpoint and next boundary
 
 The small complete recursive lifecycle is working. Three paired CPU development
 measurements reduce median outer verification from 1.310 s to 0.623 s and the

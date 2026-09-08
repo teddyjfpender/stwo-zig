@@ -1,0 +1,888 @@
+diff --git a/src/backends/cpu_scalar/riscv_composition.zig b/src/backends/cpu_scalar/riscv_composition.zig
+index 0b8dcc6d..3db8eb2d 100644
+--- a/src/backends/cpu_scalar/riscv_composition.zig
++++ b/src/backends/cpu_scalar/riscv_composition.zig
+@@ -320,6 +320,21 @@ fn evaluatePlan(
+     trace: *const Trace,
+     execution: ExecutionOptions,
+ ) !?SecureColumn {
++    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING"))
++        std.time.Timer.start() catch null
++    else
++        null;
++    var prepare_ns: u64 = 0;
++    var graph_ns: u64 = 0;
++    var graph_started_ns: u64 = 0;
++    var output_payload_bytes: u128 = 0;
++    var completed = false;
++    defer if (timing) |*clock| {
++        const total_ns = clock.read();
++        std.log.info("cpu composition wall: completed={} scope=plan_including_cleanup prepare_ns={} graph_ns={} finish_cleanup_ns={} total_ns={} output_payload_bytes={} payload_is_allocator_live=false", .{
++            completed, prepare_ns, graph_ns, total_ns - prepare_ns - graph_ns, total_ns, output_payload_bytes,
++        });
++    };
+     _ = telemetry.attempts.fetchAdd(1, .monotonic);
+ 
+     var base_programs = std.ArrayList(BaseProgramEntry).empty;
+@@ -753,6 +768,10 @@ fn evaluatePlan(
+     _ = telemetry.structured_executions.fetchAdd(1, .monotonic);
+     recordMax(&telemetry.max_scratch_bytes_per_worker, @intCast(scratch_bytes));
+ 
++    if (timing) |*clock| {
++        prepare_ns = clock.read();
++        graph_started_ns = prepare_ns;
++    }
+     const execution_report = graph.execute(.{
+         .worker_budget = execution.worker_budget,
+         .pool = execution.pool,
+@@ -784,6 +803,7 @@ fn evaluatePlan(
+             failure,
+         ),
+     };
++    if (timing) |*clock| graph_ns = clock.read() - graph_started_ns;
+     recordMax(&telemetry.max_graph_peak_active, @intCast(execution_report.peak_active_tasks));
+     for (host_workers) |worker| {
+         if (worker.accumulator.next_power_index != worker.expected_next_power_index) {
+@@ -833,6 +853,8 @@ fn evaluatePlan(
+         prepared_output = null;
+         errdefer result.deinit(allocator);
+         if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
++        if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
++        completed = true;
+         return result;
+     }
+     var result = try evaluation_diagnostic.lengthResult(
+@@ -844,5 +866,7 @@ fn evaluatePlan(
+     );
+     errdefer result.deinit(allocator);
+     if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
++    if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
++    completed = true;
+     return result;
+ }
+diff --git a/src/frontends/riscv/prover/interaction_trace_generation.zig b/src/frontends/riscv/prover/interaction_trace_generation.zig
+index 135b2833..08ddce0a 100644
+--- a/src/frontends/riscv/prover/interaction_trace_generation.zig
++++ b/src/frontends/riscv/prover/interaction_trace_generation.zig
+@@ -581,6 +581,10 @@ pub fn Ops(comptime Owner: type) type {
+             }
+             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
+             for (component_order.lookupTables(), 0..) |kind, table_index| {
++                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
++                    std.time.Timer.start() catch null
++                else
++                    null;
+                 var generated = try lookup_table_interaction.generate(
+                     allocator,
+                     try main_source.lookupCounter(kind),
+@@ -589,6 +593,13 @@ pub fn Ops(comptime Owner: type) type {
+                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
+                 const taken = generated.takeColumns();
+                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
++                if (timer) |*active| {
++                    var bytes: usize = 0;
++                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
++                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
++                        @tagName(kind), active.read(), bytes,
++                    });
++                }
+             }
+         }
+ 
+@@ -606,6 +617,10 @@ pub fn Ops(comptime Owner: type) type {
+         ) !void {
+             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
+             for (component_order.lookupTables(), 0..) |kind, table_index| {
++                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
++                    std.time.Timer.start() catch null
++                else
++                    null;
+                 var generated = try lookup_table_interaction.generateParallel(
+                     allocator,
+                     try main_source.lookupCounter(kind),
+@@ -615,6 +630,13 @@ pub fn Ops(comptime Owner: type) type {
+                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
+                 const taken = generated.takeColumns();
+                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
++                if (timer) |*active| {
++                    var bytes: usize = 0;
++                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
++                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
++                        @tagName(kind), active.read(), bytes,
++                    });
++                }
+             }
+         }
+ 
+diff --git a/src/frontends/riscv/prover/preprocessed.zig b/src/frontends/riscv/prover/preprocessed.zig
+index c6a4d01a..1b2282ab 100644
+--- a/src/frontends/riscv/prover/preprocessed.zig
++++ b/src/frontends/riscv/prover/preprocessed.zig
+@@ -139,6 +139,11 @@ pub fn generate(
+     }
+     for (0..statement.n_infra) |index| {
+         const desc = statement.infra_descs[index];
++        var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
++            std.time.Timer.start() catch null
++        else
++            null;
++        const column_start = initialized;
+         if (statement_mod.tableKind(desc.kind)) |kind| {
+             columns[initialized] = .{
+                 .log_size = desc.log_size,
+@@ -154,6 +159,14 @@ pub fn generate(
+         } else {
+             try appendSelectors(allocator, columns, &initialized, desc.log_size, desc.n_rows);
+         }
++        if (timer) |*active| {
++            var bytes: usize = 0;
++            for (columns[column_start..initialized]) |column|
++                bytes += column.values.len * @sizeOf(@TypeOf(column.values[0]));
++            std.debug.print("riscv_preprocessed_component kind={s} log_size={d} columns={d} generation_ns={d} owned_value_bytes={d}\n", .{
++                @tagName(desc.kind), desc.log_size, initialized - column_start, active.read(), bytes,
++            });
++        }
+     }
+     std.debug.assert(initialized == columns.len);
+     return columns;
+diff --git a/src/frontends/riscv/runner/guest_precompile/test_elf.zig b/src/frontends/riscv/runner/guest_precompile/test_elf.zig
+index 8eee0812..8a7bca83 100644
+--- a/src/frontends/riscv/runner/guest_precompile/test_elf.zig
++++ b/src/frontends/riscv/runner/guest_precompile/test_elf.zig
+@@ -269,6 +269,34 @@ pub fn buildRecursionLoop() [imageSize(recursion_loop_instructions.len, poseidon
+     );
+ }
+ 
++pub const recursion_memory_address_counts = [_]usize{ 1, 4, 16 };
++pub const recursion_memory_base: u32 = 0x0010_0100;
++pub const recursion_memory_updates: usize = 32;
++pub const recursion_memory_elf_size = imageSize(3 + 3 * recursion_memory_updates, poseidon_data_size);
++
++/// Same-size memory workload: only load/store immediates vary with the admitted
++/// address count. The 64-cycle boundary falls between an increment and its
++/// store; a further 16 cycles complete that store and five more updates.
++pub fn buildRecursionMemory(address_count: usize) error{InvalidMemoryAddressCount}![recursion_memory_elf_size]u8 {
++    switch (address_count) {
++        1, 4, 16 => {},
++        else => return error.InvalidMemoryAddressCount,
++    }
++    var instructions: [3 + 3 * recursion_memory_updates]u32 = undefined;
++    instructions[0] = 0x0010_02b7; // LUI x5, 0x100.
++    instructions[1] = 0x1002_8293; // ADDI x5, x5, 0x100.
++    for (0..recursion_memory_updates) |index| {
++        const offset: u32 = @intCast(4 * (index % address_count));
++        instructions[2 + 3 * index] = (offset << 20) | 0x0002_a303; // LW x6, offset(x5).
++        instructions[3 + 3 * index] = 0x0013_0313; // ADDI x6, x6, 1.
++        instructions[4 + 3 * index] = ((offset >> 5) << 25) |
++            ((offset & 31) << 7) | 0x0062_a023; // SW x6, offset(x5).
++    }
++    instructions[instructions.len - 1] = 0x0000_006f;
++    // Canonical buildProgram initializes the sixteen data words to 0..15.
++    return buildProgram(instructions.len, &instructions, poseidon_data_size, .rv32im_zkvm_poseidon2_v1);
++}
++
+ /// A straight-line production witness containing at least one retirement from
+ /// every canonical RV32IM opcode family. The final self-loop is observed but
+ /// not retired, matching recursive segment completion semantics.
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index fa4f1ff7..2c8ef434 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -2417,16 +2417,17 @@ pub fn add(ctx: anytype) void {
+         "run-recursive-temporal-parent-real-proof",
+         "Run the authenticated temporal parent through the lean proof loop",
+     ).dependOn(&run_temporal_parent_real.step);
+-    const segment_v2_concrete_outer_runner_root = support.createHarnessModule(
+-        b,
+-        "recursive_segment_v2_concrete_outer_proof_runner.zig",
+-        target,
+-        optimize,
+-        core,
+-        cpu_backend,
+-        frontend,
+-        integration,
+-    );
++    // Export the same lean driver for the Metal dependency-boundary shim.
++    // CPU products retain no dependency on the Metal backend or frameworks.
++    const segment_v2_concrete_outer_runner_root = b.addModule("stwo_riscv_cpu_small_recursion_runner", .{
++        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
++        .target = target,
++        .optimize = optimize,
++    });
++    segment_v2_concrete_outer_runner_root.addImport("stwo_core", core);
++    segment_v2_concrete_outer_runner_root.addImport("stwo_cpu_backend", cpu_backend);
++    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_frontend", frontend);
++    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_cpu_integration", integration);
+     segment_v2_concrete_outer_runner_root.addImport(
+         "stwo_prover_api",
+         prover_api,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index 80f1a248..331f80e0 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -7,7 +7,19 @@
+ const std = @import("std");
+ const gate = @import("recursive_segment_v2_concrete_outer_proof_test.zig");
+ 
++const NativeBackend = enum { cpu, metal };
++
+ pub fn main() !void {
++    try run(void);
++}
++
++/// Metal supplies only its backend module; fixture, options, native ingress,
++/// fresh CPU verification and complete outer proof remain shared with CPU.
++pub fn runWithMetal(comptime Metal: type) !void {
++    try run(Metal);
++}
++
++fn run(comptime Metal: type) !void {
+     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+     defer std.debug.assert(gpa.deinit() == .ok);
+     const allocator = gpa.allocator();
+@@ -22,21 +34,111 @@ pub fn main() !void {
+         std.debug.print("SEGMENT_V2_LADDER_EXECUTION status=passed sizes=1,4,16,64 continuation_steps=16\n", .{});
+         return;
+     }
+-    if (args.len != 3 or !std.mem.eql(u8, args[1], "--native-steps")) {
+-        std.debug.print("usage: {s} [--native-steps 1|4|16|64 | --check-workload]\n", .{args[0]});
+-        return error.InvalidArguments;
++    if (args.len == 2 and std.mem.eql(u8, args[1], "--check-memory-workload")) {
++        try gate.checkMemoryWorkload(allocator);
++        std.debug.print("SEGMENT_V2_MEMORY_EXECUTION status=passed\n", .{});
++        return;
++    }
++    var steps: ?usize = null;
++    var memory_addresses: ?usize = null;
++    var backend: NativeBackend = .cpu;
++    var backend_seen = false;
++    var aot_bundle: ?[]const u8 = null;
++    var aot_manifest: ?[32]u8 = null;
++    var at: usize = 1;
++    while (at < args.len) : (at += 2) {
++        if (at + 1 == args.len) return error.InvalidArguments;
++        const key = args[at];
++        const value = args[at + 1];
++        if (std.mem.eql(u8, key, "--native-steps")) {
++            if (steps != null) return error.DuplicateArgument;
++            steps = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNativeStepCount;
++        } else if (std.mem.eql(u8, key, "--memory-addresses")) {
++            if (memory_addresses != null) return error.DuplicateArgument;
++            memory_addresses = std.fmt.parseInt(usize, value, 10) catch return error.InvalidMemoryAddressCount;
++        } else if (std.mem.eql(u8, key, "--native-backend")) {
++            if (backend_seen) return error.DuplicateArgument;
++            backend_seen = true;
++            backend = std.meta.stringToEnum(NativeBackend, value) orelse return error.InvalidNativeBackend;
++        } else if (std.mem.eql(u8, key, "--aot-bundle")) {
++            if (aot_bundle != null) return error.DuplicateArgument;
++            if (value.len == 0) return error.InvalidArguments;
++            aot_bundle = value;
++        } else if (std.mem.eql(u8, key, "--aot-manifest-sha256")) {
++            if (aot_manifest != null) return error.DuplicateArgument;
++            if (value.len != 64) return error.InvalidAotManifestSha256;
++            var digest: [32]u8 = undefined;
++            _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
++            aot_manifest = digest;
++        } else {
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16) [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            return error.InvalidArguments;
++        }
+     }
+-    const steps = std.fmt.parseInt(usize, args[2], 10) catch return error.InvalidNativeStepCount;
+-    switch (steps) {
++    if (memory_addresses) |count| {
++        if (steps != null) return error.ConflictingWorkloadArguments;
++        switch (count) {
++            1, 4, 16 => {},
++            else => return error.InvalidMemoryAddressCount,
++        }
++    }
++    const selected_steps = if (memory_addresses != null) gate.memory_native_steps else steps orelse return error.MissingNativeStepCount;
++    switch (selected_steps) {
+         1, 4, 16, 64 => {},
+         else => return error.InvalidNativeStepCount,
+     }
+     std.debug.print(
+-        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d}\n",
+-        .{steps},
++        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d}\n",
++        .{ selected_steps, @tagName(backend), memory_addresses orelse 0 },
+     );
+-    try gate.runSizedProof(allocator, steps);
+-    // The native admission owner, both cohorts, outer proof and verifier
+-    // capture have all been destroyed before this process-level completion.
+-    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} owners_destroyed=true\n", .{steps});
++    switch (backend) {
++        .cpu => {
++            if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
++            if (memory_addresses) |count|
++                try gate.runMemoryProof(allocator, count)
++            else
++                try gate.runSizedProof(allocator, selected_steps);
++        },
++        .metal => {
++            if (comptime Metal == void) {
++                return error.MetalBackendUnavailable;
++            } else {
++                const Backend = Metal.MetalCommitBackend;
++                const bundle = aot_bundle orelse return error.MissingAotBundle;
++                const manifest = aot_manifest orelse return error.MissingAotManifestSha256;
++                if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeAlreadyInitialized;
++                var timer = try std.time.Timer.start();
++                try Backend.initializeRuntime(allocator, .{ .authenticated_aot = .{
++                    .bundle_path = bundle,
++                    .manifest_sha256 = manifest,
++                    .profile = .core_v2,
++                } });
++                // The shared native boundary normally shuts down first; this
++                // also cleans initialization/proving failure paths.
++                defer if (Backend.runtimeLifecycleSnapshot().initialized) {
++                    Backend.shutdown() catch unreachable;
++                };
++                const lifecycle = Backend.runtimeLifecycleSnapshot();
++                const identity = lifecycle.identity orelse return error.AuthenticatedMetalRuntimeMissing;
++                if (!lifecycle.initialized or identity.origin != .authenticated_core_aot or
++                    identity.manifest_sha256 == null or !std.meta.eql(identity.manifest_sha256.?, manifest) or
++                    identity.metallib_sha256 == null or identity.metallib_bytes == null or identity.metallib_bytes.? == 0 or
++                    !std.meta.eql(identity.source_sha256, Metal.shaders.aot_profile.Profile.core_v2.sourceDigest()))
++                    return error.AuthenticatedMetalRuntimeMismatch;
++                std.debug.print(
++                    "SEGMENT_V2_NATIVE_METAL_AOT profile=core_v2 manifest_sha256={s} source_sha256={s} metallib_sha256={s} initialization_ns={d}\n",
++                    .{ std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
++                );
++                const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
++                if (memory_addresses) |count|
++                    try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
++                else
++                    try gate.runSizedProofWithNativeEngine(NativeEngine, allocator, selected_steps);
++                if (Backend.runtimeLifecycleSnapshot().initialized) return error.NativeMetalRuntimeNotReleased;
++            }
++        },
++    }
++    // Native admission, producer/cohort and returned verifier capture owners
++    // have all been destroyed before process-level completion.
++    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0 });
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+index 8a60901f..a18bf492 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+@@ -54,6 +54,24 @@ pub fn runSizedProof(allocator: std.mem.Allocator, native_steps: usize) !void {
+     try ingress.runSizedGateWithHook(allocator, SizedProofHook, native_steps);
+ }
+ 
++pub fn runSizedProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize) !void {
++    try ingress.runSizedGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, native_steps);
++}
++
++pub fn runMemoryProof(allocator: std.mem.Allocator, address_count: usize) !void {
++    try runMemoryProofWithNativeEngine(outer_engine.Engine, allocator, address_count);
++}
++
++pub fn runMemoryProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize) !void {
++    try ingress.runMemoryGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, address_count);
++}
++
++pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
++    try @import("recursive_segment_v2_memory_workload_test_support.zig").checkWorkload(allocator);
++}
++
++pub const memory_native_steps = @import("recursive_segment_v2_memory_workload_test_support.zig").native_steps;
++
+ pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+     try ingress.checkSizedWorkload(allocator);
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+index ee38feb1..6bfc3476 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+@@ -8,6 +8,7 @@ const integration = @import("stwo_riscv_cpu_integration");
+ const postcard = @import("interop_postcard");
+ const core_outer = integration.recursive_fri_outer;
+ const subject = integration.recursive_segment_v2_leaf_outer;
++const memory_workload = @import("recursive_segment_v2_memory_workload_test_support.zig");
+ const noncore_gate = @import("recursive_segment_v2_noncore_owner_real_gate.zig");
+ const M31 = stwo_core.fields.m31.M31;
+ const prover = frontend.prover_mod;
+@@ -56,7 +57,7 @@ pub fn runGateWithHook(
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
+ ) !void {
+-    return runGateWithHookForSteps(allocator, Hook, 1, true);
++    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null);
+ }
+ 
+ /// Same native proof and recursive admission, without the independent
+@@ -66,12 +67,34 @@ pub fn runSizedGateWithHook(
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
+     native_steps: usize,
++) !void {
++    return runSizedGateWithNativeEngine(Engine, allocator, Hook, native_steps);
++}
++
++pub fn runSizedGateWithNativeEngine(
++    comptime NativeEngine: type,
++    allocator: std.mem.Allocator,
++    comptime Hook: type,
++    native_steps: usize,
+ ) !void {
+     switch (native_steps) {
+         1, 4, 16, 64 => {},
+         else => return error.InvalidNativeStepCount,
+     }
+-    return runGateWithHookForSteps(allocator, Hook, native_steps, false);
++    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null);
++}
++
++pub fn runMemoryGateWithNativeEngine(
++    comptime NativeEngine: type,
++    allocator: std.mem.Allocator,
++    comptime Hook: type,
++    address_count: usize,
++) !void {
++    switch (address_count) {
++        1, 4, 16 => {},
++        else => return error.InvalidMemoryAddressCount,
++    }
++    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count);
+ }
+ 
+ /// Execution-only regression for the genuine step-4 failure: a JAL-to-self
+@@ -122,10 +145,12 @@ fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps:
+ }
+ 
+ fn runGateWithHookForSteps(
++    comptime NativeEngine: type,
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
+     native_steps: usize,
+     comptime full_regression: bool,
++    memory_addresses: ?usize,
+ ) !void {
+     comptime {
+         if (!@hasDecl(Hook, "run"))
+@@ -133,6 +158,10 @@ fn runGateWithHookForSteps(
+     }
+     comptime {
+         @import("stwo_prover_api").assertProverEngine(Engine);
++        @import("stwo_prover_api").assertProverEngine(NativeEngine);
++        if (NativeEngine.Hasher != Engine.Hasher or NativeEngine.Channel != Engine.Channel or
++            NativeEngine.MerkleChannel != Engine.MerkleChannel or NativeEngine.ExtendedProof != Engine.ExtendedProof)
++            @compileError("native backend must preserve the exact admitted Poseidon proof protocol");
+         if (Engine.Channel != recursion.poseidon2_channel.Channel or
+             Engine.Hasher != recursion.poseidon2_channel.MerkleHasher or
+             Engine.Channel == recursion.native_scheduled_channel.Channel)
+@@ -144,7 +173,12 @@ fn runGateWithHookForSteps(
+         frontend.testing.guest_precompile_test_elf.build(false, .self_loop)
+     else
+         frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
+-    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
++    const memory_elf = if (memory_addresses) |count|
++        try frontend.testing.guest_precompile_test_elf.buildRecursionMemory(count)
++    else
++        undefined;
++    const elf_bytes: []const u8 = if (memory_addresses != null) &memory_elf else &elf;
++    var session = try runner.Poseidon2ExecutionSession.init(allocator, elf_bytes, .{});
+     defer session.deinit();
+     var left_profile = try session.startSegment(native_steps);
+     defer left_profile.deinit();
+@@ -154,8 +188,13 @@ fn runGateWithHookForSteps(
+     defer right_profile.deinit();
+     const right_result = &right_profile.base;
+     if (comptime !full_regression) {
+-        try validateSizedExecution(left_result, native_steps, native_steps);
+-        try validateSizedExecution(right_result, native_steps + 16, 16);
++        if (memory_addresses) |count| {
++            try memory_workload.validateSegment(left_result, count, native_steps, native_steps);
++            try memory_workload.validateSegment(right_result, count, native_steps + 16, 16);
++        } else {
++            try validateSizedExecution(left_result, native_steps, native_steps);
++            try validateSizedExecution(right_result, native_steps + 16, 16);
++        }
+     }
+ 
+     var declared_program = try frontend.air.program.commitment.buildDeclared(
+@@ -218,17 +257,51 @@ fn runGateWithHookForSteps(
+         words,
+     );
+ 
++    const native_lifecycle = if (comptime NativeEngine != Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
++    const native_telemetry = if (comptime NativeEngine != Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
++    var native_memory = integration.recursive_segment_v2_outer_engine.ProducerAllocator{};
++    defer std.debug.assert(native_memory.isEmpty());
++    const native_allocator = native_memory.allocator();
++    var probe = @import("recursive_segment_v2_native_profile.zig").Probe.init(allocator);
++    defer probe.deinit();
+     var prove_timer = try std.time.Timer.start();
+     var output = try prover.proveRiscVSegmentV2WithEngine(
+-        Engine,
+-        allocator,
++        NativeEngine,
++        native_allocator,
+         test_config,
+         left_result,
+-        null,
++        probe.recorder(),
+         public_data,
+     );
+     const prove_ns = prove_timer.read();
+-    defer output.deinit(allocator);
++    var native_output_owned = true;
++    defer if (native_output_owned) output.deinit(native_allocator);
++    try probe.finish();
++    if (comptime NativeEngine != Engine) {
++        const after = NativeEngine.Backend.runtimeLifecycleSnapshot();
++        if (!after.initialized or !std.meta.eql(after.identity, native_lifecycle.identity) or
++            after.initialization_count != native_lifecycle.initialization_count or
++            after.shutdown_count != native_lifecycle.shutdown_count)
++            return error.NativeMetalRuntimeChanged;
++        const delta = (try NativeEngine.Backend.telemetrySnapshot()).delta(native_telemetry);
++        try delta.requireMetalDispatch();
++        if (delta.counters.metal_poseidon2_merkle_commits == 0)
++            return error.NativeMetalPoseidonDispatchMissing;
++        if (after.active_call_leases != 0) return error.NativeMetalActiveCallLeak;
++        std.debug.print(
++            "SEGMENT_V2_NATIVE_METAL device_dispatches={d} poseidon_commits={d} " ++
++                "host_fallbacks={d} native_prove_ns={d} resident_resources_before_shutdown={d}\n",
++            .{ delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits, delta.counters.cpuFallbackTotal(), prove_ns, after.live_resident_resources },
++        );
++        // Proof bytes and public inputs are host-owned. Shut down the device
++        // before fresh CPU decoding/verification and CPU outer construction.
++        // Shutdown releases runtime-owned reusable scratch first and fails
++        // if any proof-owned resident resource remains live.
++        try NativeEngine.Backend.shutdown();
++        const released = NativeEngine.Backend.runtimeLifecycleSnapshot();
++        if (released.initialized or released.active_call_leases != 0 or released.live_resident_resources != 0)
++            return error.NativeMetalResidentOwnerLeak;
++    }
+ 
+     // Exercise the exact external-ingress chain before any allocating decoder
+     // sees the native proof: authenticated V2 statement -> allocation-free
+@@ -241,9 +314,26 @@ fn runGateWithHookForSteps(
+         proof_bytes.writer(allocator),
+         output.proof,
+     );
++    // The statement's canonical wire is caller-owned (`words` above). The
++    // fixed-capacity claim contains only arrays/scalars and is copied directly
++    // into verifier-owned heap storage, avoiding a multi-megabyte stack value.
++    const native_statement = output.statement;
++    if (native_statement.public_data.canonical_words.ptr != words.ptr or
++        native_statement.public_data.canonical_words.len != words.len)
++        return error.NativeStatementOwnerMismatch;
++    const native_claim = try allocator.create(@TypeOf(output.interaction_claim.*));
++    defer allocator.destroy(native_claim);
++    @memcpy(std.mem.asBytes(native_claim), std.mem.asBytes(output.interaction_claim));
++    output.deinit(native_allocator);
++    native_output_owned = false;
++    try native_memory.requireEmpty();
++    std.debug.print(
++        "SEGMENT_V2_NATIVE_MEMORY backend={s} scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes={d} producer_live_bytes_after_destroy={d} canonical_proof_bytes={d}\n",
++        .{ if (comptime NativeEngine == Engine) "cpu" else "metal", native_memory.peakBytes(), native_memory.snapshot().active_bytes, proof_bytes.items.len },
++    );
+     try recursion.proof_ingress.validateV2ForVerifierConfig(
+         proof_bytes.items,
+-        &output.statement,
++        &native_statement,
+         test_config,
+         proof_bytes.items.len,
+     );
+@@ -251,12 +341,12 @@ fn runGateWithHookForSteps(
+         error.ProofResourceLimitExceeded,
+         recursion.proof_ingress.validateV2ForVerifierConfig(
+             proof_bytes.items,
+-            &output.statement,
++            &native_statement,
+             test_config,
+             proof_bytes.items.len - 1,
+         ),
+     );
+-    var bad_statement = output.statement;
++    var bad_statement = native_statement;
+     bad_statement.authority_id[0] +%= 1;
+     try std.testing.expectError(
+         error.InvalidStatement,
+@@ -285,9 +375,9 @@ fn runGateWithHookForSteps(
+         Engine,
+         allocator,
+         test_config,
+-        output.statement,
++        native_statement,
+         decoded_proof,
+-        output.interaction_claim,
++        native_claim,
+         &verifier_channel,
+         &capture,
+     );
+@@ -339,7 +429,7 @@ fn runGateWithHookForSteps(
+         allocator,
+         &capture,
+         test_config,
+-        output.interaction_claim.interaction_pow,
++        native_claim.interaction_pow,
+         keys,
+         recursion.air.universal_challenges.UniversalRelations.dummy(),
+         .{ .vm = &vm_plan, .recursion = &recursion_plan },
+@@ -351,8 +441,8 @@ fn runGateWithHookForSteps(
+     if (comptime !full_regression) {
+         std.debug.print(
+             "\nSEGMENT_V2_LADDER_NATIVE requested_steps={d} retired_cycles={d} " ++
+-                "continuation_cycles={d} trace_rows={d} native_queries={d} outer_queries={d} " ++
+-                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program=finite_addi_bne_counter_loop " ++
++                "continuation_cycles={d} trace_rows={d} native_backend={s} native_queries={d} outer_queries={d} " ++
++                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program={s} memory_addresses={d} " ++
+                 "native_prove_ms={d:.3} native_verify_ms={d:.3} " ++
+                 "recursive_prepare_ms={d:.3} native_proof_bytes={d} native_tree_heights={any}\n",
+             .{
+@@ -360,10 +450,13 @@ fn runGateWithHookForSteps(
+                 left_result.cycle_count,
+                 right_result.cycle_count,
+                 left_result.execution_trace.rows.items.len,
++                if (comptime NativeEngine == Engine) "cpu" else "metal",
+                 test_config.fri_config.n_queries,
+                 integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.fri_config.n_queries,
+                 test_config.pow_bits,
+                 integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.pow_bits,
++                if (memory_addresses != null) "lw_addi_sw_updates" else "finite_addi_bne_counter_loop",
++                memory_addresses orelse 0,
+                 milliseconds(prove_ns),
+                 milliseconds(verify_ns),
+                 milliseconds(preparation_ns),
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+index 6f42cdde..20504249 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+@@ -49,7 +49,7 @@ const VerifierScheme = stwo_core.pcs.verifier.CommitmentSchemeVerifier(
+ );
+ const ProofExecutionPool = engine_storage.ProofExecutionPool;
+ const TreeStorage = engine_storage.TreeStorageFor(Engine);
+-const ProducerAllocator = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
++pub const ProducerAllocator = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
+ const moveOwnedForVerifier = engine_support.moveOwnedForVerifier;
+ const rejectTransactionOutputAlias = engine_support.rejectTransactionOutputAlias;
+ const qm31Words = engine_support.qm31Words;
+diff --git a/src/integrations/riscv_metal/build.zig b/src/integrations/riscv_metal/build.zig
+index ea09fdec..1ea42cfe 100644
+--- a/src/integrations/riscv_metal/build.zig
++++ b/src/integrations/riscv_metal/build.zig
+@@ -126,6 +126,29 @@ pub fn build(b: *std.Build) void {
+         d5_sweep_install_step.dependOn(&unsupported.step);
+         return;
+     }
++    const small_recursive_runner = b.createModule(.{
++        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
++        .target = target,
++        .optimize = optimize,
++    });
++    small_recursive_runner.addImport("stwo_metal_backend", metal_backend);
++    small_recursive_runner.addImport("stwo_riscv_cpu_small_recursion_runner", b.dependency(
++        "stwo_riscv_cpu_integration",
++        dependency_options,
++    ).module("stwo_riscv_cpu_small_recursion_runner"));
++    const small_recursive_executable = b.addExecutable(.{
++        .name = "recursive-segment-v2-concrete-outer-proof-metal",
++        .root_module = small_recursive_runner,
++    });
++    linkMetalFrameworks(small_recursive_executable);
++    const small_recursive_run = b.addRunArtifact(small_recursive_executable);
++    if (b.args) |args| small_recursive_run.addArgs(args);
++    small_recursive_run.has_side_effects = true;
++    b.step("run-recursive-segment-v2-concrete-outer-proof", "Run the shared small recursive proof with explicit native CPU or authenticated Metal")
++        .dependOn(&small_recursive_run.step);
++    b.step("check-recursive-segment-v2-concrete-outer-proof", "Compile the shared small recursive CPU/Metal proof driver")
++        .dependOn(&small_recursive_executable.step);
++
+     const tests = b.addTest(.{ .root_module = integration });
+     const ethereum_node_root = b.createModule(.{
+         .root_source_file = b.path("ethereum_node_proof_v1_runner.zig"),
+diff --git a/src/prover/pcs/columns/preparation.zig b/src/prover/pcs/columns/preparation.zig
+index 3af98c77..f5053716 100644
+--- a/src/prover/pcs/columns/preparation.zig
++++ b/src/prover/pcs/columns/preparation.zig
+@@ -164,6 +164,47 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
+     source_arena: ?[]M31,
+     work_recorder: ?*WorkRecorder,
+ ) !PreparedCommitmentColumns {
++    if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) {
++        var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;
++        const Group = struct {
++            columns: usize = 0,
++            constant_columns: usize = 0,
++            source_values: u128 = 0,
++            constant_values: u128 = 0,
++        };
++        // Fixed storage keeps diagnostics out of allocator and worker policy.
++        // Invalid declared logs remain the ordinary preparation path's error.
++        var groups = [_]Group{.{}} ** @bitSizeOf(usize);
++        var invalid_log_columns: usize = 0;
++        for (owned_columns) |column| {
++            if (column.log_size >= groups.len) {
++                invalid_log_columns += 1;
++                continue;
++            }
++            const group = &groups[column.log_size];
++            group.columns += 1;
++            group.source_values += column.values.len;
++            const constant = column.values.len != 0 and blk: {
++                const first = column.values[0];
++                for (column.values[1..]) |value| {
++                    if (!value.eql(first)) break :blk false;
++                }
++                break :blk true;
++            };
++            if (constant) {
++                group.constant_columns += 1;
++                group.constant_values += column.values.len;
++            }
++        }
++        const census_ns: ?u64 = if (census_timer) |*clock| clock.read() else null;
++        for (groups, 0..) |group, log_size| {
++            if (group.columns == 0) continue;
++            std.log.info("pcs source census: declared_log_size={} columns={} constant_columns={} source_values={} constant_values={} source_payload_bytes={} payload_is_allocator_live=false", .{
++                log_size, group.columns, group.constant_columns, group.source_values, group.constant_values, group.source_values * @sizeOf(M31),
++            });
++        }
++        std.log.info("pcs source census: scan_ns={?} invalid_log_columns={} scan_includes_no_logging=true", .{ census_ns, invalid_log_columns });
++    }
+     const retain_coefficients = column_storage.shouldRetainCoefficients(owned_columns, retention_policy);
+     if (source_arena != null and (log_blowup_factor == 0 or
+         !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))
+diff --git a/src/prover/pcs/commit_polys.zig b/src/prover/pcs/commit_polys.zig
+index 47494678..0f1a5dad 100644
+--- a/src/prover/pcs/commit_polys.zig
++++ b/src/prover/pcs/commit_polys.zig
+@@ -18,6 +18,10 @@ pub fn commit(
+     recorder: ?*stage_profile.Recorder,
+     channel: anytype,
+ ) !void {
++    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING"))
++        std.time.Timer.start() catch null
++    else
++        null;
+     const blowup = self.config.fri_config.log_blowup_factor;
+     const work_recorder = if (recorder) |active|
+         active.workCaptureRecorder()
+@@ -38,11 +42,14 @@ pub fn commit(
+         )) |committed| {
+             var tree = committed;
+             errdefer tree.deinit(allocator);
+-            return self.appendCommittedTree(allocator, tree, channel);
++            try self.appendCommittedTree(allocator, tree, channel);
++            if (timing) |*clock| std.log.info("pcs coefficient commit: path=backend_precommitted columns={} total_ns={} includes_append_join=true", .{ polys.len, clock.read() });
++            return;
+         }
+     }
+     if (work_recorder) |work| try work.expectProducer(.polynomial_commit_forward_fft);
+     // work-profile-plan:polynomial-commit-forward-fft
++    const extension_start_ns = if (timing) |*clock| clock.read() else 0;
+     var columns = try circle_transforms.extendCoefficientColumnsByGroupForBackend(
+         B,
+         allocator,
+@@ -52,6 +59,7 @@ pub fn commit(
+         work_recorder,
+         .polynomial_commit_forward_fft,
+     );
++    const extension_end_ns = if (timing) |*clock| clock.read() else 0;
+     if (self.retained_column_allocator) |retained_allocator|
+         columns = try @import("commitment_tree.zig").relocateOwnedColumns(allocator, retained_allocator, columns);
+     var columns_owned = true;
+@@ -77,6 +85,15 @@ pub fn commit(
+     }
+ 
+     if (work_recorder) |work| try work.expectProducer(.commitment_tree_merkle);
++    var column_payload_bytes: u128 = 0;
++    var coefficient_payload_bytes: u128 = 0;
++    if (timing != null) {
++        for (columns) |column| column_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
++        if (stored_coefficients) |coefficients| for (coefficients) |coefficient| {
++            coefficient_payload_bytes += @as(u128, coefficient.coefficients().len) * @sizeOf(M31);
++        };
++    }
++    const merkle_start_ns = if (timing) |*clock| clock.read() else 0;
+     // work-profile-plan:commitment-tree-merkle
+     var tree = try BackendCommitmentTree.initOwnedWithBackingAndWorkRecorder(
+         allocator,
+@@ -89,5 +106,9 @@ pub fn commit(
+     columns_owned = false;
+     tree.retained_column_allocator = self.retained_column_allocator;
+     errdefer tree.deinit(allocator);
++    const merkle_end_ns = if (timing) |*clock| clock.read() else 0;
+     try self.appendCommittedTree(allocator, tree, channel);
++    if (timing) |*clock| std.log.info("pcs coefficient commit: path=expanded columns={} setup_ns={} extension_ns={} retention_ns={} merkle_ns={} append_join_ns={} column_payload_bytes={} coefficient_payload_bytes={} payload_is_allocator_live=false", .{
++        polys.len, extension_start_ns, extension_end_ns - extension_start_ns, merkle_start_ns - extension_end_ns, merkle_end_ns - merkle_start_ns, clock.read() - merkle_end_ns, column_payload_bytes, coefficient_payload_bytes,
++    });
+ }
+diff --git a/src/prover/pcs/deferred_commit.zig b/src/prover/pcs/deferred_commit.zig
+index ec9aa8e2..020bb6e8 100644
+--- a/src/prover/pcs/deferred_commit.zig
++++ b/src/prover/pcs/deferred_commit.zig
+@@ -18,6 +18,7 @@
+ 
+ const std = @import("std");
+ const builtin = @import("builtin");
++const M31 = @import("stwo_core").fields.m31.M31;
+ const work_profile = @import("stwo_prover_api").work_profile;
+ const column_preparation = @import("columns/preparation.zig");
+ const column_storage = @import("columns/storage.zig");
+@@ -72,6 +73,15 @@ pub fn trySpawn(
+             worker_work_recorder: ?*work_profile.Recorder(true),
+             out: *P.Slot,
+         ) void {
++            var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING"))
++                std.time.Timer.start() catch null
++            else
++                null;
++            const column_count = columns.len;
++            var source_payload_bytes: u128 = 0;
++            if (timing != null) for (columns) |column| {
++                source_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
++            };
+             var prepared = column_preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
+                 B,
+                 worker_allocator,
+@@ -87,6 +97,15 @@ pub fn trySpawn(
+                 out.err = err;
+                 return;
+             };
++            const prepare_ns = if (timing) |*clock| clock.read() else 0;
++            var column_payload_bytes: u128 = 0;
++            var coefficient_payload_bytes: u128 = 0;
++            if (timing != null) {
++                for (prepared.columns) |column| column_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
++                if (prepared.coefficients) |coefficients| for (coefficients) |coefficient| {
++                    coefficient_payload_bytes += @as(u128, coefficient.coefficients().len) * @sizeOf(M31);
++                };
++            }
+             if (worker_work_recorder) |work|
+                 work.expectProducer(.commitment_tree_merkle) catch |err| {
+                     prepared.deinit(worker_allocator);
+@@ -100,6 +119,9 @@ pub fn trySpawn(
+                 return;
+             };
+             out.tree = tree;
++            if (timing) |*clock| std.log.info("pcs deferred worker: columns={} prepare_ns={} merkle_admit_ns={} source_payload_bytes={} column_payload_bytes={} coefficient_payload_bytes={} payload_is_allocator_live=false worker_span_may_overlap=true", .{
++                column_count, prepare_ns, clock.read() - prepare_ns, source_payload_bytes, column_payload_bytes, coefficient_payload_bytes,
++            });
+         }
+     };
+     const thread = std.Thread.spawn(
+@@ -136,7 +158,9 @@ pub fn resolve(
+         }
+         return;
+     }
++    var join_timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
+     pending.thread.?.join();
++    if (join_timer) |*clock| std.log.info("pcs deferred join: consumer=channel wait_ns={}", .{clock.read()});
+     const slot = pending.slot;
+     defer allocator.destroy(slot);
+     if (slot.err) |err| return err;
+@@ -153,7 +177,9 @@ pub fn resolve(
+ pub fn resolveObserved(scheme: anytype, allocator: std.mem.Allocator) anyerror!void {
+     var pending = scheme.pending_commit orelse return;
+     if (pending.appended_unmixed) return;
++    var join_timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) std.time.Timer.start() catch null else null;
+     pending.thread.?.join();
++    if (join_timer) |*clock| std.log.info("pcs deferred join: consumer=observer wait_ns={}", .{clock.read()});
+     pending.thread = null;
+     const slot = pending.slot;
+     if (slot.err) |err| {
