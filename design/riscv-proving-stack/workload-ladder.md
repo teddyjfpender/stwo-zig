@@ -130,3 +130,81 @@ python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
 python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
   test-riscv-keccak-scaling-proof -Doptimize=ReleaseSafe --summary all
 ```
+
+## Complete small recursive loop — 2026-09-08
+
+The existing `run-recursive-segment-v2-concrete-outer-proof` executable now
+serializes and freshly decodes its actual recursive AIR proof after outer
+producer allocations reach zero. The child executes one real RISC-V step;
+all39 outer components and47 relation domains participate. The native prepared
+leaf remains verifier admission input, so this is native-assisted verification,
+not the detached Ethereum root endpoint. Native q1 / outer q3 / no PoW are
+explicit development profiles. The outer worker count is1.
+
+| Check | First request, including build | Warm request | Scope |
+|---|---:|---:|---|
+| Shared Keccak row, Debug | 4.48s | 3.21s | Scalar values/degrees and lazy failure order; 2 tests including import discovery |
+| Ethereum VM composition program, Debug | 17.64s | 3.91s | 3 named checks plus 2 discovery tests: recording scalar, production masks, compiler mutation rejection |
+| Tiny recursive example, ReleaseSafe | 181.75s | 16.87s | Real native child, recursive proof, serialization/destruction/fresh decode, codec rejection and subsequent recording checks |
+
+The tiny executable itself took13s. Its first outer transaction took3.872s:
+producer preparation0.407s, proving1.749s, canonicalization0.004s, producer
+destruction0.001s, verifier preparation0.418s and verification work1.289s.
+The STARK verifier itself took0.006475s **inside** that1.289s, and publication
+0.004s is also included. Do not add these nested intervals to the total.
+The canonical outer proof is90,173B; tracked outer producer peak90,592,036B;
+producer live bytes after destruction0. These are separate from the complete
+example's roughly1GB process RSS and its native-child preparation.
+
+Warm compilation was cached. These results establish useful runtime loops,
+not fast incremental optimized compilation or a production-security speedup.
+The broad Keccak regression still required246.78s including optimized compile,
+although all335 tests ran in about1s. The consolidated complete Keccak proof
+passed1/1 with5.009s lifecycle, matching the previous small workload's scale;
+no retained-segment or CSP performance promotion is claimed.
+
+Raw evidence is under
+`vectors/reports/riscv-proving-stack-reset-20260908/shared-keccak-row-v1/` and
+`vectors/reports/riscv-proving-stack-reset-20260908/small-recursive-lifecycle-v1/`.
+Commands and lifetime boundaries are documented beside the frontend in
+`src/frontends/riscv/README.md`.
+
+## Recursive admission reduction — 2026-09-08
+
+Three complete process runs per binary, in ABBAAB order, confirm the following
+medians. Builds and the sampled attribution run are excluded. Each run freshly
+verified the real serialized 39-component/47-domain proof with one worker.
+
+| Interval | Before | After | Reduction |
+|---|---:|---:|---:|
+| Outer proving | 1.784 s | 1.169 s | 34.5% |
+| Outer verification body and cleanup | 1.310 s | 0.623 s | 52.5% |
+| Fresh verifier including cohort preparation and decode | 1.735 s | 0.958 s | 44.8% |
+| Complete outer transaction | 3.946 s | 2.474 s | 37.3% |
+| Complete example process, including native child and subsequent checks | 13.849 s | 12.064 s | 12.9% |
+
+The STARK verifier itself is essentially unchanged: 6.411 ms before and 6.492 ms
+after, nested inside outer verification. The canonical proof stays 90, 173 B;
+tracked producer peak stays 90, 592, 036 B, with zero live producer bytes before
+decode. Proof size equality is not a proof-byte identity comparison.
+
+The removed work was synchronous duplicate source admission, duplicate closure
+collection, separately audited boundary getters, and checks immediately repeated
+by admitted constructors/generators. Public mutable-input checks remain, as does
+fresh verifier reconstruction. The two unused core boundary getters were removed;
+the existing combined transcript export now owns that boundary projection.
+The structural/closure mutation suite passed 357 tests with 1 skipped. All six
+complete A/B processes passed, including codec rejection and downstream replay.
+
+The remaining verifier body costs include interaction reconstruction 165.5 ms,
+preprocessing-root reconstruction 112.7 ms, component preparation 85.4 ms,
+publication derivation 62.5 ms and closure 54.3 ms. Cohort preparation 335.3 ms
+is separate. Phase medians describe attribution and need not sum exactly; each
+individual raw record's phase accounting was checked exactly.
+
+Optimized changed-source builds still take minutes; this patch establishes no
+compilation speedup. The small CPU development fixture does not establish Metal,
+retained-segment, production-security or CSP 16 performance promotion.
+
+Evidence, exact commands, source/binary pins, raw timings and paired-run receipt:
+`../../vectors/reports/riscv-proving-stack-reset-20260908/small-recursive-profile-v 1/`.

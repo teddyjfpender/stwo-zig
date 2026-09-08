@@ -1,0 +1,24 @@
+{
+  "head": "73f6c12045218320fe3633fa6453c2a74706f74a",
+  "source_sha256": {
+    "src/frontends/riscv/README.md": "f0164940347b25412c04bd01562d5787dbbf4a1c9aa227e2686c60b481b88882",
+    "src/frontends/riscv/air/guest_precompile/keccakf_component.zig": "986e0b911ed4add09cc6894963565fa03e1f9edd4335d845935c3968a6282b83",
+    "src/frontends/riscv/air/guest_precompile/keccakf_interaction_plan.zig": "39ec21dca0c352136355e244f085c9b40e308322e660bedc4390382cd3a57268",
+    "src/frontends/riscv/build.zig": "7ce9ccd3425832b322486086c2658c7e32cd7386062d12c159439a632d796e3d",
+    "src/frontends/riscv/keccakf_precompile_test_root.zig": "cc8a59421893e3129b8b34657778ea14f1d13dca73775f087e8bdc985283ac49",
+    "src/frontends/riscv/recursion/ethereum_vm_composition_graph_extension_v2.zig": "730b7307599eb626d80937e6eb6e4e571b2259d7ab6acc81271a9b1de4c682f5",
+    "src/frontends/riscv/recursion/vm_composition_program_v2_test.zig": "94d6052349e65a8c282be5440504334108114c290dc3af8789d6478880744c89",
+    "src/frontends/riscv/test_inventory.zig": "45c00e394c313a56c7d8bd7047208e7487119e66fcd09aed9854839f5fb471eb",
+    "src/frontends/riscv/vm_air_profile_v2_test_root.zig": "46a580fbd563f44daee2f4e779d8d1a047daf50ac27e0864be7fb12eee364835",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "ea3f195c51f80152943d74c7258bb21c0fc1a444b9839d763e5d2ceb23508ca5",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": "55c79ccdec64eaed6b8e4e4b9e5c7345a6f2ca85beb41af270a868b2a14582d5",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": "83602d52a08782dc5828886fe0ab90ef2a01f94db83148e58b76b8c5a134be05",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_support.zig": "d2774730813cc3ddc93fd7a2947b988bcdce292a9665a40eb041be2f34cdcbbf",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig": "d81e64e8bfc399948aa336efef9f2e44a1f29033fd7b9d67ac0267d407ec36fd",
+    "src/frontends/riscv/air/guest_precompile/keccakf_row.zig": "c1bec0b809e226babaf3e0cc15be7d48984cf0e1843d335787bad8a67c935656"
+  },
+  "binary": "src/integrations/riscv_cpu/.zig-cache/o/445f6d4f6905258bb04bc18bf9bdff7a/recursive-segment-v2-concrete-outer-proof",
+  "binary_sha256": "35ce594353bce39e6979a3d5874f459fc45c7d4d2ff4d5018522fd18953f8ec5",
+  "log_sha256": "b3f802ecf16f994ab02641500a7da6282cb208007c65483031a9e31f101763b1",
+  "exit_code": 0
+}

@@ -882,44 +882,6 @@ pub fn Namespace(comptime context: type) type {
                 };
             }
 
-            /// Verifier-derived scalar boundary for the live constant and designated
-            /// zero-output anchors in every segment arithmetic graph.  The lowering
-            /// plan is already sealed into this core's pre-challenge authority; callers
-            /// receive no detached term inventory or prover-selected balancing value.
-            /// This is the scalar projection of the same canonical terms emitted by
-            /// `appendTupleContributions` for exact tuple closure.
-            pub fn publicWireBoundaryClaim(
-                self: *const NativeSegmentCoreV2,
-                relations: *const universal.UniversalRelations,
-            ) !QM31 {
-                try self.validatePreparedCoreReady();
-                try relations.validate();
-                if (self.prepared_inputs_v4 == null) try self.authority.lowering_plan.validateAgainst(
-                    self.authority.arithmetic_reference,
-                );
-                return self.authority.lowering_plan.publicBoundaryClaim(
-                    .segment_leaf,
-                    relations,
-                );
-            }
-
-            /// Allocation-free geometry receipt for the boundary above.  A zero count
-            /// would mean the arithmetic roster has lost all constant/output anchors
-            /// and is therefore not the authenticated segment core admitted here.
-            pub fn publicWireBoundaryTermCount(
-                self: *const NativeSegmentCoreV2,
-            ) !u32 {
-                try self.validatePreparedCoreReady();
-                var count: u32 = 0;
-                for (self.authority.lowering_plan.public_terms) |term| {
-                    if (term.active_in != .segment) continue;
-                    count = std.math.add(u32, count, 1) catch
-                        return error.ArithmeticOverflow;
-                }
-                if (count == 0) return error.V2CoreCohortMismatch;
-                return count;
-            }
-
             /// Binds the native-leaf core authority before relation challenges. The
             /// schedule identity and call-buffer identity are both included: a cohort
             /// cannot retain the same circuit authority while substituting either the
@@ -956,6 +918,35 @@ pub fn Namespace(comptime context: type) type {
                 manifest: *const manifest_v2.Manifest,
             ) !void {
                 try self.validatePreparedCoreReady();
+                try self.validateManifestAfterCoreAdmission(manifest);
+            }
+
+            pub const ManifestAdmissionV2 = struct {
+                authority_id: [32]u8,
+                complete_calls: []const shared_schedule_v2.Call,
+            };
+
+            /// Full source and provider-finalization admission followed by
+            /// the exact manifest checks, once per synchronous consumer.
+            /// The call slice remains borrowed; this is not a retained receipt
+            /// authorizing later reads after mutable source changes.
+            pub fn validateForManifest(
+                self: *const NativeSegmentCoreV2,
+                manifest: *const manifest_v2.Manifest,
+            ) !ManifestAdmissionV2 {
+                try self.validateComplete();
+                try self.validateManifestAfterCoreAdmission(manifest);
+                const buffers = self.poseidonBuffers();
+                return .{
+                    .authority_id = self.authority_id,
+                    .complete_calls = buffers.calls[0..buffers.cursor],
+                };
+            }
+
+            fn validateManifestAfterCoreAdmission(
+                self: *const NativeSegmentCoreV2,
+                manifest: *const manifest_v2.Manifest,
+            ) !void {
                 try manifest.validate();
                 inline for (NATIVE_V2_CORE_FIRST_ROW..NATIVE_V2_CORE_LAST_ROW + 1) |row| {
                     const source = self.authority.manifest.placements[row] orelse

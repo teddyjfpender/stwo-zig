@@ -106,7 +106,10 @@ const ConcreteOuterProofHook = struct {
             allocator,
             prepared,
             prepared,
-            outer_engine.ExecutionOptions{ .worker_count = 1 },
+            outer_engine.ExecutionOptions{
+                .worker_count = 1,
+                .check_serialized_artifact_rejections = true,
+            },
         );
         defer verified.capture.deinit(allocator);
 

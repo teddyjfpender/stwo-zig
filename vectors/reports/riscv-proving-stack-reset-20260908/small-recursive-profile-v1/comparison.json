@@ -1,0 +1,512 @@
+{
+  "scope": "One-step RISC-V native-assisted recursive CPU development proof, q1 child/q3 outer/no PoW/worker1. Three complete process runs per variant; ABBAAB order; builds excluded. Nested intervals are not additive. This does not establish CSP promotion, a detached root, or Ethereum/Metal scaling.",
+  "comparison": {
+    "prove_ms": {
+      "before": 1784.295,
+      "after": 1169.013,
+      "speedup": 1.5263260545434483,
+      "reduction_percent": 34.48319924676133
+    },
+    "verify_ms": {
+      "before": 1310.306,
+      "after": 622.504,
+      "speedup": 2.1048957115135005,
+      "reduction_percent": 52.491708043769925
+    },
+    "fresh_verifier_total_ms": {
+      "before": 1734.991,
+      "after": 958.148,
+      "speedup": 1.8107755795555591,
+      "reduction_percent": 44.775044942596246
+    },
+    "producer_prepare_ms": {
+      "before": 418.762,
+      "after": 335.915,
+      "speedup": 1.2466308441123497,
+      "reduction_percent": 19.783791270459105
+    },
+    "verifier_prepare_ms": {
+      "before": 424.386,
+      "after": 335.329,
+      "speedup": 1.2655809667520554,
+      "reduction_percent": 20.98490525135137
+    },
+    "stark_verify_ms": {
+      "before": 6.411,
+      "after": 6.492,
+      "speedup": 0.9875231053604435,
+      "reduction_percent": -1.263453439401041
+    },
+    "transaction_ms": {
+      "before": 3945.635,
+      "after": 2474.354,
+      "speedup": 1.5946121694793876,
+      "reduction_percent": 37.2888267667942
+    },
+    "producer_peak_bytes": {
+      "before": 90592036.0,
+      "after": 90592036.0,
+      "speedup": 1.0,
+      "reduction_percent": 0.0
+    },
+    "request_seconds": {
+      "before": 13.849360625026748,
+      "after": 12.06428000004962,
+      "speedup": 1.1479641242552217,
+      "reduction_percent": 12.889263795697282
+    }
+  },
+  "after_phase_medians_ms": {
+    "producer": {
+      "setup_ns": 0.022125,
+      "tree0_prepare_ns": 28.574084,
+      "tree0_commit_ns": 82.575875,
+      "tree1_prepare_ns": 29.718,
+      "tree1_commit_ns": 107.88875,
+      "transcript_prefix_ns": 52.63075,
+      "interaction_generate_ns": 193.139291,
+      "interaction_admit_closure_ns": 81.039209,
+      "transcript_tree2_commit_ns": 93.068542,
+      "components_ns": 85.578708,
+      "diagnostic_ns": 4.2e-05,
+      "stark_ns": 416.152042,
+      "phase_sum_ns": 1168.934625
+    },
+    "verifier": {
+      "preflight_ns": 0.0155,
+      "preprocessed_root_ns": 112.703459,
+      "transcript_prefix_ns": 52.140333,
+      "interaction_regenerate_ns": 165.472125,
+      "interaction_validate_claims_ns": 25.97125,
+      "closure_ns": 54.282667,
+      "transcript_after_ns": 28.207125,
+      "components_ns": 85.362584,
+      "publication_authority_ns": 26.650583,
+      "stark_ns": 6.492375,
+      "publication_total_ns": 62.546959,
+      "phase_sum_ns": 622.447292
+    }
+  },
+  "runs": [
+    {
+      "variant": "before",
+      "log": "paired-0-before.log",
+      "exit_code": 0,
+      "request_seconds": 13.756394291995093,
+      "binary_sha256": "35ce594353bce39e6979a3d5874f459fc45c7d4d2ff4d5018522fd18953f8ec5",
+      "log_sha256": "0107851c81226f48f434982c3c3ee544571949a30b7f9d19d08fe872376cd88f",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/445f6d4f6905258bb04bc18bf9bdff7a/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.284",
+        "prove_ms": "1770.981",
+        "verify_ms": "1305.251",
+        "publication_ms": "4.527",
+        "producer_prepare_ms": "419.470",
+        "producer_destroy_ms": "1.543",
+        "verifier_prepare_ms": "419.007",
+        "decode_ms": "0.300",
+        "stark_verify_ms": "5.997",
+        "transaction_ms": "3923.141",
+        "artifact_rejections_ms": "0.682",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 1724.558
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 42125,
+          "tree0_prepare_ns": 56067250,
+          "tree0_commit_ns": 84168542,
+          "tree1_prepare_ns": 57869833,
+          "tree1_commit_ns": 110560959,
+          "transcript_prefix_ns": 79026333,
+          "interaction_generate_ns": 300450417,
+          "interaction_admit_closure_ns": 382101416,
+          "transcript_tree2_commit_ns": 121047042,
+          "components_ns": 166172250,
+          "diagnostic_ns": 42,
+          "stark_ns": 413407083,
+          "phase_sum_ns": 1770913292
+        },
+        "verifier": {
+          "preflight_ns": 15542,
+          "preprocessed_root_ns": 141854916,
+          "transcript_prefix_ns": 79819875,
+          "interaction_regenerate_ns": 247490500,
+          "interaction_validate_claims_ns": 188038334,
+          "closure_ns": 191401833,
+          "transcript_after_ns": 56191833,
+          "components_ns": 169208709,
+          "publication_authority_ns": 54164875,
+          "stark_ns": 5997000,
+          "publication_total_ns": 171009625,
+          "phase_sum_ns": 1305193042
+        }
+      }
+    },
+    {
+      "variant": "after",
+      "log": "paired-1-after.log",
+      "exit_code": 0,
+      "request_seconds": 11.956964832963422,
+      "binary_sha256": "b256e5f028003b2f3ccf4c883df4deef790063c9e300460f51ec201ed7798df5",
+      "log_sha256": "24c2425afba420f1e4399540caef90a9e66dc1c40d04338986ad4e03c9e69380",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/068b170662f4b5a7b494e991465a4798/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.279",
+        "prove_ms": "1172.985",
+        "verify_ms": "619.022",
+        "publication_ms": "4.376",
+        "producer_prepare_ms": "333.053",
+        "producer_destroy_ms": "1.358",
+        "verifier_prepare_ms": "333.563",
+        "decode_ms": "0.300",
+        "stark_verify_ms": "6.459",
+        "transaction_ms": "2466.517",
+        "artifact_rejections_ms": "0.661",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 952.885
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 22125,
+          "tree0_prepare_ns": 28382292,
+          "tree0_commit_ns": 85771000,
+          "tree1_prepare_ns": 29432916,
+          "tree1_commit_ns": 107888750,
+          "transcript_prefix_ns": 52630750,
+          "interaction_generate_ns": 195047584,
+          "interaction_admit_closure_ns": 81545291,
+          "transcript_tree2_commit_ns": 93068542,
+          "components_ns": 85720500,
+          "diagnostic_ns": 167,
+          "stark_ns": 413402041,
+          "phase_sum_ns": 1172911958
+        },
+        "verifier": {
+          "preflight_ns": 16041,
+          "preprocessed_root_ns": 112703459,
+          "transcript_prefix_ns": 52140333,
+          "interaction_regenerate_ns": 165446500,
+          "interaction_validate_claims_ns": 25922708,
+          "closure_ns": 54094834,
+          "transcript_after_ns": 28207125,
+          "components_ns": 85003166,
+          "publication_authority_ns": 26382834,
+          "stark_ns": 6459208,
+          "publication_total_ns": 62595708,
+          "phase_sum_ns": 618971916
+        }
+      }
+    },
+    {
+      "variant": "after",
+      "log": "paired-2-after.log",
+      "exit_code": 0,
+      "request_seconds": 12.080072209006175,
+      "binary_sha256": "b256e5f028003b2f3ccf4c883df4deef790063c9e300460f51ec201ed7798df5",
+      "log_sha256": "84b5203c4508bf73c1a7235dbba7fb84cad773d4f2efd2e32eac1b3986eea2d6",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/068b170662f4b5a7b494e991465a4798/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.371",
+        "prove_ms": "1168.510",
+        "verify_ms": "624.355",
+        "publication_ms": "4.472",
+        "producer_prepare_ms": "335.915",
+        "producer_destroy_ms": "1.292",
+        "verifier_prepare_ms": "337.671",
+        "decode_ms": "0.301",
+        "stark_verify_ms": "6.492",
+        "transaction_ms": "2474.354",
+        "artifact_rejections_ms": "0.656",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 962.327
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 21416,
+          "tree0_prepare_ns": 28574084,
+          "tree0_commit_ns": 81489625,
+          "tree1_prepare_ns": 29718000,
+          "tree1_commit_ns": 108594541,
+          "transcript_prefix_ns": 52641500,
+          "interaction_generate_ns": 190763334,
+          "interaction_admit_closure_ns": 79178000,
+          "transcript_tree2_commit_ns": 93532083,
+          "components_ns": 84941583,
+          "diagnostic_ns": 42,
+          "stark_ns": 418975750,
+          "phase_sum_ns": 1168429958
+        },
+        "verifier": {
+          "preflight_ns": 15416,
+          "preprocessed_root_ns": 112391209,
+          "transcript_prefix_ns": 53206375,
+          "interaction_regenerate_ns": 166802000,
+          "interaction_validate_claims_ns": 26507666,
+          "closure_ns": 55784834,
+          "transcript_after_ns": 29098791,
+          "components_ns": 85362584,
+          "publication_authority_ns": 26650583,
+          "stark_ns": 6492375,
+          "publication_total_ns": 61985083,
+          "phase_sum_ns": 624296916
+        }
+      }
+    },
+    {
+      "variant": "before",
+      "log": "paired-3-before.log",
+      "exit_code": 0,
+      "request_seconds": 14.102943999925628,
+      "binary_sha256": "35ce594353bce39e6979a3d5874f459fc45c7d4d2ff4d5018522fd18953f8ec5",
+      "log_sha256": "053072fa9cb44cd888c38339aa9208eade061de726fed9b75cf9163446cce61d",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/445f6d4f6905258bb04bc18bf9bdff7a/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.279",
+        "prove_ms": "1784.295",
+        "verify_ms": "1310.306",
+        "publication_ms": "4.441",
+        "producer_prepare_ms": "418.001",
+        "producer_destroy_ms": "1.567",
+        "verifier_prepare_ms": "424.386",
+        "decode_ms": "0.299",
+        "stark_verify_ms": "6.651",
+        "transaction_ms": "3945.635",
+        "artifact_rejections_ms": "0.654",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 1734.991
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 29125,
+          "tree0_prepare_ns": 55903208,
+          "tree0_commit_ns": 83748167,
+          "tree1_prepare_ns": 58728833,
+          "tree1_commit_ns": 107669042,
+          "transcript_prefix_ns": 81225167,
+          "interaction_generate_ns": 306018083,
+          "interaction_admit_closure_ns": 382976000,
+          "transcript_tree2_commit_ns": 122780792,
+          "components_ns": 167538333,
+          "diagnostic_ns": 83,
+          "stark_ns": 417618459,
+          "phase_sum_ns": 1784235292
+        },
+        "verifier": {
+          "preflight_ns": 20542,
+          "preprocessed_root_ns": 142276375,
+          "transcript_prefix_ns": 79036458,
+          "interaction_regenerate_ns": 245081459,
+          "interaction_validate_claims_ns": 189634208,
+          "closure_ns": 196288875,
+          "transcript_after_ns": 56899250,
+          "components_ns": 168833250,
+          "publication_authority_ns": 54126208,
+          "stark_ns": 6651125,
+          "publication_total_ns": 171410209,
+          "phase_sum_ns": 1310257959
+        }
+      }
+    },
+    {
+      "variant": "before",
+      "log": "paired-4-before.log",
+      "exit_code": 0,
+      "request_seconds": 13.849360625026748,
+      "binary_sha256": "35ce594353bce39e6979a3d5874f459fc45c7d4d2ff4d5018522fd18953f8ec5",
+      "log_sha256": "3fa7ff4b448658bef92bb686216f184fd8398a37977e04d7d9ecb97cd9fa5b91",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/445f6d4f6905258bb04bc18bf9bdff7a/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.318",
+        "prove_ms": "1815.068",
+        "verify_ms": "1323.847",
+        "publication_ms": "4.448",
+        "producer_prepare_ms": "418.762",
+        "producer_destroy_ms": "1.297",
+        "verifier_prepare_ms": "425.762",
+        "decode_ms": "0.300",
+        "stark_verify_ms": "6.411",
+        "transaction_ms": "3992.265",
+        "artifact_rejections_ms": "0.666",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 1749.9089999999999
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 30208,
+          "tree0_prepare_ns": 56620458,
+          "tree0_commit_ns": 82927917,
+          "tree1_prepare_ns": 59273208,
+          "tree1_commit_ns": 113370917,
+          "transcript_prefix_ns": 81770750,
+          "interaction_generate_ns": 308927292,
+          "interaction_admit_closure_ns": 386374500,
+          "transcript_tree2_commit_ns": 125941250,
+          "components_ns": 169744625,
+          "diagnostic_ns": 208,
+          "stark_ns": 430022875,
+          "phase_sum_ns": 1815004208
+        },
+        "verifier": {
+          "preflight_ns": 16125,
+          "preprocessed_root_ns": 144969166,
+          "transcript_prefix_ns": 82306209,
+          "interaction_regenerate_ns": 255580166,
+          "interaction_validate_claims_ns": 190672542,
+          "closure_ns": 192368333,
+          "transcript_after_ns": 56754584,
+          "components_ns": 166921708,
+          "publication_authority_ns": 55249167,
+          "stark_ns": 6410916,
+          "publication_total_ns": 170514750,
+          "phase_sum_ns": 1321763666
+        }
+      }
+    },
+    {
+      "variant": "after",
+      "log": "paired-5-after.log",
+      "exit_code": 0,
+      "request_seconds": 12.06428000004962,
+      "binary_sha256": "b256e5f028003b2f3ccf4c883df4deef790063c9e300460f51ec201ed7798df5",
+      "log_sha256": "b17dae7872d47e04f1b2c9a8caeead45243c197cb8e846499e94f1b7e16efe03",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/068b170662f4b5a7b494e991465a4798/recursive-segment-v2-concrete-outer-proof"
+      ],
+      "receipt": {
+        "rows": "39",
+        "domains": "47",
+        "proof_size_estimate_bytes": "77244",
+        "canonical_proof_bytes": "90173",
+        "canonicalize_ms": "4.453",
+        "prove_ms": "1169.013",
+        "verify_ms": "622.504",
+        "publication_ms": "4.316",
+        "producer_prepare_ms": "343.923",
+        "producer_destroy_ms": "1.524",
+        "verifier_prepare_ms": "335.329",
+        "decode_ms": "0.315",
+        "stark_verify_ms": "6.663",
+        "transaction_ms": "2479.593",
+        "artifact_rejections_ms": "0.656",
+        "producer_peak_bytes": "90592036",
+        "producer_live_bytes_after_destroy": "0",
+        "serialization_passes": "1",
+        "retained_canonical_bytes": "90173",
+        "verification": "native_assisted_fresh_decode",
+        "draws": "1",
+        "cols": "595/974/508",
+        "workers": "1",
+        "fresh_verifier_total_ms": 958.148
+      },
+      "phases": {
+        "producer": {
+          "setup_ns": 23708,
+          "tree0_prepare_ns": 28800750,
+          "tree0_commit_ns": 82575875,
+          "tree1_prepare_ns": 29979750,
+          "tree1_commit_ns": 107640417,
+          "transcript_prefix_ns": 52310500,
+          "interaction_generate_ns": 193139291,
+          "interaction_admit_closure_ns": 81039209,
+          "transcript_tree2_commit_ns": 91694333,
+          "components_ns": 85578708,
+          "diagnostic_ns": 42,
+          "stark_ns": 416152042,
+          "phase_sum_ns": 1168934625
+        },
+        "verifier": {
+          "preflight_ns": 15500,
+          "preprocessed_root_ns": 113503833,
+          "transcript_prefix_ns": 51947417,
+          "interaction_regenerate_ns": 165472125,
+          "interaction_validate_claims_ns": 25971250,
+          "closure_ns": 54282667,
+          "transcript_after_ns": 28185333,
+          "components_ns": 86917500,
+          "publication_authority_ns": 26941375,
+          "stark_ns": 6663333,
+          "publication_total_ns": 62546959,
+          "phase_sum_ns": 622447292
+        }
+      }
+    }
+  ]
+}

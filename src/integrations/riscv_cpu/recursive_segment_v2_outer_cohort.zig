@@ -259,17 +259,15 @@ pub const Cohort = struct {
 
     fn validateEnvelope(self: *const Self) !void {
         try self.complete_manifest.validate();
-        try self.noncore.validate();
+        const noncore_authority_id = try self.noncore.authorityIdentity();
         try self.public_native_sum_evaluation.validateAgainst(
             self.public_native_sum_source,
         );
-        try self.core.validateComplete();
-        try self.core.validateAgainstManifest(self.complete_manifest);
+        const core_admission = try self.core.validateForManifest(self.complete_manifest);
         try self.plan.validateAgainst(self.complete_manifest);
-        const calls = try self.core.completePoseidonCalls();
         try self.plan.provider.validateAuthenticated(
             self.complete_manifest,
-            calls,
+            core_admission.complete_calls,
         );
         if (self.complete_manifest.roster_count != COMPONENT_COUNT or
             self.plan.provider.provider_instance_count !=
@@ -278,12 +276,12 @@ pub const Cohort = struct {
             !std.mem.eql(
                 u8,
                 &self.noncore_authority_id,
-                &(try self.noncore.authorityIdentity()),
+                &noncore_authority_id,
             ) or
             !std.mem.eql(
                 u8,
                 &self.core_authority_id,
-                &(try self.core.authorityIdentity()),
+                &core_admission.authority_id,
             ) or
             !std.mem.eql(
                 u8,
@@ -364,10 +362,21 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
     ) !cohort_protocol.PublicWireBoundaryV2 {
         try self.validateEnvelope();
+        return self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+    }
+
+    // Only synchronous callers that have admitted this envelope may enter.
+    fn publicWireBoundaryAfterEnvelopeAdmission(
+        self: *const Self,
+        relations: *const universal.UniversalRelations,
+    ) !cohort_protocol.PublicWireBoundaryV2 {
+        const prefix = try self.core.transcriptPrefixAuthority(relations);
+        if (!std.mem.eql(u8, &prefix.authority_sha_id, &self.core_authority_id))
+            return error.AuthorityIdentityMismatch;
         return cohort_protocol.PublicWireBoundaryV2.init(
-            self.core_authority_id,
-            try self.core.publicWireBoundaryTermCount(),
-            try self.core.publicWireBoundaryClaim(relations),
+            prefix.authority_sha_id,
+            prefix.public_wire_boundary_term_count,
+            prefix.public_wire_boundary_claimed_sum,
         );
     }
 
@@ -386,7 +395,7 @@ pub const Cohort = struct {
         else
             return error.InteractionsNotPrepared;
         try provider_prepared.validate();
-        const public_wire = try self.publicWireBoundary(relations);
+        const public_wire = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
         var claim_aggregate = QM31.zero();
         for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
         const result = OuterAdmissionBoundariesV2{
@@ -541,6 +550,19 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
         provider_relations: *const shared_provider.SharedProviderRelations,
     ) !void {
+        try self.validateGeneratedReceipts(generated, relations, provider_relations);
+        const boundary = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+        _ = try self.collectClosure(generated, &boundary);
+    }
+
+    // Synchronous receipt admission shared by the two complete closure checks.
+    // No mutable source is retained as an admission result.
+    fn validateGeneratedReceipts(
+        self: *const Self,
+        generated: *const CohortGeneratedInteractionsV2,
+        relations: *const universal.UniversalRelations,
+        provider_relations: *const shared_provider.SharedProviderRelations,
+    ) !void {
         try self.validateGeneratedHeader(generated);
         try generated.noncore.validateCachedAgainst(
             self.noncore,
@@ -552,7 +574,6 @@ pub const Cohort = struct {
             relations,
             provider_relations,
         );
-        _ = try self.collectClosure(generated, relations);
     }
 
     /// Explicit cold diagnostic. The proof path uses exact equality to the
@@ -576,7 +597,10 @@ pub const Cohort = struct {
             relations,
             provider_relations,
         );
-        _ = try self.collectClosure(generated, relations);
+        // The cold non-core audit above invokes an allocator. Re-admit the
+        // source envelope after that work before deriving its boundary.
+        const boundary = try self.publicWireBoundary(relations);
+        _ = try self.collectClosure(generated, &boundary);
     }
 
     pub fn claimVector(
@@ -600,13 +624,14 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
         provider_relations: *const shared_provider.SharedProviderRelations,
     ) !cohort_protocol.ClosureSummaryV2 {
-        try self.validateGenerated(
+        try self.validateGeneratedReceipts(
             generated,
             relations,
             provider_relations,
         );
         try claims.validate(self.complete_manifest);
-        const collected = try self.collectClosure(generated, relations);
+        const boundary = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+        const collected = try self.collectClosure(generated, &boundary);
         for (claims.values, collected.claims) |actual, expected|
             if (!actual.eql(expected)) return error.ComponentCoverageMismatch;
         return collected.closure;
@@ -757,7 +782,7 @@ pub const Cohort = struct {
     fn collectClosure(
         self: *const Self,
         generated: *const CohortGeneratedInteractionsV2,
-        relations: *const universal.UniversalRelations,
+        public_wire_boundary: *const cohort_protocol.PublicWireBoundaryV2,
     ) !CollectedClosure {
         var claims = [_]QM31{QM31.zero()} ** COMPONENT_COUNT;
         var audits: [COMPONENT_COUNT]DomainAudit = undefined;
@@ -782,12 +807,11 @@ pub const Cohort = struct {
         }
         if (mask != ALL_COMPONENT_MASK)
             return error.ComponentCoverageMismatch;
-        const public_wire_boundary = try self.publicWireBoundary(relations);
         const closure = cohort_protocol.verifyInteractionClosureV2(
             self.complete_manifest,
             &claims,
             &audits,
-            &public_wire_boundary,
+            public_wire_boundary,
         ) catch |err| {
             if (err == error.RelationNotClosed and
                 std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV))

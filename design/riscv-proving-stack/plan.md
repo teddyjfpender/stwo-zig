@@ -5,7 +5,7 @@
 Make native RISC-V proving cost explainable and its complete-proof development
 loop small, reproducible and representative before expanding Ethereum production.
 Preserve checkpoint `87a3965f`; resume the existing unified block-to-root goal when
-this bounded reset passes. No whole-block or recursive producer is currently queued.
+this bounded reset passes. No whole-block or large retained-wrapper producer is currently queued.
 
 This is ordinary proving-stack development. Maintained code belongs in `src/`,
 operational checks and report tools in `scripts/`, and development guidance here
@@ -121,7 +121,7 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
 
 ## Current status
 
-- Checkpoint committed; no reset implementation is promoted yet.
+- Checkpoints committed; no scaling optimization or CSP performance promotion is claimed.
 - Opt-in ordinary-route composition timing implemented in two existing backend
   files. Focused gate passed14/14 in15.96s (compile7s, runtime5s); instrumented
   native producer build110.00s. Reports separate wall phases, host spans, device
@@ -143,9 +143,17 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
   duplicate compilation ownership; no controlled build-speed A/B is claimed.
   Evidence: `../../vectors/reports/riscv-proving-stack-reset-20260908/omitted-route-consolidation-v1/`.
 - `frontend-authority.md` identifies remaining active overlap in relation schemas,
-  Ethereum challenge projections, infrastructure geometry and Keccak row/window
-  routing. These are consolidation work, not a claim of completed repository-wide
+  Ethereum challenge projections, infrastructure geometry and Keccak mask
+  projection. Native and recursive Keccak row order now has one shared evaluator. These are consolidation work, not a claim of completed repository-wide
   cleanup. Independent oracles and supported versioned readers remain required.
+- Small recursive lifecycle now passes: one real native step,39 outer components,
+ 47 domains, serialization, outer producer destruction, fresh decode/verification
+ and truncated/trailing-byte rejection. Whole executable13s; warm request16.87s;
+ outer transaction3.872s; inner STARK verification6.475ms. Native-child admission
+ is still required by this verifier. See `workload-ladder.md` for scope and phases.
+- Local scalar check4.48s first /3.21s warm; recursive compiler check17.64s first
+ /3.91s warm. Optimized incremental compilation and large-input allocation-owner
+ attribution remain open. Broader CSP preservation and detached-root work remain.
 - Native21/121, accepted ordinary wrappers2/3, no actual parent or whole-block root.
 
 ## First diagnostic conclusion
@@ -161,3 +169,32 @@ actual execution routes rather than infer coverage from a benchmark name.
 Process memory snapshots do not establish allocation ownership: that portion of
 the first gate remains open. The known time concentration is sufficient to select
 the small reproducer; no instruction-frontend replacement is justified by this run.
+
+
+## Current small-recursion checkpoint and next boundary
+
+The small complete recursive lifecycle is working. Three paired CPU development
+measurements reduce median outer verification from 1.310 s to 0.623 s and the
+complete outer transaction from 3.946 s to 2.474 s through synchronous admission
+and closure deduplication. See `workload-ladder.md` for nested timing boundaries,
+unchanged proof size/memory, correctness gates and retained source evidence.
+This is a local measured optimization; CSP promotion and real-block scaling
+remain open.
+
+The next larger ownership improvement must address actual borrowed V 2 state,
+not add a validation flag. The VM row 18 operational source still borrows
+preprocessing rows, schedule values and profile/digest metadata. An owned
+projection must copy those values and route every operational consumer through
+it, retaining explicit cold comparison with the original native capture.
+Existing `PreparedInputsV 4` already owns several other needed inputs, but its
+presence also selects V 4 interaction generation. Separate ownership readiness
+from profile/algorithm selection before extending it to V 2; preserve V 2 queries,
+claims, row 18 tuples, transcript identity and zero-denominator rejection.
+
+Acceptance includes mutation and destruction of original source data: owned
+operational results must stay identical, while explicit source audits reject
+changed inputs. Cover allocation failure and actual serialized proof verification.
+Core ownership alone will not eliminate noncore validation's descent into the
+prepared native leaf, so measure both owners before attributing all remaining
+time to one. This is the next bounded design task, not a completed ownership
+migration or evidence of an orders-of-magnitude whole-prover gain.

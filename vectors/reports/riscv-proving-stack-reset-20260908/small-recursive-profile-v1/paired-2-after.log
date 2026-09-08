@@ -1,0 +1,41 @@
+info: Columns: opcode=18 infra=481 total tree1=499 interaction=84
+info: Poseidon2 Merkle: 179 exact sparse-node calls, poseidon_log_size=8, merkle_log_size=8
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=96.411
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=28.012
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=36.746
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=160.620
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=117.300 publish_01_ms=0.585 interaction_ms=68.344 publish_2_ms=0.252 cached_validate_ns=100578875 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=21416 tree0_prepare_ns=28574084 tree0_commit_ns=81489625 tree1_prepare_ns=29718000 tree1_commit_ns=108594541 transcript_prefix_ns=52641500 interaction_generate_ns=190763334 interaction_admit_closure_ns=79178000 transcript_tree2_commit_ns=93532083 components_ns=84941583 diagnostic_ns=42 stark_ns=418975750 phase_sum_ns=1168429958
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=15416 preprocessed_root_ns=112391209 transcript_prefix_ns=53206375 interaction_regenerate_ns=166802000 interaction_validate_claims_ns=26507666 closure_ns=55784834 transcript_after_ns=29098791 components_ns=85362584 publication_authority_ns=26650583 stark_ns=6492375 publication_total_ns=61985083 phase_sum_ns=624296916
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=77244 canonical_proof_bytes=90173 canonicalize_ms=4.371 prove_ms=1168.510 verify_ms=624.355 publication_ms=4.472 producer_prepare_ms=335.915 producer_destroy_ms=1.292 verifier_prepare_ms=337.671 decode_ms=0.301 stark_verify_ms=6.492 transaction_ms=2474.354 artifact_rejections_ms=0.656 producer_peak_bytes=90592036 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=90173 verification=native_assisted_fresh_decode draws=1 cols=595/974/508 workers=1
+
+SEGMENT_V2_OUTER_DIMENSIONS commitments=4 claims=39 samples=2245 queried_values=6255 trace_paths=12 fri_layers=16 queries=3 max_fold=2 last_layer_coefficients=1 max_merkle_depth=17
+
+V3_ROW18_DIFFERENTIAL sum39={ .{ .v = 393862946 }, .{ .v = 515546977 }, .{ .v = 479976075 }, .{ .v = 1394125232 } } statement_public={ .{ .v = 992661794 }, .{ .v = 798641778 }, .{ .v = 342368279 }, .{ .v = 1885531433 } } wire_boundary={ .{ .v = 1753620701 }, .{ .v = 1631936670 }, .{ .v = 1667507572 }, .{ .v = 753358415 } } legacy_residual={ .{ .v = 1386524740 }, .{ .v = 1314188755 }, .{ .v = 822344354 }, .{ .v = 1132173018 } } segment_residual={ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+
+V2_POSEIDON_RECURSIVE_INGRESS cycles=1 prove_ms=4328.961 verify_ms=900.320 transcript_calls=900 authority_calls=14 core_calls=294 proof_bytes=24255 core_cols=338/760/276 core_constraints=862 complete_provider_calls=1208 complete_provider_log=11 core_init_ms=96.411 provider_ms=28.012 interaction_ms=36.746 independent_ms=160.620
+       12.07 real        60.00 user         0.49 sys
+          1055129600  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              213809  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               39614  involuntary context switches
+       1136447201438  instructions retired
+        221575837629  cycles elapsed
+          1052919104  peak memory footprint

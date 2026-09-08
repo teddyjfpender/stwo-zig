@@ -166,6 +166,35 @@ python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
 That executable proves a tiny segment with test PCS settings and exercises
 recursive preparation; it is not an Ethereum block benchmark or a recursive proof.
 
+For an actual recursive AIR proof of a one-step RISC-V child:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe --summary all
+```
+
+This existing lean executable proves all 39 outer components and checks closure
+across 47 relation domains. It serializes the outer proof, destroys tracked
+outer producer allocations, freshly decodes and rebuilds the verifier, and
+rejects truncated or trailing artifact bytes. Shutdown fails on allocator leaks.
+It still consumes the admitted native prepared leaf as verifier input; it is
+not the detached Ethereum key-and-proof root. The development profiles use one
+native query, three outer queries and no proof of work. Reports separate both
+cohort preparations, proving, decoding, STARK verification and publication.
+
+For local Keccak changes, start with the scalar and recursive compiler checks:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-keccakf-row -Doptimize=Debug --summary all
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-ethereum-vm-composition-program -Doptimize=Debug --summary all
+```
+
+These consume the shared row evaluator and check scalar parity, lazy error
+ordering, recursive recording, production masks and mutated compiler programs.
+Keep the full `test-keccakf-precompile` suite as the broader regression check.
+
 For a small complete VM proof using the Ethereum Keccak AIR:
 
 ```sh
