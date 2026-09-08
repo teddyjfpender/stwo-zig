@@ -1,0 +1,21 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=4
+expected 4, found 3
+error: TestExpectedEqual
+        0.00 real         0.00 user         0.00 sys
+             3686400  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 373  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   3  involuntary context switches
+            14481444  instructions retired
+             5175898  cycles elapsed
+             2883872  peak memory footprint

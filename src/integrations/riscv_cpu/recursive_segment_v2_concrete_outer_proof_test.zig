@@ -47,6 +47,41 @@ pub fn runGate(allocator: std.mem.Allocator) !void {
     try ingress.runGateWithHook(allocator, ConcreteOuterProofHook);
 }
 
+/// Runs the same complete 39-component/47-domain proof acceptance at each
+/// small native execution size. Native input remains verifier admission data;
+/// this is a development q1/q3 profile, not a detached production root.
+pub fn runSizedProof(allocator: std.mem.Allocator, native_steps: usize) !void {
+    try ingress.runSizedGateWithHook(allocator, SizedProofHook, native_steps);
+}
+
+pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+    try ingress.checkSizedWorkload(allocator);
+}
+
+const SizedProofHook = struct {
+    pub fn run(allocator: std.mem.Allocator, prepared: *const leaf_outer.PreparedNativeV2LeafOuter) !void {
+        var verified = try proveAndCheckOuter(allocator, prepared);
+        defer verified.capture.deinit(allocator);
+        const logs = verified.recursive_witness.outer_admission.component_log_sizes;
+        std.debug.print(
+            "\nSEGMENT_V2_LADDER_OUTER rows=39 domains=47 component_logs={any} " ++
+                "min_component_log={d} max_component_log={d} provider_log={d} " ++
+                "samples={d} queries={d} canonical_proof_bytes={d} " ++
+                "producer_live_bytes_after_destroy={d}\n",
+            .{
+                logs,
+                std.mem.min(u32, &logs),
+                std.mem.max(u32, &logs),
+                logs[34],
+                verified.capture.sampled_values.len,
+                verified.capture.queries.raw.len,
+                verified.receipt.canonical_proof_bytes,
+                verified.receipt.producer_live_bytes_after_destroy,
+            },
+        );
+    }
+};
+
 /// Narrow edit loop for V3 recorder/row-18 work. It preserves the real native
 /// ingress and independently verified 39-row SegmentV2 proof, but omits the
 /// broader replay/mutation assertions in `ConcreteOuterProofHook.run` before
@@ -71,6 +106,85 @@ const FocusedRecorderHook = struct {
         try exerciseFinalizedRecorderRow18(allocator, prepared, &verified);
     }
 };
+
+// Complete proof acceptance shared by the broad regression gate and every
+// bounded ladder size. Only downstream recorder/structural tests are omitted.
+fn proveAndCheckOuter(
+    allocator: std.mem.Allocator,
+    prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+) !outer_proof.VerifiedOuterProof {
+    // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
+    // constructs independent prover and verifier cohorts from it; no
+    // detached row, claim, audit, provider schedule, or prover receipt is
+    // accepted at this boundary.
+    var verified = try outer_proof.provePreparedNativeLeaf(
+        outer_cohort.Cohort,
+        allocator,
+        prepared,
+        prepared,
+        outer_engine.ExecutionOptions{
+            .worker_count = 1,
+            .check_serialized_artifact_rejections = true,
+        },
+    );
+    errdefer verified.capture.deinit(allocator);
+
+    try verified.receipt.validate();
+    try verified.publication.validate();
+    try std.testing.expectEqual(
+        @as(u8, outer_cohort.COMPONENT_COUNT),
+        verified.receipt.roster_count,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 39),
+        outer_cohort.COMPONENT_COUNT,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 47),
+        cohort_protocol.DOMAIN_COUNT,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 1),
+        verified.receipt.worker_count,
+    );
+    try std.testing.expect(verified.receipt.proof_size_estimate > 0);
+    try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
+    try std.testing.expectEqual(
+        @as(usize, verified.publication.canonical_proof_byte_count),
+        verified.receipt.canonical_proof_bytes,
+    );
+    try std.testing.expectEqualDeep(
+        verified.receipt.canonical_proof_id,
+        verified.publication.proof_id,
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &verified.receipt.canonical_proof_sha256,
+        &verified.publication.canonical_proof_sha_id,
+    );
+    try std.testing.expect(verified.receipt.transcript_draws > 0);
+    try std.testing.expect(verified.receipt.preprocessed_columns > 0);
+    try std.testing.expect(verified.receipt.main_columns > 0);
+    try std.testing.expect(verified.receipt.interaction_columns > 0);
+    try std.testing.expect(verified.capture.commitments.len > 0);
+    try std.testing.expect(verified.capture.queries.raw.len > 0);
+    try std.testing.expect(verified.publication.temporalChildReady());
+    try std.testing.expect(!verified.publication.completeParentReady());
+    try std.testing.expectEqual(
+        @as(u8, 39),
+        verified.publication.closure.proved_component_count,
+    );
+    try std.testing.expectEqual(
+        @as(u8, 36),
+        verified.publication.closure.universal_roster_count,
+    );
+    try std.testing.expectEqual(
+        @as(u8, 47),
+        verified.publication.closure.relation_domain_count,
+    );
+
+    return verified;
+}
 
 const ConcreteOuterProofHook = struct {
     /// Fast, challenge-independent development loop. Cohort construction
@@ -97,75 +211,8 @@ const ConcreteOuterProofHook = struct {
         allocator: std.mem.Allocator,
         prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
     ) !void {
-        // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
-        // constructs independent prover and verifier cohorts from it; no
-        // detached row, claim, audit, provider schedule, or prover receipt is
-        // accepted at this boundary.
-        var verified = try outer_proof.provePreparedNativeLeaf(
-            outer_cohort.Cohort,
-            allocator,
-            prepared,
-            prepared,
-            outer_engine.ExecutionOptions{
-                .worker_count = 1,
-                .check_serialized_artifact_rejections = true,
-            },
-        );
+        var verified = try proveAndCheckOuter(allocator, prepared);
         defer verified.capture.deinit(allocator);
-
-        try verified.receipt.validate();
-        try verified.publication.validate();
-        try std.testing.expectEqual(
-            @as(u8, outer_cohort.COMPONENT_COUNT),
-            verified.receipt.roster_count,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 39),
-            outer_cohort.COMPONENT_COUNT,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 47),
-            cohort_protocol.DOMAIN_COUNT,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 1),
-            verified.receipt.worker_count,
-        );
-        try std.testing.expect(verified.receipt.proof_size_estimate > 0);
-        try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
-        try std.testing.expectEqual(
-            @as(usize, verified.publication.canonical_proof_byte_count),
-            verified.receipt.canonical_proof_bytes,
-        );
-        try std.testing.expectEqualDeep(
-            verified.receipt.canonical_proof_id,
-            verified.publication.proof_id,
-        );
-        try std.testing.expectEqualSlices(
-            u8,
-            &verified.receipt.canonical_proof_sha256,
-            &verified.publication.canonical_proof_sha_id,
-        );
-        try std.testing.expect(verified.receipt.transcript_draws > 0);
-        try std.testing.expect(verified.receipt.preprocessed_columns > 0);
-        try std.testing.expect(verified.receipt.main_columns > 0);
-        try std.testing.expect(verified.receipt.interaction_columns > 0);
-        try std.testing.expect(verified.capture.commitments.len > 0);
-        try std.testing.expect(verified.capture.queries.raw.len > 0);
-        try std.testing.expect(verified.publication.temporalChildReady());
-        try std.testing.expect(!verified.publication.completeParentReady());
-        try std.testing.expectEqual(
-            @as(u8, 39),
-            verified.publication.closure.proved_component_count,
-        );
-        try std.testing.expectEqual(
-            @as(u8, 36),
-            verified.publication.closure.universal_roster_count,
-        );
-        try std.testing.expectEqual(
-            @as(u8, 47),
-            verified.publication.closure.relation_domain_count,
-        );
 
         // Reconstruct both downstream consumers from this exact successful
         // verifier transaction. A fresh cohort supplies only the trusted

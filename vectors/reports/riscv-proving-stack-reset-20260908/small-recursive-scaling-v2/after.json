@@ -1,0 +1,67 @@
+{
+  "head": "3f3a7336245835273118f18506c527677f7d455f",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "ccf927bc2e0534ecf7ca4cb26b39f0bf0e4850bd5d97e0fc1145ba761662d1f8",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig": "3893a096fd42b5bd3f8d133456fa91dca6f945f149ba84d578f8ec17c07845b1",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig": "d7aed237a5963123996c695d7207a448138e93c39aef865be2385e99937304d5",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig": "ff30f115d01211c2b1eee9290e00e552c696de06d1231d4d3c2bca3d88778f1e",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "4b308db9bfdda8ddd12a1f705b64156f459ae60117ee27c7b085bb978866368c",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": "8c23eb98357a0a08cfdf09b3af0231f2564506517e435e479192826c1a330803",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig": "01d74ebaee81e3e0312f6c6f9bf4e0b0d8678b1afcaaa1cd77d15396fb193eb9",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig": "3ffd102f954798a34797ba887816076b91d85989b2f11d08aba72d4ef1d8b331",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig": "faf8b1c6e7ec966a67198f823b2d78a2f27e19748e900eecfd3c91e66ad285fb",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig": "a480f97c9b21897eb4965fa7f94f0db30c78e3f1efec18bb9c0b8665fda0215a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig": "ed9a29b52a36105b256aa8d665754dc3dbc0fee4dee6bb17b8464d6179f4ef0a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": "8fe36460658fe4eb3939efb2893a12e43fd61c3216df11cc3982252603b0f07f"
+  },
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/b59ba5a257bbbab1aca6c5d7104c3c0d/recursive-segment-v2-concrete-outer-proof",
+  "binary_sha256": "9aa001cf30a79ba0ed3f35e55b6cbfe51d128cc29d4c6ee325891480a333b874",
+  "runs": [
+    {
+      "log": "after-0.log",
+      "exit_code": 0,
+      "request_seconds": 11.716149624902755,
+      "sha256": "5f64d041e5ae904127115522cdb03e4ca06591d9329aa737627095cfce437c3d"
+    },
+    {
+      "log": "after-1.log",
+      "exit_code": 0,
+      "request_seconds": 11.712452874984592,
+      "sha256": "b7a4e89d61f1fe336938b3247ceee61bdd2e3fabeba963a10aded83e7b8cfbe4"
+    },
+    {
+      "log": "after-2.log",
+      "exit_code": 0,
+      "request_seconds": 11.656861416995525,
+      "sha256": "e0046314c7ebe4117cf331fac6670cd1bef41b71764ccbb8fc4be4e53e1af5c3"
+    },
+    {
+      "steps": 1,
+      "log": "steps-1.log",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/b59ba5a257bbbab1aca6c5d7104c3c0d/recursive-segment-v2-concrete-outer-proof",
+        "--native-steps",
+        "1"
+      ],
+      "exit_code": 0,
+      "request_seconds": 7.615034792106599,
+      "sha256": "c2e3c3515da1c2b802d15475a38a59a06afa9449400a38a52118d6a753e2b472"
+    },
+    {
+      "steps": 4,
+      "log": "steps-4.log",
+      "command": [
+        "/usr/bin/time",
+        "-l",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/b59ba5a257bbbab1aca6c5d7104c3c0d/recursive-segment-v2-concrete-outer-proof",
+        "--native-steps",
+        "4"
+      ],
+      "exit_code": 1,
+      "request_seconds": 0.004112333990633488,
+      "sha256": "06a78143ccf6670222fd4cce8a6d524f82463c33f5dcf97fd28127341237990f"
+    }
+  ]
+}

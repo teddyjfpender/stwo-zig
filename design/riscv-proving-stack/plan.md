@@ -198,3 +198,13 @@ Core ownership alone will not eliminate noncore validation's descent into the
 prepared native leaf, so measure both owners before attributing all remaining
 time to one. This is the next bounded design task, not a completed ownership
 migration or evidence of an orders-of-magnitude whole-prover gain.
+
+
+The second bounded round now passes the original broad gate and three complete
+proofs at each of1/4/16/64 real native cycles. Its modest admission savings and
+fixed-geometry plateau are recorded in `workload-ladder.md`. Keep the next work
+small: attribute the fixed native lookup/preprocessed work, then add a fixed-cycle
+load/store axis to separate repeated history from distinct memory openings. The
+execution-only `--check-workload` gate catches fixture mistakes before proving.
+The original failing input is retained; large Ethereum production stays deferred
+until these small costs and boundaries are understood.

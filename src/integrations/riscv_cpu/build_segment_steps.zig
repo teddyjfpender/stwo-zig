@@ -2447,6 +2447,7 @@ pub fn add(ctx: anytype) void {
         segment_v2_concrete_outer_runner,
     );
     run_segment_v2_concrete_outer.has_side_effects = true;
+    if (b.args) |args| run_segment_v2_concrete_outer.addArgs(args);
     b.step(
         "run-recursive-segment-v2-concrete-outer-proof",
         "Run the real 39-row SegmentV2 outer proof through the lean loop",

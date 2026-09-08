@@ -1,0 +1,732 @@
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index 4648dae1..fa4f1ff7 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -2447,6 +2447,7 @@ pub fn add(ctx: anytype) void {
+         segment_v2_concrete_outer_runner,
+     );
+     run_segment_v2_concrete_outer.has_side_effects = true;
++    if (b.args) |args| run_segment_v2_concrete_outer.addArgs(args);
+     b.step(
+         "run-recursive-segment-v2-concrete-outer-proof",
+         "Run the real 39-row SegmentV2 outer proof through the lean loop",
+diff --git a/src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig b/src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig
+index 9a30a1cf..d373ab7c 100644
+--- a/src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig
++++ b/src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig
+@@ -191,6 +191,29 @@ pub fn Namespace(comptime context: type) type {
+                 provider_relations: *const shared_provider.SharedProviderRelations,
+             ) !void {
+                 try owner.validatePreparedComplete();
++                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
++            }
++
++            /// Component construction admits the owner and exact manifest in
++            /// one synchronous pass before checking this generated receipt.
++            pub fn validateForManifest(
++                self: *const NativeSegmentCoreGeneratedV2,
++                owner: *const NativeSegmentCoreV2,
++                manifest: *const manifest_v2.Manifest,
++                relations: *const universal.UniversalRelations,
++                provider_relations: *const shared_provider.SharedProviderRelations,
++            ) !void {
++                try owner.validateAgainstManifest(manifest);
++                if (!owner.provider_main_ready) return error.V2CoreCohortMismatch;
++                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
++            }
++
++            fn validateAfterOwnerAdmission(
++                self: *const NativeSegmentCoreGeneratedV2,
++                owner: *const NativeSegmentCoreV2,
++                relations: *const universal.UniversalRelations,
++                provider_relations: *const shared_provider.SharedProviderRelations,
++            ) !void {
+                 try relations.validate();
+                 try provider_relations.validateAgainst(relations);
+                 if (self.format_version != NATIVE_V2_CORE_FORMAT_VERSION or
+diff --git a/src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig b/src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig
+index e2732a18..575191e1 100644
+--- a/src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig
++++ b/src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig
+@@ -924,6 +924,7 @@ pub fn Namespace(comptime context: type) type {
+             pub const ManifestAdmissionV2 = struct {
+                 authority_id: [32]u8,
+                 complete_calls: []const shared_schedule_v2.Call,
++                complete_layout: shared_schedule_v2.SharedPoseidonCallLayoutV2,
+             };
+ 
+             /// Full source and provider-finalization admission followed by
+@@ -940,6 +941,7 @@ pub fn Namespace(comptime context: type) type {
+                 return .{
+                     .authority_id = self.authority_id,
+                     .complete_calls = buffers.calls[0..buffers.cursor],
++                    .complete_layout = self.complete_layout,
+                 };
+             }
+ 
+@@ -991,8 +993,7 @@ pub fn Namespace(comptime context: type) type {
+                 manifest: *const manifest_v2.Manifest,
+                 destination: [][]M31,
+             ) !void {
+-                try self.validateComplete();
+-                try self.validateAgainstManifest(manifest);
++                _ = try self.validateForManifest(manifest);
+                 try publishNativeCoreTree(
+                     &self.authority,
+                     &self.main_tree,
+@@ -1012,13 +1013,13 @@ pub fn Namespace(comptime context: type) type {
+                 relations: *const universal.UniversalRelations,
+                 provider_relations: *const shared_provider.SharedProviderRelations,
+             ) !NativeSegmentCoreGeneratedV2 {
+-                try self.validatePreparedComplete();
+-                try relations.validate();
+-                try provider_relations.validateAgainst(relations);
+                 if (self.generated_interactions) |generated| {
+                     try generated.validateAgainst(self, relations, provider_relations);
+                     return generated;
+                 }
++                try self.validatePreparedComplete();
++                try relations.validate();
++                try provider_relations.validateAgainst(relations);
+                 // A failed cold preparation never becomes publishable. Clearing the
+                 // retained staging buffer makes an explicit retry deterministic too.
+                 @memset(self.interaction_tree.storage, M31.zero());
+diff --git a/src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig b/src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig
+index f7b29c60..8168f79c 100644
+--- a/src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig
++++ b/src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig
+@@ -53,8 +53,7 @@ pub fn Namespace(comptime context: type) type {
+             provider_relations: *const shared_provider.SharedProviderRelations,
+             generated: *const NativeSegmentCoreGeneratedV2,
+         ) !NativeSegmentCoreComponentsV2 {
+-            try self.validateAgainstManifest(manifest);
+-            try generated.validateAgainst(self, relations, provider_relations);
++            try generated.validateForManifest(self, manifest, relations, provider_relations);
+             const authority = &self.authority;
+             const logs = authority.log_sizes;
+             return .{
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index 294b52bb..d85d794a 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -10,5 +10,28 @@ const gate = @import("recursive_segment_v2_concrete_outer_proof_test.zig");
+ pub fn main() !void {
+     var gpa: std.heap.GeneralPurposeAllocator(.{}) = .init;
+     defer std.debug.assert(gpa.deinit() == .ok);
+-    try gate.runGate(gpa.allocator());
++    const allocator = gpa.allocator();
++    const args = try std.process.argsAlloc(allocator);
++    defer std.process.argsFree(allocator, args);
++    if (args.len == 1) {
++        try gate.runGate(allocator);
++        return;
++    }
++    if (args.len != 3 or !std.mem.eql(u8, args[1], "--native-steps")) {
++        std.debug.print("usage: {s} [--native-steps 1|4|16|64]\n", .{args[0]});
++        return error.InvalidArguments;
++    }
++    const steps = std.fmt.parseInt(usize, args[2], 10) catch return error.InvalidNativeStepCount;
++    switch (steps) {
++        1, 4, 16, 64 => {},
++        else => return error.InvalidNativeStepCount,
++    }
++    std.debug.print(
++        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d}\n",
++        .{steps},
++    );
++    try gate.runSizedProof(allocator, steps);
++    // The native admission owner, both cohorts, outer proof and verifier
++    // capture have all been destroyed before this process-level completion.
++    std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} owners_destroyed=true\n", .{steps});
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+index 4aafc9b2..1499bce1 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig
+@@ -47,6 +47,37 @@ pub fn runGate(allocator: std.mem.Allocator) !void {
+     try ingress.runGateWithHook(allocator, ConcreteOuterProofHook);
+ }
+ 
++/// Runs the same complete 39-component/47-domain proof acceptance at each
++/// small native execution size. Native input remains verifier admission data;
++/// this is a development q1/q3 profile, not a detached production root.
++pub fn runSizedProof(allocator: std.mem.Allocator, native_steps: usize) !void {
++    try ingress.runSizedGateWithHook(allocator, SizedProofHook, native_steps);
++}
++
++const SizedProofHook = struct {
++    pub fn run(allocator: std.mem.Allocator, prepared: *const leaf_outer.PreparedNativeV2LeafOuter) !void {
++        var verified = try proveAndCheckOuter(allocator, prepared);
++        defer verified.capture.deinit(allocator);
++        const logs = verified.recursive_witness.outer_admission.component_log_sizes;
++        std.debug.print(
++            "\nSEGMENT_V2_LADDER_OUTER rows=39 domains=47 component_logs={any} " ++
++                "min_component_log={d} max_component_log={d} provider_log={d} " ++
++                "samples={d} queries={d} canonical_proof_bytes={d} " ++
++                "producer_live_bytes_after_destroy={d}\n",
++            .{
++                logs,
++                std.mem.min(u32, &logs),
++                std.mem.max(u32, &logs),
++                logs[34],
++                verified.capture.sampled_values.len,
++                verified.capture.queries.raw.len,
++                verified.receipt.canonical_proof_bytes,
++                verified.receipt.producer_live_bytes_after_destroy,
++            },
++        );
++    }
++};
++
+ /// Narrow edit loop for V3 recorder/row-18 work. It preserves the real native
+ /// ingress and independently verified 39-row SegmentV2 proof, but omits the
+ /// broader replay/mutation assertions in `ConcreteOuterProofHook.run` before
+@@ -72,6 +103,85 @@ const FocusedRecorderHook = struct {
+     }
+ };
+ 
++// Complete proof acceptance shared by the broad regression gate and every
++// bounded ladder size. Only downstream recorder/structural tests are omitted.
++fn proveAndCheckOuter(
++    allocator: std.mem.Allocator,
++    prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
++) !outer_proof.VerifiedOuterProof {
++    // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
++    // constructs independent prover and verifier cohorts from it; no
++    // detached row, claim, audit, provider schedule, or prover receipt is
++    // accepted at this boundary.
++    var verified = try outer_proof.provePreparedNativeLeaf(
++        outer_cohort.Cohort,
++        allocator,
++        prepared,
++        prepared,
++        outer_engine.ExecutionOptions{
++            .worker_count = 1,
++            .check_serialized_artifact_rejections = true,
++        },
++    );
++    errdefer verified.capture.deinit(allocator);
++
++    try verified.receipt.validate();
++    try verified.publication.validate();
++    try std.testing.expectEqual(
++        @as(u8, outer_cohort.COMPONENT_COUNT),
++        verified.receipt.roster_count,
++    );
++    try std.testing.expectEqual(
++        @as(usize, 39),
++        outer_cohort.COMPONENT_COUNT,
++    );
++    try std.testing.expectEqual(
++        @as(usize, 47),
++        cohort_protocol.DOMAIN_COUNT,
++    );
++    try std.testing.expectEqual(
++        @as(usize, 1),
++        verified.receipt.worker_count,
++    );
++    try std.testing.expect(verified.receipt.proof_size_estimate > 0);
++    try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
++    try std.testing.expectEqual(
++        @as(usize, verified.publication.canonical_proof_byte_count),
++        verified.receipt.canonical_proof_bytes,
++    );
++    try std.testing.expectEqualDeep(
++        verified.receipt.canonical_proof_id,
++        verified.publication.proof_id,
++    );
++    try std.testing.expectEqualSlices(
++        u8,
++        &verified.receipt.canonical_proof_sha256,
++        &verified.publication.canonical_proof_sha_id,
++    );
++    try std.testing.expect(verified.receipt.transcript_draws > 0);
++    try std.testing.expect(verified.receipt.preprocessed_columns > 0);
++    try std.testing.expect(verified.receipt.main_columns > 0);
++    try std.testing.expect(verified.receipt.interaction_columns > 0);
++    try std.testing.expect(verified.capture.commitments.len > 0);
++    try std.testing.expect(verified.capture.queries.raw.len > 0);
++    try std.testing.expect(verified.publication.temporalChildReady());
++    try std.testing.expect(!verified.publication.completeParentReady());
++    try std.testing.expectEqual(
++        @as(u8, 39),
++        verified.publication.closure.proved_component_count,
++    );
++    try std.testing.expectEqual(
++        @as(u8, 36),
++        verified.publication.closure.universal_roster_count,
++    );
++    try std.testing.expectEqual(
++        @as(u8, 47),
++        verified.publication.closure.relation_domain_count,
++    );
++
++    return verified;
++}
++
+ const ConcreteOuterProofHook = struct {
+     /// Fast, challenge-independent development loop. Cohort construction
+     /// still consumes the successful native verifier capture; the classifier
+@@ -97,76 +207,9 @@ const ConcreteOuterProofHook = struct {
+         allocator: std.mem.Allocator,
+         prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+     ) !void {
+-        // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
+-        // constructs independent prover and verifier cohorts from it; no
+-        // detached row, claim, audit, provider schedule, or prover receipt is
+-        // accepted at this boundary.
+-        var verified = try outer_proof.provePreparedNativeLeaf(
+-            outer_cohort.Cohort,
+-            allocator,
+-            prepared,
+-            prepared,
+-            outer_engine.ExecutionOptions{
+-                .worker_count = 1,
+-                .check_serialized_artifact_rejections = true,
+-            },
+-        );
++        var verified = try proveAndCheckOuter(allocator, prepared);
+         defer verified.capture.deinit(allocator);
+ 
+-        try verified.receipt.validate();
+-        try verified.publication.validate();
+-        try std.testing.expectEqual(
+-            @as(u8, outer_cohort.COMPONENT_COUNT),
+-            verified.receipt.roster_count,
+-        );
+-        try std.testing.expectEqual(
+-            @as(usize, 39),
+-            outer_cohort.COMPONENT_COUNT,
+-        );
+-        try std.testing.expectEqual(
+-            @as(usize, 47),
+-            cohort_protocol.DOMAIN_COUNT,
+-        );
+-        try std.testing.expectEqual(
+-            @as(usize, 1),
+-            verified.receipt.worker_count,
+-        );
+-        try std.testing.expect(verified.receipt.proof_size_estimate > 0);
+-        try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
+-        try std.testing.expectEqual(
+-            @as(usize, verified.publication.canonical_proof_byte_count),
+-            verified.receipt.canonical_proof_bytes,
+-        );
+-        try std.testing.expectEqualDeep(
+-            verified.receipt.canonical_proof_id,
+-            verified.publication.proof_id,
+-        );
+-        try std.testing.expectEqualSlices(
+-            u8,
+-            &verified.receipt.canonical_proof_sha256,
+-            &verified.publication.canonical_proof_sha_id,
+-        );
+-        try std.testing.expect(verified.receipt.transcript_draws > 0);
+-        try std.testing.expect(verified.receipt.preprocessed_columns > 0);
+-        try std.testing.expect(verified.receipt.main_columns > 0);
+-        try std.testing.expect(verified.receipt.interaction_columns > 0);
+-        try std.testing.expect(verified.capture.commitments.len > 0);
+-        try std.testing.expect(verified.capture.queries.raw.len > 0);
+-        try std.testing.expect(verified.publication.temporalChildReady());
+-        try std.testing.expect(!verified.publication.completeParentReady());
+-        try std.testing.expectEqual(
+-            @as(u8, 39),
+-            verified.publication.closure.proved_component_count,
+-        );
+-        try std.testing.expectEqual(
+-            @as(u8, 36),
+-            verified.publication.closure.universal_roster_count,
+-        );
+-        try std.testing.expectEqual(
+-            @as(u8, 47),
+-            verified.publication.closure.relation_domain_count,
+-        );
+-
+         // Reconstruct both downstream consumers from this exact successful
+         // verifier transaction. A fresh cohort supplies only the trusted
+         // manifest address; no prover claim or transcript checkpoint crosses
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+index 1dfaf2c7..6ac12f9c 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+@@ -55,6 +55,30 @@ pub fn runGate(allocator: std.mem.Allocator) !void {
+ pub fn runGateWithHook(
+     allocator: std.mem.Allocator,
+     comptime Hook: type,
++) !void {
++    return runGateWithHookForSteps(allocator, Hook, 1, true);
++}
++
++/// Same native proof and recursive admission, without the independent
++/// component/recorder regression fleet. The complete outer proof hook remains
++/// mandatory; this bounded ladder cannot select block-sized execution.
++pub fn runSizedGateWithHook(
++    allocator: std.mem.Allocator,
++    comptime Hook: type,
++    native_steps: usize,
++) !void {
++    switch (native_steps) {
++        1, 4, 16, 64 => {},
++        else => return error.InvalidNativeStepCount,
++    }
++    return runGateWithHookForSteps(allocator, Hook, native_steps, false);
++}
++
++fn runGateWithHookForSteps(
++    allocator: std.mem.Allocator,
++    comptime Hook: type,
++    native_steps: usize,
++    comptime full_regression: bool,
+ ) !void {
+     comptime {
+         if (!@hasDecl(Hook, "run"))
+@@ -75,9 +99,10 @@ pub fn runGateWithHook(
+     );
+     var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+     defer session.deinit();
+-    var left_profile = try session.startSegment(1);
++    var left_profile = try session.startSegment(native_steps);
+     defer left_profile.deinit();
+     const left_result = &left_profile.base;
++    try std.testing.expectEqual(@as(u64, @intCast(native_steps)), @as(u64, @intCast(left_result.cycle_count)));
+     var right_profile = try session.resumeSegment(left_result.continuation.?, 16);
+     defer right_profile.deinit();
+     const right_result = &right_profile.base;
+@@ -216,6 +241,7 @@ pub fn runGateWithHook(
+         &capture,
+     );
+     const verify_ns = verify_timer.read();
++    var preparation_timer = try std.time.Timer.start();
+     var capture_moved = false;
+     defer if (!capture_moved) capture.deinit(allocator);
+     try capture.validate();
+@@ -270,6 +296,33 @@ pub fn runGateWithHook(
+     capture_moved = true;
+     defer bundle.deinit();
+     try bundle.validate();
++    const preparation_ns = preparation_timer.read();
++    if (comptime !full_regression) {
++        std.debug.print(
++            "\nSEGMENT_V2_LADDER_NATIVE requested_steps={d} retired_cycles={d} " ++
++                "continuation_cycles={d} trace_rows={d} native_queries={d} outer_queries={d} " ++
++                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program=lui_addi_nop_jal_self_loop " ++
++                "native_prove_ms={d:.3} native_verify_ms={d:.3} " ++
++                "recursive_prepare_ms={d:.3} native_proof_bytes={d} native_tree_heights={any}\n",
++            .{
++                native_steps,
++                left_result.cycle_count,
++                right_result.cycle_count,
++                left_result.execution_trace.rows.items.len,
++                test_config.fri_config.n_queries,
++                integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.fri_config.n_queries,
++                test_config.pow_bits,
++                integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.pow_bits,
++                milliseconds(prove_ns),
++                milliseconds(verify_ns),
++                milliseconds(preparation_ns),
++                proof_bytes.items.len,
++                tree_heights,
++            },
++        );
++        try Hook.run(allocator, &bundle);
++        return;
++    }
+     try std.testing.expectEqual(@as(u8, 18), bundle.rows_18_34_core.first_row);
+     try std.testing.expectEqual(@as(u8, 34), bundle.rows_18_34_core.last_row);
+     try std.testing.expectEqual(@as(u8, 17), bundle.rows_18_34_core.row_count);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig
+index 9247c18d..257522fd 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig
+@@ -143,7 +143,10 @@ pub const PreflightV2 = struct {
+             })).shape,
+             .leaf_identity = prepared.identity,
+         };
+-        try result.validateAgainst(prepared);
++        // Each source above was derived through its full admission function.
++        // No allocation or callback separates those reads from this local
++        // assembly check; external callers still reconstruct via validateAgainst.
++        try result.validateEnvelope(prepared);
+         return result;
+     }
+ 
+@@ -151,16 +154,7 @@ pub const PreflightV2 = struct {
+         self: *const PreflightV2,
+         prepared: *const PreparedNativeV2LeafOuter,
+     ) !void {
+-        if (self.format_version != FORMAT_VERSION or
+-            self.schema_version != SCHEMA_VERSION or
+-            !std.meta.eql(self.leaf_identity, prepared.identity))
+-        {
+-            return error.SourceManifestMismatch;
+-        }
+-        try self.transcript_manifest.validate();
+-        try self.statement_manifest.validate();
+-        try self.public_manifest.validate();
+-        try self.boundary_manifest.validate();
++        try self.validateEnvelope(prepared);
+         const provider_source = try recursion.air.segment_publication_input_provider_witness_v2.preflight(.{
+             .capture = &prepared.authority_prepared,
+             .vm_context = &prepared.capture.vm_air,
+@@ -182,6 +176,22 @@ pub const PreflightV2 = struct {
+             prepared,
+             &relations,
+         ));
++    }
++
++    fn validateEnvelope(
++        self: *const PreflightV2,
++        prepared: *const PreparedNativeV2LeafOuter,
++    ) !void {
++        if (self.format_version != FORMAT_VERSION or
++            self.schema_version != SCHEMA_VERSION or
++            !std.meta.eql(self.leaf_identity, prepared.identity))
++        {
++            return error.SourceManifestMismatch;
++        }
++        try self.transcript_manifest.validate();
++        try self.statement_manifest.validate();
++        try self.public_manifest.validate();
++        try self.boundary_manifest.validate();
+         if (!std.meta.eql(
+             self.transcript_manifest,
+             self.transcript_prepared.manifest,
+@@ -316,12 +326,10 @@ pub const Owner = struct {
+         manifest: *const Manifest,
+         public_native_sum_source: *const public_native_sum.SourceV2,
+     ) !Owner {
+-        const source_preflight = PreflightV2.init(prepared) catch |err|
+-            return initStageFailure("preflight", err);
+         return runtime.initOwner(
+             Owner,
++            PreflightV2,
+             allocator,
+-            source_preflight,
+             prepared,
+             manifest,
+             public_native_sum_source,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig
+index b6ea6c9c..bce4a4ee 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig
+@@ -36,6 +36,19 @@ pub fn runPrepared(
+     const source_preflight = subject.PreflightV2.init(prepared) catch |err| {
+         return failStage("preflight", err);
+     };
++    var changed_preflight = source_preflight;
++    changed_preflight.transcript_prepared.source_id[0] ^= 1;
++    try std.testing.expectError(error.SourceMismatch, changed_preflight.validateAgainst(prepared));
++    changed_preflight = source_preflight;
++    changed_preflight.input_provider_shape = try @TypeOf(changed_preflight.input_provider_shape).init(
++        @as(usize, changed_preflight.input_provider_shape.claim_count) + 1,
++    );
++    try std.testing.expectError(error.SourceManifestMismatch, changed_preflight.validateAgainst(prepared));
++    // Only the copied header changes; no borrowed trace or source is mutated
++    // or destroyed by this constructor-ingress rejection.
++    var changed_prepared = prepared.*;
++    changed_prepared.format_version +%= 1;
++    try std.testing.expectError(error.IdentityMismatch, subject.PreflightV2.init(&changed_prepared));
+     var public_native_relations = subject.nativeRelations(prepared);
+     const public_native_inputs = subject.publicInputs(
+         prepared,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig
+index a55e9c03..fb4e31b6 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig
+@@ -11,7 +11,6 @@ const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
+ const transcript_components = recursion.segment_transcript_outer_components_v2;
+ const statement_components = recursion.segment_statement_outer_components_v2;
+ const statement_source = recursion.segment_statement_outer_source_v2;
+-const public_source = recursion.segment_public_outer_source_v2;
+ const public_components = recursion.segment_public_outer_components_v2;
+ const public_native_sum = recursion.segment_public_native_sum_authority_v2;
+ const range_authority = recursion.segment_range_authority_v2;
+@@ -29,7 +28,6 @@ const OwnedStatementDestinations = support.OwnedStatementDestinations;
+ const OwnedInputProviderTraces = support.OwnedInputProviderTraces;
+ const SparseTree = support.SparseTree;
+ const initStageFailure = support.initStageFailure;
+-const deriveTranscriptPrepared = support.deriveTranscriptPrepared;
+ const nativeRelations = support.nativeRelations;
+ const publicInputs = support.publicInputs;
+ const transcriptNativeInputs = support.transcriptNativeInputs;
+@@ -42,27 +40,25 @@ const generatedIdentity = support.generatedIdentity;
+ 
+ pub fn initOwner(
+     comptime OwnerType: type,
++    comptime PreflightType: type,
+     allocator: std.mem.Allocator,
+-    source_preflight: anytype,
+     prepared: *const PreparedNativeV2LeafOuter,
+     manifest: *const Manifest,
+     public_native_sum_source: *const public_native_sum.SourceV2,
+ ) !OwnerType {
+-    prepared.validate() catch |err|
+-        return initStageFailure("prepared_validate", err);
++    const source_preflight = PreflightType.init(prepared) catch |err|
++        return initStageFailure("preflight", err);
+     manifest.validateAgainstSources(
+         &source_preflight.transcript_manifest,
+         &source_preflight.statement_manifest,
+         &source_preflight.public_manifest,
+         &source_preflight.boundary_manifest,
+     ) catch |err| return initStageFailure("manifest_sources", err);
+-    const transcript_prepared = deriveTranscriptPrepared(prepared) catch |err|
+-        return initStageFailure("transcript_preflight", err);
++    // The local preflight owns these admitted values. No allocation or
++    // callback has occurred since it authenticated their borrowed source.
++    const transcript_prepared = source_preflight.transcript_prepared;
+     var native_relations = nativeRelations(prepared);
+-    const public_prepared = public_source.preflight(publicInputs(
+-        prepared,
+-        &native_relations,
+-    )) catch |err| return initStageFailure("public_preflight", err);
++    const public_prepared = source_preflight.public_prepared;
+ 
+     var statement_owner = statement_components.AuthorityV2.init(allocator) catch |err|
+         return initStageFailure("statement_owner", err);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
+index befbc488..88ff6f0b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig
+@@ -179,16 +179,15 @@ pub const Cohort = struct {
+         // The provider is finalized exactly once, after both halves have been
+         // bound to the same complete manifest and before any external write.
+         try core.finalizeSharedProviderMain();
+-        const complete_layout = try core.completeScheduleReceipt();
+-        const complete_calls = try core.completePoseidonCalls();
++        const core_admission = try core.validateForManifest(complete_manifest);
+         // Authenticated geometry, not a frozen measured call count, is authoritative.
+         const plan = try cohort_protocol.CohortPlanV2.init(
+             complete_manifest,
+-            &complete_layout,
+-            complete_calls,
++            &core_admission.complete_layout,
++            core_admission.complete_calls,
+         );
+         const noncore_authority_id = try noncore.authorityIdentity();
+-        const core_authority_id = try core.authorityIdentity();
++        const core_authority_id = core_admission.authority_id;
+ 
+         var result = Self{
+             .allocator = allocator,
+@@ -380,14 +379,18 @@ pub const Cohort = struct {
+         );
+     }
+ 
+-    /// Rebuilds the three SegmentV2 outer-admission terms from the exact
+-    /// verifier claim vector and the prepared authorities that own the public
+-    /// wire and verifier-input boundaries. No detached scalar is accepted.
+-    pub fn outerAdmissionBoundaries(
++    /// Derives the recursive publication's prefix and public-input boundaries
++    /// in one synchronous admission. Both projections use the same authenticated
++    /// core boundary; no caller-selected scalar or retained validation token is
++    /// accepted. The returned values have no borrowed source pointers.
++    pub fn recursivePublicationInputs(
+         self: *const Self,
+         relations: *const universal.UniversalRelations,
+         claims: *const manifest_mod.ClaimVector,
+-    ) !OuterAdmissionBoundariesV2 {
++    ) !struct {
++        transcript_prefix: RecursiveTranscriptPrefixSourceV1,
++        boundaries: OuterAdmissionBoundariesV2,
++    } {
+         try self.validateEnvelope();
+         try claims.validate(self.complete_manifest);
+         const provider_prepared = if (self.noncore.input_provider_active_prepared) |*value|
+@@ -395,26 +398,6 @@ pub const Cohort = struct {
+         else
+             return error.InteractionsNotPrepared;
+         try provider_prepared.validate();
+-        const public_wire = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+-        var claim_aggregate = QM31.zero();
+-        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
+-        const result = OuterAdmissionBoundariesV2{
+-            .input_wire = claim_aggregate,
+-            .public_wire = public_wire.claimed_sum,
+-            .verifier_input = provider_prepared.detailed_publisher_claim,
+-        };
+-        try result.validate();
+-        return result;
+-    }
+-
+-    /// Rebuilds the complete source-specific transcript prefix in one native
+-    /// core validation pass. The returned value remains local to the verifier
+-    /// until successful proof admission seals it into the recursive witness.
+-    pub fn recursiveTranscriptPrefixSource(
+-        self: *const Self,
+-        relations: *const universal.UniversalRelations,
+-    ) !RecursiveTranscriptPrefixSourceV1 {
+-        try self.validateEnvelope();
+         const core_prefix = try self.core.transcriptPrefixAuthority(relations);
+         if (!std.mem.eql(
+             u8,
+@@ -427,13 +410,24 @@ pub const Cohort = struct {
+                 core_prefix.public_wire_boundary_term_count,
+                 core_prefix.public_wire_boundary_claimed_sum,
+             );
++        var claim_aggregate = QM31.zero();
++        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
++        const boundaries = OuterAdmissionBoundariesV2{
++            .input_wire = claim_aggregate,
++            .public_wire = public_wire_boundary.claimed_sum,
++            .verifier_input = provider_prepared.detailed_publisher_claim,
++        };
++        try boundaries.validate();
+         return .{
+-            .noncore_authority_sha_id = self.noncore_authority_id,
+-            .core_authority_sha_id = core_prefix.authority_sha_id,
+-            .core_layout_sha_id = core_prefix.layout_sha_id,
+-            .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
+-            .core_total_call_count = core_prefix.total_call_count,
+-            .public_wire_boundary = public_wire_boundary,
++            .transcript_prefix = .{
++                .noncore_authority_sha_id = self.noncore_authority_id,
++                .core_authority_sha_id = core_prefix.authority_sha_id,
++                .core_layout_sha_id = core_prefix.layout_sha_id,
++                .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
++                .core_total_call_count = core_prefix.total_call_count,
++                .public_wire_boundary = public_wire_boundary,
++            },
++            .boundaries = boundaries,
+         };
+     }
+ 
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+index 21093f03..6f42cdde 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig
+@@ -667,8 +667,11 @@ pub fn EngineKernel(comptime Cohort: type) type {
+             // publication derivation and validation remains local so any error
+             // releases the capture and leaves all caller destinations intact.
+             errdefer capture.deinit(allocator);
+-            const transcript_prefix_source =
+-                try cohort.recursiveTranscriptPrefixSource(&relations);
++            const publication_inputs = try cohort.recursivePublicationInputs(
++                &relations,
++                &claims,
++            );
++            const transcript_prefix_source = publication_inputs.transcript_prefix;
+             const transcript_prefix = try verified_artifact.TranscriptPrefixV1
+                 .init(
+                 transcript_prefix_source.noncore_authority_sha_id,
+@@ -678,10 +681,7 @@ pub fn EngineKernel(comptime Cohort: type) type {
+                 transcript_prefix_source.core_total_call_count,
+                 transcript_prefix_source.public_wire_boundary,
+             );
+-            const admission_boundaries = try cohort.outerAdmissionBoundaries(
+-                &relations,
+-                &claims,
+-            );
++            const admission_boundaries = publication_inputs.boundaries;
+             var component_log_sizes: [verified_artifact.CLAIM_COUNT]u32 =
+                 undefined;
+             for (&component_log_sizes, 0..) |*log_size, row| {
+@@ -907,7 +907,7 @@ fn assertCohortContract(comptime Cohort: type) void {
+         "manifest",
+         "mixAuthority",
+         "mixPublicWireBoundary",
+-        "recursiveTranscriptPrefixSource",
++        "recursivePublicationInputs",
+         "fillPreprocessedInto",
+         "fillMainInto",
+         "fillInteractionInto",

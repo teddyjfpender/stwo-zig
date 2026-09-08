@@ -667,8 +667,11 @@ pub fn EngineKernel(comptime Cohort: type) type {
             // publication derivation and validation remains local so any error
             // releases the capture and leaves all caller destinations intact.
             errdefer capture.deinit(allocator);
-            const transcript_prefix_source =
-                try cohort.recursiveTranscriptPrefixSource(&relations);
+            const publication_inputs = try cohort.recursivePublicationInputs(
+                &relations,
+                &claims,
+            );
+            const transcript_prefix_source = publication_inputs.transcript_prefix;
             const transcript_prefix = try verified_artifact.TranscriptPrefixV1
                 .init(
                 transcript_prefix_source.noncore_authority_sha_id,
@@ -678,10 +681,7 @@ pub fn EngineKernel(comptime Cohort: type) type {
                 transcript_prefix_source.core_total_call_count,
                 transcript_prefix_source.public_wire_boundary,
             );
-            const admission_boundaries = try cohort.outerAdmissionBoundaries(
-                &relations,
-                &claims,
-            );
+            const admission_boundaries = publication_inputs.boundaries;
             var component_log_sizes: [verified_artifact.CLAIM_COUNT]u32 =
                 undefined;
             for (&component_log_sizes, 0..) |*log_size, row| {
@@ -907,7 +907,7 @@ fn assertCohortContract(comptime Cohort: type) void {
         "manifest",
         "mixAuthority",
         "mixPublicWireBoundary",
-        "recursiveTranscriptPrefixSource",
+        "recursivePublicationInputs",
         "fillPreprocessedInto",
         "fillMainInto",
         "fillInteractionInto",

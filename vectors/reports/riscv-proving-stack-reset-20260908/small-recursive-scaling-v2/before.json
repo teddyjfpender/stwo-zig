@@ -1,0 +1,30 @@
+{
+  "head": "3f3a7336",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/068b170662f4b5a7b494e991465a4798/recursive-segment-v2-concrete-outer-proof",
+  "binary_sha256": "b256e5f028003b2f3ccf4c883df4deef790063c9e300460f51ec201ed7798df5",
+  "command": [
+    "/usr/bin/time",
+    "-l",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/068b170662f4b5a7b494e991465a4798/recursive-segment-v2-concrete-outer-proof"
+  ],
+  "runs": [
+    {
+      "log": "before-0.log",
+      "exit_code": 0,
+      "request_seconds": 11.964106957893819,
+      "sha256": "6c448a7c6314f47b79d1e95bf6c64318803c8a8ef722079f845a4ba7cee185fb"
+    },
+    {
+      "log": "before-1.log",
+      "exit_code": 0,
+      "request_seconds": 11.987044583074749,
+      "sha256": "89dad7046b2429a57d745acbe2fc5079fda7563ea20b3e5616b5b03bca8c1c30"
+    },
+    {
+      "log": "before-2.log",
+      "exit_code": 0,
+      "request_seconds": 11.939200417138636,
+      "sha256": "36f7784097ebf8adec95090ac516d39653bb8cd1ca50913cad9c9a0698c2ded7"
+    }
+  ]
+}

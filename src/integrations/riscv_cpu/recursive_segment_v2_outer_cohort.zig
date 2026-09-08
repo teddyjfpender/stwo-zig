@@ -179,16 +179,15 @@ pub const Cohort = struct {
         // The provider is finalized exactly once, after both halves have been
         // bound to the same complete manifest and before any external write.
         try core.finalizeSharedProviderMain();
-        const complete_layout = try core.completeScheduleReceipt();
-        const complete_calls = try core.completePoseidonCalls();
+        const core_admission = try core.validateForManifest(complete_manifest);
         // Authenticated geometry, not a frozen measured call count, is authoritative.
         const plan = try cohort_protocol.CohortPlanV2.init(
             complete_manifest,
-            &complete_layout,
-            complete_calls,
+            &core_admission.complete_layout,
+            core_admission.complete_calls,
         );
         const noncore_authority_id = try noncore.authorityIdentity();
-        const core_authority_id = try core.authorityIdentity();
+        const core_authority_id = core_admission.authority_id;
 
         var result = Self{
             .allocator = allocator,
@@ -380,14 +379,18 @@ pub const Cohort = struct {
         );
     }
 
-    /// Rebuilds the three SegmentV2 outer-admission terms from the exact
-    /// verifier claim vector and the prepared authorities that own the public
-    /// wire and verifier-input boundaries. No detached scalar is accepted.
-    pub fn outerAdmissionBoundaries(
+    /// Derives the recursive publication's prefix and public-input boundaries
+    /// in one synchronous admission. Both projections use the same authenticated
+    /// core boundary; no caller-selected scalar or retained validation token is
+    /// accepted. The returned values have no borrowed source pointers.
+    pub fn recursivePublicationInputs(
         self: *const Self,
         relations: *const universal.UniversalRelations,
         claims: *const manifest_mod.ClaimVector,
-    ) !OuterAdmissionBoundariesV2 {
+    ) !struct {
+        transcript_prefix: RecursiveTranscriptPrefixSourceV1,
+        boundaries: OuterAdmissionBoundariesV2,
+    } {
         try self.validateEnvelope();
         try claims.validate(self.complete_manifest);
         const provider_prepared = if (self.noncore.input_provider_active_prepared) |*value|
@@ -395,26 +398,6 @@ pub const Cohort = struct {
         else
             return error.InteractionsNotPrepared;
         try provider_prepared.validate();
-        const public_wire = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
-        var claim_aggregate = QM31.zero();
-        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
-        const result = OuterAdmissionBoundariesV2{
-            .input_wire = claim_aggregate,
-            .public_wire = public_wire.claimed_sum,
-            .verifier_input = provider_prepared.detailed_publisher_claim,
-        };
-        try result.validate();
-        return result;
-    }
-
-    /// Rebuilds the complete source-specific transcript prefix in one native
-    /// core validation pass. The returned value remains local to the verifier
-    /// until successful proof admission seals it into the recursive witness.
-    pub fn recursiveTranscriptPrefixSource(
-        self: *const Self,
-        relations: *const universal.UniversalRelations,
-    ) !RecursiveTranscriptPrefixSourceV1 {
-        try self.validateEnvelope();
         const core_prefix = try self.core.transcriptPrefixAuthority(relations);
         if (!std.mem.eql(
             u8,
@@ -427,13 +410,24 @@ pub const Cohort = struct {
                 core_prefix.public_wire_boundary_term_count,
                 core_prefix.public_wire_boundary_claimed_sum,
             );
+        var claim_aggregate = QM31.zero();
+        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
+        const boundaries = OuterAdmissionBoundariesV2{
+            .input_wire = claim_aggregate,
+            .public_wire = public_wire_boundary.claimed_sum,
+            .verifier_input = provider_prepared.detailed_publisher_claim,
+        };
+        try boundaries.validate();
         return .{
-            .noncore_authority_sha_id = self.noncore_authority_id,
-            .core_authority_sha_id = core_prefix.authority_sha_id,
-            .core_layout_sha_id = core_prefix.layout_sha_id,
-            .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
-            .core_total_call_count = core_prefix.total_call_count,
-            .public_wire_boundary = public_wire_boundary,
+            .transcript_prefix = .{
+                .noncore_authority_sha_id = self.noncore_authority_id,
+                .core_authority_sha_id = core_prefix.authority_sha_id,
+                .core_layout_sha_id = core_prefix.layout_sha_id,
+                .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
+                .core_total_call_count = core_prefix.total_call_count,
+                .public_wire_boundary = public_wire_boundary,
+            },
+            .boundaries = boundaries,
         };
     }
 

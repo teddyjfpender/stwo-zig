@@ -191,6 +191,29 @@ pub fn Namespace(comptime context: type) type {
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !void {
                 try owner.validatePreparedComplete();
+                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
+            }
+
+            /// Component construction admits the owner and exact manifest in
+            /// one synchronous pass before checking this generated receipt.
+            pub fn validateForManifest(
+                self: *const NativeSegmentCoreGeneratedV2,
+                owner: *const NativeSegmentCoreV2,
+                manifest: *const manifest_v2.Manifest,
+                relations: *const universal.UniversalRelations,
+                provider_relations: *const shared_provider.SharedProviderRelations,
+            ) !void {
+                try owner.validateAgainstManifest(manifest);
+                if (!owner.provider_main_ready) return error.V2CoreCohortMismatch;
+                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
+            }
+
+            fn validateAfterOwnerAdmission(
+                self: *const NativeSegmentCoreGeneratedV2,
+                owner: *const NativeSegmentCoreV2,
+                relations: *const universal.UniversalRelations,
+                provider_relations: *const shared_provider.SharedProviderRelations,
+            ) !void {
                 try relations.validate();
                 try provider_relations.validateAgainst(relations);
                 if (self.format_version != NATIVE_V2_CORE_FORMAT_VERSION or

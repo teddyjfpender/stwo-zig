@@ -924,6 +924,7 @@ pub fn Namespace(comptime context: type) type {
             pub const ManifestAdmissionV2 = struct {
                 authority_id: [32]u8,
                 complete_calls: []const shared_schedule_v2.Call,
+                complete_layout: shared_schedule_v2.SharedPoseidonCallLayoutV2,
             };
 
             /// Full source and provider-finalization admission followed by
@@ -940,6 +941,7 @@ pub fn Namespace(comptime context: type) type {
                 return .{
                     .authority_id = self.authority_id,
                     .complete_calls = buffers.calls[0..buffers.cursor],
+                    .complete_layout = self.complete_layout,
                 };
             }
 
@@ -991,8 +993,7 @@ pub fn Namespace(comptime context: type) type {
                 manifest: *const manifest_v2.Manifest,
                 destination: [][]M31,
             ) !void {
-                try self.validateComplete();
-                try self.validateAgainstManifest(manifest);
+                _ = try self.validateForManifest(manifest);
                 try publishNativeCoreTree(
                     &self.authority,
                     &self.main_tree,
@@ -1012,13 +1013,13 @@ pub fn Namespace(comptime context: type) type {
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !NativeSegmentCoreGeneratedV2 {
-                try self.validatePreparedComplete();
-                try relations.validate();
-                try provider_relations.validateAgainst(relations);
                 if (self.generated_interactions) |generated| {
                     try generated.validateAgainst(self, relations, provider_relations);
                     return generated;
                 }
+                try self.validatePreparedComplete();
+                try relations.validate();
+                try provider_relations.validateAgainst(relations);
                 // A failed cold preparation never becomes publishable. Clearing the
                 // retained staging buffer makes an explicit retry deterministic too.
                 @memset(self.interaction_tree.storage, M31.zero());

@@ -182,6 +182,21 @@ not the detached Ethereum key-and-proof root. The development profiles use one
 native query, three outer queries and no proof of work. Reports separate both
 cohort preparations, proving, decoding, STARK verification and publication.
 
+The same executable has a small execution and proof ladder. First check the
+finite counter-loop fixture's exact cycles, PCs, registers and continuations:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe \
+  --summary all -- --check-workload
+```
+
+Then replace `--check-workload` with `--native-steps 1`, `4`, `16`, or `64`.
+Every size uses the same finite ADDI/BNE program and complete proof acceptance;
+only unrelated component and recorder diagnostics are omitted. The default
+command retains the broad regression gate. This separates native execution size
+from the derived recursive AIR geometry, which can have substantial fixed costs.
+
 For local Keccak changes, start with the scalar and recursive compiler checks:
 
 ```sh

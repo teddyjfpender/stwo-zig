@@ -208,3 +208,74 @@ retained-segment, production-security or CSP 16 performance promotion.
 
 Evidence, exact commands, source/binary pins, raw timings and paired-run receipt:
 `../../vectors/reports/riscv-proving-stack-reset-20260908/small-recursive-profile-v 1/`.
+
+## Measured second round and bounded scaling — 2026-09-08
+
+All results below use ReleaseSafe on an M 4 Max, native q 1 / outer q 3 / no PoW.
+The original broad one-step example is kept for before/after comparison; the
+size ladder uses a different, fixed finite counter-loop ELF at every size.
+Do not compare the two fixtures as an optimization A/B.
+
+Three fresh broad runs per version show a modest second-round improvement:
+
+| Interval | Before | After | Reduction |
+|---|---:|---:|---:|
+| Producer cohort preparation | 0.329 s | 0.308 s | 6.3% |
+| Verifier cohort preparation | 0.336 s | 0.310 s | 7.6% |
+| Outer verification | 0.618 s | 0.599 s | 3.2% |
+| Complete outer transaction | 2.457 s | 2.399 s | 2.4% |
+
+Outer proving was effectively unchanged (1.167 s →1.173 s), as was its tracked
+90.6 MB producer peak. Changes consolidate preflight ownership, core/manifest
+admission, and publication-boundary derivation; three new real-source mutation
+checks pass in the broad gate. This does not complete immutable V 2 preparation.
+
+The counter-loop ladder passed three complete fresh processes per size:
+
+| Native cycles | Native proving | Outer proving | Outer verification | Full request | Peak process RSS |
+|---:|---:|---:|---:|---:|---:|
+| 1 | 4.664 s | 1.199 s | 0.615 s | 8.158 s | 0.967 GiB |
+| 4 | 5.266 s | 1.235 s | 0.651 s | 9.006 s | 0.967 GiB |
+| 16 | 5.280 s | 1.238 s | 0.651 s | 9.018 s | 0.967 GiB |
+| 64 | 5.266 s | 1.235 s | 0.646 s | 8.979 s | 0.967 GiB |
+
+Every run proved all 39 outer components, checked all 47 relation domains,
+serialized, destroyed the outer producer and freshly verified. The full request
+also includes native verification, recursive admission, both cohort preparations
+and teardown. The reported STARK-only outer verifier remains approximately
+5–6 ms inside the enclosing outer verification. Outer producer allocation peaks
+are 91.4–95.0 MB, separate from approximately 0.967 GiB process RSS.
+
+The 1→4 transition introduces BNE alongside ADDI. Canonical outer rows 1 and 2
+(transcript AIR/binding) grow from log 10 to 11; row 23 (trace Merkle) grows from
+log 8 to 9. All 39 outer component logs are then identical at 4, 16 and 64 cycles;
+row 34 remains log 11 and row 35 remains log 16. Native captured tree heights
+remain 21 throughout. This plateau is evidence of padded/fixed geometry, not
+evidence of a linear marginal cost that extrapolates to larger workloads.
+Rows1/2 pad the transcript sponge-call count; row23 pads trace-query leaf
+hashing chunks determined by opened column width. Identical padded logs do not
+establish identical logical work. Raw per-frame call attribution is not yet
+recorded by this ladder.
+
+The native registry always includes schema-sized lookup tables, including
+log 20 tables (`src/frontends/riscv/prover/statement_geometry.zig`,
+`describeLookupTables`). That source fact is consistent with the observed
+height 21 commitment floor. It does not by itself assign the entire native
+proving time to lookup tables: per-table preparation, commitment and composition
+attribution is the next measurement needed. Then compare a small load/store
+loop at fixed cycles with increasing distinct addresses; this counter loop does
+not test memory-opening growth. Preserve proof/profile identities when trying
+fixed-column reuse or zero-column specialization.
+
+A genuine fixture failure is retained: the original self-loop marked completion
+and retired only 3 instructions when 4 were requested. The corrected finite loop
+shares execution checks with its proof path. `--check-workload` verifies exact
+cycles, instructions, PCs, registers and continuations for every size before
+proving; its warm command took 0.13 s (2 ms executable). The changed-source build
+still took 159.71 s. The failed source is exactly reconstructable from its retained
+patch; no failure was hidden by weakening the requested-cycle check.
+
+Commands, raw logs, source/binary pins, failure reproduction and machine-readable
+medians: `../../vectors/reports/riscv-proving-stack-reset-20260908/small-recursive-scaling-v 2/`.
+These are small CPU development proofs, not detached roots, Metal scaling or
+CSP 16 promotion.

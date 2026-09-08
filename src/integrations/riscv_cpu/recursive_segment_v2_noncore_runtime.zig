@@ -11,7 +11,6 @@ const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const transcript_components = recursion.segment_transcript_outer_components_v2;
 const statement_components = recursion.segment_statement_outer_components_v2;
 const statement_source = recursion.segment_statement_outer_source_v2;
-const public_source = recursion.segment_public_outer_source_v2;
 const public_components = recursion.segment_public_outer_components_v2;
 const public_native_sum = recursion.segment_public_native_sum_authority_v2;
 const range_authority = recursion.segment_range_authority_v2;
@@ -29,7 +28,6 @@ const OwnedStatementDestinations = support.OwnedStatementDestinations;
 const OwnedInputProviderTraces = support.OwnedInputProviderTraces;
 const SparseTree = support.SparseTree;
 const initStageFailure = support.initStageFailure;
-const deriveTranscriptPrepared = support.deriveTranscriptPrepared;
 const nativeRelations = support.nativeRelations;
 const publicInputs = support.publicInputs;
 const transcriptNativeInputs = support.transcriptNativeInputs;
@@ -42,27 +40,25 @@ const generatedIdentity = support.generatedIdentity;
 
 pub fn initOwner(
     comptime OwnerType: type,
+    comptime PreflightType: type,
     allocator: std.mem.Allocator,
-    source_preflight: anytype,
     prepared: *const PreparedNativeV2LeafOuter,
     manifest: *const Manifest,
     public_native_sum_source: *const public_native_sum.SourceV2,
 ) !OwnerType {
-    prepared.validate() catch |err|
-        return initStageFailure("prepared_validate", err);
+    const source_preflight = PreflightType.init(prepared) catch |err|
+        return initStageFailure("preflight", err);
     manifest.validateAgainstSources(
         &source_preflight.transcript_manifest,
         &source_preflight.statement_manifest,
         &source_preflight.public_manifest,
         &source_preflight.boundary_manifest,
     ) catch |err| return initStageFailure("manifest_sources", err);
-    const transcript_prepared = deriveTranscriptPrepared(prepared) catch |err|
-        return initStageFailure("transcript_preflight", err);
+    // The local preflight owns these admitted values. No allocation or
+    // callback has occurred since it authenticated their borrowed source.
+    const transcript_prepared = source_preflight.transcript_prepared;
     var native_relations = nativeRelations(prepared);
-    const public_prepared = public_source.preflight(publicInputs(
-        prepared,
-        &native_relations,
-    )) catch |err| return initStageFailure("public_preflight", err);
+    const public_prepared = source_preflight.public_prepared;
 
     var statement_owner = statement_components.AuthorityV2.init(allocator) catch |err|
         return initStageFailure("statement_owner", err);

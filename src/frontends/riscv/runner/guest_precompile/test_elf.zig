@@ -248,6 +248,27 @@ pub fn buildTemporalQuad() [temporal_quad_elf_size]u8 {
     );
 }
 
+/// One finite ALU/branch workload shared by every small recursion ladder
+/// size. JAL-to-self is a completion marker in the runner, so it is placed
+/// only after all 64 loop iterations (193 actual retirements).
+pub const recursion_loop_iterations: u32 = 64;
+pub const recursion_loop_instructions = [_]u32{
+    (recursion_loop_iterations << 20) | 0x0000_0293, // ADDI x5, x0, 64.
+    0x0013_0313, // ADDI x6, x6, 1.
+    0xfff2_8293, // ADDI x5, x5, -1.
+    0xfe02_9ce3, // BNE x5, x0, -8.
+    0x0000_006f, // Proof-bearing completion after the finite loop.
+};
+
+pub fn buildRecursionLoop() [imageSize(recursion_loop_instructions.len, poseidon_data_size)]u8 {
+    return buildProgram(
+        recursion_loop_instructions.len,
+        &recursion_loop_instructions,
+        poseidon_data_size,
+        .rv32im_zkvm_poseidon2_v1,
+    );
+}
+
 /// A straight-line production witness containing at least one retirement from
 /// every canonical RV32IM opcode family. The final self-loop is observed but
 /// not retired, matching recursive segment completion semantics.

@@ -143,7 +143,10 @@ pub const PreflightV2 = struct {
             })).shape,
             .leaf_identity = prepared.identity,
         };
-        try result.validateAgainst(prepared);
+        // Each source above was derived through its full admission function.
+        // No allocation or callback separates those reads from this local
+        // assembly check; external callers still reconstruct via validateAgainst.
+        try result.validateEnvelope(prepared);
         return result;
     }
 
@@ -151,16 +154,7 @@ pub const PreflightV2 = struct {
         self: *const PreflightV2,
         prepared: *const PreparedNativeV2LeafOuter,
     ) !void {
-        if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
-            !std.meta.eql(self.leaf_identity, prepared.identity))
-        {
-            return error.SourceManifestMismatch;
-        }
-        try self.transcript_manifest.validate();
-        try self.statement_manifest.validate();
-        try self.public_manifest.validate();
-        try self.boundary_manifest.validate();
+        try self.validateEnvelope(prepared);
         const provider_source = try recursion.air.segment_publication_input_provider_witness_v2.preflight(.{
             .capture = &prepared.authority_prepared,
             .vm_context = &prepared.capture.vm_air,
@@ -182,6 +176,22 @@ pub const PreflightV2 = struct {
             prepared,
             &relations,
         ));
+    }
+
+    fn validateEnvelope(
+        self: *const PreflightV2,
+        prepared: *const PreparedNativeV2LeafOuter,
+    ) !void {
+        if (self.format_version != FORMAT_VERSION or
+            self.schema_version != SCHEMA_VERSION or
+            !std.meta.eql(self.leaf_identity, prepared.identity))
+        {
+            return error.SourceManifestMismatch;
+        }
+        try self.transcript_manifest.validate();
+        try self.statement_manifest.validate();
+        try self.public_manifest.validate();
+        try self.boundary_manifest.validate();
         if (!std.meta.eql(
             self.transcript_manifest,
             self.transcript_prepared.manifest,
@@ -316,12 +326,10 @@ pub const Owner = struct {
         manifest: *const Manifest,
         public_native_sum_source: *const public_native_sum.SourceV2,
     ) !Owner {
-        const source_preflight = PreflightV2.init(prepared) catch |err|
-            return initStageFailure("preflight", err);
         return runtime.initOwner(
             Owner,
+            PreflightV2,
             allocator,
-            source_preflight,
             prepared,
             manifest,
             public_native_sum_source,

@@ -56,6 +56,77 @@ pub fn runGateWithHook(
     allocator: std.mem.Allocator,
     comptime Hook: type,
 ) !void {
+    return runGateWithHookForSteps(allocator, Hook, 1, true);
+}
+
+/// Same native proof and recursive admission, without the independent
+/// component/recorder regression fleet. The complete outer proof hook remains
+/// mandatory; this bounded ladder cannot select block-sized execution.
+pub fn runSizedGateWithHook(
+    allocator: std.mem.Allocator,
+    comptime Hook: type,
+    native_steps: usize,
+) !void {
+    switch (native_steps) {
+        1, 4, 16, 64 => {},
+        else => return error.InvalidNativeStepCount,
+    }
+    return runGateWithHookForSteps(allocator, Hook, native_steps, false);
+}
+
+/// Execution-only regression for the genuine step-4 failure: a JAL-to-self
+/// fixture completed early instead of consuming the requested budget. This
+/// uses the exact ELF and checks that the proof path will admit below.
+pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+    const elf = frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
+    for ([_]usize{ 1, 4, 16, 64 }) |steps| {
+        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+        defer session.deinit();
+        var first = try session.startSegment(steps);
+        defer first.deinit();
+        try validateSizedExecution(&first.base, steps, steps);
+        var second = try session.resumeSegment(first.base.continuation.?, 16);
+        defer second.deinit();
+        try validateSizedExecution(&second.base, steps + 16, 16);
+    }
+}
+
+fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps: usize, segment_steps: usize) !void {
+    try std.testing.expectEqual(segment_steps, result.cycle_count);
+    try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
+    try std.testing.expect(result.continuation != null);
+    try std.testing.expect(result.completion_reason == null);
+    // Closed-form expected state, independently checked against actual
+    // execution. One initialization precedes each three-instruction iteration.
+    const after_init = cumulative_steps - 1;
+    const completed_iterations: u32 = @intCast(after_init / 3);
+    const phase: u32 = @intCast(after_init % 3);
+    const expected_counter = frontend.testing.guest_precompile_test_elf.recursion_loop_iterations -
+        completed_iterations - @as(u32, if (phase == 2) 1 else 0);
+    const expected_accumulator = completed_iterations + @as(u32, if (phase != 0) 1 else 0);
+    try std.testing.expectEqual(expected_counter, result.exit_cpu.regs[5]);
+    try std.testing.expectEqual(expected_accumulator, result.exit_cpu.regs[6]);
+    try std.testing.expectEqual(@as(u32, 0x1004) + 4 * phase, result.exit_cpu.pc);
+    var addi_count: usize = 0;
+    var bne_count: usize = 0;
+    for (result.execution_trace.rows.items) |row| switch (row.opcode) {
+        .ADDI => addi_count += 1,
+        .BNE => bne_count += 1,
+        else => return error.UnexpectedWorkloadInstruction,
+    };
+    std.debug.print(
+        "SEGMENT_V2_LADDER_EXECUTION segment_cycles={d} cumulative_cycles={d} " ++
+            "retired_addi={d} retired_bne={d} exit_pc={x} counter={d} accumulator={d}\n",
+        .{ result.cycle_count, cumulative_steps, addi_count, bne_count, result.exit_cpu.pc, result.exit_cpu.regs[5], result.exit_cpu.regs[6] },
+    );
+}
+
+fn runGateWithHookForSteps(
+    allocator: std.mem.Allocator,
+    comptime Hook: type,
+    native_steps: usize,
+    comptime full_regression: bool,
+) !void {
     comptime {
         if (!@hasDecl(Hook, "run"))
             @compileError("native V2 ingress hook must declare run");
@@ -69,18 +140,23 @@ pub fn runGateWithHook(
             @compileError("V2 proof gate must use generic Poseidon2, never Blake2s or V1 scheduling");
         }
     }
-    const elf = frontend.testing.guest_precompile_test_elf.build(
-        false,
-        .self_loop,
-    );
+    const elf = if (comptime full_regression)
+        frontend.testing.guest_precompile_test_elf.build(false, .self_loop)
+    else
+        frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
     var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
     defer session.deinit();
-    var left_profile = try session.startSegment(1);
+    var left_profile = try session.startSegment(native_steps);
     defer left_profile.deinit();
     const left_result = &left_profile.base;
+    try std.testing.expectEqual(@as(u64, @intCast(native_steps)), @as(u64, @intCast(left_result.cycle_count)));
     var right_profile = try session.resumeSegment(left_result.continuation.?, 16);
     defer right_profile.deinit();
     const right_result = &right_profile.base;
+    if (comptime !full_regression) {
+        try validateSizedExecution(left_result, native_steps, native_steps);
+        try validateSizedExecution(right_result, native_steps + 16, 16);
+    }
 
     var declared_program = try frontend.air.program.commitment.buildDeclared(
         allocator,
@@ -216,6 +292,7 @@ pub fn runGateWithHook(
         &capture,
     );
     const verify_ns = verify_timer.read();
+    var preparation_timer = try std.time.Timer.start();
     var capture_moved = false;
     defer if (!capture_moved) capture.deinit(allocator);
     try capture.validate();
@@ -270,6 +347,33 @@ pub fn runGateWithHook(
     capture_moved = true;
     defer bundle.deinit();
     try bundle.validate();
+    const preparation_ns = preparation_timer.read();
+    if (comptime !full_regression) {
+        std.debug.print(
+            "\nSEGMENT_V2_LADDER_NATIVE requested_steps={d} retired_cycles={d} " ++
+                "continuation_cycles={d} trace_rows={d} native_queries={d} outer_queries={d} " ++
+                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program=finite_addi_bne_counter_loop " ++
+                "native_prove_ms={d:.3} native_verify_ms={d:.3} " ++
+                "recursive_prepare_ms={d:.3} native_proof_bytes={d} native_tree_heights={any}\n",
+            .{
+                native_steps,
+                left_result.cycle_count,
+                right_result.cycle_count,
+                left_result.execution_trace.rows.items.len,
+                test_config.fri_config.n_queries,
+                integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.fri_config.n_queries,
+                test_config.pow_bits,
+                integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.pow_bits,
+                milliseconds(prove_ns),
+                milliseconds(verify_ns),
+                milliseconds(preparation_ns),
+                proof_bytes.items.len,
+                tree_heights,
+            },
+        );
+        try Hook.run(allocator, &bundle);
+        return;
+    }
     try std.testing.expectEqual(@as(u8, 18), bundle.rows_18_34_core.first_row);
     try std.testing.expectEqual(@as(u8, 34), bundle.rows_18_34_core.last_row);
     try std.testing.expectEqual(@as(u8, 17), bundle.rows_18_34_core.row_count);
