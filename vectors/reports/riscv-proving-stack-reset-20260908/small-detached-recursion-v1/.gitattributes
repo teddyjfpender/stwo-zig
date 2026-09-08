@@ -1,0 +1,4 @@
+# Retained process output and source patches are byte-pinned evidence. Patch
+# context lines and tool-emitted whitespace must survive checkout unchanged.
+*.log -text -whitespace
+*.patch -text -whitespace

@@ -130,6 +130,17 @@ public-boundary input remains required.
 
 ## Required complete-proof checks still pending
 
+The single-command lifecycle gate now also passes 17 fresh-process cases on
+both backends. `lifecycle-cpu-1-process.json` and
+`lifecycle-metal-1-process.json` retain exact commands and wall times of 8.076
+and 6.282 seconds. Producer processes exit before verification; caller allocator
+payload is zero before each native decode and after each outer producer is
+destroyed. The gate checks the independent key pins and expected inputs, actual
+Metal dispatch, and unchanged artifact hashes. `lifecycle-guard-checks.json`
+retains rejection of invalid lifecycle metadata and output reuse. Runnable
+instructions are in the small-recursive benchmark document. Verifier-only
+replays do not hold the heavy-job lock.
+
 The maintained candidate producer and detached verifier share one explicit
 transcript definition. A candidate is not a verifier receipt. The corrected
 same-key check has fresh-process evidence. Its fixed projection includes the exact Tree0

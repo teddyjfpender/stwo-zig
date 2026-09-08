@@ -10,6 +10,54 @@ parent recursion and production-security measurements remain pending.
 Current retained evidence and rejection cases are indexed in
 [the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
 
+## Complete detached proof gate
+
+Build the producer and verifier once:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  build-recursive-segment-v2-concrete-outer-proof \
+  build-recursive-segment-v2-detached-verifier -Doptimize=ReleaseSafe --summary all
+```
+
+Then generate both children, wait for producer destruction and process exit,
+and check acceptance plus tampering in fresh verifier processes:
+
+```sh
+proof_bins=src/integrations/riscv_cpu/zig-out/bin
+proof_evidence=vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1
+proof_output=.git/local-riscv-proving-stack/detached-cpu-example
+python3 scripts/riscv_segment_v2_detached_gate.py \
+  --producer "$proof_bins/recursive-segment-v2-concrete-outer-proof" \
+  --native-backend cpu \
+  --verifier "$proof_bins/recursive-segment-v2-detached-verify" \
+  --bundle "$proof_output/child-0" \
+  --key-sha256 c1556938a2768d2116c284a4273be040c8fbdc66ba5780be15ade143f0b1df64 \
+  --expected-wire "$proof_evidence/two-child-cpu-1/child-0/expected-wire.json" \
+  --other-expected-wire "$proof_evidence/two-child-cpu-1/child-1/expected-wire.json" \
+  --adjacent-bundle "$proof_output/child-1" \
+  --adjacent-key-sha256 e540a453f1edfd492ae431b6198a098c41fbbc60524bc8afddb0612920fb063e \
+  --adjacent-expected-wire "$proof_evidence/two-child-cpu-1/child-1/expected-wire.json" \
+  --output "$proof_output.json"
+```
+
+Choose a new output path for each run. Key pins and expected statements above
+come from independently retained admission for this exact fixture; the command
+never trusts newly produced admission files. A circuit change must be admitted
+separately before replacing these pins.
+
+For Metal, build the same producer target under `src/integrations/riscv_metal`,
+use that directory's installed producer with `--native-backend metal`, and add
+`--aot-bundle PATH --aot-manifest-sha256 SHA256`. Keep the CPU verifier and the
+same independent pins and expected statements. The gate checks real Metal
+dispatch for both children. AOT generation is described below.
+
+Omit `--producer` to replay existing artifacts without taking the heavy-job
+lock. This keeps the small verification loop usable during a separate build.
+The retained complete commands passed all 17 cases in 8.076 seconds on CPU and
+6.282 seconds with Metal native proving. These are development observations,
+excluding compilation, and do not establish a production-security benchmark.
+
 ## Retained native-assisted benchmark route
 
 The earlier CPU and Metal measurements below use one guest fixture, native Poseidon protocol,
