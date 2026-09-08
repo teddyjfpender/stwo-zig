@@ -1,0 +1,11 @@
+{
+  "status": "fresh_verification_passed",
+  "supervisor_pid": 75014,
+  "child_pid": 75018,
+  "exit_code": 0,
+  "wall_seconds": 531.1739939171821,
+  "verification_exit_code": 0,
+  "verification_wall_seconds": 64.65074545890093,
+  "proof_sha256": "0db6f28766333703ed2f55d6f16757c28e0843c61db870d728455dce960046a6",
+  "metadata_sha256": "b1c8539a22484cb1dff1d3fed31532e394b2246d272e19c7edbc651c5c8f7929"
+}

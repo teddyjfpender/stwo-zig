@@ -25,63 +25,43 @@ results, exact commands, timings, failures and artifact identities in the
 [progress record](progress.md); the original [plan](note.md) is historical context.
 Reuse accepted work rather than restarting an older checklist.
 
-## Current priority: user-directed DevEx detour — 2026-09-08
+## Current priority: bounded RISC-V proving-stack reset — 2026-09-08
 
-Before resuming the delivery queue, fix the demonstrated cost of the real proof
-development loop. This explicitly overrides the optimization stop rule below for
-these three bounded problems; the original block bundle, recursive root and
-benchmark finish line remain unchanged.
+The user explicitly paused expansion of native whole-block and recursive proving
+in favor of the [bounded proving-stack reset](../2026-09-08-riscv-proving-stack-reset/plan.md).
+This supersedes the delivery-first decision rule and optimization stop rule below
+**until the reset acceptance criteria pass**. The block bundle, recursive root,
+CPU/Metal benchmark, CSP preservation and equivalent local Zisk endpoint remain
+the ultimate outcome. Do not widen shared RV32 types or replace the instruction
+frontend without evidence that it is the limiting cost.
 
-1. **Make validation ownership effective in the active route.** Admit external
-   inputs and profiles explicitly, finalize mutable construction, and retain
-   authenticated immutable owned preparation. Internal reads must not repeat
-   upstream transcript, campaign, geometry or native-input audits. A cached
-   validated flag or a trusted receipt over still-mutable borrowed data is not
-   sufficient. Native and recursive verification must consume the same authority.
-2. **Exercise real geometry in the focused loop.** Retain the genuine input and
-   failing cases, then provide a focused command that reaches the measured
-   preparation/closure/storage boundaries without regenerating native proofs.
-   Include actual campaign geometry and memory behavior. Keep the small complete
-   proof gate and serialization/producer-destruction/fresh-verification gate;
-   a structural or synthetic-only test cannot replace them.
-3. **Separate resource admission from the blanket heavy-job lock.** Keep heavy
-   builds and proof production bounded, but allow explicitly admitted, measured
-   standalone verification to progress when resources permit. Preserve CSP's
-   default lock and worker policy. Pin the command/profile, measure queue versus
-   execution time, reject unsuitable workloads, and enforce timeout/child-budget
-   handling without affecting unrelated jobs. Do not replace serialization with
-   unrestricted concurrency.
+Checkpoint `87a3965f` preserves 21/121 accepted Metal native segments, accepted
+ordinary wrappers 2/3, retained failures and preparation ownership repairs.
+The actual parent request is prepared but unlaunched. The prior preparation
+detour passed its consuming wrapper3 proof and ten-case independent verification;
+preparation improved from 27.1 to 5.1 minutes on the retained replay, but the
+remaining feedback cost warrants this separately authorized reset.
 
-Acceptance requires retained mutation cases rejected at the correct boundary,
-unchanged admitted protocol identities and proof behavior, focused real-input
-before/after measurements, and the complete-proof gates for changed code. Report
-validation call counts/work, preparation and closure time, compilation separately,
-and peak memory. Demonstrate the bounded verifier route with a genuine proof and
-resource evidence. The current frozen proof may finish as baseline evidence;
-never modify its source or claim its result validates later changes.
+Implementation order now:
 
-Stop this detour when these concrete gates pass and return to the native bundle
-and actual wrapper/parent sequence. No arbitrary percentage target or general
-repository redesign extends the detour.
+1. Attribute one retained native segment's composition time and memory to actual
+   components and operations, distinguishing CPU/GPU preparation, execution and waits.
+2. Establish a small complete-proof workload ladder that exercises instruction,
+   mutable-memory, lookup/precompile and continuation scaling.
+3. Enforce execution/witness, AIR, backend and orchestration ownership boundaries
+   where they eliminate demonstrated coupling, repeated work or compilation cost.
+4. Repair the measured dominant scaling problems; validate on the small reproducer
+   and retained native segment, with unchanged security and CSP A/B preservation.
+5. Resume the delivery queue below with predictable resource use and proof checks
+   that expose failures before hour-long production runs.
 
-**Preparation follow-up authorized 2026-09-08:** target seconds rather than
-accepting the measured 27-minute setup as inherent. Larger refactoring, reuse and
-caching are in scope where they remove the demonstrated repeated admissions,
-native-input arithmetic or per-event diagnostic ledger. Prioritize immutable
-owned admission and compact challenge-independent tuple closure. Cache keys must
-cover the admitted source/profile and proof-dependent inputs; mutable borrowed
-state cannot inherit trust from a prior check. Preserve fresh verifier checks,
-exact closure semantics, hostile-input rejection and CSP defaults. Measure cold
-and reused preparation separately, including cache construction and memory;
-seconds is a target, not an achieved result or a reason to weaken proof checks.
-The next consuming artifact remains real wrapper 2 with independent verification.
+Use existing libraries and harnesses first. No mechanical file-splitting campaign,
+new generic orchestration framework, unconditional cache or repeated full wrapper
+run is a prerequisite. Record actual evidence and missing coverage in the reset
+plan and progress record. Targets of seconds for local checks and tens of seconds
+for a small complete proof are targets, not claims or reasons to weaken checks.
 
-**Decision rule for every next task:** name the next real proof artifact it will
-unblock. Prefer the shortest secure route to that artifact, even if it is slow.
-Complete the block-to-root route before pursuing a better architecture or a
-faster leaf. Preparation work is finished only when its consuming proof passes.
-
-## Immediate delivery queue
+## Delivery queue after the reset
 
 1. **Finish the running native campaign.** Keep producing and freshly verifying
    its remaining segments with the accepted implementation. As soon as all are

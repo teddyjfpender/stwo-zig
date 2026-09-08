@@ -1,0 +1,133 @@
+INCREMENTAL_FULL_LEAF_RESOURCE_POLICY_V1 composition_allocation_budget_bytes=17179869184 pcs_retained_byte_budget_bytes=25769803776 host_admission_limit_bytes=34359738368 process_cap_enforced=false
+INCREMENTAL_FULL_LEAF_INPUT_PHASES_V1 retained_open_ns=43571000 selection_ns=458 replay_program_ns=35292292 fixed_program_admission_ns=3455296750 capture_admission_ns=50942689708
+INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=1498095 poseidon_calls=1498095 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=21408185584 source_column_bytes=10704092792 columns=17258 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator
+INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1 retained_bytes=10816784912 columns=8542 budget_bytes=25769803776 retention=never
+info: metal composition resource: phase=host_launch_or_inline elapsed_ns=11459959 process_current_phys_bytes=26979045464 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=device_preparation elapsed_ns=292207785917 process_current_phys_bytes=27223134560 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=semantic_dispatch elapsed_ns=292250533584 process_current_phys_bytes=27365495232 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=lookup_dispatch elapsed_ns=305830028417 process_current_phys_bytes=27730842096 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=scratch_release elapsed_ns=310535537125 process_current_phys_bytes=27706069488 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=host_wait elapsed_ns=310535582625 process_current_phys_bytes=27706069488 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=partition_parity elapsed_ns=310535591084 process_current_phys_bytes=27706069488 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition device: family=semantic gpu_ms=101.008625
+info: resident RISC-V semantic composition: 49 components, 21 kernels, 101.009 ms GPU
+info: metal composition device: family=lookup gpu_ms=21.244625
+info: resident RISC-V lookup composition: 46 components, 18 kernels, 21.245 ms GPU
+info: metal composition resource: phase=device_merge elapsed_ns=310535619209 process_current_phys_bytes=27706069488 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=work_receipt elapsed_ns=310555171875 process_current_phys_bytes=27635192256 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=accumulation elapsed_ns=310555211250 process_current_phys_bytes=27635192256 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=full_parity elapsed_ns=311749131167 process_current_phys_bytes=27668517360 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=publication elapsed_ns=311749180667 process_current_phys_bytes=27668517360 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition resource: phase=cleanup elapsed_ns=311749192667 process_current_phys_bytes=27668517360 process_lifetime_peak_phys_bytes=31878078080
+info: metal composition host: component_index=90 constraints=13 eval_log=21 evaluator=0x100771e94 mode=legacy start_ns=11494542 end_ns=1822168709 wall_ns=1810674167 failed=false
+info: metal composition host: component_index=91 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=1822169209 end_ns=1960621250 wall_ns=138452041 failed=false
+info: metal composition host: component_index=92 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=1960621292 end_ns=2097582625 wall_ns=136961333 failed=false
+info: metal composition host: component_index=93 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2097583167 end_ns=2235439375 wall_ns=137856208 failed=false
+info: metal composition host: component_index=94 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2235439625 end_ns=2372658750 wall_ns=137219125 failed=false
+info: metal composition host: component_index=95 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2372659250 end_ns=2510619500 wall_ns=137960250 failed=false
+info: metal composition host: component_index=96 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2510619625 end_ns=2651457209 wall_ns=140837584 failed=false
+info: metal composition host: component_index=97 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2651457875 end_ns=2790240875 wall_ns=138783000 failed=false
+info: metal composition host: component_index=98 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2790241375 end_ns=2930070375 wall_ns=139829000 failed=false
+info: metal composition host: component_index=99 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=2930070917 end_ns=3072302250 wall_ns=142231333 failed=false
+info: metal composition host: component_index=100 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=3072303042 end_ns=3213099917 wall_ns=140796875 failed=false
+info: metal composition host: component_index=101 constraints=6 eval_log=17 evaluator=0x100771e94 mode=legacy start_ns=3213100709 end_ns=3352957292 wall_ns=139856583 failed=false
+info: metal composition host: component_index=102 constraints=6 eval_log=12 evaluator=0x100771e94 mode=legacy start_ns=3352957625 end_ns=3357380667 wall_ns=4423042 failed=false
+info: metal composition host: component_index=103 constraints=10 eval_log=22 evaluator=0x10076ce7c mode=legacy start_ns=3357380750 end_ns=7109169167 wall_ns=3751788417 failed=false
+info: metal composition host: component_index=105 constraints=5 eval_log=22 evaluator=0x100770394 mode=legacy start_ns=7109169667 end_ns=9947378292 wall_ns=2838208625 failed=false
+info: metal composition host: component_index=106 constraints=1 eval_log=19 evaluator=0x10076e734 mode=legacy start_ns=9947378625 end_ns=10057781667 wall_ns=110403042 failed=false
+info: metal composition host: component_index=107 constraints=1 eval_log=21 evaluator=0x10076e734 mode=legacy start_ns=10057782209 end_ns=10401804042 wall_ns=344021833 failed=false
+info: metal composition host: component_index=108 constraints=1 eval_log=20 evaluator=0x10076e734 mode=legacy start_ns=10401804917 end_ns=10614845375 wall_ns=213040458 failed=false
+info: metal composition host: component_index=109 constraints=1 eval_log=21 evaluator=0x10076e734 mode=legacy start_ns=10614846000 end_ns=11002704584 wall_ns=387858584 failed=false
+info: metal composition host: component_index=110 constraints=1 eval_log=17 evaluator=0x10076e734 mode=legacy start_ns=11002705000 end_ns=11024314542 wall_ns=21609542 failed=false
+info: metal composition host: component_index=111 constraints=1 eval_log=16 evaluator=0x10076e734 mode=legacy start_ns=11024315000 end_ns=11035537375 wall_ns=11222375 failed=false
+info: metal composition host: component_index=112 constraints=7215 eval_log=19 evaluator=0x1006b2e80 mode=legacy start_ns=11035537584 end_ns=289753800834 wall_ns=278718263250 failed=false
+info: metal composition host: component_index=113 constraints=1 eval_log=14 evaluator=0x1006b3b98 mode=legacy start_ns=289753806125 end_ns=289758955834 wall_ns=5149709 failed=false
+info: metal composition host: component_index=114 constraints=1 eval_log=11 evaluator=0x1006b3b98 mode=legacy start_ns=289758956250 end_ns=289759858959 wall_ns=902709 failed=false
+info: metal composition host: component_index=115 constraints=212 eval_log=2 evaluator=0x1006b4cc8 mode=legacy start_ns=289759859209 end_ns=289759941625 wall_ns=82416 failed=false
+info: metal composition host: component_index=116 constraints=212 eval_log=2 evaluator=0x1006b5b54 mode=legacy start_ns=289759941917 end_ns=289760023709 wall_ns=81792 failed=false
+info: metal composition host: component_index=117 constraints=237 eval_log=2 evaluator=0x1006b69e0 mode=legacy start_ns=289760024000 end_ns=289760072875 wall_ns=48875 failed=false
+info: metal composition host: component_index=118 constraints=237 eval_log=2 evaluator=0x1006b7848 mode=legacy start_ns=289760072959 end_ns=289760114209 wall_ns=41250 failed=false
+info: metal composition host: component_index=119 constraints=428 eval_log=2 evaluator=0x1006b86b0 mode=legacy start_ns=289760114250 end_ns=289760150959 wall_ns=36709 failed=false
+info: metal composition host: component_index=120 constraints=134 eval_log=2 evaluator=0x1006b953c mode=legacy start_ns=289760151000 end_ns=289760176167 wall_ns=25167 failed=false
+info: metal composition host: component_index=121 constraints=1173 eval_log=2 evaluator=0x1006baa18 mode=legacy start_ns=289760176209 end_ns=289760262875 wall_ns=86666 failed=false
+info: metal composition host: component_index=122 constraints=482 eval_log=2 evaluator=0x1006bb8a8 mode=legacy start_ns=289760262875 end_ns=289760330084 wall_ns=67209 failed=false
+info: metal composition host: component_index=123 constraints=124 eval_log=2 evaluator=0x1006bcd9c mode=legacy start_ns=289760330084 end_ns=289760376250 wall_ns=46166 failed=false
+info: metal composition host: component_index=124 constraints=11 eval_log=9 evaluator=0x1006bdc28 mode=legacy start_ns=289760376250 end_ns=289760429042 wall_ns=52792 failed=false
+info: metal composition host: component_index=125 constraints=370 eval_log=2 evaluator=0x1006bf270 mode=legacy start_ns=289760429084 end_ns=289760467334 wall_ns=38250 failed=false
+info: metal composition host: component_index=126 constraints=6 eval_log=22 evaluator=0x1006c00fc mode=legacy start_ns=289760467375 end_ns=292207768542 wall_ns=2447301167 failed=false
+info: metal composition phase: phase=preparation start_ns=0 end_ns=11459959 wall_ns=11459959
+info: metal composition phase: phase=host_launch_or_inline start_ns=11459959 end_ns=292207785917 wall_ns=292196325958
+info: metal composition phase: phase=device_preparation start_ns=292207785917 end_ns=292250533584 wall_ns=42747667
+info: metal composition phase: phase=semantic_dispatch start_ns=292250533584 end_ns=305830028417 wall_ns=13579494833
+info: metal composition phase: phase=lookup_dispatch start_ns=305830028417 end_ns=310535537125 wall_ns=4705508708
+info: metal composition phase: phase=scratch_release start_ns=310535537125 end_ns=310535582625 wall_ns=45500
+info: metal composition phase: phase=host_wait start_ns=310535582625 end_ns=310535591084 wall_ns=8459
+info: metal composition phase: phase=partition_parity start_ns=310535591084 end_ns=310535619209 wall_ns=28125
+info: metal composition phase: phase=device_merge start_ns=310535619209 end_ns=310555171875 wall_ns=19552666
+info: metal composition phase: phase=work_receipt start_ns=310555171875 end_ns=310555211250 wall_ns=39375
+info: metal composition phase: phase=accumulation start_ns=310555211250 end_ns=311749131167 wall_ns=1193919917
+info: metal composition phase: phase=full_parity start_ns=311749131167 end_ns=311749180667 wall_ns=49500
+info: metal composition phase: phase=publication start_ns=311749180667 end_ns=311749192667 wall_ns=12000
+info: metal composition phase: phase=cleanup start_ns=311749192667 end_ns=311785765875 wall_ns=36573208
+info: metal composition wall: completed=true scheduler=pool wall_ns=311785765875 phase_sum_ns=311785765875 host_spans_overlap=true device_ms_separate=true
+STAGE101_PROFILE depth=0 id=stage101_leaf_transaction seconds=450.121432000
+STAGE101_PROFILE depth=1 id=stage101_input_admission seconds=3.718333000
+STAGE101_PROFILE depth=1 id=stage101_compact_replay seconds=0.381420000
+STAGE101_PROFILE depth=1 id=stage101_prepared_proof_transaction seconds=31.281988000
+STAGE101_PROFILE depth=1 id=stage101_prove seconds=410.733878000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=0.114990000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=0.247090000
+STAGE101_PROFILE depth=2 id=riscv_opcode_trace_generation seconds=5.395827000
+STAGE101_PROFILE depth=3 id=riscv_infrastructure_trace_generation seconds=4.755353000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=1.838083000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=8.474142000
+STAGE101_PROFILE depth=2 id=riscv_interaction_opcode seconds=2.962872000
+STAGE101_PROFILE depth=2 id=riscv_interaction_program seconds=0.735593000
+STAGE101_PROFILE depth=2 id=riscv_interaction_memory seconds=0.814904000
+STAGE101_PROFILE depth=2 id=riscv_interaction_merkle seconds=0.888224000
+STAGE101_PROFILE depth=2 id=riscv_interaction_poseidon seconds=0.508796000
+STAGE101_PROFILE depth=2 id=riscv_interaction_clock seconds=1.869594000
+STAGE101_PROFILE depth=2 id=riscv_interaction_tables seconds=0.133642000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=1.517591000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=8.357361000
+STAGE101_PROFILE depth=2 id=draw_random_coeff seconds=0.000006000
+STAGE101_PROFILE depth=2 id=composition_trace_extract seconds=0.000293000
+STAGE101_PROFILE depth=2 id=composition_evaluation seconds=311.789010000
+STAGE101_PROFILE depth=2 id=composition_interpolate_and_split seconds=0.050892000
+STAGE101_PROFILE depth=2 id=composition_commit seconds=0.144867000
+STAGE101_PROFILE depth=2 id=oods_point_and_mask_points seconds=0.004732000
+STAGE101_PROFILE depth=2 id=sampled_value_evaluation seconds=0.693938000
+STAGE101_PROFILE depth=2 id=sampled_value_channel_mix seconds=0.014781000
+STAGE101_PROFILE depth=2 id=fri_quotient_build_and_commit seconds=0.671540000
+STAGE101_PROFILE depth=2 id=proof_of_work seconds=0.005792000
+STAGE101_PROFILE depth=2 id=fri_decommit seconds=0.010391000
+STAGE101_PROFILE depth=2 id=trace_decommit seconds=0.599099000
+STAGE101_PROFILE depth=2 id=constraint_check_and_assembly seconds=0.004480000
+STAGE101_PROFILE depth=1 id=stage101_encode seconds=0.340598000
+INCREMENTAL_FULL_LEAF_VERIFY_POLICY_V1 workers=1
+INCREMENTAL_FULL_LEAF_VALIDATION_V2 producer_ns=450116912375 producer_auth_count=1 producer_auth_ns=2625402000 producer_reuses=270 cold_ns=24719948291 cold_auth_count=1 cold_auth_ns=2620706000 cold_reuses=194
+INCREMENTAL_FULL_LEAF_CLAIM_ADMISSION schema=5 profile=fixed_program_narrow_v5
+INCREMENTAL_FULL_LEAF_PHASES_V1 transaction_ns=446451720292 admission_ns=3718296250 replay_ns=381416042 witness_ns=3486689542 profile_ns=26675536917 prove_ns=410729736333 encode_ns=340594667
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=producer wall_ns=450124307166 cpu_ns=393386466375 lifetime_peak_footprint_bytes=31878078080
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=fresh_verifier wall_ns=24720004458 cpu_ns=24612240958 lifetime_peak_footprint_bytes=31878078080
+ETHEREUM_PREPARED_METAL_V1 claim_schema=5 aot_manifest_sha256=320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 initialization_ns=87669125 producer_ns=450116912375 cold_verify_ns=24719948291 device_dispatches=91 host_fallbacks=3 independently_cold_verified=true
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=complete_request wall_ns=529364821917 cpu_ns=472222779500 lifetime_peak_footprint_bytes=31878078080
+      531.16 real       442.11 user        30.36 sys
+         10594942976  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+            10084469  page reclaims
+                 445  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   1  messages sent
+                   0  messages received
+                   0  signals received
+              169482  voluntary context switches
+              543280  involuntary context switches
+       4870502944485  instructions retired
+       1850115860955  cycles elapsed
+         31878078080  peak memory footprint

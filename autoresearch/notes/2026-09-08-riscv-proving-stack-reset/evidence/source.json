@@ -1,0 +1,7 @@
+{
+  "head": "87a3965fef46c64d3aa2eadc11a54fa9f80a2a8c",
+  "changed_sources": {
+    "src/backends/metal/runtime/base_polynomial_composition.zig": "82dfa60e124e5a0b5b334353471199c1fbaa7c3672f6364b6434fa431f45d2a9",
+    "src/backends/metal/runtime/base_polynomial_host_graph.zig": "7fc4323d1335445caadac29d9dc8803cafb0bdbca29560222f59dc0638dbfe5f"
+  }
+}

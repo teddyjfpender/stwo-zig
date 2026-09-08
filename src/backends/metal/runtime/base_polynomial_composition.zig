@@ -200,6 +200,8 @@ fn evaluateInternal(
     work_capture: ?*composition_work.Capture,
     profiled_execution: ?prover.air.composition_execution.Execution,
 ) !?SecureColumn {
+    var timing = host_graph.WallTiming.requested();
+    defer if (timing) |*clock| clock.finish();
     if (components.len == 0) return null;
 
     var total_constraints: usize = 0;
@@ -330,7 +332,11 @@ fn evaluateInternal(
     );
     defer allocator.free(host_workers);
     var initialized_workers: usize = 0;
-    defer for (host_workers[0..initialized_workers]) |*worker| worker.deinit();
+    defer for (host_workers[0..initialized_workers]) |*worker| {
+        // The later join defers run first, including on error or resident decline.
+        worker.reportTiming();
+        worker.deinit();
+    };
 
     var power_cursor = total_constraints;
     var semantic_index: usize = 0;
@@ -399,6 +405,7 @@ fn evaluateInternal(
             host_workers[host_index] = .{
                 .component = component,
                 .trace = trace,
+                .timing = .{ .origin = if (timing) |clock| clock.origin else null },
                 .accumulator = try Accumulator.initForComponent(
                     powers,
                     allocator,
@@ -429,11 +436,18 @@ fn evaluateInternal(
     // separate prepared graph path: it drains under the explicit request
     // before synchronous device dispatch, so every host worker is attributable
     // and no private thread or ambient-pool work escapes the task receipt.
+    if (timing) |*clock| clock.enter(.host_launch_or_inline);
     var wait_group = std.Thread.WaitGroup{};
     const pool = if (profiled_execution == null)
         prover.work_pool.getGlobalPool()
     else
         null;
+    if (timing) |*clock| clock.scheduler = if (profiled_execution != null)
+        .structured
+    else if (pool != null)
+        .pool
+    else
+        .inline_host;
     var host_pending = pool != null;
     defer if (host_pending) wait_group.wait();
     var parallel_thread: ?std.Thread = null;
@@ -459,6 +473,7 @@ fn evaluateInternal(
         for (host_workers) |*worker| HostWorker.runLegacy(worker);
     }
 
+    if (timing) |*clock| clock.enter(.device_preparation);
     for (base_programs.items) |*entry| {
         const name = try base_codegen.kernelName(allocator, entry.program);
         defer allocator.free(name);
@@ -581,6 +596,7 @@ fn evaluateInternal(
     std.debug.assert(interaction_cursor == interaction_column_ptrs.len);
     std.debug.assert(parameter_cursor * 4 == parameter_words.len);
 
+    if (timing) |*clock| clock.enter(.semantic_dispatch);
     var semantic_gpu_result: ?metal_runtime.MetalError!f64 = null;
     if (semantic_jobs.len != 0) semantic_gpu_result = lease.runtime.evaluateBasePolynomialBatch(
         residency_handles,
@@ -590,6 +606,7 @@ fn evaluateInternal(
         power_words,
         semantic_buckets.outputs,
     );
+    if (timing) |*clock| clock.enter(.lookup_dispatch);
     var lookup_gpu_result: ?metal_runtime.MetalError!f64 = null;
     if (lookup_jobs.len != 0) lookup_gpu_result = lease.runtime.evaluateLookupPolynomialBatch(
         residency_handles,
@@ -601,6 +618,7 @@ fn evaluateInternal(
         parameter_words,
         lookup_buckets.outputs,
     );
+    if (timing) |*clock| clock.enter(.scratch_release);
     const semantic_gpu_ms = if (semantic_gpu_result) |result|
         result catch return declineResidentPolynomial()
     else
@@ -623,6 +641,7 @@ fn evaluateInternal(
         composition_domain_scratch.releaseOwnerWindow();
         scratch_lock_held = false;
     }
+    if (timing) |*clock| clock.enter(.host_wait);
     if (parallel_on_caller) |index| HostWorker.runParallel(&host_workers[index], pool.?);
     if (parallel_thread) |thread| {
         thread.join();
@@ -632,8 +651,10 @@ fn evaluateInternal(
         wait_group.wait();
         host_pending = false;
     }
+    if (timing) |*clock| clock.enter(.partition_parity);
     for (host_workers) |worker| if (worker.err) |err| return err;
     if (semantic_gpu_ms) |gpu_ms| {
+        if (timing != null) std.log.info("metal composition device: family=semantic gpu_ms={d:.6}", .{gpu_ms});
         telemetry.record(.metal_riscv_base_polynomial_batch_dispatch);
         std.log.info(
             "resident RISC-V semantic composition: {d} components, {d} kernels, {d:.3} ms GPU",
@@ -641,6 +662,7 @@ fn evaluateInternal(
         );
     }
     if (lookup_gpu_ms) |gpu_ms| {
+        if (timing != null) std.log.info("metal composition device: family=lookup gpu_ms={d:.6}", .{gpu_ms});
         telemetry.record(.metal_riscv_lookup_polynomial_batch_dispatch);
         std.log.info(
             "resident RISC-V lookup composition: {d} components, {d} kernels, {d:.3} ms GPU",
@@ -681,11 +703,13 @@ fn evaluateInternal(
     // Each batch ABI returns a complete zero-origin device result. Merge only
     // after both commands and all host workers have succeeded; this preserves
     // semantic and lookup contributions that share the same evaluation log.
+    if (timing) |*clock| clock.enter(.device_merge);
     try composition_device_buckets.mergeCompleted(
         &semantic_buckets,
         &lookup_buckets,
     );
 
+    if (timing) |*clock| clock.enter(.work_receipt);
     const work_receipt = if (work_capture != null)
         try base_composition_work.build(
             allocator,
@@ -700,6 +724,7 @@ fn evaluateInternal(
     else
         null;
 
+    if (timing) |*clock| clock.enter(.accumulation);
     var combined = try Accumulator.initForComponent(powers, allocator, max_log_size, 0);
     defer combined.deinit();
     for (host_workers) |*worker| combined.merge(&worker.accumulator);
@@ -718,6 +743,7 @@ fn evaluateInternal(
     }
     var result = try combined.finalize();
     errdefer result.deinit(allocator);
+    if (timing) |*clock| clock.enter(.full_parity);
     try validateFullCpuParityIfRequested(
         allocator,
         components,
@@ -726,7 +752,12 @@ fn evaluateInternal(
         &result,
         parity_requested,
     );
+    if (timing) |*clock| clock.enter(.publication);
     if (work_receipt) |receipt| try work_capture.?.publish(receipt);
+    if (timing) |*clock| {
+        clock.completed = true;
+        clock.enter(.cleanup);
+    }
     return result;
 }
 

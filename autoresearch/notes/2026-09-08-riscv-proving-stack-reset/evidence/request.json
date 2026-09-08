@@ -1,0 +1,56 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/product/bin/ethereum-prepared-leaf-metal-v1",
+    "--retained-materialization-result",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4",
+    "--campaign-geometry",
+    "authenticated-v1",
+    "--claim-admission",
+    "fixed_program_narrow_v5",
+    "--segment-index",
+    "19",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/proof.bin",
+    "--global-metadata-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/leaf.json",
+    "--workers",
+    "1",
+    "--host-byte-budget",
+    "17179869184",
+    "--host-byte-limit",
+    "34359738368",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle",
+    "--aot-manifest-sha256",
+    "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+    "--pcs-retained-byte-budget",
+    "25769803776",
+    "--selected-leaf-admission-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission"
+  ],
+  "source": {
+    "head": "87a3965fef46c64d3aa2eadc11a54fa9f80a2a8c",
+    "changed_sources": {
+      "src/backends/metal/runtime/base_polynomial_composition.zig": "82dfa60e124e5a0b5b334353471199c1fbaa7c3672f6364b6434fa431f45d2a9",
+      "src/backends/metal/runtime/base_polynomial_host_graph.zig": "7fc4323d1335445caadac29d9dc8803cafb0bdbca29560222f59dc0638dbfe5f"
+    }
+  },
+  "binary_sha256": "b8d1f63e594262b5e86e393bebde90f99e68e8d0749b57a202cd9ec176eaefea",
+  "input_sha256": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/request.json": "15fb81cfa70583fda5df4d24eca0fe8547ec12a6490277434fcc08b367d90c09",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/segment-000019.stwemt01": "5925fc49cbfbc6599c570746a6e6009f442e6e95577bdd7d6dc108d18791f488",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/segment-000019.stwimr04": "e94fffc3a4d4ef181f26f53ea12ee0baf8f1aeec12dc37099da3680fe724dc92",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/segment-000019.stwimt04": "f5c50e8c7f6bcda6368ee2b9bf37d92ee7566fcee58c4f88552f9c941bf3edea",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/segment-000019.stwipr04": "cf1a2e9d24ad94f3c2c0bee1c60fcbbe83efad646671f3b6806112cff78e6b7f",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/segment-000019.stwipw04": "e02293a6d387a287be2dff4a94120c3b20db0359eac24fec992970b6309cf209",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-stack-reset-v1/candidate/selected-leaf-admission/selected-leaf-admission-v1.json": "0ffaff40cb8d7f590e268190b8dbc9d5a0e29187eb19521a45d37569e81f4b3f"
+  },
+  "diagnostics": {
+    "STWO_ZIG_STAGE101_STAGE_PROFILE": "1",
+    "STWO_ZIG_RISCV_METAL_COMPOSITION_TIMING": "1"
+  },
+  "purpose": "ordinary native19 timing, no campaign promotion"
+}
