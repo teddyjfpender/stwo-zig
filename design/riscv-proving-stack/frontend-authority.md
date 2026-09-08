@@ -1,6 +1,6 @@
 # Active RISC-V frontend authority map
 
-Bounded read-only map of the functioning Ethereum native leaf and its native-to-recursive consumers. This is not a whole-repository audit. No production edits or builds. “One source of truth” means each protocol fact has one defining owner with typed projections; it does not mean one large registry owning execution, AIR, transport, and backend resources.
+Bounded authority map of the functioning Ethereum native leaf and its native-to-recursive consumers. This is not a whole-repository audit. “One source of truth” means each protocol fact has one defining owner with typed projections; it does not mean one large registry owning execution, AIR, transport, and backend resources.
 
 Paths in the first table are relative to `src/frontends/riscv/`.
 
@@ -13,6 +13,7 @@ Paths in the first table are relative to `src/frontends/riscv/`.
 | Opcode AIR formulas, columns and ordered lookup requests | Typed family definitions and fixed authority bindings; `air/lang/opcode_composition_manifest.zig` projects the seventeen-family inventory | `runner/trace.zig`, `air/semantic_eval.zig`, `air/semantic_component.zig`, opcode lookup adapters, symbolic/recursive exporters |
 | Lookup physical batching / layouts | `air/lang/lookup_physical_manifest_v2.zig`, `air/lang/row_window.zig`, `air/lookups/entry.zig` and typed request builders | Witness interaction, native point/domain, backend program exporters and recursive claim routing consume admitted plans |
 | Infrastructure AIR | Individual program/memory/hash/clock/table components; `prover/base_component_assembly.zig` selects and places them | Shared `Direction` assembly is used for prover and verifier; fixed-program/narrow-Poseidon is an explicit circuit profile |
+| Poseidon2-M31 permutation and parameters | `air/memory_commitment/poseidon2.zig` and `poseidon2_constants.zig` | Memory hashing and `recursion/poseidon2_channel.zig` share the scalar/four-lane permutation. The recursion channel owns its sponge framing; generic Merkle code consumes its hooks. Scalar-only full-tree tests are independent parity evidence |
 | Native Ethereum challenge transcript | `prover/guest_precompile/ethereum_transcript.zig` | Native orchestration and verifier use shared main/interaction claim emitters and relation draws |
 | Ethereum precompile semantics / AIR | `air/guest_precompile/*_authority`, layout, direct and interaction-plan owners | Combined assembly, CPU/Metal domain adapters, recursive recording; detailed Keccak seam is in `keccak-authority.md` |
 | Global position versus local clocks | `recursion/span_statement.zig`, `segment_leaf_local_authority_v3.zig`, `air/statement_v2.zig` | Runner/retained transport admission and canonical public statement; metadata admission alone is not proof acceptance |

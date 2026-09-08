@@ -26,8 +26,7 @@ pub fn validateSegment(
     try std.testing.expect(result.continuation != null);
     try std.testing.expect(result.completion_reason == null);
     const first_step = cumulative_steps - segment_steps;
-    var words: [16]u32 = undefined;
-    for (&words, 0..) |*word, index| word.* = @intCast(index);
+    var words: [16]u32 = @splat(0);
     var entry_words = words;
     var registers: [32]u32 = @splat(0);
     registers[2] = runner.elf_loader.DEFAULT_STACK_POINTER;
@@ -35,6 +34,11 @@ pub fn validateSegment(
     var loads: usize = 0;
     var stores: usize = 0;
     var touched: [16]bool = @splat(false);
+    for (0..address_count) |index| {
+        const address = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
+        try std.testing.expect(result.rw_memory.layout.isRwAddr(address));
+        try std.testing.expect(result.rw_memory.layout.isRwAddr(address + 3));
+    }
     for (0..cumulative_steps) |step| {
         if (step == first_step) {
             entry_words = words;
@@ -78,7 +82,7 @@ pub fn validateSegment(
             try std.testing.expectEqual(phase == 2, actual.is_store);
             if (phase != 2) try std.testing.expectEqual(registers[6], actual.rd_val);
             if (phase != 1) {
-                try std.testing.expectEqual(fixture.recursion_memory_base + @as(u32, @intCast(4 * index)), actual.mem_addr);
+                try std.testing.expectEqual(fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index)), actual.mem_addr);
                 try std.testing.expectEqual(registers[6], actual.mem_val);
                 try std.testing.expectEqual(before, actual.mem_prev_word);
                 try std.testing.expectEqual(words[index], actual.mem_next_word);
@@ -90,21 +94,42 @@ pub fn validateSegment(
     try std.testing.expectEqualSlices(u32, &registers, &result.exit_cpu.regs);
     try std.testing.expectEqual(@as(u32, @intCast(0x1000 + 4 * cumulative_steps)), result.exit_cpu.pc);
     var found: [16]bool = @splat(false);
+    var entry_nonzero: usize = 0;
+    var exit_nonzero: usize = 0;
     for (result.rw_memory.words) |word| {
-        if (word.addr < fixture.recursion_memory_base or word.addr >= fixture.recursion_memory_base + 64) continue;
+        if (word.initial_word != 0) entry_nonzero += 1;
+        if (word.final_word != 0) exit_nonzero += 1;
+        if (word.addr < fixture.recursion_memory_base or word.addr >= fixture.recursion_memory_base + 16 * fixture.recursion_memory_stride) continue;
         try std.testing.expectEqual(@as(u32, 0), word.addr % 4);
-        const index = (word.addr - fixture.recursion_memory_base) / 4;
+        const offset = word.addr - fixture.recursion_memory_base;
+        if (offset % fixture.recursion_memory_stride != 0) {
+            // Loaded but untouched zero words remain absent from the sparse
+            // opening. A write between selected addresses is a fixture bug.
+            try std.testing.expectEqual(@as(u32, 0), word.initial_word);
+            try std.testing.expectEqual(@as(u32, 0), word.final_word);
+            continue;
+        }
+        const index = offset / fixture.recursion_memory_stride;
         try std.testing.expect(!found[index]);
         found[index] = true;
         try std.testing.expectEqual(entry_words[index], word.initial_word);
         try std.testing.expectEqual(words[index], word.final_word);
     }
     for (touched, found) |accessed, present| if (accessed) try std.testing.expect(present);
+    var expected_entry_nonzero: usize = 0;
+    var expected_exit_nonzero: usize = 0;
+    for (entry_words, words) |before, after| {
+        if (before != 0) expected_entry_nonzero += 1;
+        if (after != 0) expected_exit_nonzero += 1;
+    }
+    try std.testing.expectEqual(expected_entry_nonzero, entry_nonzero);
+    try std.testing.expectEqual(expected_exit_nonzero, exit_nonzero);
     if (first_step == 0) try std.testing.expectEqual(address_count, std.mem.count(bool, &touched, &.{true}));
     std.debug.print(
         "SEGMENT_V2_MEMORY_EXECUTION address_count={d} segment_cycles={d} cumulative_cycles={d} " ++
-            "loads={d} stores={d} distinct_accessed={d} exit_pc={x}\n",
-        .{ address_count, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), result.exit_cpu.pc },
+            "loads={d} stores={d} distinct_accessed={d} stride_bytes={d} " ++
+            "entry_nonzero_words={d} exit_nonzero_words={d} exit_pc={x}\n",
+        .{ address_count, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), fixture.recursion_memory_stride, entry_nonzero, exit_nonzero, result.exit_cpu.pc },
     );
 }
 
@@ -124,6 +149,12 @@ pub fn checkWorkload(allocator: std.mem.Allocator) !void {
             const original = first.base.execution_trace.rows.items[2].mem_val;
             defer first.base.execution_trace.rows.items[2].mem_val = original;
             first.base.execution_trace.rows.items[2].mem_val ^= 1;
+            try std.testing.expectError(error.TestExpectedEqual, validateSegment(&first.base, address_count, native_steps, native_steps));
+        }
+        {
+            const original = first.base.execution_trace.rows.items[2].mem_addr;
+            defer first.base.execution_trace.rows.items[2].mem_addr = original;
+            first.base.execution_trace.rows.items[2].mem_addr += 4;
             try std.testing.expectError(error.TestExpectedEqual, validateSegment(&first.base, address_count, native_steps, native_steps));
         }
         for (first.base.rw_memory.words) |*word| {

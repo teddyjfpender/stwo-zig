@@ -271,12 +271,17 @@ pub fn buildRecursionLoop() [imageSize(recursion_loop_instructions.len, poseidon
 
 pub const recursion_memory_address_counts = [_]usize{ 1, 4, 16 };
 pub const recursion_memory_base: u32 = 0x0010_0100;
+pub const recursion_memory_stride: u32 = 128;
 pub const recursion_memory_updates: usize = 32;
 pub const recursion_memory_elf_size = imageSize(3 + 3 * recursion_memory_updates, poseidon_data_size);
 
 /// Same-size memory workload: only load/store immediates vary with the admitted
 /// address count. The 64-cycle boundary falls between an increment and its
 /// store; a further 16 cycles complete that store and five more updates.
+/// Initially zero words do not populate the V2 sparse boundary. Spacing the
+/// updated words exposes distinct Merkle paths instead of changing values in
+/// an already populated contiguous boundary. The largest offset is 1920,
+/// within the signed 12-bit load/store immediate and the runner's RW range.
 pub fn buildRecursionMemory(address_count: usize) error{InvalidMemoryAddressCount}![recursion_memory_elf_size]u8 {
     switch (address_count) {
         1, 4, 16 => {},
@@ -286,15 +291,17 @@ pub fn buildRecursionMemory(address_count: usize) error{InvalidMemoryAddressCoun
     instructions[0] = 0x0010_02b7; // LUI x5, 0x100.
     instructions[1] = 0x1002_8293; // ADDI x5, x5, 0x100.
     for (0..recursion_memory_updates) |index| {
-        const offset: u32 = @intCast(4 * (index % address_count));
+        const offset: u32 = recursion_memory_stride * @as(u32, @intCast(index % address_count));
         instructions[2 + 3 * index] = (offset << 20) | 0x0002_a303; // LW x6, offset(x5).
         instructions[3 + 3 * index] = 0x0013_0313; // ADDI x6, x6, 1.
         instructions[4 + 3 * index] = ((offset >> 5) << 25) |
             ((offset & 31) << 7) | 0x0062_a023; // SW x6, offset(x5).
     }
     instructions[instructions.len - 1] = 0x0000_006f;
-    // Canonical buildProgram initializes the sixteen data words to 0..15.
-    return buildProgram(instructions.len, &instructions, poseidon_data_size, .rv32im_zkvm_poseidon2_v1);
+    var elf = buildProgram(instructions.len, &instructions, poseidon_data_size, .rv32im_zkvm_poseidon2_v1);
+    const data_offset = program_offset + instructions.len * @sizeOf(u32);
+    @memset(elf[data_offset..][0..poseidon_data_size], 0);
+    return elf;
 }
 
 /// A straight-line production witness containing at least one retirement from

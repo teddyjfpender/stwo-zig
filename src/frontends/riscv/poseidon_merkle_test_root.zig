@@ -8,6 +8,7 @@ const m31 = @import("stwo_core").fields.m31;
 const M31 = m31.M31;
 const channel = @import("recursion/poseidon2_channel.zig");
 const merkle = @import("stwo_prover_engine").vcs_lifted.prover;
+const work_pool = @import("stwo_prover_engine").work_pool;
 
 /// Deliberately exposes only the scalar contract: optional SIMD hooks must
 /// never silently turn the reference into the optimized implementation.
@@ -62,7 +63,7 @@ fn stream(comptime Tree: type, columns: []const Tree.ColumnRef, chunk: usize) !T
 }
 
 test "recursion Poseidon2: complete mixed-domain trees match scalar layers across streaming groups" {
-    var storage: [15][1024]M31 = undefined;
+    var storage: [15][4096]M31 = undefined;
     var random = std.Random.DefaultPrng.init(0x5ca1_a4e2);
     for (&storage, 0..) |*column, column_index| for (column, 0..) |*value, row| {
         value.* = M31.fromCanonical(switch ((column_index + row) % 7) {
@@ -72,11 +73,11 @@ test "recursion Poseidon2: complete mixed-domain trees match scalar layers acros
             else => random.random().int(u32) % m31.Modulus,
         });
     };
-    for ([_]u32{ 1, 3, 10 }) |maximum_log| {
+    for ([_]u32{ 1, 3, 10, 12 }) |maximum_log| {
         var columns: [storage.len][]const M31 = undefined;
         var references: [storage.len]OptimizedTree.ColumnRef = undefined;
         for (&columns, &references, &storage, 0..) |*column, *reference, *values, index| {
-            const log = @min(maximum_log, @as(u32, if (index < 3) 1 else if (index < 8) 3 else 10));
+            const log = @min(maximum_log, @as(u32, if (index < 3) 1 else if (index < 8) 3 else 12));
             column.* = values[0 .. @as(usize, 1) << @intCast(log)];
             reference.* = .{ .values = column.*, .log_size = log, .original_index = index };
         }
@@ -94,6 +95,28 @@ test "recursion Poseidon2: complete mixed-domain trees match scalar layers acros
             defer optimized_stream.deinit(std.testing.allocator);
             try expectLayers(scalar, scalar_stream);
             try expectLayers(scalar, optimized_stream);
+        }
+        if (maximum_log == 12 and !@import("builtin").single_threaded) {
+            // 4096 rows admit three workers. Generic updates divide them
+            // into 1365/1365/1366 rows; finalization uses 1366/1366/1364.
+            // Both schedules exercise SIMD groups and scalar tails at
+            // non-four-aligned worker boundaries, after partial-state lifts.
+            var pool: work_pool.WorkPool = undefined;
+            try pool.initInPlaceWithOptions(.{ .worker_count = 3 });
+            defer pool.deinit();
+            var binding = try work_pool.ScopedPoolBinding.init(&pool);
+            defer binding.deinit();
+            try std.testing.expect(work_pool.getGlobalPool() == &pool);
+            try std.testing.expectEqual(@as(usize, 3), pool.workerCount());
+
+            var parallel = try OptimizedTree.testing.commitWithWorkerOverride(std.testing.allocator, &columns, 3);
+            defer parallel.deinit(std.testing.allocator);
+            try expectLayers(scalar, parallel);
+            for ([_]usize{ 2, 5 }) |chunk| {
+                var parallel_stream = try stream(OptimizedTree, &references, chunk);
+                defer parallel_stream.deinit(std.testing.allocator);
+                try expectLayers(scalar, parallel_stream);
+            }
         }
     }
 }

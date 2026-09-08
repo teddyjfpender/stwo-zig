@@ -66,7 +66,10 @@ invoking worktree; retain the corresponding build log/source receipt to bind an
 older binary to its build source.
 
 For the separate memory ladder, select `--memory --sizes 1 4 16`. The runner uses
-64 instructions in every case while varying distinct word addresses touched.
+64 instructions in every case while varying 1/4/16 distinct word addresses,
+initially zero and spaced 128 bytes apart. The ELF length stays fixed. This
+changes sparse memory paths as addresses increase; initializing the same
+contiguous words in every case would conceal that cost.
 It independently checks each load/store and final state, including a store
 pending across the 16-cycle continuation. `--check-memory-workload` runs those
 execution and corruption checks without proving.
