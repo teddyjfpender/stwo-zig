@@ -7,9 +7,7 @@
 const logup = @import("../air/logup.zig");
 const ethereum_statement =
     @import("../air/guest_precompile/ethereum_statement.zig");
-const keccak_direct = @import("../air/guest_precompile/keccakf_direct.zig");
-const keccak_interaction =
-    @import("../air/guest_precompile/keccakf_interaction_plan.zig");
+const keccak_row = @import("../air/guest_precompile/keccakf_row.zig");
 const keccak_relations =
     @import("../air/guest_precompile/keccakf_relations.zig");
 const keccak_table =
@@ -139,8 +137,8 @@ fn recordKeccak(
 ) !void {
     const instruction_before = result.instruction_count;
     if (component.kind != .keccak_shard_v1 or
-        component.direct_constraint_count != keccak_direct.constraint_count or
-        component.interaction_batch_count != keccak_interaction.batch_count)
+        component.direct_constraint_count != keccak_row.direct_constraint_count or
+        component.interaction_batch_count != keccak_row.interaction_constraint_count)
     {
         return error.InvalidComponentGeometry;
     }
@@ -194,47 +192,56 @@ fn recordKeccak(
         .randomness = randomness,
         .denominator = denominator,
     };
-    try keccak_direct.evaluateGeneric(
-        Scalar,
-        &main,
-        &previous_io,
-        &minus_two,
-        &minus_one,
-        &plus_one,
-        &plus_two,
-        &selectors,
-        second_active,
-        &sink,
-    );
-    const pairs = try keccak_interaction.rowPairsGeneric(
-        Scalar,
-        &main,
-        &plus_one,
-        &plus_twenty_seven,
-        &selectors,
-        relations,
-    );
-    const is_first = try layout.atExtension(
-        0,
-        pp + keccak_trace.Layout.is_first,
-        0,
-    );
-    try appendPairs(
-        pairs,
-        interaction_offset,
-        is_first,
-        layout,
-        claims,
-        randomness,
-        denominator,
-        result,
-    );
+    const reader = KeccakInteractionReader{
+        .layout = layout,
+        .preprocessed_offset = pp,
+        .interaction_offset = interaction_offset,
+        .claims = claims,
+        .claim_start = result.claim_count,
+    };
+    try keccak_row.evaluateGeneric(Scalar, .{
+        .main = &main,
+        .previous_io = &previous_io,
+        .state_minus_two = &minus_two,
+        .state_minus_one = &minus_one,
+        .state_plus_one = &plus_one,
+        .state_plus_two = &plus_two,
+        .state_plus_twenty_seven = &plus_twenty_seven,
+        .selectors = &selectors,
+        .second_active = second_active,
+    }, relations, &reader, &sink);
+    result.claim_count += @intCast(keccak_row.interaction_constraint_count);
     const expected = component.direct_constraint_count +
         component.interaction_batch_count;
     if (result.instruction_count - instruction_before != expected)
         return error.InvalidInstructionCount;
     support.diagnosticCheckpoint("ethereum", @intFromEnum(component.kind), result.instruction_count, result.accumulation);
 }
+
+const KeccakInteractionReader = struct {
+    layout: *const SampleLayout,
+    preprocessed_offset: usize,
+    interaction_offset: usize,
+    claims: []const Scalar,
+    claim_start: usize,
+
+    pub fn begin(self: *const @This()) !Scalar {
+        const is_first = try self.layout.atExtension(
+            0,
+            self.preprocessed_offset + keccak_trace.Layout.is_first,
+            0,
+        );
+        if (self.claim_start + keccak_row.interaction_constraint_count > self.claims.len)
+            return error.InvalidClaimCount;
+        return is_first;
+    }
+
+    pub fn at(self: *const @This(), batch: usize) !keccak_row.Batch(Scalar) {
+        const current = try self.layout.sampledExtensionSecure(self.interaction_offset + 4 * batch, 0);
+        const previous = try self.layout.sampledExtensionSecure(self.interaction_offset + 4 * batch, -1);
+        return .{ .current = current, .previous = previous, .claimed = self.claims[self.claim_start + batch] };
+    }
+};
 
 fn recordKeccakTable(
     kind: keccak_tables.Kind,

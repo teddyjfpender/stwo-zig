@@ -3,9 +3,7 @@ const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const affine = @import("../air/guest_precompile/secp256k1_affine.zig");
-const keccak_direct = @import("../air/guest_precompile/keccakf_direct.zig");
-const keccak_interaction =
-    @import("../air/guest_precompile/keccakf_interaction_plan.zig");
+const keccak_row = @import("../air/guest_precompile/keccakf_row.zig");
 const keccak_relations =
     @import("../air/guest_precompile/keccakf_relations.zig");
 const keccak_table =
@@ -233,27 +231,40 @@ test "Ethereum extension evaluators replay over the canonical recording scalar" 
     var selectors = [_]circuit.Scalar{circuit.Scalar.zero()} **
         keccak_witness.row_count;
     var sink = CountingSink{};
-    try keccak_direct.evaluateGeneric(
-        circuit.Scalar,
-        &main,
-        &previous_io,
-        &state,
-        &state,
-        &state,
-        &state,
-        &selectors,
-        circuit.Scalar.zero(),
-        &sink,
-    );
-    try std.testing.expectEqual(keccak_direct.constraint_count, sink.count);
-    _ = try keccak_interaction.rowPairsGeneric(
-        circuit.Scalar,
-        &main,
-        &state,
-        &state,
-        &selectors,
-        &relations.keccak,
-    );
+    const Reader = struct {
+        begin_count: usize = 0,
+        batch_count: usize = 0,
+
+        pub fn begin(self: *@This()) error{}!circuit.Scalar {
+            self.begin_count += 1;
+            return circuit.Scalar.zero();
+        }
+
+        pub fn at(self: *@This(), batch: usize) error{}!keccak_row.Batch(circuit.Scalar) {
+            std.debug.assert(batch == self.batch_count);
+            self.batch_count += 1;
+            return .{
+                .current = circuit.Scalar.zero(),
+                .previous = circuit.Scalar.zero(),
+                .claimed = circuit.Scalar.zero(),
+            };
+        }
+    };
+    var reader: Reader = .{};
+    try keccak_row.evaluateGeneric(circuit.Scalar, .{
+        .main = &main,
+        .previous_io = &previous_io,
+        .state_minus_two = &state,
+        .state_minus_one = &state,
+        .state_plus_one = &state,
+        .state_plus_two = &state,
+        .state_plus_twenty_seven = &state,
+        .selectors = &selectors,
+        .second_active = circuit.Scalar.zero(),
+    }, &relations.keccak, &reader, &sink);
+    try std.testing.expectEqual(keccak_row.constraint_count, sink.count);
+    try std.testing.expectEqual(@as(usize, 1), reader.begin_count);
+    try std.testing.expectEqual(keccak_row.interaction_constraint_count, reader.batch_count);
     const tuple = [_]circuit.Scalar{circuit.Scalar.zero()} **
         keccak_tables.arity;
     inline for (.{ keccak_tables.Kind.chi, keccak_tables.Kind.xor5 }) |kind| {

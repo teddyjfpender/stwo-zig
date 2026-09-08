@@ -25,23 +25,6 @@ pub const interaction_column_count: usize = 4 * batch_count;
 
 pub const Error = error{InvalidTraceShape};
 
-pub fn rowPairs(
-    main: []const QM31,
-    next_state: []const QM31,
-    caller_output_state: []const QM31,
-    selectors: []const QM31,
-    relations: *const relations_mod.Relations,
-) Error![batch_count]logup.RowPair {
-    return rowPairsGeneric(
-        QM31,
-        main,
-        next_state,
-        caller_output_state,
-        selectors,
-        relations,
-    );
-}
-
 pub fn rowPairsBase(
     main: []const M31,
     next_state: []const M31,
@@ -59,8 +42,8 @@ pub fn rowPairsBase(
     );
 }
 
-/// Typed compiler entry. Native wrappers above retain their exact public API;
-/// recursive compilation supplies the same rows and graph relations.
+/// Shared native and recursive tuple construction. The base-field witness
+/// adapter above supplies the same row schema as recursive recording.
 pub fn rowPairsGeneric(
     comptime S: type,
     main: []const S,

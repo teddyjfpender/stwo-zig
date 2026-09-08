@@ -38,6 +38,7 @@
 //! always collected.
 
 test {
+    _ = @import("air/guest_precompile/keccakf_row.zig");
     // Package root.
     _ = @import("access_clock.zig");
     _ = @import("air_semantics_test_root.zig");

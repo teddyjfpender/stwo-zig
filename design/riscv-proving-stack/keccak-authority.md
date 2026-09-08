@@ -21,6 +21,18 @@ Paths below are relative to `src/frontends/riscv/` unless otherwise specified.
 
 Domain versus point sampling, denominator construction, and accumulator sinks are legitimately different backends for the same formula. Keeping those adapters does not imply maintaining separate AIR semantics.
 
+## Row-order consolidation
+
+`keccakf_row.zig.evaluateGeneric` now owns the complete ordered row. Native
+point/domain and recursive recording consume it; their previous duplicate
+orchestration loops were removed. Sample access remains with the consumer.
+Lazy interaction readers preserve recording order and failure precedence.
+The existing scalar regression compares every one of7,215 values/degrees;
+the recursive test records the same evaluator and checks its ordered reads.
+The focused program gate also cold-compiles the active Ethereum verifier and
+rejects a mutated compiler program. Complete Keccak serialization/destruction/
+fresh verification passes. No lane evaluator or performance promotion is claimed.
+
 ## SIMD and GPU boundary
 
 For SIMD, retain the existing prepared input owner and row-index geometry. Pack independent evaluation rows; use the same direct evaluator and lookup/pair-constraint authority with a lane scalar and secure lane scalar. Preserve all off-domain rows: active selectors do not authorize skipping padded constraint evaluations at arbitrary evaluation points. Preserve canonical random-power indexing and per-row quotient denominators. `InteractionScalar(S)`, `lift`, `denominator`, and `mulSmall` currently specialize M31/QM31 and use a recording-scalar fallback; SIMD support must extend those shared scalar adapters explicitly, not copy `rowPairsGeneric` into a vector-only implementation. The typed field implementation supplies arithmetic; the frontend supplies formulas.
@@ -31,7 +43,7 @@ There is a concrete ABI limitation: current `BasePolynomialCapabilityV1` exposes
 
 ## Concrete cleanup associated with the working replacement
 
-1. **Remove repeated full-row orchestration, not the generic formulas.** Native point evaluation (`keccakf_component.zig:295`) and domain evaluation (`:641`) separately call direct constraints, construct lookup pairs, and append them in the same order; recursive recording repeats that ordering in `ethereum_vm_composition_graph_extension_v2.zig:196`. A small shared row evaluator/ordered sink seam can consume sampled inputs and emit direct constraints then LogUp transitions. Move all active callers together after point/domain/recording parity gates. Do not add a fourth independent loop for SIMD and leave three authoritative orders behind.
+1. **Completed: shared full-row orchestration.** The original finding was: Native point evaluation (`keccakf_component.zig:295`) and domain evaluation (`:641`) separately call direct constraints, construct lookup pairs, and append them in the same order; recursive recording repeats that ordering in `ethereum_vm_composition_graph_extension_v2.zig:196`. A small shared row evaluator/ordered sink seam can consume sampled inputs and emit direct constraints then LogUp transitions. Move all active callers together after point/domain/recording parity gates. Do not add a fourth independent loop for SIMD and leave three authoritative orders behind.
 2. **Consolidate mask projection.** The offset array is shared, but `samplePoint` hardcodes sample ordinals 1–5, domain preparation hardcodes the six shift computations, and recursive recording names those offsets separately. Consume one named offset/projection table across those samplers when touching them. Keep native and recursive geometry tests proving exact positions, not just sample counts.
 3. **Fix an actual stale description.** `keccakf_direct.zig` says 6,043 roots in its header; its compile-time check pins 6,174. The log 16 shard description in `keccakf_trace.zig` should state that it describes the legacy ceiling; the admitted Ethereum profile is log 18. These are documentation corrections, not authority changes.
 4. **Keep genuine alternatives out of production ownership.** `keccakf_adaptive_profile_v1.zig` explicitly says non-production, and the throughput/xor-throughput plans intentionally change lookup interpretation. They are candidate experiments, not equivalent dead copies of the active compact AIR. No unused active Keccak proof route was established by this review. Do not delete them as a supposed correctness repair or silently promote them. If a later selected replacement supersedes an active loop, remove that loop in the same proof-gated change.

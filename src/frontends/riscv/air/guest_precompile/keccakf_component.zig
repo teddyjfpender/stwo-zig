@@ -17,7 +17,7 @@ const prepared_domain = prover_engine.air.prepared_domain;
 const prover_task_graph = prover_engine.task_graph;
 const prover_poly = prover_engine.poly.circle.poly;
 const prover_twiddles = prover_engine.poly.twiddles;
-const direct = @import("keccakf_direct.zig");
+const row_evaluation = @import("keccakf_row.zig");
 const interaction = @import("keccakf_interaction_plan.zig");
 const relations_mod = @import("keccakf_relations.zig");
 const trace_mod = @import("keccakf_trace.zig");
@@ -33,8 +33,8 @@ pub const STATE_MASK_OFFSETS = [_]isize{ 0, -2, -1, 1, 2, 27 };
 pub const preprocessed_column_count = trace_mod.Layout.preprocessed_columns;
 pub const main_column_count = trace_mod.Layout.main_columns;
 pub const interaction_column_count = interaction.interaction_column_count;
-pub const direct_constraint_count = direct.constraint_count;
-pub const interaction_constraint_count = interaction.batch_count;
+pub const direct_constraint_count = row_evaluation.direct_constraint_count;
+pub const interaction_constraint_count = row_evaluation.interaction_constraint_count;
 pub const constraint_count = direct_constraint_count + interaction_constraint_count;
 pub const prepared_row_stack_bytes: usize = 512 * 1024;
 const prepared_source_count = preprocessed_column_count + main_column_count +
@@ -296,32 +296,18 @@ pub const KeccakShardComponent = struct {
             .accumulator = accumulator,
             .denominator_inv = denominator_inv,
         };
-        try direct.evaluateGeneric(
-            QM31,
-            &sampled.main,
-            &sampled.previous_io,
-            &sampled.state_minus_two,
-            &sampled.state_minus_one,
-            &sampled.state_plus_one,
-            &sampled.state_plus_two,
-            &sampled.selectors,
-            sampled.second_active,
-            &sink,
-        );
-        const pairs = try interaction.rowPairs(
-            &sampled.main,
-            &sampled.state_plus_one,
-            &sampled.state_plus_twenty_seven,
-            &sampled.selectors,
-            self.relations,
-        );
-        for (pairs, 0..) |pair, batch| sink.add(logup.pairConstraint(
-            sampled.current_sums[batch],
-            sampled.previous_sums[batch],
-            sampled.is_first,
-            self.claim.batch_sums[batch],
-            pair,
-        ), 3);
+        const reader = PointInteractionReader{ .sampled = &sampled, .claim = &self.claim };
+        try row_evaluation.evaluateGeneric(QM31, .{
+            .main = &sampled.main,
+            .previous_io = &sampled.previous_io,
+            .state_minus_two = &sampled.state_minus_two,
+            .state_minus_one = &sampled.state_minus_one,
+            .state_plus_one = &sampled.state_plus_one,
+            .state_plus_two = &sampled.state_plus_two,
+            .state_plus_twenty_seven = &sampled.state_plus_twenty_seven,
+            .selectors = &sampled.selectors,
+            .second_active = sampled.second_active,
+        }, self.relations, &reader, &sink);
     }
 
     pub fn evaluateConstraintQuotientsOnDomain(
@@ -534,6 +520,44 @@ fn samplePoint(
     return result;
 }
 
+const PointInteractionReader = struct {
+    sampled: *const PointSample,
+    claim: *const Claim,
+
+    pub fn begin(self: *const @This()) error{}!QM31 {
+        return self.sampled.is_first;
+    }
+
+    pub fn at(self: *const @This(), batch: usize) error{}!row_evaluation.Batch(QM31) {
+        return .{
+            .current = self.sampled.current_sums[batch],
+            .previous = self.sampled.previous_sums[batch],
+            .claimed = self.claim.batch_sums[batch],
+        };
+    }
+};
+
+const DomainInteractionReader = struct {
+    evaluations: []const []const M31,
+    interaction_start: usize,
+    row: usize,
+    previous_row: usize,
+    claim: *const Claim,
+
+    pub fn begin(self: *const @This()) error{}!QM31 {
+        return QM31.fromBase(self.evaluations[trace_mod.Layout.is_first][self.row]);
+    }
+
+    pub fn at(self: *const @This(), batch: usize) error{}!row_evaluation.Batch(QM31) {
+        const offset = self.interaction_start + 4 * batch;
+        return .{
+            .current = secureAt(self.evaluations, offset, self.row),
+            .previous = secureAt(self.evaluations, offset, self.previous_row),
+            .claimed = self.claim.batch_sums[batch],
+        };
+    }
+};
+
 const PointSink = struct {
     accumulator: *core_air_accumulation.PointEvaluationAccumulator,
     denominator_inv: QM31,
@@ -637,36 +661,24 @@ const PreparedDomainState = struct {
             ][row];
             const second_active = self.evaluations[trace_mod.Layout.second_active][row];
             var sink = FoldSink{ .powers = powers };
-            try direct.evaluateGeneric(
-                M31,
-                &main,
-                &previous_io,
-                &minus_two,
-                &minus_one,
-                &plus_one,
-                &plus_two,
-                &selectors,
-                second_active,
-                &sink,
-            );
-            const pairs = try interaction.rowPairsBase(
-                &main,
-                &plus_one,
-                &plus_twenty_seven,
-                &selectors,
-                self.component.relations,
-            );
-            const is_first = QM31.fromBase(self.evaluations[trace_mod.Layout.is_first][row]);
-            for (pairs, 0..) |pair, batch| {
-                const offset = interaction_start + 4 * batch;
-                sink.add(logup.pairConstraint(
-                    secureAt(&self.evaluations, offset, row),
-                    secureAt(&self.evaluations, offset, previous_row),
-                    is_first,
-                    self.component.claim.batch_sums[batch],
-                    pair,
-                ), 3);
-            }
+            const reader = DomainInteractionReader{
+                .evaluations = &self.evaluations,
+                .interaction_start = interaction_start,
+                .row = row,
+                .previous_row = previous_row,
+                .claim = &self.component.claim,
+            };
+            try row_evaluation.evaluateGeneric(M31, .{
+                .main = &main,
+                .previous_io = &previous_io,
+                .state_minus_two = &minus_two,
+                .state_minus_one = &minus_one,
+                .state_plus_one = &plus_one,
+                .state_plus_two = &plus_two,
+                .state_plus_twenty_seven = &plus_twenty_seven,
+                .selectors = &selectors,
+                .second_active = second_active,
+            }, self.component.relations, &reader, &sink);
             std.debug.assert(sink.index == constraint_count);
             self.column_accumulator.accumulate(
                 row,

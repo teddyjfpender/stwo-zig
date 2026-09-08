@@ -140,6 +140,18 @@ pub fn build(b: *std.Build) void {
         .minimum = 4,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-vm-composition-program",
+        .description = "Check the recording scalar, production masks and active Ethereum verifier program",
+        .root = "vm_air_profile_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{
+            "Ethereum extension evaluators replay over the canonical recording scalar",
+            "Ethereum extension mask geometry is derived from production vtables",
+            "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program",
+        },
+        .minimum = 5, // Three named checks plus two import-discovery tests.
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-vm-air-profile-v2",
         .description = "Test physical VM profile and composition-program authority",
         .root = "vm_air_profile_v2_test_root.zig",
@@ -648,6 +660,14 @@ pub fn build(b: *std.Build) void {
         .description = "Run the nonproduction fixed64 SHA-256 pair AIR and caller tests",
         .root = "sha256_pair_candidate_test_root.zig",
         .minimum = 8,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-keccakf-row",
+        .description = "Run only the shared Keccak row scalar parity and lazy-error regression",
+        .root = "keccakf_precompile_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"Keccak shared row preserves scalar constraint values degrees and lazy errors"},
+        .minimum = 2, // One named check plus the unnamed import root.
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-keccakf-precompile",
