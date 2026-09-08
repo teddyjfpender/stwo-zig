@@ -29,15 +29,15 @@ proof_evidence=vectors/reports/riscv-proving-stack-reset-20260908/small-detached
 proof_output=.git/local-riscv-proving-stack/detached-cpu-example
 python3 scripts/riscv_segment_v2_detached_gate.py \
   --producer "$proof_bins/recursive-segment-v2-concrete-outer-proof" \
-  --native-backend cpu \
+  --native-backend cpu --initial-memory-word 13 \
   --verifier "$proof_bins/recursive-segment-v2-detached-verify" \
   --bundle "$proof_output/child-0" \
-  --key-sha256 c1556938a2768d2116c284a4273be040c8fbdc66ba5780be15ade143f0b1df64 \
-  --expected-wire "$proof_evidence/two-child-cpu-1/child-0/expected-wire.json" \
-  --other-expected-wire "$proof_evidence/two-child-cpu-1/child-1/expected-wire.json" \
+  --key-sha256 a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa \
+  --expected-wire "$proof_evidence/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json" \
+  --other-expected-wire "$proof_evidence/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json" \
   --adjacent-bundle "$proof_output/child-1" \
-  --adjacent-key-sha256 e540a453f1edfd492ae431b6198a098c41fbbc60524bc8afddb0612920fb063e \
-  --adjacent-expected-wire "$proof_evidence/two-child-cpu-1/child-1/expected-wire.json" \
+  --adjacent-key-sha256 02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517 \
+  --adjacent-expected-wire "$proof_evidence/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json" \
   --output "$proof_output.json"
 ```
 
@@ -45,6 +45,10 @@ Choose a new output path for each run. Key pins and expected statements above
 come from independently retained admission for this exact fixture; the command
 never trusts newly produced admission files. A circuit change must be admitted
 separately before replacing these pins.
+
+The current command uses reviewed seed13 admission after dynamic memory ranges
+and selectors were added. Seeds13/14/269 have fresh CPU proof evidence under
+the same per-child keys; arbitrary address topology is a separate admission.
 
 For Metal, build the same producer target under `src/integrations/riscv_metal`,
 use that directory's installed producer with `--native-backend metal`, and add

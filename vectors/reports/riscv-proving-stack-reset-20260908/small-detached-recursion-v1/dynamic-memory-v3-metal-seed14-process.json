@@ -1,0 +1,92 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-metal-producer",
+    "--memory-addresses",
+    "1",
+    "--initial-memory-word",
+    "14",
+    "--two-segment-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-metal-seed14",
+    "--native-backend",
+    "metal",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+    "--aot-manifest-sha256",
+    "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+    "--child-0-key",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0/key.json",
+    "--child-0-key-sha256",
+    "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+    "--child-1-key",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1/key.json",
+    "--child-1-key-sha256",
+    "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+  ],
+  "binary": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-metal-producer",
+    "sha256": "a386533d1121b9be101389ece6c222ec168f4f640b8d250fdf16fc93a03d0c9b"
+  },
+  "source_manifest_sha256": "00dc9a6be083a9496a8cea065e3bfcdb5ce770b9e5ce260cc5177cf02f32d699",
+  "aot_manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+  "review_sha256": "24dc769a6e029409f83256145add39f7d1873508f784576064fa0b418054f02a",
+  "cpu_acceptance_sha256": "0dc95cb33f872f8edf1aa00948059a7fa00b155e371cbb44602b111859190cf2",
+  "exit_code": 0,
+  "process_ns": 5998811084,
+  "status": "candidate_pending_fresh_verification",
+  "children": [
+    {
+      "index": 0,
+      "same_admitted_cpu_key": true,
+      "same_reviewed_expected_wire": true,
+      "files": {
+        "claims.json": {
+          "bytes": 4116,
+          "sha256": "44a6885abc5d726e329f5fa5d3290a7b93b93e14d30c21a7000c64a3addbc104",
+          "identical_cpu_bytes": true
+        },
+        "expected-wire.json": {
+          "bytes": 3028,
+          "sha256": "d9dda7e8f9fe4e1dfd1fc76aea11caa2a90858960ef1080d766231b0b3a505d0",
+          "identical_cpu_bytes": true
+        },
+        "key.json": {
+          "bytes": 120578,
+          "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+          "identical_cpu_bytes": true
+        },
+        "proof.bin": {
+          "bytes": 93517,
+          "sha256": "9a3ff6117f1fa1f3556dc99e6829f6bef501548612e41f3e65c25534e2230a03",
+          "identical_cpu_bytes": true
+        }
+      }
+    },
+    {
+      "index": 1,
+      "same_admitted_cpu_key": true,
+      "same_reviewed_expected_wire": true,
+      "files": {
+        "claims.json": {
+          "bytes": 4123,
+          "sha256": "33c37140faa4bac62a12ab0abab53375fcc8768253b26442cb3dc3c6ed06311b",
+          "identical_cpu_bytes": true
+        },
+        "expected-wire.json": {
+          "bytes": 3058,
+          "sha256": "0842fb370151990478847030f32baf4b106fdd9e27a026805b48217e6bac996c",
+          "identical_cpu_bytes": true
+        },
+        "key.json": {
+          "bytes": 119280,
+          "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+          "identical_cpu_bytes": true
+        },
+        "proof.bin": {
+          "bytes": 91354,
+          "sha256": "cd59f9f96b34cf72e922517938944f1bde4dd8b7bdfdbcb677e454c19956d810",
+          "identical_cpu_bytes": true
+        }
+      }
+    }
+  ]
+}

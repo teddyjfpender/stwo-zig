@@ -148,6 +148,7 @@ pub fn deriveManifest(
     if (log_size >= 31) return error.InvalidManifest;
     var result = ManifestV2{
         .wire_word_count = wire_count,
+        .memory_byte_count = @intCast((try dependency_0.register_bytes.MemoryLayout.init(&view)).memoryByteCount()),
         .logical_row_count = logical_rows,
         .trace_log_size = log_size,
         .trace_row_count = @as(u32, 1) << @intCast(log_size),
@@ -237,9 +238,16 @@ pub fn wireRow(
 ) LogicalRowV2 {
     const value = view.words[index];
     const is_u16 = wireWordIsU16(view, index);
-    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
+    const memory = dependency_0.register_bytes.MemoryLayout.init(view) catch unreachable;
+    const memory_byte = memory.firstByteIndexForWireWord(index);
+    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
     std.debug.assert(register_byte == null or is_u16);
     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
+    const hint_recipe = @import("../air/lang/hint_recipe.zig");
+    var low_hint: [2]u32 = undefined;
+    var high_hint: [2]u32 = undefined;
+    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[0].toU32() else 0}, &low_hint) catch unreachable;
+    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[1].toU32() else 0}, &high_hint) catch unreachable;
     return .{
         .preprocessing = .{
             .row_mask = 1,
@@ -259,8 +267,11 @@ pub fn wireRow(
             .expected_header = 0,
             .boundary_bridge_mask = 1,
             .register_byte_bridge_mask = @intFromBool(register_byte != null),
-            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
-            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
+            .register_low_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte) else 0,
+            .register_high_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte + 1) else 0,
+            .memory_byte_bridge_mask = @intFromBool(memory_byte != null),
+            .memory_low_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte)) else 0,
+            .memory_high_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte + 1)) else 0,
         },
         .main = .{
             .enabler = M31.one(),
@@ -269,6 +280,10 @@ pub fn wireRow(
             .verifier_b = M31.zero(),
             .source_low_byte = bytes[0],
             .source_high_byte = bytes[1],
+            .memory_low_inverse = felt(low_hint[0]),
+            .memory_high_inverse = felt(high_hint[0]),
+            .memory_low_nonzero = felt(low_hint[1]),
+            .memory_high_nonzero = felt(high_hint[1]),
             .verifier_a_low_byte = M31.zero(),
             .verifier_a_high_byte = M31.zero(),
             .verifier_b_low_byte = M31.zero(),
@@ -397,6 +412,16 @@ pub fn writeEvents(
         event(logical_row, 8, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
             felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_high_byte_index),
             main.source_high_byte,                M31.zero(),
+            M31.zero(),                           M31.zero(),
+        }),
+        event(logical_row, 9, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
+            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_low_selector_index),
+            main.memory_low_nonzero,              M31.zero(),
+            M31.zero(),                           M31.zero(),
+        }),
+        event(logical_row, 10, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
+            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_high_selector_index),
+            main.memory_high_nonzero,             M31.zero(),
             M31.zero(),                           M31.zero(),
         }),
     };

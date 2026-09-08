@@ -77,6 +77,8 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     directory = args.bundle.resolve().parent
     argv = [str(producer), "--memory-addresses", "1", "--two-segment-output", str(directory),
             "--native-backend", args.native_backend]
+    if args.initial_memory_word:
+        argv += ["--initial-memory-word", str(args.initial_memory_word)]
     if args.native_backend == "metal":
         argv += ["--aot-bundle", str(args.aot_bundle.resolve()),
                  "--aot-manifest-sha256", args.aot_manifest_sha256]
@@ -125,9 +127,13 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--producer", type=Path, help="already-built shared two-segment producer")
     parser.add_argument("--native-backend", choices=("cpu", "metal"), default="cpu")
+    parser.add_argument("--initial-memory-word", type=lambda value: int(value, 0), default=0,
+                        help="unsigned initial word for the one-address memory fixture")
     parser.add_argument("--aot-bundle", type=Path)
     parser.add_argument("--aot-manifest-sha256")
     args = parser.parse_args()
+    if not 0 <= args.initial_memory_word <= 0xffffffff:
+        parser.error("initial memory word must fit in u32")
     adjacent_options = (args.adjacent_bundle, args.adjacent_key_sha256, args.adjacent_expected_wire)
     if any(adjacent_options) and not all(adjacent_options):
         parser.error("adjacent bundle, independent key pin and expected wire must be supplied together")
@@ -160,8 +166,8 @@ def main() -> None:
             parser.error("CPU production does not accept AOT options")
         if args.output.with_name(args.output.name + ".producer.log").exists():
             parser.error("producer log already exists; retain prior evidence")
-    elif args.native_backend != "cpu" or args.aot_bundle or args.aot_manifest_sha256:
-        parser.error("native backend and AOT options require --producer")
+    elif args.native_backend != "cpu" or args.aot_bundle or args.aot_manifest_sha256 or args.initial_memory_word:
+        parser.error("native backend, memory seed and AOT options require --producer")
     if args.output.exists():
         parser.error("output already exists; retain the prior result")
     args.output.parent.mkdir(parents=True, exist_ok=True)

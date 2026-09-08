@@ -45,23 +45,23 @@ pub const StatementSemanticsV2 = struct {
     /// Circuit 44 remains owned by the source-37 publication lane.
     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
 
-    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
-    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
+    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 14;
+    pub const PREPROCESSED_COLUMN_COUNT: usize = 22;
     pub const PARAMETER_COUNT: usize = 0;
     pub const LOGICAL_INPUT_COUNT: usize =
         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
-    pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
-    pub const RELATION_EVENT_COUNT: usize = 9;
+    pub const DIRECT_CONSTRAINT_COUNT: usize = 23;
+    pub const RELATION_EVENT_COUNT: usize = 11;
     pub const LOOKUP_BATCH_SIZE: u8 = 2;
-    pub const INTERACTION_BATCH_COUNT: usize = 5;
-    pub const INTERACTION_COLUMN_COUNT: usize = 20;
+    pub const INTERACTION_BATCH_COUNT: usize = 6;
+    pub const INTERACTION_COLUMN_COUNT: usize = 24;
     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
 
     // Regenerated from the typed IR by the focused source test. This value is
     // deliberately pinned before the component can be authenticated.
     pub const SEMANTIC_DIGEST_HEX =
-        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
+        "fc0993e7444aaa88049ec7f4ea083da00d5e6a8c7dbacd03641d0b1f8dfa10c9";
     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
         SEMANTIC_DIGEST_HEX,
         "invalid V2 statement-semantics digest",
@@ -78,6 +78,10 @@ pub const StatementSemanticsV2 = struct {
         "recursion.segment_leaf_v2.statement_semantics.verifier_a_high_byte",
         "recursion.segment_leaf_v2.statement_semantics.verifier_b_low_byte",
         "recursion.segment_leaf_v2.statement_semantics.verifier_b_high_byte",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero",
     };
     pub const PREPROCESSED_COLUMN_NAMES =
         [PREPROCESSED_COLUMN_COUNT][]const u8{
@@ -100,6 +104,9 @@ pub const StatementSemanticsV2 = struct {
             "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
             "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
             "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
+            "recursion_segment_leaf_v2_statement_semantics_memory_byte_bridge_mask",
+            "recursion_segment_leaf_v2_statement_semantics_memory_low_selector_index",
+            "recursion_segment_leaf_v2_statement_semantics_memory_high_selector_index",
         };
     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
@@ -117,6 +124,14 @@ pub const StatementSemanticsV2 = struct {
         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_a_high_byte_zero",
         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_low_byte_zero",
         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_high_byte_zero",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse_selector",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero_exact",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_zero_inverse",
+        "recursion.segment_leaf_v2.statement_semantics.memory_low_inactive_inverse",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse_selector",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero_exact",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_zero_inverse",
+        "recursion.segment_leaf_v2.statement_semantics.memory_high_inactive_inverse",
     };
 
     pub const MainColumns = struct {
@@ -130,6 +145,10 @@ pub const StatementSemanticsV2 = struct {
         verifier_a_high_byte: types.ValueId,
         verifier_b_low_byte: types.ValueId,
         verifier_b_high_byte: types.ValueId,
+        memory_low_inverse: types.ValueId,
+        memory_high_inverse: types.ValueId,
+        memory_low_nonzero: types.ValueId,
+        memory_high_nonzero: types.ValueId,
 
         pub fn physical(
             self: MainColumns,
@@ -145,6 +164,10 @@ pub const StatementSemanticsV2 = struct {
                 self.verifier_a_high_byte,
                 self.verifier_b_low_byte,
                 self.verifier_b_high_byte,
+                self.memory_low_inverse,
+                self.memory_high_inverse,
+                self.memory_low_nonzero,
+                self.memory_high_nonzero,
             };
         }
     };
@@ -169,6 +192,9 @@ pub const StatementSemanticsV2 = struct {
         register_byte_bridge_mask: types.ValueId,
         register_low_byte_index: types.ValueId,
         register_high_byte_index: types.ValueId,
+        memory_byte_bridge_mask: types.ValueId,
+        memory_low_selector_index: types.ValueId,
+        memory_high_selector_index: types.ValueId,
 
         pub fn physical(
             self: PreprocessedColumns,
@@ -193,6 +219,9 @@ pub const StatementSemanticsV2 = struct {
                 self.register_byte_bridge_mask,
                 self.register_low_byte_index,
                 self.register_high_byte_index,
+                self.memory_byte_bridge_mask,
+                self.memory_low_selector_index,
+                self.memory_high_selector_index,
             };
         }
     };
@@ -363,6 +392,10 @@ pub const StatementSemanticsV2 = struct {
             const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
             try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
             try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
+            const memory_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_low_selector_index, self.main.memory_low_nonzero, zero, zero, zero };
+            try validateEffect(&self.arena, self.events[9], 9, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_low_tuple);
+            const memory_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_high_selector_index, self.main.memory_high_nonzero, zero, zero, zero };
+            try validateEffect(&self.arena, self.events[10], 10, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_high_tuple);
         }
     };
 
@@ -404,7 +437,7 @@ pub const StatementSemanticsV2 = struct {
         for (&main_values, MAIN_COLUMN_NAMES, 0..) |*value, name, index|
             value.* = try arena.input(
                 name,
-                if (index == 0) .selector else if (index >= 4) .byte else .felt,
+                if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
                 span,
             );
         const main = MainColumns{
@@ -418,6 +451,10 @@ pub const StatementSemanticsV2 = struct {
             .verifier_a_high_byte = main_values[7],
             .verifier_b_low_byte = main_values[8],
             .verifier_b_high_byte = main_values[9],
+            .memory_low_inverse = main_values[10],
+            .memory_high_inverse = main_values[11],
+            .memory_low_nonzero = main_values[12],
+            .memory_high_nonzero = main_values[13],
         };
         var preprocessed_values: [PREPROCESSED_COLUMN_COUNT]types.ValueId = undefined;
         for (&preprocessed_values, PREPROCESSED_COLUMN_NAMES, 0..) |
@@ -426,7 +463,7 @@ pub const StatementSemanticsV2 = struct {
             index,
         | value.* = try arena.input(
             name,
-            if (index < 9 or index == 15 or index == 16) .selector else .felt,
+            if (index < 9 or index == 15 or index == 16 or index == 19) .selector else .felt,
             span,
         );
         const preprocessed = PreprocessedColumns{
@@ -449,6 +486,9 @@ pub const StatementSemanticsV2 = struct {
             .register_byte_bridge_mask = preprocessed_values[16],
             .register_low_byte_index = preprocessed_values[17],
             .register_high_byte_index = preprocessed_values[18],
+            .memory_byte_bridge_mask = preprocessed_values[19],
+            .memory_low_selector_index = preprocessed_values[20],
+            .memory_high_selector_index = preprocessed_values[21],
         };
         const one = try arena.constantField(1, span);
         const byte_radix = try arena.constantField(256, span);
@@ -515,6 +555,17 @@ pub const StatementSemanticsV2 = struct {
             try arena.mul(inactive_a_u16, main.verifier_a_high_byte, span),
             try arena.mul(inactive_b_u16, main.verifier_b_low_byte, span),
             try arena.mul(inactive_b_u16, main.verifier_b_high_byte, span),
+            // For mask=1 these force s=(byte!=0), with a canonical zero
+            // inverse. For mask=0 both extra cells vanish, while unrelated
+            // source bytes remain free. Every root stays quadratic.
+            try arena.sub(try arena.mul(main.source_low_byte, main.memory_low_inverse, span), main.memory_low_nonzero, span),
+            try arena.mul(main.source_low_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
+            try arena.mul(main.memory_low_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
+            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_low_inverse, span),
+            try arena.sub(try arena.mul(main.source_high_byte, main.memory_high_inverse, span), main.memory_high_nonzero, span),
+            try arena.mul(main.source_high_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
+            try arena.mul(main.memory_high_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
+            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_high_inverse, span),
         };
         var constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId = undefined;
         for (&constraints, roots, CONSTRAINT_NAMES) |*constraint, root, name|
@@ -567,9 +618,11 @@ pub const StatementSemanticsV2 = struct {
             zero,
         };
         // These are the existing range-checked u16 decomposition bytes; the
-        // admitted preprocessing selects only canonical register-limb rows.
+        // admitted preprocessing selects canonical register and sparse value limbs.
         const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
         const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
+        const memory_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_low_selector_index, main.memory_low_nonzero, zero, zero, zero };
+        const memory_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_high_selector_index, main.memory_high_nonzero, zero, zero, zero };
         const events = [RELATION_EVENT_COUNT]types.EffectId{
             try relation_effect.append(&arena, .{
                 .domain = .recursion_statement_word,
@@ -625,6 +678,8 @@ pub const StatementSemanticsV2 = struct {
                 .values = &register_high_tuple,
                 .weight = preprocessed.register_byte_bridge_mask,
             }, span),
+            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_low_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
+            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_high_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
         };
         return .{
             .arena = arena,
@@ -646,7 +701,7 @@ pub const StatementSemanticsV2 = struct {
             value,
             expected_name,
             index,
-            if (index == 0) .selector else if (index >= 4) .byte else .felt,
+            if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
         );
         for (
             definition.preprocessed.physical(),
@@ -657,7 +712,7 @@ pub const StatementSemanticsV2 = struct {
             value,
             expected_name,
             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
-            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
+            if (local_index < 9 or local_index == 15 or local_index == 16 or local_index == 19) .selector else .felt,
         );
     }
 };

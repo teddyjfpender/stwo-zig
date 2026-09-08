@@ -17,6 +17,7 @@ const verifier = integration.recursive_segment_v2_detached_verifier;
 const ProducerAllocator = integration.recursive_segment_v2_outer_engine.ProducerAllocator;
 
 pub const Options = struct {
+    initial_memory_word: u32 = 0,
     native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
     /// Each directory must be new. Neither child may overwrite prior evidence.
     child_directories: [2][]const u8,
@@ -48,6 +49,7 @@ pub const Receipt = struct {
     /// Canonical host admission only. No parent AIR/proof is constructed here.
     folded_statement: span.SpanStatement,
     address_count: usize,
+    initial_memory_word: u32,
     transaction_ns: u64,
 };
 
@@ -66,7 +68,7 @@ pub fn producePair(
         return error.InvalidTwoSegmentCandidateDirectories;
     try options.native_keys.validate();
     var timer = try std.time.Timer.start();
-    var pair = try workload.OwnedPair.init(allocator, address_count);
+    var pair = try workload.OwnedPair.initWithMemorySeed(allocator, address_count, options.initial_memory_word);
     var pair_owned = true;
     defer if (pair_owned) pair.deinit();
     const statements = try workload.fixtureStatements(allocator, &pair);
@@ -84,6 +86,7 @@ pub fn producePair(
         .children = children,
         .folded_statement = folded_statement,
         .address_count = address_count,
+        .initial_memory_word = options.initial_memory_word,
         .transaction_ns = timer.read(),
     };
 }

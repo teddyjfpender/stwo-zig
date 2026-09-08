@@ -1,0 +1,17 @@
+test-recursion-segment-native-sum-v2
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+SEGMENT_V2_SPARSE_SPECIALIZATION value=13 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+SEGMENT_V2_SPARSE_SPECIALIZATION value=14 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+SEGMENT_V2_SPARSE_SPECIALIZATION value=269 nodes=2417 merkle_terms=15 public_terms=118 graph_sha256=7537426f6df4ad4f3498fcc90b187da0aee178e8ea2b9bff8f6c668dd8eba280 native_proof_created=false
+
+Build Summary: 8/8 steps succeeded; 17/17 tests passed
+test-recursion-segment-statement-source-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 668ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 13s MaxRSS:972M
+test-recursion-segment-native-sum-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 12 passed 461ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 7s MaxRSS:563M
+

@@ -27,8 +27,8 @@ pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
 const AUTHORITY_EVENTS_PER_CALL = 1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 5;
-pub const MANIFEST_VERSION: u16 = 7;
+pub const SCHEMA_VERSION: u16 = 6;
+pub const MANIFEST_VERSION: u16 = 8;
 pub const FIRST_ROW: usize = @intFromEnum(roster.Component.vm_public_claim_input);
 pub const ROW_COUNT: usize = 6;
 pub const LAST_ROW: usize = FIRST_ROW + ROW_COUNT - 1;
@@ -194,6 +194,7 @@ pub const ClosureLedgerV2 = struct {
     source36_statement_word_emits: u32,
     row11_statement_word_consumes: u32,
     row11_boundary_bridge_emits: u32,
+    memory_byte_count: u32,
     row15_boundary_bridge_consumes: u32,
     row8_challenge_word_emits: u32 = CHALLENGE_WORD_COUNT,
     row16_challenge_word_consumes: u32 = CHALLENGE_WORD_COUNT,
@@ -221,7 +222,7 @@ pub const ClosureLedgerV2 = struct {
             self.source36_statement_word_emits !=
                 self.row11_statement_word_consumes or
             self.row11_boundary_bridge_emits !=
-                try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT) or
+                try checkedAddU32(try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT), try checkedAddU32(self.memory_byte_count, self.memory_byte_count)) or
             self.row15_boundary_bridge_consumes !=
                 self.row11_boundary_bridge_emits or
             self.row8_challenge_word_emits != CHALLENGE_WORD_COUNT or
@@ -254,6 +255,7 @@ pub const ManifestV2 = struct {
     publication_word_count: u16 = PUBLICATION_WORD_COUNT,
     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
     wire_word_count: u32,
+    memory_byte_count: u32,
     statement_source_id: Digest,
     publication_id: Digest,
     native_public_sums_id: Digest,
@@ -297,7 +299,7 @@ pub const ManifestV2 = struct {
                 control_witness_v2.TRACE_LOG_SIZE or
             allZeroBytes(&self.control_source_id) or
             self.logical_rows[rowIndex(.vm_public_claim_semantics_input)] !=
-                try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT))
+                try checkedAddU32(try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT), try checkedAddU32(self.memory_byte_count, self.memory_byte_count)))
         {
             return error.InvalidManifest;
         }
@@ -329,6 +331,7 @@ pub const LoweringObligationV2 = struct {
     schema_version: u16 = SCHEMA_VERSION,
     circuit_id: u32 = NATIVE_SUM_CIRCUIT_ID,
     boundary_word_count: u32,
+    memory_byte_count: u32,
     native_sum_and_total_word_count: u16 = ARITHMETIC_PUBLICATION_WORD_COUNT,
     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
     input_count: u32,
@@ -344,7 +347,7 @@ pub const LoweringObligationV2 = struct {
     pub fn validate(self: *const LoweringObligationV2) Error!void {
         const expected_inputs = try checkedAddU32(
             self.boundary_word_count,
-            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+            try checkedAddU32(ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT, try checkedAddU32(self.memory_byte_count, self.memory_byte_count)),
         );
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or
@@ -368,11 +371,13 @@ pub const LoweringObligationV2 = struct {
 pub fn deriveCounts(
     wire_words: usize,
     authority_call_count: usize,
+    memory_byte_count: usize,
 ) Error!CountsV2 {
+    const bridge_words = try checkedAdd(register_bytes.BYTE_COUNT, try checkedMul(memory_byte_count, 2));
     var relay_relation_events = try checkedMul(PUBLICATION_WORD_COUNT, 3);
     relay_relation_events = try checkedAdd(
         relay_relation_events,
-        try checkedMul(try checkedAdd(wire_words, register_bytes.BYTE_COUNT), 3),
+        try checkedMul(try checkedAdd(wire_words, bridge_words), 3),
     );
     relay_relation_events = try checkedAdd(
         relay_relation_events,
@@ -390,7 +395,7 @@ pub fn deriveCounts(
         .publication_header = PUBLICATION_HEADER_WORD_COUNT,
         .native_public_sums = NATIVE_PUBLIC_SUM_WORD_COUNT,
         .publication_seal = PUBLICATION_SEAL_WORD_COUNT,
-        .boundary_bridge = try checkedAdd(wire_words, register_bytes.BYTE_COUNT),
+        .boundary_bridge = try checkedAdd(wire_words, bridge_words),
         .native_challenges = CHALLENGE_WORD_COUNT,
         .control_relay = CONTROL_LOGICAL_ROW_COUNT,
         .relay_relation_events = relay_relation_events,
@@ -422,6 +427,7 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
 pub fn eventCountFromManifest(manifest: *const ManifestV2) Error!u32 {
     var relay_rows = try checkedAddU32(PUBLICATION_WORD_COUNT, manifest.wire_word_count);
     relay_rows = try checkedAddU32(relay_rows, register_bytes.BYTE_COUNT);
+    relay_rows = try checkedAddU32(relay_rows, try checkedAddU32(manifest.memory_byte_count, manifest.memory_byte_count));
     relay_rows = try checkedAddU32(relay_rows, CHALLENGE_WORD_COUNT);
     var result = try checkedMulU32(relay_rows, 3);
     result = try checkedAddU32(result, try checkedMulU32(manifest.authority_poseidon_call_count, AUTHORITY_EVENTS_PER_CALL));
@@ -450,6 +456,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
     hash.scalar(manifest.publication_word_count);
     hash.scalar(manifest.challenge_word_count);
     hash.scalar(manifest.wire_word_count);
+    hash.scalar(manifest.memory_byte_count);
     hash.digest(manifest.statement_source_id);
     hash.digest(manifest.publication_id);
     hash.digest(manifest.native_public_sums_id);
@@ -471,6 +478,7 @@ pub fn loweringObligationId(obligation: *const LoweringObligationV2) Digest {
     hash.scalar(obligation.schema_version);
     hash.scalar(obligation.circuit_id);
     hash.scalar(obligation.boundary_word_count);
+    hash.scalar(obligation.memory_byte_count);
     hash.scalar(obligation.native_sum_and_total_word_count);
     hash.scalar(obligation.challenge_word_count);
     hash.scalar(obligation.input_count);

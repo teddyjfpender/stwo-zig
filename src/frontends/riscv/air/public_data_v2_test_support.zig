@@ -211,3 +211,39 @@ fn machineState(pc: u32, value: u32, rw_digest: channel.Digest) !span.MachineSta
 fn cpuFromMachine(machine: span.MachineState) Cpu {
     return .{ .pc = machine.pc, .regs = machine.registers };
 }
+
+/// Rebuild the complete job and terminal Span after changing actual sparse
+/// memory. This uses canonical admission, never a forged wire or native receipt.
+pub fn sparseValueCanonicalWords(allocator: std.mem.Allocator, value: u32) ![]M31 {
+    var fixture = try Fixture.init();
+    fixture.right_words[0].final_word = value;
+    const old = fixture.job.complete;
+    var final_state = old.final_state;
+    final_state.rw_memory = segment_v2.snapshotDigest(&fixture.right_words, .final_word).id;
+    fixture.job = try span.JobContext.init(try span.CompleteExecution.init(
+        old.protocol_id,
+        old.program,
+        old.initial_state,
+        final_state,
+        old.public_input,
+        old.public_output,
+        old.total_cycles,
+    ), fixture.job.segment_count);
+    const executed = fixture.statements[1].body.executed;
+    fixture.statements[1] = try span.SpanStatement.segmentLeaf(fixture.job, 1, try span.ExecutedSpan.init(
+        executed.first_segment,
+        executed.segment_count,
+        executed.first_cycle,
+        executed.cycle_count,
+        executed.entry,
+        final_state,
+        executed.input,
+        executed.output,
+    ));
+    const source = fixture.rightSource();
+    try source.validate();
+    const words = try encode(allocator, &source);
+    errdefer allocator.free(words);
+    _ = try segment_v2.authenticateCanonicalWire(words);
+    return words;
+}

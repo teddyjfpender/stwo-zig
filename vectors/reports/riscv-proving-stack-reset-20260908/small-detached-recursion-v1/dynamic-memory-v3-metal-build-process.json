@@ -1,0 +1,20 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 176136914541,
+  "source_manifest_sha256": "00dc9a6be083a9496a8cea065e3bfcdb5ce770b9e5ce260cc5177cf02f32d699",
+  "source_changes": [],
+  "binary": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-metal-producer",
+    "sha256": "a386533d1121b9be101389ece6c222ec168f4f640b8d250fdf16fc93a03d0c9b"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-producer",
+    "--check-two-segment-workload"
+  ],
+  "binary_sha256": "7f015e847e96273f0fedd97295f3f03e1aa829694547bde79a025433a88f59f0",
+  "source_manifest_sha256": "5c8ba9ad436058bf72eeb17e5f1b59648576ef606a27e3f465b1eb7fe84298ad",
+  "exit_code": 0,
+  "process_ns": 674867042
+}

@@ -27,17 +27,31 @@ pub const OwnedPair = struct {
     first: runner.Poseidon2SegmentResult,
     second: runner.Poseidon2SegmentResult,
     address_count: usize,
+    initial_memory_word: u32,
 
     pub fn init(allocator: std.mem.Allocator, address_count: usize) !OwnedPair {
+        return initWithMemorySeed(allocator, address_count, 0);
+    }
+
+    pub fn initWithMemorySeed(allocator: std.mem.Allocator, address_count: usize, initial_word: u32) !OwnedPair {
         const elf = try fixture.buildRecursionMemory(address_count);
         var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
         defer session.deinit();
+        // Seed mutable input before the runner captures segment entry. ELF and
+        // program commitment are unchanged; native memory AIR proves all reads.
+        if (initial_word != 0) {
+            var addresses: [16]u32 = undefined;
+            for (addresses[0..address_count], 0..) |*address, index|
+                address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
+            try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
+            for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
+        }
         var first = try session.startSegment(first_steps);
         errdefer first.deinit();
         const continuation = first.base.continuation orelse return error.ExpectedFirstSegmentContinuation;
         var second = try session.resumeSegment(continuation, second_budget);
         errdefer second.deinit();
-        var result = OwnedPair{ .first = first, .second = second, .address_count = address_count };
+        var result = OwnedPair{ .first = first, .second = second, .address_count = address_count, .initial_memory_word = initial_word };
         try result.validate();
         // Runner publication transfers trace, tracker, frozen call/row buffers,
         // captured IO, snapshots and copied access clocks into each result.
@@ -53,8 +67,8 @@ pub const OwnedPair = struct {
     }
 
     pub fn validate(self: *const OwnedPair) !void {
-        try model.validateSegment(&self.first.base, self.address_count, first_steps, first_steps);
-        try model.validateCompletedSegment(&self.second.base, self.address_count, total_steps, second_steps);
+        try model.validateSeededSegment(&self.first.base, self.address_count, first_steps, first_steps, false, self.initial_memory_word);
+        try model.validateSeededSegment(&self.second.base, self.address_count, total_steps, second_steps, true, self.initial_memory_word);
         try std.testing.expectEqual(@as(u32, 0), self.first.base.segment_index);
         try std.testing.expectEqual(@as(u32, 1), self.second.base.segment_index);
         try std.testing.expect(self.first.base.segment_role.is_first);
@@ -79,6 +93,30 @@ pub const OwnedPair = struct {
 
 /// Execution/source-admission gate, deliberately requiring no native proof.
 pub fn checkWorkload(allocator: std.mem.Allocator) !void {
+    var reference_pair: ?OwnedPair = null;
+    defer if (reference_pair) |*pair| pair.deinit();
+    for ([_]u32{ 13, 14, 269 }) |seed| {
+        var pair = try OwnedPair.initWithMemorySeed(allocator, 1, seed);
+        defer pair.deinit();
+        try pair.validate();
+        const statements = try fixtureStatements(allocator, &pair);
+        const admission = try pair.admitStatements(digest("two-segment-seeded-memory-session"), statements);
+        _ = try span.RootStatement.init(admission.folded);
+        if (reference_pair) |*reference| {
+            try std.testing.expectEqualDeep(reference.first.base.rw_memory.program_words, pair.first.base.rw_memory.program_words);
+        } else {
+            reference_pair = try OwnedPair.initWithMemorySeed(allocator, 1, seed);
+        }
+        for (pair.first.base.rw_memory.words) |*word| {
+            if (word.addr != fixture.recursion_memory_base) continue;
+            const saved = word.initial_word;
+            defer word.initial_word = saved;
+            word.initial_word ^= 1;
+            try std.testing.expectError(error.TestExpectedEqual, pair.validate());
+            break;
+        }
+        std.debug.print("SEGMENT_V2_SEEDED_MEMORY_EXECUTION initial_word={d} address_count=1 elf_unchanged=true completed=true canonical_adjacent=true proofs_created=0\n", .{seed});
+    }
     for (fixture.recursion_memory_address_counts) |address_count| {
         var pair = try OwnedPair.init(allocator, address_count);
         defer pair.deinit();

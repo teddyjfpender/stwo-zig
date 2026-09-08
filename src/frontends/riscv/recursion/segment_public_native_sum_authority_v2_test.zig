@@ -53,7 +53,14 @@ test "SegmentV2 native-sum graph exactly replays all four domains and total" {
     );
     try std.testing.expectEqual(@as(u32, 2), source.term_counts.registers_state);
     try std.testing.expectEqual(native_counts.memory, source.term_counts.memory_access);
-    try std.testing.expectEqual(native_counts.merkle, source.term_counts.merkle);
+    const canonical = try fixture.owned_public.data.authenticatedView();
+    const memory = try register_bytes.MemoryLayout.init(&canonical);
+    var zero_bytes: u32 = 0;
+    for (register_bytes.BYTE_COUNT..memory.byteCount()) |index|
+        zero_bytes += @intFromBool(memory.value(canonical.words, index).isZero());
+    // Graph inventory schedules zero-byte terms too; their exact selectors
+    // make their contribution zero. The native oracle counts active terms.
+    try std.testing.expectEqual(native_counts.merkle + zero_bytes, source.term_counts.merkle);
     try std.testing.expect(source.term_counts.total() > 0);
 
     const lane = source.loweringLane();
@@ -75,9 +82,10 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
     defer source.deinit();
 
     const wire_count = fixture.owned_public.data.words().len;
+    const memory = try register_bytes.MemoryLayout.init(&try fixture.owned_public.data.authenticatedView());
     try std.testing.expectEqual(
         wire_count + subject.PUBLISHED_WORD_COUNT +
-            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+            subject.CHALLENGE_WORD_COUNT + memory.totalBridgeWords(),
         source.bindings.len,
     );
     for (source.bindings, 0..) |binding, index| {
@@ -120,7 +128,14 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
                 coordinate.limb,
             );
         } else {
-            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
+            const byte = suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT;
+            if (byte < register_bytes.BYTE_COUNT) {
+                try std.testing.expectEqual(@as(u8, @intCast(byte)), binding.source.register_byte);
+            } else if (byte < memory.byteCount()) {
+                try std.testing.expectEqual(@as(u32, @intCast(byte - register_bytes.BYTE_COUNT)), binding.source.memory_byte);
+            } else {
+                try std.testing.expectEqual(@as(u32, @intCast(byte - memory.byteCount())), binding.source.memory_selector);
+            }
         }
     }
 }
@@ -653,4 +668,139 @@ test "SegmentV2 native-sum graph independently binds every Span snapshot digest 
     }
     try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
     try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
+}
+
+const sparseValueCanonicalWords = public_data_support.sparseValueCanonicalWords;
+
+test "SegmentV2 native-sum sparse values preserve fixed graph under identical address topology" {
+    const allocator = std.testing.allocator;
+    const segment = @import("segment_statement_v2.zig");
+    const graph_contract = @import("segment_public_native_sum_authority_v2_contract.zig");
+    const graph_builder = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
+    const values = [_]u32{ 13, 14, 269 };
+    var graphs: [values.len]graph_contract.OwnedGraph = undefined;
+    var initialized: usize = 0;
+    defer for (graphs[0..initialized]) |*graph| graph.deinit();
+    var counts: [values.len]graph_contract.TermCountsV2 = undefined;
+    var native_totals: [values.len]QM31 = undefined;
+    var first_words: ?[]M31 = null;
+    defer if (first_words) |words| allocator.free(words);
+    for (values, 0..) |value, index| {
+        const words = try sparseValueCanonicalWords(allocator, value);
+        defer if (index != 0) allocator.free(words);
+        if (index == 0) first_words = words;
+        const view = try segment.authenticateCanonicalWire(words);
+        const baseline = try segment.authenticateCanonicalWire(first_words.?);
+        try std.testing.expectEqual(baseline.words.len, view.words.len);
+        inline for (.{ "entry_snapshot", "exit_snapshot", "entry_memory_clocks", "exit_memory_clocks" }) |field| {
+            const before = @field(baseline, field);
+            const after = @field(view, field);
+            try std.testing.expectEqual(before.count, after.count);
+            for (0..before.count) |row| {
+                // All retained sections begin each row with canonical address
+                // limbs; counts and membership are the admitted topology here.
+                const before_address = baseline.words[before.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
+                const after_address = view.words[after.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
+                try std.testing.expectEqualSlices(M31, before_address, after_address);
+            }
+        }
+        var authored = try graph_builder.buildGraph(allocator, &view);
+        defer authored.circuit.deinit();
+        graphs[index] = try graph_contract.OwnedGraph.init(allocator, &authored.circuit);
+        initialized += 1;
+        counts[index] = authored.term_counts;
+        native_totals[index] = try evaluateSparseCanonicalGraph(allocator, &authored.circuit, words);
+    }
+    var plans: [values.len]lowering.Plan = undefined;
+    var plan_count: usize = 0;
+    defer for (plans[0..plan_count]) |*plan| plan.deinit();
+    const companion = lowering.Lane{ .circuit_id = subject.CIRCUIT_ID + 1, .active_in = .binary, .circuit_identity = graphs[0].graph.identity_digest, .graph = graphs[0].graph };
+    for (&graphs, 0..) |*graph, index| {
+        const lanes = [_]lowering.Lane{ .{ .circuit_id = subject.CIRCUIT_ID, .active_in = .segment, .circuit_identity = graph.graph.identity_digest, .graph = graph.graph }, companion };
+        plans[index] = try lowering.Plan.init(allocator, try lowering.Reference.seal(&lanes));
+        plan_count += 1;
+        std.debug.print("SEGMENT_V2_SPARSE_SPECIALIZATION value={d} nodes={d} merkle_terms={d} public_terms={d} graph_sha256={s} native_proof_created=false\n", .{
+            values[index],                                           graph.nodes.len, counts[index].merkle, plans[index].public_terms.len,
+            std.fmt.bytesToHex(graph.graph.identity_digest, .lower),
+        });
+    }
+    // The retained 13/14/269 regression previously changed graph constants
+    // and, when a second byte became nonzero, the operation schedule. All
+    // three now use one graph and fixed lowering anchors. Native sums and
+    // witness evaluation must still respond to the actual values.
+    for (1..values.len) |index| {
+        try std.testing.expectEqualDeep(graphs[0].graph.identity_digest, graphs[index].graph.identity_digest);
+        try std.testing.expectEqualDeep(graphs[0].nodes, graphs[index].nodes);
+        try std.testing.expect(sparseSpecializationTermsEqual(plans[0].public_terms, plans[index].public_terms));
+        try std.testing.expectEqualDeep(plans[0].multiply_rows, plans[index].multiply_rows);
+        try std.testing.expectEqualDeep(plans[0].inverse_rows, plans[index].inverse_rows);
+        try std.testing.expectEqualDeep(plans[0].linear_rows, plans[index].linear_rows);
+        try std.testing.expectEqualDeep(counts[0], counts[index]);
+        try std.testing.expect(!native_totals[0].eql(native_totals[index]));
+    }
+}
+
+fn sparseSpecializationTermsEqual(left: []const lowering.PublicWireTerm, right: []const lowering.PublicWireTerm) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |a, b| if (!std.meta.eql(a, b)) return false;
+    return true;
+}
+
+// Independent input construction for the production graph, using its shared
+// typed coordinates and the native public-sum oracle. No native verification
+// receipt is fabricated just to exercise an arithmetic compiler regression.
+fn evaluateSparseCanonicalGraph(allocator: std.mem.Allocator, circuit: *const @import("arithmetic_circuit.zig").Circuit, words: []const M31) !QM31 {
+    const build = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
+    const data = try public_data_v2.PublicDataV2.authenticate(words);
+    const view = try data.authenticatedView();
+    const memory = try register_bytes.MemoryLayout.init(&view);
+    const relations = native_relations.Relations.dummy();
+    const sums = try native_statement.NativePublicSums.init(&data, &relations);
+    const domain_sums = [_]QM31{ sums.sums.registers_state, sums.sums.memory_access, sums.sums.program_access, sums.sums.merkle };
+    const challenges = [_][2]QM31{
+        .{ relations.registers_state.z, relations.registers_state.alpha },
+        .{ relations.memory_access.z, relations.memory_access.alpha },
+        .{ relations.program_access.z, relations.program_access.alpha },
+        .{ relations.merkle.z, relations.merkle.alpha },
+    };
+    const inputs = try allocator.alloc(QM31, circuit.inputNodes().len);
+    defer allocator.free(inputs);
+    for (inputs, 0..) |*input, index| {
+        const coordinate = try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index);
+        const word = switch (coordinate) {
+            .wire_word => |i| words[i],
+            .published_sum_word => |c| domain_sums[@intFromEnum(c.domain)].toM31Array()[c.limb],
+            .published_total_word => |c| sums.total.toM31Array()[c.limb],
+            .native_challenge_word => |c| challenges[@intFromEnum(c.relation)][c.limb / 4].toM31Array()[c.limb % 4],
+            .register_byte => |i| register_bytes.value(words, i),
+            .memory_byte => |i| memory.value(words, register_bytes.BYTE_COUNT + i),
+            .memory_selector => |i| M31.fromCanonical(@intFromBool(!memory.value(words, register_bytes.BYTE_COUNT + i).isZero())),
+        };
+        input.* = QM31.fromBase(word);
+    }
+    var evaluation = try circuit.evaluate(allocator, inputs);
+    defer evaluation.deinit();
+    try std.testing.expect(try circuit.outputsAreZero(evaluation.values));
+    var byte_input: ?usize = null;
+    var selector_input: ?usize = null;
+    for (inputs, 0..) |_, index| {
+        switch (try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index)) {
+            .memory_byte => |i| if (i == 0) {
+                byte_input = index;
+            },
+            .memory_selector => |i| if (i == 0) {
+                selector_input = index;
+            },
+            else => {},
+        }
+    }
+    for ([_]usize{ byte_input.?, selector_input.? }) |index| {
+        const saved = inputs[index];
+        defer inputs[index] = saved;
+        inputs[index] = if (index == selector_input.?) QM31.zero() else saved.add(QM31.one());
+        var changed = try circuit.evaluate(allocator, inputs);
+        defer changed.deinit();
+        try std.testing.expect(!try circuit.outputsAreZero(changed.values));
+    }
+    return sums.total;
 }

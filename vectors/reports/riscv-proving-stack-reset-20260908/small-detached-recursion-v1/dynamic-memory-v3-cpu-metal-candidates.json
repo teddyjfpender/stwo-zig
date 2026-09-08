@@ -1,0 +1,139 @@
+{
+  "status": "Metal candidates pending fresh independent verification",
+  "scope": "three sequential actual pair runs per backend, not a statistical performance baseline; outer proof remains CPU for both",
+  "all_six_metal_proofs_byte_identical_to_accepted_cpu": true,
+  "measurements": [
+    {
+      "seed": 13,
+      "backend": "cpu",
+      "segment_index": 0,
+      "process_pair_ns": 7719372083,
+      "native_ingress_ns": 2552866708,
+      "outer_prepare_ns": 397913042,
+      "outer_prove_ns": 986335750,
+      "child_transaction_ns": 3940256792,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 13,
+      "backend": "cpu",
+      "segment_index": 1,
+      "process_pair_ns": 7719372083,
+      "native_ingress_ns": 2403902125,
+      "outer_prepare_ns": 397340791,
+      "outer_prove_ns": 968986167,
+      "child_transaction_ns": 3773400667,
+      "producer_payload_peak_bytes": 130653371
+    },
+    {
+      "seed": 13,
+      "backend": "metal",
+      "segment_index": 0,
+      "process_pair_ns": 6714864333,
+      "native_ingress_ns": 1644573833,
+      "outer_prepare_ns": 391625791,
+      "outer_prove_ns": 985846209,
+      "child_transaction_ns": 3025230000,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 13,
+      "backend": "metal",
+      "segment_index": 1,
+      "process_pair_ns": 6714864333,
+      "native_ingress_ns": 1586146958,
+      "outer_prepare_ns": 382241583,
+      "outer_prove_ns": 969425667,
+      "child_transaction_ns": 2940766542,
+      "producer_payload_peak_bytes": 130653371
+    },
+    {
+      "seed": 14,
+      "backend": "cpu",
+      "segment_index": 0,
+      "process_pair_ns": 7737507625,
+      "native_ingress_ns": 2574490209,
+      "outer_prepare_ns": 397343500,
+      "outer_prove_ns": 980409958,
+      "child_transaction_ns": 3955333625,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 14,
+      "backend": "cpu",
+      "segment_index": 1,
+      "process_pair_ns": 7737507625,
+      "native_ingress_ns": 2408130917,
+      "outer_prepare_ns": 391602750,
+      "outer_prove_ns": 963990833,
+      "child_transaction_ns": 3767766000,
+      "producer_payload_peak_bytes": 130653371
+    },
+    {
+      "seed": 14,
+      "backend": "metal",
+      "segment_index": 0,
+      "process_pair_ns": 5998811084,
+      "native_ingress_ns": 1611351375,
+      "outer_prepare_ns": 385904584,
+      "outer_prove_ns": 984748083,
+      "child_transaction_ns": 2985499666,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 14,
+      "backend": "metal",
+      "segment_index": 1,
+      "process_pair_ns": 5998811084,
+      "native_ingress_ns": 1579523084,
+      "outer_prepare_ns": 383306334,
+      "outer_prove_ns": 974007708,
+      "child_transaction_ns": 2939934125,
+      "producer_payload_peak_bytes": 130653371
+    },
+    {
+      "seed": 269,
+      "backend": "cpu",
+      "segment_index": 0,
+      "process_pair_ns": 7880920750,
+      "native_ingress_ns": 2712555542,
+      "outer_prepare_ns": 396811125,
+      "outer_prove_ns": 977708417,
+      "child_transaction_ns": 4089971000,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 269,
+      "backend": "cpu",
+      "segment_index": 1,
+      "process_pair_ns": 7880920750,
+      "native_ingress_ns": 2410959166,
+      "outer_prepare_ns": 394164167,
+      "outer_prove_ns": 968543250,
+      "child_transaction_ns": 3776676708,
+      "producer_payload_peak_bytes": 130653371
+    },
+    {
+      "seed": 269,
+      "backend": "metal",
+      "segment_index": 0,
+      "process_pair_ns": 6056937417,
+      "native_ingress_ns": 1653206708,
+      "outer_prepare_ns": 387832541,
+      "outer_prove_ns": 982121792,
+      "child_transaction_ns": 3026587875,
+      "producer_payload_peak_bytes": 130657659
+    },
+    {
+      "seed": 269,
+      "backend": "metal",
+      "segment_index": 1,
+      "process_pair_ns": 6056937417,
+      "native_ingress_ns": 1590534416,
+      "outer_prepare_ns": 381479208,
+      "outer_prove_ns": 970972667,
+      "child_transaction_ns": 2946089000,
+      "producer_payload_peak_bytes": 130653371
+    }
+  ]
+}

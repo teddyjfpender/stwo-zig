@@ -200,6 +200,10 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
         .row11_register_byte_emits = prepared.manifest.register_byte_count,
         .row15_register_byte_consumes = prepared.manifest.register_byte_count,
+        .row11_memory_byte_emits = prepared.manifest.memory_byte_count,
+        .row15_memory_byte_consumes = prepared.manifest.memory_byte_count,
+        .row11_memory_selector_emits = prepared.manifest.memory_byte_count,
+        .row15_memory_selector_consumes = prepared.manifest.memory_byte_count,
     };
     try result.validate();
     return result;

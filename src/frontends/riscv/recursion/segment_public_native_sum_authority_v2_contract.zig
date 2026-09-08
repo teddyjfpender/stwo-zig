@@ -16,8 +16,8 @@ pub const graph_mod = @import("air/composition_circuit.zig");
 pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
 pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
 
-pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 2;
+pub const FORMAT_VERSION: u16 = 5;
+pub const SCHEMA_VERSION: u16 = 3;
 pub const CIRCUIT_ID: u32 = public_source.NATIVE_SUM_CIRCUIT_ID;
 pub const DOMAIN_COUNT: usize = 4;
 pub const PUBLISHED_WORD_COUNT: usize =
@@ -84,6 +84,8 @@ pub const InputSourceV2 = union(enum) {
     published_total_word: PublishedTotalCoordinateV2,
     native_challenge_word: ChallengeCoordinateV2,
     register_byte: u8,
+    memory_byte: u32,
+    memory_selector: u32,
 };
 
 pub const InputBindingV2 = struct {
@@ -184,6 +186,8 @@ pub const AuthoredGraph = struct {
 pub const GraphInputs = struct {
     wire: []const arithmetic.Value,
     register_bytes: []const arithmetic.Value,
+    memory_bytes: []const arithmetic.Value,
+    memory_selectors: []const arithmetic.Value,
     published_sums: [DOMAIN_COUNT]arithmetic.Value,
     published_total: arithmetic.Value,
     relations: [DOMAIN_COUNT]BoundRelation,
@@ -265,14 +269,34 @@ pub const RelationAccumulator = struct {
         count.* = std.math.add(u32, count.*, 1) catch
             return error.ArithmeticOverflow;
     }
+    pub fn addSelectedMerkle(
+        self: *RelationAccumulator,
+        tuple: []const arithmetic.Value,
+        selector: arithmetic.Value,
+    ) Error!void {
+        const index = @intFromEnum(RelationDomainV2.merkle);
+        const denominator = try self.relations[index].combine(self.builder, tuple);
+        // Row 11 constrains selector to exactly byte != 0. Inactive terms use
+        // denominator one, so an absent tuple cannot introduce a false pole.
+        const active_denominator = try self.builder.add(
+            try self.builder.mul(selector, denominator),
+            try self.builder.sub(arithmetic.Value.one(), selector),
+        );
+        const contribution = try self.builder.mul(selector, try self.builder.inverse(active_denominator));
+        self.sums[index] = try self.builder.sub(self.sums[index], contribution);
+        self.counts.merkle = std.math.add(u32, self.counts.merkle, 1) catch return error.ArithmeticOverflow;
+    }
 };
 
 pub fn bindGraphInputs(
     builder: *arithmetic.Builder,
     values: []const arithmetic.Value,
     wire_count: usize,
+    memory_byte_count: usize,
 ) Error!GraphInputs {
-    if (values.len != try checkedAdd(wire_count, INPUT_SUFFIX_WORD_COUNT))
+    const fixed_end = try checkedAdd(wire_count, INPUT_SUFFIX_WORD_COUNT);
+    const memory_end = try checkedAdd(fixed_end, memory_byte_count);
+    if (values.len != try checkedAdd(memory_end, memory_byte_count))
         return error.InputBindingMismatch;
     const published_start = wire_count;
     var published_sums: [DOMAIN_COUNT]arithmetic.Value = undefined;
@@ -298,7 +322,9 @@ pub fn bindGraphInputs(
     }
     return .{
         .wire = values[0..wire_count],
-        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT ..],
+        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT .. fixed_end],
+        .memory_bytes = values[fixed_end..memory_end],
+        .memory_selectors = values[memory_end..],
         .published_sums = published_sums,
         .published_total = published_total,
         .relations = relations,
@@ -309,6 +335,8 @@ pub fn addSparseMemoryTerms(
     accumulator: *RelationAccumulator,
     view: *const wire_statement.CanonicalWireViewV2,
     wire: []const arithmetic.Value,
+    layout: register_bytes.MemoryLayout,
+    bytes: []const arithmetic.Value,
 ) Error!void {
     var positions = [_]usize{0} ** 4;
     while (nextMemoryAddress(view, positions)) |address| {
@@ -336,14 +364,15 @@ pub fn addSparseMemoryTerms(
             wire,
             address_start,
         );
+        const zero_bytes = [_]arithmetic.Value{arithmetic.Value.zero()} ** 4;
         const entry_value = if (entry_value_match)
-            view.sparseEntry(view.entry_snapshot, positions[0]).value
+            bytes[layout.byteIndex(.entry, positions[0], 0) - register_bytes.BYTE_COUNT ..][0..4]
         else
-            0;
+            &zero_bytes;
         const exit_value = if (exit_value_match)
-            view.sparseEntry(view.exit_snapshot, positions[1]).value
+            bytes[layout.byteIndex(.exit, positions[1], 0) - register_bytes.BYTE_COUNT ..][0..4]
         else
-            0;
+            &zero_bytes;
         const entry_clock = if (entry_clock_match)
             try u32At(
                 accumulator.builder,
@@ -365,19 +394,19 @@ pub fn addSparseMemoryTerms(
             baseValue(1),
             address_value,
             entry_clock,
-            baseValue(@as(u8, @truncate(entry_value))),
-            baseValue(@as(u8, @truncate(entry_value >> 8))),
-            baseValue(@as(u8, @truncate(entry_value >> 16))),
-            baseValue(@as(u8, @truncate(entry_value >> 24))),
+            entry_value[0],
+            entry_value[1],
+            entry_value[2],
+            entry_value[3],
         }, .positive);
         try accumulator.add(.memory_access, &.{
             baseValue(1),
             address_value,
             exit_clock,
-            baseValue(@as(u8, @truncate(exit_value))),
-            baseValue(@as(u8, @truncate(exit_value >> 8))),
-            baseValue(@as(u8, @truncate(exit_value >> 16))),
-            baseValue(@as(u8, @truncate(exit_value >> 24))),
+            exit_value[0],
+            exit_value[1],
+            exit_value[2],
+            exit_value[3],
         }, .negative);
 
         positions[0] += @intFromBool(entry_value_match);
@@ -389,11 +418,14 @@ pub fn addSparseMemoryTerms(
 
 pub fn addContinuationCompensation(
     accumulator: *RelationAccumulator,
-    view: *const wire_statement.CanonicalWireViewV2,
     wire: []const arithmetic.Value,
-    section: wire_statement.RetainedSectionV2,
+    layout: register_bytes.MemoryLayout,
+    side: register_bytes.Side,
+    bytes: []const arithmetic.Value,
+    selectors: []const arithmetic.Value,
     root: arithmetic.Value,
 ) Error!void {
+    const section = if (side == .entry) layout.entry else layout.exit;
     if (section.count == 0) {
         try accumulator.add(.merkle, &.{
             baseValue(0), baseValue(0), root, root,
@@ -401,25 +433,22 @@ pub fn addContinuationCompensation(
         return;
     }
     for (0..section.count) |index| {
-        const entry = view.sparseEntry(section, index);
         const address = try u32At(
             accumulator.builder,
             wire,
             retainedStart(section, index),
         );
         for (0..4) |limb| {
-            const shift: u5 = @intCast(limb * 8);
-            const byte: u8 = @truncate(entry.value >> shift);
-            if (byte == 0) continue;
-            try accumulator.add(.merkle, &.{
+            const byte_index = layout.byteIndex(side, index, limb) - register_bytes.BYTE_COUNT;
+            try accumulator.addSelectedMerkle(&.{
                 try accumulator.builder.add(
                     address,
                     baseValue(@as(u32, @intCast(limb))),
                 ),
                 baseValue(@import("../air/memory_commitment/sparse_merkle.zig").LEAF_DEPTH),
-                baseValue(byte),
+                bytes[byte_index],
                 root,
-            }, .negative);
+            }, selectors[byte_index]);
         }
     }
 }

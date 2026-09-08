@@ -15,7 +15,7 @@ pub fn validateSegment(
     cumulative_steps: usize,
     segment_steps: usize,
 ) !void {
-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false);
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0);
 }
 
 /// Same independent instruction/memory model with an explicit completed-leaf
@@ -26,7 +26,18 @@ pub fn validateCompletedSegment(
     cumulative_steps: usize,
     segment_steps: usize,
 ) !void {
-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true);
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0);
+}
+
+pub fn validateSeededSegment(
+    result: *const runner.SegmentResult,
+    address_count: usize,
+    cumulative_steps: usize,
+    segment_steps: usize,
+    completed: bool,
+    initial_word: u32,
+) !void {
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word);
 }
 
 fn validateSegmentWithCompletion(
@@ -35,6 +46,7 @@ fn validateSegmentWithCompletion(
     cumulative_steps: usize,
     segment_steps: usize,
     completed: bool,
+    initial_word: u32,
 ) !void {
     switch (address_count) {
         1, 4, 16 => {},
@@ -56,6 +68,7 @@ fn validateSegmentWithCompletion(
     }
     const first_step = cumulative_steps - segment_steps;
     var words: [16]u32 = @splat(0);
+    @memset(words[0..address_count], initial_word);
     var entry_words = words;
     var registers: [32]u32 = @splat(0);
     registers[2] = runner.elf_loader.DEFAULT_STACK_POINTER;
@@ -93,7 +106,7 @@ fn validateSegmentWithCompletion(
         const before = words[index];
         switch (phase) {
             0 => registers[6] = before,
-            1 => registers[6] += 1,
+            1 => registers[6] +%= 1,
             2 => words[index] = registers[6],
             else => unreachable,
         }
@@ -155,10 +168,10 @@ fn validateSegmentWithCompletion(
     try std.testing.expectEqual(expected_exit_nonzero, exit_nonzero);
     if (first_step == 0) try std.testing.expectEqual(address_count, std.mem.count(bool, &touched, &.{true}));
     std.debug.print(
-        "SEGMENT_V2_MEMORY_EXECUTION address_count={d} segment_cycles={d} cumulative_cycles={d} " ++
+        "SEGMENT_V2_MEMORY_EXECUTION address_count={d} initial_word={d} segment_cycles={d} cumulative_cycles={d} " ++
             "loads={d} stores={d} distinct_accessed={d} stride_bytes={d} " ++
             "entry_nonzero_words={d} exit_nonzero_words={d} exit_pc={x}\n",
-        .{ address_count, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), fixture.recursion_memory_stride, entry_nonzero, exit_nonzero, result.exit_cpu.pc },
+        .{ address_count, initial_word, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), fixture.recursion_memory_stride, entry_nonzero, exit_nonzero, result.exit_cpu.pc },
     );
 }
 
