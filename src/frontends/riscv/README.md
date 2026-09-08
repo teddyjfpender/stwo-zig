@@ -20,6 +20,8 @@ The [package contract](package.contract.json) is the API/dependency authority;
 The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
 documents immutable recursive preparation, explicit admission and audit checks,
 and its focused development commands.
+The [proving-stack development plan](../../../design/riscv-proving-stack/plan.md)
+tracks small complete proofs, shared protocol ownership and measured scaling.
 
 ## Architecture and semantic authority
 

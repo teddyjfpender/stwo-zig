@@ -7,6 +7,19 @@ loop small, reproducible and representative before expanding Ethereum production
 Preserve checkpoint `87a3965f`; resume the existing unified block-to-root goal when
 this bounded reset passes. No whole-block or recursive producer is currently queued.
 
+This is ordinary proving-stack development. Maintained code belongs in `src/`,
+operational checks and report tools in `scripts/`, and development guidance here
+or beside the owning library. Retained measurements live under
+`vectors/reports/riscv-proving-stack-reset-20260908/`. `autoresearch/` contains
+historical evidence only and is not a source dependency for this work.
+
+The immediate recursive feedback loop uses the smallest existing real RISC-V
+child, then an actual recursive AIR proof. First complete serialization,
+outer-producer destruction and fresh decode/verification on that route; measure
+preparation, proving, publication and verification separately before expanding
+the workload. Its current verifier still requires admitted native-child data;
+that is a distinct boundary from the detached Ethereum key-and-proof root.
+
 ## Baseline and limits
 
 - Retained Metal segment19: 2,097,152 cycles; proving351.929739s,
@@ -24,10 +37,10 @@ this bounded reset passes. No whole-block or recursive producer is currently que
 - These are individual retained results, not current CSP A/B or multi-block medians.
 
 Native baseline source evidence:
-`../2026-09-05-pr198-local-ethereum-plan/progress.md` and the pinned local campaign
+`../../autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/progress.md` and the pinned local campaign
 `.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/`.
 Wrapper acceptance is committed under the existing plan's
-`evidence/2026-09-08-wrapper3-complete-lifecycle/`.
+`../../vectors/reports/riscv-proving-stack-reset-20260908/2026-09-08-wrapper3-complete-lifecycle/`.
 
 ## Ordered gates
 
@@ -118,7 +131,7 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
   native19 diagnostic passed standalone verification with byte-identical proof.
   Keccak AIR took278.718s:89.39% of311.786s composition and67.86% of410.730s
   proving. Complete request531.174s; separate verification64.651s. This is
-  attribution, not an A/B speedup. Peak31,878,078,080B. Retained evidence under `evidence/`; no speedup claimed.
+  attribution, not an A/B speedup. Peak31,878,078,080B. Retained evidence under `../../vectors/reports/riscv-proving-stack-reset-20260908/`; no speedup claimed.
 - Small CLI branch and memory-copy lifecycle passed2/2 in1.573s after91.59s
   product build. Keccak1/4/16-call lifecycle passed3/3 in15s runtime; each
   serializes, destroys producer allocations and freshly verifies using the
@@ -128,7 +141,7 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
   assertions now live in the existing dedicated route gate:6/6 passed in30.264s;
   affected general zero-family full proof1/1 passed in86.111s. This reduces
   duplicate compilation ownership; no controlled build-speed A/B is claimed.
-  Evidence: `evidence/omitted-route-consolidation-v1/`.
+  Evidence: `../../vectors/reports/riscv-proving-stack-reset-20260908/omitted-route-consolidation-v1/`.
 - `frontend-authority.md` identifies remaining active overlap in relation schemas,
   Ethereum challenge projections, infrastructure geometry and Keccak row/window
   routing. These are consolidation work, not a claim of completed repository-wide

@@ -28,7 +28,7 @@ Reuse accepted work rather than restarting an older checklist.
 ## Current priority: bounded RISC-V proving-stack reset — 2026-09-08
 
 The user explicitly paused expansion of native whole-block and recursive proving
-in favor of the [bounded proving-stack reset](../2026-09-08-riscv-proving-stack-reset/plan.md).
+in favor of the [bounded proving-stack reset](../../../design/riscv-proving-stack/plan.md).
 This supersedes the delivery-first decision rule and optimization stop rule below
 **until the reset acceptance criteria pass**. The block bundle, recursive root,
 CPU/Metal benchmark, CSP preservation and equivalent local Zisk endpoint remain

@@ -90,7 +90,7 @@ Existing measured evidence provides scale, not a new reset speedup:
 
 | Existing receipt | Measured result | Scope |
 |---|---|---|
-| Reset `baseline.json`, retained native segment19 | 544.138 s complete request; 351.930 s proving; 259.336 s composition; 31,859,924,488 B peak footprint | Historical Metal native route, not a current-head rerun; nested phases must not be summed |
+| Reset `../../vectors/reports/riscv-proving-stack-reset-20260908/baseline.json`, retained native segment19 | 544.138 s complete request; 351.930 s proving; 259.336 s composition; 31,859,924,488 B peak footprint | Historical Metal native route, not a current-head rerun; nested phases must not be summed |
 | `.git/local-ethereum/devex-preparation-gates-v20/root-production-compile-execution.json` | 134.088 s, exit0 | Large root-production compile only, zero test execution |
 | `.git/local-ethereum/devex-real-cohort-replay-v8/execution.json` | 1204.295 s request including compile, exit0 | Real native-input cohort reconstruction/Tree2/cold closure, **no PCS or root proving** |
 | `.git/local-ethereum/real-wrapper-segment2-devex-v4/acceptance-v1.json` | 110.779 ms verification; 198.666 ms verifier request; 0.517 s process; 3,028,338 B proof | Accepted detached ordinary wrapper2, ten independent positive/hostile cases; not a whole-block root |
@@ -109,7 +109,7 @@ processes in1.573s total. Branch proving0.558s, memory-copy proving0.525s;
 fresh verifier subprocesses0.116s and0.119s. This is the CLI functional profile,
 not the Ethereum production security profile or CSP promotion. Both reports
 bind the clean source, ELF, statement, transcript, executable and proof identity.
-Evidence: `evidence/small-cli-smoke/`.
+Evidence: `../../vectors/reports/riscv-proving-stack-reset-20260908/small-cli-smoke/`.
 
 The next focused Keccak lifecycle uses the existing canonical Ethereum artifact
 codec and allocation tracker. It avoids the older precompile test root's forced
@@ -122,7 +122,7 @@ Both owners reached zero live bytes in every case. The verifier is a fresh
 transaction within the test process, unlike the CLI smoke's separate process.
 These use development PCS with3queries, no PoW and worker1. They exercise the
 same Keccak AIR but do not reproduce the retained segment's524,288 evaluation
-rows. Evidence: `evidence/small-keccak-lifecycle/`.
+rows. Evidence: `../../vectors/reports/riscv-proving-stack-reset-20260908/small-keccak-lifecycle/`.
 
 ```sh
 python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
