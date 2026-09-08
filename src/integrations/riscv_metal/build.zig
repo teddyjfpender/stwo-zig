@@ -126,6 +126,29 @@ pub fn build(b: *std.Build) void {
         d5_sweep_install_step.dependOn(&unsupported.step);
         return;
     }
+    const small_recursive_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    small_recursive_runner.addImport("stwo_metal_backend", metal_backend);
+    small_recursive_runner.addImport("stwo_riscv_cpu_small_recursion_runner", b.dependency(
+        "stwo_riscv_cpu_integration",
+        dependency_options,
+    ).module("stwo_riscv_cpu_small_recursion_runner"));
+    const small_recursive_executable = b.addExecutable(.{
+        .name = "recursive-segment-v2-concrete-outer-proof-metal",
+        .root_module = small_recursive_runner,
+    });
+    linkMetalFrameworks(small_recursive_executable);
+    const small_recursive_run = b.addRunArtifact(small_recursive_executable);
+    if (b.args) |args| small_recursive_run.addArgs(args);
+    small_recursive_run.has_side_effects = true;
+    b.step("run-recursive-segment-v2-concrete-outer-proof", "Run the shared small recursive proof with explicit native CPU or authenticated Metal")
+        .dependOn(&small_recursive_run.step);
+    b.step("check-recursive-segment-v2-concrete-outer-proof", "Compile the shared small recursive CPU/Metal proof driver")
+        .dependOn(&small_recursive_executable.step);
+
     const tests = b.addTest(.{ .root_module = integration });
     const ethereum_node_root = b.createModule(.{
         .root_source_file = b.path("ethereum_node_proof_v1_runner.zig"),

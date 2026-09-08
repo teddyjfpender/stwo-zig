@@ -20,6 +20,10 @@ const INVENTORY = @embedFile("test_inventory.zig");
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{
+        .path = "poseidon_merkle_test_root.zig",
+        .why = "focused complete Poseidon Merkle scalar/SIMD parity root, run by test-poseidon-merkle",
+    },
+    .{
         .path = "mod.zig",
         .why = "the module root; the compiler always collects the root file's tests",
     },

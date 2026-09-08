@@ -320,6 +320,21 @@ fn evaluatePlan(
     trace: *const Trace,
     execution: ExecutionOptions,
 ) !?SecureColumn {
+    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING"))
+        std.time.Timer.start() catch null
+    else
+        null;
+    var prepare_ns: u64 = 0;
+    var graph_ns: u64 = 0;
+    var graph_started_ns: u64 = 0;
+    var output_payload_bytes: u128 = 0;
+    var completed = false;
+    defer if (timing) |*clock| {
+        const total_ns = clock.read();
+        std.log.info("cpu composition wall: completed={} scope=plan_including_cleanup prepare_ns={} graph_ns={} finish_cleanup_ns={} total_ns={} output_payload_bytes={} payload_is_allocator_live=false", .{
+            completed, prepare_ns, graph_ns, total_ns - prepare_ns - graph_ns, total_ns, output_payload_bytes,
+        });
+    };
     _ = telemetry.attempts.fetchAdd(1, .monotonic);
 
     var base_programs = std.ArrayList(BaseProgramEntry).empty;
@@ -753,6 +768,10 @@ fn evaluatePlan(
     _ = telemetry.structured_executions.fetchAdd(1, .monotonic);
     recordMax(&telemetry.max_scratch_bytes_per_worker, @intCast(scratch_bytes));
 
+    if (timing) |*clock| {
+        prepare_ns = clock.read();
+        graph_started_ns = prepare_ns;
+    }
     const execution_report = graph.execute(.{
         .worker_budget = execution.worker_budget,
         .pool = execution.pool,
@@ -784,6 +803,7 @@ fn evaluatePlan(
             failure,
         ),
     };
+    if (timing) |*clock| graph_ns = clock.read() - graph_started_ns;
     recordMax(&telemetry.max_graph_peak_active, @intCast(execution_report.peak_active_tasks));
     for (host_workers) |worker| {
         if (worker.accumulator.next_power_index != worker.expected_next_power_index) {
@@ -833,6 +853,8 @@ fn evaluatePlan(
         prepared_output = null;
         errdefer result.deinit(allocator);
         if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
+        if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
+        completed = true;
         return result;
     }
     var result = try evaluation_diagnostic.lengthResult(
@@ -844,5 +866,7 @@ fn evaluatePlan(
     );
     errdefer result.deinit(allocator);
     if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
+    if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
+    completed = true;
     return result;
 }

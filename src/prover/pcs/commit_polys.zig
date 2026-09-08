@@ -18,6 +18,10 @@ pub fn commit(
     recorder: ?*stage_profile.Recorder,
     channel: anytype,
 ) !void {
+    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING"))
+        std.time.Timer.start() catch null
+    else
+        null;
     const blowup = self.config.fri_config.log_blowup_factor;
     const work_recorder = if (recorder) |active|
         active.workCaptureRecorder()
@@ -38,11 +42,14 @@ pub fn commit(
         )) |committed| {
             var tree = committed;
             errdefer tree.deinit(allocator);
-            return self.appendCommittedTree(allocator, tree, channel);
+            try self.appendCommittedTree(allocator, tree, channel);
+            if (timing) |*clock| std.log.info("pcs coefficient commit: path=backend_precommitted columns={} total_ns={} includes_append_join=true", .{ polys.len, clock.read() });
+            return;
         }
     }
     if (work_recorder) |work| try work.expectProducer(.polynomial_commit_forward_fft);
     // work-profile-plan:polynomial-commit-forward-fft
+    const extension_start_ns = if (timing) |*clock| clock.read() else 0;
     var columns = try circle_transforms.extendCoefficientColumnsByGroupForBackend(
         B,
         allocator,
@@ -52,6 +59,7 @@ pub fn commit(
         work_recorder,
         .polynomial_commit_forward_fft,
     );
+    const extension_end_ns = if (timing) |*clock| clock.read() else 0;
     if (self.retained_column_allocator) |retained_allocator|
         columns = try @import("commitment_tree.zig").relocateOwnedColumns(allocator, retained_allocator, columns);
     var columns_owned = true;
@@ -77,6 +85,15 @@ pub fn commit(
     }
 
     if (work_recorder) |work| try work.expectProducer(.commitment_tree_merkle);
+    var column_payload_bytes: u128 = 0;
+    var coefficient_payload_bytes: u128 = 0;
+    if (timing != null) {
+        for (columns) |column| column_payload_bytes += @as(u128, column.values.len) * @sizeOf(M31);
+        if (stored_coefficients) |coefficients| for (coefficients) |coefficient| {
+            coefficient_payload_bytes += @as(u128, coefficient.coefficients().len) * @sizeOf(M31);
+        };
+    }
+    const merkle_start_ns = if (timing) |*clock| clock.read() else 0;
     // work-profile-plan:commitment-tree-merkle
     var tree = try BackendCommitmentTree.initOwnedWithBackingAndWorkRecorder(
         allocator,
@@ -89,5 +106,9 @@ pub fn commit(
     columns_owned = false;
     tree.retained_column_allocator = self.retained_column_allocator;
     errdefer tree.deinit(allocator);
+    const merkle_end_ns = if (timing) |*clock| clock.read() else 0;
     try self.appendCommittedTree(allocator, tree, channel);
+    if (timing) |*clock| std.log.info("pcs coefficient commit: path=expanded columns={} setup_ns={} extension_ns={} retention_ns={} merkle_ns={} append_join_ns={} column_payload_bytes={} coefficient_payload_bytes={} payload_is_allocator_live=false", .{
+        polys.len, extension_start_ns, extension_end_ns - extension_start_ns, merkle_start_ns - extension_end_ns, merkle_end_ns - merkle_start_ns, clock.read() - merkle_end_ns, column_payload_bytes, coefficient_payload_bytes,
+    });
 }

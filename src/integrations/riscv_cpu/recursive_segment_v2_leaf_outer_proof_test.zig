@@ -8,6 +8,7 @@ const integration = @import("stwo_riscv_cpu_integration");
 const postcard = @import("interop_postcard");
 const core_outer = integration.recursive_fri_outer;
 const subject = integration.recursive_segment_v2_leaf_outer;
+const memory_workload = @import("recursive_segment_v2_memory_workload_test_support.zig");
 const noncore_gate = @import("recursive_segment_v2_noncore_owner_real_gate.zig");
 const M31 = stwo_core.fields.m31.M31;
 const prover = frontend.prover_mod;
@@ -56,7 +57,7 @@ pub fn runGateWithHook(
     allocator: std.mem.Allocator,
     comptime Hook: type,
 ) !void {
-    return runGateWithHookForSteps(allocator, Hook, 1, true);
+    return runGateWithHookForSteps(Engine, allocator, Hook, 1, true, null);
 }
 
 /// Same native proof and recursive admission, without the independent
@@ -67,11 +68,33 @@ pub fn runSizedGateWithHook(
     comptime Hook: type,
     native_steps: usize,
 ) !void {
+    return runSizedGateWithNativeEngine(Engine, allocator, Hook, native_steps);
+}
+
+pub fn runSizedGateWithNativeEngine(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    comptime Hook: type,
+    native_steps: usize,
+) !void {
     switch (native_steps) {
         1, 4, 16, 64 => {},
         else => return error.InvalidNativeStepCount,
     }
-    return runGateWithHookForSteps(allocator, Hook, native_steps, false);
+    return runGateWithHookForSteps(NativeEngine, allocator, Hook, native_steps, false, null);
+}
+
+pub fn runMemoryGateWithNativeEngine(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    comptime Hook: type,
+    address_count: usize,
+) !void {
+    switch (address_count) {
+        1, 4, 16 => {},
+        else => return error.InvalidMemoryAddressCount,
+    }
+    return runGateWithHookForSteps(NativeEngine, allocator, Hook, memory_workload.native_steps, false, address_count);
 }
 
 /// Execution-only regression for the genuine step-4 failure: a JAL-to-self
@@ -122,10 +145,12 @@ fn validateSizedExecution(result: *const runner.SegmentResult, cumulative_steps:
 }
 
 fn runGateWithHookForSteps(
+    comptime NativeEngine: type,
     allocator: std.mem.Allocator,
     comptime Hook: type,
     native_steps: usize,
     comptime full_regression: bool,
+    memory_addresses: ?usize,
 ) !void {
     comptime {
         if (!@hasDecl(Hook, "run"))
@@ -133,6 +158,10 @@ fn runGateWithHookForSteps(
     }
     comptime {
         @import("stwo_prover_api").assertProverEngine(Engine);
+        @import("stwo_prover_api").assertProverEngine(NativeEngine);
+        if (NativeEngine.Hasher != Engine.Hasher or NativeEngine.Channel != Engine.Channel or
+            NativeEngine.MerkleChannel != Engine.MerkleChannel or NativeEngine.ExtendedProof != Engine.ExtendedProof)
+            @compileError("native backend must preserve the exact admitted Poseidon proof protocol");
         if (Engine.Channel != recursion.poseidon2_channel.Channel or
             Engine.Hasher != recursion.poseidon2_channel.MerkleHasher or
             Engine.Channel == recursion.native_scheduled_channel.Channel)
@@ -144,7 +173,12 @@ fn runGateWithHookForSteps(
         frontend.testing.guest_precompile_test_elf.build(false, .self_loop)
     else
         frontend.testing.guest_precompile_test_elf.buildRecursionLoop();
-    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+    const memory_elf = if (memory_addresses) |count|
+        try frontend.testing.guest_precompile_test_elf.buildRecursionMemory(count)
+    else
+        undefined;
+    const elf_bytes: []const u8 = if (memory_addresses != null) &memory_elf else &elf;
+    var session = try runner.Poseidon2ExecutionSession.init(allocator, elf_bytes, .{});
     defer session.deinit();
     var left_profile = try session.startSegment(native_steps);
     defer left_profile.deinit();
@@ -154,8 +188,13 @@ fn runGateWithHookForSteps(
     defer right_profile.deinit();
     const right_result = &right_profile.base;
     if (comptime !full_regression) {
-        try validateSizedExecution(left_result, native_steps, native_steps);
-        try validateSizedExecution(right_result, native_steps + 16, 16);
+        if (memory_addresses) |count| {
+            try memory_workload.validateSegment(left_result, count, native_steps, native_steps);
+            try memory_workload.validateSegment(right_result, count, native_steps + 16, 16);
+        } else {
+            try validateSizedExecution(left_result, native_steps, native_steps);
+            try validateSizedExecution(right_result, native_steps + 16, 16);
+        }
     }
 
     var declared_program = try frontend.air.program.commitment.buildDeclared(
@@ -218,17 +257,51 @@ fn runGateWithHookForSteps(
         words,
     );
 
+    const native_lifecycle = if (comptime NativeEngine != Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
+    const native_telemetry = if (comptime NativeEngine != Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
+    var native_memory = integration.recursive_segment_v2_outer_engine.ProducerAllocator{};
+    defer std.debug.assert(native_memory.isEmpty());
+    const native_allocator = native_memory.allocator();
+    var probe = @import("recursive_segment_v2_native_profile.zig").Probe.init(allocator);
+    defer probe.deinit();
     var prove_timer = try std.time.Timer.start();
     var output = try prover.proveRiscVSegmentV2WithEngine(
-        Engine,
-        allocator,
+        NativeEngine,
+        native_allocator,
         test_config,
         left_result,
-        null,
+        probe.recorder(),
         public_data,
     );
     const prove_ns = prove_timer.read();
-    defer output.deinit(allocator);
+    var native_output_owned = true;
+    defer if (native_output_owned) output.deinit(native_allocator);
+    try probe.finish();
+    if (comptime NativeEngine != Engine) {
+        const after = NativeEngine.Backend.runtimeLifecycleSnapshot();
+        if (!after.initialized or !std.meta.eql(after.identity, native_lifecycle.identity) or
+            after.initialization_count != native_lifecycle.initialization_count or
+            after.shutdown_count != native_lifecycle.shutdown_count)
+            return error.NativeMetalRuntimeChanged;
+        const delta = (try NativeEngine.Backend.telemetrySnapshot()).delta(native_telemetry);
+        try delta.requireMetalDispatch();
+        if (delta.counters.metal_poseidon2_merkle_commits == 0)
+            return error.NativeMetalPoseidonDispatchMissing;
+        if (after.active_call_leases != 0) return error.NativeMetalActiveCallLeak;
+        std.debug.print(
+            "SEGMENT_V2_NATIVE_METAL device_dispatches={d} poseidon_commits={d} " ++
+                "host_fallbacks={d} native_prove_ns={d} resident_resources_before_shutdown={d}\n",
+            .{ delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits, delta.counters.cpuFallbackTotal(), prove_ns, after.live_resident_resources },
+        );
+        // Proof bytes and public inputs are host-owned. Shut down the device
+        // before fresh CPU decoding/verification and CPU outer construction.
+        // Shutdown releases runtime-owned reusable scratch first and fails
+        // if any proof-owned resident resource remains live.
+        try NativeEngine.Backend.shutdown();
+        const released = NativeEngine.Backend.runtimeLifecycleSnapshot();
+        if (released.initialized or released.active_call_leases != 0 or released.live_resident_resources != 0)
+            return error.NativeMetalResidentOwnerLeak;
+    }
 
     // Exercise the exact external-ingress chain before any allocating decoder
     // sees the native proof: authenticated V2 statement -> allocation-free
@@ -241,9 +314,26 @@ fn runGateWithHookForSteps(
         proof_bytes.writer(allocator),
         output.proof,
     );
+    // The statement's canonical wire is caller-owned (`words` above). The
+    // fixed-capacity claim contains only arrays/scalars and is copied directly
+    // into verifier-owned heap storage, avoiding a multi-megabyte stack value.
+    const native_statement = output.statement;
+    if (native_statement.public_data.canonical_words.ptr != words.ptr or
+        native_statement.public_data.canonical_words.len != words.len)
+        return error.NativeStatementOwnerMismatch;
+    const native_claim = try allocator.create(@TypeOf(output.interaction_claim.*));
+    defer allocator.destroy(native_claim);
+    @memcpy(std.mem.asBytes(native_claim), std.mem.asBytes(output.interaction_claim));
+    output.deinit(native_allocator);
+    native_output_owned = false;
+    try native_memory.requireEmpty();
+    std.debug.print(
+        "SEGMENT_V2_NATIVE_MEMORY backend={s} scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes={d} producer_live_bytes_after_destroy={d} canonical_proof_bytes={d}\n",
+        .{ if (comptime NativeEngine == Engine) "cpu" else "metal", native_memory.peakBytes(), native_memory.snapshot().active_bytes, proof_bytes.items.len },
+    );
     try recursion.proof_ingress.validateV2ForVerifierConfig(
         proof_bytes.items,
-        &output.statement,
+        &native_statement,
         test_config,
         proof_bytes.items.len,
     );
@@ -251,12 +341,12 @@ fn runGateWithHookForSteps(
         error.ProofResourceLimitExceeded,
         recursion.proof_ingress.validateV2ForVerifierConfig(
             proof_bytes.items,
-            &output.statement,
+            &native_statement,
             test_config,
             proof_bytes.items.len - 1,
         ),
     );
-    var bad_statement = output.statement;
+    var bad_statement = native_statement;
     bad_statement.authority_id[0] +%= 1;
     try std.testing.expectError(
         error.InvalidStatement,
@@ -285,9 +375,9 @@ fn runGateWithHookForSteps(
         Engine,
         allocator,
         test_config,
-        output.statement,
+        native_statement,
         decoded_proof,
-        output.interaction_claim,
+        native_claim,
         &verifier_channel,
         &capture,
     );
@@ -339,7 +429,7 @@ fn runGateWithHookForSteps(
         allocator,
         &capture,
         test_config,
-        output.interaction_claim.interaction_pow,
+        native_claim.interaction_pow,
         keys,
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
@@ -351,8 +441,8 @@ fn runGateWithHookForSteps(
     if (comptime !full_regression) {
         std.debug.print(
             "\nSEGMENT_V2_LADDER_NATIVE requested_steps={d} retired_cycles={d} " ++
-                "continuation_cycles={d} trace_rows={d} native_queries={d} outer_queries={d} " ++
-                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program=finite_addi_bne_counter_loop " ++
+                "continuation_cycles={d} trace_rows={d} native_backend={s} native_queries={d} outer_queries={d} " ++
+                "native_pcs_pow_bits={d} outer_pcs_pow_bits={d} program={s} memory_addresses={d} " ++
                 "native_prove_ms={d:.3} native_verify_ms={d:.3} " ++
                 "recursive_prepare_ms={d:.3} native_proof_bytes={d} native_tree_heights={any}\n",
             .{
@@ -360,10 +450,13 @@ fn runGateWithHookForSteps(
                 left_result.cycle_count,
                 right_result.cycle_count,
                 left_result.execution_trace.rows.items.len,
+                if (comptime NativeEngine == Engine) "cpu" else "metal",
                 test_config.fri_config.n_queries,
                 integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.fri_config.n_queries,
                 test_config.pow_bits,
                 integration.recursive_segment_v2_outer_engine.OUTER_CONFIG.pow_bits,
+                if (memory_addresses != null) "lw_addi_sw_updates" else "finite_addi_bne_counter_loop",
+                memory_addresses orelse 0,
                 milliseconds(prove_ns),
                 milliseconds(verify_ns),
                 milliseconds(preparation_ns),

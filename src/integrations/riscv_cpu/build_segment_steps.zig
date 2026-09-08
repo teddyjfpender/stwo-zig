@@ -2417,16 +2417,17 @@ pub fn add(ctx: anytype) void {
         "run-recursive-temporal-parent-real-proof",
         "Run the authenticated temporal parent through the lean proof loop",
     ).dependOn(&run_temporal_parent_real.step);
-    const segment_v2_concrete_outer_runner_root = support.createHarnessModule(
-        b,
-        "recursive_segment_v2_concrete_outer_proof_runner.zig",
-        target,
-        optimize,
-        core,
-        cpu_backend,
-        frontend,
-        integration,
-    );
+    // Export the same lean driver for the Metal dependency-boundary shim.
+    // CPU products retain no dependency on the Metal backend or frameworks.
+    const segment_v2_concrete_outer_runner_root = b.addModule("stwo_riscv_cpu_small_recursion_runner", .{
+        .root_source_file = b.path("recursive_segment_v2_concrete_outer_proof_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    segment_v2_concrete_outer_runner_root.addImport("stwo_core", core);
+    segment_v2_concrete_outer_runner_root.addImport("stwo_cpu_backend", cpu_backend);
+    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_frontend", frontend);
+    segment_v2_concrete_outer_runner_root.addImport("stwo_riscv_cpu_integration", integration);
     segment_v2_concrete_outer_runner_root.addImport(
         "stwo_prover_api",
         prover_api,

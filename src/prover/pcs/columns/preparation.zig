@@ -164,6 +164,47 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
     source_arena: ?[]M31,
     work_recorder: ?*WorkRecorder,
 ) !PreparedCommitmentColumns {
+    if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) {
+        var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;
+        const Group = struct {
+            columns: usize = 0,
+            constant_columns: usize = 0,
+            source_values: u128 = 0,
+            constant_values: u128 = 0,
+        };
+        // Fixed storage keeps diagnostics out of allocator and worker policy.
+        // Invalid declared logs remain the ordinary preparation path's error.
+        var groups = [_]Group{.{}} ** @bitSizeOf(usize);
+        var invalid_log_columns: usize = 0;
+        for (owned_columns) |column| {
+            if (column.log_size >= groups.len) {
+                invalid_log_columns += 1;
+                continue;
+            }
+            const group = &groups[column.log_size];
+            group.columns += 1;
+            group.source_values += column.values.len;
+            const constant = column.values.len != 0 and blk: {
+                const first = column.values[0];
+                for (column.values[1..]) |value| {
+                    if (!value.eql(first)) break :blk false;
+                }
+                break :blk true;
+            };
+            if (constant) {
+                group.constant_columns += 1;
+                group.constant_values += column.values.len;
+            }
+        }
+        const census_ns: ?u64 = if (census_timer) |*clock| clock.read() else null;
+        for (groups, 0..) |group, log_size| {
+            if (group.columns == 0) continue;
+            std.log.info("pcs source census: declared_log_size={} columns={} constant_columns={} source_values={} constant_values={} source_payload_bytes={} payload_is_allocator_live=false", .{
+                log_size, group.columns, group.constant_columns, group.source_values, group.constant_values, group.source_values * @sizeOf(M31),
+            });
+        }
+        std.log.info("pcs source census: scan_ns={?} invalid_log_columns={} scan_includes_no_logging=true", .{ census_ns, invalid_log_columns });
+    }
     const retain_coefficients = column_storage.shouldRetainCoefficients(owned_columns, retention_policy);
     if (source_arena != null and (log_blowup_factor == 0 or
         !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))

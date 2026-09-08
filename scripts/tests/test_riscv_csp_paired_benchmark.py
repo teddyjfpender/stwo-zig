@@ -1,18 +1,33 @@
-"""Run with python3 from any directory; uses retained diagnostic evidence."""
+"""Policy regression checks using genuine retained CPU/Metal reports."""
 import copy
 import json
-from pathlib import Path
+import subprocess
+import sys
+import tempfile
 import unittest
 
-import csp_paired_rerun as rerun
+from scripts import riscv_csp_paired_benchmark as rerun
+
+
+# Historical reports remain in place; moving the runner needs no artifact copy.
+EVIDENCE = rerun.ROOT / "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence"
 
 
 class ReportAdmissionTest(unittest.TestCase):
+    def test_command_imports_from_outside_the_checkout(self):
+        with tempfile.TemporaryDirectory() as directory:
+            completed = subprocess.run(
+                [sys.executable, str(rerun.ROOT / "scripts/riscv_csp_paired_benchmark.py"), "--help"],
+                cwd=directory, capture_output=True, text=True, check=True,
+            )
+        self.assertIn("--baseline", completed.stdout)
+        self.assertIn("--current", completed.stdout)
+
     def test_cpu_and_metal_reject_changed_csp_policy_and_custody(self):
         case = rerun.contract.canonical_workloads()[0]
         settings = {"workers": 16, "warmups": 1, "samples": 1}
         for backend in ("cpu", "metal"):
-            path = Path(__file__).with_name("evidence") / f"{backend}-v2-full16.json"
+            path = EVIDENCE / f"{backend}-v2-full16.json"
             report = json.loads(path.read_text())
             report["measurements"] = report["measurements"][:1]
             head = report["repository_head"]

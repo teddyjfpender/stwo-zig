@@ -662,6 +662,14 @@ pub fn build(b: *std.Build) void {
         .minimum = 8,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-poseidon-merkle",
+        .description = "Check canonical Poseidon transcript and scalar/SIMD Merkle parity",
+        .root = "poseidon_merkle_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "recursion Poseidon2:", "memory Poseidon2:" },
+        .minimum = 19,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-keccakf-row",
         .description = "Run only the shared Keccak row scalar parity and lazy-error regression",
         .root = "keccakf_precompile_test_root.zig",

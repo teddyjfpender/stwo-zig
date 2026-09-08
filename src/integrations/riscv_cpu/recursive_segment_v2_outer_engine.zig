@@ -49,7 +49,7 @@ const VerifierScheme = stwo_core.pcs.verifier.CommitmentSchemeVerifier(
 );
 const ProofExecutionPool = engine_storage.ProofExecutionPool;
 const TreeStorage = engine_storage.TreeStorageFor(Engine);
-const ProducerAllocator = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
+pub const ProducerAllocator = @import("recursive_common_ethereum_incremental_leaf_genuine_runtime_v4.zig").TrackedSmpAllocatorV4;
 const moveOwnedForVerifier = engine_support.moveOwnedForVerifier;
 const rejectTransactionOutputAlias = engine_support.rejectTransactionOutputAlias;
 const qm31Words = engine_support.qm31Words;

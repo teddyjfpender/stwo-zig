@@ -581,6 +581,10 @@ pub fn Ops(comptime Owner: type) type {
             }
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
                 var generated = try lookup_table_interaction.generate(
                     allocator,
                     try main_source.lookupCounter(kind),
@@ -589,6 +593,13 @@ pub fn Ops(comptime Owner: type) type {
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
+                }
             }
         }
 
@@ -606,6 +617,10 @@ pub fn Ops(comptime Owner: type) type {
         ) !void {
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
                 var generated = try lookup_table_interaction.generateParallel(
                     allocator,
                     try main_source.lookupCounter(kind),
@@ -615,6 +630,13 @@ pub fn Ops(comptime Owner: type) type {
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
+                }
             }
         }
 

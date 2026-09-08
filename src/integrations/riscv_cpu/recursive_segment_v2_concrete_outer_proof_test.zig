@@ -54,6 +54,24 @@ pub fn runSizedProof(allocator: std.mem.Allocator, native_steps: usize) !void {
     try ingress.runSizedGateWithHook(allocator, SizedProofHook, native_steps);
 }
 
+pub fn runSizedProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize) !void {
+    try ingress.runSizedGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, native_steps);
+}
+
+pub fn runMemoryProof(allocator: std.mem.Allocator, address_count: usize) !void {
+    try runMemoryProofWithNativeEngine(outer_engine.Engine, allocator, address_count);
+}
+
+pub fn runMemoryProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize) !void {
+    try ingress.runMemoryGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, address_count);
+}
+
+pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
+    try @import("recursive_segment_v2_memory_workload_test_support.zig").checkWorkload(allocator);
+}
+
+pub const memory_native_steps = @import("recursive_segment_v2_memory_workload_test_support.zig").native_steps;
+
 pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
     try ingress.checkSizedWorkload(allocator);
 }

@@ -11,6 +11,7 @@ const constants = @import("poseidon2_constants.zig");
 
 pub const WIDTH: usize = 16;
 pub const State = [WIDTH]M31;
+pub const State4 = [WIDTH]m31.Vec4u32;
 pub const DEFAULT_HASHES = constants.DEFAULT_HASHES;
 
 pub fn hashPair(left: u32, right: u32) u32 {
@@ -91,7 +92,9 @@ fn internalMatrix(state: *State) void {
     }
 }
 
-fn permute4(state: *[WIDTH]m31.Vec4u32) void {
+/// Four independent canonical M31 states, transposed by state word.
+/// Uses the same pinned rounds and constants as the scalar permutation.
+pub fn permute4(state: *State4) void {
     externalMatrix4(state);
     for (constants.EXTERNAL_ROUND[0..4]) |round| fullRound4(state, round);
     for (constants.INTERNAL_ROUND) |round_constant| {
@@ -169,6 +172,29 @@ test "memory Poseidon2: pinned default hash chain" {
         expected[depth] = hashPair(expected[depth + 1], expected[depth + 1]);
     }
     try std.testing.expectEqualSlices(u32, &constants.DEFAULT_HASHES, &expected);
+}
+
+test "memory Poseidon2: four transposed full states match scalar permutations" {
+    var random_source = std.Random.DefaultPrng.init(0x50_5349_4d44);
+    const random = random_source.random();
+    for (0..8) |batch| {
+        var scalar: [4]State = undefined;
+        var vector_state: State4 = undefined;
+        for (0..WIDTH) |index| {
+            var words: [4]u32 = undefined;
+            for (0..4) |lane| {
+                const word = if (batch == 0) (if (lane % 2 == 0) 0 else m31.Modulus - 1) else random.intRangeLessThan(u32, 0, m31.Modulus);
+                scalar[lane][index] = M31.fromCanonical(word);
+                words[lane] = word;
+            }
+            vector_state[index] = @bitCast(words);
+        }
+        permute4(&vector_state);
+        for (&scalar, 0..) |*state, lane| {
+            permute(state);
+            for (state, 0..) |word, index| try std.testing.expectEqual(word.toU32(), vector_state[index][lane]);
+        }
+    }
 }
 
 test "memory Poseidon2: scalar pair vector is stable" {

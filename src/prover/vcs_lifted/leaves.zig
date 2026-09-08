@@ -327,8 +327,8 @@ pub fn Operations(comptime H: type) type {
                 try std.math.mul(usize, 4, sorted_columns.len)
             else
                 max_leaf_scratch_bytes / @sizeOf(M31);
-            const scratch_words = if (comptime @hasDecl(H, "updateLeafPackedBytes"))
-                allocator.alloc(M31, worker_count * scratch_words_per_worker) catch null
+            const scratch_words: ?[]M31 = if (comptime four_way_hashing or @hasDecl(H, "updateLeafPackedBytes"))
+                allocator.alloc(M31, worker_count * scratch_words_per_worker) catch |err| if (four_way_hashing) return err else null
             else
                 null;
             defer if (scratch_words) |words| allocator.free(words);
@@ -495,7 +495,12 @@ pub fn Operations(comptime H: type) type {
 
         fn finalizeRange(ctx: *const FinalizeRangeCtx) void {
             var i = ctx.start;
-            if (comptime blake2_stream4.supports(H)) {
+            if (comptime @hasDecl(H, "finalize4")) {
+                while (i + 4 <= ctx.end) : (i += 4) {
+                    const hashes = H.finalize4(ctx.hashers[i..][0..4]);
+                    inline for (0..4) |lane| ctx.out[i + lane] = hashes[lane];
+                }
+            } else if (comptime blake2_stream4.supports(H)) {
                 while (i + 4 <= ctx.end) : (i += 4) {
                     const hashers: *const [4]H = @ptrCast(ctx.hashers.ptr + i);
                     const hashes = blake2_stream4.finalize4(hashers);
@@ -514,7 +519,9 @@ pub fn Operations(comptime H: type) type {
         pub fn finalizeHashers(hashers: []H, out: []H.Hash) void {
             std.debug.assert(hashers.len == out.len);
             if (hashers.len < parallel_min_nodes or builtin.single_threaded) {
-                for (hashers, 0..) |*hasher, i| out[i] = hasher.finalize();
+                if (comptime @hasDecl(H, "finalize4")) {
+                    finalizeRange(&.{ .hashers = hashers, .out = out, .start = 0, .end = hashers.len });
+                } else for (hashers, 0..) |*hasher, i| out[i] = hasher.finalize();
                 return;
             }
             finalizeHashersParallel(hashers, out);
@@ -533,7 +540,9 @@ pub fn Operations(comptime H: type) type {
             };
 
             if (worker_count <= 1) {
-                for (hashers, 0..) |*h, i| out[i] = h.finalize();
+                if (comptime @hasDecl(H, "finalize4")) {
+                    finalizeRange(&.{ .hashers = hashers, .out = out, .start = 0, .end = hashers.len });
+                } else for (hashers, 0..) |*hasher, i| out[i] = hasher.finalize();
                 return;
             }
 
@@ -543,7 +552,9 @@ pub fn Operations(comptime H: type) type {
                     break :blk &global_pool.pool;
                 }
                 break :blk LayerOps.sharedThreadPool() orelse {
-                    for (hashers, 0..) |*h, i| out[i] = h.finalize();
+                    if (comptime @hasDecl(H, "finalize4")) {
+                        finalizeRange(&.{ .hashers = hashers, .out = out, .start = 0, .end = hashers.len });
+                    } else for (hashers, 0..) |*hasher, i| out[i] = hasher.finalize();
                     return;
                 };
             };
@@ -595,6 +606,11 @@ pub fn Operations(comptime H: type) type {
                 H.testingRecordLeafRange(ctx.start, ctx.end);
             }
             var leaf_index = ctx.start;
+            if (comptime @hasDecl(H, "updateM31Columns4")) {
+                while (leaf_index + 4 <= ctx.end) : (leaf_index += 4) {
+                    H.updateM31Columns4(ctx.leaf_hashers[leaf_index..][0..4], ctx.group_columns, leaf_index);
+                }
+            }
             while (leaf_index < ctx.end) : (leaf_index += 1) {
                 for (ctx.group_columns) |column| {
                     ctx.leaf_hashers[leaf_index].updateLeaf(
@@ -611,8 +627,8 @@ pub fn Operations(comptime H: type) type {
         /// Test builds remain serial unless a caller explicitly installed a
         /// `ScopedPoolBinding`; `getGlobalPool` is the single authority for
         /// that distinction. This is particularly important for the
-        /// Poseidon2 recursion suite, whose incremental hasher intentionally
-        /// exposes only the generic `updateLeaf` contract.
+        /// Poseidon2 recursion suite. Optional four-lane updates retain the
+        /// same per-leaf states and scalar tails within each disjoint range.
         fn updateHashersGeneric(
             leaf_hashers: []H,
             group_columns: []const ColumnRef,

@@ -86,6 +86,65 @@ fn stateDigest(state: permutation.State) Hash {
     return result;
 }
 
+fn stateDigest4(state: permutation.State4) [4]Digest {
+    var output: [4]Digest = undefined;
+    for (state[0..RATE], 0..) |word, index| {
+        inline for (0..4) |lane| output[lane][index] = word[lane];
+    }
+    return output;
+}
+
+/// Equal-length leaf sponges sharing only their execution schedule.
+const LeafSponge4 = struct {
+    state: permutation.State4 = .{@as(m31.Vec4u32, @splat(0))} ** permutation.WIDTH,
+    filled: usize = 0,
+
+    fn init() LeafSponge4 {
+        var result = LeafSponge4{};
+        result.state[permutation.WIDTH - 1] = @splat(LEAF_TAG);
+        return result;
+    }
+
+    fn fromHashers(hashers: *const [4]MerkleHasher) LeafSponge4 {
+        var result = LeafSponge4{ .filled = hashers[0].sponge.filled };
+        for (0..permutation.WIDTH) |index| {
+            var words: [4]u32 = undefined;
+            inline for (0..4) |lane| {
+                std.debug.assert(hashers[lane].sponge.filled == result.filled);
+                words[lane] = hashers[lane].sponge.state[index].toU32();
+            }
+            result.state[index] = @bitCast(words);
+        }
+        return result;
+    }
+
+    fn writeHashers(self: *const LeafSponge4, hashers: *[4]MerkleHasher) void {
+        inline for (0..4) |lane| {
+            for (self.state, 0..) |word, index| hashers[lane].sponge.state[index] = M31.fromCanonical(word[lane]);
+            hashers[lane].sponge.filled = self.filled;
+        }
+    }
+
+    fn absorb(self: *LeafSponge4, words: [4]u32) void {
+        for (words) |word| std.debug.assert(word < m31.Modulus);
+        self.state[self.filled] = m31.addVec4(self.state[self.filled], @bitCast(words));
+        self.filled += 1;
+        if (self.filled == RATE) {
+            permutation.permute4(&self.state);
+            self.filled = 0;
+        }
+    }
+
+    fn finish(self: *LeafSponge4) [4]Digest {
+        self.absorb(.{1} ** 4);
+        if (self.filled != 0) {
+            permutation.permute4(&self.state);
+            self.filled = 0;
+        }
+        return stateDigest4(self.state);
+    }
+};
+
 fn absorbDigest(sponge: *Sponge, digest: Hash) void {
     for (digest) |word| sponge.absorbCanonical(word);
 }
@@ -435,20 +494,87 @@ pub const MerkleHasher = struct {
         _: NodeSeed,
         children: *const [8]Digest,
     ) [4]Digest {
-        var output: [4]Digest = undefined;
-        inline for (0..4) |lane| {
-            output[lane] = hashChildren(.{
-                .left = children[2 * lane],
-                .right = children[2 * lane + 1],
-            });
+        var state: permutation.State4 = undefined;
+        for (0..permutation.WIDTH) |index| {
+            var words: [4]u32 = undefined;
+            inline for (0..4) |lane| {
+                words[lane] = children[2 * lane + index / RATE][index % RATE];
+                std.debug.assert(words[lane] < m31.Modulus);
+            }
+            state[index] = @bitCast(words);
         }
-        return output;
+        permutation.permute4(&state);
+        return stateDigest4(state);
+    }
+
+    pub fn leafSeed() NodeSeed {
+        return {};
+    }
+
+    /// Four equally sized messages of canonical little-endian M31 words.
+    pub fn hashPackedLeavesWithSeed4(_: NodeSeed, messages: *const [4][]const u8) [4]Digest {
+        const byte_count = messages[0].len;
+        std.debug.assert(byte_count % @sizeOf(M31) == 0);
+        for (messages) |message| std.debug.assert(message.len == byte_count);
+        var sponge = LeafSponge4.init();
+        var offset: usize = 0;
+        while (offset < byte_count) : (offset += @sizeOf(M31)) {
+            var words: [4]u32 = undefined;
+            inline for (0..4) |lane| words[lane] = std.mem.readInt(u32, messages[lane][offset..][0..4], .little);
+            sponge.absorb(words);
+        }
+        return sponge.finish();
+    }
+
+    /// Direct equivalent of packing four consecutive leaf rows.
+    pub fn hashDirectM31LeavesWithSeed4(_: NodeSeed, columns: anytype, position: usize) [4]Digest {
+        var sponge = LeafSponge4.init();
+        for (columns) |column| {
+            var words: [4]u32 = undefined;
+            inline for (0..4) |lane| words[lane] = column.values[position + lane].toU32();
+            sponge.absorb(words);
+        }
+        return sponge.finish();
     }
 
     pub fn updateLeaf(self: *Self, column_values: []const M31) void {
         for (column_values) |value| {
             self.sponge.absorbCanonical(value.toU32());
         }
+    }
+
+    /// Incremental streaming groups retain the scalar state representation.
+    /// Arbitrary caller states with different rate offsets use scalar updates.
+    pub fn updateM31Columns4(hashers: *[4]Self, columns: anytype, position: usize) void {
+        for (hashers) |hasher| {
+            if (hasher.sponge.filled != hashers[0].sponge.filled) {
+                inline for (0..4) |lane| for (columns) |column| {
+                    hashers[lane].updateLeaf(column.values[position + lane ..][0..1]);
+                };
+                return;
+            }
+        }
+        var sponge = LeafSponge4.fromHashers(hashers);
+        for (columns) |column| {
+            var words: [4]u32 = undefined;
+            inline for (0..4) |lane| words[lane] = column.values[position + lane].toU32();
+            sponge.absorb(words);
+        }
+        sponge.writeHashers(hashers);
+    }
+
+    pub fn finalize4(hashers: *[4]Self) [4]Digest {
+        for (hashers) |hasher| {
+            if (hasher.sponge.filled != hashers[0].sponge.filled) {
+                var output: [4]Digest = undefined;
+                inline for (0..4) |lane| output[lane] = hashers[lane].finalize();
+                return output;
+            }
+        }
+        var sponge = LeafSponge4.fromHashers(hashers);
+        const output = sponge.finish();
+        sponge.writeHashers(hashers);
+        return output;
     }
 
     pub fn finalize(self: *Self) Digest {
@@ -568,6 +694,73 @@ test "recursion Poseidon2: leaf and node domains are separated" {
     }
     leaf.updateLeaf(&values);
     try std.testing.expect(!std.meta.eql(node, leaf.finalize()));
+}
+
+test "recursion Poseidon2: SIMD nodes preserve canonical scalar hashes" {
+    var random_source = std.Random.DefaultPrng.init(0x4e_4f44_4534);
+    const random = random_source.random();
+    for (0..8) |batch| {
+        var children: [8]Digest = undefined;
+        for (&children, 0..) |*child, index| for (child) |*word| {
+            word.* = if (batch == 0) (if (index % 2 == 0) 0 else m31.Modulus - 1) else random.intRangeLessThan(u32, 0, m31.Modulus);
+        };
+        const actual = MerkleHasher.hashChildrenWithSeed4(MerkleHasher.nodeSeed(), &children);
+        for (actual, 0..) |digest, lane| try std.testing.expectEqualDeep(
+            MerkleHasher.hashChildren(.{ .left = children[2 * lane], .right = children[2 * lane + 1] }),
+            digest,
+        );
+    }
+}
+
+test "recursion Poseidon2: SIMD packed direct and incremental leaves match scalar" {
+    const Column = struct { values: []const M31 };
+    var values: [64][6]M31 = undefined;
+    var columns: [64]Column = undefined;
+    var packed_bytes: [4][64 * @sizeOf(M31) + 1]u8 = undefined;
+    var random_source = std.Random.DefaultPrng.init(0x4c_4541_4634);
+    const random = random_source.random();
+    for (0..3) |pattern| {
+        for (&values, &columns, 0..) |*column_values, *column, index| {
+            for (column_values, 0..) |*value, lane| value.* = M31.fromCanonical(switch (pattern) {
+                0 => 0,
+                1 => if ((index + lane) % 3 == 0) m31.Modulus - 1 else 1,
+                else => if (index % 8 == 7) 0 else random.intRangeLessThan(u32, 0, m31.Modulus),
+            });
+            column.* = .{ .values = column_values };
+            for (0..4) |lane| std.mem.writeInt(u32, packed_bytes[lane][1 + index * 4 ..][0..4], column_values[1 + lane].toU32(), .little);
+        }
+        for ([_]usize{ 0, 1, 7, 8, 9, 16, 31, 32, 33, 64 }) |count| {
+            var messages: [4][]const u8 = undefined;
+            var expected: [4]Digest = undefined;
+            for (0..4) |lane| {
+                messages[lane] = packed_bytes[lane][1..][0 .. count * 4];
+                var scalar = MerkleHasher.defaultWithInitialState();
+                for (columns[0..count]) |column| scalar.updateLeaf(column.values[1 + lane ..][0..1]);
+                expected[lane] = scalar.finalize();
+            }
+            try std.testing.expectEqualDeep(expected, MerkleHasher.hashPackedLeavesWithSeed4(MerkleHasher.leafSeed(), &messages));
+            try std.testing.expectEqualDeep(expected, MerkleHasher.hashDirectM31LeavesWithSeed4(MerkleHasher.leafSeed(), columns[0..count], 1));
+            var incremental = [_]MerkleHasher{MerkleHasher.defaultWithInitialState()} ** 4;
+            var start: usize = 0;
+            while (start < count) {
+                const end = @min(count, start + 3);
+                MerkleHasher.updateM31Columns4(&incremental, columns[start..end], 1);
+                start = end;
+            }
+            MerkleHasher.updateM31Columns4(&incremental, columns[0..0], 1);
+            try std.testing.expectEqualDeep(expected, MerkleHasher.finalize4(&incremental));
+        }
+        var unequal = [_]MerkleHasher{MerkleHasher.defaultWithInitialState()} ** 4;
+        for (&unequal, 0..) |*hasher, lane| hasher.updateLeaf(values[0][0..lane]);
+        var scalar = unequal;
+        MerkleHasher.updateM31Columns4(&unequal, columns[0..9], 1);
+        var expected: [4]Digest = undefined;
+        for (&scalar, 0..) |*hasher, lane| {
+            for (columns[0..9]) |column| hasher.updateLeaf(column.values[1 + lane ..][0..1]);
+            expected[lane] = hasher.finalize();
+        }
+        try std.testing.expectEqualDeep(expected, MerkleHasher.finalize4(&unequal));
+    }
 }
 
 test "recursion Poseidon2: lifted Merkle contract and packed leaves" {
