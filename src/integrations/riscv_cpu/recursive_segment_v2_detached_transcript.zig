@@ -104,6 +104,23 @@ pub const KeyV1 = struct {
 
 pub const FixedAdmissionV1 = KeyV1;
 
+/// Optional semantic annotations consumed by the parent AIR schedule builder.
+/// These do not alter transcript bytes or admit any payload value as constant.
+/// The native and recorded verifier channels intentionally have no callback.
+pub const PayloadSourceV1 = enum {
+    admission_header,
+    key_identity,
+    expected,
+    claims_header,
+    claims,
+    boundary_header,
+    boundary,
+    partials,
+};
+fn beginPayload(channel: anytype, source_kind: PayloadSourceV1) void {
+    if (@hasDecl(@TypeOf(channel.*), "beginDetachedPayload")) channel.beginDetachedPayload(source_kind);
+}
+
 /// Called after Tree0/Tree1 commitments and before relation draws. The wire
 /// uses the existing canonical PublicDataV2 frame; fixed identity has its own
 /// explicit version and never includes a source-specific manifest seal.
@@ -112,11 +129,14 @@ pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const 
     _ = try expected.metadata();
     const shape = try source.ManifestV2.init(expected.words().len);
     if (!std.meta.eql(shape, admission.source_manifest)) return error.SegmentV2PublicInputManifestMismatch;
+    beginPayload(channel, .admission_header);
     channel.mixU32s(&.{ 0x5344_4131, VERSION, manifest_mod.COMPONENT_COUNT }); // SDA1
     var pin_words: [8]u32 = undefined;
     for (&pin_words, 0..) |*word, index|
         word.* = std.mem.readInt(u32, fixed_identity[index * 4 ..][0..4], .little);
+    beginPayload(channel, .key_identity);
     channel.mixU32s(&pin_words);
+    beginPayload(channel, .expected);
     try expected.mixInto(channel);
 }
 
@@ -137,12 +157,17 @@ pub fn mixClaimsAndBoundary(
     var total = wire_claim;
     for (claims.values) |claim| total = total.add(claim);
     if (!total.isZero()) return error.SegmentDetachedClaimClosureMismatch;
+    beginPayload(channel, .claims_header);
     channel.mixU32s(&.{ 0x5344_4331, VERSION, manifest_mod.COMPONENT_COUNT }); // SDC1
     // Roster order is fixed by the admitted canonical manifest. A source-
     // dependent ClaimVector seal is deliberately not a transcript input.
+    beginPayload(channel, .claims);
     channel.mixFelts(&claims.values);
+    beginPayload(channel, .boundary_header);
     channel.mixU32s(&.{ 0x5344_4231, VERSION, @intCast(admission.wire_terms.len), hash_boundary.term_count, 2 }); // SDB1
+    beginPayload(channel, .boundary);
     channel.mixFelts(&.{wire_claim});
+    beginPayload(channel, .partials);
     channel.mixFelts(&claims.poseidon_partials);
 }
 

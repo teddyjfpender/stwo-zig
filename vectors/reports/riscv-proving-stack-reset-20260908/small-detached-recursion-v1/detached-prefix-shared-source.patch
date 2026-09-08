@@ -1,0 +1,267 @@
+diff --git a/src/frontends/riscv/recursion/poseidon2_channel.zig b/src/frontends/riscv/recursion/poseidon2_channel.zig
+index b94cc080..5c50b42d 100644
+--- a/src/frontends/riscv/recursion/poseidon2_channel.zig
++++ b/src/frontends/riscv/recursion/poseidon2_channel.zig
+@@ -19,6 +19,7 @@ const std = @import("std");
+ const stwo_core = @import("stwo_core");
+ const permutation = @import("../air/memory_commitment/poseidon2.zig");
+ const permutation_constants = @import("../air/memory_commitment/poseidon2_constants.zig");
++pub const canonical_word_sponge = @import("poseidon2_canonical_word_sponge.zig");
+ 
+ const m31 = stwo_core.fields.m31;
+ const qm31 = stwo_core.fields.qm31;
+@@ -53,29 +54,21 @@ const Sponge = struct {
+ 
+     fn init(capacity_tag: u32) Sponge {
+         std.debug.assert(capacity_tag < m31.Modulus);
+-        var state = [_]M31{M31.zero()} ** permutation.WIDTH;
+-        state[permutation.WIDTH - 1] = M31.fromCanonical(capacity_tag);
++        const state = canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(capacity_tag));
+         return .{ .state = state, .filled = 0 };
+     }
+ 
+     fn absorbCanonical(self: *Sponge, word: u32) void {
+         std.debug.assert(word < m31.Modulus);
+-        self.state[self.filled] = self.state[self.filled].add(
+-            M31.fromCanonical(word),
+-        );
+-        self.filled += 1;
+-        if (self.filled == RATE) {
+-            permutation.permute(&self.state);
+-            self.filled = 0;
+-        }
++        canonical_word_sponge.absorb(self, M31.fromCanonical(word));
++    }
++
++    pub fn permute(self: *Sponge) void {
++        permutation.permute(&self.state);
+     }
+ 
+     fn finish(self: *Sponge) Hash {
+-        self.absorbCanonical(1);
+-        if (self.filled != 0) {
+-            permutation.permute(&self.state);
+-            self.filled = 0;
+-        }
++        canonical_word_sponge.finish(self, M31.one());
+         return stateDigest(self.state);
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+index 5ccd52d5..2bf2f1fd 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+@@ -95,6 +95,8 @@ pub const ManifestV2 = shard_0.ManifestV2;
+ /// Native temporal preimage retained separately from every SHA closure ID.
+ pub const NativeTemporalContextV2 = shard_0.NativeTemporalContextV2;
+ pub const nativeContext = shard_0.nativeContext;
++pub const emitContextIdentity = shard_0.emitContextIdentity;
++pub const emitContextWords = shard_0.emitContextWords;
+ pub const PerformanceV2 = shard_0.PerformanceV2;
+ /// SHA identities consumed by global-closure plumbing.  These byte values are
+ /// never accepted where a native temporal `Digest` is required.
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+index f2ef0d0a..2f348f89 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+@@ -606,27 +606,20 @@ pub const AuthorityHashCallRecorder = struct {
+     call_at: usize = 0,
+ 
+     fn init(calls: []poseidon2_air.Call) AuthorityHashCallRecorder {
+-        var state = [_]M31{M31.zero()} ** poseidon2_air.WIDTH;
+-        state[poseidon2_air.WIDTH - 1] = M31.fromCanonical(
+-            statement_v2.AUTHORITY_ID_DOMAIN,
+-        );
++        const state = channel.canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(statement_v2.AUTHORITY_ID_DOMAIN));
+         return .{ .state = state, .calls = calls };
+     }
+ 
+     fn canonical(self: *AuthorityHashCallRecorder, value: u32) void {
+         std.debug.assert(value < m31.Modulus);
+-        self.state[self.filled] = self.state[self.filled].add(
+-            M31.fromCanonical(value),
+-        );
+-        self.filled += 1;
+-        if (self.filled == channel.RATE) self.permute();
++        channel.canonical_word_sponge.absorb(self, M31.fromCanonical(value));
+     }
+ 
+     pub fn word(self: *AuthorityHashCallRecorder, _: statement_v2.authority_preimage.Source, value: u32) void {
+         self.canonical(value);
+     }
+ 
+-    fn permute(self: *AuthorityHashCallRecorder) void {
++    pub fn permute(self: *AuthorityHashCallRecorder) void {
+         std.debug.assert(self.call_at < self.calls.len);
+         var input: [poseidon2_air.WIDTH]u32 = undefined;
+         for (&input, self.state) |*destination, field_word|
+@@ -643,8 +636,7 @@ pub const AuthorityHashCallRecorder = struct {
+     }
+ 
+     fn finalize(self: *AuthorityHashCallRecorder) Digest {
+-        self.canonical(1);
+-        if (self.filled != 0) self.permute();
++        channel.canonical_word_sponge.finish(self, M31.one());
+         var result: Digest = undefined;
+         for (&result, self.state[0..channel.RATE]) |*destination, field_word|
+             destination.* = field_word.toU32();
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
+index 6d1d3f4e..1da472f2 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
+@@ -470,33 +470,72 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     return hash.finalize();
+ }
+ 
++/// Canonical context identity preimage. The sink owns scalar representation;
++/// native hashing and recursive provider recording consume this same order.
++pub fn emitContextIdentity(context: anytype, sink: anytype) void {
++    sink.scalar(context.format_version);
++    sink.scalar(context.schema_version);
++    sink.scalar(context.statement_version);
++    sink.u32Value(context.segment_index);
++    sink.u32Value(context.segment_count);
++    sink.u32Value(context.global_cycle_start);
++    sink.u32Value(context.global_cycle_end);
++    sink.boolean(context.is_first);
++    sink.boolean(context.is_final);
++    sink.u32Value(context.entry_continuation_root);
++    sink.u32Value(context.exit_continuation_root);
++    sink.digest(context.segment_format_id);
++    sink.digest(context.protocol_id);
++    sink.digest(context.manifest_id);
++    sink.digest(context.statement_id);
++    sink.digest(context.segment_wire_id);
++    sink.digest(context.session_id);
++    sink.digest(context.job_id);
++    sink.digest(context.position_id);
++    sink.digest(context.entry_lineage_id);
++    sink.digest(context.exit_lineage_id);
++    sink.digest(context.lineage_id);
++    sink.digest(context.verifier_key_authority_id);
++    sink.digest(context.segment_leaf_vk_id);
++    sink.digest(context.recursive_parent_vk_id);
++}
++
++/// Canonical row36 context words, including the authenticated identity. Roots
++/// are scalar words here and split-u16 values in the identity preimage above.
++pub fn emitContextWords(context: anytype, sink: anytype) void {
++    sink.scalar(CONTEXT_TAG);
++    sink.scalar(context.format_version);
++    sink.scalar(context.schema_version);
++    sink.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
++    sink.scalar(context.statement_version);
++    sink.u32Value(context.segment_index);
++    sink.u32Value(context.segment_count);
++    sink.u32Value(context.global_cycle_start);
++    sink.u32Value(context.global_cycle_end);
++    sink.boolean(context.is_first);
++    sink.boolean(context.is_final);
++    sink.scalar(context.entry_continuation_root);
++    sink.scalar(context.exit_continuation_root);
++    sink.digest(context.segment_format_id);
++    sink.digest(context.protocol_id);
++    sink.digest(context.manifest_id);
++    sink.digest(context.statement_id);
++    sink.digest(context.segment_wire_id);
++    sink.digest(context.session_id);
++    sink.digest(context.job_id);
++    sink.digest(context.position_id);
++    sink.digest(context.entry_lineage_id);
++    sink.digest(context.exit_lineage_id);
++    sink.digest(context.lineage_id);
++    sink.digest(context.verifier_key_authority_id);
++    sink.digest(context.segment_leaf_vk_id);
++    sink.digest(context.recursive_parent_vk_id);
++    sink.digest(context.authenticated_context_id);
++}
++
+ pub fn contextId(context: *const NativeTemporalContextV2) Digest {
+     var hash = IdentityHasher.init(CONTEXT_ID_DOMAIN);
+-    hash.scalar(context.format_version);
+-    hash.scalar(context.schema_version);
+-    hash.scalar(context.statement_version);
+-    hash.u32Value(context.segment_index);
+-    hash.u32Value(context.segment_count);
+-    hash.u32Value(context.global_cycle_start);
+-    hash.u32Value(context.global_cycle_end);
+-    hash.scalar(@intFromBool(context.is_first));
+-    hash.scalar(@intFromBool(context.is_final));
+-    hash.u32Value(context.entry_continuation_root);
+-    hash.u32Value(context.exit_continuation_root);
+-    hash.digest(context.segment_format_id);
+-    hash.digest(context.protocol_id);
+-    hash.digest(context.manifest_id);
+-    hash.digest(context.statement_id);
+-    hash.digest(context.segment_wire_id);
+-    hash.digest(context.session_id);
+-    hash.digest(context.job_id);
+-    hash.digest(context.position_id);
+-    hash.digest(context.entry_lineage_id);
+-    hash.digest(context.exit_lineage_id);
+-    hash.digest(context.lineage_id);
+-    hash.digest(context.verifier_key_authority_id);
+-    hash.digest(context.segment_leaf_vk_id);
+-    hash.digest(context.recursive_parent_vk_id);
++    emitContextIdentity(context, &hash);
+     return hash.finalize();
+ }
+ 
+@@ -505,34 +544,7 @@ pub fn writeContextWordsAssumeValid(
+     destination: *[CONTEXT_WORD_COUNT]M31,
+ ) void {
+     var writer = WordWriter{ .words = destination };
+-    writer.scalar(CONTEXT_TAG);
+-    writer.scalar(context.format_version);
+-    writer.scalar(context.schema_version);
+-    writer.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
+-    writer.scalar(context.statement_version);
+-    writer.u32Value(context.segment_index);
+-    writer.u32Value(context.segment_count);
+-    writer.u32Value(context.global_cycle_start);
+-    writer.u32Value(context.global_cycle_end);
+-    writer.scalar(@intFromBool(context.is_first));
+-    writer.scalar(@intFromBool(context.is_final));
+-    writer.scalar(context.entry_continuation_root);
+-    writer.scalar(context.exit_continuation_root);
+-    writer.digest(context.segment_format_id);
+-    writer.digest(context.protocol_id);
+-    writer.digest(context.manifest_id);
+-    writer.digest(context.statement_id);
+-    writer.digest(context.segment_wire_id);
+-    writer.digest(context.session_id);
+-    writer.digest(context.job_id);
+-    writer.digest(context.position_id);
+-    writer.digest(context.entry_lineage_id);
+-    writer.digest(context.exit_lineage_id);
+-    writer.digest(context.lineage_id);
+-    writer.digest(context.verifier_key_authority_id);
+-    writer.digest(context.segment_leaf_vk_id);
+-    writer.digest(context.recursive_parent_vk_id);
+-    writer.digest(context.authenticated_context_id);
++    emitContextWords(context, &writer);
+     std.debug.assert(writer.at == destination.len);
+ }
+ 
+@@ -568,6 +580,10 @@ pub const WordWriter = struct {
+         self.at += 1;
+     }
+ 
++    pub fn boolean(self: *WordWriter, value: bool) void {
++        self.scalar(@intFromBool(value));
++    }
++
+     pub fn u32Value(self: *WordWriter, value: u32) void {
+         self.scalar(value & 0xffff);
+         self.scalar(value >> 16);
+@@ -599,6 +615,10 @@ pub const IdentityHasher = struct {
+         self.inner.update(&words);
+     }
+ 
++    pub fn boolean(self: *IdentityHasher, value: bool) void {
++        self.scalar(@intFromBool(value));
++    }
++
+     pub fn u32Value(self: *IdentityHasher, value: u32) void {
+         self.scalar(value & 0xffff);
+         self.scalar(value >> 16);

@@ -130,6 +130,25 @@ public-boundary input remains required.
 
 ## Required complete-proof checks still pending
 
+`detached-child-prefix-third.log` passes the genuine-child gate with actual
+typed transcript-prefix rows: 60 operations, 247 Poseidon calls, 54 fixed and
+984 dynamic payload words, 1,000 declared input uses and two public-boundary
+challenge exports. The gate checks lookup tuples and multiplicities, keeps
+dynamic values out of preprocessing, and checks the exact transition to the
+captured PCS suffix. It runs alongside composition and fresh verification in
+one second with 18 MiB reported RSS (57-second compilation). Parent activation
+remains false until consuming arithmetic, provider closure and a parent proof
+pass. The first two attempts retain compile failures, corrected by explicit
+coordinate narrowing and matching the existing infallible row constructor.
+
+`sparse-specialization-before-first.log` retains the no-proof reproduction:
+values 13 and 14 have identical address topology and 2,255 graph nodes but
+different constant anchors; value 269 adds a seventh continuation term and
+changes the graph to 2,263 nodes. The 12-test gate takes 450 ms after seven
+seconds of compilation. Its exact pre-fix test is retained in
+`sparse-specialization-before.patch`; this is evidence of the remaining defect,
+not acceptance of dynamic memory admission.
+
 The single-command lifecycle gate now also passes 17 fresh-process cases on
 both backends. `lifecycle-cpu-1-process.json` and
 `lifecycle-metal-1-process.json` retain exact commands and wall times of 8.076

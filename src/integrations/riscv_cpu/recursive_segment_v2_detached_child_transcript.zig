@@ -281,6 +281,7 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
     }
     try std.testing.expectEqual(before.identity_sha256, owner.recordingView().identity_sha256);
     try @import("recursive_segment_v2_detached_composition.zig").testFromVerifiedChild(allocator, owner);
+    try @import("recursive_segment_v2_detached_prefix.zig").testFromVerifiedChild(allocator, owner);
 
     var wrong_pin = args.independent_key_sha256;
     wrong_pin[0] ^= 1;
