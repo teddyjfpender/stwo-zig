@@ -64,6 +64,35 @@ Wrapper acceptance is committed under the existing plan's
    bounded disposition based on evidence. Resume native121-segment delivery and
    the already accepted2/3 wrapper parent without redoing accepted work.
 
+## Required consolidation and removal policy
+
+User clarification: frontend concerns must each have one canonical source of
+truth, and obsolete code/routes must be removed as replacements pass. This is
+an acceptance requirement throughout the reset, not optional later cleanup.
+
+- Instruction/extension identities, encodings and admitted semantics have named
+  shared definitions. Runner, AIR and tooling consume those definitions;
+  independent ISA/reference checks remain independent correctness evidence.
+- AIR constraints, lookup ordering/batches, column and row layouts, public claims,
+  transcript order and profile admission each have one owning definition.
+  CPU, Metal, native and recursive consumers derive their plans from it; an
+  optimization must not introduce another hand-maintained protocol description.
+- Backend execution strategies may differ. Their field operations, index maps,
+  layout bindings and outputs must match the shared admitted AIR and complete
+  proof gate. A benchmark flag is never a second protocol authority.
+- New focused proof checks reuse canonical ELF construction, production artifact
+  codecs and verification. Remove older duplicate helpers/forced compilation
+  paths when their surviving owner and complete gate are identified and pass.
+- Delete superseded implementations, stale exports/build wiring and obsolete
+  commands together; update user-facing entry points in the same change. Retain
+  versioned protocol readers when real supported artifacts still require them,
+  and retain genuine failing input evidence. File count alone is not a reason
+  to remove a correctness boundary or independent reference implementation.
+
+Every consolidation records the prior competing owner, surviving authority,
+removed callers/routes and the proof/check that establishes replacement coverage.
+No unbounded mechanical restructuring campaign precedes the measured Keccak work.
+
 ## Development and resource policy
 
 Local semantic checks in seconds, representative small complete proofs in tens of
@@ -90,6 +119,20 @@ RV64 remains a separate future frontend/profile; CSP's RV32 path stays intact.
   Keccak AIR took278.718s:89.39% of311.786s composition and67.86% of410.730s
   proving. Complete request531.174s; separate verification64.651s. This is
   attribution, not an A/B speedup. Peak31,878,078,080B. Retained evidence under `evidence/`; no speedup claimed.
+- Small CLI branch and memory-copy lifecycle passed2/2 in1.573s after91.59s
+  product build. Keccak1/4/16-call lifecycle passed3/3 in15s runtime; each
+  serializes, destroys producer allocations and freshly verifies using the
+  production codec. Development PCS only; see `workload-ladder.md` and evidence.
+- Removed the duplicate170-line omitted-route instantiation test, its forced
+  general-proof-root import and two build targets. Unique admission/default
+  assertions now live in the existing dedicated route gate:6/6 passed in30.264s;
+  affected general zero-family full proof1/1 passed in86.111s. This reduces
+  duplicate compilation ownership; no controlled build-speed A/B is claimed.
+  Evidence: `evidence/omitted-route-consolidation-v1/`.
+- `frontend-authority.md` identifies remaining active overlap in relation schemas,
+  Ethereum challenge projections, infrastructure geometry and Keccak row/window
+  routing. These are consolidation work, not a claim of completed repository-wide
+  cleanup. Independent oracles and supported versioned readers remain required.
 - Native21/121, accepted ordinary wrappers2/3, no actual parent or whole-block root.
 
 ## First diagnostic conclusion

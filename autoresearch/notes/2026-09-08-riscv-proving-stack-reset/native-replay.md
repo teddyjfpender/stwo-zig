@@ -133,3 +133,18 @@ Freshly verify the diagnostic output with the already pinned standalone product,
 Verifier SHA256 `7492946e72587e719cbd254de7b337bc381a63d62c4561eb61e6298c7e99c62c`, 3,681,536 bytes, was rechecked. Retain proof/metadata hashes before and after verification, actual receipt and terminal status. Do not invoke `accept_candidate.py`, publish into accepted inventory, resume the controller, or reverify0–18: this is a diagnostic candidate only.
 
 Stop after one functioning measured replay and its verification. Attribute the dominant composition wall interval, then choose the smallest change at its owner boundary. Missing telemetry, rejection or resource failure is evidence to inspect, not permission for another long undifferentiated rerun. The saved parent request stays unlaunched during the reset.
+
+
+## Capture-admission follow-up: unmeasured subphases
+
+The current diagnostic reports **50.943 s** capture admission versus historical **102.717 s**. This is current source versus the older producer; it is not evidence of a speedup caused by adding timers. Composition remains the first measured optimization target.
+
+The single timer interval in `ethereum_incremental_full_leaf_replay_command_v4.zig:445`–`:586` begins after fixed-program admission and includes:
+
+- Compact/public-wire file reads, then `OwnedMintInputV4.openCanonicalBytes` (`:474`). Its authority implementation (`ethereum_incremental_capture_postprocess_authority_v4.zig:251`, `:443`) rehashes ELF/input/output, reparses program authority, decodes both artifacts, authenticates the public wire using retained roots, assembles full snapshot words, derives snapshot/CPU identities and public inventory, and validates the constructed owner.
+- An immediate explicit `mint_input.validate` (`command:486`) repeats owner validation; completion and public-authority checks follow. This is validation work, not a cheap getter.
+- Existing selected admission `openOrMint` (`command:509`; `ethereum_selected_leaf_admission_v1.zig:72`) parses the small JSON and compares authenticated references. With the retained admission present it does not mint again, but the receipt does not authenticate newly opened bytes by itself.
+- Transition cold-open (`command:518`; `ethereum_incremental_capture_publication_v4.zig:465`) rereads/decodes compact and transition artifacts and hashes their exact reference bytes.
+- Public-wire cold-open (`command:541`; `ethereum_incremental_public_wire_publication_v4.zig:449`) rereads/decodes the wire. Unlike the first decode's `decodeWireAllocAgainstRetainedMetadata`, this calls `decodeWireAlloc` without metadata, selecting full `PublicDataV2.authenticate` rather than `authenticateReusingRoots` (`:303`). Source/reference equality checks follow.
+
+The repeated owner validation and second full root authentication are concrete work sites, **not yet timed bottlenecks**. The STAGE101 recorder is initialized only at the end of this interval, so its producer stages cannot disaggregate capture admission. No existing inner timers were found in these admission/publication modules. If subsequent measurements justify it, reuse the command's existing preparation timer for laps around mint-open, explicit validation, selected-admission, transition cold-open and public-wire cold-open. Keep all acceptance checks while measuring; any reuse must preserve ownership and exact newly opened byte custody.

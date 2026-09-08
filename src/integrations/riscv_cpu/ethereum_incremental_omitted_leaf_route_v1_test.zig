@@ -230,7 +230,9 @@ fn receipt() route_mod.ReceiptV1 {
 
 test "Stage101 D5 route body instantiates on the q193 CPU engine" {
     // Referencing the generic body forces full semantic analysis of every
-    // engine-typed callee it reaches; nothing is proved here.
+    // engine-typed callee, including the omitted core prover, prepared
+    // transaction and cold verifier. This is their single instantiation gate;
+    // nothing is proved here.
     _ = &Route.proveAndFreshVerify;
     _ = &route_mod.publishReceiptThenValidateBudget;
     _ = &route_mod.sealReceiptAlloc;
@@ -240,6 +242,14 @@ test "Stage101 D5 route body instantiates on the q193 CPU engine" {
     try std.testing.expect(!route_mod.COMPLETE_LEAF_PROOF);
     try std.testing.expect(!route_mod.RECURSIVE_CAPTURE_AVAILABLE);
     try std.testing.expectEqual(@as(usize, 0), route_mod.known_red_baselines.len);
+
+    const omitted = frontend.testing.incremental_ethereum_omit_orchestration_v4_internal;
+    try std.testing.expect(!omitted.PRODUCTION_ACTIVE);
+    try std.testing.expect(!omitted.ACTIVATES_PRODUCTION_PROOF);
+    try std.testing.expectEqual(@as(u16, 4), omitted.FORMAT_VERSION);
+    try std.testing.expectEqual(@as(usize, 4), omitted.COMMITMENT_TREE_COUNT);
+    const omitted_options = omitted.OmittedRouteOptionsV1{};
+    try std.testing.expect(!omitted_options.diagnostic_cancellation);
 }
 
 test "Stage101 D5 route strips only its own flag and rejects unknown route values" {

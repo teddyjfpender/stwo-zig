@@ -32,16 +32,6 @@ const segment_transcript_extension_test = @import(
 const omit_validated_parity_test = @import(
     "ethereum_omit_validated_parity_v1_test.zig",
 );
-const omitted_route_instantiation_test = @import(
-    "ethereum_incremental_omitted_route_instantiation_v4_test.zig",
-);
-
-comptime {
-    // Analysis-only gate: it declares no `run()`, so reference it explicitly
-    // or its instantiation of the omitted route is compiled by nothing.
-    _ = omitted_route_instantiation_test;
-}
-
 const test_config = pcs_core.PcsConfig{
     .pow_bits = 0,
     .fri_config = .{

@@ -251,6 +251,31 @@ pub fn add(ctx: anytype) void {
         "secp256k1 native proof identity guard",
     ));
 
+    const keccak_scaling_root = b.createModule(.{
+        .root_source_file = b.path("ethereum_keccak_scaling_proof_test.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    support.addImports(keccak_scaling_root, core, prover_api, prover, cpu_backend, frontend);
+    const keccak_scaling_names: []const []const u8 = &.{
+        "complete RV Keccak one call serializes destroys producer and freshly verifies",
+        "complete RV Keccak four calls serialize destroy producer and freshly verify",
+        "complete RV Keccak sixteen calls serialize destroy producer and freshly verify",
+    };
+    inline for (.{ .{ "one", 1 }, .{ "scaling", 3 } }) |selection| {
+        const selected_names = keccak_scaling_names[0..selection[1]];
+        const compiled = b.addTest(.{ .root_module = keccak_scaling_root, .filters = selected_names });
+        b.step("check-riscv-keccak-" ++ selection[0] ++ "-proof", "Compile the focused complete VM Keccak lifecycle").dependOn(&compiled.step);
+        const run = b.addRunArtifact(compiled);
+        run.has_side_effects = true;
+        b.step("test-riscv-keccak-" ++ selection[0] ++ "-proof", "Serialize a full VM Keccak proof, destroy producer and freshly verify").dependOn(support.ProofTestGuard.add(
+            b,
+            run,
+            selected_names,
+            "complete VM Keccak " ++ selection[0] ++ " lifecycle identity guard",
+        ));
+    }
+
     const ethereum_proof_root = b.createModule(.{
         .root_source_file = b.path("ethereum_precompile_proof_test.zig"),
         .target = target,
@@ -420,30 +445,6 @@ pub fn add(ctx: anytype) void {
         omit_validated_parity_tests,
         &.{omit_validated_parity_name},
         "Ethereum omitted-provider validated-route parity guard",
-    ));
-
-    const omitted_route_instantiation_name =
-        "Ethereum omitted-provider V4 route instantiates against the q193 CPU engine";
-    const omitted_route_instantiation_compile = b.addTest(.{
-        .root_module = ethereum_proof_root,
-        .filters = &.{omitted_route_instantiation_name},
-    });
-    b.step(
-        "check-ethereum-incremental-omitted-route-v4",
-        "Analyse the omitted-provider V4 prover and cold verifier on the q193 CPU engine",
-    ).dependOn(&omitted_route_instantiation_compile.step);
-    const omitted_route_instantiation_tests = b.addRunArtifact(
-        omitted_route_instantiation_compile,
-    );
-    omitted_route_instantiation_tests.has_side_effects = true;
-    b.step(
-        "test-ethereum-incremental-omitted-route-v4",
-        "Run the omitted-provider V4 route instantiation and activation-guard gate",
-    ).dependOn(support.ProofTestGuard.add(
-        b,
-        omitted_route_instantiation_tests,
-        &.{omitted_route_instantiation_name},
-        "Ethereum omitted-provider V4 route instantiation guard",
     ));
 
     const ethereum_poseidon_artifact_name =

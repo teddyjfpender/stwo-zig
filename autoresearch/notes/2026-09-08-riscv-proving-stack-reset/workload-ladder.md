@@ -100,3 +100,33 @@ The retained Ethereum campaign has 121 segments with a 2,097,152-cycle leaf budg
 Use the ladder to localize functional and ownership failures, then the existing segment19 input to measure composition/host preparation under the real shape. Retain the real shape and failing inputs; do not manufacture a new miniature Ethereum geometry or reinterpret a tiny development proof as block acceptance. Promotion still needs the unchanged 16-case CSP CPU/Metal A/B checks and the actual whole-block/recursive milestones.
 
 Source anchors: `conformance/riscv-pr-proof-gate.md`; `scripts/riscv_pr_proof_smoke.py`; `src/frontends/riscv/runner/guest_precompile/test_elf.zig`; `src/integrations/riscv_cpu/{build_proof_steps,build_ethereum_leaf_steps,segment_v2_native_proof_test,lookup_v2_native_proof_test,generated_composition_native_proof_test,guest_precompile_proof_test,ethereum_precompile_proof_test}.zig`.
+
+## First executed small lifecycle — 2026-09-08
+
+Clean source71206f8b, existing CPU CLI ReleaseFast. Product build91.59s;
+`branch_fib` plus `memcpy_loop` smoke passed with separate producer/verifier
+processes in1.573s total. Branch proving0.558s, memory-copy proving0.525s;
+fresh verifier subprocesses0.116s and0.119s. This is the CLI functional profile,
+not the Ethereum production security profile or CSP promotion. Both reports
+bind the clean source, ELF, statement, transcript, executable and proof identity.
+Evidence: `evidence/small-cli-smoke/`.
+
+The next focused Keccak lifecycle uses the existing canonical Ethereum artifact
+codec and allocation tracker. It avoids the older precompile test root's forced
+omitted-route instantiation. Both focused targets passed: one-call1/1, scaling1/4/16-call3/3. The scaling
+request took96.75s including compilation, with15s of test execution. Complete
+lifecycles took4.976/5.018/5.254s; proving4.048/4.082/4.318s and fresh decode plus
+verification0.923/0.931/0.932s. Tracked producer peaks762.2/764.9/781.4MB and
+verifier peaks132.8/132.8/132.9MB are allocator measurements, not process RSS.
+Both owners reached zero live bytes in every case. The verifier is a fresh
+transaction within the test process, unlike the CLI smoke's separate process.
+These use development PCS with3queries, no PoW and worker1. They exercise the
+same Keccak AIR but do not reproduce the retained segment's524,288 evaluation
+rows. Evidence: `evidence/small-keccak-lifecycle/`.
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-one-proof -Doptimize=ReleaseSafe --summary all
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-scaling-proof -Doptimize=ReleaseSafe --summary all
+```

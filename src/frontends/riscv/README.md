@@ -42,6 +42,14 @@ The frontend covers all 46 admitted proof opcodes and owns access-clock,
 witness-layout, opcode-manifest, statement, and infrastructure-trace rules. It
 does not select CPU or Metal; integration packages make that decision.
 
+Each protocol decision must have one owning definition: instruction admission,
+AIR expressions and layouts, lookup ordering, claims, transcript order and
+continuation. Native, recursive and backend adapters consume those definitions;
+an optimized evaluator must not introduce a second constraint specification.
+Independent reference checks remain separate. Remove superseded implementations
+and their exports/build targets together once the surviving route passes its
+proof gate; retain versioned readers required by supported proof artifacts.
+
 ## Public API
 
 ```zig
@@ -155,6 +163,22 @@ python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
 
 That executable proves a tiny segment with test PCS settings and exercises
 recursive preparation; it is not an Ethereum block benchmark or a recursive proof.
+
+For a small complete VM proof using the Ethereum Keccak AIR:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-one-proof -Doptimize=ReleaseSafe --summary all
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-scaling-proof -Doptimize=ReleaseSafe --summary all
+```
+
+The second target runs 1, 4 and 16 calls. Both use the canonical guest builder,
+Ethereum proof codec and verifier, serialize the proof, require zero live
+producer allocations, then decode and verify in a fresh allocation owner.
+They report phase timings and tracked allocation peaks. These are development
+proofs (three queries, no PoW, one worker), not production security or large-block
+performance evidence. Compilation time is reported separately from execution.
 
 The independent Ethereum commitment-node caller constraints have a small loop:
 

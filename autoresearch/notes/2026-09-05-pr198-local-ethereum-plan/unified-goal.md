@@ -55,6 +55,8 @@ Implementation order now:
 5. Resume the delivery queue below with predictable resource use and proof checks
    that expose failures before hour-long production runs.
 
+Frontend concerns must each have one canonical authority consumed by native, recursive and backend paths. Remove superseded code/routes and stale build wiring when their replacement passes the complete-proof gate; preserve independent reference checks and supported artifact readers.
+
 Use existing libraries and harnesses first. No mechanical file-splitting campaign,
 new generic orchestration framework, unconditional cache or repeated full wrapper
 run is a prerequisite. Record actual evidence and missing coverage in the reset

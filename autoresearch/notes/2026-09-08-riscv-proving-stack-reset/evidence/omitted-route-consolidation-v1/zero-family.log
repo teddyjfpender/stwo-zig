@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-zero-family-proof success
++- Ethereum zero-family proof identity guard success
+   +- run test 1 passed 6s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

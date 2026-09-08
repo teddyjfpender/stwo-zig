@@ -107,6 +107,24 @@ pub fn buildEthereum() [ethereum_elf_size]u8 {
     return elf;
 }
 
+/// Complete Ethereum-profile execution with repeated in-place Keccak-f calls.
+/// Reuses one mutable state, so later calls consume earlier guest writes.
+pub fn buildEthereumKeccakCalls(comptime call_count: usize) [imageSize(call_count + 3, keccakf_data_size)]u8 {
+    if (call_count == 0 or call_count > 16)
+        @compileError("the focused Keccak fixture admits one through sixteen calls");
+    var instructions: [call_count + 3]u32 = undefined;
+    instructions[0] = 0x0010_02b7; // LUI x5, 0x100.
+    instructions[1] = 0x1002_8293; // ADDI x5, x5, 0x100.
+    @memset(instructions[2..][0..call_count], custom0.encodeKeccakf(5));
+    instructions[call_count + 2] = 0x0000_006f; // Unretired completion fetch.
+    return buildProgram(
+        instructions.len,
+        &instructions,
+        keccakf_data_size,
+        .rv32im_zkvm_ethereum_v1,
+    );
+}
+
 pub const ethereum_bulk_memcpy_source: u32 = 0x0010_0100;
 pub const ethereum_bulk_memcpy_destination: u32 = 0x0010_0140;
 pub const ethereum_bulk_memcpy_length: usize = 32;
