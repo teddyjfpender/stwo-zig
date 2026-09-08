@@ -10,7 +10,7 @@ const manifest =
 
 const shared = frontend.recursion.segment_shared_poseidon_schedule_v2;
 
-test "row34 geometry binds transcript child hashes publication and verifier core" {
+test "row34 geometry binds transcript child IO publication and verifier core" {
     var authority = try campaign.testing.mintOwnedFromObservations(
         std.testing.allocator,
         identity(41),
@@ -20,16 +20,15 @@ test "row34 geometry binds transcript child hashes publication and verifier core
     defer authority.deinit();
     try std.testing.expectEqual(
         @as(u32, 144),
-        authority.provider_geometry.provider_active_row_count,
+        authority.view().provider_geometry.provider_active_row_count,
     );
 
     const transcript_count: usize = 64;
-    const child_claim_hash_count: usize = 32;
     const child_io_hash_count: usize = 32;
     const publication_count: usize = 144;
+    const native_identity_count: usize = 32;
     const verifier_core_count: usize = 64;
-    const statement_authority_count = child_claim_hash_count +
-        child_io_hash_count + publication_count;
+    const statement_authority_count = child_io_hash_count + publication_count + native_identity_count;
     const total = transcript_count + statement_authority_count +
         verifier_core_count;
     const calls = try std.testing.allocator.alloc(shared.Call, total);
@@ -48,13 +47,20 @@ test "row34 geometry binds transcript child hashes publication and verifier core
         &layout,
         calls,
         .{
-            .child_claim_hash = child_claim_hash_count,
             .child_io_hash = child_io_hash_count,
             .field_publication = publication_count,
+            .native_identity_hash = native_identity_count,
         },
         9,
     );
     try complete.validate();
+    try std.testing.expectEqual(@as(u16, 5), complete.schema_version);
+    try std.testing.expectEqual(@as(u32, native_identity_count), complete.native_identity_hash_call_count);
+    try std.testing.expect(!@hasField(complete_mod.StatementAuthorityCallCountsV4, "child_claim_hash"));
+    try std.testing.expect(!@hasField(complete_mod.CompleteProviderGeometryV4, "child_claim_hash_call_count"));
+    var old_schema = complete;
+    old_schema.schema_version = 3;
+    try std.testing.expectError(error.EthereumIncrementalCompleteProviderGeometryMismatchV4, old_schema.validate());
     try std.testing.expectEqual(@as(u32, total), complete.total_call_count);
     try std.testing.expectEqual(@as(u32, 9), complete.provider_log_size);
 
@@ -72,10 +78,33 @@ test "row34 geometry binds transcript child hashes publication and verifier core
         &authority,
         complete,
     );
+    // A valid receipt cannot relabel native identity work as campaign
+    // publication work, even while preserving the full call count.
+    const mislabeled = try complete_mod.CompleteProviderGeometryV4.mint(&layout, calls, .{
+        .child_io_hash = child_io_hash_count,
+        .field_publication = publication_count + native_identity_count,
+    }, 9);
+    try std.testing.expectError(error.EthereumIncrementalUniversalManifestMismatchV4, manifest.buildForCampaignAuthority(logs, &authority, mislabeled));
+    var changed_identity_count = complete;
+    changed_identity_count.native_identity_hash_call_count -= 1;
+    try std.testing.expectError(error.EthereumIncrementalCompleteProviderGeometryMismatchV4, changed_identity_count.validate());
+    const public_program = identity(131);
+    const admitted = try manifest.identitiesWithPublicSumsProgram(logs, &authority, complete, public_program);
+    const expected = try manifest.bindPublicSumsProgram(
+        try manifest.contractIdentity(logs, &authority, complete),
+        value.seal,
+        public_program,
+    );
+    try std.testing.expectEqualDeep(expected, admitted);
+    var different_program = public_program;
+    different_program[0] ^= 1;
+    const changed = try manifest.identitiesWithPublicSumsProgram(logs, &authority, complete, different_program);
+    try std.testing.expect(!std.meta.eql(admitted, changed));
+    try std.testing.expect(!std.mem.eql(u8, &admitted.contract, &try manifest.contractIdentity(logs, &authority, complete)));
 
     var publication_only_logs = logs;
     publication_only_logs[@intFromEnum(manifest.ComponentKey.poseidon2)] =
-        authority.provider_geometry.provider_log_size;
+        authority.view().provider_geometry.provider_log_size;
     try std.testing.expectError(
         error.EthereumIncrementalUniversalManifestMismatchV4,
         manifest.buildForCampaignAuthority(
@@ -109,9 +138,8 @@ test "publication boundary receipt cannot mint complete row34 geometry" {
             &boundary,
             calls,
             .{
-                .child_claim_hash = 16,
                 .child_io_hash = 16,
-                .field_publication = publication_count - 32,
+                .field_publication = publication_count - 16,
             },
             8,
         ),
@@ -141,7 +169,6 @@ test "row34 receipt rejects publication-only authority subdivision" {
             &layout,
             calls,
             .{
-                .child_claim_hash = 0,
                 .child_io_hash = 0,
                 .field_publication = publication_count,
             },

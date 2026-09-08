@@ -32,6 +32,8 @@ const capture_layout = composition_v3.capture_layout_v3;
 const composition = recursion.air.composition_circuit;
 const lowering = recursion.air.verifier_arithmetic_lowering;
 const recorder = composition_v3.segment_recorder_v3.graph_recorder;
+const node_public = @import("recursive_field_node_public_v2.zig");
+const public_boundary = @import("recursive_common_canonical_empty_boundary_v3.zig");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const Sha256 = std.crypto.hash.sha2.Sha256;
@@ -40,7 +42,7 @@ const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
 );
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 3;
 pub const CIRCUIT_ID: u32 = 751;
 pub const PRODUCTION_ACTIVATION = false;
 
@@ -162,6 +164,7 @@ pub const CaptureV2 = struct {
         errdefer layout.deinit();
         const profile = composition_v3.InputProfileV3{
             .sampled_value_count = layout.sampled_value_count,
+            .field_public_extra_word_count = node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT,
         };
         try profile.validate();
         const claim_inputs = try graph_mod.ClaimInputsV2.init(replay);
@@ -177,8 +180,6 @@ pub const CaptureV2 = struct {
             &layout,
             profile,
             &components,
-            session,
-            replay,
         );
         errdefer program.deinit();
 
@@ -191,6 +192,7 @@ pub const CaptureV2 = struct {
         errdefer allocator.free(node_values);
         try writeInputs(
             profile,
+            &cohort.schedule.node_public,
             &claim_inputs,
             session,
             replay,
@@ -291,6 +293,7 @@ pub const CaptureV2 = struct {
         defer self.allocator.free(expected_inputs);
         try writeInputs(
             self.profile,
+            &cohort.schedule.node_public,
             &self.claim_inputs,
             session,
             replay,
@@ -314,8 +317,6 @@ pub const CaptureV2 = struct {
             &self.layout,
             self.profile,
             &components,
-            session,
-            replay,
         );
         defer expected.deinit();
         if (!std.mem.eql(
@@ -330,6 +331,8 @@ pub const CaptureV2 = struct {
     pub fn validateRetained(self: *const CaptureV2) !void {
         try self.layout.validateSelfConsistency();
         try self.profile.validate();
+        if (self.profile.field_public_extra_word_count != node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT)
+            return error.InvalidCanonicalEmptyCompositionCapture;
         try self.circuit.validate();
         if (self.input_values.len != try composition.recursionInputCount(
             self.profile.graphProfile(),
@@ -497,8 +500,6 @@ fn recordProgram(
     layout: *const capture_layout.CaptureLayoutV3,
     profile: composition_v3.InputProfileV3,
     components: *const cohort_mod.ComponentSetV2,
-    session: *const secure_artifact.SessionV1,
-    replay: *const graph_mod.VerifiedReplay,
 ) !OwnedProgram {
     const graph_profile = profile.graphProfile();
     const input_count = try composition.recursionInputCount(graph_profile);
@@ -519,7 +520,7 @@ fn recordProgram(
     try builder.reserve(
         input_count,
         @as(usize, manifest.total_constraints) +
-            composition_v3.STATEMENT_WORD_COUNT + 768,
+            768,
     );
     for (base_inputs, bindings, 0..) |*value, *binding, index| {
         const input = try builder.input();
@@ -545,12 +546,9 @@ fn recordProgram(
         base_inputs[cursor..][0..composition_v3.PROGRAM_KIND_COUNT],
     );
     cursor += composition_v3.PROGRAM_KIND_COUNT;
-    var statement_words: [composition_v3.STATEMENT_WORD_COUNT]recorder.Scalar =
-        undefined;
-    @memcpy(
-        &statement_words,
-        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT],
-    );
+    var public_words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
+    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT],
+        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
     cursor += composition_v3.STATEMENT_WORD_COUNT;
     for (sampled_values) |*value|
         value.* = composition_v3.takeSecureRecorderInput(base_inputs, &cursor);
@@ -576,6 +574,9 @@ fn recordProgram(
         base_inputs,
         &cursor,
     );
+    for (base_inputs[cursor..], bindings[cursor..]) |value, binding|
+        public_words[binding.source.field_public_word] = value;
+    cursor += profile.field_public_extra_word_count;
     if (cursor != input_count) return error.InvalidWitnessShape;
     const challenges = try recorder.ChallengeSet.init(challenge_draws);
     const oods_point = recorder.pointFromSeed(oods_seed);
@@ -594,8 +595,6 @@ fn recordProgram(
         else
             recorder.Scalar.zero()),
     );
-    for (statement_words, session.parent_statement_words) |actual, expected|
-        try builder.constrainZero(actual.sub(recorder.Scalar.fromBase(expected)));
     _ = try composition_v3.recordClaimPolicyConstraintsForManifestPolicy(
         &builder,
         &kind_selectors,
@@ -604,16 +603,12 @@ fn recordProgram(
         graph_mod.CLAIM_POLICY,
     );
     try builder.constrainZero(public_wire_boundary.sub(
-        recorder.Scalar.fromSecure(replay.audited.wire_boundary.claimed_sum),
+        try public_boundary.record(&builder, &public_words, &challenges),
     ));
     var claimed_total = recorder.Scalar.zero();
     for (claim_inputs[0..graph_mod.PHYSICAL_CLAIM_COUNT]) |claim|
         claimed_total = claimed_total.add(claim);
-    try builder.constrainZero(claimed_total
-        .add(public_wire_boundary)
-        .add(recorder.Scalar.fromSecure(
-        replay.audited.verifier_input_boundary.claimed_sum,
-    )));
+    try builder.constrainZero(claimed_total.add(public_wire_boundary));
 
     var denominators: recorder.DenominatorCache =
         .{null} ** stwo_core.circle.M31_CIRCLE_LOG_ORDER;
@@ -650,12 +645,16 @@ fn recordProgram(
 
 fn writeInputs(
     profile: composition_v3.InputProfileV3,
+    public_node: *const node_public.NodePublicV2,
     claim_inputs: *const graph_mod.ClaimInputsV2,
     session: *const secure_artifact.SessionV1,
     replay: *const graph_mod.VerifiedReplay,
     capture: *const OuterProofCapture,
     destination: []QM31,
 ) !void {
+    const words = try public_node.canonicalAirWords();
+    var extra: [node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT]M31 = undefined;
+    for (&extra, 0..) |*value, index| value.* = M31.fromCanonical(words[if (index < node_public.HEADER_WORD_COUNT) index else index + node_public.STATEMENT_WORD_COUNT]);
     try composition_v3.writeInputsFromValidatedProfileAndManifestPolicy(
         profile,
         graph_mod.CLAIM_MANIFEST_FAMILY,
@@ -664,6 +663,7 @@ fn writeInputs(
             .parent_binary_selector = true,
             .proof_kind = .binary_node,
             .statement_words = &session.parent_statement_words,
+            .field_public_extra_words = &extra,
             .sampled_values = capture.sampled_values,
             .claim_inputs = &claim_inputs.values,
             .public_wire_boundary = replay.audited.wire_boundary.claimed_sum,
@@ -761,7 +761,7 @@ fn hashRecursionSource(
             u8,
             @intFromEnum(kind),
         ),
-        .statement_word => |word| hashInt(hash, u32, word),
+        .statement_word, .field_public_word => |word| hashInt(hash, u32, word),
         .sampled_value,
         .claimed_sum,
         .transcript_claimed_sum,
@@ -787,7 +787,7 @@ fn hashInt(hash: *Sha256, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 3 or
         PRODUCTION_ACTIVATION or CIRCUIT_ID != 751 or
         manifest_mod.COMPONENT_COUNT != 36)
     {

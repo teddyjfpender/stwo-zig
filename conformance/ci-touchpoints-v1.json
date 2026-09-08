@@ -1125,7 +1125,6 @@
         "src/artifact_store"
       ],
       "lanes": [
-        "artifact_store",
         "package",
         "cairo_metal",
         "metal_compile"

@@ -1,0 +1,4 @@
+   Compiling stwo-ethereum-input-projection v0.1.0 (/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/projection)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.40s
+     Running `autoresearch/benchmarks/guest_runtime/projection/target/debug/stwo-ethereum-input-projection .git/local-ethereum/upstream/mainnet_24628607_66_7_zec_reth.bin .git/local-ethereum/projected-input-recheck`
+canonical_bytes=2700688 runner_bytes=2700692 transaction_keys=66 input_projection_verified=true block_execution_verified=false

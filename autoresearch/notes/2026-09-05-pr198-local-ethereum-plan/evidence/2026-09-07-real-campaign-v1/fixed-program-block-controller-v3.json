@@ -1,0 +1,26 @@
+{
+  "version": 3,
+  "recorded_at": "2026-09-07T19:29:34.686106+00:00",
+  "scope": "Controller candidate recovery and mandatory fresh verification; mocked subprocess tests, not cryptographic or whole-block acceptance",
+  "tests_passed": 19,
+  "command": "python3 -m unittest scripts.tests.test_ethereum_full_leaf_bundle_producer",
+  "source_files": [
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "sha256": "acfdc0e35212b07f12ff2487fbbd615f8b8dbd1bdfd973a0fb87c3d27fc9f757"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_full_leaf_bundle_producer.py",
+      "sha256": "99badae2ea18cbf9fffd63884f2d30b1c252481412c007d7af331c6e580609ce"
+    }
+  ],
+  "recovery_checks": [
+    "producer success followed by interruption before CAS publication",
+    "repeated fresh-verifier failure never reproves or publishes acceptance",
+    "corrupt candidate proof, wrong request plan, and wrong segment rejected before any child",
+    "failed producer still receives a new attempt"
+  ],
+  "campaign_plan_format_unchanged": true,
+  "live_cpu_controller_uses_preceding_source": true,
+  "whole_block_verified": false
+}

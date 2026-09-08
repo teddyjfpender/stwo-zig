@@ -20,6 +20,7 @@ const ProofKind = dependency_0.ProofKind;
 const UNIVERSAL_PHYSICAL_CLAIM_COUNT = dependency_0.UNIVERSAL_PHYSICAL_CLAIM_COUNT;
 const SEGMENT_PHYSICAL_CLAIM_COUNT = dependency_0.SEGMENT_PHYSICAL_CLAIM_COUNT;
 const H1_PHYSICAL_CLAIM_COUNT = dependency_0.H1_PHYSICAL_CLAIM_COUNT;
+const INITIAL_PHYSICAL_CLAIM_COUNT = @import("air/ethereum_initial_input_manifest_v1.zig").COMPONENT_COUNT;
 const EMPTY_PHYSICAL_CLAIM_COUNT = dependency_0.EMPTY_PHYSICAL_CLAIM_COUNT;
 const POSEIDON_PARTIAL_COUNT = dependency_0.POSEIDON_PARTIAL_COUNT;
 const POSEIDON_ROSTER_ROW = dependency_0.POSEIDON_ROSTER_ROW;
@@ -281,7 +282,7 @@ pub fn writeClaimInputs(
 
 /// Manifest-family-aware claim assembler. Legacy callers continue through
 /// `writeClaimInputs` above with byte-identical placement. Only an explicitly
-/// H1-authenticated binary descriptor may select the compact 12+2 policy.
+/// admitted binary descriptor selects H1 12+2 or Initial38 38+2 placement.
 pub fn writeClaimInputsForManifest(
     proof_kind: ProofKind,
     manifest_family: ManifestFamilyV3,
@@ -289,6 +290,20 @@ pub fn writeClaimInputsForManifest(
     poseidon_partials: []const QM31,
     destination: *[COMPOSITION_CLAIM_INPUT_COUNT]QM31,
 ) Error!void {
+    if (manifest_family == .ethereum_initial_wrapper_v1) {
+        if (proof_kind != .binary_node or physical_claims.len != INITIAL_PHYSICAL_CLAIM_COUNT or poseidon_partials.len != POSEIDON_PARTIAL_COUNT)
+            return error.InvalidClaimInputCount;
+        for (physical_claims) |value| try requireCanonicalQm31(value);
+        for (poseidon_partials) |value| try requireCanonicalQm31(value);
+        if (!poseidon_partials[0].add(poseidon_partials[1]).eql(physical_claims[POSEIDON_ROSTER_ROW]))
+            return error.PoseidonPartialMismatch;
+        if (overlap(std.mem.asBytes(destination), std.mem.sliceAsBytes(physical_claims)) or overlap(std.mem.asBytes(destination), std.mem.sliceAsBytes(poseidon_partials)))
+            return error.AliasedInput;
+        destination.* = [_]QM31{QM31.zero()} ** COMPOSITION_CLAIM_INPUT_COUNT;
+        @memcpy(destination[0..INITIAL_PHYSICAL_CLAIM_COUNT], physical_claims);
+        @memcpy(destination[POSEIDON_AUX_START..], poseidon_partials);
+        return;
+    }
     if (manifest_family != .ethereum_poseidon_h1_v1)
         return writeClaimInputs(
             proof_kind,
@@ -351,6 +366,7 @@ pub fn validateClaimInputsForPolicy(
     policy: ClaimPolicyV3,
     inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
 ) Error!void {
+    if (policy == .ethereum_initial_wrapper_v1) return error.InvalidProgramRoster;
     if (proof_kind != .empty_leaf or policy != .canonical_empty_provider)
         return validateClaimInputs(proof_kind, inputs);
     for (inputs, 0..) |value, index| {
@@ -369,6 +385,17 @@ pub fn validateClaimInputsForManifestPolicy(
     policy: ClaimPolicyV3,
     inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
 ) Error!void {
+    if (manifest_family == .ethereum_initial_wrapper_v1) {
+        if (proof_kind != .binary_node or policy != .ethereum_initial_wrapper_v1)
+            return error.InvalidProgramRoster;
+        for (inputs) |value| try requireCanonicalQm31(value);
+        for (inputs[INITIAL_PHYSICAL_CLAIM_COUNT..POSEIDON_AUX_START]) |value|
+            if (!value.eql(QM31.zero())) return error.InactiveClaimInputMustBeZero;
+        if (!inputs[POSEIDON_AUX_START].add(inputs[POSEIDON_AUX_START + 1]).eql(inputs[POSEIDON_ROSTER_ROW]))
+            return error.PoseidonPartialMismatch;
+        return;
+    }
+    if (policy == .ethereum_initial_wrapper_v1) return error.InvalidProgramRoster;
     if (manifest_family == .common_fold_field_v2) {
         if (proof_kind != .binary_node or
             policy != .common_fold_field_v2)
@@ -425,6 +452,7 @@ pub fn recordClaimPolicyConstraintsForPolicy(
     claim_inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar,
     empty_policy: ClaimPolicyV3,
 ) Error!usize {
+    if (empty_policy == .ethereum_initial_wrapper_v1) return error.InvalidProgramRoster;
     const segment = proof_kind_selectors[proofKindIndex(.segment_leaf)];
     const binary = proof_kind_selectors[proofKindIndex(.binary_node)];
     const empty = proof_kind_selectors[proofKindIndex(.empty_leaf)];
@@ -459,6 +487,20 @@ pub fn recordClaimPolicyConstraintsForManifestPolicy(
     binary_manifest_family: ManifestFamilyV3,
     empty_policy: ClaimPolicyV3,
 ) Error!usize {
+    if (binary_manifest_family == .ethereum_initial_wrapper_v1) {
+        if (empty_policy != .ethereum_initial_wrapper_v1) return error.InvalidProgramRoster;
+        const segment = proof_kind_selectors[proofKindIndex(.segment_leaf)];
+        const binary = proof_kind_selectors[proofKindIndex(.binary_node)];
+        const empty = proof_kind_selectors[proofKindIndex(.empty_leaf)];
+        for (claim_inputs[INITIAL_PHYSICAL_CLAIM_COUNT..POSEIDON_AUX_START]) |claim|
+            try builder.constrainZero(binary.mul(claim));
+        for (claim_inputs) |claim| try builder.constrainZero(empty.mul(claim));
+        const partial_closure = claim_inputs[POSEIDON_AUX_START].add(claim_inputs[POSEIDON_AUX_START + 1]).sub(claim_inputs[POSEIDON_ROSTER_ROW]);
+        try builder.constrainZero(segment.add(binary).mul(partial_closure));
+        try builder.check();
+        return (POSEIDON_AUX_START - INITIAL_PHYSICAL_CLAIM_COUNT) + COMPOSITION_CLAIM_INPUT_COUNT + 1;
+    }
+    if (empty_policy == .ethereum_initial_wrapper_v1) return error.InvalidProgramRoster;
     if (binary_manifest_family == .common_fold_field_v2) {
         if (empty_policy != .common_fold_field_v2)
             return error.InvalidProgramRoster;
@@ -618,6 +660,7 @@ pub fn writeInputsFromValidatedProfileAndManifestPolicy(
     const expected_count = graph_mod.recursionInputCount(profile) catch
         return error.InvalidWitnessShape;
     if (destination.len != expected_count or
+        witness.field_public_extra_words.len != input_profile.field_public_extra_word_count or
         witness.sampled_values.len != input_profile.sampled_value_count)
     {
         return error.InvalidWitnessShape;
@@ -630,6 +673,7 @@ pub fn writeInputsFromValidatedProfileAndManifestPolicy(
     );
     try witness.relations.validate();
     for (witness.statement_words) |word| try requireCanonicalM31(word);
+    for (witness.field_public_extra_words) |word| try requireCanonicalM31(word);
     for (witness.sampled_values) |value| try requireCanonicalQm31(value);
     try requireCanonicalQm31(witness.public_wire_boundary);
     try requireCanonicalQm31(witness.composition_randomness);
@@ -641,6 +685,7 @@ pub fn writeInputsFromValidatedProfileAndManifestPolicy(
 
     const target = std.mem.sliceAsBytes(destination);
     if (overlap(target, std.mem.asBytes(witness.statement_words)) or
+        overlap(target, std.mem.sliceAsBytes(witness.field_public_extra_words)) or
         overlap(target, std.mem.sliceAsBytes(witness.sampled_values)) or
         overlap(target, std.mem.asBytes(witness.claim_inputs)) or
         overlap(target, std.mem.asBytes(witness.relations)))
@@ -663,6 +708,7 @@ pub fn writeInputsFromValidatedProfileAndManifestPolicy(
             ),
             .child_kind_selector => |kind| proof_kind_selectors[proofKindIndex(kind)],
             .statement_word => |index| witness.statement_words[index],
+            .field_public_word => |index| witness.field_public_extra_words[if (index < 6) index else index - STATEMENT_WORD_COUNT],
             .sampled_value => |coordinate| witness.sampled_values[
                 coordinate.item_index
             ].toM31Array()[coordinate.word_index],
@@ -789,10 +835,23 @@ pub fn commonFoldDescriptorShape() DescriptorShape {
     };
 }
 
+pub fn initialWrapperDescriptorShape() DescriptorShape {
+    return .{
+        .manifest_family = .ethereum_initial_wrapper_v1,
+        .claim_policy = .ethereum_initial_wrapper_v1,
+        .source_claim_count = INITIAL_PHYSICAL_CLAIM_COUNT,
+        .program_roster_count = INITIAL_PHYSICAL_CLAIM_COUNT,
+        .poseidon_partial_count = POSEIDON_PARTIAL_COUNT,
+        .poseidon_roster_row = POSEIDON_ROSTER_ROW,
+    };
+}
+
 pub fn descriptorShapeForManifest(
     kind: ProofKind,
     family: ManifestFamilyV3,
 ) DescriptorShape {
+    if (kind == .binary_node and family == .ethereum_initial_wrapper_v1)
+        return initialWrapperDescriptorShape();
     if (kind == .binary_node and family == .ethereum_poseidon_h1_v1)
         return h1DescriptorShape();
     if (kind == .binary_node and family == .temporal_parent_v3)
@@ -809,5 +868,81 @@ pub fn validateManifests(manifests: TrustedManifestsV3) Error!void {
         manifests.segment.roster_count != SEGMENT_PHYSICAL_CLAIM_COUNT)
     {
         return error.ManifestAuthorityMismatch;
+    }
+}
+
+test "Initial38 composition claims retain both initial lanes and reject malformed admission before writes" {
+    var physical = [_]QM31{QM31.zero()} ** INITIAL_PHYSICAL_CLAIM_COUNT;
+    physical[36] = QM31.one();
+    physical[37] = QM31.one().add(QM31.one());
+    const partials = [2]QM31{ QM31.one(), QM31.one() };
+    physical[POSEIDON_ROSTER_ROW] = partials[0].add(partials[1]);
+    var claims: [COMPOSITION_CLAIM_INPUT_COUNT]QM31 = undefined;
+    try writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, &physical, &partials, &claims);
+    try std.testing.expectEqualDeep(physical, claims[0..INITIAL_PHYSICAL_CLAIM_COUNT].*);
+    try std.testing.expect(claims[38].eql(QM31.zero()));
+    try std.testing.expectEqualDeep(partials, claims[POSEIDON_AUX_START..].*);
+    try validateClaimInputsForManifestPolicy(.binary_node, .ethereum_initial_wrapper_v1, .ethereum_initial_wrapper_v1, &claims);
+    try std.testing.expectError(error.InactiveClaimInputMustBeZero, validateClaimInputs(.binary_node, &claims));
+    try std.testing.expectError(error.InvalidProgramRoster, validateClaimInputsForPolicy(.binary_node, .ethereum_initial_wrapper_v1, &claims));
+    try std.testing.expectError(error.InvalidProgramRoster, validateClaimInputsForManifestPolicy(.binary_node, .universal_v1, .ethereum_initial_wrapper_v1, &claims));
+    try std.testing.expectError(error.InvalidProgramRoster, validateClaimInputsForManifestPolicy(.binary_node, .ethereum_initial_wrapper_v1, .universal_with_zero_tail, &claims));
+    const before = claims;
+    try std.testing.expectError(error.InvalidClaimInputCount, writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, physical[0..36], &partials, &claims));
+    try std.testing.expectEqualDeep(before, claims);
+    try std.testing.expectError(error.InvalidClaimInputCount, writeClaimInputsForManifest(.segment_leaf, .ethereum_initial_wrapper_v1, &physical, &partials, &claims));
+    try std.testing.expectEqualDeep(before, claims);
+    try std.testing.expectError(error.InvalidClaimInputCount, writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, &physical, partials[0..1], &claims));
+    try std.testing.expectEqualDeep(before, claims);
+    try std.testing.expectError(error.AliasedInput, writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, claims[0..38], &partials, &claims));
+    try std.testing.expectEqualDeep(before, claims);
+    try std.testing.expectError(error.AliasedInput, writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, &physical, claims[39..41], &claims));
+    try std.testing.expectEqualDeep(before, claims);
+    physical[POSEIDON_ROSTER_ROW] = QM31.zero();
+    try std.testing.expectError(error.PoseidonPartialMismatch, writeClaimInputsForManifest(.binary_node, .ethereum_initial_wrapper_v1, &physical, &partials, &claims));
+    try std.testing.expectEqualDeep(before, claims);
+}
+
+test "Initial38 composition graph constrains only slot 38 padding and ordered provider closure" {
+    const allocator = std.testing.allocator;
+    var builder = recorder.Builder.init(allocator);
+    defer builder.deinit();
+    try builder.reserve(PROGRAM_KIND_COUNT + COMPOSITION_CLAIM_INPUT_COUNT, 2 * CLAIM_POLICY_GRAPH_CONSTRAINT_COUNT);
+    var selectors: [PROGRAM_KIND_COUNT]recorder.Scalar = undefined;
+    var claims: [COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar = undefined;
+    for (&selectors) |*value| value.* = (try builder.input()).value;
+    for (&claims) |*value| value.* = (try builder.input()).value;
+    try builder.activate();
+    try std.testing.expectError(error.InvalidProgramRoster, recordClaimPolicyConstraintsForPolicy(&builder, &selectors, &claims, .ethereum_initial_wrapper_v1));
+    try std.testing.expectError(error.InvalidProgramRoster, recordClaimPolicyConstraintsForManifestPolicy(&builder, &selectors, &claims, .universal_v1, .ethereum_initial_wrapper_v1));
+    try std.testing.expectError(error.InvalidProgramRoster, recordClaimPolicyConstraintsForManifestPolicy(&builder, &selectors, &claims, .ethereum_initial_wrapper_v1, .universal_with_zero_tail));
+    const count = try recordClaimPolicyConstraintsForManifestPolicy(&builder, &selectors, &claims, .ethereum_initial_wrapper_v1, .ethereum_initial_wrapper_v1);
+    try std.testing.expectEqual(@as(usize, 43), count);
+    builder.deactivate();
+    var circuit = try builder.finish();
+    defer circuit.deinit();
+    var concrete = [_]QM31{QM31.zero()} ** (PROGRAM_KIND_COUNT + COMPOSITION_CLAIM_INPUT_COUNT);
+    concrete[proofKindIndex(.binary_node)] = QM31.one();
+    concrete[PROGRAM_KIND_COUNT + 36] = QM31.one();
+    concrete[PROGRAM_KIND_COUNT + 37] = QM31.one();
+    concrete[PROGRAM_KIND_COUNT + 39] = QM31.one();
+    concrete[PROGRAM_KIND_COUNT + 40] = QM31.one();
+    concrete[PROGRAM_KIND_COUNT + POSEIDON_ROSTER_ROW] = QM31.one().add(QM31.one());
+    const values = try allocator.alloc(QM31, circuit.nodes.len);
+    defer allocator.free(values);
+    try circuit.evaluateInto(&concrete, values);
+    for ([_]usize{ 38, 39, 40, POSEIDON_ROSTER_ROW }) |index| {
+        var changed = concrete;
+        changed[PROGRAM_KIND_COUNT + index] = changed[PROGRAM_KIND_COUNT + index].add(QM31.one());
+        try std.testing.expectError(error.UnsatisfiedCircuit, circuit.evaluateInto(&changed, values));
+        try std.testing.expectError(if (index == 38) error.InactiveClaimInputMustBeZero else error.PoseidonPartialMismatch, validateClaimInputsForManifestPolicy(.binary_node, .ethereum_initial_wrapper_v1, .ethereum_initial_wrapper_v1, changed[PROGRAM_KIND_COUNT..]));
+    }
+    @memset(&concrete, QM31.zero());
+    concrete[proofKindIndex(.empty_leaf)] = QM31.one();
+    try circuit.evaluateInto(&concrete, values);
+    for (0..COMPOSITION_CLAIM_INPUT_COUNT) |index| {
+        var changed = concrete;
+        changed[PROGRAM_KIND_COUNT + index] = QM31.one();
+        try std.testing.expectError(error.UnsatisfiedCircuit, circuit.evaluateInto(&changed, values));
     }
 }

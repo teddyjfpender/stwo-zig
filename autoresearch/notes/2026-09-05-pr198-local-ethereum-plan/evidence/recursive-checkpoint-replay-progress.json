@@ -1,0 +1,25 @@
+{
+  "status": "separate saved-proof replay passed",
+  "pending_sessions": [],
+  "log": "recursive-checkpoint-positive-replay.log",
+  "common_fold_schema": 8,
+  "node_sha256": "84d65a4c881a39e5ba05fafd231ae9f374fa56f22801de38605a1418f8b57066",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "ca9a10bd75b952b828a2aab53ee69288719434150a75347b97897e671fb9c481",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "344311e9f99cbbe1d0acaaf1d8303c69bcbf0486939de6f5e68d2f151fc2082a",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "aa3b5014b2b3d8645089d5f4345d9a73c9ea20f8307aeb2b00df79161a566c65"
+  },
+  "executable_sha256": "8c89baf9fcfae2236d45aa9502cdda00765e2c321d074515e3fb4333f6b113a4",
+  "fresh_fold_proving": false,
+  "independent_root_verified": false,
+  "checkpoint_replay_verified": true,
+  "replay_baseline": {
+    "steps": "4/4",
+    "tests": "1/1",
+    "test_time": "4m",
+    "test_max_rss": "6G",
+    "checks_ns": 263136990291,
+    "log": "recursive-checkpoint-positive-replay.log",
+    "sample": "recursive-checkpoint-replay-baseline.sample.txt"
+  }
+}

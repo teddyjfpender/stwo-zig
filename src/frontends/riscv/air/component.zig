@@ -63,6 +63,41 @@ pub const Kind = enum { opcode, program, memory };
 pub const MemoryBoundaryPolicy = enum(u32) {
     legacy_role_filtered_v1 = 1,
     full_state_split_multiplicity_v3 = 3,
+
+    pub fn evaluateGeneric(
+        self: MemoryBoundaryPolicy,
+        comptime S: type,
+        main: [8]S,
+        is_active: S,
+        is_first: S,
+        sums: [memory_interaction.N_SUMS]S,
+        previous: [memory_interaction.N_SUMS]S,
+        claims: [memory_interaction.N_SUMS]S,
+        relations: anytype,
+    ) [memory_interaction.N_CONSTRAINTS]S {
+        return switch (self) {
+            .legacy_role_filtered_v1 => memory_interaction.evaluateGeneric(
+                S,
+                main,
+                is_active,
+                is_first,
+                sums,
+                previous,
+                claims,
+                relations,
+            ),
+            .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateGeneric(
+                S,
+                main,
+                is_active,
+                is_first,
+                sums,
+                previous,
+                claims,
+                relations,
+            ),
+        };
+    }
 };
 
 /// Number of committed M31 interaction columns for a component kind.
@@ -85,6 +120,9 @@ pub const RiscVTraceComponent = struct {
     main_col_offset: usize,
     kind: Kind,
     memory_boundary_policy: MemoryBoundaryPolicy = .legacy_role_filtered_v1,
+    /// Six independently admitted ELF-derived Tree0 columns, selected only
+    /// by the explicit Ethereum fixed-program profile. Null keeps legacy AIR.
+    fixed_program_columns: ?[program_interaction.FIXED_COLUMN_COUNT]usize = null,
     relations: *const relation_challenges.Relations,
     /// Offset of this component's first column within tree 2 (interaction).
     interaction_col_offset: usize = 0,
@@ -174,19 +212,23 @@ pub const RiscVTraceComponent = struct {
                 );
                 try composition_work_support.begin(&expression);
                 defer composition_work_support.end();
-                _ = program_interaction.evaluateGeneric(
-                    Scalar,
-                    main,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    claims,
-                    &relations,
-                );
+                if (self.fixed_program_columns != null) {
+                    _ = program_interaction.evaluateFixedGeneric(Scalar, main, composition_work_support.values(program_interaction.FIXED_COLUMN_COUNT, 120), is_active, is_first, sums, previous, claims, &relations);
+                } else {
+                    _ = program_interaction.evaluateGeneric(
+                        Scalar,
+                        main,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        claims,
+                        &relations,
+                    );
+                }
                 return composition_work_support.profile(
                     .program,
-                    "riscv-program-interaction-evaluate-generic-v1",
+                    if (self.fixed_program_columns != null) "riscv-program-fixed-elf-evaluate-generic-v1" else "riscv-program-interaction-evaluate-generic-v1",
                     self.maxConstraintLogDegreeBound(),
                     self.nConstraints(),
                     expression,
@@ -278,7 +320,7 @@ pub const RiscVTraceComponent = struct {
                 semantic_eval.constraintCount(self.desc.family)
             else
                 0,
-            .program => program_interaction.N_CONSTRAINTS,
+            .program => if (self.fixed_program_columns != null) program_interaction.N_FIXED_CONSTRAINTS else program_interaction.N_CONSTRAINTS,
             .memory => memory_interaction.N_CONSTRAINTS,
         };
     }
@@ -294,10 +336,8 @@ pub const RiscVTraceComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) !core_air_components.TraceLogDegreeBounds {
-        const preprocessed = try allocator.dupe(u32, &[_]u32{
-            self.desc.log_size,
-            self.desc.log_size,
-        });
+        const preprocessed = try allocator.alloc(u32, self.preprocessedCount());
+        @memset(preprocessed, self.desc.log_size);
         const main = try allocator.alloc(u32, self.desc.n_columns);
         @memset(main, self.desc.log_size);
         const inter = try allocator.alloc(u32, nInteractionCols(self.kind));
@@ -313,12 +353,8 @@ pub const RiscVTraceComponent = struct {
         point: CirclePointQM31,
         max_log_degree_bound: u32,
     ) !core_air_components.MaskPoints {
-        const is_first_col = try allocator.dupe(CirclePointQM31, &[_]CirclePointQM31{point});
-        const is_active_col = try allocator.dupe(CirclePointQM31, &[_]CirclePointQM31{point});
-        const preprocessed_cols = try allocator.dupe(
-            []CirclePointQM31,
-            &[_][]CirclePointQM31{ is_first_col, is_active_col },
-        );
+        const preprocessed_cols = try allocator.alloc([]CirclePointQM31, self.preprocessedCount());
+        for (preprocessed_cols) |*column| column.* = try allocator.dupe(CirclePointQM31, &.{point});
 
         const n = self.desc.n_columns;
         const main_cols = try allocator.alloc([]CirclePointQM31, n);
@@ -354,10 +390,15 @@ pub const RiscVTraceComponent = struct {
         self: *const @This(),
         allocator: std.mem.Allocator,
     ) ![]usize {
-        return allocator.dupe(
-            usize,
-            &[_]usize{ self.is_first_col_idx, self.is_active_col_idx },
-        );
+        const result = try allocator.alloc(usize, self.preprocessedCount());
+        result[0] = self.is_first_col_idx;
+        result[1] = self.is_active_col_idx;
+        if (self.kind == .program) if (self.fixed_program_columns) |columns| @memcpy(result[2..], &columns);
+        return result;
+    }
+
+    fn preprocessedCount(self: *const @This()) usize {
+        return 2 + @as(usize, if (self.kind == .program and self.fixed_program_columns != null) program_interaction.FIXED_COLUMN_COUNT else 0);
     }
 
     fn sampledSecure(cols: [][]QM31, base: usize, point_idx: usize) !QM31 {
@@ -505,17 +546,27 @@ pub const RiscVTraceComponent = struct {
                     sums[index] = try sampledSecure(inter, o + index * 4, 0);
                     previous[index] = try sampledSecure(inter, o + index * 4, 1);
                 }
-                const constraints = program_interaction.evaluate(
-                    sampled,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    self.program_claims,
-                    self.relations,
-                );
-                for (constraints) |constraint| {
-                    evaluation_accumulator.accumulate(constraint.mul(denominator_inv));
+                if (self.fixed_program_columns) |columns| {
+                    var fixed: [program_interaction.FIXED_COLUMN_COUNT]QM31 = undefined;
+                    for (columns, &fixed) |column, *value| {
+                        if (column >= pp.len or pp[column].len == 0) return error.InvalidProofShape;
+                        value.* = pp[column][0];
+                    }
+                    const constraints = program_interaction.evaluateFixedGeneric(QM31, sampled, fixed, is_active, is_first, sums, previous, self.program_claims, self.relations);
+                    for (constraints) |constraint| evaluation_accumulator.accumulate(constraint.mul(denominator_inv));
+                } else {
+                    const constraints = program_interaction.evaluate(
+                        sampled,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        self.program_claims,
+                        self.relations,
+                    );
+                    for (constraints) |constraint| {
+                        evaluation_accumulator.accumulate(constraint.mul(denominator_inv));
+                    }
                 }
             },
             .memory => {
@@ -617,6 +668,10 @@ pub const RiscVTraceComponent = struct {
             return error.ResourceReservationOverflow;
         n_sources = std.math.add(usize, n_sources, n_inter) catch
             return error.ResourceReservationOverflow;
+        if (self.kind == .program) if (self.fixed_program_columns) |columns| {
+            for (columns) |column| if (column >= pp.len) return error.InvalidProofShape;
+            n_sources = try std.math.add(usize, n_sources, columns.len);
+        };
         const evaluations = try allocator.alloc([]const M31, n_sources);
         errdefer allocator.free(evaluations);
 
@@ -646,6 +701,9 @@ pub const RiscVTraceComponent = struct {
                 eval_log_size,
             ));
         }
+        if (self.kind == .program) if (self.fixed_program_columns) |columns| {
+            for (columns) |column| owned_count += @intFromBool(try prepared_evaluation.needsOwned(pp[column], log_size, eval_log_size));
+        };
         var evaluation_owner = try prepared_evaluation.Owner.init(
             allocator,
             owned_count,
@@ -687,6 +745,12 @@ pub const RiscVTraceComponent = struct {
             );
             source_index += 1;
         }
+        if (self.kind == .program) if (self.fixed_program_columns) |columns| {
+            for (columns) |column| {
+                evaluations[source_index] = try evaluation_owner.value(pp[column], log_size, eval_log_size, eval_size);
+                source_index += 1;
+            }
+        };
         std.debug.assert(source_index == n_sources);
         try evaluation_owner.finish(eval_domain);
 
@@ -764,28 +828,16 @@ pub const RiscVTraceComponent = struct {
         claims: [memory_interaction.N_SUMS]S,
         relations: anytype,
     ) [memory_interaction.N_CONSTRAINTS]S {
-        return switch (self.memory_boundary_policy) {
-            .legacy_role_filtered_v1 => memory_interaction.evaluateGeneric(
-                S,
-                main,
-                is_active,
-                is_first,
-                sums,
-                previous,
-                claims,
-                relations,
-            ),
-            .full_state_split_multiplicity_v3 => incremental_boundary_interaction_v3.evaluateGeneric(
-                S,
-                main,
-                is_active,
-                is_first,
-                sums,
-                previous,
-                claims,
-                relations,
-            ),
-        };
+        return self.memory_boundary_policy.evaluateGeneric(
+            S,
+            main,
+            is_active,
+            is_first,
+            sums,
+            previous,
+            claims,
+            relations,
+        );
     }
 };
 

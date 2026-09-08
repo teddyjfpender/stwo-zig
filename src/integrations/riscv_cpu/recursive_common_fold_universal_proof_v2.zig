@@ -143,9 +143,9 @@ pub fn TransactionV2(comptime Backend: type) type {
             try child.validateBorrowed();
             const tagged = try cohort_mod.FreshFoldChildV2.fromCommon(
                 &child,
-                &cohort.geometry.registry,
+                cohort.geometry.registry,
             );
-            const projection = try tagged.projection(&cohort.geometry.registry);
+            const projection = try tagged.projection(cohort.geometry.registry);
             if (projection.wrapper.artifact != node or
                 projection.wrapper.geometry !=
                     cohort.geometry.commonFoldGeometry() or

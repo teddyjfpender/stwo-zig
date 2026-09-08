@@ -498,7 +498,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn preflightV2CoreRows18Through34(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
         ) !V2CoreRows18Through34PreflightReceipt {
             try captured.evaluation.validateAgainst(&captured.circuit);

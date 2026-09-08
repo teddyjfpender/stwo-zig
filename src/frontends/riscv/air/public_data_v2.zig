@@ -212,10 +212,10 @@ pub const PublicDataV2 = struct {
         }
     };
 
-    /// Sole owner of one validated immutable wire. `adoptRetained` consumes
+    /// Sole owner of one validated immutable wire. Both admission methods consume
     /// `owned_words` on success; no mutable slice is exposed afterwards.
     pub const OwnedValidatedLeaseV2 = struct {
-        storage: *ValidatedLeaseStorageV2,
+        storage: *ValidatedLeaseV2,
         data_value: PublicDataV2,
 
         pub fn adoptRetained(
@@ -224,15 +224,37 @@ pub const PublicDataV2 = struct {
             retained: RetainedSnapshots,
             counters: ?*ValidationCountersV2,
         ) !OwnedValidatedLeaseV2 {
+            return adopt(allocator, owned_words, retained, counters);
+        }
+
+        /// Authenticate both sparse roots from untrusted bytes exactly once,
+        /// then take immutable ownership. No retained producer authority enters.
+        pub fn adoptCold(
+            allocator: std.mem.Allocator,
+            owned_words: []M31,
+            counters: ?*ValidationCountersV2,
+        ) !OwnedValidatedLeaseV2 {
+            return adopt(allocator, owned_words, null, counters);
+        }
+
+        fn adopt(
+            allocator: std.mem.Allocator,
+            owned_words: []M31,
+            retained: ?RetainedSnapshots,
+            counters: ?*ValidationCountersV2,
+        ) !OwnedValidatedLeaseV2 {
             const validation_start = if (counters != null)
                 std.time.nanoTimestamp()
             else
                 0;
-            const view = try segment_v2.authenticateCanonicalWireReusingRoots(
-                owned_words,
-                retained.entry,
-                retained.exit,
-            );
+            const view = if (retained) |snapshots|
+                try segment_v2.authenticateCanonicalWireReusingRoots(
+                    owned_words,
+                    snapshots.entry,
+                    snapshots.exit,
+                )
+            else
+                try segment_v2.authenticateCanonicalWire(owned_words);
             _ = try metadataFromView(&view);
             const storage = allocator.create(ValidatedLeaseStorageV2) catch
                 return error.OutOfMemory;
@@ -245,15 +267,17 @@ pub const PublicDataV2 = struct {
                 .counters = counters,
             };
             if (counters) |value| {
-                _ = value.retained_root_authentications.fetchAdd(1, .monotonic);
-                _ = value.retained_root_authentication_ns.fetchAdd(
-                    elapsedNanoseconds(validation_start),
-                    .monotonic,
-                );
+                if (retained != null) {
+                    _ = value.retained_root_authentications.fetchAdd(1, .monotonic);
+                    _ = value.retained_root_authentication_ns.fetchAdd(
+                        elapsedNanoseconds(validation_start),
+                        .monotonic,
+                    );
+                } else value.recordLegacyFullAuthentication();
             }
             const token: *const ValidatedLeaseV2 = @ptrCast(storage);
             return .{
-                .storage = storage,
+                .storage = @ptrCast(storage),
                 .data_value = .{
                     .canonical_words = owned_words,
                     .authenticated_wire_id = view.wire_id,
@@ -289,7 +313,7 @@ pub const PublicDataV2 = struct {
         }
 
         pub fn deinit(self: *OwnedValidatedLeaseV2) void {
-            const storage = self.storage;
+            const storage: *ValidatedLeaseStorageV2 = @ptrCast(@alignCast(self.storage));
             const allocator = storage.allocator;
             allocator.free(storage.owned_words);
             allocator.destroy(storage);
@@ -303,7 +327,8 @@ pub const PublicDataV2 = struct {
         pub fn ownedWords(
             self: *const OwnedValidatedLeaseV2,
         ) []const M31 {
-            return self.storage.owned_words;
+            const storage: *const ValidatedLeaseStorageV2 = @ptrCast(@alignCast(self.storage));
+            return storage.owned_words;
         }
     };
 
@@ -438,8 +463,7 @@ pub const PublicDataV2 = struct {
                 storage.view.words.ptr != storage.owned_words.ptr or
                 storage.view.words.len != storage.owned_words.len or
                 !std.meta.eql(self.authenticated_wire_id, storage.view.wire_id) or
-                self.retained_snapshots == null or
-                !std.meta.eql(self.retained_snapshots.?, storage.retained))
+                !std.meta.eql(self.retained_snapshots, storage.retained))
             {
                 return error.SourceMutation;
             }
@@ -465,7 +489,7 @@ pub const PublicDataV2 = struct {
 const ValidatedLeaseStorageV2 = struct {
     allocator: std.mem.Allocator,
     owned_words: []M31,
-    retained: PublicDataV2.RetainedSnapshots,
+    retained: ?PublicDataV2.RetainedSnapshots,
     view: segment_v2.CanonicalWireViewV2,
     counters: ?*PublicDataV2.ValidationCountersV2,
 };

@@ -1,0 +1,30 @@
+1/2 incremental_memory_transition_test_root.test_0...OK
+2/2 air.memory_commitment.incremental_transition_v2.test.sparse changed bytes reserve one parent per unpaired child...thread 36057218 panic: reached unreachable code
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/debug.zig:559:14: 0x102217e1b in assert (root)
+    if (!ok) unreachable; // assertion failure
+             ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/array_list.zig:1273:19: 0x1022fce37 in addOneAssumeCapacity (root)
+            assert(self.items.len < self.capacity);
+                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/array_list.zig:904:38: 0x1022dabbf in appendAssumeCapacity (root)
+            self.addOneAssumeCapacity().* = item;
+                                     ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/memory_commitment/incremental_transition_v2.zig:373:38: 0x1022d883b in build (root)
+            next.appendAssumeCapacity(.{
+                                     ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/memory_commitment/incremental_transition_v2.zig:643:28: 0x1022f8dff in test.sparse changed bytes reserve one parent per unpaired child (root)
+    var changed = try build(std.testing.allocator, &words, &.{});
+                           ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x1022af10b in mainTerminal (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:66:28: 0x1022a9c67 in main (root)
+        return mainTerminal();
+                           ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x1022a967f in main (root)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x5065ffffffffffff in ??? (???)
+error: the following test command crashed:
+.zig-cache/o/76dcffe40596e97b4a76d139da944f6a/root --seed=0x64e00303

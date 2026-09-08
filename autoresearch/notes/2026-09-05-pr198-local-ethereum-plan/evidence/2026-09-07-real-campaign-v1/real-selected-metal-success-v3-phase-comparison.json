@@ -1,0 +1,447 @@
+{
+  "schema": "stwo.ethereum.matched-real-leaf-cpu-metal.v1",
+  "endpoint": "prepared native full leaf core plus all providers; serialize, destroy producer, freshly verify, publish",
+  "observations_per_backend": 1,
+  "whole_block": false,
+  "succinct_root": false,
+  "csp_16_case_promotion": false,
+  "segment_index": 9,
+  "segment_count": 121,
+  "leaf_cycles": 2097152,
+  "claim_admission": "field_authority_v4",
+  "worker_count": 1,
+  "cpu_request": {
+    "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+    "exit_code": 0,
+    "monitor_elapsed_ns": 1192702794333,
+    "sampled_peak_footprint_bytes": 26345901712,
+    "stopped_for_footprint_limit": false,
+    "policy": {
+      "worker_count": 1,
+      "composition_host_budget_bytes": 17179869184,
+      "pcs_retained_byte_budget_bytes": 25769803776,
+      "monitor_footprint_stop_bytes": 34359738368,
+      "sample_interval_seconds": 2,
+      "limits_scope": "Separate 24 GiB retained PCS ceiling and 16 GiB composition allocator ceiling; 32 GiB sampled footprint stop is a fallback, not allocation guarantee",
+      "resource_model_not_measurement": {
+        "retained_lde_bytes": 20550093056,
+        "maximum_streaming_source_batch_bytes": 1073741824,
+        "three_max_height_merkle_trees_upper_bytes": 1610612736,
+        "observed_prior_prepare_peak_bytes": 2186643736,
+        "additional_unbounded_by_this_model": "composition outputs, FRI, twiddles and allocator; 8 GiB difference between PCS ceiling and process stop provides headroom, not proof of peak"
+      }
+    },
+    "verified_and_published": true,
+    "ended_unix_ns": 1788792385245104000,
+    "real_seconds": 1191.75,
+    "user_seconds": 1120.06,
+    "sys_seconds": 38.98,
+    "maximum_resident_set_size_bytes": 14375419904,
+    "peak_memory_footprint_bytes": 26345901712,
+    "artifact": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.stwief04",
+      "bytes": 62552044,
+      "sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8"
+    },
+    "global_metadata": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.metadata.json",
+      "bytes": 16650,
+      "sha256": "3d0775148bd5055e6d22c9cafabd3f6bd0a82086bf8d18456bf222b6e4c67bc8"
+    }
+  },
+  "metal_request": {
+    "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+    "exit_code": 0,
+    "monitor_elapsed_ns": 248593027584,
+    "sampled_peak_footprint_bytes": 29367604752,
+    "stopped_for_footprint_limit": false,
+    "policy": {
+      "worker_count": 1,
+      "composition_host_budget_bytes": 17179869184,
+      "pcs_retained_byte_budget_bytes": 25769803776,
+      "monitor_footprint_stop_bytes": 34359738368,
+      "sample_interval_seconds": 2,
+      "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+    },
+    "verified_and_published": true,
+    "ended_unix_ns": 1788797148675998000,
+    "real_seconds": 247.37,
+    "user_seconds": 173.42,
+    "sys_seconds": 11.01,
+    "maximum_resident_set_size_bytes": 15755444224,
+    "peak_memory_footprint_bytes": 29375469072,
+    "artifact": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/segment-000009.stwief04",
+      "bytes": 62552044,
+      "sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8"
+    },
+    "global_metadata": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/segment-000009.metadata.json",
+      "bytes": 16650,
+      "sha256": "3d0775148bd5055e6d22c9cafabd3f6bd0a82086bf8d18456bf222b6e4c67bc8"
+    }
+  },
+  "complete_request_ratio_cpu_over_metal": 4.8176820147956505,
+  "ordered_metal_phases": [
+    {
+      "depth": 0,
+      "id": "stage101_leaf_transaction",
+      "seconds": 156.092369
+    },
+    {
+      "depth": 1,
+      "id": "stage101_input_admission",
+      "seconds": 2.281506
+    },
+    {
+      "depth": 1,
+      "id": "stage101_compact_replay",
+      "seconds": 0.202909
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prepared_proof_transaction",
+      "seconds": 5.833784
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prove",
+      "seconds": 147.071217
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.016251
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 0.420676
+    },
+    {
+      "depth": 2,
+      "id": "riscv_opcode_trace_generation",
+      "seconds": 11.653194
+    },
+    {
+      "depth": 3,
+      "id": "riscv_infrastructure_trace_generation",
+      "seconds": 11.604182
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 3.308906
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 16.3373
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_opcode",
+      "seconds": 2.897152
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_program",
+      "seconds": 0.949388
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_memory",
+      "seconds": 0.16712
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_merkle",
+      "seconds": 2.105899
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_poseidon",
+      "seconds": 1.139135
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_clock",
+      "seconds": 0.372128
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_tables",
+      "seconds": 0.127236
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.248535
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 15.319801
+    },
+    {
+      "depth": 2,
+      "id": "draw_random_coeff",
+      "seconds": 2e-06
+    },
+    {
+      "depth": 2,
+      "id": "composition_trace_extract",
+      "seconds": 9e-05
+    },
+    {
+      "depth": 2,
+      "id": "composition_evaluation",
+      "seconds": 46.420408
+    },
+    {
+      "depth": 2,
+      "id": "composition_interpolate_and_split",
+      "seconds": 0.047507
+    },
+    {
+      "depth": 2,
+      "id": "composition_commit",
+      "seconds": 0.131332
+    },
+    {
+      "depth": 2,
+      "id": "oods_point_and_mask_points",
+      "seconds": 0.001908
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_evaluation",
+      "seconds": 0.315071
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_channel_mix",
+      "seconds": 0.014419
+    },
+    {
+      "depth": 2,
+      "id": "fri_quotient_build_and_commit",
+      "seconds": 24.83698
+    },
+    {
+      "depth": 2,
+      "id": "proof_of_work",
+      "seconds": 0.005582
+    },
+    {
+      "depth": 2,
+      "id": "fri_decommit",
+      "seconds": 0.010421
+    },
+    {
+      "depth": 2,
+      "id": "trace_decommit",
+      "seconds": 0.301386
+    },
+    {
+      "depth": 2,
+      "id": "constraint_check_and_assembly",
+      "seconds": 0.007562
+    },
+    {
+      "depth": 1,
+      "id": "stage101_encode",
+      "seconds": 0.210023
+    }
+  ],
+  "exclusive_metal_depth2_seconds": {
+    "source_column_pack": 3.573692,
+    "merkle_commit": 32.077777,
+    "riscv_opcode_trace_generation": 11.653194,
+    "riscv_interaction_opcode": 2.897152,
+    "riscv_interaction_program": 0.949388,
+    "riscv_interaction_memory": 0.16712,
+    "riscv_interaction_merkle": 2.105899,
+    "riscv_interaction_poseidon": 1.139135,
+    "riscv_interaction_clock": 0.372128,
+    "riscv_interaction_tables": 0.127236,
+    "draw_random_coeff": 2e-06,
+    "composition_trace_extract": 9e-05,
+    "composition_evaluation": 46.420408,
+    "composition_interpolate_and_split": 0.047507,
+    "composition_commit": 0.131332,
+    "oods_point_and_mask_points": 0.001908,
+    "sampled_value_evaluation": 0.315071,
+    "sampled_value_channel_mix": 0.014419,
+    "fri_quotient_build_and_commit": 24.83698,
+    "proof_of_work": 0.005582,
+    "fri_decommit": 0.010421,
+    "trace_decommit": 0.301386,
+    "constraint_check_and_assembly": 0.007562
+  },
+  "metal_records": {
+    "INCREMENTAL_FULL_LEAF_RESOURCE_POLICY_V1": {
+      "composition_allocation_budget_bytes": 17179869184,
+      "pcs_retained_byte_budget_bytes": 25769803776,
+      "host_admission_limit_bytes": 34359738368,
+      "process_cap_enforced": "false"
+    },
+    "INCREMENTAL_FULL_LEAF_PREFLIGHT_V1": {
+      "retained_lde_lower_bound_bytes": 20550093056,
+      "source_column_bytes": 10275046528,
+      "columns": 16894,
+      "blowup_log": 1,
+      "budget_bytes": 25769803776,
+      "excludes": "merkle,fri,quotient,twiddles,witness,allocator"
+    },
+    "INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1": {
+      "retained_bytes": 17253064448,
+      "columns": 8458,
+      "budget_bytes": 25769803776,
+      "retention": "never"
+    },
+    "INCREMENTAL_FULL_LEAF_VERIFY_POLICY_V1": {
+      "workers": 1
+    },
+    "INCREMENTAL_FULL_LEAF_VALIDATION_V2": {
+      "producer_ns": 156090324125,
+      "producer_auth_count": 1,
+      "producer_auth_ns": 1942750000,
+      "producer_reuses": 244,
+      "cold_ns": 52258776833,
+      "cold_auth_count": 1,
+      "cold_auth_ns": 1996082000,
+      "cold_reuses": 262
+    },
+    "INCREMENTAL_FULL_LEAF_CLAIM_ADMISSION": {
+      "schema": 4,
+      "profile": "field_authority_v4"
+    },
+    "INCREMENTAL_FULL_LEAF_PHASES_V1": {
+      "transaction_ns": 155597379042,
+      "admission_ns": 2281476042,
+      "replay_ns": 202905750,
+      "witness_ns": 2719988500,
+      "profile_ns": 2750530958,
+      "prove_ns": 147069265833,
+      "encode_ns": 210020542
+    },
+    "INCREMENTAL_FULL_LEAF_RESOURCES_V1": {
+      "phase": "complete_request",
+      "wall_ns": 246265661166,
+      "cpu_ns": 184294265333,
+      "lifetime_peak_footprint_bytes": 29375469072
+    },
+    "STAGE101_METAL_ADMISSION_V2": {
+      "claim_schema": 4,
+      "reference_bytes": 62552044,
+      "small_circle_host_placements": 0
+    },
+    "STAGE101_METAL_RECEIPT_V1": {
+      "artifact_sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8",
+      "queries": 193,
+      "manifest_sha256": "d51ffc6f4de6307c47604c67a352f724f3763d798f188ab86ab71c226013acba",
+      "metallib_sha256": "9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7",
+      "platform_identity_sha256": "5874db131967f4a8db8014e2c3a586fded2a10e2dcb3776c56ec64123e323d91",
+      "build_identity_sha256": "9e675e02435d2bcc7a55500c5974e86a04105b172fd758e6ad967e7e6995ec50",
+      "runtime_init_ns": 66773541,
+      "producer_ns": 156090324125,
+      "cold_cpu_verify_ns": 52258776833,
+      "transaction_ns": 155597379042,
+      "admission_ns": 2281476042,
+      "replay_ns": 202905750,
+      "witness_ns": 2719988500,
+      "profile_ns": 2750530958,
+      "prove_ns": 147069265833,
+      "encode_ns": 210020542,
+      "budget_ns": 5400000000000
+    },
+    "STAGE101_METAL_KERNELS_V1": {
+      "resident_merkle": 10,
+      "poseidon_merkle": 10,
+      "host_merkle": 0,
+      "sampled": 1,
+      "circle_transform": 2,
+      "circle_lde": 45,
+      "composition": 0,
+      "quotient": 1,
+      "fri_circle": 1,
+      "fri_line": 21,
+      "fri_epochs": 0,
+      "qm31": 5,
+      "relation": 0,
+      "trace": 0,
+      "base_eligible": 47,
+      "base_dispatch": 1,
+      "lookup_eligible": 44,
+      "lookup_dispatch": 1,
+      "cpu_fallback_total": 0,
+      "small_interp": 0,
+      "small_eval": 0,
+      "small_lde": 0,
+      "pipeline_hits": 0,
+      "pipeline_misses": 0,
+      "direct_compiles": 0
+    },
+    "STAGE101_HOST_PLACEMENTS_V1": {
+      "trace_generation": "cpu",
+      "small_circle_interpolation": 0,
+      "small_circle_evaluation": 0,
+      "small_circle_lde": 0,
+      "admitted_cpu_fallbacks": 0
+    },
+    "STAGE101_EXECUTION_RECEIPT_V1": {
+      "workers": 1,
+      "host_budget": 17179869184,
+      "host_logical_cpus": 14,
+      "host_limit": 34359738368,
+      "producer_wall_ns": 156090485083,
+      "producer_cpu_ns": 94481684750,
+      "producer_parallelism_milli": 605,
+      "producer_peak_footprint": 29375469072,
+      "cold_wall_ns": 52258842584,
+      "cold_cpu_ns": 52140671250,
+      "cold_parallelism_milli": 997,
+      "cold_peak_footprint": 29375469072,
+      "prepared_validations": 3,
+      "prepared_borrows": 2,
+      "cold_rebuilds": 1,
+      "statement_builds": 1,
+      "ethereum_witness_builds": 1,
+      "extension_builds": 1,
+      "profile_cold_mints": 1,
+      "profile_transport_mints": 0
+    }
+  },
+  "same_proof_sha256": true,
+  "same_global_metadata_sha256": true,
+  "separate_process_metal_verification": {
+    "passed": true,
+    "receipt": "real-selected-metal-fresh-v1.json",
+    "request_ns": 69183603750,
+    "peak_footprint_bytes": 1029866504
+  },
+  "preparation_exclusions": "Both commands consume the same retained selected-leaf materialization/compact inputs. Guest build, whole-campaign execution/capture, compiler time and AOT generation are not included in the proving request. Metal cold runtime initialization is included in external request time.",
+  "source_provenance": {
+    "schema": "stwo.ethereum.frozen-product.v1",
+    "source_manifest": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-source-v5/manifest.json",
+      "bytes": 1092956,
+      "sha256": "d776ec4115413ce1a20fac6e27626a4b98a0e276c1f7a380c9a158f4b8e540e0"
+    },
+    "executable": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v5/bin/stage101-metal-autoresearch-v1",
+      "bytes": 10966432,
+      "sha256": "6af7f10b67d6f60cef948e7887fc279802329a36c57e1f2be07f567d87dec2e0"
+    },
+    "build_log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v5/build.log",
+      "bytes": 385,
+      "sha256": "f091354b53410f7971816edf01f9a66ece7c09c7edfef3e95b4d8d18edd4ccc5"
+    },
+    "tests_passed": 15,
+    "steps_passed": 6,
+    "optimization": "ReleaseSafe",
+    "source_scope": "Copied source and embedded AIR artifacts; built inside this retained snapshot, manifest rechecked after build."
+  }
+}

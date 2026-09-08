@@ -1,0 +1,7 @@
+# Superseded real-cohort producer-half measurement
+
+This run was intentionally stopped after the exact producer-destruction marker and 87,326 serialized bytes. Only test PID 48195 received SIGTERM after command, parent chain, source manifest and executable location were rechecked. Build and launcher processes were left to reap it; supervisor exit 1 and signal 15 are expected consequences of that deliberate stop. The cold-prepare phase began, but independent reconstruction was not completed. This is neither a complete replay pass nor a wrapper proof.
+
+The producer cohort took 1,795.987 seconds to prepare, 170.699 seconds to regenerate Tree2, 0.000016 seconds for its generated-closure checks, 0.000554 seconds to serialize, and 14.593 seconds to destroy. Producer tracked live allocations reached zero. Peak physical footprint was 56,225,850,168 bytes; peak tracked allocations were 74,801,485,871 bytes. Tree2 logical value volume was 4,322,642,944 bytes. The tuple ledger held 166,400,671 contributions with capacity 316,974,724: 22,630,491,256 bytes used and 43,108,562,464 bytes reserved.
+
+The codec test also reported a separate failure. The installed Zig runner only assigns that named failure after receiving a failing test-results message, while signal 15 was separately attributed to the later running cohort test. Do not dismiss the codec label as signal attribution, and do not call this two-test gate passed. The isolated codec investigation is owned by initial_rows_gate; no extra compilation or test execution was started by this monitor.

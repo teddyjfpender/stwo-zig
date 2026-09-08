@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T06:26:45.738137+00:00",
+  "status": "source_fmt_ast_passed_no_replay_executed",
+  "scope": "existing saved-input replay reaches actual complete Tree2 and independent cold domain closure without PCS or native proving",
+  "source_files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_statement_root_cohort_replay.zig",
+      "sha256": "a8d08c7276caaf0cc96d5213a8923a5d4d9182b82e867f2eefd6a176b6a90427"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "sha256": "4b568d1a3f0922c2be667e88a88238f3a2a20939824c0c540ed58f219e276121"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "sha256": "9154b954f3b1dd6e795622c3aebb645e7f7c7bd9221bc3b0cce7fc372d18c28e"
+    }
+  ],
+  "route": [
+    "select ordinary36 or Initial38 from explicit materialized initial admission",
+    "Geometry.init then Complete.Cohort.init; never SecureCohort.init because it derives Tree0 PCS",
+    "deterministic universal/provider relations derived from Poseidon ETC1 version1 on each side",
+    "rebuildGeneratedInteractions generates full Tree2 privately then releases its columns",
+    "serialize manifest and pointer-free Generated claims/audits",
+    "destroy all producer geometry/cohort storage and require dedicated allocator empty",
+    "independently build cold geometry/cohort from already-native-verified source",
+    "decode publication and independently rebuild entire Tree2 from cold rows; compare complete Generated including native audits18..34 against published bytes",
+    "full validateGenerated additionally exercises independent cold prefix/suffix row audit and domain closure",
+    "destroy verifier geometry/cohort storage and require dedicated allocator empty"
+  ],
+  "phase_diagnostics": [
+    "prepare",
+    "tree2_generate",
+    "producer_closure",
+    "serialize",
+    "producer_destroy",
+    "cold_prepare",
+    "cold_tree2",
+    "cold_closure",
+    "verifier_destroy"
+  ],
+  "resource_fields": [
+    "wall_ns",
+    "process_cpu_ns",
+    "current_physical_footprint_bytes",
+    "lifetime_peak_physical_footprint_bytes",
+    "dedicated_cohort_allocator_live_bytes",
+    "dedicated_cohort_allocator_peak_bytes",
+    "pre-allocation_tree2_value_bytes"
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-validation-ownership",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "compile_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "check-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-statement-root-cohort-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_inputs": "Existing independently pinned saved Stage101 native pair/ELF/global metadata; existing explicit initial admission selects Initial38. No new native proof generated.",
+  "note": "Format and AST accepted only for these changes. Parent will freeze and semantically compile/run the real saved-input replay; prior complete-proof compile and 25 smaller tests passed before this transport fix.",
+  "supersedes": "tree2-cold-closure-source-v3.json; semantic replay compile exposed standard JSON decoder rejection of ordinary Generated.initial_claims:void",
+  "execution": "root_cohort_run.has_side_effects=true ensures current pinned external corpus is reopened on each invocation",
+  "live_progress": "All phase/resource/summary messages use ethereum_wrapper_resources_v1.progress, preserving stderr and STWO_ETHEREUM_PROOF_PROGRESS append logging",
+  "transport_fix": "Private reflected strict object parser accepts void only as explicit null; requires exact top-level Generated/Publication fields and uses standard arena JSON decoder for other values. No protocol Generated layout change.",
+  "required_codec_regression": "Ethereum cohort replay publication preserves absent and present initial claims",
+  "codec_cases": [
+    "ordinary void round trip",
+    "Initial38 claims array round trip",
+    "non-null void rejected",
+    "missing field rejected",
+    "same-count unknown-field substitution rejected"
+  ]
+}

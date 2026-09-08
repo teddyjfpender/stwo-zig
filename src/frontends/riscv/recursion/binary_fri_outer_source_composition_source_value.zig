@@ -156,13 +156,13 @@ pub fn validateChildProfiles(children: anytype) !void {
         ) or
         !std.mem.eql(
             u8,
-            &left.capture.pcs_circuit.profile_digest,
-            &right.capture.pcs_circuit.profile_digest,
+            &left.capture.pcs_circuit.view().profile_digest,
+            &right.capture.pcs_circuit.view().profile_digest,
         ) or
         !std.mem.eql(
             u8,
-            &left.capture.pcs_circuit.identity_digest,
-            &right.capture.pcs_circuit.identity_digest,
+            &left.capture.pcs_circuit.view().identity_digest,
+            &right.capture.pcs_circuit.view().identity_digest,
         ))
     {
         return error.ProfileMismatch;
@@ -263,6 +263,7 @@ pub fn compositionSourceValue(
         .child_kind_selector => |kind| M31.fromCanonical(
             @intFromBool(kind == trusted.child_proof_kind),
         ),
+        .field_public_word => return error.CompositionAuthorityMismatch,
         .statement_word => |word| blk: {
             const words = if (child_index == LEFT_CHILD)
                 &pair.left_words

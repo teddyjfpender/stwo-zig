@@ -1,0 +1,4 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 900s
+1/1 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_owned_v4.test.runtime campaign subrange preserves coordinates through clone and rejects metadata mutation...OK
+All 1 tests passed.

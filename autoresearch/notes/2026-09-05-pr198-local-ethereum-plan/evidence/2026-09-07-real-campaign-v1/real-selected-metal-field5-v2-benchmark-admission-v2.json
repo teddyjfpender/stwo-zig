@@ -1,0 +1,9 @@
+{
+  "schema": "stwo.stage101-benchmark-admission.v2",
+  "artifact_bytes": 62271644,
+  "artifact_sha256": "5c102cc46a993393409a9a0a9074f1c21817fb235402af6b94d38985aec3ce27",
+  "claim_schema": 5,
+  "small_circle_host_placements": 0,
+  "manifest_sha256": "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+  "metallib_sha256": "9a32b36496d66eb0d0889949ec7f6d06f95a25d9aa6bd16695ca4d9e2d1f171d"
+}

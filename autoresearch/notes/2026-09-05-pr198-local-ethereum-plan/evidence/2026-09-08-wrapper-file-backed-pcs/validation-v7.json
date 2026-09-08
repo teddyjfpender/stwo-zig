@@ -1,0 +1,73 @@
+{
+  "version": 1,
+  "snapshot": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7",
+  "manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "status": "passed",
+  "gates": [
+    {
+      "name": "pcs-retained-columns",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/prover",
+        "test-pcs-retained-columns",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T03:58:25.419922+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/pcs-retained-columns.log",
+      "pid": 39659,
+      "exit_code": 0,
+      "wall_seconds": 130.6857776248362,
+      "log_sha256": "f8f8a9492963bc044c09028734b95c938270ea97254309cbc00f09fe625d5598"
+    },
+    {
+      "name": "small-composition",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/integrations/riscv_cpu",
+        "test-ethereum-small-composition-proof",
+        "-Doptimize=ReleaseSafe",
+        "-Dethereum-proof-strip=true",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T04:00:36.108409+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/small-composition.log",
+      "pid": 39722,
+      "exit_code": 0,
+      "wall_seconds": 75.76154970796779,
+      "log_sha256": "f27d5a77530b91a692ab83781e071584a2e7d6d9bd3da1d2229d45f6d525ac51"
+    },
+    {
+      "name": "complete-proof-compile",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/integrations/riscv_cpu",
+        "check-ethereum-complete-proof",
+        "-Doptimize=ReleaseSafe",
+        "-Dethereum-proof-strip=true",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T04:01:51.849969+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/complete-proof-compile.log",
+      "pid": 39753,
+      "exit_code": 0,
+      "wall_seconds": 285.40821420797147,
+      "log_sha256": "8882d94617a5afb4cb8ca3637327921c2b1716b81a4281069b39a35861c781bd"
+    }
+  ],
+  "post_gate_source_pins_verified": 5756,
+  "actual_wrapper_executed": false,
+  "candidate_ready_for_real_ordinary_wrapper_retry": true
+}

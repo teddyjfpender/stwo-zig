@@ -1,0 +1,20 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 24s
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold q193 transcript program matches the cold verifier' failed: SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=10 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_Q193_STAGE=engine.prove error=CommonFoldSuffixBoundaryPolicyMismatch
+COMMON_FOLD_Q193_BOOTSTRAP_STAGE=fold.prove-cold-verify error=CommonFoldSuffixBoundaryPolicyMismatch
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold q193 transcript program matches the cold verifier', the following test command failed:
+./.zig-cache/o/e95b06a05a4479f255736531bb3bbdc4/test --cache-dir=./.zig-cache --seed=0x78bd3a03 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-common-fold-transcript-program-v1 transitive failure
++- Common-fold transcript program proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/27ec954b18524e554d2d4cc9175b0c01/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x78bd3a03 -Z4ad8931ec041d961 --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-program-v1 -Doptimize=ReleaseSafe --summary all

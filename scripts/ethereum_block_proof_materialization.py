@@ -19,6 +19,7 @@ from scripts import ethereum_block_proof_stream_request as stream_request
 MATERIALIZATION_SCHEMA = (
     "stwo.ethereum.block-proof-source-materialization-result.v1"
 )
+RECURSIVE_MATERIALIZATION_SCHEMA = "stwo.ethereum.block-proof-source-materialization-result.v2"
 NATIVE_M31_ID_FIELDS = (
     "metadata_id_m31_le", "statement_id_m31_le",
 )
@@ -66,6 +67,17 @@ def _m31_digest(value: Any, where: str) -> str:
 
 def validate(path: Path) -> dict[str, Any]:
     """Reopen a canonical materialization manifest and all named authorities."""
+    return _validate(path, MATERIALIZATION_SCHEMA,
+                     (stream_request.SOURCE_SCHEMA_V1, stream_request.SOURCE_SCHEMA_V2))
+
+
+def validate_recursive(path: Path) -> dict[str, Any]:
+    """Explicit V2 admission for globally positioned, leaf-local-clock sources."""
+    return _validate(path, RECURSIVE_MATERIALIZATION_SCHEMA,
+                     (stream_request.SOURCE_SCHEMA_V2,))
+
+
+def _validate(path: Path, schema: str, source_schemas: tuple[str, ...]) -> dict[str, Any]:
     value = protocol.exact(
         store.read_canonical_json(path, "Ethereum source materialization"),
         {
@@ -77,7 +89,7 @@ def validate(path: Path) -> dict[str, Any]:
         "Ethereum source materialization",
     )
     protocol.require(
-        value["schema"] == MATERIALIZATION_SCHEMA
+        value["schema"] == schema
         and value["status"] == "materialized"
         and value["execution_profile"] == stream_request.PROFILE_NAME
         and value["segment_authority_magic"] == "STWESG31"
@@ -99,9 +111,11 @@ def validate(path: Path) -> dict[str, Any]:
 
     source_identity, source_path = _file(
         value["source_request"], path, "Ethereum leaf source request",
-        schema=(stream_request.SOURCE_SCHEMA_V1, stream_request.SOURCE_SCHEMA_V2),
+        schema=source_schemas,
     )
-    source = stream_request.validate_source_file(source_path)
+    source = stream_request.validate_source_file(
+        source_path, dynamic_policy=schema == RECURSIVE_MATERIALIZATION_SCHEMA,
+    )
     protocol.require(
         value["execution_profile"] == source["execution_profile"]
         and value["segment_count"] == source["segment_count"]

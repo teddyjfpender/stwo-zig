@@ -142,30 +142,10 @@ pub const ProjectionV2 = struct {
     }
 };
 
-/// Reconstructs the native query mask from the verifier capture itself. The
-/// composition-tree column logs and authenticated trace-path depth must agree;
-/// no stale circuit/profile field or inferred maximum is accepted.
-pub fn queryLogSizeFromCapture(
-    capture: *const common_authority.ProofCapture,
-) !u32 {
-    if (capture.column_log_sizes.len !=
-        common_authority.COMMITMENT_TREE_COUNT or
-        capture.trace_paths.len != common_authority.COMMITMENT_TREE_COUNT)
-    {
+/// Preserve the role-specific error at this public boundary.
+pub fn queryLogSizeFromCapture(capture: *const common_authority.ProofCapture) !u32 {
+    return common_authority.queryLogSizeFromCapture(capture) catch
         return error.InvalidRoleNeutralFoldChild;
-    }
-    const composition_index = common_authority.COMMITMENT_TREE_COUNT - 1;
-    const logs = capture.column_log_sizes[composition_index];
-    if (logs.len == 0) return error.InvalidRoleNeutralFoldChild;
-    var query_log_size: u32 = 0;
-    for (logs) |log_size| {
-        if (log_size == 0 or log_size >= 31)
-            return error.InvalidRoleNeutralFoldChild;
-        query_log_size = @max(query_log_size, log_size);
-    }
-    if (capture.trace_paths[composition_index].path_depth != query_log_size)
-        return error.InvalidRoleNeutralFoldChild;
-    return query_log_size;
 }
 
 pub fn TaggedFoldChildV2(

@@ -1,0 +1,14 @@
+Public Ethereum program image: elf_sha256=adf09b171678750c9eba28c656de1f19dc0a7f53f5c91ff63afbde9e18608552, address=0x400
+error: ProgramPathMismatch
+run-ethereum-node-proof-v1
++- run exe ethereum-node-proof-v1 failure
+error: the following command exited with error code 1:
+./.zig-cache/o/99aeeb42b17651a4d6bffff470aaa0e7/ethereum-node-proof-v1 verify-program /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/program-word-path-v1/changed-program.elf 0x400 /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/program-word-path-v1/metal.bin
+
+Build Summary: 1/3 steps succeeded; 1 failed
+run-ethereum-node-proof-v1 transitive failure
++- run exe ethereum-node-proof-v1 failure
+   +- compile exe ethereum-node-proof-v1 ReleaseSafe native cached 49ms MaxRSS:35M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e5eb5c7a03a5c1c545c31576e584386a/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xafc6dc16 -Z413e17b6f158e1ca --maxrss 25769803776 -j1 run-ethereum-node-proof-v1 -Doptimize=ReleaseSafe --summary all -- verify-program /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/program-word-path-v1/changed-program.elf 0x400 /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/program-word-path-v1/metal.bin

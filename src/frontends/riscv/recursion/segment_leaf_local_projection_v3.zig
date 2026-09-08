@@ -25,6 +25,29 @@ pub const SCHEMA_VERSION: u16 = 1;
 pub const PRODUCTION_PROOF_ACTIVATION = false;
 pub const RESUME_CAPABILITY_RETAINED = false;
 
+/// Fixed canonical-word relation shared by native projection and AIR routing.
+/// Version 1 changes only the job/local cycle frame; all remaining words retain
+/// their exact global coordinates. It does not activate a recursive wrapper.
+pub const CANONICAL_WORD_MAP_VERSION: u16 = 1;
+pub const CanonicalWordSourceV1 = union(enum) {
+    global_word: usize,
+    local_cycle_count_limb: u1,
+    zero,
+};
+
+pub fn canonicalWordSourceV1(index: usize) Error!CanonicalWordSourceV1 {
+    if (index >= span.SPAN_STATEMENT_CANONICAL_WORDS)
+        return error.LocalProjectionMismatch;
+    inline for (.{ span.canonical_layout.total_cycles_start, span.canonical_layout.executed_cycle_count_start }) |start| {
+        if (index >= start and index < start + 2)
+            return .{ .local_cycle_count_limb = @intCast(index - start) };
+        if (index >= start + 2 and index < start + 4) return .zero;
+    }
+    if (index >= span.canonical_layout.first_cycle_start and
+        index < span.canonical_layout.first_cycle_start + 4) return .zero;
+    return .{ .global_word = index };
+}
+
 pub const Error = global_v3.Error || error{
     LocalProjectionMismatch,
     UnsupportedVersion,
@@ -172,33 +195,18 @@ pub fn localStatementFromMetadata(
     metadata: *const global_v3.MetadataV3,
 ) Error!span.SpanStatement {
     try metadata.validate();
-    const global = span.SpanStatement.fromCanonicalWords(
-        &metadata.base_statement_words,
-    ) catch return error.BaseStatementMismatch;
-    const global_span = switch (global.body) {
-        .empty => return error.SegmentLeafRequired,
-        .executed => |value| value,
-    };
-    var local_complete = global.job.complete;
-    local_complete.total_cycles = metadata.local_cycle_count;
-    const local_job = try span.JobContext.init(
-        local_complete,
-        global.job.segment_count,
-    );
-    return span.SpanStatement.segmentLeaf(
-        local_job,
-        metadata.segment_index,
-        try span.ExecutedSpan.init(
-            metadata.segment_index,
-            1,
-            0,
-            metadata.local_cycle_count,
-            global_span.entry,
-            global_span.exit,
-            global_span.input,
-            global_span.output,
-        ),
-    );
+    var words: span.StatementWords = undefined;
+    for (&words, 0..) |*word, index| {
+        word.* = switch (try canonicalWordSourceV1(index)) {
+            .global_word => |source| metadata.base_statement_words[source],
+            .local_cycle_count_limb => |limb| @import("stwo_core").fields.m31.M31.fromCanonical(
+                (metadata.local_cycle_count >> (@as(u5, limb) * 16)) & 0xffff,
+            ),
+            .zero => @import("stwo_core").fields.m31.M31.zero(),
+        };
+    }
+    return span.SpanStatement.fromCanonicalWords(&words) catch
+        return error.BaseStatementMismatch;
 }
 
 /// Used only for structural validation before a caller supplies the real

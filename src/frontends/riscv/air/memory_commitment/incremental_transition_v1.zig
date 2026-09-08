@@ -222,7 +222,9 @@ pub fn build(
     while (depth > 0) : (depth -= 1) {
         var next: std.ArrayList(PathValue) = .empty;
         errdefer next.deinit(allocator);
-        try next.ensureTotalCapacity(allocator, (current.len + 1) / 2);
+        // Sparse children need not share parents. At most one parent is
+        // emitted per current child; halving only bounds dense sibling pairs.
+        try next.ensureTotalCapacity(allocator, current.len);
         var at: usize = 0;
         while (at < current.len) {
             const parent_index = current[at].index / 2;
@@ -663,4 +665,20 @@ test "non-default untouched subtrees are shared across both roots" {
     try std.testing.expectEqual(expected_exit.root, witness.exit_root);
     const relations = relations_mod.Relations.dummy();
     try witness.verifyMerkleAndPoseidonCancellation(&relations);
+}
+
+test "sparse touched words reserve unpaired parents at upper depths" {
+    var words: [64]TouchedWord = undefined;
+    for (&words, 0..) |*word, index| word.* = .{
+        .address = @intCast(index * 4096),
+        .old_word = 0,
+        .new_word = 1,
+        .final_clock = 9,
+    };
+    var witness = try build(std.testing.allocator, &words, &.{});
+    defer witness.deinit();
+    var expected = try fullTreeForWords(std.testing.allocator, &words, true);
+    defer expected.deinit(std.testing.allocator);
+    try std.testing.expectEqual(expected.root, witness.exit_root);
+    try witness.verifyMerkleAndPoseidonCancellation(&relations_mod.Relations.dummy());
 }

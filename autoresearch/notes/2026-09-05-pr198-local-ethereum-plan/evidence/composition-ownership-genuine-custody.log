@@ -1,0 +1,22 @@
+test-ethereum-incremental-leaf-materializer-custody-v4-replay
++- saved Ethereum materializer custody guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46918940458 process_cpu_ns=49462857250 parallelism_milli=1054 peak_footprint_bytes=288260864 energy_nj=227759501194 instructions=1099338462518 cycles=196982175883 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1261862500 process_cpu_ns=1261742417 parallelism_milli=999 peak_footprint_bytes=288260864 energy_nj=6354826592 instructions=27898680613 cycles=5031115353 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=4651898000 process_cpu_ns=4651535667 parallelism_milli=999 peak_footprint_bytes=1957005616 energy_nj=24751434147 instructions=85165765849 cycles=18547904801 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38956375 public_ns=295010917 transcript_ns=136696750 profile_ns=25541 program_ns=65894709 prepare_ns=68689291 fri_ns=3317545875 seal_ns=39300667 total_ns=3962122333 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=60 bytes=856164910 peak=1893492453 allocated=3176175408 freed=2320010498 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize_cleanup source=darwin_proc_pid_rusage_v6 wall_ns=22371500 process_cpu_ns=22367292 parallelism_milli=999 peak_footprint_bytes=1957005616 energy_nj=58642626 instructions=140219687 cycles=89265271 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE_CLEANUP ns=22375917 allocator_empty=true peak_allocator_bytes=1893492453
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-deinitialized allocations=0 bytes=0 peak=1893492453 allocated=3176177712 freed=3176177712 untracked=0
+ETHEREUM_ROLE0_MATERIALIZER_ROLLBACK fail_index=18384 input_valid=true
+ETHEREUM_ROLE0_MATERIALIZER_ROLLBACK ns=9366655833 allocator_empty=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=62582278666 process_cpu_ns=65124810000 parallelism_milli=1040 peak_footprint_bytes=1959545208 energy_nj=310313345623 instructions=1390938597480 cycles=259417062962 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-incremental-leaf-materializer-custody-v4-replay success
++- saved Ethereum materializer custody guard success
+   +- run test 1 passed 1m MaxRSS:1G
+      +- compile test ReleaseSafe native success 45s MaxRSS:2G
+

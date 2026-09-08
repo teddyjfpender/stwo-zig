@@ -36,7 +36,8 @@ const recovery_rows_mod =
 const incremental_bridge = @import("incremental_bridge_external_v3.zig");
 const incremental_witness = @import("incremental_commitment_witness_v3.zig");
 const orchestration = @import("orchestration.zig");
-const proof_finalize = @import("proof_finalize.zig");
+const fixed_program_table = @import("../air/program/fixed_table_v1.zig");
+const base_assembly = @import("base_component_assembly.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const proof_admission =
     @import("../air/guest_precompile/ethereum_proof_admission.zig");
@@ -200,22 +201,24 @@ pub fn proveWithEngineUsingChannel(
         core_public.clock,
     );
 
-    var witness = try ethereum_witness.Witness.init(
+    var witness = try ethereum_witness.Witness.initWithCircuitProfileV1(
         allocator,
         keccak_calls.records(),
         keccak_rows.rows(),
         recovery_calls.records(),
         recovery_rows.rows(),
         core_public.clock,
+        full_witness.base.circuit_profile,
     );
     defer witness.deinit();
-    const extension = try ethereum_statement.Statement.canonicalV2(
+    const extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(
         &built.statement,
         @intCast(keccak_calls.len()),
         @intCast(recovery_calls.len()),
         witness.shapes(),
+        full_witness.base.circuit_profile,
     );
-    try proof_admission.validateV2(&built.statement, &extension, .proof);
+    try proof_admission.validateV2WithCircuitProfileV1(&built.statement, &extension, .proof, full_witness.base.circuit_profile);
 
     return provePreparedAfterAdmission(
         Engine,
@@ -307,18 +310,20 @@ pub fn provePreparedWithEngineUsingChannel(
         recovery_rows.rows().len,
         core_public.clock,
     );
-    const canonical_extension = try ethereum_statement.Statement.canonicalV2(
+    const canonical_extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(
         expected_statement,
         @intCast(keccak_calls.len()),
         @intCast(recovery_calls.len()),
         prepared.ethereum_witness.shapes(),
+        full_witness.base.circuit_profile,
     );
     if (!std.meta.eql(canonical_extension, prepared.extension.*))
         return error.IncrementalEthereumPreparedExtensionMismatch;
-    try proof_admission.validateV2(
+    try proof_admission.validateV2WithCircuitProfileV1(
         expected_statement,
         prepared.extension,
         .proof,
+        full_witness.base.circuit_profile,
     );
 
     return provePreparedAfterAdmission(
@@ -374,6 +379,8 @@ fn provePreparedAfterAdmission(
         extension,
         role_aware_public,
     );
+    if (profile.circuitProfile() != full_witness.base.circuit_profile or
+        (profile.circuitProfile() == .fixed_program_narrow_v1) != (full_witness.fixed_program_rows != null)) return error.EthereumFixedProgramAdmissionRequired;
     const bridge_geometry = profile.bridge_geometry;
     const bridge_rows = full_witness.boundary.bridgeRows();
     if (bridge_rows.len != @as(usize, bridge_geometry.n_rows))
@@ -388,18 +395,30 @@ fn provePreparedAfterAdmission(
     var scheme_owned = true;
     defer if (scheme_owned) Engine.deinit(&scheme, allocator);
     scheme.setCoefficientRetentionPolicy(.never);
+    scheme.pack_owned_source_by_log = comptime @hasDecl(Engine.Backend, "adopts_source_trace_arena") and Engine.Backend.adopts_source_trace_arena;
 
     var bridge_tree0 = try incremental_bridge.PreprocessedTraceV3.init(
         allocator,
         &bridge_geometry,
     );
     defer bridge_tree0.deinit();
-    const tree0_blocks = [_]external_tree.BorrowedBlock{bridge_tree0.block()};
+    var fixed_columns: ?fixed_program_table.ColumnsV1 = if (full_witness.fixed_program_rows) |rows| try fixed_program_table.ColumnsV1.init(allocator, rows, core.infra_descs[0].log_size) else null;
+    defer if (fixed_columns) |*columns| columns.deinit(allocator);
+    var fixed_views: [fixed_program_table.COLUMN_COUNT][]const @import("stwo_core").fields.m31.M31 = undefined;
+    var tree0_blocks: [2]external_tree.BorrowedBlock = undefined;
+    var tree0_block_count: usize = 0;
+    if (fixed_columns) |columns| {
+        for (columns.values, &fixed_views) |column, *view| view.* = column;
+        tree0_blocks[tree0_block_count] = .{ .log_size = columns.log_size, .columns = &fixed_views };
+        tree0_block_count += 1;
+    }
+    tree0_blocks[tree0_block_count] = bridge_tree0.block();
+    tree0_block_count += 1;
     const tree0 = try ethereum_preprocessed.generateWithExternalBlocks(
         allocator,
         core,
         extension,
-        &tree0_blocks,
+        tree0_blocks[0..tree0_block_count],
     );
     var tree0_moved = false;
     errdefer if (!tree0_moved) freeColumns(allocator, tree0);
@@ -420,14 +439,21 @@ fn provePreparedAfterAdmission(
         &tree1_blocks,
     );
     defer allocator.free(tree1_logs);
-    _ = try segment_orchestration.requireTree1Residency(
-        tree1_logs,
-        pcs_config.fri_config.log_blowup_factor,
-        if (execution.cpu) |cpu|
-            cpu.host_byte_budget
-        else
-            std.math.maxInt(usize),
-    );
+    if (execution.pcs_retained_byte_budget) |budget| {
+        const estimate = try @import("guest_precompile/ethereum_segment_geometry.zig").requireTree1ResidencyWithPolicy(
+            tree1_logs,
+            pcs_config.fri_config.log_blowup_factor,
+            budget,
+            scheme.coefficient_retention_policy,
+        );
+        std.debug.print("INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1 retained_bytes={} columns={} budget_bytes={} retention={s}\n", .{ estimate.minimum_resident_bytes, estimate.column_count, budget, @tagName(scheme.coefficient_retention_policy) });
+    } else {
+        _ = try segment_orchestration.requireTree1Residency(
+            tree1_logs,
+            pcs_config.fri_config.log_blowup_factor,
+            if (execution.cpu) |cpu| cpu.host_byte_budget else std.math.maxInt(usize),
+        );
+    }
     var retained = try ethereum_main.commitWithExternalBlocks(
         Engine,
         allocator,
@@ -508,7 +534,14 @@ fn provePreparedAfterAdmission(
         &manifest,
         &authenticated,
         &bridge_columns,
-        BridgeClaimMix{ .claim = bridge_claim },
+        BridgeClaimMix(@TypeOf(profile)){
+            .claim = bridge_claim,
+            .allocator = allocator,
+            .profile = profile,
+            .core = core,
+            .manifest = &manifest,
+            .authenticated = &authenticated,
+        },
         mixBridgeClaim,
     );
     try extension_claim.validate(extension);
@@ -518,10 +551,11 @@ fn provePreparedAfterAdmission(
         &manifest,
         base_claim,
     );
-    const public_boundary = try incremental_public.sum(
+    const public_boundary = try incremental_public.sumWithCircuitProfile(
         &built.statement.public_data,
         role_aware_public,
         &relations.base,
+        profile.circuitProfile(),
     );
     try logup.verifyGlobalCancellation(
         &.{
@@ -532,18 +566,15 @@ fn provePreparedAfterAdmission(
         public_boundary,
     );
 
-    const base_components = try proof_finalize
-        .assembleAuthenticatedLookupV2WithIncrementalBoundaryV3(
-        workspace,
-        &relations.base,
-        base_claim,
-        core.nMainColumns(),
-        try authenticated.totalInteractionColumns(core, &manifest),
-        &manifest,
-        &authenticated,
-    );
+    try base_assembly.assembleIntoAuthenticatedLookupV2WithCircuitProfile(.prover, workspace, core, base_claim, &relations.base, core.nMainColumns(), try authenticated.totalInteractionColumns(core, &manifest), &manifest, &authenticated, profile.circuitProfile());
+    if (full_witness.fixed_program_rows != null) {
+        var indices: [fixed_program_table.COLUMN_COUNT]usize = undefined;
+        for (&indices, 0..) |*index, offset| index.* = bridge_geometry.placement.is_first_col_idx - fixed_program_table.COLUMN_COUNT + offset;
+        workspace.components.infra[0].fixed_program_columns = indices;
+    }
+    const base_components = workspace.components.active();
     const ethereum_components = try ethereum_assembly.Assembly(.prover)
-        .createAuthenticatedLookupV2(
+        .createAuthenticatedLookupV2WithCircuitProfileV1(
         allocator,
         &built.statement,
         extension,
@@ -552,6 +583,7 @@ fn provePreparedAfterAdmission(
         &extension_claim,
         &manifest,
         &authenticated,
+        full_witness.base.circuit_profile,
     );
     defer ethereum_components.destroy(allocator);
     const roots = full_witness.boundary.roots();
@@ -597,15 +629,24 @@ fn provePreparedAfterAdmission(
     };
 }
 
-const BridgeClaimMix = struct { claim: QM31 };
+fn BridgeClaimMix(comptime Profile: type) type {
+    return struct {
+        claim: QM31,
+        allocator: std.mem.Allocator,
+        profile: Profile,
+        core: *const statement.RiscVStatement,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    };
+}
 
 fn mixBridgeClaim(
-    context: BridgeClaimMix,
+    context: anytype,
     channel: anytype,
-    _: *const statement.RiscVInteractionClaim,
+    base: *const statement.RiscVInteractionClaim,
     _: *const ethereum_types.ExtensionClaim,
 ) !void {
-    incremental_bridge.mixClaim(channel, context.claim);
+    try context.profile.mixFinalClaims(context.allocator, channel, context.core, context.manifest, context.authenticated, base, context.claim);
 }
 
 fn validateClockAuthority(

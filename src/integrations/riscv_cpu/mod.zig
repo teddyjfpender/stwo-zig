@@ -35,7 +35,7 @@ pub const ethereum_block_leaf_evidence =
     @import("ethereum_block_leaf_evidence.zig");
 pub const ethereum_precompile_artifact_io =
     @import("ethereum_precompile_artifact_io.zig");
-pub const resource_usage = @import("resource_usage.zig");
+pub const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 pub const ethereum_block_leaf_compact_manifest =
     @import("ethereum_block_leaf_compact_manifest.zig");
 pub const ethereum_block_compact_replay =

@@ -185,6 +185,17 @@ pub fn build(b: *std.Build) void {
     run_circle_lde_batch_tests.has_side_effects = true;
     circle_lde_batch_step.dependOn(&run_circle_lde_batch_tests.step);
 
+    const small_lde_root = b.createModule(.{
+        .root_source_file = b.path("circle_lde_small_alias_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(small_lde_root, core, backend_contracts, prover_api, prover);
+    const small_lde_tests = b.addTest(.{ .root_module = small_lde_root, .filters = &.{"metal small LDE "} });
+    linkRuntime(b, small_lde_tests);
+    b.step("test-small-circle-lde-alias", "Test adopted small-circle source ownership without a Metal device")
+        .dependOn(&b.addRunArtifact(small_lde_tests).step);
+
     const circle_lde_output_parity_root = b.createModule(.{
         .root_source_file = b.path("circle_lde_output_parity_test_root.zig"),
         .target = target,

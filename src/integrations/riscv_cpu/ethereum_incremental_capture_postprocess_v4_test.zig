@@ -432,3 +432,51 @@ fn identity(tag: u8) publication.ArtifactIdentityV4 {
 fn digest(tag: u8) [32]u8 {
     return [_]u8{tag} ** 32;
 }
+
+test "selected leaf mint cold verifies from admitted entry without campaign seals" {
+    const allocator = std.testing.allocator;
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const root = try temporary.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(root);
+    const fixture = try support.Fixture.init();
+    const source = fixture.rightSource();
+    var wire = try support.OwnedWire.init(allocator, &source);
+    defer wire.deinit();
+    const metadata = try wire.data.metadata();
+    const public = publicData(.right, metadata);
+    const compact = try compactBytes(allocator, source, &.{
+        .{ .address = 0x2000, .entry = 12, .exit = 13 },
+        .{ .address = 0x2004, .entry = 0, .exit = 9 },
+    });
+    defer allocator.free(compact);
+    const wire_bytes = try wire_publication.encodeWireAlloc(allocator, .{ .segment_index = 1, .segment_count = 2 }, &wire.data);
+    defer allocator.free(wire_bytes);
+    try publishRaw(allocator, root, 1, compact, wire_bytes);
+    const touched = [_]@import("ethereum_incremental_boundary_authority_v1.zig").TouchedWordV1{
+        .{ .address = 0x2000, .old_word = 12, .new_word = 13, .final_clock = 7 },
+        .{ .address = 0x2004, .old_word = 0, .new_word = 9, .final_clock = 6 },
+    };
+    const input = postprocess.MintInputV4{
+        .segment_index = 1,
+        .compact_tape = publication.ArtifactIdentityV4.fromBytes(compact),
+        .public_wire = publication.ArtifactIdentityV4.fromBytes(wire_bytes),
+        .source = identity(32),
+        .journal_record_sha256 = digest(42),
+        .touched_words = &touched,
+        .segment_public_wire = &wire.data,
+        .public_authority = publicAuthority(.right, metadata, &public),
+    };
+    var job = try postprocess.mintSelectedLeafV1(allocator, executionAuthority(), input, &.{.{ .address = 0x2000, .value = 12 }});
+    defer job.deinit();
+    const retained_metadata = retainedMetadata(source);
+    const result = try postprocess.coldVerifyAndPublish(allocator, root, &job, &wire.data, input.public_authority, &retained_metadata);
+    try result.validate();
+    try std.testing.expectEqual(@as(u32, 1), result.segment.segment.segment_index);
+    inline for (.{ publication.manifest_basename, wire_publication.manifest_basename }) |name| {
+        const path = try std.fs.path.join(allocator, &.{ root, name });
+        defer allocator.free(path);
+        try std.testing.expect(!try publication.pathExists(path));
+    }
+    try std.testing.expectError(error.EntryRootMismatch, postprocess.mintSelectedLeafV1(allocator, executionAuthority(), input, &.{.{ .address = 0x2000, .value = 11 }}));
+}

@@ -1,0 +1,64 @@
+{
+  "schema": "stwo.recursive-secure-transcript-program-progress.v1",
+  "status": "focused-proof-tests-and-bootstrap-compile-passed",
+  "source_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "94266345b2345b8639c63fab94fc1e483278a55fcef4d03dcca65e0e01b0242b",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "4c7e10b99973811ae0949b48e8b9d79940235eb24a3623fea45296689b4ad14c",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "f687cc764ec7ede1f5432239ad264a8963bba84a15233f505ed67a213e23bb79",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "5d13357327f3c738b4e43f115f1ef364e9c3946a3391775030b35bdaca838a63",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "f93f4d841980e4e555906915c3901460186123b286d9efc48b5dbabfef04fb7f"
+  },
+  "canonical_empty": {
+    "release_safe": "passed",
+    "debug": "passed",
+    "two_distinct_cold_verified_children": true,
+    "program_identity_equal": true,
+    "dynamic_session_and_claim_seals_changed": true,
+    "altered_geometry_rejected": true,
+    "proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+    "operations": 174,
+    "frames": 176,
+    "permutations": 1649,
+    "debug_test_maxrss_reported": "108M"
+  },
+  "common_fold": {
+    "recording_comparison_passed_in_initial_run": true,
+    "initial_full_test": "failed because additional replay changed the existing cache lifecycle counters",
+    "resolution": "separate focused transcript test shares proof setup; original cache and eight-round benchmark branch retains exact assertions",
+    "focused_test": "passed",
+    "original_bootstrap_compile": "passed",
+    "operations": 188,
+    "frames": 190,
+    "permutations": 1681,
+    "queries": 193,
+    "focused_test_runtime_reported": "14m",
+    "focused_test_maxrss_reported": "10G",
+    "original_eight_round_benchmark_rerun": false
+  },
+  "source_conformance": {
+    "errors": 94,
+    "new_waivers": false
+  },
+  "runtime_samples": {
+    "kind": "diagnostic snapshots, not a full profile",
+    "peak_physical_footprint_reported": "13.1G",
+    "observations": [
+      "native verifier preprocessing rebuild",
+      "native audit interaction reconstruction",
+      "recorded replay interaction reconstruction"
+    ]
+  },
+  "production_activation": false,
+  "recursive_air_payload_binding_complete": false,
+  "independently_verifiable_recursive_root": false,
+  "ethereum_full_leaf_proved": false,
+  "csp_protocol_defaults_or_worker_policy_changed": false,
+  "validation_commands": [
+    "STWO_RECURSION_BENCH=1 python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=ReleaseSafe --summary all",
+    "STWO_RECURSION_BENCH=1 python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=Debug --summary all",
+    "STWO_RECURSION_BENCH=1 python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu test-recursive-common-fold-transcript-program-v1 -Doptimize=ReleaseSafe --summary all",
+    "python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu check-recursive-common-fold-q193-bootstrap-v2 -Doptimize=ReleaseSafe --summary all"
+  ],
+  "format_and_diff_checks": "passed"
+}

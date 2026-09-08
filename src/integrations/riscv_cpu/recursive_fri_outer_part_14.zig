@@ -53,7 +53,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn proveCaptured(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: ?*const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: ?recursion.vm_composition_preparation.Source,
             verifier_plans: ?VerifierPlans,
             segment_transcript: ?SegmentTranscriptInputs,
             execution_pool: *ProofExecutionPool,
@@ -97,7 +97,7 @@ pub fn Namespace(comptime context: type) type {
                 .left = &inactive,
                 .right = &inactive,
             };
-            const pcs_input_count = captured.pcs_circuit.bindings.len;
+            const pcs_input_count = captured.pcs_circuit.view().bindings.len;
             const pcs_active_inputs = try allocator.alloc(M31, pcs_input_count);
             defer allocator.free(pcs_active_inputs);
             const pcs_inactive_inputs = try allocator.alloc(M31, pcs_input_count);
@@ -364,9 +364,9 @@ pub fn Namespace(comptime context: type) type {
                 .assembly_profile = assembly_profile,
                 .stark_prove_ns = stark_prove_ns,
                 .poseidon2_call_count = authority.poseidon2_row_count,
-                .pcs_graph_nodes = captured.pcs_circuit.nodes.len,
-                .pcs_graph_inputs = captured.pcs_circuit.bindings.len,
-                .pcs_graph_outputs = captured.pcs_circuit.outputs.len,
+                .pcs_graph_nodes = captured.pcs_circuit.graph().nodes.len,
+                .pcs_graph_inputs = captured.pcs_circuit.view().bindings.len,
+                .pcs_graph_outputs = captured.pcs_circuit.graph().outputs.len,
                 .arithmetic_active_counts = .{
                     authority.lowering_plan.counts(.segment_leaf).multiply,
                     authority.lowering_plan.counts(.segment_leaf).inverse,

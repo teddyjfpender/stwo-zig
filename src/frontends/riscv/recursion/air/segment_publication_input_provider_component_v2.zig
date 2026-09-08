@@ -41,8 +41,7 @@ pub fn initForManifest(
     try source.validate();
     try prepared.validate();
     if (manifest_mod.keyIndex(roster_key) != PROPOSED_ROSTER_ROW or
-        prepared.roster_row != PROPOSED_ROSTER_ROW or
-        prepared.trace_log_size != authority.TRACE_LOG_SIZE)
+        prepared.roster_row != PROPOSED_ROSTER_ROW)
     {
         return error.InvalidProofShape;
     }
@@ -54,7 +53,7 @@ pub fn initForManifest(
         source.relation_plan,
         manifest,
         roster_key,
-        authority.TRACE_LOG_SIZE,
+        prepared.trace_log_size,
         parameters,
         relations,
         prepared.claimed_sum,
@@ -79,7 +78,7 @@ pub fn fillTreeInto(
         air,
         manifest_mod,
         roster_key,
-        authority.TRACE_LOG_SIZE,
+        placement.geometry.log_size,
     );
     if (!std.meta.eql(placement.geometry, expected))
         return error.InvalidProofShape;
@@ -107,9 +106,10 @@ pub fn fillTreeInto(
     const end = std.math.add(usize, offset, sources.len) catch
         return error.InvalidProofShape;
     if (end > destination.len) return error.InvalidProofShape;
+    const rows = @as(usize, 1) << @intCast(placement.geometry.log_size);
     for (sources, destination[offset..end]) |source, target| {
-        if (source.len != authority.TRACE_ROW_COUNT or
-            target.len != authority.TRACE_ROW_COUNT or
+        if (source.len != rows or
+            target.len != rows or
             overlap(std.mem.sliceAsBytes(source), std.mem.sliceAsBytes(target)))
         {
             return error.InvalidProofShape;

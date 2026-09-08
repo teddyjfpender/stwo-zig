@@ -1,0 +1,13 @@
+waiting for shared build/proof lock
+acquired shared lock
+1/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse preserves every Merkle layer across caps and uneven worker ranges...OK
+2/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse handles empty and uniform height trees...OK
+3/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse measured heterogeneous commitment comparison...FAIL (ReleaseFastRequired)
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/tests/native/prover/pcs/poseidon_bounded_prefix_test.zig:387:50: 0x1002902ff in test.Poseidon bounded tail reuse measured heterogeneous commitment comparison (root)
+    if (@import("builtin").mode != .ReleaseFast) return error.ReleaseFastRequired;
+                                                 ^
+4/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse rejects mismatched column geometry before allocation...OK
+3 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/5904266ed6ac71d3b69095b747270711/root --seed=0x82b4271
+exit_code=1

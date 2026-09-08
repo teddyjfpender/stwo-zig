@@ -1,0 +1,77 @@
+{
+  "schema": "ethereum-statement-root-regression-v1",
+  "fixture": {
+    "description": "Genuine saved Stage101 recovery/Keccak leaf; not a mainnet block",
+    "path": ".git/local-ethereum/role0-genuine-stage101-canonical-io/fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b.bin",
+    "sha256": "fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b"
+  },
+  "profile": {
+    "family": "incremental Ethereum VM composition V4",
+    "schema_version": 2,
+    "vm_statement_root_count": 2,
+    "graph_sha256": "673deaf420946061e67da28f10b0391565e61e507efa5fb1d46dec8fd5e9a937"
+  },
+  "cases": [
+    {
+      "entry": 556503780,
+      "exit": 1153293839,
+      "expected": "accept native composition replay"
+    },
+    {
+      "entry": 556503781,
+      "exit": 1153293839,
+      "expected_error": "UnsatisfiedCircuit"
+    },
+    {
+      "entry": 556503780,
+      "exit": 1153293840,
+      "expected_error": "UnsatisfiedCircuit"
+    }
+  ],
+  "all_cases_use_same_graph": true,
+  "test": "role0 saved Stage101 proof binds dynamic statement roots",
+  "target": "test-ethereum-statement-root-replay",
+  "evidence": "statement-root-physical-genuine.log",
+  "passed": true,
+  "scope_limit": "Native composition replay and exact diagnostic closure of all 412 segment-scope statement words using actual row-10/11/18 AIR entries. Outer V3 preprocessing admission, other relation scopes, full outer closure, remaining dynamic statement/boundary admission and independent root verification remain unproved.",
+  "provider_profile": {
+    "name": "recursion.statement_input.roots.v3",
+    "semantic_sha256": "3b632ab5b96cdbc56fbcf28c5e10b45db8a6ff933c227d400ad3e75ef44481f2",
+    "preprocessed_columns": 8,
+    "logical_inputs": 15,
+    "modeled_interaction_degree": 4,
+    "fixed_extra_uses": 2,
+    "superseded_logical_only_semantic_sha256": "454a1baa1d698141c4501382d1dcea0def526f73f3fb2236c4178a5377ce5763",
+    "physical_order": "main(2), preprocessing(8), parameters(5); extra use count is logical slot 9"
+  },
+  "routing_cases": [
+    {
+      "case": "authentic retained statement and two root consumers",
+      "expected": "segment scope closes"
+    },
+    {
+      "case": "missing exit consumer",
+      "expected_error": "StatementRootRoutingNotClosed"
+    },
+    {
+      "case": "duplicated entry consumer",
+      "expected_error": "StatementRootRoutingNotClosed"
+    },
+    {
+      "case": "entry consumer value 556503781",
+      "expected_error": "StatementRootRoutingNotClosed"
+    },
+    {
+      "case": "exit consumer value 1153293840",
+      "expected_error": "StatementRootRoutingNotClosed"
+    }
+  ],
+  "physical_cases": [
+    "eight-column preprocessing matches fixed schedule and padding",
+    "aliased destination rejected before writes",
+    "V2 manifest rejects V3 adapter",
+    "native physical point and same recursive circuit agree for both genuine root words",
+    "changed extra-use sample makes native constraints nonzero and recursive evaluation matches"
+  ],
+  "physical_challenges": "fixed diagnostic challenges, not outer transcript verification"
+}

@@ -1,0 +1,9 @@
+test-recursive-common-fold-detached-parent-source-v2
++- run test stderr
+DETACHED_FOLD_PARENT_SOURCE coordinate=2/53 components=36 closure_verified=true native_suffix_tuples=0 grandchild_inputs=false
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-detached-parent-source-v2 success
++- run test 1 passed 30s MaxRSS:5G
+   +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

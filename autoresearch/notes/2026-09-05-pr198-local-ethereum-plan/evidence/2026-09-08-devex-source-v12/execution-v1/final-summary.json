@@ -1,0 +1,61 @@
+{
+  "source_manifest_sha256": "b7f1e875529734b0a8373b641417d26b6b54ed8021576e6b70a39b9fb4747a9b",
+  "lifted": {
+    "required_named_tests_passed": 5,
+    "actual_tests_passed": 6,
+    "extra_test": "crypto.blake2s_backend.test_0",
+    "seconds": 4.979017333
+  },
+  "small_complete": {
+    "tests_passed": 3,
+    "seconds": 24.53439075,
+    "compile_seconds": 20,
+    "test_ms": 351
+  },
+  "native_abba": {
+    "tests_passed": 1,
+    "samples": [
+      {
+        "sample": 0,
+        "allocator": "std_testing",
+        "wall_ns": 59648696292,
+        "process_cpu_ns": 59411103083,
+        "lifetime_peak_footprint_bytes": 1706739464
+      },
+      {
+        "sample": 1,
+        "allocator": "tracked_smp",
+        "wall_ns": 57307167708,
+        "process_cpu_ns": 57096203875,
+        "lifetime_peak_footprint_bytes": 1706739464
+      },
+      {
+        "sample": 2,
+        "allocator": "tracked_smp",
+        "wall_ns": 57144478167,
+        "process_cpu_ns": 56980058833,
+        "lifetime_peak_footprint_bytes": 1731135600
+      },
+      {
+        "sample": 3,
+        "allocator": "std_testing",
+        "wall_ns": 59447152500,
+        "process_cpu_ns": 59268576375,
+        "lifetime_peak_footprint_bytes": 1765951888
+      }
+    ],
+    "mean_wall_ns": {
+      "std_testing": 59547924396,
+      "tracked_smp": 57225822937.5
+    },
+    "tracked_mean_reduction_percent": 3.899550625908943,
+    "same_capability_identities": true,
+    "all_native_owners_destroyed": true,
+    "total_seconds": 281.904563625,
+    "compile_seconds": 42
+  },
+  "limitation": "Two samples per allocator; native cold-open request includes native verification and capture preparation, not isolated STARK or allocation cost. Peak fields are process lifetime high-water marks, not independent per-allocator peaks.",
+  "heavy_jobs_running": false,
+  "full_wrapper_launched": false,
+  "native_producer_launched": false
+}

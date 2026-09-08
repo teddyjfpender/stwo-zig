@@ -96,12 +96,26 @@ test "schema3 field schedule derives provider geometry from committed stream" {
         io_calls,
     );
     defer schedule.deinit();
+    // Structurally resealing a different nested statement digest must not
+    // create a schedule whose public source uses a different statement.
+    var wrong_statement_source = source;
+    wrong_statement_source.base.statement_digest[0] ^= 1;
+    wrong_statement_source.base.source_digest = try schema2.projectedSourceDigest(&wrong_statement_source.base);
+    wrong_statement_source.source_digest = try subject.projectedSourceDigest(&wrong_statement_source);
+    try wrong_statement_source.validateStructure();
+    try std.testing.expectError(error.EthereumIncrementalFieldScheduleMismatchV4Schema3, subject.testing.buildFromProjectedAuthority(
+        std.testing.allocator,
+        words,
+        wrong_statement_source,
+        io_calls,
+    ));
     try subject.testing.validateProjectedSchedule(
         &schedule,
         words,
         source,
         io_calls,
     );
+    try @import("recursive_common_ethereum_incremental_leaf_publication_hash_v4_test.zig").exercise(canonical, &schedule);
     const geometry = try schedule.liveProviderGeometry();
     try std.testing.expectEqual(@as(u32, 1), geometry.role_io_tuple_capacity);
     try std.testing.expectEqual(@as(u32, 24), geometry.role_io_word_count);
@@ -110,16 +124,31 @@ test "schema3 field schedule derives provider geometry from committed stream" {
     try std.testing.expectEqual(@as(u32, 8), geometry.provider_log_size);
     try std.testing.expectEqual(@as(u32, 256), geometry.provider_row_capacity);
 
-    schedule.calls[0].input[0] ^= 1;
-    try std.testing.expectError(
-        error.EthereumIncrementalFieldScheduleMismatchV4Schema3,
-        subject.testing.validateProjectedSchedule(
-            &schedule,
-            words,
-            source,
-            io_calls,
-        ),
-    );
+    // Validation must not allocate another campaign-sized call stream.
+    const allocator = schedule.allocator;
+    schedule.allocator = std.testing.failing_allocator;
+    defer schedule.allocator = allocator;
+    try subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
+    for ([_]usize{ 0, io_calls.len, schedule.calls.len - 1 }) |index| {
+        schedule.calls[index].input[0] ^= 1;
+        const rejected = subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
+        schedule.calls[index].input[0] ^= 1;
+        try std.testing.expectError(error.EthereumIncrementalFieldScheduleMismatchV4Schema3, rejected);
+    }
+    schedule.phases[1].first_call += 1;
+    const bad_phase = subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
+    schedule.phases[1].first_call -= 1;
+    try std.testing.expectError(error.EthereumIncrementalFieldScheduleMismatchV4Schema3, bad_phase);
+    schedule.identity_sha256[0] ^= 1;
+    const bad_identity = subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
+    schedule.identity_sha256[0] ^= 1;
+    try std.testing.expectError(error.EthereumIncrementalFieldScheduleMismatchV4Schema3, bad_identity);
+    const calls = schedule.calls;
+    schedule.calls = calls[0 .. calls.len - 1];
+    const truncated = subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
+    schedule.calls = calls;
+    try std.testing.expectError(error.EthereumIncrementalFieldScheduleMismatchV4Schema3, truncated);
+    try subject.testing.validateProjectedSchedule(&schedule, words, source, io_calls);
 }
 
 fn fixtureBaseAuthority(

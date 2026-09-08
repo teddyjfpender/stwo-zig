@@ -6,6 +6,7 @@
 //! through the canonical shared-provider bridge.
 
 const std = @import("std");
+const initial_rows = @import("recursive_common_ethereum_initial_input_rows_v1.zig");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
@@ -89,6 +90,21 @@ pub const OwnerV4 = struct {
         allocator: std.mem.Allocator,
         source_ledger: *const relation_interaction.TupleLedger,
     ) !OwnerV4 {
+        return initInternal(allocator, source_ledger, null);
+    }
+
+    /// The source ledger already contains the lane's typed requests. Verify
+    /// their exact histogram here, then register them once in the same shared
+    /// counter as every existing source; never add a second copy.
+    pub fn initWithInitialRows(allocator: std.mem.Allocator, source_ledger: *const relation_interaction.TupleLedger, initial: *const initial_rows.OwnedV1) !OwnerV4 {
+        return initInternal(allocator, source_ledger, initial);
+    }
+
+    fn initInternal(allocator: std.mem.Allocator, source_ledger: *const relation_interaction.TupleLedger, initial: ?*const initial_rows.OwnedV1) !OwnerV4 {
+        const histogram = if (initial != null) try allocator.alloc(u32, initial_rows.RANGE_TABLE_SIZE) else null;
+        defer if (histogram) |bins| allocator.free(bins);
+        if (histogram) |bins| @memset(bins, 0);
+        var initial_count: usize = 0;
         var counter = try lookup_counter.Counter.init(
             allocator,
             range_bridge.TABLE_KIND,
@@ -102,6 +118,13 @@ pub const OwnerV4 = struct {
             {
                 return mismatch();
             }
+            if (initial != null and contribution.component == initial_rows.LANE_COMPONENT) {
+                if (!contribution.signed_weight.eql(QM31.one().neg()) or contribution.role != .request) return mismatch();
+                const index = try frontend.air.lookups.tables.schema.indexSecure(.range_check_8_8, contribution.tuple_prefix[0..2]);
+                histogram.?[index] = try std.math.add(u32, histogram.?[index], 1);
+                initial_count = try std.math.add(usize, initial_count, 1);
+            }
+            if (initial != null and contribution.component == initial_rows.PACKET_COMPONENT) return mismatch();
             try counter.registerRaw(
                 contribution.signed_weight,
                 contribution.tuple_prefix[0..range_bridge.TUPLE_ARITY],
@@ -113,7 +136,26 @@ pub const OwnerV4 = struct {
             ) catch return error.ArithmeticOverflow;
         }
 
-        var batch = try range_bridge.PreparedBatch.init(allocator, &counter);
+        if (initial) |rows| {
+            if (initial_count != rows.rangeContributionCount() or !std.mem.eql(u32, histogram.?, rows.rangeHistogram())) return mismatch();
+        }
+        return initFromCounter(allocator, &counter, contribution_count);
+    }
+
+    /// Ethereum streaming ledger path. It admits every source range request
+    /// before aggregation, including the selected initial lane's exact counts.
+    /// This consumes source phase even if subsequent provider allocation fails.
+    pub fn initFromCompact(
+        allocator: std.mem.Allocator,
+        source: *@import("ethereum_compact_tuple_ledger_v1.zig").Owner,
+        initial: ?*const initial_rows.OwnedV1,
+    ) !OwnerV4 {
+        try source.sealSources(initial);
+        return initFromCounter(allocator, &source.source_counter, source.source_range_contribution_count);
+    }
+
+    fn initFromCounter(allocator: std.mem.Allocator, counter: *const lookup_counter.Counter, contribution_count: usize) !OwnerV4 {
+        var batch = try range_bridge.PreparedBatch.init(allocator, counter);
         errdefer batch.deinit();
         var definition = try range_bridge.build(allocator);
         errdefer definition.deinit();

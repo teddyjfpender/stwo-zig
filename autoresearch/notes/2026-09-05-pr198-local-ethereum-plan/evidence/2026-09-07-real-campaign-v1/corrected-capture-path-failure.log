@@ -1,0 +1,19 @@
+error: NonCanonicalAscii
+     2714.24 real      2667.15 user        12.21 sys
+           731365376  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             5086286  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                1876  voluntary context switches
+              581613  involuntary context switches
+      59452117890831  instructions retired
+      10551078230936  cycles elapsed
+           770233312  peak memory footprint

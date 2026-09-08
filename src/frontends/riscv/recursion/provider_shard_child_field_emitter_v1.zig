@@ -566,46 +566,7 @@ fn encodeNode(encoder: *Encoder, node: graph.Node) !void {
     for (payload) |word| try encoder.word(word);
 }
 
-fn encodeBinding(encoder: *Encoder, binding: graph.VmInputBinding) !void {
-    try encoder.word(binding.node_id);
-    var tag: u32 = undefined;
-    var first: u32 = 0;
-    var second: u32 = 0;
-    switch (binding.source) {
-        .segment_selector => tag = 1,
-        .sampled_value => |coordinate| {
-            tag = 2;
-            first = coordinate.item_index;
-            second = coordinate.word_index;
-        },
-        .claimed_sum => |coordinate| {
-            tag = 3;
-            first = coordinate.item_index;
-            second = coordinate.word_index;
-        },
-        .relation_challenge => |coordinate| {
-            tag = 4;
-            first = coordinate.challenge;
-            second = coordinate.word_index;
-        },
-        .composition_randomness => |word_index| {
-            tag = 5;
-            first = word_index;
-        },
-        .oods_point => |word_index| {
-            tag = 6;
-            first = word_index;
-        },
-        .transcript_claimed_sum => |coordinate| {
-            tag = 7;
-            first = coordinate.item_index;
-            second = coordinate.word_index;
-        },
-    }
-    try encoder.word(tag);
-    try encoder.word(first);
-    try encoder.word(second);
-}
+const encodeBinding = @import("vm_binding_field_encoding_v1.zig").encode;
 
 const EncodedDigest = struct {
     digest: channel.Digest,
@@ -620,7 +581,7 @@ const Encoder = struct {
         return .{ .hasher = channel.CanonicalWordHasher.init(domain) };
     }
 
-    fn word(self: *Encoder, value: anytype) !void {
+    pub fn word(self: *Encoder, value: anytype) !void {
         const canonical = std.math.cast(u32, value) orelse
             return error.NonCanonicalProviderShardFieldWord;
         if (canonical >= m31.Modulus)

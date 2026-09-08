@@ -250,13 +250,20 @@ pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
 };
 
 pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     errdefer result.deinit();
     try result.validate();
     return result;
 }
 
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+/// The separately sealed V3 profile shares all V2 rules. Return only its AIR:
+/// V2's Definition metadata and validation are not a V3 admission capability.
+pub fn buildRootRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinition(allocator, true);
+    return result.arena;
+}
+
+fn buildDefinition(allocator: std.mem.Allocator, comptime root_uses: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -278,6 +285,12 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .statement_scope = preprocessed_values[5],
         .word_index = preprocessed_values[6],
     };
+    // Every physical adapter consumes main, preprocessing, then parameters.
+    // The versioned routing input is preprocessing and belongs before scalars.
+    const extra_uses: ?types.ValueId = if (root_uses)
+        try arena.input("recursion_statement_input_vm_root_uses", .felt, span)
+    else
+        null;
     var parameter_values: [PARAMETER_COUNT]types.ValueId = undefined;
     for (&parameter_values, PARAMETER_NAMES, 0..) |*value, name, index| {
         value.* = try arena.input(name, if (index <= 1) .selector else .felt, span);
@@ -289,7 +302,6 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .input_item = parameter_values[3],
         .vm_claim_scope = parameter_values[4],
     };
-
     const segment_lane_active = try arena.mul(
         preprocessed.segment_mask,
         parameters.segment_active,
@@ -319,11 +331,15 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
     // parent-statement fold and row 18 feeds the recursive composition graph.
     // Emitting multiplicity two here keeps that fan-out in the typed source
     // of truth rather than patching the global claim after evaluation.
-    const scoped_output_weight = try arena.add(
+    const legacy_scoped_weight = try arena.add(
         active,
         binary_lane_active,
         span,
     );
+    const scoped_output_weight = if (extra_uses) |uses|
+        try arena.add(legacy_scoped_weight, try arena.mul(segment_lane_active, uses, span), span)
+    else
+        legacy_scoped_weight;
     // A segment leaf is also the parent statement of its one-leaf recursion
     // subtree. That is a distinct typed tuple, not multiplicity two on the
     // segment scope. In binary mode the derived parent lane emits PARENT while

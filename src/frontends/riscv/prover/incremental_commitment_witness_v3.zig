@@ -92,6 +92,9 @@ pub const BoundaryWitnessV3 = struct {
 /// transition independently so its bridge rows can be committed as an
 /// appended component under the shared relation draw.
 pub const FullWitnessV3 = struct {
+    /// Borrowed only from the independently ELF-admitted owner; the caller
+    /// keeps that owner alive through this witness and proof preparation.
+    fixed_program_rows: ?[]const @import("../air/program/commitment.zig").Row = null,
     base: commitment_witness.CommitmentWitness,
     boundary: BoundaryWitnessV3,
 

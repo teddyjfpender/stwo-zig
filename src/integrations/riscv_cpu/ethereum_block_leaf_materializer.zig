@@ -143,6 +143,7 @@ pub fn run(
         compact_session_identity,
     );
     defer observer.deinit();
+    observer.snapshot_worker_count = options.snapshot_workers;
     try observer.initSnapshotBatch();
     var journal_writer = std.Io.Writer.Allocating.init(allocator);
     defer journal_writer.deinit();
@@ -431,7 +432,7 @@ const Built = struct {
 };
 
 const Observer = struct {
-    const snapshot_worker_count: usize = 16;
+    snapshot_worker_count: usize = 16,
 
     allocator: std.mem.Allocator,
     input: []const u8,
@@ -498,7 +499,7 @@ const Observer = struct {
         try self.snapshots.initInPlace(
             self.allocator,
             snapshot_count,
-            snapshot_worker_count,
+            self.snapshot_worker_count,
         );
     }
 

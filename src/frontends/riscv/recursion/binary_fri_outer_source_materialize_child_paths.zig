@@ -446,7 +446,7 @@ pub fn validateDestination(
                 M31,
                 column,
                 QM31,
-                child.capture.pcs_evaluation.values,
+                child.capture.pcs_evaluation.view().values,
             ) or typedSlicesOverlap(
                 M31,
                 column,

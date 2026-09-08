@@ -1,0 +1,27 @@
+debug: Metal circle IFFT+RFFT: 0.081ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal circle IFFT+RFFT: 0.100ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal circle IFFT+RFFT: 0.078ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal sampled-value batch epoch: 0.057ms
+debug: Metal quotient wall: pack=0.031ms prepare=0.015ms dispatch-copy=2.074ms
+debug: Metal quotient + Merkle epoch: 1.453ms
+debug: Metal FRI circle fold: 0.014ms
+debug: Metal FRI line cascade: 0.408ms, 3 layers, 7 dispatches, 1 command buffer, 1 wait
+debug: Metal circle IFFT+RFFT: 0.081ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal circle IFFT+RFFT: 0.081ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal circle IFFT+RFFT: 0.118ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+debug: Metal circle IFFT+RFFT: 0.076ms
+debug: Metal circle LDE batch: 0 direct groups, 0.000ms GPU
+error: PCS Merkle verification failed for tree 0: RootMismatch
+Ethereum node V1 Metal: 24798 serialized bytes, fresh verify and forgery rejection passed, dispatches=24, fallbacks=0 (diagnostic PCS)
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1-metal success 407ms MaxRSS:39M
+   +- compile exe ethereum-node-proof-v1-metal Debug native success 6s MaxRSS:1G
+

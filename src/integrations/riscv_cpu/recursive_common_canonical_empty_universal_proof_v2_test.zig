@@ -135,6 +135,7 @@ test "canonical-empty q193 proof survives retained cold reopen and rejects mutat
     );
     const cold_open_ns = cold_open_timer.read();
     defer cold.deinit();
+    try std.testing.expectEqualDeep(manifest_mod.PREPROCESSED_ROOT, cold.geometry_value.preprocessed_root);
     const cold_boundary = cold.performanceSnapshot();
     try std.testing.expectEqual(@as(u64, 1), cold_boundary.q193_cold_verifications);
     try std.testing.expectEqual(@as(u64, 1), cold_boundary.transcript_replays);
@@ -386,6 +387,86 @@ test "canonical-empty q193 proof survives retained cold reopen and rejects mutat
         &cold.fresh,
     );
     try marked("test.replay-validate", replay.validateAgainst(&replay_cohort));
+    var recorded = try subject.Kernel.recordVerifiedReplayWithCohort(
+        allocator,
+        &replay_cohort,
+        &cold.session,
+        &cold.fresh,
+    );
+    defer recorded.deinit();
+    try std.testing.expectEqualDeep(recorded.execution.identity_sha256, cold.transcript.execution.identity_sha256);
+    try std.testing.expectEqualDeep(recorded.program.identity, cold.transcript.program.identity);
+    try recorded.program.validateRecording(&recorded.execution);
+    try exerciseTranscriptProgramBinding(allocator, &recorded, cold.composition_capture.circuit.identity_digest);
+    try std.testing.expectEqualDeep(replay.claims, recorded.replay.claims);
+    try std.testing.expectEqualDeep(replay.relations, recorded.replay.relations);
+    try std.testing.expectEqualDeep(replay.query_words, recorded.replay.query_words);
+    try std.testing.expectEqualDeep(
+        replay.final_transcript_digest,
+        recorded.execution.final_digest,
+    );
+    try std.testing.expectEqual(
+        replay.final_transcript_draw_count,
+        recorded.execution.final_draw_count,
+    );
+    const Context = @import(
+        "recursive_temporal_secure_parent_native_engine_v1.zig",
+    ).ReplayContextV1;
+    var contexts = [_]bool{false} ** @typeInfo(Context).@"enum".fields.len;
+    var previous_tag: u32 = 0;
+    for (recorded.execution.operations) |operation| {
+        try std.testing.expect(operation.context_tag >= previous_tag);
+        try std.testing.expect(operation.context_tag > 0);
+        try std.testing.expect(operation.context_tag <= contexts.len);
+        contexts[operation.context_tag - 1] = true;
+        previous_tag = operation.context_tag;
+    }
+    try std.testing.expect(std.mem.allEqual(bool, &contexts, true));
+    try std.testing.expectEqual(@as(usize, 2), recorded.execution.pow_checks.len);
+    try std.testing.expectEqual(@as(u32, 10), recorded.execution.pow_checks[0].bits);
+    try std.testing.expectEqual(@as(u32, 16), recorded.execution.pow_checks[1].bits);
+    recorded.execution.final_draw_count += 1;
+    try std.testing.expectError(error.InvalidRecording, recorded.execution.validate());
+    recorded.execution.final_draw_count -= 1;
+    try recorded.execution.validate();
+    const witness = recursion.air.transcript_air_witness;
+    const air = recursion.air.transcript_air;
+    const trace = recorded.execution.trace();
+    const rows = try witness.rowsFromTraceAlloc(allocator, 1, &trace);
+    defer allocator.free(rows);
+    try std.testing.expectEqual(trace.poseidon_calls.len, rows.len);
+    try std.testing.expectError(
+        error.InvalidWitnessRow,
+        witness.rowsFromTraceAlloc(allocator, 3, &trace),
+    );
+    var definition = try air.build(allocator);
+    defer definition.deinit();
+    const plan = try recursion.air.transcript_air_relation.authenticate(&definition);
+    var previous_state: ?recursion.air.transcript_air_relation.Entry = null;
+    for (rows, trace.poseidon_calls) |row, call| {
+        const entries = try plan.entries(
+            &definition.arena,
+            air.SEMANTIC_DIGEST,
+            definition.events.ordered(),
+            try witness.logicalRow(row),
+        );
+        // The actual AIR request binds every input AND output lane to the
+        // shared permutation provider, including the capacity half.
+        try std.testing.expectEqual(@as(u8, 32), entries[0].arity);
+        try std.testing.expect(entries[0].numerator.eql(QM31.one().neg()));
+        for (call.input ++ call.output, entries[0].values[0..32]) |expected, actual|
+            try std.testing.expect(actual.eql(QM31.fromBase(expected)));
+        if (previous_state) |prior| {
+            try std.testing.expect(prior.numerator.add(entries[3].numerator).isZero());
+            try std.testing.expectEqualDeep(prior.values, entries[3].values);
+        } else try std.testing.expect(entries[3].numerator.isZero());
+        previous_state = if (row.is_last == 1) null else entries[4];
+    }
+    try std.testing.expect(previous_state == null);
+    std.debug.print(
+        "SECURE_REPLAY_RECORDING operations={d} frames={d} permutations={d} words={d} queries={d}\n",
+        .{ recorded.execution.operations.len, recorded.execution.hash_frames.len, recorded.execution.poseidon_calls.len, recorded.execution.word_storage.len, recorded.replay.query_words.len },
+    );
     replay.claims.values[0] = replay.claims.values[0].add(QM31.one());
     try marked(
         "test.replay-mutation",
@@ -538,6 +619,113 @@ test "output-less universal fixture never grants registry admission" {
     try std.testing.expectEqual(
         registry_mod.OutputAbiV1.fieldNodePublicV2(),
         registry_mod.OutputAbiV1.fieldNodePublicV2(),
+    );
+}
+
+fn exerciseTranscriptProgramBinding(
+    allocator: std.mem.Allocator,
+    first: *subject.Kernel.RecordedReplayV1,
+    first_graph: [32]u8,
+) !void {
+    const program_mod = @import("recursive_secure_transcript_program_v1.zig");
+    // Legacy SHA tags remain witness-dependent, but the field profile no
+    // longer emits them. Substituting one must fail program admission.
+    try std.testing.expect(program_mod.Source.session_seal.witnessDependent());
+    try std.testing.expect(program_mod.Source.claim_seal.witnessDependent());
+    const original = first.program.operations[0];
+    first.program.operations[0].source = .session_seal;
+    try std.testing.expectError(
+        error.InvalidRecursiveTranscriptProgram,
+        first.program.validateRecording(&first.execution),
+    );
+    first.program.operations[0] = original;
+    var fixture = try Fixture.init(212);
+    const source = try input_mod.SourceArtifactV1.seal(&fixture.leaf);
+    const source_bytes = try source.encodeCanonical();
+    var proved = try subject.proveAndColdVerify(allocator, &source_bytes, .{ .worker_count = 1 });
+    const retained = try proved.proof.encodeArtifactAlloc(allocator);
+    defer allocator.free(retained);
+    proved.deinit();
+    var cold = try subject.coldOpen(allocator, &source_bytes, retained);
+    defer cold.deinit();
+    try std.testing.expectEqualDeep(first_graph, cold.composition_capture.circuit.identity_digest);
+    std.debug.print("CANONICAL_PUBLIC_BOUNDARY_KEY child_indices=211,212 graph_identity_equal=true native_boundary_literals=false\n", .{});
+    const input = try input_mod.ColdInputV1.open(&source_bytes);
+    var cohort = try cohort_mod.CohortV2.init(allocator, .{
+        .statement_words = input.source.statement_words,
+        .coordinate = try input.coordinate(),
+    });
+    defer cohort.deinit();
+    const ingress = try cold.ingressView();
+    try ingress.validate();
+    const second = ingress.transcript;
+    try std.testing.expect(second == cold.transcript);
+    var swapped_ingress = ingress;
+    swapped_ingress.transcript = first;
+    try std.testing.expectError(error.CanonicalEmptyUniversalEvidenceMismatch, swapped_ingress.validate());
+    {
+        const original_transcript = cold.transcript;
+        cold.transcript = first;
+        defer cold.transcript = original_transcript;
+        try std.testing.expectError(error.InvalidProcessLocalValidationToken, cold.validateToken());
+    }
+    {
+        const original_operations = cold.transcript.execution.operations;
+        const replacement = try allocator.dupe(@TypeOf(original_operations[0]), original_operations);
+        defer allocator.free(replacement);
+        cold.transcript.execution.operations = replacement;
+        defer cold.transcript.execution.operations = original_operations;
+        try std.testing.expectError(error.InvalidProcessLocalValidationToken, cold.validateToken());
+    }
+    {
+        cold.transcript.program.identity[0] ^= 1;
+        defer cold.transcript.program.identity[0] ^= 1;
+        try std.testing.expectError(error.InvalidProcessLocalValidationToken, cold.validateToken());
+    }
+    try cold.validateToken();
+    const before_rows = cold.performanceSnapshot();
+    try std.testing.expectEqualDeep(first.program.identity, second.program.identity);
+    try std.testing.expectEqualDeep(first.program.operations, second.program.operations);
+    try std.testing.expect(!std.meta.eql(first.execution.final_digest, second.execution.final_digest));
+    // The identical schedule must accept either independently verified child.
+    try first.program.validateRecording(&second.execution);
+    // Geometry is part of the program even though proof values are not.
+    var wrong_key = cold.fresh.capture;
+    var wrong_roots = wrong_key.commitments[0..4].*;
+    wrong_roots[0][0] += 1;
+    wrong_key.commitments = &wrong_roots;
+    try std.testing.expectError(error.InvalidRecursiveTranscriptProgram, program_mod.Program.init(
+        allocator,
+        .canonical_empty,
+        cohort.manifest(),
+        &wrong_key,
+    ));
+    var changed_capture = cold.fresh.capture;
+    changed_capture.sampled_values = changed_capture.sampled_values[1..];
+    var changed_program = try program_mod.Program.init(
+        allocator,
+        .canonical_empty,
+        cohort.manifest(),
+        &changed_capture,
+    );
+    defer changed_program.deinit();
+    try std.testing.expect(!std.meta.eql(first.program.identity, changed_program.identity));
+    try std.testing.expectError(
+        error.InvalidRecursiveTranscriptProgram,
+        changed_program.validateRecording(&second.execution),
+    );
+    for (first.program.operations) |operation|
+        try std.testing.expect(operation.source != .session_seal and operation.source != .claim_seal);
+    try @import("recursive_secure_transcript_rows_v1_test.zig").exercise(first, second);
+    // Preparing parent witness rows consumes the retained recording, without
+    // another child PCS verification, native replay or graph reconstruction.
+    try std.testing.expectEqualDeep(before_rows, cold.performanceSnapshot());
+    try @import("recursive_secure_transcript_rows_v1_test.zig").exerciseSharedRecording(
+        subject.Kernel,
+        &cohort,
+        &cold.session,
+        &cold.artifact_value,
+        second,
     );
 }
 

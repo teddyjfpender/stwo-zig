@@ -1,0 +1,13 @@
+{
+  "status": "cancelled_for_user_devex_priority",
+  "pid": 40352,
+  "process": "40352 40345 39991 ./.zig-cache/o/b7e1ea10776a8cd885f2ceea9d700e30/test --cache-dir=./.zig-cache --seed=0x34da27cd --listen=-",
+  "recorded_at": "2026-09-08T06:15:34.441735+00:00",
+  "reason": "Prioritize requested DevEx boundary and replay validation; full wrapper had passed main and interaction but not completed proof.",
+  "proof_complete": false,
+  "progress_sha256": "73e5bd2fb888e9455d37213df179a457b3943cb5f38b98cf336e1e08a036f5ab",
+  "launcher_exit_code": 1,
+  "launcher_wall_seconds": 7669.435782124987,
+  "finished_at": "2026-09-08T06:15:35.595231+00:00",
+  "test_process_absent": true
+}

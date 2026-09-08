@@ -1,0 +1,44 @@
+{
+  "schema": "stwo.ethereum.real-leaf-product.v2",
+  "status": "compile_pass",
+  "build_log": "build.log",
+  "source_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_scope": "Shared worktree build; listed source hashes read after build, not claimed atomic complete compiler snapshot. Exact executable pinned.",
+  "executable": {
+    "path": ".git/local-ethereum/field-claim-cpu-product-v2/bin/stwo-ethereum-block-proof",
+    "bytes": 11786488,
+    "sha256": "8786c5fc54e5c05681c67e1bc52c4dad35763d294427e37e6eeadb42fbbe75a1"
+  },
+  "sources": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_replay_command_v4.zig",
+      "bytes": 36853,
+      "sha256": "ad8438565a6c74b7dc24c0a31dcaf726981aa58c81327ca14e5c2be1ae902132"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_prepared_replay_producer_v4.zig",
+      "bytes": 14557,
+      "sha256": "464a0804f5cd82fe68994980ff66dc32f70d0cbcf775e401954babac165ca951"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig",
+      "bytes": 40990,
+      "sha256": "f3342fa4df575af3a5c825f6aae6456efdcbea145e28db24a893d402fe3f0dae"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_profile_v4.zig",
+      "bytes": 28103,
+      "sha256": "c9ad953cd64860ebaab35e85151e69ce819725afac5c487e1c5f1fd73b0b82dc"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_residency_preflight_v1.zig",
+      "bytes": 3589,
+      "sha256": "770a1e7a6379e6004a0d0af2fbee7956eee8d9ac1e3436f2a7be021ffd6aafed"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_full_leaf_bundle_verifier_v1.zig",
+      "bytes": 8871,
+      "sha256": "e4a3059fd49da9e7df9e863802be3ef3fd379c21ba19abd362e5a2ed9ec50d1e"
+    }
+  ]
+}

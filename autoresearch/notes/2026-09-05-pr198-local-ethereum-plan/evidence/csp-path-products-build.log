@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded
+stwo-zig-riscv-cpu success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 1m MaxRSS:4G
+riscv-trace-dump success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 47s MaxRSS:3G
+stwo-riscv-metal success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 1m MaxRSS:4G
+

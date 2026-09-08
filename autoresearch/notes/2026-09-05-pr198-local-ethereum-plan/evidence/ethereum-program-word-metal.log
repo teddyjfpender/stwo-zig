@@ -1,0 +1,10 @@
+Public Ethereum program image: elf_sha256=f3657d077b88da313369ff002aafbe8b6bf4912e8fd1ef1d1b76a6dc0f1d40a7, address=0x400
+Produced diagnostic Ethereum path proof: bytes=31045, sha256=9a80f89311b432b570dc70af6df1582fd5071cd4044839dee16329b2e4a906d5
+Artifact request: 2072146333ns (includes image preparation and file IO; runtime initialization excluded)
+Metal artifact dispatches=22, fallbacks=0
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1-metal success 2s MaxRSS:83M
+   +- compile exe ethereum-node-proof-v1-metal ReleaseSafe native success 22s MaxRSS:1G
+

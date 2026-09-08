@@ -1,0 +1,23 @@
+{
+  "status": "all_raw_pairs_retained_seal_failed",
+  "failure": "NonCanonicalAscii",
+  "cause": "Both capture observers retained borrowed compact artifact path slices after callback freed them. Fixed through shared owned append/deinit; no validation relaxation.",
+  "raw_inventory": [
+    {
+      "suffix": ".stwemt01",
+      "count": 121,
+      "bytes": 399699268
+    },
+    {
+      "suffix": ".stwipw04",
+      "count": 121,
+      "bytes": 8599209488
+    }
+  ],
+  "execution_profile_receipt": {
+    "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4/execution-profile-receipt.json",
+    "bytes": 651442,
+    "sha256": "7be3e7977731b8f72944e7d2e1af003bd1b6f2426c5b1800370a185d8784bee3"
+  },
+  "recovery": "existing reopen-unsealed path, separate measured run; pending"
+}

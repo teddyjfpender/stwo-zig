@@ -28,6 +28,8 @@ test "segment statement V2 retains an exact proof-consumable adjacent boundary" 
     defer std.testing.allocator.free(right_words);
     const left_view = try v2.authenticateCanonicalWire(left_words);
     const right_view = try v2.authenticateCanonicalWire(right_words);
+    try @import("segment_statement_v2_transcript_layout_test.zig").expectNativeView(&left_view);
+    try @import("segment_statement_v2_transcript_layout_test.zig").expectNativeView(&right_view);
     const left_reused = try v2.authenticateCanonicalWireReusingRoots(
         left_words,
         .{

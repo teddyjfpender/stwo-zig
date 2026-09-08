@@ -1,0 +1,35 @@
+{
+  "head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_overlay_sha256": "16230c20300215661614d6ba48ee35ae70608a4013a26c5ec275918dde5fc8e7",
+  "test_passed": 3,
+  "test_failed": 0,
+  "fixture": "two-segment genuine precompile fixture; not real block",
+  "total_ns": 2303037399375,
+  "lifetime_peak_footprint_bytes": 52653710168,
+  "independent_root": {
+    "serialized": true,
+    "producer_destroyed": true,
+    "native_inputs_used": false,
+    "verified": true,
+    "separate_process_gate": "passed5/5; see fresh-process-root-v1.json",
+    "request_ns": 209213458,
+    "verify_ns": 119234291,
+    "proof_bytes": 3033435,
+    "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+    "key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc"
+  },
+  "files": {
+    "ethereum-field9-complete-proof-v1.log": {
+      "bytes": 25028,
+      "sha256": "3511cafe8e4da62173185860b18643f8de9ce97c7658b26dd9902bc75dafa66f"
+    },
+    "ethereum-field9-complete-proof-v1.live.log": {
+      "bytes": 21028,
+      "sha256": "783005397c471fa78e6136e5ff4280d9f28d841d2cadf2f1fdd2bef1e884d0b6"
+    },
+    "ethereum-field9-complete-proof-v1-tree0.sample": {
+      "bytes": 14649,
+      "sha256": "c09930fc7a905d54d9fabf9bf1dc715442cb93c57b063479fbd9e7bb621276e1"
+    }
+  }
+}

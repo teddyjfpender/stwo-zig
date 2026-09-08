@@ -1,0 +1,51 @@
+{
+  "scope": "synthetic actual-Poseidon Merkle commitment; same tail absorption ratio as observed Tree0; not full-tree/full-proof benchmark",
+  "mode": "ReleaseFast asserted by running test",
+  "workers": 1,
+  "correctness_tests_passed": 4,
+  "launcher_tests_passed": 5,
+  "baseline_samples_ns": [
+    162122708,
+    160560916,
+    161272500
+  ],
+  "reuse_samples_ns": [
+    100360500,
+    100418208,
+    100572209
+  ],
+  "baseline_median_ns": 161272500,
+  "reuse_median_ns": 100418208,
+  "speedup": 1.60600854378919,
+  "latency_reduction_percent": 37.73383062828442,
+  "baseline_tail_absorptions": 1703936,
+  "reuse_tail_absorptions": 1074176,
+  "prefix_heap_bytes": 18432,
+  "leaf_heap_bytes": 524288,
+  "additional_stack_cache_bytes": 11776,
+  "roots_and_every_layer_identical": true,
+  "csp_default_path_changed": false,
+  "csp_16_case_performance_promotion": "pending admissible host suite; no waiver",
+  "gpu_parity_or_speed_verified": false,
+  "initial_failed_run": "Correctness passed in Debug; benchmark guard rejected wrong launcher optimization scope. No timing evidence from that run.",
+  "sources": {
+    "src/prover/vcs_lifted/streaming_committer.zig": "e369063383f16684eb1c48bade07674a49f4c48fcae458033b3511c65b11611f",
+    "src/prover/vcs_lifted/prover.zig": "df181066e8fe8f903515d4834449ea5acac08c1afe9a40e4e3ec4357521d7016",
+    "src/prover/pcs/scheme.zig": "4b1e010caf3c2f0219d9c8c1d456d76e93a8c86a1f185c8c0d017815019a592e",
+    "src/prover/pcs/tree_builders.zig": "d61a6bda99cacc236eb6a2d4b1bedbd8ff9fd9ce512877f55d772d771eb4c80d",
+    "src/tests/native/prover/pcs/poseidon_bounded_prefix_test.zig": "959fe8b997c968fc5791ceae022d4f97ad30a74d461fc9949a09d22daf9a91bb",
+    "scripts/zig_protocol_lib/command.py": "85cf4e67301152af19fbcaac7ad083132268f9852a890a1b0b4dce1db83dda34",
+    "scripts/tests/test_zig_protocol_command.py": "9b0b9a66f2b8e862b17a86684631ccc34e3a4c28d6d3823a70f5d40f9f545786"
+  },
+  "logs": {
+    "ethereum-poseidon-tail-reuse-gates-v1.log": {
+      "bytes": 1105,
+      "sha256": "acb2d186a0e8e4f3fce815d7d481d70c37e0ba5712d0f66f48a939954a805d77"
+    },
+    "ethereum-poseidon-tail-reuse-gates-v2.log": {
+      "bytes": 909,
+      "sha256": "4c44b552c1d8a21001d38b02d85681be25ba866c7e2a9a88cbbab63401302a16"
+    }
+  },
+  "command": "STWO_ZIG_RUN_POSEIDON_TAIL_REUSE_BENCH=1 python3 scripts/zig_protocol_test.py src/tests/native/prover/pcs/poseidon_bounded_prefix_test.zig -OReleaseFast -lc --test-filter \"Poseidon bounded tail reuse\""
+}

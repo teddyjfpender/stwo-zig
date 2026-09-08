@@ -31,8 +31,6 @@ const GEOMETRY_DOMAIN =
     "stwo-zig/ethereum-incremental-provider-geometry/v4-schema3\x00";
 const AUTHORITY_DOMAIN =
     "stwo-zig/ethereum-incremental-provider-geometry-authority/v4-schema3\x00";
-const OWNED_AUTHORITY_DOMAIN =
-    "stwo-zig/ethereum-incremental-provider-geometry-owned-authority/v4-schema3\x00";
 
 pub const Error = field_public.Error || error{
     ArithmeticOverflow,
@@ -105,6 +103,10 @@ pub fn CampaignProviderGeometryAuthorityV4ForCount(
             try validateForCount(self, campaign_leaf_count);
         }
 
+        pub fn view(self: *const Self) *const Self {
+            return self;
+        }
+
         /// Reconstructs this leaf's tuple stream from its live verifier-owned
         /// Stage101 capability and checks exact ordered campaign membership.
         pub fn validateFreshInputAt(
@@ -114,43 +116,7 @@ pub fn CampaignProviderGeometryAuthorityV4ForCount(
             index: usize,
             input: *const input_mod.FreshInputV4(Engine),
         ) !void {
-            try self.validateStructure();
-            if (index >= campaign_leaf_count)
-                return error.InvalidCampaignProviderGeometryInputV4;
-            try input.validate();
-            const leaf_index = std.math.cast(u32, index) orelse
-                return error.ArithmeticOverflow;
-            if (input.coordinate.height != 0 or
-                input.coordinate.index != leaf_index or
-                input.coordinate.global_ordinal != leaf_index or
-                !std.mem.eql(
-                    u8,
-                    &input.capability_identity_sha256,
-                    &self.fresh_input_identities[index],
-                ))
-            {
-                return error.InvalidCampaignProviderGeometryInputV4;
-            }
-            var witness = try role_io.OwnedWitnessV4.initUnfrozenForAudit(
-                allocator,
-                &input.stage101.public_data.data,
-                &input.stage101.role_aware_public.value,
-                &input.stage101.relations.base,
-                self.provider_geometry.role_io_tuple_capacity,
-            );
-            defer witness.deinit();
-            if (witness.active_tuple_count != self.active_tuple_counts[index])
-                return error.CampaignProviderGeometryMismatchV4;
-            var schedule = try field_public.OwnedPoseidonScheduleV4.init(
-                Engine,
-                allocator,
-                input,
-                &witness,
-            );
-            defer schedule.deinit();
-            const observed = try schedule.liveProviderGeometry();
-            if (!sharedGeometryEql(observed, self.provider_geometry))
-                return error.CampaignProviderGeometryMismatchV4;
+            try validateFreshInputForCampaign(Engine, allocator, self, index, input);
         }
     };
 }
@@ -182,229 +148,60 @@ pub const CampaignInventoryAuthorityV4 = struct {
     }
 };
 
-/// Runtime-count, process-local authority consumed by production role-0
-/// materializers. It owns only observations and identities, never fresh input
-/// pointers or serializable verifier capabilities.
-pub const OwnedCampaignProviderGeometryV4 = struct {
+const runtime_owned = @import("recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_owned_v4.zig");
+pub const OwnedCampaignProviderGeometryV4 = runtime_owned.OwnedCampaignProviderGeometryV4;
+
+pub fn validateFreshInputForCampaign(
+    comptime Engine: type,
     allocator: std.mem.Allocator,
-    format_version: u16 = FORMAT_VERSION,
-    schema_version: u16 = SCHEMA_VERSION,
-    campaign_inventory: CampaignInventoryAuthorityV4,
-    leaf_count: u32,
-    active_tuple_counts: []u32,
-    fresh_input_identities: [][32]u8,
-    maximum_active_tuple_count: u32,
-    maximum_leaf_index: u32,
-    provider_geometry: field_public.LiveProviderGeometryV4,
-    ordered_input_identity_sha256: [32]u8,
-    geometry_identity_sha256: [32]u8,
-    authority_identity_sha256: [32]u8,
+    campaign: anytype,
+    index: usize,
+    input: *const input_mod.FreshInputV4(Engine),
+) !void {
+    try campaign.validateStructure();
+    if (index >= campaign.view().active_tuple_counts.len)
+        return error.InvalidCampaignProviderGeometryInputV4;
+    try input.validate();
+    var witness = try role_io.OwnedWitnessV4.initWithCircuitProfile(
+        allocator,
+        &input.stage101.public_data.data,
+        &input.stage101.role_aware_public.value,
+        &input.stage101.relations.base,
+        campaign.view().provider_geometry.role_io_tuple_capacity,
+        input.stage101.profile.circuitProfile(),
+    );
+    defer witness.deinit();
+    var schedule = try field_public.OwnedPoseidonScheduleV4.init(Engine, allocator, input, &witness);
+    defer schedule.deinit();
+    try validatePreparedInputAt(Engine, campaign, index, input, &witness, &schedule);
+}
 
-    const Self = @This();
-
-    /// Audits already-live, independently cold-opened inputs without retaining
-    /// their pointers. The input slice is borrowed only for this call.
-    pub fn mintFromBorrowedFreshInputs(
-        comptime Engine: type,
-        allocator: std.mem.Allocator,
-        inventory: CampaignInventoryAuthorityV4,
-        inputs: []const *const input_mod.FreshInputV4(Engine),
-    ) !Self {
-        try inventory.validate();
-        if (inputs.len != inventory.leaf_count)
-            return error.InvalidCampaignProviderGeometryInputV4;
-        const counts = try allocator.alloc(u32, inputs.len);
-        var counts_owned = true;
-        errdefer if (counts_owned) allocator.free(counts);
-        const identities = try allocator.alloc([32]u8, inputs.len);
-        var identities_owned = true;
-        errdefer if (identities_owned) allocator.free(identities);
-        for (inputs, 0..) |input, index| {
-            const observation = try observeFreshInput(
-                Engine,
-                allocator,
-                index,
-                input,
-            );
-            counts[index] = observation.active_tuple_count;
-            identities[index] = observation.identity_sha256;
-            for (identities[0..index]) |earlier| if (std.mem.eql(
-                u8,
-                &earlier,
-                &identities[index],
-            )) return error.InvalidCampaignProviderGeometryInputV4;
-        }
-        var result = try mintOwnedFromObservationsInternal(
-            allocator,
-            inventory,
-            counts,
-            identities,
-        );
-        counts_owned = false;
-        identities_owned = false;
-        errdefer result.deinit();
-        for (inputs, 0..) |input, index|
-            try result.validateFreshInputAt(Engine, allocator, index, input);
-        return result;
-    }
-
-    /// Two-pass streaming mint. `opener.openFreshInput(allocator, index)` must
-    /// return one owned `FreshInputV4(Engine)`; every opened value is destroyed
-    /// before the next index, so campaign cardinality does not set live-memory
-    /// ownership. The second pass proves the common maximum geometry.
-    pub fn mintFromColdOpener(
-        comptime Engine: type,
-        allocator: std.mem.Allocator,
-        inventory: CampaignInventoryAuthorityV4,
-        opener: anytype,
-    ) !Self {
-        try inventory.validate();
-        const count = std.math.cast(usize, inventory.leaf_count) orelse
-            return error.ArithmeticOverflow;
-        const counts = try allocator.alloc(u32, count);
-        var counts_owned = true;
-        errdefer if (counts_owned) allocator.free(counts);
-        const identities = try allocator.alloc([32]u8, count);
-        var identities_owned = true;
-        errdefer if (identities_owned) allocator.free(identities);
-        for (0..count) |index| {
-            var input = try opener.openFreshInput(allocator, index);
-            defer input.deinit();
-            const observation = try observeFreshInput(
-                Engine,
-                allocator,
-                index,
-                &input,
-            );
-            counts[index] = observation.active_tuple_count;
-            identities[index] = observation.identity_sha256;
-            for (identities[0..index]) |earlier| if (std.mem.eql(
-                u8,
-                &earlier,
-                &identities[index],
-            )) return error.InvalidCampaignProviderGeometryInputV4;
-        }
-        var result = try mintOwnedFromObservationsInternal(
-            allocator,
-            inventory,
-            counts,
-            identities,
-        );
-        counts_owned = false;
-        identities_owned = false;
-        errdefer result.deinit();
-        for (0..count) |index| {
-            var input = try opener.openFreshInput(allocator, index);
-            defer input.deinit();
-            try result.validateFreshInputAt(Engine, allocator, index, &input);
-        }
-        return result;
-    }
-
-    pub fn deinit(self: *Self) void {
-        self.allocator.free(self.fresh_input_identities);
-        self.allocator.free(self.active_tuple_counts);
-        self.* = undefined;
-    }
-
-    pub fn validateStructure(self: *const Self) Error!void {
-        try self.campaign_inventory.validate();
-        const count = std.math.cast(usize, self.leaf_count) orelse
-            return error.ArithmeticOverflow;
-        if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
-            self.leaf_count != self.campaign_inventory.leaf_count or
-            self.active_tuple_counts.len != count or
-            self.fresh_input_identities.len != count)
-        {
-            return error.CampaignProviderGeometryMismatchV4;
-        }
-        var maximum: u32 = 0;
-        var maximum_index: u32 = 0;
-        for (
-            self.active_tuple_counts,
-            self.fresh_input_identities,
-            0..,
-        ) |active, identity_value, index| {
-            if (std.mem.allEqual(u8, &identity_value, 0))
-                return error.CampaignProviderGeometryMismatchV4;
-            for (self.fresh_input_identities[0..index]) |earlier|
-                if (std.mem.eql(u8, &earlier, &identity_value))
-                    return error.CampaignProviderGeometryMismatchV4;
-            if (active > maximum) {
-                maximum = active;
-                maximum_index = std.math.cast(u32, index) orelse
-                    return error.ArithmeticOverflow;
-            }
-        }
-        try self.provider_geometry.validate();
-        const expected_capacity = try capacityForMaximum(maximum);
-        if (self.maximum_active_tuple_count != maximum or
-            self.maximum_leaf_index != maximum_index or
-            self.provider_geometry.role_io_tuple_count != maximum or
-            self.provider_geometry.role_io_tuple_capacity != expected_capacity or
-            !std.mem.eql(
-                u8,
-                &self.ordered_input_identity_sha256,
-                &orderedInputsIdentitySlices(
-                    self.campaign_inventory,
-                    self.active_tuple_counts,
-                    self.fresh_input_identities,
-                ),
-            ) or !std.mem.eql(
-            u8,
-            &self.geometry_identity_sha256,
-            &geometryIdentity(self),
-        ) or !std.mem.eql(
-            u8,
-            &self.authority_identity_sha256,
-            &ownedAuthorityIdentity(self),
-        )) return error.CampaignProviderGeometryMismatchV4;
-    }
-
-    pub fn validateFreshInputAt(
-        self: *const Self,
-        comptime Engine: type,
-        allocator: std.mem.Allocator,
-        index: usize,
-        input: *const input_mod.FreshInputV4(Engine),
-    ) !void {
-        try self.validateStructure();
-        if (index >= self.active_tuple_counts.len)
-            return error.InvalidCampaignProviderGeometryInputV4;
-        const observation = try observeFreshInput(
-            Engine,
-            allocator,
-            index,
-            input,
-        );
-        if (observation.active_tuple_count != self.active_tuple_counts[index] or
-            !std.mem.eql(
-                u8,
-                &observation.identity_sha256,
-                &self.fresh_input_identities[index],
-            )) return error.InvalidCampaignProviderGeometryInputV4;
-        var witness = try role_io.OwnedWitnessV4.initUnfrozenForAudit(
-            allocator,
-            &input.stage101.public_data.data,
-            &input.stage101.role_aware_public.value,
-            &input.stage101.relations.base,
-            self.provider_geometry.role_io_tuple_capacity,
-        );
-        defer witness.deinit();
-        var schedule = try field_public.OwnedPoseidonScheduleV4.init(
-            Engine,
-            allocator,
-            input,
-            &witness,
-        );
-        defer schedule.deinit();
-        if (!sharedGeometryEql(
-            try schedule.liveProviderGeometry(),
-            self.provider_geometry,
-        )) return error.CampaignProviderGeometryMismatchV4;
-    }
-};
+/// Revalidates an already retained common-capacity witness and schedule against
+/// the fresh input. Membership checks need no second witness reconstruction.
+pub fn validatePreparedInputAt(
+    comptime Engine: type,
+    campaign: anytype,
+    index: usize,
+    input: *const input_mod.FreshInputV4(Engine),
+    witness: *const role_io.OwnedWitnessV4,
+    schedule: *const field_public.OwnedPoseidonScheduleV4,
+) !void {
+    try campaign.validateStructure();
+    if (index >= campaign.view().active_tuple_counts.len)
+        return error.InvalidCampaignProviderGeometryInputV4;
+    if (witness.circuit_profile != input.stage101.profile.circuitProfile()) return error.InvalidCampaignProviderGeometryInputV4;
+    try schedule.validateAgainst(Engine, input, witness);
+    const first_leaf_index: u32 = if (@hasField(@TypeOf(campaign.view().*), "first_leaf_index")) campaign.view().first_leaf_index else 0;
+    const leaf_index = std.math.add(u32, first_leaf_index, std.math.cast(u32, index) orelse return error.ArithmeticOverflow) catch return error.ArithmeticOverflow;
+    if (input.coordinate.height != 0 or input.coordinate.index != leaf_index or
+        input.coordinate.global_ordinal != leaf_index or
+        !std.mem.eql(u8, &input.capability_identity_sha256, &campaign.view().fresh_input_identities[index]))
+        return error.InvalidCampaignProviderGeometryInputV4;
+    if (witness.active_tuple_count != campaign.view().active_tuple_counts[index] or
+        witness.padded_tuple_capacity != campaign.view().provider_geometry.role_io_tuple_capacity or
+        !sharedGeometryEql(try schedule.liveProviderGeometry(), campaign.view().provider_geometry))
+        return error.CampaignProviderGeometryMismatchV4;
+}
 
 pub const testing = struct {
     /// Synthetic two-leaf seam. It exercises maximum/order/capacity logic but
@@ -435,7 +232,7 @@ pub const testing = struct {
         errdefer allocator.free(owned_counts);
         const owned_identities = try allocator.dupe([32]u8, identities);
         errdefer allocator.free(owned_identities);
-        return mintOwnedFromObservationsInternal(
+        return runtime_owned.testing.mintFromObservations(
             allocator,
             .{
                 .leaf_count = count,
@@ -452,7 +249,7 @@ const FreshObservationV4 = struct {
     identity_sha256: [32]u8,
 };
 
-fn observeFreshInput(
+pub fn observeFreshInput(
     comptime Engine: type,
     allocator: std.mem.Allocator,
     index: usize,
@@ -467,11 +264,12 @@ fn observeFreshInput(
     {
         return error.InvalidCampaignProviderGeometryInputV4;
     }
-    var witness = try role_io.OwnedWitnessV4.initLive(
+    var witness = try role_io.OwnedWitnessV4.initLiveWithCircuitProfile(
         allocator,
         &input.stage101.public_data.data,
         &input.stage101.role_aware_public.value,
         &input.stage101.relations.base,
+        input.stage101.profile.circuitProfile(),
     );
     defer witness.deinit();
     var schedule = try field_public.OwnedPoseidonScheduleV4.init(
@@ -486,58 +284,6 @@ fn observeFreshInput(
         .active_tuple_count = witness.active_tuple_count,
         .identity_sha256 = input.capability_identity_sha256,
     };
-}
-
-fn mintOwnedFromObservationsInternal(
-    allocator: std.mem.Allocator,
-    inventory: CampaignInventoryAuthorityV4,
-    owned_counts: []u32,
-    owned_identities: [][32]u8,
-) !OwnedCampaignProviderGeometryV4 {
-    try inventory.validate();
-    if (owned_counts.len != inventory.leaf_count or
-        owned_identities.len != owned_counts.len)
-    {
-        return error.InvalidCampaignProviderGeometryInputV4;
-    }
-    var maximum: u32 = 0;
-    var maximum_index: u32 = 0;
-    for (owned_counts, owned_identities, 0..) |active, identity_value, index| {
-        if (std.mem.allEqual(u8, &identity_value, 0))
-            return error.InvalidCampaignProviderGeometryInputV4;
-        for (owned_identities[0..index]) |earlier| if (std.mem.eql(
-            u8,
-            &earlier,
-            &identity_value,
-        )) return error.InvalidCampaignProviderGeometryInputV4;
-        if (active > maximum) {
-            maximum = active;
-            maximum_index = std.math.cast(u32, index) orelse
-                return error.ArithmeticOverflow;
-        }
-    }
-    const capacity = try capacityForMaximum(maximum);
-    var result = OwnedCampaignProviderGeometryV4{
-        .allocator = allocator,
-        .campaign_inventory = inventory,
-        .leaf_count = inventory.leaf_count,
-        .active_tuple_counts = owned_counts,
-        .fresh_input_identities = owned_identities,
-        .maximum_active_tuple_count = maximum,
-        .maximum_leaf_index = maximum_index,
-        .provider_geometry = try geometryForCapacity(maximum, capacity),
-        .ordered_input_identity_sha256 = orderedInputsIdentitySlices(
-            inventory,
-            owned_counts,
-            owned_identities,
-        ),
-        .geometry_identity_sha256 = undefined,
-        .authority_identity_sha256 = undefined,
-    };
-    result.geometry_identity_sha256 = geometryIdentity(&result);
-    result.authority_identity_sha256 = ownedAuthorityIdentity(&result);
-    try result.validateStructure();
-    return result;
 }
 
 fn Observations(comptime count: usize) type {
@@ -566,11 +312,12 @@ fn observeFreshInputs(
         }
         for (inputs[0..index]) |earlier| if (earlier == input)
             return error.InvalidCampaignProviderGeometryInputV4;
-        var witness = try role_io.OwnedWitnessV4.initLive(
+        var witness = try role_io.OwnedWitnessV4.initLiveWithCircuitProfile(
             allocator,
             &input.stage101.public_data.data,
             &input.stage101.role_aware_public.value,
             &input.stage101.relations.base,
+            input.stage101.profile.circuitProfile(),
         );
         defer witness.deinit();
         var schedule = try field_public.OwnedPoseidonScheduleV4.init(
@@ -595,12 +342,13 @@ fn validateSharedGeometryAgainstFreshInputs(
     authority: CampaignProviderGeometryAuthorityV4ForCount(count),
 ) !void {
     for (inputs, 0..) |input, index| {
-        var witness = try role_io.OwnedWitnessV4.initUnfrozenForAudit(
+        var witness = try role_io.OwnedWitnessV4.initWithCircuitProfile(
             allocator,
             &input.stage101.public_data.data,
             &input.stage101.role_aware_public.value,
             &input.stage101.relations.base,
             authority.provider_geometry.role_io_tuple_capacity,
+            input.stage101.profile.circuitProfile(),
         );
         defer witness.deinit();
         var schedule = try field_public.OwnedPoseidonScheduleV4.init(
@@ -662,7 +410,7 @@ fn mintFromObservations(
     return result;
 }
 
-fn geometryForCapacity(
+pub fn geometryForCapacity(
     maximum: u32,
     capacity: u32,
 ) Error!field_public.LiveProviderGeometryV4 {
@@ -696,7 +444,7 @@ fn geometryForCapacity(
 /// Even an empty active prefix commits the canonical header and one zero
 /// padding tuple. This matches `OwnedWitnessV4.initLive` and keeps the shared
 /// provider domain nonempty without inventing a public-I/O relation tuple.
-fn capacityForMaximum(maximum: u32) Error!u32 {
+pub fn capacityForMaximum(maximum: u32) Error!u32 {
     return std.math.ceilPowerOfTwo(u32, @max(maximum, 1)) catch
         error.ArithmeticOverflow;
 }
@@ -783,7 +531,7 @@ fn orderedInputsIdentity(
     return hash.finalResult();
 }
 
-fn orderedInputsIdentitySlices(
+pub fn orderedInputsIdentitySlices(
     inventory: CampaignInventoryAuthorityV4,
     counts: []const u32,
     identities: []const [32]u8,
@@ -802,7 +550,7 @@ fn orderedInputsIdentitySlices(
     return hash.finalResult();
 }
 
-fn geometryIdentity(self: anytype) [32]u8 {
+pub fn geometryIdentity(self: anytype) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(GEOMETRY_DOMAIN);
     hashInt(&hash, u16, FORMAT_VERSION);
@@ -828,20 +576,7 @@ fn authorityIdentity(self: anytype) [32]u8 {
     return hash.finalResult();
 }
 
-fn ownedAuthorityIdentity(self: *const OwnedCampaignProviderGeometryV4) [32]u8 {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update(OWNED_AUTHORITY_DOMAIN);
-    hashInt(&hash, u16, self.format_version);
-    hashInt(&hash, u16, self.schema_version);
-    hashInt(&hash, u32, self.leaf_count);
-    hash.update(&self.campaign_inventory.table_identity_sha256);
-    hash.update(&self.geometry_identity_sha256);
-    hash.update(&self.ordered_input_identity_sha256);
-    hashInt(&hash, u32, self.maximum_leaf_index);
-    return hash.finalResult();
-}
-
-fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
+pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
     var encoded: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &encoded, @intCast(value), .little);
     hash.update(&encoded);

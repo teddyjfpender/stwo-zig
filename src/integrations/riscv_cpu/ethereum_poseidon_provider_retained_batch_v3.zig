@@ -18,7 +18,7 @@ const base_receipt = @import("ethereum_poseidon_provider_hpc_receipt_v1.zig");
 const proof_artifact = @import("ethereum_poseidon_provider_proof_artifact_v1.zig");
 const receipt = @import("ethereum_poseidon_provider_retained_batch_receipt_v3.zig");
 const resource = @import("ethereum_poseidon_provider_resource_plan_v1.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const retention = @import("ethereum_poseidon_provider_retention_admission_v2.zig");
 const support = @import("ethereum_block_leaf_support.zig");
 

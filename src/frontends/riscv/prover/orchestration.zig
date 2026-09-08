@@ -131,6 +131,8 @@ pub const ExecutionOptions = struct {
 
 pub const ExecutionOptionsV2 = struct {
     cpu: ?prover_api.CpuCompositionExecutionRequest = null,
+    /// Ethereum retained PCS ceiling; independent of composition allocation.
+    pcs_retained_byte_budget: ?usize = null,
     statement_admission: ?StatementAdmissionV2 = null,
 };
 
@@ -160,7 +162,6 @@ pub const ProofExecutionPool = struct {
         self.* = .{};
         const explicit = request orelse return;
         _ = try work_pool.WorkerBudget.init(explicit.worker_count);
-        if (explicit.worker_count == 1) return;
 
         try self.pool.initInPlaceWithOptions(.{
             .worker_count = explicit.worker_count,

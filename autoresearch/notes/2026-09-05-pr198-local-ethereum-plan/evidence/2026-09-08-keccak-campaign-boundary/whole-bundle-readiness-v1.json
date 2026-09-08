@@ -1,0 +1,128 @@
+{
+  "schema": "stwo.ethereum.native-whole-bundle-readiness.v1",
+  "recorded_at": "2026-09-08T03:57:13.270434+00:00",
+  "scope": "Read-only audit of pinned controller and verifier; no new heavy gate or121-proof acceptance",
+  "controller_source": {
+    "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/controller-source-v1/scripts/ethereum_full_leaf_bundle_producer.py",
+    "bytes": 19709,
+    "sha256": "acfdc0e35212b07f12ff2487fbbd615f8b8dbd1bdfd973a0fb87c3d27fc9f757"
+  },
+  "verifier_source": {
+    "path": ".git/local-ethereum/prepared-leaf-metal-source-v7/source/src/integrations/riscv_cpu/ethereum_full_leaf_bundle_verifier_v1.zig",
+    "bytes": 28634,
+    "sha256": "5c7ea761d1c568a9b7c1b3db1a45a1b4a7ff9d9e4140a56ef75ced0084e7a0c1"
+  },
+  "verifier_executable": {
+    "bytes": 3681536,
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1",
+    "sha256": "7492946e72587e719cbd254de7b337bc381a63d62c4561eb61e6298c7e99c62c"
+  },
+  "final_command_template": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1",
+    "verify-bundle-fixed-program-v5",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2",
+    "<sha256 of completed canonical bundle.json>",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "--workers",
+    "1"
+  ],
+  "manifest_digest_computed_by": "Frozen controller after publishing all ordered121 leaf records; never substitute a partial manifest",
+  "terminal_acceptance_artifacts": [
+    "bundle.json",
+    "attempts/verify-<timestamp>/request.json",
+    "attempts/verify-<timestamp>/execution.json",
+    "attempts/verify-<timestamp>/stdout.json",
+    "attempts/verify-<timestamp>/result.json"
+  ],
+  "required_receipt": {
+    "exit_code": 0,
+    "endpoint": "verified_native_full_leaf_bundle",
+    "leaf_count": 121,
+    "worker_count": 1,
+    "manifest_sha256": "exact completed bundle SHA",
+    "materialization_sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+  },
+  "coverage_checks": [
+    "manifest/version/count bounds and exact count equals job.segment_count",
+    "metadata.segment_index equals ordered index",
+    "each metadata local/global clock frame and canonical span are valid",
+    "adjacent job equality, next index, equal global cycle edge and CPU machine state",
+    "adjacent memory snapshot id/count and continuation root equality",
+    "interior input/output edges absent",
+    "RootStatement checks complete initial/final state, full cycles, input/output claims and slot geometry",
+    "final statement JobContext equals independently retained materialization JobContext"
+  ],
+  "proof_checks": [
+    "reconstruct independent immutable program from pinned retained full ELF",
+    "destroy retained materialization before per-leaf proofs",
+    "open and hash-check each exact proof file",
+    "same cold full native verification and metadata link used by accepted selected leaves",
+    "free each decoded proof/capture before next leaf"
+  ],
+  "limits": {
+    "segment_maximum": 210,
+    "campaign_segment_count": 121,
+    "manifest_maximum_bytes": 16777216,
+    "proof_maximum_bytes_per_leaf": 536870912,
+    "current_largest_accepted_proof_bytes": 100960686,
+    "current_largest_leaf_record_bytes": 5689,
+    "final_verifier_timeout_seconds": 14400,
+    "worker_count": 1
+  },
+  "negative_gate": {
+    "command": {
+      "environment": {
+        "STWO_ETHEREUM_FIXED_BUNDLE_PAIR_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-narrow-v5"
+      },
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v7/source/src/integrations/riscv_cpu",
+        "test-ethereum-fixed-program-bundle-verifier",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "executed_in_this_audit": false
+    },
+    "historical_result": {
+      "schema": 1,
+      "result": "PASS",
+      "steps": "4/4",
+      "tests": "1/1",
+      "producer_used": false,
+      "native_pair_manifest_sha256": "97113e1e50f053bf65406eda1c2fd8c28bb68e1bad3b8c54d5440245ec026914",
+      "proof_bytes": [
+        8517294,
+        8827521
+      ],
+      "verify_ns": [
+        23792451500,
+        22282827584
+      ],
+      "peak_rss_report": "278M",
+      "exact_negative_errors": {
+        "legacy_profile5_entry": "EthereumFixedProgramAdmissionRequired",
+        "missing_leaf": "IncompleteEthereumBundle",
+        "duplicate_leaf": "InvalidEthereumBundleLeaf",
+        "reordered_leaves": "InvalidEthereumBundleLeaf",
+        "changed_adjacent_snapshot_identity": "MemorySnapshotMismatch",
+        "changed_initial_pc": "InitialStateMismatch",
+        "changed_terminal_pc": "FinalStateMismatch",
+        "changed_job_total_cycles": "FinalCycleMismatch"
+      },
+      "scope": "Actual retained schema5 two-leaf directory acceptance with one independently derived immutable ELF owner. Uses the production directory verifier API; full121-leaf terminal is separate."
+    },
+    "current_dedicated_gate_rerun": false,
+    "source_comparison": "Whole-bundle verifier and its negative test body are byte-identical; adapter diff only replaces selected-leaf metadata validation with retained.validateLeafMetadata. Current v6 native dependencies include explicit Keccak admission changes; this audit does not claim the historical gate was rerun against them."
+  },
+  "missing_final_integration_found": false,
+  "remaining_runtime_requirements": [
+    "produce and freshly verify all remaining indices through119, then reverify retained120",
+    "run actual pinned final verifier over completed121 bundle",
+    "accept and preserve exact terminal receipt; coverage preflight alone is not proof acceptance"
+  ],
+  "no_process_or_campaign_changes": true
+}

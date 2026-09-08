@@ -67,6 +67,14 @@ pub fn Namespace(comptime context: type) type {
         const copyInteraction = context.d_copyInteraction;
         const TreeStorage = context.d_TreeStorage;
 
+        /// Native rows18--34 have their own complete result. The legacy graph
+        /// input-wire claim is not part of this result or its protocol encoding.
+        pub const NativeInteractionClaims = struct {
+            claims: [context.d_NATIVE_V2_CORE_ROW_COUNT]QM31,
+            poseidon2_partials: [2]QM31,
+            public_boundaries: PublicBoundaryClaims,
+        };
+
         pub fn fillInteraction(
             allocator: std.mem.Allocator,
             authority: *const Authority,
@@ -84,6 +92,48 @@ pub fn Namespace(comptime context: type) type {
             relations: *const universal.UniversalRelations,
             closure_audit: ?*ClosureAudit,
         ) !Claims {
+            return fillInteractionImpl(false, allocator, authority, tree, evaluations, pcs_inputs, arithmetic_evaluations, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit);
+        }
+
+        pub fn fillNativeInteraction(
+            allocator: std.mem.Allocator,
+            authority: *const Authority,
+            tree: *TreeStorage,
+            evaluations: []const M31,
+            pcs_inputs: pcs_witness.InputWitness,
+            invocations: *const InvocationBuffers,
+            query_witness: query_bits_witness.QueryWitness,
+            root_witness: merkle_root_witness.RootWitness,
+            merkle_paths: *const MerklePathBuffers,
+            poseidon_calls: *const PoseidonCallBuffers,
+            prepared_relation_rows: *const PreparedRelationRows,
+            provider_relations: *const shared_provider.SharedProviderRelations,
+            relations: *const universal.UniversalRelations,
+            closure_audit: ?*ClosureAudit,
+        ) !NativeInteractionClaims {
+            if (authority.segment_transcript_inputs != null) return error.AuthorityMismatch;
+            if (evaluations.len != authority.input_preprocessing.rows.len) return error.AuthorityMismatch;
+            return fillInteractionImpl(true, allocator, authority, tree, evaluations, pcs_inputs, {}, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit);
+        }
+
+        fn fillInteractionImpl(
+            comptime native_only: bool,
+            allocator: std.mem.Allocator,
+            authority: *const Authority,
+            tree: *TreeStorage,
+            evaluations: if (native_only) []const M31 else input_witness.Evaluations,
+            pcs_inputs: pcs_witness.InputWitness,
+            arithmetic_evaluations: if (native_only) void else lowering.Evaluations,
+            invocations: *const InvocationBuffers,
+            query_witness: query_bits_witness.QueryWitness,
+            root_witness: merkle_root_witness.RootWitness,
+            merkle_paths: *const MerklePathBuffers,
+            poseidon_calls: *const PoseidonCallBuffers,
+            prepared_relation_rows: *const PreparedRelationRows,
+            provider_relations: *const shared_provider.SharedProviderRelations,
+            relations: *const universal.UniversalRelations,
+            closure_audit: ?*ClosureAudit,
+        ) !(if (native_only) NativeInteractionClaims else Claims) {
             const segment_leaf_claims = if (authority.segment_transcript_inputs != null) blk: {
                 const bundle = try admittedSegmentLeafBundle(authority);
                 break :blk try bundle.fillInteractionInto(
@@ -453,8 +503,8 @@ pub fn Namespace(comptime context: type) type {
                     authority.input_preprocessing.rows.len,
                 );
                 defer allocator.free(rows);
-                for (authority.input_preprocessing.rows, rows) |source, *destination| {
-                    const value = evaluations.at(source.lane).values[source.node_id]
+                for (authority.input_preprocessing.rows, rows, 0..) |source, *destination, row_index| {
+                    const value = if (native_only) evaluations[row_index] else evaluations.at(source.lane).values[source.node_id]
                         .tryIntoM31() catch return error.AuthorityMismatch;
                     destination.* = input_witness.logicalInputs(
                         (input_witness.MainRow{
@@ -700,6 +750,30 @@ pub fn Namespace(comptime context: type) type {
                     );
                 }
             }
+            if (native_only) return .{
+                // The existing projection remains the single native claim order.
+                .claims = context.d_nativeCoreClaims(.{
+                    .vm_input = vm_input_claim,
+                    .composition_control = composition_control_claim,
+                    .query_bits = query_bits_claim,
+                    .query_mapping = query_mapping_claim,
+                    .merkle_root = merkle_root_claim,
+                    .trace_merkle = trace_merkle_claim,
+                    .pcs_deep = pcs_deep_claim,
+                    .fri_leaf = fri_leaf_claim,
+                    .fri_node = fri_node_claim,
+                    .fri_anchor = fri_anchor_claim,
+                    .control = control_claim,
+                    .input = input_claim,
+                    .multiply = multiply_claim,
+                    .inverse = inverse_claim,
+                    .linear = linear_claim,
+                    .merkle_path = merkle_path_claim,
+                    .poseidon2 = poseidon2_claims,
+                }),
+                .poseidon2_partials = poseidon2_claims,
+                .public_boundaries = public_boundaries,
+            };
             return .{
                 .segment_leaf = segment_leaf_claims,
                 .vm_input = vm_input_claim,

@@ -99,6 +99,17 @@ pub const ProgramDescriptorV3 = struct {
         return result;
     }
 
+    /// Explicit admission of the typed Initial38 circuit; its exact capacity
+    /// and component geometry remain bound by the validated manifest seal.
+    pub fn sealAuthenticatedEthereumInitialWrapperV1(
+        manifest: *const @import("air/ethereum_initial_input_manifest_v1.zig").Manifest,
+        air_program_id: AirProgramId,
+    ) Error!ProgramDescriptorV3 {
+        const result = try descriptorForAuthenticatedManifest(manifest, air_program_id, dependency_4.initialWrapperDescriptorShape());
+        try result.validate();
+        return result;
+    }
+
     pub fn validate(self: ProgramDescriptorV3) Error!void {
         try requireAirProgramId(self.air_program_id);
         const provider_empty = self.proof_kind == .empty_leaf and
@@ -391,6 +402,7 @@ pub const InputProfileV3 = struct {
     claimed_sum_count: u32 = COMPOSITION_CLAIM_INPUT_COUNT,
     relation_challenge_count: u32 = RELATION_CHALLENGE_COUNT,
     public_wire_boundary_count: u32 = 1,
+    field_public_extra_word_count: u32 = 0,
 
     pub fn validate(self: InputProfileV3) Error!void {
         if (self.claimed_sum_count != COMPOSITION_CLAIM_INPUT_COUNT or
@@ -409,6 +421,7 @@ pub const InputProfileV3 = struct {
             .claimed_sum_count = self.claimed_sum_count,
             .relation_challenge_count = self.relation_challenge_count,
             .public_wire_boundary_count = self.public_wire_boundary_count,
+            .field_public_extra_word_count = self.field_public_extra_word_count,
         };
     }
 };
@@ -697,9 +710,12 @@ pub fn descriptorForAuthenticatedH1(
     manifest: anytype,
     air_program_id: AirProgramId,
 ) Error!ProgramDescriptorV3 {
+    return descriptorForAuthenticatedManifest(manifest, air_program_id, h1DescriptorShape());
+}
+
+fn descriptorForAuthenticatedManifest(manifest: anytype, air_program_id: AirProgramId, shape: dependency_4.DescriptorShape) Error!ProgramDescriptorV3 {
     manifest.validate() catch return error.ManifestAuthorityMismatch;
     try requireAirProgramId(air_program_id);
-    const shape = h1DescriptorShape();
     if (manifest.format_version == 0 or
         manifest.roster_count != shape.program_roster_count or
         allZero(&manifest.seal))
@@ -723,9 +739,7 @@ pub fn descriptorForAuthenticatedH1(
     result.manifest_format_version = manifest.format_version;
     result.manifest_seal = manifest.seal;
     result.catalog_identity = [_]u8{0} ** 32;
-    result.ordered_program_identity = authenticatedH1OrderedProgramIdentity(
-        manifest,
-    );
+    result.ordered_program_identity = authenticatedOrderedProgramIdentity(manifest, shape.manifest_family);
     result.identity = programDescriptorIdentity(result);
     return result;
 }
@@ -760,14 +774,14 @@ fn baseDescriptorForShape(
     };
 }
 
-fn authenticatedH1OrderedProgramIdentity(manifest: anytype) [32]u8 {
+fn authenticatedOrderedProgramIdentity(manifest: anytype, family: ManifestFamilyV3) [32]u8 {
     var hash = Sha256.init(.{});
     hash.update(dependency_0.ORDERED_PROGRAM_DOMAIN);
     hashInt(&hash, u16, FORMAT_VERSION);
     hashInt(
         &hash,
         u8,
-        @intFromEnum(ManifestFamilyV3.ethereum_poseidon_h1_v1),
+        @intFromEnum(family),
     );
     hash.update(&manifest.seal);
     hashManifestRows(&hash, manifest);
@@ -822,4 +836,59 @@ pub fn authorityStorage(
     authority: *const CircuitAuthorityV3,
 ) *const CircuitAuthorityStorageV3 {
     return @ptrCast(@alignCast(authority));
+}
+
+test "Initial38 composition descriptor authenticates exact capacity and rejects stale shape or policy" {
+    const initial = @import("air/ethereum_initial_input_manifest_v1.zig");
+    const base = @import("air/universal_adapter_manifest.zig");
+    const profile = @import("incremental_ethereum_composition_profile_v4.zig");
+    var logs = [_]u32{4} ** base.COMPONENT_COUNT;
+    logs[@intFromEnum(base.ComponentKey.range_check_8_8)] = @import("air/range_check_8_8_bridge.zig").LOG_SIZE;
+    const ordinary = try @import("air/universal_manifest.zig").buildForCatalog(profile.StatementRoutingOuterCatalog, logs);
+    const first = try initial.build(&ordinary, 40);
+    const second = try initial.build(&ordinary, 41);
+    var air_id: AirProgramId = undefined;
+    for (&air_id, 0..) |*word, index| word.* = 101 + @as(u32, @intCast(index));
+    const descriptor = try ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&first, air_id);
+    try descriptor.validate();
+    try std.testing.expectEqual(.ethereum_initial_wrapper_v1, descriptor.manifest_family);
+    try std.testing.expectEqual(.ethereum_initial_wrapper_v1, descriptor.claim_policy);
+    try std.testing.expectEqual(@as(u8, 38), descriptor.source_claim_count);
+    try std.testing.expectEqual(@as(u8, 38), descriptor.program_roster_count);
+    try std.testing.expectEqual(@as(u8, 2), descriptor.poseidon_partial_count);
+    try std.testing.expectEqual(@as(u8, 41), descriptor.composition_claim_count);
+    try std.testing.expectEqual(@as(u8, 34), descriptor.poseidon_roster_row);
+    const another = try ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&second, air_id);
+    try std.testing.expectEqual(first.placements[36].?.geometry.log_size, second.placements[36].?.geometry.log_size);
+    try std.testing.expect(!std.meta.eql(descriptor.identity, another.identity));
+    try std.testing.expect(!std.meta.eql(descriptor.ordered_program_identity, another.ordered_program_identity));
+    air_id[0] += 1;
+    const another_program = try ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&first, air_id);
+    try std.testing.expect(!std.meta.eql(descriptor.identity, another_program.identity));
+    inline for (.{ "source_claim_count", "program_roster_count", "poseidon_partial_count", "composition_claim_count", "poseidon_roster_row" }) |field| {
+        var changed = descriptor;
+        @field(changed, field) += 1;
+        changed.identity = programDescriptorIdentity(changed);
+        try std.testing.expectError(error.InvalidProgramRoster, changed.validate());
+    }
+    var wrong_policy = descriptor;
+    wrong_policy.claim_policy = .universal_with_zero_tail;
+    wrong_policy.identity = programDescriptorIdentity(wrong_policy);
+    try std.testing.expectError(error.InvalidProgramRoster, wrong_policy.validate());
+    var wrong_family = descriptor;
+    wrong_family.manifest_family = .universal_v1;
+    wrong_family.identity = programDescriptorIdentity(wrong_family);
+    try std.testing.expectError(error.InvalidProgramRoster, wrong_family.validate());
+    var stale = first;
+    stale.input_capacity += 1;
+    try std.testing.expectError(error.ManifestAuthorityMismatch, ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&stale, air_id));
+    stale = first;
+    stale.roster_count = 36;
+    try std.testing.expectError(error.ManifestAuthorityMismatch, ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&stale, air_id));
+    @memset(&air_id, 0);
+    try std.testing.expectError(error.AirProgramIdentityMismatch, ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1(&first, air_id));
+    // Only a typed circuit manifest and a fixed program identity enter this API.
+    const Admit = *const fn (*const initial.Manifest, AirProgramId) Error!ProgramDescriptorV3;
+    const admit: Admit = ProgramDescriptorV3.sealAuthenticatedEthereumInitialWrapperV1;
+    _ = admit;
 }

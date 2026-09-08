@@ -1,19 +1,19 @@
-//! Complete universal-36 cohort for the field-native common fold.
-//!
-//! Rows 0--17 are the inactive universal prefix, rows 18--34 come from the
-//! two verifier-owned fixed child captures and their authenticated composition
-//! graphs, and row 35 is the canonical range provider.  Both external
-//! verifier-input boundaries participate in the global closure transaction.
+//! Universal-36 cohort for the field-native common fold.
+//! The prefix constrains child transcripts, statements, continuation and all
+//! four parent public hashes. Rows 18--34 verify the child captures and serve
+//! Poseidon requests; row 35 serves byte-range requests. The public-output
+//! boundary is derived solely from the published node and verifier challenges.
 
 const std = @import("std");
 const builtin = @import("builtin");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
+const transcript_rows = @import("recursive_secure_transcript_rows_v1.zig");
 const fixed_source = @import("recursive_common_fold_fixed_wire_v2.zig");
 const field_public = @import("recursive_common_fold_field_public_v2.zig");
 const field_closure =
-    @import("recursive_common_fold_field_public_closure_v2.zig");
+    @import("recursive_common_fold_public_output_v3.zig");
 const suffix_boundary =
     @import("recursive_common_fold_suffix_input_boundary_v2.zig");
 const suffix_closure =
@@ -32,7 +32,7 @@ const recursion = frontend.recursion;
 const air = recursion.air;
 const adapter = air.universal_typed_component;
 const binding = air.universal_relation_binding;
-const catalog = air.universal_catalog;
+const catalog = manifest_mod.catalog;
 const provider = air.universal_shared_provider;
 const range_bridge = air.range_check_8_8_bridge;
 const universal = air.universal_challenges;
@@ -40,7 +40,7 @@ const global_closure = recursion.binary_global_closure_outer_source;
 const lookup_interaction = frontend.air.lookups.tables.interaction;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 15;
 pub const PREFIX_ROW_COUNT: usize = 18;
 pub const SUFFIX_ROW_COUNT: usize = 17;
 pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
@@ -53,7 +53,7 @@ pub const GLOBAL_RELATION_CLOSURE_AVAILABLE =
     live_mod.GLOBAL_RELATION_CLOSURE_AVAILABLE;
 
 const AUTHORITY_TRANSCRIPT_DOMAIN: u32 = 0x4346_4132; // "CFA2"
-const BOUNDARY_TRANSCRIPT_DOMAIN: u32 = 0x4346_4232; // "CFB2"
+pub const AUTHORITY_TRANSCRIPT_HEADER = [_]u32{ AUTHORITY_TRANSCRIPT_DOMAIN, FORMAT_VERSION, SCHEMA_VERSION, @import("recursive_field_node_public_v2.zig").AIR_WORD_COUNT };
 const GENERATED_DOMAIN =
     "stwo-zig/recursive-common-fold-interactions/v2\x00";
 const AUDITED_DOMAIN =
@@ -106,13 +106,13 @@ pub fn CohortForLiveV2(
             cohort_identity_sha256: [32]u8,
             manifest_seal: [32]u8,
             suffix: recursion.binary_fri_outer_bundle.GeneratedInteractionsV1,
+            prefix_claims: [PREFIX_ROW_COUNT]QM31,
             row35_claim: QM31,
             identity_sha256: [32]u8,
 
             pub fn validate(self: *const GeneratedInteractionsV1) !void {
                 if (self.format_version != FORMAT_VERSION or
                     self.schema_version != SCHEMA_VERSION or
-                    self.row35_claim.isZero() == false or
                     std.mem.allEqual(u8, &self.cohort_identity_sha256, 0) or
                     std.mem.allEqual(u8, &self.manifest_seal, 0) or
                     !std.mem.eql(
@@ -127,9 +127,9 @@ pub fn CohortForLiveV2(
             suffix: recursion.binary_fri_outer_bundle.AuditedInteractionsV1,
             rows: [global_closure.PREFIX_ROW_COUNT]global_closure.RowClaimsV1,
             provider_claim: global_closure.ProviderClaimV1,
-            wire_boundary: global_closure.BoundaryEvidenceV2,
+            wire_anchors: global_closure.BoundaryEvidenceV2,
             verifier_input_boundary: global_closure.BoundaryEvidenceV2,
-            field_public_boundary: field_closure.BoundaryEvidenceV2,
+            field_public_boundary: field_closure.BoundaryEvidenceV3,
             suffix_input_boundary: suffix_boundary.BoundaryEvidenceV2,
             closure: suffix_closure.ClosureReceiptV2,
             identity_sha256: [32]u8,
@@ -138,35 +138,19 @@ pub fn CohortForLiveV2(
                 try self.provider_claim.validate();
                 try self.field_public_boundary.validate();
                 try self.suffix_input_boundary.validate();
+                // This profile admits only fully AIR-owned child inputs.
+                // A native suffix claim must never compensate their lookup sum.
+                for (self.suffix_input_boundary.domains) |boundary| {
+                    if (boundary.tuple_count != 0 or !boundary.claimed_sum.isZero())
+                        return error.CommonFoldAuditMismatch;
+                }
                 const expected_verifier_input =
                     try self.suffix_input_boundary.verifierInputEvidence();
                 if (!std.meta.eql(
                     self.verifier_input_boundary,
                     expected_verifier_input,
                 )) return error.CommonFoldAuditMismatch;
-                const authorities = try global_closure.BoundaryAuthoritiesV2.init(
-                    try global_closure.BoundarySourceV2.init(
-                        .wire,
-                        self.wire_boundary,
-                    ),
-                    try global_closure.BoundarySourceV2.init(
-                        .verifier_input,
-                        self.verifier_input_boundary,
-                    ),
-                );
-                const closure_authority =
-                    try global_closure.prepareAuthorityV2(authorities);
-                const boundaries = try global_closure.PublicBoundariesV2.init(
-                    &closure_authority,
-                    self.wire_boundary,
-                    self.verifier_input_boundary,
-                );
-                const input = try global_closure.ClosureInputV2.init(
-                    &closure_authority,
-                    &self.rows,
-                    &self.provider_claim,
-                    boundaries,
-                );
+                const input = try suffix_closure.Input.init(&self.rows, &self.provider_claim, self.wire_anchors);
                 try self.closure.validateAgainst(
                     &input,
                     &self.field_public_boundary,
@@ -222,11 +206,13 @@ pub fn CohortForLiveV2(
         logical_initialized: usize,
         range_definition: range_bridge.Definition,
         range_executor: range_bridge.Executor,
+        range_batch: range_bridge.PreparedBatch,
         closure_authority: global_closure.PreparedAuthorityV1,
         closure_workspace: global_closure.Workspace,
         statement_words: recursion.span_statement.StatementWords,
         manifest_authority_identity_sha256: [32]u8,
         authority_sha256: [32]u8,
+        ethereum_field_admission: ?*@import("ethereum_wrapper_detached_fold_admission_v1.zig").OwnedV1 = null,
 
         pub fn init(
             allocator: std.mem.Allocator,
@@ -269,7 +255,19 @@ pub fn CohortForLiveV2(
             const manifest_value = try ManifestPolicy.initManifest(
                 inputs.live,
                 source_owner,
+                try suffix.componentLogSizes(),
             );
+            var counter = try frontend.air.lookups.tables.counter.Counter.init(allocator, .range_check_8_8);
+            defer counter.deinit(allocator);
+            inline for (transcript_rows.ACTIVE_ROWS, 0..) |index, slot| {
+                if (index != 11 and index != 12) continue;
+                for (source_owner.transcriptRows().logical[slot]) |row| for (logical[index].relation_plan.preparedEntries(row)) |entry| {
+                    if (entry.domain == .range_check_8_8)
+                        try counter.registerRaw(entry.numerator, entry.values[0..entry.arity]);
+                };
+            }
+            var range_batch = try range_bridge.PreparedBatch.init(allocator, &counter);
+            errdefer range_batch.deinit();
             var result = Self{
                 .allocator = allocator,
                 .inputs = inputs,
@@ -280,6 +278,7 @@ pub fn CohortForLiveV2(
                 .logical_initialized = logical_initialized,
                 .range_definition = range_definition,
                 .range_executor = range_executor,
+                .range_batch = range_batch,
                 .closure_authority = try global_closure.prepareAuthority(),
                 .closure_workspace = global_closure.Workspace.init(),
                 .statement_words = statement_words,
@@ -294,8 +293,50 @@ pub fn CohortForLiveV2(
             return result;
         }
 
+        /// Explicit Ethereum-child parent namespace. Legacy init performs no
+        /// additional Tree0 derivation and retains its existing session IDs.
+        pub fn initEthereumDetachedFold(allocator: std.mem.Allocator, inputs: AuthorityInputs) !Self {
+            if (comptime !@hasDecl(Live, "ETHEREUM_CHILD_PROFILE_VERSION")) return error.EthereumFoldChildProfileRequired;
+            if (comptime Live.ETHEREUM_CHILD_PROFILE_VERSION != 1) return error.EthereumFoldChildProfileRequired;
+            var result = try init(allocator, inputs);
+            errdefer result.deinit();
+            result.ethereum_field_admission = try @import("ethereum_wrapper_detached_fold_admission_v1.zig").OwnedV1.create(Self, allocator, &result);
+            result.authority_sha256 = cohortIdentity(&result);
+            try result.validate();
+            return result;
+        }
+
+        pub fn ethereumDetachedVerifierKey(self: *Self) !@import("recursive_common_fold_detached_verifier_v2.zig").EthereumKeyV1 {
+            try self.validate();
+            const admission = self.ethereum_field_admission orelse return error.EthereumFoldFixedAdmissionRequired;
+            return admission.key().*;
+        }
+
+        /// Reads the exact canonical parameters already used by component
+        /// evaluation, independently of claims or sampled proof values.
+        pub fn detachedVerifierParameters(self: *Self) !@import("recursive_common_fold_detached_verifier_v2.zig").Parameters {
+            try self.validate();
+            var result: @import("recursive_common_fold_detached_verifier_v2.zig").Parameters = undefined;
+            inline for (0..PREFIX_ROW_COUNT) |index| result[index] = try self.prefixParameters(index);
+            const fields = std.meta.fields(@TypeOf(self.suffix.relation_rows));
+            // RelationRows' typed AIR fields occupy rows18..33 in order.
+            comptime std.debug.assert(std.mem.eql(u8, fields[2].name, "composition_input") and std.mem.eql(u8, fields[17].name, "merkle_path"));
+            inline for (fields[2..18], PREFIX_ROW_COUNT..) |field, index| result[index] = try recursion.binary_fri_outer_bundle.parametersFromRows(LogicalComponent(catalog.LOGICAL_ROWS[index]), @field(self.suffix.relation_rows, field.name));
+            return result;
+        }
+
+        fn prefixParameters(self: *Self, comptime index: usize) ![LogicalComponent(catalog.LOGICAL_ROWS[index]).PARAMETER_COLUMN_COUNT]M31 {
+            const Component = LogicalComponent(catalog.LOGICAL_ROWS[index]);
+            inline for (transcript_rows.ACTIVE_ROWS, 0..) |active, slot| {
+                if (index == active) return recursion.binary_fri_outer_bundle.parametersFromRows(Component, self.source_owner.transcriptRows().logical[slot]);
+            }
+            return @splat(M31.zero());
+        }
+
         pub fn deinit(self: *Self) void {
+            if (self.ethereum_field_admission) |admission| admission.deinit();
             self.range_definition.deinit();
+            self.range_batch.deinit();
             deinitLogical(&self.logical, self.logical_initialized);
             self.suffix.deinit();
             self.source_owner.deinit();
@@ -303,13 +344,16 @@ pub fn CohortForLiveV2(
         }
 
         pub fn validate(self: *Self) !void {
+            if (self.ethereum_field_admission) |admission| try admission.validateSource(&self.manifest_value, self.source_owner.authorityIdentity());
             try self.inputs.live.validate();
             try self.source_owner.validate();
             try self.suffix.validate();
+            try self.range_batch.validate();
             try ManifestPolicy.validateManifest(
                 &self.manifest_value,
                 self.inputs.live,
                 self.source_owner,
+                try self.suffix.componentLogSizes(),
             );
             try self.closure_workspace.validate();
             if (self.logical_initialized != PREFIX_ROW_COUNT or
@@ -417,7 +461,7 @@ pub fn CohortForLiveV2(
         ) !secure_artifact.CommonFoldSessionAuthorityV2 {
             try self.validate();
             const manifest_identity = try self.parentManifestIdentity();
-            return .{
+            var result = secure_artifact.CommonFoldSessionAuthorityV2{
                 .ingress_identity_sha256 = self.inputs.live.identity_sha256,
                 .parent_statement_words = self.statement_words,
                 .profile_identity_sha256 = try ManifestPolicy.profileIdentity(
@@ -439,6 +483,13 @@ pub fn CohortForLiveV2(
                     &self.manifest_value,
                 ),
             };
+            if (self.ethereum_field_admission) |admission| {
+                const fields = admission.sessionFields();
+                result.verification_key_id = fields.verification_key_id;
+                result.next_parent_vk_id = fields.next_parent_vk_id;
+                result.air_program_id = fields.air_program_id;
+            }
+            return result;
         }
 
         pub fn session(self: *Self) !secure_artifact.SessionV1 {
@@ -459,12 +510,7 @@ pub fn CohortForLiveV2(
             try self.validate();
             const words = try self.inputs.live.input.outputNodePublic()
                 .canonicalAirWords();
-            transcript.mixU32s(&.{
-                AUTHORITY_TRANSCRIPT_DOMAIN,
-                FORMAT_VERSION,
-                SCHEMA_VERSION,
-                @as(u32, @intCast(words.len)),
-            });
+            transcript.mixU32s(&AUTHORITY_TRANSCRIPT_HEADER);
             transcript.mixU32s(&words);
         }
 
@@ -473,30 +519,23 @@ pub fn CohortForLiveV2(
             audited: *const AuditedInteractionsV2,
         ) !void {
             try audited.validate();
-            transcript.mixU32s(&.{
-                BOUNDARY_TRANSCRIPT_DOMAIN,
-                FORMAT_VERSION,
-                SCHEMA_VERSION,
-                @as(u32, @intCast(audited.wire_boundary.tuple_count)),
-                @as(u32, @intCast(
-                    audited.verifier_input_boundary.tuple_count,
-                )),
-                @intFromEnum(audited.field_public_boundary.domain),
-                audited.field_public_boundary.tuple_count,
-                suffix_boundary.DOMAIN_COUNT,
-            });
+            // Bind each provider subclaim before the composition challenge.
+            // Their sum alone does not fix the provider's two evaluations.
+            const Domain = @TypeOf(global_closure.PROVIDER_DOMAIN);
+            const poseidon_claim = &audited.rows[@intFromEnum(manifest_mod.ComponentKey.poseidon2)];
             transcript.mixFelts(&.{
-                audited.wire_boundary.claimed_sum,
-                audited.verifier_input_boundary.claimed_sum,
-                audited.field_public_boundary.claimed_sum,
+                poseidon_claim.domains[@intFromEnum(@as(Domain, .poseidon2))].value,
+                poseidon_claim.domains[@intFromEnum(@as(Domain, .poseidon2_io))].value,
             });
-            for (audited.suffix_input_boundary.domains) |boundary| {
-                transcript.mixU32s(&.{
-                    @intFromEnum(boundary.domain),
-                    boundary.tuple_count,
-                });
-                transcript.mixFelts(&.{boundary.claimed_sum});
-            }
+        }
+
+        fn preflightRangeStorage(self: *Self, manifest_value: *const manifest_mod.Manifest, tree: usize, destination: [][]M31) !void {
+            const storage = @import("recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_support.zig");
+            try self.range_batch.validate();
+            try storage.preflightTree(manifest_value, tree, destination, &.{
+                try storage.sliceRange(self.range_batch.counter.values),
+                try storage.sliceRange(std.mem.asBytes(self)),
+            });
         }
 
         pub fn fillPreprocessedInto(
@@ -510,8 +549,11 @@ pub fn CohortForLiveV2(
                 manifest_mod.PREPROCESSED_TREE_INDEX,
                 destination,
             );
+            try self.source_owner.transcriptRows().preflight(manifest_value, manifest_mod.PREPROCESSED_TREE_INDEX, destination);
+            try self.preflightRangeStorage(manifest_value, manifest_mod.PREPROCESSED_TREE_INDEX, destination);
             errdefer support.clearTree(destination);
             try self.suffix.fillPreprocessedInto(manifest_value, destination);
+            try self.source_owner.transcriptRows().writePhysicalInto(manifest_value, manifest_mod.PREPROCESSED_TREE_INDEX, destination);
             const placement = try manifest_value.placement(.range_check_8_8);
             destination[placement.preprocessed_offset][
                 range_bridge.committedRow(0)
@@ -536,8 +578,14 @@ pub fn CohortForLiveV2(
                 manifest_mod.MAIN_TREE_INDEX,
                 destination,
             );
+            try self.source_owner.transcriptRows().preflight(manifest_value, manifest_mod.MAIN_TREE_INDEX, destination);
+            try self.preflightRangeStorage(manifest_value, manifest_mod.MAIN_TREE_INDEX, destination);
             errdefer support.clearTree(destination);
             try self.suffix.fillMainInto(manifest_value, destination);
+            try self.source_owner.transcriptRows().writePhysicalInto(manifest_value, manifest_mod.MAIN_TREE_INDEX, destination);
+            const placement = try manifest_value.placement(.range_check_8_8);
+            var columns = destination[placement.main_offset..][0..range_bridge.PHYSICAL_MAIN_COLUMN_COUNT].*;
+            try self.range_executor.generateMainInto(&self.range_batch, &columns);
         }
 
         pub fn fillInteractionInto(
@@ -553,6 +601,8 @@ pub fn CohortForLiveV2(
                 manifest_mod.INTERACTION_TREE_INDEX,
                 destination,
             );
+            try self.source_owner.transcriptRows().preflight(manifest_value, manifest_mod.INTERACTION_TREE_INDEX, destination);
+            try self.preflightRangeStorage(manifest_value, manifest_mod.INTERACTION_TREE_INDEX, destination);
             errdefer support.clearTree(destination);
             const suffix = try self.suffix.fillInteractionInto(
                 manifest_value,
@@ -560,11 +610,26 @@ pub fn CohortForLiveV2(
                 provider_relations,
                 destination,
             );
+            var prefix_claims = [_]QM31{QM31.zero()} ** PREFIX_ROW_COUNT;
+            inline for (transcript_rows.ACTIVE_ROWS, 0..) |index, slot| {
+                const Air = catalog.LOGICAL_ROWS[index].Air;
+                const Framework = air.framework_interaction.Runtime(binding.Binding(Air).Runtime);
+                const placement = try manifest_value.placement(@enumFromInt(index));
+                var interaction = try Framework.generatePrepared(self.allocator, &self.logical[index].relation_plan, self.source_owner.transcriptRows().logical[slot], placement.geometry.log_size, relations);
+                defer interaction.deinit(self.allocator);
+                for (interaction.columns, 0..) |column, local| @memcpy(destination[placement.interaction_offset + local], column);
+                prefix_claims[index] = interaction.claimed_sum;
+            }
+            var range_interaction = try self.range_batch.generateNativeInteraction(self.allocator, &provider_relations.native);
+            defer range_interaction.deinit(self.allocator);
+            const range_placement = try manifest_value.placement(.range_check_8_8);
+            for (range_interaction.columns, 0..) |column, local| @memcpy(destination[range_placement.interaction_offset + local], column);
             var result = GeneratedInteractionsV1{
                 .cohort_identity_sha256 = self.authority_sha256,
                 .manifest_seal = manifest_value.seal,
                 .suffix = suffix,
-                .row35_claim = QM31.zero(),
+                .prefix_claims = prefix_claims,
+                .row35_claim = range_interaction.claim,
                 .identity_sha256 = undefined,
             };
             result.identity_sha256 = generatedIdentity(&result);
@@ -605,6 +670,7 @@ pub fn CohortForLiveV2(
             provider_relations: *const provider.SharedProviderRelations,
         ) !void {
             try generated.validate();
+            try self.range_batch.validate();
             try self.suffix.validateGeneratedInteractions(
                 &generated.suffix,
                 relations,
@@ -627,8 +693,8 @@ pub fn CohortForLiveV2(
         ) !manifest_mod.ClaimVector {
             try generated.validate();
             var result = try manifest_mod.ClaimVector.init(&self.manifest_value);
-            inline for (0..PREFIX_ROW_COUNT) |row|
-                try result.bind(@enumFromInt(row), QM31.zero());
+            for (generated.prefix_claims, 0..) |claim, row|
+                try result.bind(@enumFromInt(row), claim);
             for (
                 generated.suffix.claims.asRows18Through34(),
                 PREFIX_ROW_COUNT..,
@@ -663,6 +729,10 @@ pub fn CohortForLiveV2(
                 zero_domains,
                 QM31.zero(),
             );
+            inline for (transcript_rows.ACTIVE_ROWS, 0..) |index, slot| {
+                const audit = try self.logical[index].relation_plan.auditPreparedDomainSums(self.allocator, self.source_owner.transcriptRows().logical[slot], relations, generated.prefix_claims[index]);
+                rows[index] = support.rowClaim(@enumFromInt(index), audit.values, audit.total);
+            }
             for (suffix.audits.typed_rows, 0..) |audit, index|
                 rows[PREFIX_ROW_COUNT + index] = support.rowClaim(
                     @enumFromInt(PREFIX_ROW_COUNT + index),
@@ -677,50 +747,21 @@ pub fn CohortForLiveV2(
                 rangeSnapshotIdentity(self),
                 generated.row35_claim,
             );
-            const wire_boundary = support.globalBoundaryEvidence(
+            const wire_anchors = support.globalBoundaryEvidence(
                 try self.source_owner.source().wireBoundaryEvidence(relations),
             );
             const suffix_input_boundary = try suffix_boundary.derive(
                 self.source_owner.source(),
                 &self.suffix.relation_rows,
                 relations,
+                self.source_owner.transcriptRows(),
+                &self.logical[4].relation_plan,
             );
             const verifier_input_boundary =
                 try suffix_input_boundary.verifierInputEvidence();
-            const authorities = try global_closure.BoundaryAuthoritiesV2.init(
-                try global_closure.BoundarySourceV2.init(
-                    .wire,
-                    wire_boundary,
-                ),
-                try global_closure.BoundarySourceV2.init(
-                    .verifier_input,
-                    verifier_input_boundary,
-                ),
-            );
-            const closure_authority = try global_closure.prepareAuthorityV2(
-                authorities,
-            );
-            const boundaries = try global_closure.PublicBoundariesV2.init(
-                &closure_authority,
-                wire_boundary,
-                verifier_input_boundary,
-            );
-            const input = try global_closure.ClosureInputV2.init(
-                &closure_authority,
-                &rows,
-                &provider_claim,
-                boundaries,
-            );
-            const boundary_layout = self.source_owner.boundaryLayout();
-            const field_public_boundary = try field_closure.derive(
-                self.source_owner.boundaryCalls(),
-                &boundary_layout,
-                self.source_owner.authorityIdentity(),
-                self.suffix.provider_log_size,
-                provider_relations,
-            );
+            const input = try suffix_closure.Input.init(&rows, &provider_claim, wire_anchors);
+            const field_public_boundary = try field_closure.derive(self.inputs.live.input.outputNodePublic(), relations);
             const closure = suffix_closure.close(
-                &closure_authority,
                 &input,
                 &field_public_boundary,
                 &suffix_input_boundary,
@@ -742,7 +783,7 @@ pub fn CohortForLiveV2(
                 .suffix = suffix,
                 .rows = rows,
                 .provider_claim = provider_claim,
-                .wire_boundary = wire_boundary,
+                .wire_anchors = wire_anchors,
                 .verifier_input_boundary = verifier_input_boundary,
                 .field_public_boundary = field_public_boundary,
                 .suffix_input_boundary = suffix_input_boundary,
@@ -802,6 +843,7 @@ pub fn CohortForLiveV2(
             inline for (catalog.LOGICAL_ROWS, 0..) |entry, index| {
                 if (index >= PREFIX_ROW_COUNT) continue;
                 const Component = LogicalComponent(entry);
+                const parameters = try self.prefixParameters(index);
                 logical[index] = try Component.init(
                     &self.logical[index].definition,
                     self.logical[index].relation_plan,
@@ -809,9 +851,9 @@ pub fn CohortForLiveV2(
                     entry.row,
                     (try self.manifest_value.placement(entry.row))
                         .geometry.log_size,
-                    [_]M31{M31.zero()} ** Component.PARAMETER_COLUMN_COUNT,
+                    parameters,
                     relations,
-                    QM31.zero(),
+                    generated.prefix_claims[index],
                 );
             }
             return .{
@@ -843,6 +885,7 @@ pub fn CohortForLiveV2(
                 candidate,
                 self.inputs.live,
                 self.source_owner,
+                try self.suffix.componentLogSizes(),
             );
             if (!std.meta.eql(candidate.*, self.manifest_value))
                 return error.CommonFoldManifestMismatch;
@@ -921,6 +964,10 @@ fn cohortIdentity(value: anytype) [32]u8 {
     hash.update(&source_identity);
     hash.update(&value.manifest_value.seal);
     hash.update(&rangeSnapshotIdentity(value));
+    if (value.ethereum_field_admission) |admission| {
+        hash.update("ethereum-fixed-fold/v1\x00");
+        for (admission.sessionFields().verification_key_id) |word| hashInt(&hash, u32, word);
+    }
     return hash.finalResult();
 }
 
@@ -929,6 +976,7 @@ fn rangeSnapshotIdentity(value: anytype) [32]u8 {
     hash.update("stwo-zig/recursive-common-fold-range-provider/v2\x00");
     hash.update(&value.manifest_authority_identity_sha256);
     hash.update(&value.range_executor.binding_digest);
+    hash.update(&value.range_batch.authority_digest);
     return hash.finalResult();
 }
 
@@ -936,6 +984,7 @@ const ProductionManifestPolicyV2 = struct {
     pub fn initManifest(
         live: *const live_mod.CohortV2,
         _: anytype,
+        _: [SUFFIX_ROW_COUNT]u32,
     ) !manifest_mod.Manifest {
         try live.geometry.validate();
         return live.geometry.manifest_value;
@@ -945,6 +994,7 @@ const ProductionManifestPolicyV2 = struct {
         value: *const manifest_mod.Manifest,
         live: *const live_mod.CohortV2,
         _: anytype,
+        _: [SUFFIX_ROW_COUNT]u32,
     ) !void {
         return manifest_mod.validateExact(value, live.geometry);
     }
@@ -1019,6 +1069,7 @@ fn generatedIdentity(value: anytype) [32]u8 {
     hash.update(&value.cohort_identity_sha256);
     hash.update(&value.manifest_seal);
     hash.update(&value.suffix.identity);
+    for (value.prefix_claims) |claim| hashQm31(&hash, claim);
     hashQm31(&hash, value.row35_claim);
     return hash.finalResult();
 }
@@ -1031,8 +1082,8 @@ fn auditedIdentity(value: anytype) [32]u8 {
     hash.update(&value.field_public_boundary.identity_sha256);
     hash.update(&value.suffix_input_boundary.identity_sha256);
     hash.update(&value.closure.closure_id);
-    hashInt(&hash, u32, value.wire_boundary.tuple_count);
-    hashQm31(&hash, value.wire_boundary.claimed_sum);
+    hashInt(&hash, u32, value.wire_anchors.tuple_count);
+    hashQm31(&hash, value.wire_anchors.claimed_sum);
     hashInt(&hash, u32, value.verifier_input_boundary.tuple_count);
     hashQm31(&hash, value.verifier_input_boundary.claimed_sum);
     return hash.finalResult();
@@ -1049,7 +1100,7 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 15 or
         PREFIX_ROW_COUNT != 18 or SUFFIX_ROW_COUNT != 17 or
         COMPONENT_COUNT != 36 or PROVIDER_ROW != 35 or
         PRODUCTION_ACTIVATION or

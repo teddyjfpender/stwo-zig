@@ -1,0 +1,44 @@
+[
+  {
+    "command": [
+      "zig",
+      "fmt",
+      "--check",
+      "src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "zig",
+      "fmt",
+      "--check",
+      "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  {
+    "command": [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig"
+    ],
+    "exit_code": 0,
+    "stdout": "",
+    "stderr": ""
+  }
+]

@@ -1,0 +1,12 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 230s
+
+Build Summary: 7/7 steps succeeded; 7/7 tests passed
+test-ethereum-retained-campaign-geometry-v1 success
++- retained campaign geometry identity guard success
+   +- run test 7 passed 269ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 4s MaxRSS:437M
+build-ethereum-prepared-leaf-cpu-v1 success
++- install ethereum-prepared-leaf-cpu-v1 success
+   +- compile exe ethereum-prepared-leaf-cpu-v1 ReleaseSafe native success 1m MaxRSS:5G
+

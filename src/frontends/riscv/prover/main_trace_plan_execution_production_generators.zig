@@ -226,6 +226,35 @@ pub fn fillPoseidonRange(
     return true;
 }
 
+/// Profile-selected narrow rows, including a valid inactive permutation on
+/// every padding row. The same traversal reports actual active materializations.
+pub fn fillNarrowPoseidonRange(
+    columns: *[@import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS][]M31,
+    calls: []const poseidon2_air.Call,
+    inverse_placement: []const usize,
+    rows: plan_mod.RowRange,
+    authority: ?*const poseidon_witness_work.Authority,
+    context: *task_graph.TaskContext,
+) !PoseidonRangeWorkResult {
+    const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
+    if (authority) |value| try value.validate();
+    const start: usize = @intCast(rows.start);
+    const end: usize = @intCast(try rows.end());
+    if (end > inverse_placement.len) return error.InvalidProductionInput;
+    for (columns) |column| if (column.len != inverse_placement.len) return error.InvalidProductionInput;
+    const padding = narrow.paddingRow();
+    var completed_rows: u64 = 0;
+    for (start..end) |committed_row| {
+        if (((committed_row - start) & CANCEL_POLL_MASK) == 0 and context.isCancelled())
+            return .{ .completed = false, .receipt = null };
+        const logical_row = inverse_placement[committed_row];
+        const values = if (logical_row < calls.len) try narrow.fill(calls[logical_row]) else padding;
+        for (values, columns) |value, column| column[committed_row] = value;
+        if (logical_row < calls.len) completed_rows = try std.math.add(u64, completed_rows, 1);
+    }
+    return .{ .completed = true, .receipt = if (authority) |value| try poseidon_witness_work.complete(value, .base_air_row_materialization, completed_rows) else null };
+}
+
 pub const PoseidonRangeWorkResult = struct {
     completed: bool,
     receipt: ?poseidon_witness_work.ProducerReceipt,

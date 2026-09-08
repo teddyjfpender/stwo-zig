@@ -151,6 +151,34 @@ pub const SealedPublicationsV4 = struct {
     }
 };
 
+/// A standalone leaf starts a separately identified authority at its admitted
+/// entry root/index. It returns only a cold job; no campaign owner or seal can
+/// escape this function. Native proof admission still authenticates the input.
+pub fn mintSelectedLeafV1(
+    allocator: std.mem.Allocator,
+    execution: publication.ExecutionAuthorityV4,
+    input: MintInputV4,
+    entry_words: []const boundary_v1.SparseWordV1,
+) !ColdJobV4 {
+    try input.validate(execution);
+    const tree = try boundary_v1.SessionTree.init(
+        allocator,
+        try execution.sessionIdentity(),
+        input.segment_index,
+        entry_words,
+        input.public_authority.continuation_roots.entry,
+    );
+    var owner = SequentialMintOwnerV4{
+        .allocator = allocator,
+        .execution = execution,
+        .tree = tree,
+        .initial_root = tree.currentRoot(),
+        .initial_prior_authority_id = tree.priorAuthorityId(),
+    };
+    defer owner.deinit();
+    return owner.mint(input);
+}
+
 pub const SequentialMintOwnerV4 = struct {
     allocator: std.mem.Allocator,
     execution: publication.ExecutionAuthorityV4,
@@ -625,7 +653,7 @@ fn publishSegmentBytes(
     );
 }
 
-fn publishOrCompare(
+pub fn publishOrCompare(
     allocator: std.mem.Allocator,
     path: []const u8,
     expected: []const u8,

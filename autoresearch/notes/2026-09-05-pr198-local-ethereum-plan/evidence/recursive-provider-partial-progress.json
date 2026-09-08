@@ -1,0 +1,60 @@
+{
+  "previous_goal_turn_classification": "progress",
+  "current_goal_turn_classification": "progress",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "0e1ac08e825ed539b14a16f36a5c578dddc8b95771f001f6bf93474a0de174a9",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "9089a289c7ab0c9d806b35ab8a6f8cfc7de44911a06cc06aa1c603611d67b0ac",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "d365f40ac4e9a916564c9ba19f66ee7853bf1378ebd350bf773fb9a1fa3f9966",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "3e4a9fac927b742c014076bdd2d7ad6ac0d95f691dd4f9cd6e6a6cf5c44e057a",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "a79fcaa849d57b667f0fecc1ef77a521f0afeee28bf0fcde1ca6bc695f3b7661",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "5116e75e1b2ae27a9e6759572418a84cc248d8d29700203d07852e3113d9fdbf"
+  },
+  "common_fold_schema": 6,
+  "suffix_boundary_schema": 5,
+  "pending_sessions": [],
+  "checks_log": "recursive-provider-partial-check.log",
+  "implemented": [
+    "Absorb the two common-fold Poseidon provider subclaims before the composition challenge, using audited domain values.",
+    "Reuse transcript payload AIR for claim-input coordinates 39 and 40. Native boundary exemption is scoped to the corresponding common-fold child lane.",
+    "Add an actual AIR tuple join check against cold composition inputs and reject equal-and-opposite subclaim changes.",
+    "Extend the development source gate through all 36 component initializations, including inactive row 10."
+  ],
+  "verified": [
+    "zig fmt --check on the six changed files",
+    "Source conformance remains 94 findings in 93 files; no new failing files. Overall gate remains failed."
+  ],
+  "full_provider_partial_proof_verified": false,
+  "independent_root_verified": false,
+  "remaining": [
+    "Legacy canonical child subclaims and padding still have native boundaries.",
+    "Dynamic session and claim SHA bindings remain.",
+    "Independent root, real Ethereum leaf and block bundle, Zisk final endpoint comparison, latest-tree CSP promotion remain.",
+    "The canonical/common-fold composition capture recordProgram still embeds session.parent_statement_words and replay-derived boundary sums as graph constants. Remove witness-dependent graph authority in favor of constrained/public inputs before claiming a fixed-key independent root."
+  ],
+  "source_check": {
+    "status": "passed",
+    "build_steps": "6/6",
+    "tests": "1/1",
+    "test_duration": "48s",
+    "test_max_rss": "5G",
+    "source_compile_duration": "1m",
+    "source_compile_max_rss": "4G",
+    "concrete_backend_compile_duration": "1m",
+    "concrete_backend_compile_max_rss": "5G",
+    "semantic_join_contributions": 70044,
+    "statement_join_contributions": 7860,
+    "component_admission_count": 36
+  },
+  "full_proof_log": "recursive-provider-partial-proof.log",
+  "canonical_identity_guard": {
+    "proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+    "status": "passed; 11s / 87M RSS; unchanged proof identity",
+    "log": "recursive-provider-partial-proof.log"
+  },
+  "full_proof_outcome": {
+    "status": "failed",
+    "log": "recursive-provider-partial-proof.log",
+    "diagnosis": "New tuple test appended a consumer with positive signed weight. Corrected to negative; full gate rerun required. No full subclaim gate pass claimed."
+  },
+  "subsequent_resolution": "Combined statement-input/subclaim proof passed: recursive-statement-input-proof-progress.json; original failed run remains recorded above."
+}

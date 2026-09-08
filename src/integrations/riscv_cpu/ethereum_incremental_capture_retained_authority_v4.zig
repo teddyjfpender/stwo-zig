@@ -1,4 +1,4 @@
-//! Cold-opened retained authority for the fresh 210-segment capture pass.
+//! Cold-opened retained authority with legacy 210 or explicit V1 campaign admission.
 //!
 //! The historical materialization has a complete journal and STWESG31 source
 //! set but no complete compact-tape set.  This module admits only those source
@@ -6,6 +6,7 @@
 //! and STWIMT04 from the same live segments.
 
 const std = @import("std");
+const campaign_geometry = @import("ethereum_incremental_campaign_geometry_v1.zig");
 const frontend = @import("stwo_riscv_frontend");
 
 const artifact_io = @import("ethereum_precompile_artifact_io.zig");
@@ -126,6 +127,14 @@ pub const RetainedAuthorityV4 = struct {
         allocator: std.mem.Allocator,
         materialization_path: []const u8,
     ) !RetainedAuthorityV4 {
+        return openWithCampaignGeometryV1(allocator, materialization_path, .legacy_210);
+    }
+
+    pub fn openWithCampaignGeometryV1(
+        allocator: std.mem.Allocator,
+        materialization_path: []const u8,
+        selection: campaign_geometry.SelectionV1,
+    ) !RetainedAuthorityV4 {
         const materialization_bytes = try artifact_io.readFileBounded(
             allocator,
             materialization_path,
@@ -137,11 +146,9 @@ pub const RetainedAuthorityV4 = struct {
             materialization_bytes,
         );
         errdefer materialization.deinit();
-        if (materialization.value.segment_count !=
-            publication.CANONICAL_SEGMENT_COUNT)
-        {
-            return error.CanonicalIncrementalSegmentCountRequired;
-        }
+        const segment_count = materialization.value.segment_count;
+        // Reject an unsupported count before opening or allocating leaf sources.
+        try selection.validate(segment_count, 1);
 
         const source_identity = identityFromTyped(
             materialization.value.source_request,
@@ -170,7 +177,7 @@ pub const RetainedAuthorityV4 = struct {
             },
         };
         errdefer source_authority.deinit();
-        if (source_authority.segmentCount() != publication.CANONICAL_SEGMENT_COUNT or
+        if (source_authority.segmentCount() != segment_count or
             !identityEqual(
                 source_authority.input(),
                 materialization.value.input,
@@ -181,6 +188,8 @@ pub const RetainedAuthorityV4 = struct {
             source_authority.journal(),
             materialization.value.execution_journal,
         )) return error.RetainedIncrementalAuthorityMismatch;
+
+        try selection.validate(segment_count, source_authority.segmentStepBudget());
 
         const elf_bytes = try support.readIdentity(
             allocator,
@@ -216,12 +225,12 @@ pub const RetainedAuthorityV4 = struct {
             journal_bytes,
         );
         errdefer allocator.free(records);
-        if (records.len != publication.CANONICAL_SEGMENT_COUNT)
+        if (records.len != segment_count)
             return error.CanonicalIncrementalSegmentCountRequired;
 
         const sources = try allocator.alloc(
             OwnedSourceV4,
-            publication.CANONICAL_SEGMENT_COUNT,
+            segment_count,
         );
         var opened_count: usize = 0;
         errdefer {
@@ -241,7 +250,9 @@ pub const RetainedAuthorityV4 = struct {
             );
             errdefer allocator.free(bytes);
             const source = try source_wire.decode(bytes);
-            if (source.metadata.segment_index != index or
+            if (source.metadata.segment_count != segment_count or
+                source.metadata.local_cycle_count > source_authority.segmentStepBudget() or
+                source.metadata.segment_index != index or
                 !std.mem.eql(
                     u8,
                     &source.journal_record_sha256,
@@ -270,6 +281,10 @@ pub const RetainedAuthorityV4 = struct {
             opened_count += 1;
         }
 
+        if (sources[0].value.metadata.global_cycle_start != 0 or
+            sources[sources.len - 1].value.metadata.global_cycle_end != materialization.value.total_cycles)
+            return error.RetainedIncrementalSourceMismatch;
+
         return .{
             .allocator = allocator,
             .materialization_bytes = materialization_bytes,
@@ -297,6 +312,18 @@ pub const RetainedAuthorityV4 = struct {
         };
     }
 
+    /// Checks a selected leaf against this independently opened materialization.
+    /// This does not verify proof bytes or mint a recursive admission.
+    pub fn validateLeafMetadata(self: *const RetainedAuthorityV4, metadata: *const frontend.recursion.segment_leaf_local_authority_v3.MetadataV3) !void {
+        try metadata.validate();
+        const index = metadata.segment_index;
+        if (index >= self.sources.len or !std.meta.eql(metadata.*, self.sources[index].value.metadata))
+            return error.EthereumSelectedLeafMetadataMismatch;
+        const expected = try span.SpanStatement.fromCanonicalWords(&self.sources[0].value.metadata.base_statement_words);
+        const selected = try span.SpanStatement.fromCanonicalWords(&metadata.base_statement_words);
+        if (!std.meta.eql(selected.job, expected.job)) return error.EthereumBundleJobMismatch;
+    }
+
     pub fn deinit(self: *RetainedAuthorityV4) void {
         for (self.sources) |source| self.allocator.free(source.bytes);
         self.allocator.free(self.sources);
@@ -321,7 +348,7 @@ pub const RetainedAuthorityV4 = struct {
             .expected_output = self.output_identity,
             .execution_profile_semantic_sha256 = frontend.isa.execution_profile
                 .ethereum_semantic_digest,
-            .segment_count = publication.CANONICAL_SEGMENT_COUNT,
+            .segment_count = self.source_authority.segmentCount(),
             .segment_step_budget = self.source_authority.segmentStepBudget(),
         };
         try value.validate();

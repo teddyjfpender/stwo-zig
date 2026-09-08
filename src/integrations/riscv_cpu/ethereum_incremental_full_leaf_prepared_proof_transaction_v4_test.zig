@@ -137,6 +137,9 @@ test "prepared process token allocation releases every partial owner" {
 test "prepared transaction explicit program constructor has no legacy fallback" {
     var inputs: subject.InputsV4 = undefined;
     inputs.prepared_program = null;
+    inputs.fixed_program = null;
+    inputs.claim_admission = .fixed_program_narrow_v5;
+    try std.testing.expectError(error.EthereumFixedProgramAdmissionRequired, subject.PreparedProofTransactionV4.initOwnedWithFixedProgramV1(std.testing.allocator, inputs));
     try std.testing.expectError(
         error.MissingPreparedProgramCommitmentV4,
         subject.PreparedProofTransactionV4.initOwnedWithPreparedProgram(

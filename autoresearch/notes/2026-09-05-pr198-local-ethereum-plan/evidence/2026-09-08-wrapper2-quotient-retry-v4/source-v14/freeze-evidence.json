@@ -1,0 +1,23 @@
+{
+  "status": "frozen_not_executed",
+  "source_files": 5780,
+  "all_parent_pins_verified": true,
+  "all_copied_pins_verified": true,
+  "changes": [
+    {
+      "path": "src/prover/pcs/retained_column_storage_test.zig",
+      "before": {
+        "path": "src/prover/pcs/retained_column_storage_test.zig",
+        "bytes": 20864,
+        "sha256": "a0e3c8f4650a1ab3ff0cd3d54a220d1301788ae9c038fa56a7da06f6c84103cf"
+      },
+      "after": {
+        "path": "src/prover/pcs/retained_column_storage_test.zig",
+        "bytes": 20879,
+        "sha256": "0995c53874788de93fbcb0ae86d85234b6bf2b087de1cd6c8dfc4d655b04e624"
+      }
+    }
+  ],
+  "manifest_sha256": "67b81a1cef1d88e2360863d61d072429654c668ecc784f785dc0990d6f4e488d",
+  "production_implementation_unchanged_from_v13": true
+}

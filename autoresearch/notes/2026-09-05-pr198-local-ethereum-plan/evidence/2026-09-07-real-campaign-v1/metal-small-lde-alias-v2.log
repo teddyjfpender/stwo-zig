@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 146s
+
+Build Summary: 3/3 steps succeeded; 3/3 tests passed
+test-small-circle-lde-alias success
++- run test 3 passed 777ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 4s MaxRSS:456M
+

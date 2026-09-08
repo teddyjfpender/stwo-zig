@@ -520,11 +520,13 @@ fn validateRow(row: Row) Error!void {
 
 fn validateVmSource(source_value: VmSource) Error!void {
     switch (source_value) {
+        .statement_word => |word| if (!@import("vm_statement_roots.zig").contains(word))
+            return error.InvalidInputSource,
         .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,
-        .segment_selector => {},
+        .segment_selector, .native_continuation_root => {},
     }
 }
 
@@ -535,6 +537,8 @@ fn validateRecursionSource(source_value: RecursionSource) Error!void {
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,
         .statement_word => |word_index| if (word_index >= statement.CANONICAL_WORD_COUNT)
+            return error.InvalidInputSource,
+        .field_public_word => |word_index| if (!(word_index < 6 or (word_index >= 418 and word_index < 450)))
             return error.InvalidInputSource,
         .parent_binary_selector, .child_kind_selector => {},
     }

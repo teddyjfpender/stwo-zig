@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.ethereum.frozen-product.v1",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-source-v5/manifest.json",
+    "bytes": 1092956,
+    "sha256": "d776ec4115413ce1a20fac6e27626a4b98a0e276c1f7a380c9a158f4b8e540e0"
+  },
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v5/bin/stage101-metal-autoresearch-v1",
+    "bytes": 10966432,
+    "sha256": "6af7f10b67d6f60cef948e7887fc279802329a36c57e1f2be07f567d87dec2e0"
+  },
+  "build_log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v5/build.log",
+    "bytes": 385,
+    "sha256": "f091354b53410f7971816edf01f9a66ece7c09c7edfef3e95b4d8d18edd4ccc5"
+  },
+  "tests_passed": 15,
+  "steps_passed": 6,
+  "optimization": "ReleaseSafe",
+  "source_scope": "Copied source and embedded AIR artifacts; built inside this retained snapshot, manifest rechecked after build."
+}

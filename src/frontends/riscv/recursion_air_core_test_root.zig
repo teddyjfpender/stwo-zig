@@ -5,6 +5,7 @@
 //! the complete runner/infra test closure into every recursion iteration.
 
 test {
+    _ = @import("recursion/air/ethereum_transcript_payload_raw_v1_test.zig");
     _ = @import("air/lang/relation_test.zig");
     _ = @import("recursion/fri_profile_frontier_test.zig");
     _ = @import("recursion/transcript_program_test.zig");
@@ -69,6 +70,7 @@ test {
     _ = @import("recursion/air/universal_manifest_test.zig");
     _ = @import("recursion/air/universal_typed_component_test.zig");
     _ = @import("recursion/air/universal_roster.zig");
+    _ = @import("recursion/air/ethereum_initial_input_manifest_v1_test.zig");
     _ = @import("recursion/air/universal_roster_inventory_test.zig");
     _ = @import("recursion/air/verifier_schedule.zig");
     _ = @import("recursion/air/verifier_randomness_test.zig");

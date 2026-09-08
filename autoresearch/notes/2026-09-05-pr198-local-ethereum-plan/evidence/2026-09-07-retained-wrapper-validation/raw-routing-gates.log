@@ -1,0 +1,7 @@
+1/5 recursion_air_core_test_root.test_0...OK
+2/5 recursion.air.ethereum_transcript_payload_raw_v1_test.test.Ethereum raw transcript export preserves legacy seals and pins opt-in identity...ETHEREUM_RAW_TRANSCRIPT_PAYLOAD_SEMANTIC_DIGEST=991e77a54fc6e135eba0d8a2776a687d344675b3e307c61303e2624e387bdc74
+OK
+3/5 recursion.air.ethereum_transcript_payload_raw_v1_test.test.Ethereum raw transcript export preserves constraints clock routing and disabled events...OK
+4/5 recursion.air.ethereum_transcript_payload_raw_v1_test.test.Ethereum raw transcript and native wire hash require identical payload words...OK
+5/5 recursion.air.ethereum_transcript_payload_raw_v1_test.test.Ethereum raw transcript root topology closes two raw uses without duplicate hash publishers...OK
+All 5 tests passed.

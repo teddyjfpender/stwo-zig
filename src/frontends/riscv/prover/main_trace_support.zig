@@ -14,6 +14,7 @@ const guest_main_trace = @import("../air/guest_precompile/main_trace.zig");
 const guest_statement = @import("../air/guest_precompile/statement.zig");
 const memory_trace = @import("../air/memory_commitment/trace.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
+const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_commitment = @import("../air/program/commitment.zig");
 const infra = @import("../infra_trace.zig");
@@ -258,6 +259,20 @@ fn appendPoseidonColumns(
     witness: *const CommitmentWitness,
     geometry: Geometry,
 ) !void {
+    if (witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+        if (columns.isArenaBacked()) {
+            var destinations = try columns.reserve(narrow_poseidon.N_MAIN_COLUMNS, geometry.poseidon_log_size);
+            return narrow_poseidon.generateMainInto(allocator, &destinations, witness.poseidonCalls(), geometry.poseidon_log_size);
+        }
+        const generated = try narrow_poseidon.generateMain(allocator, witness.poseidonCalls(), geometry.poseidon_log_size);
+        var transferred: usize = 0;
+        errdefer for (generated.values[transferred..]) |column| allocator.free(column);
+        for (generated.values) |column| {
+            try columns.appendOwned(allocator, .{ .log_size = geometry.poseidon_log_size, .values = column });
+            transferred += 1;
+        }
+        return;
+    }
     if (columns.isArenaBacked()) {
         var destinations = try columns.reserve(
             poseidon2_air.N_MAIN_COLUMNS,
@@ -290,6 +305,10 @@ fn appendPoseidonColumnsWithWorkReceipt(
     geometry: Geometry,
     authority: *const poseidon_witness_work.Authority,
 ) !poseidon_witness_work.ProducerReceipt {
+    if (witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+        try appendPoseidonColumns(allocator, columns, witness, geometry);
+        return poseidon_witness_work.complete(authority, .base_air_row_materialization, @intCast(witness.poseidonCalls().len));
+    }
     if (columns.isArenaBacked()) {
         var destinations = try columns.reserve(
             poseidon2_air.N_MAIN_COLUMNS,

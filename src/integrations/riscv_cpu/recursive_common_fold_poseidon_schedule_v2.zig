@@ -1,6 +1,6 @@
 //! Exact row-34 provider schedule for the field-native common fold.
 //!
-//! The first 116 calls are the parent NodePublicV2 field boundary.  The
+//! Child transcript calls precede the 116-call NodePublicV2 boundary. The
 //! verifier-core suffix is appended by the shared rows-18--34 bundle.  This
 //! contract is deliberately distinct from temporal/H1/canonical-empty
 //! schedules even though it reuses the same physical Poseidon AIR.
@@ -14,6 +14,7 @@ const field_public = @import("recursive_common_fold_field_public_v2.zig");
 pub const Call = frontend.air.memory_commitment.poseidon2_air.Call;
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;
+pub const TRANSCRIPT_SCHEMA_VERSION: u16 = 2;
 pub const PROVIDER_COMPONENT_INDEX: u8 = 34;
 pub const STATEMENT_AUTHORITY_CALL_COUNT: usize =
     field_public.POSEIDON_CALL_COUNT;
@@ -59,12 +60,18 @@ pub const Layout = struct {
     identity: [32]u8,
 
     pub fn initBoundary(calls: []const Call) Error!Layout {
-        if (calls.len != STATEMENT_AUTHORITY_CALL_COUNT)
-            return error.CommonFoldPoseidonScheduleMismatch;
+        return initTranscriptBoundary(0, calls);
+    }
+
+    pub fn initTranscriptBoundary(transcript_count: usize, calls: []const Call) Error!Layout {
+        const expected = std.math.add(usize, transcript_count, STATEMENT_AUTHORITY_CALL_COUNT) catch return error.ArithmeticOverflow;
+        if (calls.len != expected) return error.CommonFoldPoseidonScheduleMismatch;
+        const transcript_end = try toU32(transcript_count);
         const boundary = try toU32(calls.len);
         var result = Layout{
-            .transcript = .{ .start = 0, .end = 0 },
-            .statement_authority = .{ .start = 0, .end = boundary },
+            .schema_version = if (transcript_count == 0) SCHEMA_VERSION else TRANSCRIPT_SCHEMA_VERSION,
+            .transcript = .{ .start = 0, .end = transcript_end },
+            .statement_authority = .{ .start = transcript_end, .end = boundary },
             .verifier_core = .{ .start = boundary, .end = boundary },
             .boundary_prefix_call_count = boundary,
             .verifier_core_range_populated = false,
@@ -84,23 +91,25 @@ pub const Layout = struct {
         verifier_core_count: usize,
         calls: []const Call,
     ) Error!Layout {
-        if (transcript_count != 0 or
-            authority_count != STATEMENT_AUTHORITY_CALL_COUNT or
+        if (authority_count != STATEMENT_AUTHORITY_CALL_COUNT or
             verifier_core_count == 0)
         {
             return error.CommonFoldPoseidonScheduleMismatch;
         }
-        const boundary = try toU32(authority_count);
+        const boundary_count = std.math.add(usize, transcript_count, authority_count) catch return error.ArithmeticOverflow;
+        const boundary = try toU32(boundary_count);
+        const transcript_end = try toU32(transcript_count);
         const total = std.math.add(
             usize,
-            authority_count,
+            boundary_count,
             verifier_core_count,
         ) catch return error.ArithmeticOverflow;
         if (calls.len != total)
             return error.CommonFoldPoseidonScheduleMismatch;
         var result = Layout{
-            .transcript = .{ .start = 0, .end = 0 },
-            .statement_authority = .{ .start = 0, .end = boundary },
+            .schema_version = if (transcript_count == 0) SCHEMA_VERSION else TRANSCRIPT_SCHEMA_VERSION,
+            .transcript = .{ .start = 0, .end = transcript_end },
+            .statement_authority = .{ .start = transcript_end, .end = boundary },
             .verifier_core = .{ .start = boundary, .end = try toU32(total) },
             .boundary_prefix_call_count = boundary,
             .verifier_core_range_populated = true,
@@ -126,14 +135,13 @@ pub const Layout = struct {
 
     pub fn validateReceipt(self: *const Layout) Error!void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
-            self.transcript.start != 0 or self.transcript.end != 0 or
-            self.statement_authority.start != 0 or
+            self.schema_version != (if (self.transcript.end == 0) SCHEMA_VERSION else TRANSCRIPT_SCHEMA_VERSION) or
+            self.transcript.start != 0 or
+            self.transcript.end != self.statement_authority.start or
             self.statement_authority.end != self.verifier_core.start or
             self.verifier_core.end != self.total_call_count or
             self.boundary_prefix_call_count != self.verifier_core.start or
-            self.verifier_core_range_populated != self.call_set_complete or
-            self.boundary_prefix_call_count != STATEMENT_AUTHORITY_CALL_COUNT)
+            self.verifier_core_range_populated != self.call_set_complete)
         {
             return error.CommonFoldPoseidonScheduleMismatch;
         }

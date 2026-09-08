@@ -241,7 +241,7 @@ pub fn Types(
 
             owner.fold_input = try Role2Live.FoldInputV2.init(
                 &owner.target,
-                &owner.role0.cold.node_public,
+                owner.role0.cold.nodePublic(),
                 &owner.role1.cold.node_public,
                 parent_coordinate,
             );
@@ -298,11 +298,11 @@ pub fn Types(
             );
             try empty_source.validate(&empty_source_bytes);
             if (!std.meta.eql(empty_source.shape, shape.*) or
-                materialized.campaign_authority.leaf_count !=
+                materialized.campaign_authority.view().leaf_count !=
                     shape.real_leaf_count or
                 !std.mem.eql(
                     u8,
-                    &materialized.campaign_authority.campaign_inventory
+                    &materialized.campaign_authority.view().campaign_inventory
                         .table_identity_sha256,
                     &shape.inventory_identity_sha256,
                 ))

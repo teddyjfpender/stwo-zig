@@ -1,0 +1,73 @@
+//! Explicit shader authorities. The core/CSP inventory remains byte-identical;
+//! Ethereum's additional DAGs require a separate authenticated bundle.
+const std = @import("std");
+const manifest = @import("manifest.zig");
+const abi = @import("abi_contract.zig");
+const generated = @import("ethereum_fixed_program_narrow_v1_exports.zig");
+pub const maximum_additional_exports = generated.entries.len;
+pub const ethereum_inventory_source = @embedFile("ethereum_fixed_program_narrow_v1_exports.zig");
+pub const ethereum_extension_source = @embedFile("ethereum_fixed_program_narrow_v1.metal");
+const core_source = manifest.native_amalgamated_source[0 .. manifest.native_amalgamated_source.len - 1];
+const ethereum_source = core_source ++ "\n" ++ ethereum_extension_source;
+
+pub const Profile = enum(u16) {
+    core_v2 = 0,
+    ethereum_fixed_program_narrow_v1 = 1,
+
+    pub fn source(self: Profile) []const u8 {
+        return switch (self) {
+            .core_v2 => core_source,
+            .ethereum_fixed_program_narrow_v1 => ethereum_source,
+        };
+    }
+    pub fn sourceDigest(self: Profile) [32]u8 {
+        var result: [32]u8 = undefined;
+        std.crypto.hash.sha2.Sha256.hash(self.source(), &result, .{});
+        return result;
+    }
+    pub fn exports(self: Profile) []const manifest.Export {
+        return switch (self) {
+            .core_v2 => &manifest.native_exports,
+            .ethereum_fixed_program_narrow_v1 => &ethereum_exports,
+        };
+    }
+    pub fn additionalPolynomialExports(self: Profile) []const manifest.Export {
+        return self.exports()[manifest.native_exports.len..];
+    }
+    pub fn kernelAbi(self: Profile) []const abi.KernelAbi {
+        return switch (self) {
+            .core_v2 => &abi.native_kernel_abi,
+            .ethereum_fixed_program_narrow_v1 => &ethereum_abi,
+        };
+    }
+};
+
+const ethereum_exports = build: {
+    var result: [manifest.native_exports.len + generated.entries.len]manifest.Export = undefined;
+    @memcpy(result[0..manifest.native_exports.len], &manifest.native_exports);
+    for (generated.entries, manifest.native_exports.len..) |entry, index| result[index] = .{ .name = entry.name, .owner = .riscv_polynomials };
+    break :build result;
+};
+const ethereum_abi = build: {
+    var result: [abi.native_kernel_abi.len + generated.entries.len]abi.KernelAbi = undefined;
+    @memcpy(result[0..abi.native_kernel_abi.len], &abi.native_kernel_abi);
+    for (generated.entries, abi.native_kernel_abi.len..) |entry, index| result[index] = .{ .name = entry.name, .owner = .riscv_polynomials, .minimum_core_shader_abi = manifest.core_shader_abi, .declaration_sha256 = entry.declaration_sha256, .function_constants = &.{} };
+    break :build result;
+};
+
+test "Ethereum AOT profile preserves exact core authority and admits five separate declarations" {
+    try std.testing.expectEqualStrings(core_source, Profile.core_v2.source());
+    try std.testing.expectEqualDeep(manifest.nativeAmalgamatedSourceDigest(), Profile.core_v2.sourceDigest());
+    // Pin the previously measured baseline, not merely two views of new code.
+    try std.testing.expectEqualStrings("c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786", &std.fmt.bytesToHex(Profile.core_v2.sourceDigest(), .lower));
+    try std.testing.expectEqual(@as(usize, 166), Profile.core_v2.exports().len);
+    try std.testing.expectEqualDeep(manifest.native_exports[0..], Profile.core_v2.exports());
+    try std.testing.expectEqualDeep(abi.native_kernel_abi[0..], Profile.core_v2.kernelAbi());
+    try std.testing.expectEqual(@as(usize, 171), Profile.ethereum_fixed_program_narrow_v1.exports().len);
+    try std.testing.expect(!std.meta.eql(Profile.core_v2.sourceDigest(), Profile.ethereum_fixed_program_narrow_v1.sourceDigest()));
+    inline for (generated.entries) |entry| {
+        const digest = try @import("abi_declaration_digest.zig").declarationDigestHex(ethereum_extension_source, entry.name);
+        try std.testing.expectEqualStrings(entry.declaration_sha256, &digest);
+        for (manifest.native_exports) |old| try std.testing.expect(!std.mem.eql(u8, old.name, entry.name));
+    }
+}

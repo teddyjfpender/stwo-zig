@@ -1,0 +1,85 @@
+{
+  "schema": "stwo.recursive-transcript-child-handoff-progress.v1",
+  "captured_at": "2026-09-05T19:52:35.559944+00:00",
+  "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_state": "uncommitted PR198 engineering tree",
+  "previous_goal_turn_classification": "verified wait: existing common-fold test PID 26231 was observed live, then session 53118 completed successfully",
+  "current_goal_turn_classification": "progress: canonical cold ownership and child handoff retain transcript witness; shared query geometry validation; verified tests",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "94266345b2345b8639c63fab94fc1e483278a55fcef4d03dcca65e0e01b0242b",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "d7ef803573625c413d2b6dbd38e1c369bef850b1f7e5bdb4049f156afb61f113",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "bbd1c4bba1861e2bcba8dc32aabeaa56fd0cde0aeb570b84646da4127c221bd0",
+    "src/integrations/riscv_cpu/recursive_transcript_frame_rows_v1.zig": "6f01059cc7e6f13e8398911a7ac6b588a90f90e97eabb39bb4be8805d9de21a4",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "73ee213b88b5a69b7c8c88ca425ba5ea2852964764dfdea97a4928cdbde4d299",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig": "794d48267be8e92d86ff08187c081004a16968b8fbe31bb05117bacc5b48681a",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2.zig": "d434fa8e12534d82aa2a3cfd46760534f08176765ceeb018d690ebef84c28f4e",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_cold_token_v2.zig": "4079d960c86b0233ee496c991bfc2a70c9b49f2de8202374d550fc4f62303a2b",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "8a2f738d79bb61c9566aacf3e999290e2a9c2a721e9fcfbf1887abde8d8bb5d3",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "c1d62cadaf5eeaa455a41c9c1a8a26bd0f18fed19b463edbdf58a1b59d072716",
+    "src/integrations/riscv_cpu/recursive_common_fold_child_capability_v2.zig": "62f636f5111a949054f76cb3641d33b551a1131da7e6bdde25348ff5896eb3d4",
+    "src/integrations/riscv_cpu/recursive_common_wrapper_authority_v2.zig": "5230cfaeeafb9b4f2621084e65a2b76e904e3caeeef9b73a26ebdc90d257694e",
+    "src/integrations/riscv_cpu/recursive_common_wrapper_authority_v2_test.zig": "930854a689ed9339c102e17fedaf4fbf387480e000aaa084a9ed1f01f3eb5ef5"
+  },
+  "logs_sha256": {
+    "recursive-secure-transcript-rows-fold-safe.log": "0d6b8f9e9b17461b59f79cab8b83749132b23e02ea241be2b8beb0e4d2d7d507",
+    "recursive-transcript-child-handoff-safe.log": "5f4ae49b41c5f4cbc18595bb475ee867509d27f376b590bd823bcf8127d0e255",
+    "recursive-transcript-child-handoff-debug.log": "4530878e902f22022112cecd9b1d15630d6e2fabbb6cfa28ef095a357829cf50",
+    "recursive-transcript-child-handoff-final-safe.log": "30cb22c8f9c5ecab0a7f21de17e0f7c18fd6885a79ecf9513a76e9cb58fcc40d",
+    "recursive-transcript-child-handoff-conformance-final.log": "3de0ee34d9fc70b62d65755641722d336214e580d2a7dd5a51b9a8915e4296db"
+  },
+  "validation": {
+    "final_release_safe": {
+      "steps_passed": 9,
+      "tests_passed": 4,
+      "canonical_test_seconds_reported": 10,
+      "canonical_peak_rss_report": "87M",
+      "wrapper_tests": 3,
+      "bootstrap_compile_passed": true
+    },
+    "debug_handoff_before_shared_helper_extraction": {
+      "tests_passed": 1,
+      "normal_stack": true,
+      "test_duration_report": "2m",
+      "peak_rss_report": "108M"
+    },
+    "common_fold_rows_before_handoff_changes": {
+      "tests_passed": 1,
+      "test_duration_report": "14m",
+      "peak_rss_report": "10G",
+      "operations": 188,
+      "frames": 190,
+      "permutations": 1681,
+      "queries": 193
+    },
+    "canonical_proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+    "same_canonical_proof_hash": true,
+    "adversarial_handoff_checks": [
+      "different-child transcript",
+      "replaced operation allocation",
+      "changed program identity"
+    ],
+    "rows_prepare_additional_native_replays": 0,
+    "rows_prepare_additional_graph_records": 0,
+    "source_conformance_errors": 94,
+    "new_source_conformance_errors": 0,
+    "new_waivers": 0,
+    "zig_fmt_passed": true,
+    "git_diff_check_passed": true
+  },
+  "claim": "Retained canonical-child transcript witness reaches existing ingress and worker handoff; typed transcript rows validate outside the committed parent cohort.",
+  "common_fold_child_recording_retained": false,
+  "common_fold_transcript_prefix_committed": false,
+  "payload_semantic_binding_complete": false,
+  "independently_verifiable_recursive_root": false,
+  "ethereum_leaf_complete": false,
+  "ethereum_block_bundle_complete": false,
+  "ethereum_benchmark_admissible": false,
+  "csp_protocol_defaults_worker_policy_changed": false,
+  "latest_source_csp_ab_promotion_verified": false,
+  "original_common_fold_eight_round_benchmark_rerun": false,
+  "next": [
+    "Retain common-fold child recording without a second interaction reconstruction through its fused verification/replay path.",
+    "Consume both child recordings in the parent source; activate AIR parameters, preprocessing, provider calls and global claims together.",
+    "Complete payload/session/claim binding and field-public continuation; freshly verify a root without child witnesses."
+  ]
+}

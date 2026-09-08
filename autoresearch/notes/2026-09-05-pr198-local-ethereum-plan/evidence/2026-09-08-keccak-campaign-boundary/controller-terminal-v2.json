@@ -1,0 +1,8 @@
+{
+  "exit_code": 1,
+  "elapsed_ns": 4033887051667,
+  "finished_at": "2026-09-07T20:48:28.091286+00:00",
+  "controller_stdout_sha256": "6bd20be24d5daf640fb338ba421e9448bc725ad13bb6f86b009c027d4636b0eb",
+  "controller_stderr_sha256": "c40480ab40ce75d5ab164797b1acf3eaef36c0a8e0907ec6a7832e7cafd4e439",
+  "bundle_status_requires_terminal_verifier_receipt": true
+}

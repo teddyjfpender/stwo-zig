@@ -1,0 +1,14 @@
+{
+  "passed": false,
+  "exit_code": -15,
+  "elapsed_ns": 560463771792,
+  "producer_process_destroyed": true,
+  "inputs_and_binary_unchanged": true,
+  "verification": null,
+  "full_block_coverage": false,
+  "stop_reason": "parent-authorized stop of repeated full canonical-wire authentication after measured baseline",
+  "fresh_verification_passed": false,
+  "minimum_full_authentication_count_static": 97,
+  "minimum_continuation_root_count_static": 194,
+  "sample": "live.sample.txt"
+}

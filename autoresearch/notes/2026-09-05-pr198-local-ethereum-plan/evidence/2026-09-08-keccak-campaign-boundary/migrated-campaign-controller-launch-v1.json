@@ -1,0 +1,26 @@
+{
+  "schema": "stwo.ethereum.native-campaign-launch.v1",
+  "pid": 35106,
+  "started_at": "2026-09-08T02:08:07.163678+00:00",
+  "plan": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/prepared-launch-v3.json",
+    "bytes": 6149,
+    "sha256": "1928f72ed715f6ac4086d8c6ff033bcb42fcff377dba121e4d45aa0a3650d833"
+  },
+  "imports_preserved_without_reproof": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    120
+  ],
+  "required": "Fresh verification of imports followed by all121 segments and independent whole bundle coverage/continuation verification"
+}

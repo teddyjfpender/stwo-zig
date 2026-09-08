@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "observed_at": "2026-09-08T05:13:21.003297+00:00",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "live_process": "  PID STAT ELAPSED  %CPU    RSS\n40352 R      56:46 100.0 5207600\n",
+  "phase_records": [
+    "ETHEREUM_WRAPPER_PCS_STORAGE backing=file total_mapped_bytes=15264661504 remaining_mapped_bytes=0",
+    "ETHEREUM_WRAPPER_RESOURCES phase=tree0.cpu-pcs.commit wall_ns=471361303708 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=31865249984 source=darwin_proc_pid_rusage_v6",
+    "ETHEREUM_WRAPPER_RESOURCES phase=tree0.cpu-pcs wall_ns=654768367417 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=31865249984 source=darwin_proc_pid_rusage_v6"
+  ],
+  "live_progress_sha256_at_observation": "03c14ea3b4232166bfd7678afded713f5e3343f07ed04bb54ff4230fb29455a1",
+  "scope": "Initial Tree0 CPU commitment and its mapped storage release only. Full prover trees, wrapper acceptance and independent verification are not yet complete.",
+  "accepted_segments": 20,
+  "native19_fresh_verifier_pending": true,
+  "wrapper_accepted": false
+}

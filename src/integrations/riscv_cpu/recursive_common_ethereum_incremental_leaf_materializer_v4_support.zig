@@ -248,12 +248,12 @@ pub fn materializerIdentity(
     hash.update(&value.completion_program_claim.identity_sha256);
     hash.update(&public_semantics.programIdentity());
     hash.update(&value.base_profile.identity_digest);
-    hash.update(&value.composition_program.air_program_identity);
-    hash.update(&value.composition_program.verifier_program_authority);
-    hash.update(&value.composition_prepared.circuit.identity_digest);
+    hash.update(&value.composition.program().air_program_identity);
+    hash.update(&value.composition.program().verifier_program_authority);
+    hash.update(&value.composition.source().view().circuit.identity_digest);
     hash.update(&value.bridge.geometry_identity_sha256);
     hash.update(&value.captured_fri.circuit.identity_digest);
-    hash.update(&value.captured_fri.pcs_circuit.identity_digest);
+    hash.update(&value.captured_fri.pcs_circuit.view().identity_digest);
     for (value.schedule.source.source_digest) |word|
         hashInt(&hash, u32, word);
     hashInt(&hash, u32, value.base_sampled_value_count);

@@ -775,8 +775,97 @@ test "validated-profile hot path writes the exact canonical graph input order" {
         ),
     );
     for (alias_storage) |value| try std.testing.expect(value.eql(felt(1_919)));
+
+    var field_profile = input_profile;
+    field_profile.field_public_extra_word_count = 38;
+    var extra_words: [38]M31 = undefined;
+    for (&extra_words, 0..) |*word, index| word.* = M31.fromCanonical(@intCast(1000 + index));
+    var field_witness = witness;
+    field_witness.field_public_extra_words = &extra_words;
+    const extended = try allocator.alloc(QM31, input_count + extra_words.len);
+    defer allocator.free(extended);
+    try subject.writeInputsFromValidatedProfile(field_profile, field_witness, extended);
+    try std.testing.expectEqualDeep(destination, extended[0..input_count]);
+    for (extended[input_count..], extra_words) |actual, word|
+        try std.testing.expect(actual.eql(QM31.fromBase(word)));
+    @memset(extended, felt(1919));
+    try std.testing.expectError(error.InvalidWitnessShape, subject.writeInputsFromValidatedProfile(field_profile, witness, extended));
+    field_witness.field_public_extra_words = std.mem.bytesAsSlice(M31, std.mem.sliceAsBytes(extended))[0..38];
+    try std.testing.expectError(error.AliasedInput, subject.writeInputsFromValidatedProfile(field_profile, field_witness, extended));
+    for (extended) |value| try std.testing.expect(value.eql(felt(1919)));
 }
 
 test {
     _ = @import("recursion_air_composition_circuit_v3_test_continuation_1.zig");
+}
+
+test "Ethereum wrapper capture explicitly admits normalized split two and preserves legacy split one" {
+    const allocator = std.testing.allocator;
+    const manifest = try universal_manifest.build(fixtureLogSizes());
+    var fixture = try CaptureFixture.init(allocator, &manifest);
+    defer fixture.deinit();
+    var legacy = try capture_layout.CaptureLayoutV3.initBinary(allocator, &manifest, fixture.view());
+    defer legacy.deinit();
+    try std.testing.expectEqual(@as(u32, 1), legacy.composition_log_split);
+    try std.testing.expectError(error.InvalidCompositionGeometry, capture_layout.CaptureLayoutV3.initEthereumWrapperV1(
+        allocator,
+        &manifest,
+        fixture.view(),
+    ));
+
+    // The admitted split changes only the composition tree's number of chunks.
+    // This structural fixture does not claim to contain an authenticated proof.
+    const composition_tree = capture_layout.COMPOSITION_TREE_INDEX;
+    const legacy_columns = 8;
+    const admitted_columns = 16;
+    try std.testing.expectEqual(@as(usize, legacy_columns), fixture.sampled_points[composition_tree].len);
+    var composition_points: [admitted_columns][]u8 = undefined;
+    var composition_logs: [admitted_columns]u32 = undefined;
+    for (&composition_points, &composition_logs, 0..) |*points, *log, index| {
+        points.* = fixture.sampled_points[composition_tree][index % legacy_columns];
+        log.* = fixture.column_log_sizes[composition_tree][index % legacy_columns];
+    }
+    var tree_points: [capture_layout.TREE_COUNT][][]u8 = undefined;
+    @memcpy(&tree_points, fixture.sampled_points);
+    tree_points[composition_tree] = &composition_points;
+    var tree_logs: [capture_layout.TREE_COUNT][]u32 = undefined;
+    @memcpy(&tree_logs, fixture.column_log_sizes);
+    tree_logs[composition_tree] = &composition_logs;
+    const sampled_values = try allocator.alloc(QM31, fixture.sampled_values.len + admitted_columns - legacy_columns);
+    defer allocator.free(sampled_values);
+    @memset(sampled_values, QM31.zero());
+    const admitted_capture = CaptureFixture.View{
+        .sampled_points = &tree_points,
+        .column_log_sizes = &tree_logs,
+        .sampled_values = sampled_values,
+    };
+    try std.testing.expectError(error.InvalidCompositionGeometry, capture_layout.CaptureLayoutV3.initBinary(
+        allocator,
+        &manifest,
+        admitted_capture,
+    ));
+    try std.testing.expectError(error.InvalidCompositionGeometry, capture_layout.CaptureLayoutV3.initAuthenticatedBinaryWithProviderRow(
+        allocator,
+        .ethereum_incremental_leaf_wrapper_v4,
+        capture_layout.POSEIDON_ROSTER_ROW,
+        &manifest,
+        admitted_capture,
+    ));
+    var admitted = try capture_layout.CaptureLayoutV3.initEthereumWrapperV1(allocator, &manifest, admitted_capture);
+    defer admitted.deinit();
+    try admitted.validateAgainstEthereumWrapperV1(&manifest);
+    try std.testing.expectEqual(@as(u32, 2), admitted.composition_log_split);
+    var max_trace: u32 = 0;
+    for (manifest.roster_rows[0..manifest.roster_count]) |row|
+        max_trace = @max(max_trace, manifest.placements[row].?.geometry.log_size);
+    try std.testing.expectEqual(max_trace + 2, admitted.composition_log_size);
+    try std.testing.expectEqual(max_trace, admitted.quotient_max_log_degree_bound);
+    try std.testing.expect(!std.mem.eql(u8, &legacy.identity, &admitted.identity));
+    try std.testing.expectError(error.ManifestAuthorityMismatch, legacy.validateAgainstEthereumWrapperV1(&manifest));
+    composition_logs[0] += 1;
+    try std.testing.expectError(error.InvalidTraceLogGeometry, capture_layout.CaptureLayoutV3.initEthereumWrapperV1(
+        allocator,
+        &manifest,
+        admitted_capture,
+    ));
 }

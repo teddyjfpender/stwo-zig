@@ -11,7 +11,7 @@ const artifact_io = @import("ethereum_precompile_artifact_io.zig");
 const evidence = @import("ethereum_block_leaf_evidence.zig");
 const receipt_wire =
     @import("ethereum_candidate_combined_execution_capture_receipt_v1.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const tape_artifact = @import("bulk_memcpy_tape_artifact_v1.zig");
 
 const elf_receipt = frontend.testing.ethereum_candidate_combined_elf_receipt_v1;

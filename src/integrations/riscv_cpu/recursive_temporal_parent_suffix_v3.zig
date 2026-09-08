@@ -622,8 +622,8 @@ fn validateMatchingCaptureProfiles(
             &right.circuit.profile_digest,
         ) or !std.mem.eql(
         u8,
-        &left.pcs_circuit.profile_digest,
-        &right.pcs_circuit.profile_digest,
+        &left.pcs_circuit.view().profile_digest,
+        &right.pcs_circuit.view().profile_digest,
     )) return error.ProfileMismatch;
 }
 
@@ -637,7 +637,7 @@ fn captureIdentity(value: *const captured_fri.Owned) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo-zig/typed-air/temporal-owned-captured-fri/v3\x00");
     hash.update(&value.circuit.identity_digest);
-    hash.update(&value.pcs_circuit.identity_digest);
+    hash.update(&value.pcs_circuit.view().identity_digest);
     hashInt(&hash, u32, value.sampled_value_count);
     hashInt(&hash, u32, value.queried_values_per_query);
     hashInt(&hash, u32, value.claimed_sum_count);
@@ -656,7 +656,7 @@ fn captureIdentity(value: *const captured_fri.Owned) [32]u8 {
     hashQm31(&hash, value.oods_seed);
     hashQm31(&hash, value.deep_randomness);
     hashQm31Slice(&hash, value.evaluation.values);
-    hashQm31Slice(&hash, value.pcs_evaluation.values);
+    hashQm31Slice(&hash, value.pcs_evaluation.view().values);
     for (value.fold_widths) |word| hashInt(&hash, u32, word);
     for (value.trace_tree_heights) |word| hashInt(&hash, u32, word);
     for (value.column_log_storage) |word| hashInt(&hash, u32, word);

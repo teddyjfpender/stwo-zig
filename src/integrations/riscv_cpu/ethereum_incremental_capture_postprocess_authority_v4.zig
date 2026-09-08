@@ -306,6 +306,13 @@ pub const OwnedMintInputV4 = struct {
         self.* = undefined;
     }
 
+    /// Copies the authenticated entry snapshot for an explicitly leaf-scoped
+    /// tree authority. Sequential campaign minting retains its existing tree.
+    pub fn selectedEntryWordsAlloc(self: *const OwnedMintInputV4, allocator: std.mem.Allocator) ![]boundary_v1.SparseWordV1 {
+        const view = try self.wire.data.authenticatedView();
+        return sparseWords(allocator, &view, view.entry_snapshot);
+    }
+
     pub fn input(self: *const OwnedMintInputV4) postprocess.MintInputV4 {
         return .{
             .segment_index = self.segment_index,

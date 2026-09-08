@@ -113,6 +113,7 @@ pub const PreflightV2 = struct {
     statement_manifest: statement_source.ManifestV2,
     public_manifest: public_source.ManifestV2,
     boundary_manifest: boundary_authority.OuterManifestV2,
+    input_provider_shape: input_provider_authority.Shape,
     leaf_identity: leaf_outer.Sha256Digest,
 
     pub fn init(prepared: *const PreparedNativeV2LeafOuter) !PreflightV2 {
@@ -136,6 +137,10 @@ pub const PreflightV2 = struct {
             .statement_manifest = statement_manifest,
             .public_manifest = public_prepared.manifest,
             .boundary_manifest = prepared.authority_prepared.manifest,
+            .input_provider_shape = (try recursion.air.segment_publication_input_provider_witness_v2.preflight(.{
+                .capture = &prepared.authority_prepared,
+                .vm_context = &prepared.capture.vm_air,
+            })).shape,
             .leaf_identity = prepared.identity,
         };
         try result.validateAgainst(prepared);
@@ -156,6 +161,12 @@ pub const PreflightV2 = struct {
         try self.statement_manifest.validate();
         try self.public_manifest.validate();
         try self.boundary_manifest.validate();
+        const provider_source = try recursion.air.segment_publication_input_provider_witness_v2.preflight(.{
+            .capture = &prepared.authority_prepared,
+            .vm_context = &prepared.capture.vm_air,
+        });
+        if (!std.meta.eql(self.input_provider_shape, provider_source.shape))
+            return error.SourceManifestMismatch;
         try self.transcript_prepared.validateAgainst(
             &prepared.transcript_program,
             &prepared.transcript_execution,

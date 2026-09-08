@@ -33,7 +33,7 @@ const global_closure = recursion.binary_global_closure_outer_source;
 const RelationDomain = @TypeOf(global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN);
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 2;
 pub const PRODUCTION_ACTIVATION = false;
 pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
 pub const PUBLIC_WORD_COUNT: usize = field_public.AIR_WORD_COUNT;
@@ -43,7 +43,9 @@ pub const POSEIDON2_IO_DOMAIN_INDEX =
     @intFromEnum(@as(RelationDomain, .poseidon2_io));
 
 const AUTHORITY_TRANSCRIPT_DOMAIN: u32 = 0x4345_5032; // "CEP2"
+pub const AUTHORITY_TRANSCRIPT_HEADER = [_]u32{ AUTHORITY_TRANSCRIPT_DOMAIN, FORMAT_VERSION, SCHEMA_VERSION, PUBLIC_WORD_COUNT, field_public.POSEIDON_CALL_COUNT };
 const FIELD_BOUNDARY_TRANSCRIPT_DOMAIN: u32 = 0x4345_4232; // "CEB2"
+pub const BOUNDARY_TRANSCRIPT_HEADER = [_]u32{ FIELD_BOUNDARY_TRANSCRIPT_DOMAIN, FORMAT_VERSION, SCHEMA_VERSION, POSEIDON2_IO_DOMAIN_INDEX, field_public.POSEIDON_CALL_COUNT };
 const COHORT_IDENTITY_DOMAIN =
     "stwo-zig/common-canonical-empty-universal-cohort/v2\x00";
 const GENERATED_IDENTITY_DOMAIN =
@@ -365,13 +367,7 @@ pub const CohortV2 = struct {
     pub fn mixAuthority(self: *CohortV2, transcript: anytype) !void {
         try self.validate();
         const public_words = try self.schedule.node_public.canonicalAirWords();
-        transcript.mixU32s(&.{
-            AUTHORITY_TRANSCRIPT_DOMAIN,
-            FORMAT_VERSION,
-            SCHEMA_VERSION,
-            PUBLIC_WORD_COUNT,
-            field_public.POSEIDON_CALL_COUNT,
-        });
+        transcript.mixU32s(&AUTHORITY_TRANSCRIPT_HEADER);
         transcript.mixU32s(&public_words);
     }
 
@@ -380,14 +376,11 @@ pub const CohortV2 = struct {
         audited: *const CohortAuditedInteractionsV2,
     ) !void {
         try audited.validate();
-        transcript.mixU32s(&.{
-            FIELD_BOUNDARY_TRANSCRIPT_DOMAIN,
-            FORMAT_VERSION,
-            SCHEMA_VERSION,
-            @intFromEnum(audited.wire_boundary.domain),
-            @as(u32, @intCast(audited.wire_boundary.tuple_count)),
-        });
+        transcript.mixU32s(&BOUNDARY_TRANSCRIPT_HEADER);
         transcript.mixFelts(&.{audited.wire_boundary.claimed_sum});
+        // Every canonical public call is atomic IO: the ordinary Poseidon
+        // partial is zero and the IO partial negates its public request sum.
+        transcript.mixFelts(&.{ QM31.zero(), audited.wire_boundary.claimed_sum.neg() });
     }
 
     pub fn fillPreprocessedInto(
@@ -621,7 +614,8 @@ fn LogicalComponentsType() type {
 const LogicalComponents = LogicalComponentsType();
 
 pub const ComponentSetV2 = struct {
-    logical: LogicalComponents,
+    allocator: std.mem.Allocator,
+    logical: *LogicalComponents,
     poseidon: provider.Poseidon2AdapterForManifest(manifest_mod),
     range: provider.RangeCheck8x8AdapterForManifest(manifest_mod),
 
@@ -631,10 +625,13 @@ pub const ComponentSetV2 = struct {
         relations: *const universal.UniversalRelations,
         provider_relations: *const provider.SharedProviderRelations,
     ) !ComponentSetV2 {
-        var logical: LogicalComponents = undefined;
+        // Each adapter retains its compiled relation plan. Keep this wide
+        // roster off the stack, including the constructor's return copy.
+        const logical = try cohort.allocator.create(LogicalComponents);
+        errdefer cohort.allocator.destroy(logical);
         inline for (catalog.LOGICAL_ROWS, 0..) |entry, index| {
             const Component = LogicalComponent(entry);
-            logical[index] = try Component.init(
+            logical.*[index] = try Component.init(
                 &cohort.logical[index].definition,
                 cohort.logical[index].relation_plan,
                 &cohort.manifest_value,
@@ -646,6 +643,7 @@ pub const ComponentSetV2 = struct {
             );
         }
         return .{
+            .allocator = cohort.allocator,
             .logical = logical,
             .poseidon = try provider.Poseidon2AdapterForManifest(
                 manifest_mod,
@@ -684,7 +682,7 @@ pub const ComponentSetV2 = struct {
             _ = entry;
             try gate.append(
                 manifest,
-                try self.logical[index].binding(manifest),
+                try self.logical.*[index].binding(manifest),
             );
         }
         try gate.append(manifest, try self.poseidon.binding(manifest));
@@ -692,6 +690,7 @@ pub const ComponentSetV2 = struct {
     }
 
     pub fn deinit(self: *ComponentSetV2) void {
+        self.allocator.destroy(self.logical);
         self.* = undefined;
     }
 };
@@ -819,7 +818,7 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 2 or
         COMPONENT_COUNT != 36 or PUBLIC_WORD_COUNT != 450 or
         field_public.POSEIDON_CALL_COUNT != 113 or PRODUCTION_ACTIVATION)
     {

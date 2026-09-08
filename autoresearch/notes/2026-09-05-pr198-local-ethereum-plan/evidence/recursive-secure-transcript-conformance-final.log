@@ -1,0 +1,217 @@
+warning: src/frontends/riscv/recursion/binary_fri_outer_source_source_for_boundary.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_candidate_combined_execution_capture_v1.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_guest_pc_profile.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_incremental_capture_publication_v3.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_incremental_capture_publication_v4.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_pipeline_worker_common_fold_v2.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_nonfri_part_05.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_parent_cohort_v3.zig: 850 lines approaches the 850-line manual-source ceiling (0 line(s) of headroom)
+warning: src/frontends/riscv/prover/interaction_trace.zig: 849 lines approaches the 850-line manual-source ceiling (1 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2.zig: 849 lines approaches the 850-line manual-source ceiling (1 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_fri_outer_part_11.zig: 849 lines approaches the 850-line manual-source ceiling (1 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_pipeline_worker_campaign_stage102_inventory_builder_v4.zig: 849 lines approaches the 850-line manual-source ceiling (1 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig: 849 lines approaches the 850-line manual-source ceiling (1 line(s) of headroom)
+warning: src/backends/cpu_scalar/riscv_composition.zig: 848 lines approaches the 850-line manual-source ceiling (2 line(s) of headroom)
+warning: src/frontends/riscv/air/memory_commitment/poseidon2_air.zig: 848 lines approaches the 850-line manual-source ceiling (2 line(s) of headroom)
+warning: src/frontends/riscv/prover/interaction_trace_plan_execution_production_state.zig: 848 lines approaches the 850-line manual-source ceiling (2 line(s) of headroom)
+warning: src/frontends/riscv/air/guest_precompile/secp256k1_affine.zig: 847 lines approaches the 850-line manual-source ceiling (3 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/row_window.zig: 847 lines approaches the 850-line manual-source ceiling (3 line(s) of headroom)
+warning: src/frontends/riscv/air/lookups/tables/component.zig: 847 lines approaches the 850-line manual-source ceiling (3 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig: 847 lines approaches the 850-line manual-source ceiling (3 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_topology_v1_test.zig: 847 lines approaches the 850-line manual-source ceiling (3 line(s) of headroom)
+warning: src/core/crypto/blake2s_backend.zig: 846 lines approaches the 850-line manual-source ceiling (4 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/typed_poseidon2_degree5_prepared_domain.zig: 846 lines approaches the 850-line manual-source ceiling (4 line(s) of headroom)
+warning: src/frontends/riscv/air/memory_commitment/hash_component.zig: 846 lines approaches the 850-line manual-source ceiling (4 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_campaign_universal_proof_v2.zig: 846 lines approaches the 850-line manual-source ceiling (4 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_incremental_provider_authority_v1.zig: 845 lines approaches the 850-line manual-source ceiling (5 line(s) of headroom)
+warning: src/frontends/riscv/prover/main_trace_plan_execution_production_state.zig: 844 lines approaches the 850-line manual-source ceiling (6 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig: 843 lines approaches the 850-line manual-source ceiling (7 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_poseidon_provider_retention_sweep_v1.zig: 842 lines approaches the 850-line manual-source ceiling (8 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig: 842 lines approaches the 850-line manual-source ceiling (8 line(s) of headroom)
+warning: src/prover/pcs/scheme.zig: 842 lines approaches the 850-line manual-source ceiling (8 line(s) of headroom)
+warning: src/tools/riscv/trace/main.zig: 841 lines approaches the 850-line manual-source ceiling (9 line(s) of headroom)
+warning: src/frontends/riscv/recursion/incremental_ethereum_vm_composition_program_v4.zig: 840 lines approaches the 850-line manual-source ceiling (10 line(s) of headroom)
+warning: src/frontends/riscv/recursion/recursion_air_composition_segment_recorder_v3_program_recorder_for_manifest.zig: 840 lines approaches the 850-line manual-source ceiling (10 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_wrapper_cohort_v1.zig: 840 lines approaches the 850-line manual-source ceiling (10 line(s) of headroom)
+warning: scripts/check_package_workspace.py: 838 lines approaches the 850-line manual-source ceiling (12 line(s) of headroom)
+warning: scripts/riscv_segmented_execution.py: 838 lines approaches the 850-line manual-source ceiling (12 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/typed_load_store_authority_test.zig: 838 lines approaches the 850-line manual-source ceiling (12 line(s) of headroom)
+warning: src/frontends/riscv/prover/incremental_ethereum_verifier_v3.zig: 838 lines approaches the 850-line manual-source ceiling (12 line(s) of headroom)
+warning: src/prover/air/component_programs.zig: 838 lines approaches the 850-line manual-source ceiling (12 line(s) of headroom)
+warning: src/frontends/riscv/recursion/recording_poseidon_channel_v4.zig: 835 lines approaches the 850-line manual-source ceiling (15 line(s) of headroom)
+warning: src/frontends/riscv/runner/mod.zig: 834 lines approaches the 850-line manual-source ceiling (16 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_cohort_v2.zig: 834 lines approaches the 850-line manual-source ceiling (16 line(s) of headroom)
+warning: src/frontends/riscv/recursion/air/fri_verifier_control_witness.zig: 833 lines approaches the 850-line manual-source ceiling (17 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_poseidon_provider_orchestration_v1.zig: 833 lines approaches the 850-line manual-source ceiling (17 line(s) of headroom)
+warning: src/frontends/riscv/runner/elf_loader.zig: 832 lines approaches the 850-line manual-source ceiling (18 line(s) of headroom)
+warning: src/prover/prove.zig: 832 lines approaches the 850-line manual-source ceiling (18 line(s) of headroom)
+warning: build_support/backends/cuda_tools.zig: 481 lines approaches the 500-line build-support owner ceiling (19 line(s) of headroom)
+warning: src/interop/postcard/proof_preflight.zig: 831 lines approaches the 850-line manual-source ceiling (19 line(s) of headroom)
+warning: src/frontends/riscv/prover/verifier.zig: 830 lines approaches the 850-line manual-source ceiling (20 line(s) of headroom)
+warning: src/integrations/riscv_cpu/bulk_memcpy_retained_journal_v1.zig: 830 lines approaches the 850-line manual-source ceiling (20 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_incremental_boundary_artifact_v3.zig: 828 lines approaches the 850-line manual-source ceiling (22 line(s) of headroom)
+warning: src/frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig: 827 lines approaches the 850-line manual-source ceiling (23 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig: 827 lines approaches the 850-line manual-source ceiling (23 line(s) of headroom)
+warning: src/integrations/riscv_cpu/proof_adapter.zig: 827 lines approaches the 850-line manual-source ceiling (23 line(s) of headroom)
+warning: src/backends/metal/runtime/sampled_barycentric_operations.zig: 826 lines approaches the 850-line manual-source ceiling (24 line(s) of headroom)
+warning: src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig: 825 lines approaches the 850-line manual-source ceiling (25 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_incremental_public_wire_publication_v4.zig: 824 lines approaches the 850-line manual-source ceiling (26 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_campaign_universal_cohort_v2.zig: 823 lines approaches the 850-line manual-source ceiling (27 line(s) of headroom)
+warning: src/frontends/riscv/air/public_data_v2.zig: 822 lines approaches the 850-line manual-source ceiling (28 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_circuit_registry_v1.zig: 821 lines approaches the 850-line manual-source ceiling (29 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_node_public_authority_v2.zig: 821 lines approaches the 850-line manual-source ceiling (29 line(s) of headroom)
+warning: scripts/ethereum_block_proof_child.py: 820 lines approaches the 850-line manual-source ceiling (30 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_incremental_full_leaf_replay_command_v4.zig: 820 lines approaches the 850-line manual-source ceiling (30 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_pipeline_worker_campaign_stage102_lifecycle_v4_test.zig: 820 lines approaches the 850-line manual-source ceiling (30 line(s) of headroom)
+warning: scripts/recursive_pipeline_runner.py: 819 lines approaches the 850-line manual-source ceiling (31 line(s) of headroom)
+warning: src/frontends/riscv/air/lookups/opcode_interaction.zig: 818 lines approaches the 850-line manual-source ceiling (32 line(s) of headroom)
+warning: src/frontends/riscv/prover/memory_provider_shards/joint_proof.zig: 817 lines approaches the 850-line manual-source ceiling (33 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/access_transaction.zig: 816 lines approaches the 850-line manual-source ceiling (34 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig: 816 lines approaches the 850-line manual-source ceiling (34 line(s) of headroom)
+warning: src/backends/cpu_scalar/riscv_composition_lanes.zig: 813 lines approaches the 850-line manual-source ceiling (37 line(s) of headroom)
+warning: src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig: 813 lines approaches the 850-line manual-source ceiling (37 line(s) of headroom)
+warning: src/frontends/riscv/recursion/vm_air_composition_circuit_circuit.zig: 811 lines approaches the 850-line manual-source ceiling (39 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig: 809 lines approaches the 850-line manual-source ceiling (41 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_level2_cohort_v1.zig: 808 lines approaches the 850-line manual-source ceiling (42 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_poseidon_provider_combined_v1.zig: 807 lines approaches the 850-line manual-source ceiling (43 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_poseidon_provider_topology_sweep_v1.zig: 807 lines approaches the 850-line manual-source ceiling (43 line(s) of headroom)
+warning: src/frontends/riscv/air/guest_precompile/stack_swap_proof_harness_v1.zig: 805 lines approaches the 850-line manual-source ceiling (45 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_fri_outer.zig: 804 lines approaches the 850-line manual-source ceiling (46 line(s) of headroom)
+warning: src/backends/metal/quotient_internal_parity.zig: 803 lines approaches the 850-line manual-source ceiling (47 line(s) of headroom)
+warning: src/backends/metal/runtime/quotient_planning.m: 803 lines approaches the 850-line manual-source ceiling (47 line(s) of headroom)
+warning: src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig: 803 lines approaches the 850-line manual-source ceiling (47 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_materializer_v4.zig: 802 lines approaches the 850-line manual-source ceiling (48 line(s) of headroom)
+warning: build_support/products/cairo_metal.zig: 450 lines approaches the 500-line build-support owner ceiling (50 line(s) of headroom)
+warning: scripts/ethereum_block_proof_protocol.py: 800 lines approaches the 850-line manual-source ceiling (50 line(s) of headroom)
+warning: src/frontends/riscv/air/guest_precompile/bulk_memcpy_proof_harness_v1.zig: 800 lines approaches the 850-line manual-source ceiling (50 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_provider_omitted_leaf_bundle_v1.zig: 800 lines approaches the 850-line manual-source ceiling (50 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_pipeline_campaign_genuine_stage101_authenticated_inputs_v4.zig: 799 lines approaches the 850-line manual-source ceiling (51 line(s) of headroom)
+warning: src/backends/metal/tests/command_epoch.zig: 798 lines approaches the 850-line manual-source ceiling (52 line(s) of headroom)
+warning: src/frontends/riscv/air/statement_v2.zig: 797 lines approaches the 850-line manual-source ceiling (53 line(s) of headroom)
+warning: src/frontends/riscv/recursion/binary_arithmetic_rows_heterogeneous_v2_test.zig: 797 lines approaches the 850-line manual-source ceiling (53 line(s) of headroom)
+warning: src/frontends/riscv/air/lookups/opcode_component.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/frontends/riscv/recursion/air/vm_air_composition_input_witness.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/frontends/riscv/runner/minimal_trace/test.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_campaign_composition_capture_v2.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig: 796 lines approaches the 850-line manual-source ceiling (54 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_pipeline_worker_protocol_v1.zig: 795 lines approaches the 850-line manual-source ceiling (55 line(s) of headroom)
+warning: src/frontends/riscv/recursion/binary_fri_outer_source_fri_rows_authority.zig: 794 lines approaches the 850-line manual-source ceiling (56 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/typed_poseidon2_degree_bounded_prepared_domain.zig: 793 lines approaches the 850-line manual-source ceiling (57 line(s) of headroom)
+warning: src/frontends/riscv/prover/orchestration_stages.zig: 793 lines approaches the 850-line manual-source ceiling (57 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_campaign_node_artifact_v2.zig: 792 lines approaches the 850-line manual-source ceiling (58 line(s) of headroom)
+warning: src/backends/metal/commit_backend_fri.zig: 791 lines approaches the 850-line manual-source ceiling (59 line(s) of headroom)
+warning: src/frontends/riscv/runner/guest_precompile/ethereum_stack_swap_candidate_elf_receipt_v1.zig: 791 lines approaches the 850-line manual-source ceiling (59 line(s) of headroom)
+warning: src/frontends/riscv/prover/guest_precompile/ethereum_matched_ab_omitted_provider_policy_v1.zig: 790 lines approaches the 850-line manual-source ceiling (60 line(s) of headroom)
+warning: src/frontends/riscv/recursion/air/fri_merkle_node_witness.zig: 790 lines approaches the 850-line manual-source ceiling (60 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig: 790 lines approaches the 850-line manual-source ceiling (60 line(s) of headroom)
+warning: src/backends/metal/runtime/circle_transform_operations.zig: 786 lines approaches the 850-line manual-source ceiling (64 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_node_artifact_v1.zig: 785 lines approaches the 850-line manual-source ceiling (65 line(s) of headroom)
+warning: src/backends/metal/runtime/fri_fold_commit.m: 780 lines approaches the 850-line manual-source ceiling (70 line(s) of headroom)
+warning: src/backends/metal/telemetry.zig: 780 lines approaches the 850-line manual-source ceiling (70 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_poseidon_provider_raw_batch_benchmark_v2.zig: 780 lines approaches the 850-line manual-source ceiling (70 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_temporal_secure_tree_tail_v1.zig: 779 lines approaches the 850-line manual-source ceiling (71 line(s) of headroom)
+warning: src/frontends/riscv/air/lang/lookup_physical_manifest_v2.zig: 778 lines approaches the 850-line manual-source ceiling (72 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer.zig: 775 lines approaches the 850-line manual-source ceiling (75 line(s) of headroom)
+warning: src/frontends/riscv/air/guest_precompile/keccakf_component.zig: 773 lines approaches the 850-line manual-source ceiling (77 line(s) of headroom)
+warning: src/frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_tree_v1.zig: 772 lines approaches the 850-line manual-source ceiling (78 line(s) of headroom)
+warning: src/integrations/riscv_cpu/ethereum_degree5_provider_proof_artifact_v1.zig: 772 lines approaches the 850-line manual-source ceiling (78 line(s) of headroom)
+warning: src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig: 772 lines approaches the 850-line manual-source ceiling (78 line(s) of headroom)
+warning: src/frontends/riscv/air/guest_precompile/keccakf_throughput_candidate_test.zig: 769 lines approaches the 850-line manual-source ceiling (81 line(s) of headroom)
+warning: src/frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_verifier_v1.zig: 769 lines approaches the 850-line manual-source ceiling (81 line(s) of headroom)
+warning: src/prover/fri_commit_ops.zig: 765 lines approaches the 850-line manual-source ceiling (85 line(s) of headroom)
+note: 198 unchanged file(s) are within 10% of a size ceiling; rerun with --show-headroom to list them
+error: backends/metal/commit_backend.zig: 995 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime.m: 862 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/base_polynomial_composition.zig: 1436 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/bindings.zig: 1011 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/lifecycle_and_tree.m: 860 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/merkle_epochs.m: 1047 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/opening_operations.zig: 857 lines exceeds the 850-line manual-source ceiling
+error: backends/metal/runtime/quotients.m: 1064 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/component.zig: 951 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/guest_precompile/bulk_memcpy_lifted_composition_diagnostic_v1.zig: 1116 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/air/prepared_evaluation_owner.zig: 851 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/build.zig: 1000 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/diagnostics/segment_manifest.zig: 975 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/commitment_witness.zig: 1188 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_orchestration_v1.zig: 936 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/incremental_ethereum_omit_orchestration_v4.zig: 1393 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/interaction_trace_generation.zig: 962 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_candidate_provider_v1.zig: 858 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_ethereum_omit_provider_proof_v1.zig: 1190 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/degree5_provider_order_proof_v2.zig: 894 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/ethereum_omit_protocol_v1.zig: 1455 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/prover/memory_provider_shards/provider_order_component.zig: 1043 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/binary_fri_outer_bundle_bundle_for_source_schedule_and_manifest.zig: 869 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/ethereum_leaf_context_v1.zig: 884 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/recursion_air_composition_circuit_v3_heterogeneous_session_v3.zig: 1453 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/recursion/vm_air_profile_v2.zig: 871 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig: 1396 lines exceeds the 850-line manual-source ceiling
+error: frontends/riscv/runner/segment_session.zig: 1145 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/build_artifact_steps.zig: 1024 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/build_segment_steps.zig: 1942 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/bulk_memcpy_current_selected_segment_authority_v1.zig: 1171 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/bulk_memcpy_retained_replay_v1.zig: 1304 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_block_leaf_materializer.zig: 1131 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_candidate_degree5_provider_shared_batch_v1_test.zig: 896 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_candidate_leaf_proof_test.zig: 956 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_boundary_artifact_v4.zig: 1008 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_boundary_authority_v1.zig: 856 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_capture_postprocess_authority_v4.zig: 944 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_capture_postprocess_command_v4.zig: 1237 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig: 1009 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1.zig: 1288 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1_test.zig: 1018 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1.zig: 1823 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_omitted_provider_transcript_v1_test.zig: 1160 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_incremental_prepared_program_commitment_v1.zig: 1014 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_matched_ab_rematerialization_authority_v1.zig: 1025 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_provider_hpc_v1.zig: 961 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_provider_stage_b_prefix_v2.zig: 1405 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/ethereum_poseidon_v4_leaf_component_test_root.zig: 1306 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig: 860 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig: 1066 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_campaign_final_proof_v2.zig: 1379 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_campaign_prefinal_v2_test.zig: 1922 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig: 957 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2.zig: 933 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig: 1064 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_common_wrapper_padding_remint_v2_test.zig: 1126 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_fri_outer_part_03.zig: 869 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_node_artifact_v1_test.zig: 879 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_final_description_v2.zig: 873 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_final_driver_v2.zig: 974 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_genuine_stage102_tree_lifecycle_v4.zig: 1511 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_genuine_three_leaf_tree_gate_v2.zig: 1007 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_campaign_target_native_q193_pairs_v2.zig: 1536 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_incremental_campaign_importer_v4.zig: 1441 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_campaign_consumers_v2.zig: 1047 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_campaign_real_leaf_v4.zig: 965 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_native_leaf_v4.zig: 1030 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_pipeline_worker_v1.zig: 1022 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig: 1297 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_secure_parent_artifact_v1.zig: 1037 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig: 1837 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_metal/stage101_degree5_provider_sweep_v1.zig: 1092 lines exceeds the 850-line manual-source ceiling
+error: integrations/riscv_metal/stage101_leaf_autoresearch_v1.zig: 932 lines exceeds the 850-line manual-source ceiling
+error: prover/air/accumulation.zig: 1026 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_parallel.zig: 869 lines exceeds the 850-line manual-source ceiling
+error: prover/air/component_prover.zig: 913 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/quotient_tile_executor.zig: 930 lines exceeds the 850-line manual-source ceiling
+error: prover/pcs/sampled_values.zig: 898 lines exceeds the 850-line manual-source ceiling
+error: prover_api/work_profile_execution.zig: 863 lines exceeds the 850-line manual-source ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: 1377 lines exceeds the 850-line manual-source ceiling
+error: build_support/graph/modules.zig: build-support owner exceeds the 500-line ceiling
+error: build_support/products/riscv_cpu.zig: build-support owner exceeds the 500-line ceiling
+error: tools/riscv/analyze_legacy_semantics/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/function_value/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_admission/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/memcpy_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: tools/riscv/pc_hotspot/main.zig: active Zig command/test owner exceeds the 300-line ceiling
+error: frontends/riscv/air/lang/typed_poseidon2_degree5_backend.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_direct_program
+error: frontends/riscv/air/lang/typed_poseidon2_degree5_component.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_direct_program
+error: frontends/riscv/air/lang/typed_poseidon2_degree5_prepared_program.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_cost_direct, materialization_direct_program
+error: frontends/riscv/air/lang/typed_poseidon2_degree_bounded_backend.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_direct_program
+error: frontends/riscv/air/lang/typed_poseidon2_degree_bounded_candidate.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_cost_direct, materialization_direct_program, typed_poseidon2_fixed_direct
+error: frontends/riscv/air/lang/typed_poseidon2_degree_bounded_component.zig: H-009/H-010 proposal authority is tool/test-only; unexpected production reference(s): materialization_direct_program

@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "status": "VM materialization repaired; original real AIR attempt failed later in claim semantics; focused explicit-policy repair passes; integrated rerun pending",
+  "real_input_sha256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+  "real_air_request_seconds": 557.261302,
+  "real_air_total_with_build_wait_seconds": 830.8500102919061,
+  "peak_footprint_bytes": 5733766448,
+  "phases_seconds": {
+    "cold_open": 99.683258459,
+    "campaign": 151.966999917,
+    "materialize": 134.657160958
+  },
+  "materialized_nodes": 618754,
+  "failure": "cohort SemanticConstraintViolation: claim root encoding incorrectly equated to full snapshot digest",
+  "focused_real_legacy_isolation": {
+    "passed": 1,
+    "runtime_seconds": 9,
+    "max_rss": "190M"
+  },
+  "focused_real_native_policy": {
+    "passed": 1,
+    "runtime_seconds": 9,
+    "max_rss": "234M",
+    "original_snapshot_words_preserved": true,
+    "changed_roots_rejected": true
+  },
+  "focused_native_root_wire_closure": {
+    "tests": 2,
+    "includes_discovery": true,
+    "runtime_ms": 274,
+    "max_rss": "4M"
+  },
+  "next_source_manifest_sha256": "cafe4e94959879fd3b8d4afcd48804842885d69bce06188748251e05f2f5d417",
+  "next_receipt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/acceptance-v2.json",
+  "real_wrapper_verified": false
+}

@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 137s
+
+Build Summary: 4/4 steps succeeded; 31/31 tests passed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 success
++- recursive common Ethereum incremental leaf V4 structural guard success
+   +- run test 31 passed 597ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 29s MaxRSS:3G
+

@@ -84,6 +84,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
         coefficient_retention_policy: CoefficientRetentionPolicy,
+        /// Optional storage for retained LDE values only. Its owner must outlive
+        /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
+        retained_column_allocator: ?std.mem.Allocator = null,
+        /// Optional scratch storage for typed AIR quotient-domain values.
+        /// Its owner must outlive proving and all prepared evaluators.
+        quotient_values_allocator: ?std.mem.Allocator = null,
+        /// Execution-only opt-in; CSP and existing callers retain their path.
+        reuse_bounded_merkle_tail: bool = false,
+        /// Execution-only opt-in for adopting backends; keeps source and
+        /// coefficient storage in the same aligned arena.
+        pack_owned_source_by_log: bool = false,
         twiddle_source: TwiddleSource,
         pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
         shell_preopening_audit: shell_work_profile.PreOpeningAudit,
@@ -146,6 +157,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             policy: CoefficientRetentionPolicy,
         ) void {
             self.coefficient_retention_policy = policy;
+        }
+
+        /// Execution-only storage selection. The default allocation and protocol
+        /// are unchanged. Selected storage currently requires `.never` coefficients.
+        pub fn setRetainedColumnAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+            self.retained_column_allocator = allocator;
+        }
+
+        /// Execution-only opt-in; no commitment or transcript parameter changes.
+        pub fn setQuotientValuesAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+            self.quotient_values_allocator = allocator;
         }
 
         const CommitOps = @import("commit_ops.zig").CommitOps(B, H, MC, Self);

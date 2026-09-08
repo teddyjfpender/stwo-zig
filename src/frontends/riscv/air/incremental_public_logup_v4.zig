@@ -14,11 +14,17 @@ const public_logup = @import("public_logup.zig");
 const public_logup_v2 = @import("public_logup_v2.zig");
 const incremental_v3 = @import("incremental_public_logup_v3.zig");
 const relation_challenges = @import("relation_challenges.zig");
+const CircuitProfile = @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1;
 const statement_v2 = @import("statement_v2.zig");
 
 pub const PRODUCTION_ACTIVE = false;
 pub const FORMAT_VERSION: u16 = 4;
 pub const SCHEMA_VERSION: u16 = 1;
+
+pub fn schemaVersionForCircuit(profile: CircuitProfile) u16 {
+    return if (profile == .legacy_v4) SCHEMA_VERSION else 2;
+}
+
 pub const PROFILE = execution_profile.ExecutionProfile.rv32im_zkvm_ethereum_v1;
 pub const Sums = public_logup_v2.Sums;
 pub const Digest = [32]u8;
@@ -46,14 +52,21 @@ pub const VerifiedPublicSumsV4 = struct {
     sums: Sums,
     total: QM31,
     identity_sha256: Digest,
+    circuit_profile: CircuitProfile = .legacy_v4,
 
     pub fn init(
         native: *const public_data_v2.PublicDataV2,
         role_aware: *const public_data.PublicData,
         relations: *const relation_challenges.Relations,
     ) !VerifiedPublicSumsV4 {
-        const value = try relationSums(native, role_aware, relations);
+        return initWithCircuitProfile(native, role_aware, relations, .legacy_v4);
+    }
+
+    pub fn initWithCircuitProfile(native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relation_challenges.Relations, circuit_profile: CircuitProfile) !VerifiedPublicSumsV4 {
+        const value = try relationSumsWithCircuitProfile(native, role_aware, relations, circuit_profile);
         var result = VerifiedPublicSumsV4{
+            .schema_version = schemaVersionForCircuit(circuit_profile),
+            .circuit_profile = circuit_profile,
             .native_wire_id = native.wireId(),
             .public_boundary_identity_sha256 = publicBoundaryIdentity(
                 native,
@@ -73,10 +86,11 @@ pub const VerifiedPublicSumsV4 = struct {
         role_aware: *const public_data.PublicData,
         relations: *const relation_challenges.Relations,
     ) !void {
-        const expected = try VerifiedPublicSumsV4.init(
+        const expected = try VerifiedPublicSumsV4.initWithCircuitProfile(
             native,
             role_aware,
             relations,
+            self.circuit_profile,
         );
         if (!std.meta.eql(self.*, expected))
             return error.InvalidIncrementalPublicSumsV4;
@@ -224,12 +238,38 @@ pub fn relationSums(
     return (try audit(native, role_aware, relations)).result;
 }
 
+pub fn relationSumsWithCircuitProfile(native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relation_challenges.Relations, circuit_profile: CircuitProfile) !Sums {
+    // The diagnostic audit retains the explicit V2 + replacement calculation.
+    // Admission computes only surviving fractions, while checking the removed
+    // denominators through the same native tuple enumeration.
+    try validateSharedAuthority(native, role_aware);
+    var result = try public_logup_v2.relationSumsWithoutSparseRwV4(native, relations);
+    try statement_v2.validateSparseContinuationTreeDenominatorsV4(native, relations);
+    result.memory_access = result.memory_access.add(try public_logup.publicIoMemoryAccessSum(role_aware, relations));
+    if ((try native.metadata()).completion == null)
+        result.program_access = result.program_access.add(try public_logup.programAccessSumForProfile(PROFILE, role_aware, relations));
+    if (circuit_profile.programPolicy() == .fixed_decoded_table_v1)
+        result.merkle = result.merkle.sub(try public_logup_v2.programRootAnchor(native, relations));
+    return result;
+}
+
+pub fn sumWithCircuitProfile(native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relation_challenges.Relations, circuit_profile: CircuitProfile) !QM31 {
+    return (try relationSumsWithCircuitProfile(native, role_aware, relations, circuit_profile)).total();
+}
+
 pub fn sum(
     native: *const public_data_v2.PublicDataV2,
     role_aware: *const public_data.PublicData,
     relations: *const relation_challenges.Relations,
 ) !QM31 {
     return (try relationSums(native, role_aware, relations)).total();
+}
+
+pub fn auditWithCircuitProfile(native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relation_challenges.Relations, circuit_profile: CircuitProfile) !ReplacementAuditV4 {
+    var result = try audit(native, role_aware, relations);
+    if (circuit_profile.programPolicy() == .fixed_decoded_table_v1)
+        result.result.merkle = result.result.merkle.sub(try public_logup_v2.programRootAnchor(native, relations));
+    return result;
 }
 
 pub fn audit(
@@ -290,6 +330,7 @@ fn sumsIdentity(value: *const VerifiedPublicSumsV4) Digest {
     hashQm31(&hash, value.sums.memory_access);
     hashQm31(&hash, value.sums.program_access);
     hashQm31(&hash, value.total);
+    if (value.circuit_profile != .legacy_v4) hashInt(&hash, u16, @intFromEnum(value.circuit_profile));
     return hash.finalResult();
 }
 
@@ -395,6 +436,78 @@ test "incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile" {
         @as(u32, 3),
         @intFromEnum(public_data.CompletionKind.unretired_program_fetch),
     );
+}
+
+test "incremental public V4 surviving fractions match scalar replacement by domain" {
+    const support = @import("public_data_v2_test_support.zig");
+    const M31 = @import("stwo_core").fields.m31.M31;
+    var fixture = try support.Fixture.init();
+    // Include initial/nonfinal, resumed/final and truly empty sparse sections.
+    var empty = fixture.leftSource();
+    empty.memory_words = &.{};
+    empty.entry_memory_clocks = &.{};
+    empty.exit_memory_clocks = &.{};
+    for ([_]@TypeOf(empty){ fixture.leftSource(), fixture.rightSource(), empty }) |source| {
+        const words = try support.encode(std.testing.allocator, &source);
+        defer std.testing.allocator.free(words);
+        const native = try public_data_v2.PublicDataV2.authenticate(words);
+        var role = try statement_v2.canonicalCorePublicData(&native);
+        if (role.completion == null)
+            role.completion = public_data.Completion.unretiredProgramFetch(role.final_pc, 0x0010_0093);
+        for (0..3) |seed| {
+            var relations = relation_challenges.Relations.dummy();
+            inline for (@typeInfo(relation_challenges.Relations).@"struct".fields) |field| {
+                const old = @field(relations, field.name);
+                @field(relations, field.name) = field.type.init(old.z.add(QM31.fromBase(M31.fromCanonical(@intCast(seed)))), old.alpha);
+            }
+            inline for (.{ CircuitProfile.legacy_v4, CircuitProfile.fixed_program_narrow_v1 }) |profile| {
+                const reference = try auditWithCircuitProfile(&native, &role, &relations, profile);
+                const actual = try relationSumsWithCircuitProfile(&native, &role, &relations, profile);
+                // Compare individual domains: total-only equality could conceal
+                // incorrectly moved compensation between unrelated relations.
+                try std.testing.expectEqualDeep(reference.result, actual);
+                var expected = try VerifiedPublicSumsV4.initWithCircuitProfile(&native, &role, &relations, profile);
+                const published = expected;
+                expected.sums = reference.result;
+                expected.total = reference.result.total();
+                expected.identity_sha256 = sumsIdentity(&expected);
+                try std.testing.expectEqualDeep(expected, published);
+            }
+        }
+    }
+}
+
+test "incremental public V4 still rejects zero denominators in removed sparse terms" {
+    const support = @import("public_data_v2_test_support.zig");
+    const M31 = @import("stwo_core").fields.m31.M31;
+    var fixture = try support.Fixture.init();
+    const source = fixture.leftSource();
+    const words = try support.encode(std.testing.allocator, &source);
+    defer std.testing.allocator.free(words);
+    const native = try public_data_v2.PublicDataV2.authenticate(words);
+    var role = try statement_v2.canonicalCorePublicData(&native);
+    role.completion = public_data.Completion.unretiredProgramFetch(role.final_pc, 0x0010_0093);
+    const normal = relation_challenges.Relations.dummy();
+    const audit_value = try audit(&native, &role, &normal);
+    try std.testing.expect(!audit_value.removed_sparse_rw.isZero());
+    try std.testing.expect(!audit_value.removed_sparse_continuation_tree.isZero());
+
+    // alpha=0 isolates address-space1: only removed sparse RW fractions fail;
+    // retained register tuples have address-space0 and remain nonzero.
+    var zero_rw = normal;
+    zero_rw.memory_access = relation_challenges.RelationElements(7).init(QM31.one(), QM31.zero());
+    try std.testing.expectError(error.ZeroDenominator, audit(&native, &role, &zero_rw));
+    try std.testing.expectError(error.ZeroDenominator, relationSumsWithCircuitProfile(&native, &role, &zero_rw, .legacy_v4));
+
+    // alpha=0 isolates the first sparse byte's address. Root anchors have
+    // address0, so rejection must come from a removed continuation leaf.
+    const view = try native.authenticatedView();
+    try std.testing.expect(view.entry_snapshot.count != 0);
+    const address = view.sparseEntry(view.entry_snapshot, 0).address;
+    var zero_leaf = normal;
+    zero_leaf.merkle = relation_challenges.RelationElements(4).init(QM31.fromBase(M31.fromU64(address)), QM31.zero());
+    try std.testing.expectError(error.ZeroDenominator, audit(&native, &role, &zero_leaf));
+    try std.testing.expectError(error.ZeroDenominator, relationSumsWithCircuitProfile(&native, &role, &zero_leaf, .fixed_program_narrow_v1));
 }
 
 comptime {

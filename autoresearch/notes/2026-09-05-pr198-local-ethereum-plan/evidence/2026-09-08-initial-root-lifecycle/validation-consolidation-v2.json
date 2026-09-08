@@ -1,0 +1,20 @@
+{
+  "status": "queued_not_semantically_accepted",
+  "source_manifest_sha256": "97f5f65a06fa2ff032a326d5c59135dbc65336e87a1436026a111f94ef3a9ac2",
+  "validation_session": 31401,
+  "validation_record": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v2/validation.json",
+  "superseded": [
+    {
+      "session": 12918,
+      "exit_code": 143
+    },
+    {
+      "session": 77113,
+      "exit_code": 241
+    }
+  ],
+  "supersession_reason": "Both old launchers were verified childless lock waiters and terminated before compilation; full lifecycle gate replaces narrower assembly compilation and includes latest expected-public comparison",
+  "semantic_failures": [],
+  "real_wrapper_proof_session_unchanged": 51199,
+  "native_campaign_session_unchanged": 30220
+}

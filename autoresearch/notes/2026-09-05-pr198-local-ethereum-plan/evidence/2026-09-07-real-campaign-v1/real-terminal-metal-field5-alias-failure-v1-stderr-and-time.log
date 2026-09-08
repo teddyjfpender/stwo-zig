@@ -1,0 +1,34 @@
+INCREMENTAL_FULL_LEAF_RESOURCE_POLICY_V1 composition_allocation_budget_bytes=17179869184 pcs_retained_byte_budget_bytes=25769803776 host_admission_limit_bytes=34359738368 process_cap_enforced=false
+SELECTED_ETHEREUM_LEAF_ADMISSION_V1 segment=120 campaign_segments=121 full_campaign_sealed=false
+INCREMENTAL_FULL_LEAF_INPUT_PHASES_V1 retained_open_ns=30971917 selection_ns=250 replay_program_ns=33553708 fixed_program_admission_ns=3351655167 capture_admission_ns=151756525583
+INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=1834123 poseidon_calls=1834123 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=7901392112 source_column_bytes=3950696056 columns=16655 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator
+thread 36780865 panic: @memcpy arguments alias
+???:?:?: 0x1050b83e7 in _pcs.columns.preparation.prepareColumnsCombinedForBackend__anon_54221 (???)
+???:?:?: 0x1050b8ba7 in _pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_54215 (???)
+???:?:?: 0x1050bbe53 in _engine.ProverEngine(commit_backend.MetalCommitBackend,recursion.poseidon2_channel.MerkleHasher,recursion.poseidon2_channel.MerkleChannel,recursion.poseidon2_channel.Channel).commit (???)
+???:?:?: 0x105024dc7 in _prover.incremental_ethereum_orchestration_v3.provePreparedAfterAdmission__anon_29329 (???)
+???:?:?: 0x10503cc83 in _ethereum_incremental_full_leaf_prepared_replay_producer_v4.produceAllocWithRecorderAndTiming__anon_15345 (???)
+???:?:?: 0x10508d02f in _ethereum_incremental_full_leaf_replay_command_v4.runWithEnginesInternal__anon_8383 (???)
+???:?:?: 0x10509346b in _main (???)
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xe3677fffffffffff in ??? (???)
+time: command terminated abnormally
+      169.65 real       168.12 user         1.10 sys
+          2438922240  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              574811  page reclaims
+                 445  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  54  voluntary context switches
+                8024  involuntary context switches
+       3721545450920  instructions retired
+        670938726051  cycles elapsed
+          2581056464  peak memory footprint

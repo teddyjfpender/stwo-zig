@@ -137,7 +137,7 @@ fn validateSources(
     try global.validate();
     try local.validate();
     try receipt.validateAgainst(local);
-    const view = try segment_v2.authenticateCanonicalWire(local.words());
+    const view = try local.authenticatedView();
     const actual_local = try view.statement.base();
     const expected_local = try projection_v3.localStatementFromMetadata(global);
     if (!std.meta.eql(actual_local, expected_local) or

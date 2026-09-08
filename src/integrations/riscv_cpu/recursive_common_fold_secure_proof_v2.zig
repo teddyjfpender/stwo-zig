@@ -85,12 +85,15 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
             fresh: secure_engine.FreshVerificationV1,
             composition_capture: CaptureTypes.CaptureV2,
             query_authority: CaptureTypes.VerifierQueryAuthorityV2,
+            transcript: *Kernel.RecordedReplayV1,
             claims: manifest_mod.ClaimVector,
             node_artifact: artifact_mod.RecursiveNodeArtifactV2,
             validation: *process_validation.ValidatedOwnerV1,
 
             pub fn deinit(self: *OwnedColdProof) void {
                 self.allocator.destroy(self.validation);
+                self.transcript.deinit();
+                self.allocator.destroy(self.transcript);
                 self.composition_capture.deinit();
                 self.fresh.deinit();
                 self.artifact_value.deinit();
@@ -170,6 +173,8 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
                     readTimer(&replay_timer),
                 );
                 try replay.validateQueryWordsAgainst(&self.fresh);
+                try self.transcript.program.validateRecording(&self.transcript.execution);
+                if (!std.meta.eql(self.transcript.replay, replay)) return error.CommonFoldColdCaptureMismatch;
                 try self.query_authority.validateAgainstReplay(&replay);
                 try self.composition_capture.validateAgainst(
                     &cohort,
@@ -186,7 +191,7 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
                 defer self.allocator.free(canonical);
                 const expected_node = try buildNodeArtifact(
                     live,
-                    &self.artifact_bytes,
+                    self.artifact_bytes,
                 );
                 if (!std.meta.eql(self.session, expected_session) or
                     !std.meta.eql(
@@ -247,6 +252,7 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
                         .geometry_authority = self.live.geometry,
                         .geometry = geometry,
                         .capture = &self.fresh.capture,
+                        .transcript = .{ .program = &self.transcript.program, .execution = &self.transcript.execution },
                         .query_words = &self.query_authority.query_words,
                         .query_log_size = self.query_authority.query_log_size,
                         .final_transcript_digest = &self.query_authority.final_transcript_digest,
@@ -312,22 +318,30 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
                 .decodeCanonical(allocator, proof_bytes);
             errdefer artifact_value.deinit();
             var cold_timer = startTimer();
-            var fresh = try Kernel.verifyCold(
+            var verified = try Kernel.verifyColdWithReplay(
                 allocator,
-                .{ .live = live },
+                &cohort,
                 &session,
                 &artifact_value,
             );
             const cold_verify_ns = readTimer(&cold_timer);
-            errdefer fresh.deinit();
-            return ownResult(
+            errdefer verified.deinit();
+            const transcript = try allocator.create(Kernel.RecordedReplayV1);
+            errdefer allocator.destroy(transcript);
+            var record_timer = startTimer();
+            transcript.* = try Kernel.recordColdReplayWithCohort(allocator, &cohort, &session, &verified);
+            errdefer transcript.deinit();
+            return ownPreparedResult(
                 allocator,
                 live,
                 session,
                 artifact_value,
-                fresh,
+                verified.fresh,
+                &cohort,
+                transcript,
                 &decoded_node,
-                cold_verify_ns,
+                cold_verify_ns -| verified.replay_finalize_ns,
+                verified.replay_finalize_ns + readTimer(&record_timer),
             );
         }
 
@@ -343,23 +357,42 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
             var cohort = try SecureCohort.init(allocator, .{ .live = live });
             defer cohort.deinit();
             var replay_timer = startTimer();
-            const replay = try Kernel.reconstructVerifiedReplayWithCohort(
+            const transcript = try allocator.create(Kernel.RecordedReplayV1);
+            errdefer allocator.destroy(transcript);
+            transcript.* = try Kernel.recordVerifiedReplayWithCohort(
                 allocator,
                 &cohort,
                 &session,
                 &fresh,
             );
+            errdefer transcript.deinit();
             const replay_ns = readTimer(&replay_timer);
+            return ownPreparedResult(allocator, live, session, artifact_value, fresh, &cohort, transcript, retained_node, cold_verify_ns, replay_ns);
+        }
+
+        fn ownPreparedResult(
+            allocator: std.mem.Allocator,
+            live: *const live_mod.CohortV2,
+            session: secure_artifact.SessionV1,
+            artifact_value: secure_artifact.OwnedArtifactV1,
+            fresh: secure_engine.FreshVerificationV1,
+            cohort: *SecureCohort,
+            transcript: *Kernel.RecordedReplayV1,
+            retained_node: ?*const artifact_mod.RecursiveNodeArtifactV2,
+            cold_verify_ns: u64,
+            replay_ns: u64,
+        ) !OwnedColdProof {
+            const replay = &transcript.replay;
             const query_authority =
-                try CaptureTypes.VerifierQueryAuthorityV2.init(&replay);
+                try CaptureTypes.VerifierQueryAuthorityV2.init(replay);
             var graph_timer = startTimer();
             var graph = try CaptureTypes.CaptureV2.init(
                 allocator,
-                &cohort,
+                cohort,
                 &session,
                 &fresh.statement,
                 &fresh.capture,
-                &replay,
+                replay,
             );
             const graph_record_ns = readTimer(&graph_timer);
             errdefer graph.deinit();
@@ -386,11 +419,12 @@ pub fn BackendV2(comptime dimensions: recursion.fixed_wire.Dimensions) type {
                 .fresh = fresh,
                 .composition_capture = graph,
                 .query_authority = query_authority,
+                .transcript = transcript,
                 .claims = replay.claims,
                 .node_artifact = node,
                 .validation = validation,
             };
-            try cold_token.validateConstructed(&result, &cohort, &replay);
+            try cold_token.validateConstructed(&result, cohort, replay);
             validation.* = try process_validation.ValidatedOwnerV1.init(
                 try cold_token.snapshot(&result),
             );

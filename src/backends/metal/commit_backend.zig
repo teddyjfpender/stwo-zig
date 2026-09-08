@@ -189,6 +189,9 @@ pub const MetalCommitBackend = struct {
     /// alive until decommitment instead of recreating or host-falling back.
     pub const retainFriPackedOpeningColumns = true;
 
+    // Reuse the dispatcher's exact traffic model in explicit admission probes.
+    pub const stagedPoseidonTrafficReceiptV1 = heterogeneous_commit.stagedPoseidonTrafficReceiptV1;
+    pub const admitsStagedPoseidonTrafficV1 = heterogeneous_commit.admitsStagedPoseidonTrafficV1;
     pub const prepareAndCommitOwned = heterogeneous_commit.prepareAndCommitOwned;
     pub const prepareAndCommitOwnedWithWorkRecorder =
         heterogeneous_commit.prepareAndCommitOwnedWithWorkRecorder;
@@ -854,7 +857,24 @@ pub const MetalCommitBackend = struct {
             return error.InvalidColumns;
         }
         if (base_domain.logSize() < 3) {
-            for (source_values, base_values) |source, base| @memcpy(base, source);
+            for (source_values, base_values, extended_values) |source, base, extended| {
+                if (source.len != base_domain.size() or base.len != base_domain.size() or
+                    extended.len != extended_domain.size() or extended.len < base.len)
+                    return error.InvalidColumns;
+                if (source.ptr != base.ptr) {
+                    const source_address = @intFromPtr(source.ptr);
+                    const base_address = @intFromPtr(base.ptr);
+                    const separation = if (source_address < base_address) base_address - source_address else source_address - base_address;
+                    if (separation < source.len * @sizeOf(@import("stwo_core").fields.m31.M31))
+                        return error.InvalidColumns;
+                }
+            }
+            // The owned-source arena may already be this group's coefficient
+            // buffer. The device path supports that exact alias; small host
+            // transforms must preserve the same ownership contract.
+            for (source_values, base_values) |source, base| {
+                if (source.ptr != base.ptr) @memcpy(base, source);
+            }
             try @import("stwo_prover_engine").poly.circle.poly.interpolateBuffersWithTwiddles(
                 base_values,
                 base_domain,

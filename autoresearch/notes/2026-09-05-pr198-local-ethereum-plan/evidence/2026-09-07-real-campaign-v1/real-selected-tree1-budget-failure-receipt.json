@@ -1,0 +1,29 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "exit_code": 1,
+  "monitor_elapsed_ns": 52135128041,
+  "sampled_peak_footprint_bytes": 2622360336,
+  "stopped_for_footprint_limit": false,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "Separate 24 GiB retained PCS ceiling and 16 GiB composition allocator ceiling; 32 GiB sampled footprint stop is a fallback, not allocation guarantee",
+    "resource_model_not_measurement": {
+      "retained_lde_bytes": 20550093056,
+      "maximum_streaming_source_batch_bytes": 1073741824,
+      "three_max_height_merkle_trees_upper_bytes": 1610612736,
+      "observed_prior_prepare_peak_bytes": 2186643736,
+      "additional_unbounded_by_this_model": "composition outputs, FRI, twiddles and allocator; 8 GiB difference between PCS ceiling and process stop provides headroom, not proof of peak"
+    }
+  },
+  "verified_and_published": false,
+  "ended_unix_ns": 1788790659823967000,
+  "real_seconds": 50.85,
+  "user_seconds": 76.79,
+  "sys_seconds": 0.66,
+  "maximum_resident_set_size_bytes": 2766192640,
+  "peak_memory_footprint_bytes": 2765540160
+}

@@ -190,6 +190,7 @@ pub fn bindCompletion(
 }
 
 pub const CommitmentWitness = struct {
+    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
     boundary: ?memory_boundary.Claims,
     program: ProgramWitnessV1,
     poseidon_calls: std.ArrayList(poseidon2_air.Call),
@@ -446,6 +447,37 @@ pub const CommitmentWitness = struct {
         incremental_poseidon_calls: []const poseidon2_air.Call,
         roots: IncrementalRootsV3,
     ) !CommitmentWitness {
+        return buildExternalProfileWithProgramPolicy(.legacy_v4, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
+    }
+
+    pub fn buildExternalProfileWithFixedProgramAndIncrementalBoundaryV1(
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        prepared_program: anytype,
+        boundary_rows: []const memory_boundary.Row,
+        incremental_merkle_rows: []const merkle_node.NodeRow,
+        incremental_poseidon_calls: []const poseidon2_air.Call,
+        roots: IncrementalRootsV3,
+    ) !CommitmentWitness {
+        return buildExternalProfileWithProgramPolicy(.fixed_program_narrow_v1, allocator, selected_profile, execution_sources, opt_memory, completion, prepared_program, boundary_rows, incremental_merkle_rows, incremental_poseidon_calls, roots);
+    }
+
+    fn buildExternalProfileWithProgramPolicy(
+        comptime circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        allocator: std.mem.Allocator,
+        selected_profile: @import("../isa/execution_profile.zig").ExecutionProfile,
+        execution_sources: anytype,
+        opt_memory: ?*const memory_state.Snapshot,
+        completion: public_data_mod.Completion,
+        prepared_program: anytype,
+        boundary_rows: []const memory_boundary.Row,
+        incremental_merkle_rows: []const merkle_node.NodeRow,
+        incremental_poseidon_calls: []const poseidon2_air.Call,
+        roots: IncrementalRootsV3,
+    ) !CommitmentWitness {
         if (selected_profile != .rv32im_zkvm_ethereum_v1 or
             boundary_rows.len == 0 or
             incremental_merkle_rows.len == 0 or
@@ -480,20 +512,13 @@ pub const CommitmentWitness = struct {
 
         var poseidon_calls: std.ArrayList(poseidon2_air.Call) = .{};
         errdefer poseidon_calls.deinit(allocator);
-        try poseidon_calls.appendSlice(
-            allocator,
-            prepared_program.ordered_poseidon_calls,
-        );
+        if (circuit_profile.programPolicy() == .sparse_merkle_v1) try poseidon_calls.appendSlice(allocator, prepared_program.ordered_poseidon_calls);
         try poseidon_calls.appendSlice(allocator, incremental_poseidon_calls);
 
         var merkle_rows: std.ArrayList(merkle_node.NodeRow) = .{};
         errdefer merkle_rows.deinit(allocator);
         try merkle_rows.appendSlice(allocator, incremental_merkle_rows);
-        try appendTreeRows(
-            allocator,
-            &merkle_rows,
-            prepared_program.commitment.tree,
-        );
+        if (circuit_profile.programPolicy() == .sparse_merkle_v1) try appendTreeRows(allocator, &merkle_rows, prepared_program.commitment.tree);
 
         const owned_rows = try leaf_program.takeRows();
         leaf_program_owned = false;
@@ -505,6 +530,7 @@ pub const CommitmentWitness = struct {
             prepared_program.commitment.tree.nodes.len,
         );
         return .{
+            .circuit_profile = circuit_profile,
             .boundary = null,
             .program = program,
             .poseidon_calls = poseidon_calls,
@@ -922,7 +948,7 @@ pub const CommitmentWitness = struct {
     }
 };
 
-fn validatePreparedProgramSnapshot(
+pub fn validatePreparedProgramSnapshot(
     snapshot: *const memory_state.Snapshot,
     prepared_program: anytype,
 ) !void {

@@ -8,7 +8,7 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 
 const evidence = @import("ethereum_block_leaf_evidence.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 
 const capability_mod =
     frontend.testing.ethereum_candidate_execution_capability_v1;

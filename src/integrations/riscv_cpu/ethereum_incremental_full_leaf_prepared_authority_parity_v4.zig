@@ -147,26 +147,29 @@ pub fn comparePreparedAgainstLegacy(
     const core_public = try statement_v2.canonicalCorePublicData(
         &geometry.statement.public_data,
     );
-    var witness = try ethereum_witness.Witness.init(
+    var witness = try ethereum_witness.Witness.initWithCircuitProfileV1(
         allocator,
         replay.keccakf_calls.records(),
         replay.keccakf_execution_rows.rows(),
         replay.signer_recovery_calls.records(),
         replay.signer_recovery_execution_rows.rows(),
         core_public.clock,
+        view.profile.circuitProfile(),
     );
     defer witness.deinit();
-    const extension = try ethereum_statement.Statement.canonicalV2(
+    const extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(
         &geometry.statement,
         @intCast(replay.keccakf_calls.records().len),
         @intCast(replay.signer_recovery_calls.records().len),
         witness.shapes(),
+        view.profile.circuitProfile(),
     );
-    const profile = try view.prepared_witness.mintProfile(
+    const profile = try view.prepared_witness.mintProfileWithAdmission(
         view.boundary_artifact,
         view.public_authority,
         &geometry.statement,
         &extension,
+        try view.profile.claimAdmission(),
     );
     try profile.validateAgainstInputs(
         allocator,

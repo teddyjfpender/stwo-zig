@@ -1,0 +1,15 @@
+{
+  "sha256": "3b3496022e092f636dcc62a7c8f492c6c80653505d4d0a999b1c041c5186f84d",
+  "bytes": 3553696,
+  "compiled_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/ethereum-full-leaf-bundle-verify-v1",
+  "retained_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-fresh-v2/verifier.bin",
+  "source_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_files_sha256": {
+    "src/frontends/riscv/air/public_data_v2.zig": "2be5d6e7cf9a957a4f35494c453aa2b8e6d11b9d9886921c2c66078d7982c71b",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig": "3b4d3992d705e2fba5d6668a5b8e5845f00bf145cc15fb18583a4e91f8e1dadd",
+    "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_proof_artifact_v4.zig": "afc0e4016965883edae185c8f58c5dece846f96e7ac9ae8e1ea79e2a5d0d2fa9",
+    "src/integrations/riscv_cpu/ethereum_full_leaf_bundle_verifier_v1.zig": "2332a82c976c4c7a260c010f6f39ee2eb5d5bf4a0185283ea93bfd2f37f849ce"
+  },
+  "compile_log": "/tmp/ethereum-selected-leaf-cold-lease-build-v1.log",
+  "cold_gate_log": "/tmp/ethereum-cold-wire-admission-v2.log"
+}

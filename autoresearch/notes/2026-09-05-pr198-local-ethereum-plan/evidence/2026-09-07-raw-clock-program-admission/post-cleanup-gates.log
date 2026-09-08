@@ -1,0 +1,59 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test stderr
+ETHEREUM_AIR_DEGREE component=control direct_bound=0 logup_bound=2 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_air direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_binding direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_state direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_word direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_payload direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_check direct_bound=2 logup_bound=2 declared=2 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_frame direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=relation_challenge direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=verifier_randomness direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_input direct_bound=2 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_semantics_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_io_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_semantics_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_control direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_air_composition_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_air_composition_control direct_bound=0 logup_bound=2 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=query_bits direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=query_mapping direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=merkle_root direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=trace_merkle direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pcs_deep_input direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_leaf direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_node direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_anchor direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=fri_verifier_control direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=fri_verifier_input direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=qm31_mul direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=qm31_inv direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=linear_ops direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=merkle_path direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_PARAMETER row=1 parameter=0 expected=1 actual=0
+ETHEREUM_TYPED_POINT_PARITY component=vm_public_logup_control row=0 trace_log=3 eval_log=5
+ETHEREUM_ROLE_BINDING capacity=2 inputs=544 nodes=2492 constraints=528 node_estimate=4848
+
+Build Summary: 16/16 steps succeeded; 121/121 tests passed
+test-ethereum-prepared-wrapper-boundary success
++- Ethereum prepared wrapper boundary guard success
+   +- run test 6 passed 266ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:618M
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 success
++- recursive common Ethereum incremental leaf V4 structural guard success
+   +- run test 113 passed 2s MaxRSS:69M
+      +- compile test ReleaseSafe native success 1m MaxRSS:5G
+test-ethereum-small-composition-proof success
++- Ethereum small composition proof guard success
+   +- run test 2 passed 306ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 19s MaxRSS:1G
+check-ethereum-complete-proof success
++- compile test ReleaseSafe native success 1m MaxRSS:5G
+check-ethereum-wrapper-candidate-replay success
++- compile test ReleaseSafe native success 1m MaxRSS:5G
+

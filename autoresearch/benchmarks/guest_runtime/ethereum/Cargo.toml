@@ -1,0 +1,23 @@
+[package]
+name = "stwo-ethereum-guest"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alloy-consensus = { version = "=2.4.1", default-features = false, features = ["crypto-backend", "k256"] }
+alloy-primitives = { version = "=1.6.1", default-features = false, features = ["native-keccak", "map-foldhash"] }
+critical-section = { version = "1.2", features = ["restore-state-bool"] }
+k256 = { version = "=0.13.4", default-features = false, features = ["ecdsa"] }
+stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491", default-features = false }
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[profile.dev]
+panic = "abort"

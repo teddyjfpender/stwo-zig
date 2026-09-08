@@ -32,6 +32,20 @@ pub fn build(b: *std.Build) void {
         "stwo_riscv_cpu_integration",
         dependency_options,
     ).module("stwo_riscv_cpu_stage101_degree5_metal");
+    const tree0_probe_root = b.dependency("stwo_riscv_cpu_integration", dependency_options)
+        .module("stwo_riscv_cpu_ethereum_tree0_probe");
+    tree0_probe_root.addImport("stwo_metal_backend", metal_backend);
+    const tree0_probe = b.addTest(.{
+        .root_module = tree0_probe_root,
+        .filters = &.{"role0 saved Stage101 pair compares CPU and authenticated Metal Tree0 admission"},
+    });
+    const tree0_run = b.addRunArtifact(tree0_probe);
+    tree0_run.has_side_effects = true;
+    b.step("test-ethereum-wrapper-tree0", "Compare the same admitted wrapper Tree0 on CPU and authenticated Metal PCS; no wrapper proof")
+        .dependOn(&tree0_run.step);
+    b.step("check-ethereum-wrapper-tree0", "Compile the explicit CPU/Metal Tree0 admission comparison")
+        .dependOn(&tree0_probe.step);
+
     const secp256k1_proof_harness =
         frontend_dependency.module("secp256k1_proof_harness");
     const keccakf_proof_harness =
@@ -79,6 +93,8 @@ pub fn build(b: *std.Build) void {
         "benchmark-stage101-leaf-autoresearch-v1",
         "Run one retained Stage101 leaf on authenticated-AOT Metal",
     );
+    const prepared_metal_test_step = b.step("test-ethereum-prepared-leaf-metal-v1", "Test production prepared Metal leaf option and AOT admission");
+    const prepared_metal_install_step = b.step("install-ethereum-prepared-leaf-metal-v1", "Build the authenticated Metal full-leaf producer with independent CPU verification");
     const d5_sweep_test_step = b.step(
         "test-stage101-degree5-provider-sweep-v1",
         "Test the retained q193 D5 provider Metal sweep contract",
@@ -103,12 +119,27 @@ pub fn build(b: *std.Build) void {
         stage101_compile_step.dependOn(&unsupported.step);
         stage101_install_step.dependOn(&unsupported.step);
         stage101_benchmark_step.dependOn(&unsupported.step);
+        prepared_metal_test_step.dependOn(&unsupported.step);
+        prepared_metal_install_step.dependOn(&unsupported.step);
         d5_sweep_test_step.dependOn(&unsupported.step);
         d5_sweep_compile_step.dependOn(&unsupported.step);
         d5_sweep_install_step.dependOn(&unsupported.step);
         return;
     }
     const tests = b.addTest(.{ .root_module = integration });
+    const ethereum_node_root = b.createModule(.{
+        .root_source_file = b.path("ethereum_node_proof_v1_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    ethereum_node_root.addImport("stwo_metal_backend", metal_backend);
+    ethereum_node_root.addImport("stwo_riscv_frontend", frontend);
+    const ethereum_node_exe = b.addExecutable(.{ .name = "ethereum-node-proof-v1-metal", .root_module = ethereum_node_root });
+    linkMetalFrameworks(ethereum_node_exe);
+    const ethereum_node_run = b.addRunArtifact(ethereum_node_exe);
+    if (b.args) |args| ethereum_node_run.addArgs(args);
+    ethereum_node_run.has_side_effects = true;
+    b.step("run-ethereum-node-proof-v1", "Prove Ethereum node callers and providers using authenticated Metal AOT").dependOn(&ethereum_node_run.step);
     linkMetalFrameworks(tests);
     test_step.dependOn(&b.addRunArtifact(tests).step);
 
@@ -134,6 +165,14 @@ pub fn build(b: *std.Build) void {
         .root_module = stage101_module,
         .filters = &.{
             "Stage101 Metal engine preserves the exact q193 Poseidon protocol",
+            "Stage101 explicit benchmark tuple binds reference bytes and claim schema",
+            "Stage101 explicit benchmark tuple rejects unknown versions and malformed digests",
+            "Stage101 benchmark tuple explicitly pins small circle placement and preserves legacy default",
+            "Stage101 benchmark tuple explicitly admits fixed program schema five without changing legacy",
+            "Stage101 legacy benchmark admission retains exact reference and AOT pins",
+            "Stage101 fixed program selects separate AOT authority and legacy keeps core",
+            "Stage101 fixed program inventory borrow has explicit preparation receipt counts",
+            "Stage101 real leaf placement receipt admits zero small transforms and rejects other host work",
             "Stage101 five-second budget is exact and fail closed by stage",
             "Stage101 worker matrix is current-host evidence not a protocol cap",
             "Stage101 Metal coverage rejects missing and host fallback work",
@@ -162,6 +201,21 @@ pub fn build(b: *std.Build) void {
     stage101_compile_step.dependOn(&stage101_executable.step);
     const stage101_install = b.addInstallArtifact(stage101_executable, .{});
     stage101_install_step.dependOn(&stage101_install.step);
+
+    const prepared_metal_module = b.createModule(.{
+        .root_source_file = b.path("ethereum_prepared_leaf_metal_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    prepared_metal_module.addImport("stwo_metal_backend", metal_backend);
+    prepared_metal_module.addImport("stwo_riscv_frontend", frontend);
+    prepared_metal_module.addImport("stwo_riscv_cpu_stage101_degree5_metal", cpu_stage101_degree5_metal);
+    const prepared_metal_tests = b.addTest(.{ .root_module = prepared_metal_module, .filters = &.{"prepared Metal "} });
+    linkMetalFrameworks(prepared_metal_tests);
+    prepared_metal_test_step.dependOn(&b.addRunArtifact(prepared_metal_tests).step);
+    const prepared_metal_executable = b.addExecutable(.{ .name = "ethereum-prepared-leaf-metal-v1", .root_module = prepared_metal_module });
+    linkMetalFrameworks(prepared_metal_executable);
+    prepared_metal_install_step.dependOn(&b.addInstallArtifact(prepared_metal_executable, .{}).step);
 
     const d5_sweep_module = b.createModule(.{
         .error_tracing = error_tracing,

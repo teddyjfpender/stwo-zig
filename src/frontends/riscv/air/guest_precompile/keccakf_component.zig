@@ -27,6 +27,9 @@ const prepared_support = @import("../memory_commitment/hash_component_prepared_s
 
 const CirclePointQM31 = circle.CirclePointQM31;
 
+/// Exact state-column mask order, also consumed by recursive PCS replay.
+pub const STATE_MASK_OFFSETS = [_]isize{ 0, -2, -1, 1, 2, 27 };
+
 pub const preprocessed_column_count = trace_mod.Layout.preprocessed_columns;
 pub const main_column_count = trace_mod.Layout.main_columns;
 pub const interaction_column_count = interaction.interaction_column_count;
@@ -49,6 +52,10 @@ pub const Claim = struct {
         trace: *const trace_mod.Shard,
         batch_sums: [interaction.batch_count]QM31,
     ) InitError!Claim {
+        return canonicalWithMaximumLogSize(trace, batch_sums, trace_mod.maximum_log_size);
+    }
+
+    pub fn canonicalWithMaximumLogSize(trace: *const trace_mod.Shard, batch_sums: [interaction.batch_count]QM31, admitted_maximum_log_size: u32) InitError!Claim {
         const result = Claim{
             .log_size = trace.log_size,
             .n_rows = trace.n_rows,
@@ -57,11 +64,16 @@ pub const Claim = struct {
             .batch_sums = batch_sums,
             .component_sum = sumClaims(batch_sums),
         };
-        try result.validate();
+        try result.validateWithMaximumLogSize(admitted_maximum_log_size);
         return result;
     }
 
     pub fn validate(self: Claim) InitError!void {
+        return self.validateWithMaximumLogSize(trace_mod.maximum_log_size);
+    }
+
+    pub fn validateWithMaximumLogSize(self: Claim, admitted_maximum_log_size: u32) InitError!void {
+        const maximum_calls = trace_mod.maximumCallsForLogSize(admitted_maximum_log_size) catch return error.InvalidClaim;
         if (self.call_count == 0) {
             if (self.first_call_index != 0 or self.n_rows != 0 or
                 self.log_size != trace_mod.minimum_log_size or
@@ -72,7 +84,7 @@ pub const Claim = struct {
             }
             return;
         }
-        if (self.call_count > trace_mod.maximum_calls_per_shard) {
+        if (self.call_count > maximum_calls) {
             return error.InvalidClaim;
         }
         const end = std.math.add(u32, self.first_call_index, self.call_count) catch
@@ -87,7 +99,7 @@ pub const Claim = struct {
             std.math.log2_int_ceil(u32, rows),
         );
         if (self.n_rows != rows or self.log_size != expected_log or
-            self.log_size > trace_mod.maximum_log_size or
+            self.log_size > admitted_maximum_log_size or
             !sumClaims(self.batch_sums).eql(self.component_sum))
         {
             return error.InvalidClaim;
@@ -155,7 +167,11 @@ pub const KeccakShardComponent = struct {
         placement: Placement,
         relations: *const relations_mod.Relations,
     ) InitError!KeccakShardComponent {
-        try claim.validate();
+        return initWithMaximumLogSize(claim, placement, relations, trace_mod.maximum_log_size);
+    }
+
+    pub fn initWithMaximumLogSize(claim: Claim, placement: Placement, relations: *const relations_mod.Relations, admitted_maximum_log_size: u32) InitError!KeccakShardComponent {
+        try claim.validateWithMaximumLogSize(admitted_maximum_log_size);
         try placement.validate();
         return .{ .claim = claim, .placement = placement, .relations = relations };
     }
@@ -222,20 +238,16 @@ pub const KeccakShardComponent = struct {
             for (main[0..main_initialized]) |column| allocator.free(column);
             allocator.free(main);
         }
+        var state_points: [STATE_MASK_OFFSETS.len]CirclePointQM31 = undefined;
+        for (&state_points, STATE_MASK_OFFSETS) |*sample, offset|
+            sample.* = shiftedPoint(max_log_degree_bound, point, offset);
         for (main, 0..) |*column, local| {
             const points = if (local >= trace_mod.Layout.io_a and
                 local < trace_mod.Layout.state)
                 &.{ point, shiftedPoint(max_log_degree_bound, point, -1) }
             else if (local >= trace_mod.Layout.state and
                 local < trace_mod.Layout.parity)
-                &.{
-                    point,
-                    shiftedPoint(max_log_degree_bound, point, -2),
-                    shiftedPoint(max_log_degree_bound, point, -1),
-                    shiftedPoint(max_log_degree_bound, point, 1),
-                    shiftedPoint(max_log_degree_bound, point, 2),
-                    shiftedPoint(max_log_degree_bound, point, 27),
-                }
+                &state_points
             else
                 &.{point};
             column.* = try allocator.dupe(CirclePointQM31, points);

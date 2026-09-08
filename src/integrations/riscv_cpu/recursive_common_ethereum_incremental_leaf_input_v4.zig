@@ -10,6 +10,7 @@ const frontend = @import("stwo_riscv_frontend");
 
 const artifact_mod = @import("recursive_node_artifact_v1.zig");
 const registry_mod = @import("recursive_circuit_registry_v1.zig");
+const fixed_program_mod = @import("ethereum_fixed_program_admission_v1.zig");
 const full_leaf = @import("ethereum_incremental_full_leaf_proof_v4.zig");
 const proof_artifact =
     @import("ethereum_incremental_full_leaf_proof_artifact_v4.zig");
@@ -20,10 +21,18 @@ const segment_v2 = frontend.recursion.segment_statement_v2;
 const span = frontend.recursion.span_statement;
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 2;
+pub const SCHEMA_VERSION: u16 = 3;
 pub const ROLE = registry_mod.CircuitRoleV4
     .ethereum_incremental_leaf_wrapper_v4;
 pub const STATEMENT_WORD_COUNT: usize = artifact_mod.STATEMENT_WORD_COUNT;
+
+pub const GlobalMetadataV3 = frontend.recursion.segment_leaf_local_authority_v3.MetadataV3;
+pub const GlobalAdmissionV1 = struct {
+    version: u16 = 1,
+    metadata: GlobalMetadataV3,
+    link: frontend.recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3,
+    global_words: [STATEMENT_WORD_COUNT]u32,
+};
 
 pub const PRODUCTION_ACTIVATION = false;
 pub const WRAPPER_PROOF_AVAILABLE = false;
@@ -57,6 +66,9 @@ pub fn FreshInputV4(comptime Engine: type) type {
         stage101: full_leaf.FreshVerifiedCaptureV4(Engine),
         statement_words: [STATEMENT_WORD_COUNT]u32,
         coordinate: artifact_mod.TaskCoordinateV1,
+        global_admission: ?GlobalAdmissionV1 = null,
+        /// Independent immutable program owner must outlive this input.
+        fixed_program: ?*const fixed_program_mod.OwnedV1 = null,
         artifact_byte_count: u64,
         artifact_sha256: [32]u8,
         capability_identity_sha256: [32]u8,
@@ -77,6 +89,7 @@ pub fn FreshInputV4(comptime Engine: type) type {
                 artifact_bytes,
                 coordinate,
                 limits,
+                null,
                 null,
                 null,
             );
@@ -102,7 +115,28 @@ pub fn FreshInputV4(comptime Engine: type) type {
                 limits,
                 retained,
                 counters,
+                null,
             );
+        }
+
+        /// Program authority is reconstructed once from independently pinned
+        /// ELF bytes and can be reused across any number of native leaves.
+        pub fn coldOpenWithProgramAdmission(allocator: std.mem.Allocator, artifact_bytes: []const u8, coordinate: artifact_mod.TaskCoordinateV1, limits: proof_artifact.Limits, program: *const fixed_program_mod.OwnedV1) !Self {
+            return coldOpenInternal(allocator, artifact_bytes, coordinate, limits, null, null, program);
+        }
+
+        /// Keeps retained boundary authentication and independent ELF authority
+        /// in the same fresh verifier admission; neither comes from proof bytes.
+        pub fn coldOpenWithRetainedSnapshotsAndProgramAdmission(
+            allocator: std.mem.Allocator,
+            artifact_bytes: []const u8,
+            coordinate: artifact_mod.TaskCoordinateV1,
+            limits: proof_artifact.Limits,
+            retained: frontend.air.public_data_v2.PublicDataV2.RetainedSnapshots,
+            counters: ?*frontend.air.public_data_v2.PublicDataV2.ValidationCountersV2,
+            program: *const fixed_program_mod.OwnedV1,
+        ) !Self {
+            return coldOpenInternal(allocator, artifact_bytes, coordinate, limits, retained, counters, program);
         }
 
         fn coldOpenInternal(
@@ -114,6 +148,7 @@ pub fn FreshInputV4(comptime Engine: type) type {
                 .RetainedSnapshots,
             counters: ?*frontend.air.public_data_v2.PublicDataV2
                 .ValidationCountersV2,
+            program: ?*const fixed_program_mod.OwnedV1,
         ) !Self {
             comptime requireStage102Engine(Engine);
             try validateLeafCoordinate(coordinate);
@@ -139,10 +174,14 @@ pub fn FreshInputV4(comptime Engine: type) type {
             else
                 decoded.deinit(allocator);
 
+            if ((decoded.profile.circuitProfile() == .fixed_program_narrow_v1) != (program != null)) return error.EthereumFixedProgramAdmissionRequired;
+            if (program) |owner| try owner.validateDescriptor(decoded.profile.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired);
             var fresh: full_leaf.FreshVerifiedCaptureV4(Engine) = undefined;
             var channel = Engine.Channel{};
             proof_moved = true;
-            if (decoded.statement_lease != null) {
+            if (program) |owner| {
+                try full_leaf.verifyWithEngineUsingChannelAndCaptureWithProgramAdmissionTakingLease(Engine, allocator, &decoded.statement, &decoded.extension, &decoded.role_aware_public.value, &decoded.profile, decoded.proof, decoded.base_claim, &decoded.extension_claim, decoded.bridge_claim, &decoded.statement_lease, owner, &channel, &fresh);
+            } else if (decoded.statement_lease != null) {
                 try full_leaf.verifyWithEngineUsingChannelAndCaptureTakingLease(
                     Engine,
                     allocator,
@@ -176,8 +215,9 @@ pub fn FreshInputV4(comptime Engine: type) type {
             }
             var fresh_owned = true;
             errdefer if (fresh_owned) fresh.deinit(allocator);
-            try fresh.validate();
-
+            // The native verifier validates its complete owned capture before
+            // publishing it. No capture alias escapes this constructor; repeat
+            // only the additional stage-102 metadata checks below.
             const statement_words = try statementWordsFromFresh(
                 Engine,
                 &fresh,
@@ -188,6 +228,7 @@ pub fn FreshInputV4(comptime Engine: type) type {
 
             var result = Self{
                 .allocator = allocator,
+                .fixed_program = program,
                 .stage101 = fresh,
                 .statement_words = statement_words,
                 .coordinate = coordinate,
@@ -199,9 +240,32 @@ pub fn FreshInputV4(comptime Engine: type) type {
                 Engine,
                 &result,
             );
-            try result.validateAgainstArtifact(artifact_bytes);
+            // Byte count and SHA were just computed from the accepted artifact.
+            // Re-entering the public mutable-input audit here would hash and
+            // revalidate the same native capture a second time.
+            try result.validateMetadataAfterFreshAdmission();
             fresh_owned = false;
             return result;
+        }
+
+        /// Admit independently retained global metadata against this already
+        /// verified local proof. The recursive graph separately proves the
+        /// published global/local projection; this receipt remains custody.
+        pub fn admitGlobalMetadata(self: *Self, metadata: *const GlobalMetadataV3) !void {
+            try self.validate();
+            const link = try frontend.recursion.segment_leaf_local_verified_link_v3.VerifiedLinkV3.init(metadata, &self.stage101.public_data.data, &self.stage101.receipt);
+            var words: [STATEMENT_WORD_COUNT]u32 = undefined;
+            for (&words, metadata.base_statement_words) |*word, value| word.* = value.toU32();
+            self.global_admission = .{ .metadata = metadata.*, .link = link, .global_words = words };
+            self.capability_identity_sha256 = capabilityIdentity(Engine, self);
+        }
+
+        pub fn requireGlobalAdmission(self: *const Self) !void {
+            if (self.global_admission == null) return error.EthereumGlobalAdmissionRequired;
+        }
+
+        pub fn publicationStatementWords(self: *const Self) [STATEMENT_WORD_COUNT]u32 {
+            return if (self.global_admission) |global| global.global_words else self.statement_words;
         }
 
         pub fn deinit(self: *Self) void {
@@ -228,7 +292,21 @@ pub fn FreshInputV4(comptime Engine: type) type {
         /// Revalidates the live verifier-owned capability without consulting
         /// a durable digest or reopening transport bytes.
         pub fn validate(self: *const Self) !void {
+            if ((self.stage101.profile.circuitProfile() == .fixed_program_narrow_v1) != (self.fixed_program != null)) return error.EthereumFixedProgramAdmissionRequired;
+            if (self.fixed_program) |program| try program.validateDescriptor(self.stage101.profile.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired);
             try self.stage101.validate();
+            try self.validateMetadataAfterFreshAdmission();
+        }
+
+        /// Only coldOpen (freshly verified, unexposed storage) and the full
+        /// mutable-input audit above may enter this metadata finalization step.
+        fn validateMetadataAfterFreshAdmission(self: *const Self) !void {
+            if (self.global_admission) |*global| {
+                if (global.version != 1) return error.EthereumGlobalAdmissionRequired;
+                try global.link.validateAgainst(&global.metadata, &self.stage101.public_data.data, &self.stage101.receipt);
+                for (global.global_words, global.metadata.base_statement_words) |word, expected|
+                    if (word != expected.toU32()) return error.InvalidEthereumIncrementalLeafStatementV4;
+            }
             try validateLeafCoordinate(self.coordinate);
             const expected_words = try statementWordsFromFresh(
                 Engine,
@@ -328,6 +406,12 @@ fn capabilityIdentity(
         value.stage101.transcript_final_draw_count,
     );
     for (value.statement_words) |word| hashInt(&hash, u32, word);
+    hashInt(&hash, u8, @intFromBool(value.global_admission != null));
+    if (value.global_admission) |global| {
+        hashInt(&hash, u16, global.version);
+        for (global.link.identity) |word| hashInt(&hash, u32, word);
+        for (global.global_words) |word| hashInt(&hash, u32, word);
+    }
     return hash.finalResult();
 }
 
@@ -352,7 +436,7 @@ fn requireStage102Engine(comptime Engine: type) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 2 or
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or
         @intFromEnum(ROLE) != 0 or STATEMENT_WORD_COUNT != 412 or
         PRODUCTION_ACTIVATION or WRAPPER_PROOF_AVAILABLE or
         DURABLE_FRESH_CAPABILITY)

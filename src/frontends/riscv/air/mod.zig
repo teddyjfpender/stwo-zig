@@ -52,6 +52,7 @@ pub const incremental_public_logup_v4 =
     @import("incremental_public_logup_v4.zig");
 pub const program = @import("program/mod.zig");
 pub const relation_challenges = @import("relation_challenges.zig");
+pub const relation = @import("lang/relation.zig");
 pub const relation_evidence = @import("relation_evidence.zig");
 pub const relation_export = @import("relation_export.zig");
 pub const relation_export_components = @import("relation_export_components.zig");

@@ -150,8 +150,8 @@ pub fn Namespace(comptime context: type) type {
             const vm_air = authority.vm_air orelse return QM31.zero();
             var result = QM31.zero();
             for (
-                vm_air.prepared.preprocessing.rows,
-                vm_air.prepared.schedule_values,
+                vm_air.prepared.view().preprocessing.rows,
+                vm_air.prepared.view().schedule_values,
             ) |row, value| {
                 const pairs = try vm_air.relation.preparedRowPairs(
                     try vm_input_witness.logicalRow(row, value, .segment_leaf),

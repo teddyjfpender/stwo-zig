@@ -8,6 +8,7 @@
 //! always recomputed and byte-compared; no runner continuation is restored.
 
 const std = @import("std");
+const campaign_geometry = @import("ethereum_incremental_campaign_geometry_v1.zig");
 const frontend = @import("stwo_riscv_frontend");
 
 const artifact_io = @import("ethereum_precompile_artifact_io.zig");
@@ -107,14 +108,16 @@ pub const OptionsV4 = struct {
     retained_materialization_result: []const u8,
     publication_root: []const u8,
     root_mode: RootModeV4,
+    campaign_geometry: campaign_geometry.SelectionV1 = .legacy_210,
     cold_workers: usize,
 
     pub fn parse(arguments: []const []const u8) !OptionsV4 {
-        if (arguments.len != 6) return error.InvalidArguments;
+        if (arguments.len != 6 and arguments.len != 8) return error.InvalidArguments;
         var materialization: ?[]const u8 = null;
         var root: ?[]const u8 = null;
         var root_mode: ?RootModeV4 = null;
         var workers: ?usize = null;
+        var geometry: ?campaign_geometry.SelectionV1 = null;
         var index: usize = 0;
         while (index < arguments.len) : (index += 2) {
             const name = arguments[index];
@@ -139,12 +142,16 @@ pub const OptionsV4 = struct {
                 if (workers != null) return error.DuplicateArgument;
                 workers = std.fmt.parseUnsigned(usize, value, 10) catch
                     return error.InvalidArguments;
+            } else if (std.mem.eql(u8, name, "--campaign-geometry")) {
+                if (geometry != null) return error.DuplicateArgument;
+                geometry = try campaign_geometry.SelectionV1.parse(value);
             } else return error.InvalidArguments;
         }
         const worker_count = workers orelse return error.InvalidArguments;
         if (worker_count == 0 or worker_count > MAX_COLD_WORKERS)
             return error.InvalidColdWorkerCountV4;
         return .{
+            .campaign_geometry = geometry orelse .legacy_210,
             .retained_materialization_result = materialization orelse
                 return error.InvalidArguments,
             .publication_root = root orelse return error.InvalidArguments,
@@ -174,6 +181,7 @@ pub const OptionsV4 = struct {
             .retained_materialization_result = materialization,
             .publication_root = root,
             .root_mode = self.root_mode,
+            .campaign_geometry = self.campaign_geometry,
             .cold_workers = self.cold_workers,
         };
     }
@@ -183,6 +191,7 @@ pub const OwnedOptionsV4 = struct {
     retained_materialization_result: []u8,
     publication_root: []u8,
     root_mode: RootModeV4,
+    campaign_geometry: campaign_geometry.SelectionV1 = .legacy_210,
     cold_workers: usize,
 
     pub fn deinit(self: *OwnedOptionsV4, allocator: std.mem.Allocator) void {
@@ -214,14 +223,13 @@ pub fn run(allocator: std.mem.Allocator, arguments: []const []const u8) !void {
         .reopen_unsealed => try requireDirectory(options.publication_root),
     }
 
-    var retained = try retained_mod.RetainedAuthorityV4.open(
+    var retained = try retained_mod.RetainedAuthorityV4.openWithCampaignGeometryV1(
         allocator,
         options.retained_materialization_result,
+        options.campaign_geometry,
     );
     defer retained.deinit();
     const execution = try retained.executionAuthority();
-    if (execution.segment_count != publication.CANONICAL_SEGMENT_COUNT)
-        return error.CanonicalIncrementalSegmentCountRequired;
 
     if (options.root_mode == .reopen_unsealed) {
         if (try authenticateCompleteRawResume(
@@ -409,8 +417,6 @@ fn recoverCompleteRawResume(
     var authority = try authority_mod.AuthorityV4.init(allocator, retained, root);
     defer authority.deinit();
     const execution = authority.execution;
-    if (execution.segment_count != publication.CANONICAL_SEGMENT_COUNT)
-        return error.CanonicalIncrementalSegmentCountRequired;
 
     const records = try allocator.alloc(
         raw_recovery.SegmentRecordV4,
@@ -1187,7 +1193,7 @@ fn publishOrAdmitCompact(
             var parsed = try compact_manifest.parse(allocator, bytes);
             defer parsed.deinit();
             const value = parsed.value;
-            if (value.segment_count != publication.CANONICAL_SEGMENT_COUNT or
+            if (value.segment_count != retained.sources.len or
                 value.artifacts.len != observer.compact_artifacts.items.len or
                 !identityMatches(value.elf, retained.elfEvidence()) or
                 !identityMatches(

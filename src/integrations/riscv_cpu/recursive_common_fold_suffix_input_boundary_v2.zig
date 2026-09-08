@@ -1,13 +1,11 @@
-//! Authenticated public inputs consumed by the common-fold verifier suffix.
+//! Native-boundary audit for the common-fold child verifier.
 //!
-//! The field-native common fold deliberately has no legacy rows-0--17
-//! transcript implementation. Rows 18--33 nevertheless consume the exact
-//! child proof statement, transcript randomness, relation challenges, and
-//! verifier control schedule. This module publishes those values from the
-//! already authenticated fixed-wire source. It never observes a closure
-//! residual: every producer tuple is reconstructed from the sealed relation
-//! plan and retained source row that owns the corresponding consumer.
+//! Rows 5 and 12 bind proof payloads, provider partials, keys and public words;
+//! row 10 supplies fixed claim padding and the common-fold zero wire input.
+//! Derive every remaining consumer explicitly so secure-cohort admission can
+//! require an empty boundary. Never substitute a compensating residual sum.
 
+const transcript_rows = @import("recursive_secure_transcript_rows_v1.zig");
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
@@ -19,25 +17,20 @@ const global_closure = recursion.binary_global_closure_outer_source;
 const RelationDomain = @TypeOf(global_closure.PROVIDER_DOMAIN);
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
-pub const DOMAIN_COUNT: usize = 5;
+pub const SCHEMA_VERSION: u16 = 9;
+pub const DOMAIN_COUNT: usize = 2;
 
 pub const DOMAINS = [DOMAIN_COUNT]RelationDomain{
-    .recursion_step,
     .recursion_verifier_input_word,
-    .recursion_relation_challenge_word,
-    .recursion_verifier_randomness_word,
-    .recursion_statement_word,
+    .recursion_transcript_payload_word,
 };
 
 /// Exact suffix consumers whose matching producer is external to rows 18--33.
 /// These masks are protocol data, not observations from a failed closure.
 pub const ROW_MASKS = [DOMAIN_COUNT]u64{
-    rowMask(&.{ 19, 23, 27, 28 }),
-    rowMask(&.{ 18, 22, 24, 29 }),
+    // Root, sampled-value and coefficient inputs are now supplied by row 5.
     rowMask(&.{18}),
-    rowMask(&.{ 18, 20, 24, 29 }),
-    rowMask(&.{18}),
+    rowMask(&.{4}),
 };
 
 const BOUNDARY_DOMAIN =
@@ -64,8 +57,8 @@ pub const DomainEvidenceV2 = struct {
         ordinal: usize,
     ) !void {
         if (ordinal >= DOMAIN_COUNT or self.domain != DOMAINS[ordinal] or
-            self.source_row_mask != ROW_MASKS[ordinal] or
-            self.tuple_count == 0 or
+            self.source_row_mask != (if (self.tuple_count == 0) @as(u64, 0) else ROW_MASKS[ordinal]) or
+            (self.tuple_count == 0 and !self.claimed_sum.isZero()) or
             std.mem.allEqual(u8, &self.tuple_provenance_sha256, 0))
         {
             return error.CommonFoldSuffixBoundaryMismatch;
@@ -81,6 +74,7 @@ pub const BoundaryEvidenceV2 = struct {
     schema_version: u16 = SCHEMA_VERSION,
     source_authority_identity_sha256: [32]u8,
     relation_rows_identity_sha256: [32]u8,
+    transcript_rows_identity_sha256: [32]u8,
     domains: [DOMAIN_COUNT]DomainEvidenceV2,
     identity_sha256: [32]u8,
 
@@ -95,7 +89,7 @@ pub const BoundaryEvidenceV2 = struct {
             u8,
             &self.relation_rows_identity_sha256,
             0,
-        )) return error.CommonFoldSuffixBoundaryMismatch;
+        ) or std.mem.allEqual(u8, &self.transcript_rows_identity_sha256, 0)) return error.CommonFoldSuffixBoundaryMismatch;
         for (&self.domains, 0..) |*domain, ordinal|
             try domain.validate(ordinal);
         if (!std.mem.eql(
@@ -138,8 +132,10 @@ pub const BoundaryEvidenceV2 = struct {
         source: anytype,
         rows: anytype,
         relations: *const universal.UniversalRelations,
+        prefix: anytype,
+        payload_plan: anytype,
     ) !void {
-        const expected = try derive(source, rows, relations);
+        const expected = try derive(source, rows, relations, prefix, payload_plan);
         if (!std.meta.eql(self.*, expected))
             return error.CommonFoldSuffixBoundaryMismatch;
     }
@@ -156,7 +152,10 @@ pub fn derive(
     source: anytype,
     rows: anytype,
     relations: *const universal.UniversalRelations,
+    prefix: anytype,
+    payload_plan: anytype,
 ) !BoundaryEvidenceV2 {
+    try prefix.validate();
     try source.requireFullBundleAuthority();
     try rows.validateReadyFor(source);
     try relations.validate();
@@ -177,6 +176,7 @@ pub fn derive(
         hashInt(&accumulator.provenance, u64, ROW_MASKS[ordinal]);
         accumulator.provenance.update(&source.source_authority_digest);
         accumulator.provenance.update(&rows.authority_digest);
+        accumulator.provenance.update(&prefix.identity);
     }
 
     const composition = source.composition_rows orelse
@@ -184,6 +184,7 @@ pub fn derive(
     const arithmetic = source.arithmetic_rows orelse
         return error.CommonFoldSuffixBoundaryMismatch;
     try visitPlan(
+        prefix,
         &accumulators,
         &composition.input_relation,
         rows.composition_input,
@@ -191,6 +192,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &composition.control_relation,
         rows.composition_control,
@@ -198,6 +200,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.query_bits_relation,
         rows.query_bits,
@@ -205,6 +208,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.query_mapping_relation,
         rows.query_mapping,
@@ -212,6 +216,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.merkle_root_relation,
         rows.merkle_root,
@@ -219,6 +224,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.trace_merkle_relation,
         rows.trace_merkle,
@@ -226,6 +232,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.pcs_relation,
         rows.pcs_deep,
@@ -233,6 +240,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.fri_leaf_relation,
         rows.fri_leaf,
@@ -240,6 +248,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.fri_node_relation,
         rows.fri_node,
@@ -247,6 +256,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.fri_anchor_relation,
         rows.fri_anchor,
@@ -254,6 +264,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.control_relation,
         rows.fri_control,
@@ -261,6 +272,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.fri_rows.input_relation,
         rows.fri_input,
@@ -268,6 +280,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &arithmetic.multiply_relation,
         rows.multiply,
@@ -275,6 +288,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &arithmetic.inverse_relation,
         rows.inverse,
@@ -282,6 +296,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &arithmetic.linear_relation,
         rows.linear,
@@ -289,6 +304,7 @@ pub fn derive(
         relations,
     );
     try visitPlan(
+        prefix,
         &accumulators,
         &source.merkle_rows.relation,
         rows.merkle_path,
@@ -296,9 +312,18 @@ pub fn derive(
         relations,
     );
 
+    for (prefix.logical[4]) |row| for (payload_plan.preparedEntries(row)) |entry| {
+        if (entry.domain != .recursion_transcript_payload_word or entry.numerator.isZero()) continue;
+        const verifier_id = (try entry.values[0].tryIntoM31()).toU32();
+        const sequence = (try entry.values[1].tryIntoM31()).toU32();
+        if (try prefix.bindsPayloadStep(verifier_id, sequence)) continue;
+        const ordinal = domainIndex(.recursion_transcript_payload_word).?;
+        try accumulateEntry(&accumulators[ordinal], ordinal, entry, rowMask(&.{4}), relations);
+    };
     var result = BoundaryEvidenceV2{
         .source_authority_identity_sha256 = source.source_authority_digest,
         .relation_rows_identity_sha256 = rows.authority_digest,
+        .transcript_rows_identity_sha256 = prefix.identity,
         .domains = undefined,
         .identity_sha256 = undefined,
     };
@@ -307,26 +332,32 @@ pub fn derive(
         *accumulator,
         ordinal,
     | {
-        if (accumulator.tuple_count == 0 or
-            accumulator.observed_row_mask != ROW_MASKS[ordinal])
-        {
-            return error.CommonFoldSuffixBoundaryPolicyMismatch;
-        }
-        hashInt(&accumulator.provenance, u32, accumulator.tuple_count);
-        destination.* = .{
-            .domain = DOMAINS[ordinal],
-            .source_row_mask = accumulator.observed_row_mask,
-            .tuple_count = accumulator.tuple_count,
-            .claimed_sum = accumulator.claimed_sum,
-            .tuple_provenance_sha256 = accumulator.provenance.finalResult(),
-        };
+        destination.* = try finishAccumulator(accumulator, ordinal);
     }
+
     result.identity_sha256 = boundaryIdentity(&result);
     try result.validate();
     return result;
 }
 
+fn finishAccumulator(accumulator: *Accumulator, ordinal: usize) !DomainEvidenceV2 {
+    if (ordinal >= DOMAIN_COUNT or
+        accumulator.observed_row_mask != (if (accumulator.tuple_count == 0) @as(u64, 0) else ROW_MASKS[ordinal]))
+        return error.CommonFoldSuffixBoundaryPolicyMismatch;
+    hashInt(&accumulator.provenance, u32, accumulator.tuple_count);
+    const result = DomainEvidenceV2{
+        .domain = DOMAINS[ordinal],
+        .source_row_mask = accumulator.observed_row_mask,
+        .tuple_count = accumulator.tuple_count,
+        .claimed_sum = accumulator.claimed_sum,
+        .tuple_provenance_sha256 = accumulator.provenance.finalResult(),
+    };
+    try result.validate(ordinal);
+    return result;
+}
+
 fn visitPlan(
+    prefix: *const transcript_rows.Prepared,
     accumulators: *[DOMAIN_COUNT]Accumulator,
     plan: anytype,
     rows: anytype,
@@ -343,7 +374,10 @@ fn visitPlan(
     for (rows) |row| {
         const entries = plan.preparedEntries(row);
         for (entries) |entry| {
+            if (entry.numerator.isZero()) continue;
             const ordinal = domainIndex(entry.domain) orelse continue;
+            if (entry.domain == .recursion_verifier_input_word and
+                try prefix.bindsVerifierInputForLane((try entry.values[0].tryIntoM31()).toU32(), (try entry.values[1].tryIntoM31()).toU32(), (try entry.values[2].tryIntoM31()).toU32())) continue;
             try accumulateEntry(
                 &accumulators[ordinal],
                 ordinal,
@@ -381,14 +415,7 @@ fn accumulateEntry(
 }
 
 fn domainIndex(domain: RelationDomain) ?usize {
-    return switch (domain) {
-        .recursion_step => 0,
-        .recursion_verifier_input_word => 1,
-        .recursion_relation_challenge_word => 2,
-        .recursion_verifier_randomness_word => 3,
-        .recursion_statement_word => 4,
-        else => null,
-    };
+    return std.mem.indexOfScalar(RelationDomain, &DOMAINS, domain);
 }
 
 fn boundaryIdentity(value: *const BoundaryEvidenceV2) [32]u8 {
@@ -398,6 +425,7 @@ fn boundaryIdentity(value: *const BoundaryEvidenceV2) [32]u8 {
     hashInt(&hash, u16, value.schema_version);
     hash.update(&value.source_authority_identity_sha256);
     hash.update(&value.relation_rows_identity_sha256);
+    hash.update(&value.transcript_rows_identity_sha256);
     for (value.domains) |domain| {
         hashInt(&hash, u8, @intFromEnum(domain.domain));
         hashInt(&hash, u64, domain.source_row_mask);
@@ -431,18 +459,21 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or DOMAIN_COUNT != 5 or
-        DOMAINS[0] != .recursion_step or
-        DOMAINS[1] != .recursion_verifier_input_word or
-        DOMAINS[2] != .recursion_relation_challenge_word or
-        DOMAINS[3] != .recursion_verifier_randomness_word or
-        DOMAINS[4] != .recursion_statement_word)
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 9 or DOMAIN_COUNT != 2 or
+        DOMAINS[0] != .recursion_verifier_input_word or
+        DOMAINS[1] != .recursion_transcript_payload_word)
     {
         @compileError("common-fold suffix boundary contract drifted");
     }
 }
 
 test "suffix input producer is tuple-derived and policy rejects wrong role" {
+    exerciseEmptyClosure() catch |err| {
+        std.debug.print("COMMON_FOLD_EMPTY_BOUNDARY_STAGE error={s}\n", .{@errorName(err)});
+        return err;
+    };
+    for (DOMAINS, 0..) |domain, ordinal| try std.testing.expectEqual(@as(?usize, ordinal), domainIndex(domain));
+    try std.testing.expectEqual(@as(?usize, null), domainIndex(.recursion_step));
     const Entry = recursion.air.relation_interaction.Entry;
     const relations = universal.UniversalRelations.dummy();
     var accumulator = Accumulator{
@@ -452,11 +483,11 @@ test "suffix input producer is tuple-derived and policy rejects wrong role" {
         .ordinal = 0,
         .schema = @enumFromInt(0),
         .schema_version = 1,
-        .domain = .recursion_step,
+        .domain = .recursion_verifier_input_word,
         .role = .consume,
         .numerator = QM31.one().neg(),
         .values = [_]QM31{QM31.zero()} ** universal.MAX_ARITY,
-        .arity = 7,
+        .arity = 5,
     };
     for (entry.values[0..entry.arity], 0..) |*word, index|
         word.* = QM31.fromBase(stwo_core.fields.m31.M31.fromCanonical(
@@ -464,7 +495,7 @@ test "suffix input producer is tuple-derived and policy rejects wrong role" {
         ));
     const denominator = try entry.denominator(&relations);
     const consumer = entry.numerator.mul(try denominator.inv());
-    const row_bit = @as(u64, 1) << 19;
+    const row_bit = @as(u64, 1) << 18;
     try accumulateEntry(&accumulator, 0, entry, row_bit, &relations);
     try std.testing.expect(consumer.add(accumulator.claimed_sum).isZero());
     try std.testing.expectEqual(@as(u32, 1), accumulator.tuple_count);
@@ -475,4 +506,73 @@ test "suffix input producer is tuple-derived and policy rejects wrong role" {
         error.CommonFoldSuffixBoundaryPolicyMismatch,
         accumulateEntry(&accumulator, 0, entry, row_bit, &relations),
     );
+}
+
+fn exerciseEmptyClosure() !void {
+    const closure = @import("recursive_common_fold_suffix_closure_v2.zig");
+    const support = @import("recursive_binary_outer_cohort_support.zig");
+    const node = try @import("recursive_common_fold_field_public_v2_test.zig").emptyLeaf(210, "empty-closure");
+    const relations = universal.UniversalRelations.dummy();
+    const field = try @import("recursive_common_fold_public_output_v3.zig").derive(&node, &relations);
+    var suffix = BoundaryEvidenceV2{
+        .source_authority_identity_sha256 = [_]u8{1} ** 32,
+        .relation_rows_identity_sha256 = [_]u8{2} ** 32,
+        .transcript_rows_identity_sha256 = [_]u8{3} ** 32,
+        .domains = undefined,
+        .identity_sha256 = undefined,
+    };
+    for (&suffix.domains, 0..) |*domain, ordinal| {
+        var accumulator = Accumulator{ .provenance = std.crypto.hash.sha2.Sha256.init(.{}) };
+        domain.* = try finishAccumulator(&accumulator, ordinal);
+        try std.testing.expectEqual(@as(u32, 0), domain.tuple_count);
+        try std.testing.expectEqual(@as(u64, 0), domain.source_row_mask);
+        try std.testing.expect(domain.claimed_sum.isZero());
+    }
+    suffix.identity_sha256 = boundaryIdentity(&suffix);
+    try suffix.validate();
+    const empty_input = try suffix.verifierInputEvidence();
+    try std.testing.expectError(error.InvalidBoundaryTupleCount, global_closure.BoundarySourceV2.init(.verifier_input, empty_input));
+    var bad = suffix.domains[0];
+    bad.claimed_sum = QM31.one();
+    try std.testing.expectError(error.CommonFoldSuffixBoundaryMismatch, bad.validate(0));
+    bad = suffix.domains[0];
+    bad.source_row_mask = ROW_MASKS[0];
+    try std.testing.expectError(error.CommonFoldSuffixBoundaryMismatch, bad.validate(0));
+
+    var rows: [global_closure.PREFIX_ROW_COUNT]global_closure.RowClaimsV1 = undefined;
+    const zero = [_]QM31{QM31.zero()} ** global_closure.DOMAIN_COUNT;
+    for (&rows, 0..) |*row, index| row.* = support.rowClaim(@enumFromInt(index), zero, QM31.zero());
+    var values = zero;
+    values[@intFromEnum(global_closure.WIRE_BOUNDARY_DOMAIN)] = QM31.one();
+    rows[10] = support.rowClaim(@enumFromInt(10), values, QM31.one());
+    values[@intFromEnum(global_closure.WIRE_BOUNDARY_DOMAIN)] = QM31.one().neg();
+    rows[0] = support.rowClaim(@enumFromInt(0), values, QM31.one().neg());
+    values = zero;
+    values[@intFromEnum(field.domain)] = field.claimed_sum.neg();
+    rows[17] = support.rowClaim(@enumFromInt(17), values, field.claimed_sum.neg());
+    const prepared = try global_closure.prepareAuthority();
+    const provider = try global_closure.ProviderClaimV1.init(&prepared, [_]u8{4} ** 32, QM31.zero());
+    const wire = global_closure.BoundaryEvidenceV2{
+        .source_authority_id = [_]u8{5} ** 32,
+        .snapshot_id = [_]u8{6} ** 32,
+        .tuple_provenance_id = [_]u8{7} ** 32,
+        .tuple_count = 1,
+        .claimed_sum = QM31.one(),
+    };
+    const input = try closure.Input.init(&rows, &provider, wire);
+    const receipt = try closure.close(&input, &field, &suffix);
+    try receipt.validateAgainst(&input, &field, &suffix);
+    var mutated = rows;
+    mutated[0].claimed_sum = QM31.zero();
+    try std.testing.expectError(error.RowClaimMismatch, closure.Input.init(&mutated, &provider, wire));
+    mutated = rows;
+    mutated[1].row = .control;
+    try std.testing.expectError(error.DuplicateRow, closure.Input.init(&mutated, &provider, wire));
+    values = zero;
+    values[@intFromEnum(global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN)] = QM31.one();
+    mutated = rows;
+    mutated[1] = support.rowClaim(@enumFromInt(1), values, QM31.one());
+    const unclosed = try closure.Input.init(&mutated, &provider, wire);
+    try std.testing.expectError(error.RelationNotClosed, closure.close(&unclosed, &field, &suffix));
+    std.debug.print("COMMON_FOLD_EMPTY_BOUNDARY zero_tuples=true global_contract_unchanged=true unmatched_input_rejected=true row_preflight_preserved=true\n", .{});
 }

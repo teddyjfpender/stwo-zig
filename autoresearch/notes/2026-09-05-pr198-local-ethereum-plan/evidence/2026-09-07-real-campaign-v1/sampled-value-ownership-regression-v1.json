@@ -1,0 +1,44 @@
+{
+  "schema": "stwo.ethereum.sampled-value-ownership-regression.v1",
+  "status": "passed",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/prover/pcs_commitments_test_root.zig",
+    "--test-filter",
+    "sampled-value allocation cleanup"
+  ],
+  "optimization": "Debug",
+  "tests_passed": 2,
+  "includes_root_sentinel": true,
+  "checks": [
+    "partial second-tree shape rejection releases each nested allocation exactly once",
+    "all injected allocation failures release sampled-value trees and barycentric cache entries"
+  ],
+  "retained_failure": "v1: allocation failure during barycentric context construction left an uninitialized map value for teardown; v2 removes the incomplete entry on failure",
+  "sources": [
+    {
+      "path": "src/prover/pcs/sampled_values.zig",
+      "bytes": 35330,
+      "sha256": "736725e2c1aebce72d009d76bd2138d74e63f2bd0d526cd51e2273e528799b95"
+    },
+    {
+      "path": "src/prover/pcs/sampled_values_work_test.zig",
+      "bytes": 21594,
+      "sha256": "ec03e567b08cb992f3d212802b97d26f9c3ed031d0fd4c8721ffd44ac4709b28"
+    }
+  ],
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-sampled-values-cleanup-v1.log",
+      "bytes": 1356,
+      "sha256": "0f247e583d784de80a18ba1499e34e5a088e95304e39a6dd902168845f89448f"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-sampled-values-cleanup-v2.log",
+      "bytes": 170,
+      "sha256": "c976eeb9aab6affb2f13013340b124a1cced44c51c95f9e50c793c3ba28de86f"
+    }
+  ],
+  "limitation": "Ownership regression gate only; no speedup or complete-leaf claim."
+}

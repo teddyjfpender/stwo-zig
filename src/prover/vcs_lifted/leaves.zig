@@ -36,6 +36,7 @@ pub fn Operations(comptime H: type) type {
             if (sorted_columns[0].values.len == 1) return error.InvalidColumnSize;
 
             var prev_layer = try allocator.alloc(H, 2);
+            errdefer allocator.free(prev_layer);
             prev_layer[0] = seed_hasher;
             prev_layer[1] = seed_hasher;
 
@@ -525,6 +526,8 @@ pub fn Operations(comptime H: type) type {
             const worker_count = blk: {
                 const capacity = hashers.len / parallel_min_nodes_per_worker;
                 if (capacity < 2) break :blk @as(usize, 1);
+                if (work_pool_mod.getGlobalPool()) |active|
+                    break :blk @min(@min(active.workerCount(), capacity), max_parallel_workers);
                 const cpu_count = std.Thread.getCpuCount() catch break :blk @as(usize, 1);
                 break :blk @min(@min(cpu_count, capacity), max_parallel_workers);
             };

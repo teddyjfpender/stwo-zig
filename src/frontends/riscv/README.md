@@ -17,6 +17,10 @@ that satisfies the stable prover transaction contract.
 The [package contract](package.contract.json) is the API/dependency authority;
 [mod.zig](mod.zig) is the public facade.
 
+The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
+documents immutable recursive preparation, explicit admission and audit checks,
+and its focused development commands.
+
 ## Architecture and semantic authority
 
 ```mermaid
@@ -72,6 +76,13 @@ The execution result and proof objects contain owned allocations; follow the
 deinitialization methods on the returned concrete types. Host callbacks are
 part of the public statement boundary and must be deterministic.
 
+
+Additional exported surfaces:
+
+- `proveEthereumWithEngine`
+- `proveEthereumWithEngineUsingExecution`
+- `verifyEthereumWithEngine`
+
 ## Dependencies
 
 - `stwo_core`
@@ -125,6 +136,86 @@ manifest digest into the executable identity, and admits it before any prover
 warmup. Proving and benchmarking fail closed if the bundle is missing, altered,
 or cannot supply the resident RISC-V AIR kernels; help, registry, and retained
 proof verification remain device-free.
+
+For ContextV2 and composition development, run from the repository root:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-vm-air-profile-v2 test-vm-leaf-context-v2 -Doptimize=Debug
+```
+
+These targets enforce test-count floors. Debug keeps compiler work smaller;
+use `-Doptimize=ReleaseSafe` for optimized validation. The real native capture
+handoff has a separate lean executable:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-poseidon-ingress -Doptimize=ReleaseSafe
+```
+
+That executable proves a tiny segment with test PCS settings and exercises
+recursive preparation; it is not an Ethereum block benchmark or a recursive proof.
+
+The independent Ethereum commitment-node caller constraints have a small loop:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-ethereum-commitment-v1 -Doptimize=Debug
+```
+
+This checks the nine-lane node digest, sponge linkage, full-I/O provider bus,
+padding, path position and public leaf/root binding. A lean executable proves
+a 30-level path and all 120 permutations, destroys producer state, then freshly
+verifies the serialized proof and rejects forged witnesses:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-ethereum-node-proof-v1 -Doptimize=Debug
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \
+  run-ethereum-node-proof-v1 -Doptimize=Debug -- \
+  /absolute/path/to/core-aot-bundle MANIFEST_SHA256
+```
+
+Both report the proof digest and production/fresh-verification durations.
+Metal requires an authenticated bundle and observed device dispatches. These
+are small development proofs with diagnostic PCS settings, not Ethereum leaf
+benchmarks. VM leaf encoding and memory/program execution linkage remain open.
+The deliberately corrupted proof produces an expected Merkle error line.
+
+To verify in a separate CPU process after the Metal producer exits, use an
+absolute artifact path whose parent already exists:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \
+  run-ethereum-node-proof-v1 -Doptimize=ReleaseSafe -- \
+  /absolute/path/to/core-aot-bundle MANIFEST_SHA256 \
+  produce /absolute/path/to/path-proof.bin
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-ethereum-node-proof-v1 -Doptimize=ReleaseSafe -- \
+  verify /absolute/path/to/path-proof.bin
+```
+
+Production refuses to overwrite an existing artifact. Verification prints the
+authenticated public path claim; a VM consumer must compare it with its expected
+state. The fixed development fixture is not a proof of an Ethereum memory access.
+
+The same command can use an actual admitted Ethereum guest ELF. `produce-program`
+and `verify-program` take `ELF ADDRESS ARTIFACT`; addresses are aligned byte
+addresses and may be hexadecimal. For example, append this after the CPU build
+command's `--` (or after the Metal bundle and manifest arguments):
+
+```sh
+produce-program /absolute/ethereum-guest.elf 0x400 /absolute/program-path.bin
+verify-program /absolute/ethereum-guest.elf 0x400 /absolute/program-path.bin
+```
+
+The verifier independently reloads the supplied ELF, rebuilds the word-addressed
+program root and checks the proved word, position, domain and root. Preparation
+retains one sorted frontier and one path. Four little-endian word bytes occupy
+four digest lanes; the other five are zero, and absent words mean zero. This is
+a program-image membership diagnostic, not a proof of instruction execution.
+Request timings include image preparation and file IO; runtime initialization
+is excluded. The diagnostic format may change before profile admission.
 
 ## EthProofs CSP benchmark
 

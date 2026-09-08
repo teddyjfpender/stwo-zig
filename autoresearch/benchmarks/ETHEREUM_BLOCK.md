@@ -1,5 +1,8 @@
 # Ethereum block equivalence benchmark
 
+For current proof-level development commands and separate memory-budget scopes,
+see [Local Ethereum proof development](ETHEREUM_LOCAL_PROVING.md).
+
 The primary cross-zkVM target is Ethereum mainnet block **24,628,607**.  It is
 large enough to exercise a real stateless validator rather than a synthetic EVM
 loop:
@@ -54,11 +57,11 @@ The lossless semantic projection is now retained and host-validated:
 | successful host output | 43 bytes / `730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5` |
 | new-payload-request root | `e63d2797ca5c6f826a32d20c41ba552d25777533ab295f9d232560b014d09030` |
 
-The older ZisK fixture names timestamp `1,767,747,671` as `bpo1_time`; the
-current canonical mainnet schedule names that same transition BPO2. Selecting
-BPO1 caused the current validator to reject the exact excess-blob-gas
-transition, while BPO2 reproduces it and validates the block. This fork join is
-explicit in the manifest rather than inferred from the legacy field name.
+The ZisK fixture's Alloy 2.0 codec names timestamp `1,767,747,671` as
+`bpo2_time`, matching the canonical BPO2 schedule. Its `bpo1_time` is
+`1,765,290,071`. Earlier notes mislabeled the former as BPO1; the retained
+converter decodes the original codec and checks both fields. The canonical
+SSZ input and its hash remain unchanged.
 
 The full stateless-validator source is now ported and a pinned RV32 ELF has
 been built under the combined `rv32im-zkvm-ethereum-v1` profile. This promotes
@@ -225,6 +228,23 @@ python3 scripts/riscv_segmented_execution.py validate \
 
 Replay the retained semantic projection independently with:
 
+The projection and host output can be rebuilt without the missing historical
+guest overlay. Both host tools pin upstream source and retain Cargo locks;
+`-j 1` keeps compilation suitable for laptops. The converter admits only this
+fixture, recovers and compares all transaction keys, roundtrips canonical SSZ,
+and checks the pinned input hashes. The second tool executes the upstream host
+validator and checks the successful output hash. Neither command proves RV32
+execution. Output paths must be new.
+
+```sh
+cargo +1.96.1 run --locked -j 1 \
+  --manifest-path autoresearch/benchmarks/guest_runtime/projection/Cargo.toml -- \
+  /external/mainnet_24628607_66_7_zec_reth.bin /external/projected-input
+cargo +1.96.1 run --locked -j 1 \
+  --manifest-path autoresearch/benchmarks/guest_runtime/host_validation/Cargo.toml -- \
+  /external/projected-input/canonical-input.ssz /external/projected-input/host-output.bin
+```
+
 ```sh
 python3 autoresearch/benchmarks/ethereum_block_comparison.py validate-projection \
   --canonical-input /external/mainnet_24628607.canonical-ssz.bin \
@@ -367,3 +387,137 @@ A headline Stwo-vs-ZisK Ethereum result requires all of the following:
   parameters, proof bytes, peak memory, and full request wall time; and
 - an explicit assurance label until FV-3/FV-4/FV-5 and independent
   proof-system validation are complete.
+
+
+## Focused Ethereum recursion regression
+
+Run these from the repository root. The small parity gate checks the default
+legacy memory policy, pinned legacy PCS identities, and native/recursive DEEP
+answers for both Ethereum provider windows, including mutations. It also checks
+legacy zero-I/O rejection, SegmentV2 statement-to-claim relations, and native/AIR
+continuation folding for every I/O digest limb:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-recursion-native-parity -Doptimize=ReleaseSafe --summary all
+```
+
+The actual failing Stage101 leaf is retained locally by SHA-256. Replay checks
+that digest, cold-verifies the serialized proof, evaluates its VM composition,
+and builds/audits its captured FRI/DEEP witness. It does not generate a recursive
+wrapper or establish a mainnet block benchmark:
+
+```sh
+STWO_ROLE0_STAGE101_REPLAY_PATH="$PWD/.git/local-ethereum/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin" \
+STWO_ROLE0_STAGE101_REPLAY_SHA256=c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf \
+STWO_RECURSION_OUTER_STAGE_TELEMETRY=1 \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-ethereum-incremental-leaf-materialize-v4-replay \
+  -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
+```
+
+The binary is 8,641,480 bytes and is a two-segment Keccak/recovery regression
+fixture's first child, not a mainnet input. Copy it with its pinned digest to
+another laptop; `.git/local-ethereum` artifacts are not included in a clone.
+To generate fresh children, set
+`STWO_ROLE0_GENUINE_STAGE101_EXPORT_DIR` to an absolute directory and run
+`test-ethereum-incremental-leaf-universal-proof-v4-genuine` with the same build
+wrapper and integration directory. That full test exports both children only
+after native cold verification; a later wrapper failure preserves the exports.
+Fresh outputs have their own printed hashes and must not silently replace a
+pinned regression input.
+
+Use the `check-ethereum-incremental-leaf-materialize-v4-replay` target for a
+compile-only check. Zig 0.15.2's `--time-report` forces compilation and opens a
+local web UI; stop that profiling build after saving its results to release
+the serial build lock. Normal replay builds reuse the compiler cache.
+
+For the replay and genuine proof tests, `-Dethereum-proof-strip=true` omits debug
+symbols without disabling ReleaseSafe runtime checks. One measured replay
+compile took 239.54s with profiling (5 GiB rounded peak RSS), versus 46s
+without debug symbols or profiling (2 GiB); both capture
+replays passed in 28s with roughly 1 GiB peak RSS. Omit the option when debug
+symbols are needed. This is a development-build measurement, not a CSP
+performance promotion or Ethereum proving-speed claim.
+
+The original leaf also retains a real negative case: its native proof verifies,
+but its campaign input edge commits a label instead of the actual public input.
+This gate pins the original proof hash and observed digest difference, then
+requires recursive claim semantics to reject it:
+
+```sh
+STWO_ROLE0_STAGE101_REPLAY_DIR="$PWD/.git/local-ethereum/role0-genuine-stage101" \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-ethereum-incremental-leaf-rejected-input-v4-replay \
+  -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
+```
+
+The rejection replay passed in 24s at roughly 260 MiB peak RSS, after a 36s
+stripped ReleaseSafe compile. Original artifacts remain unchanged; fresh fixture
+generation now derives input/output commitments using the native projection
+hash helpers. These fixtures currently use the default claim capacity; admitting
+the mainnet campaign's capacity in the recursive profile remains separate work.
+
+To check transcript geometry before allocating the complete wrapper, use the
+same native plan constructor and a pinned canonical-I/O child:
+
+```sh
+STWO_ROLE0_STAGE101_REPLAY_PATH="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io/fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b.bin" \
+STWO_ROLE0_STAGE101_REPLAY_SHA256=fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-ethereum-incremental-leaf-transcript-v4-replay \
+  -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
+```
+
+To check retained campaign membership before building the wrapper, cold-verify
+both children, exercise witness/schedule/campaign mutations, and require empty
+tracked allocations after destroying the materializer:
+
+```sh
+STWO_ROLE0_STAGE101_REPLAY_DIR="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io" \
+STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-ethereum-incremental-leaf-materializer-custody-v4-replay \
+  -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
+```
+
+This is a materialization and custody gate, not a wrapper proof. The initial
+run passed in 54s after a 47s compile. The expanded gate also checks ownership
+rollback by injecting failure at the last allocation of real materialization:
+the caller must retain a valid input and the allocation tracker must be empty.
+That gate passed in 65s after a 47s compile, with 1,960,626,624 bytes peak process
+footprint. These are focused gate measurements, not complete wrapper timings. Campaign membership
+uses the retained witness and schedule and still authenticates them against
+the fresh input. The materializer now owns immutable campaign metadata; this
+gate destroys the caller's campaign before revalidating retained membership.
+The two-leaf snapshot adds 320 retained bytes and four allocations. Graph and
+witness ownership still require further work before the entire preparation is
+immutable.
+
+To debug the complete wrapper transaction using both retained native children:
+
+```sh
+STWO_ROLE0_STAGE101_REPLAY_DIR="$PWD/.git/local-ethereum/role0-genuine-stage101-canonical-io" \
+STWO_ROLE0_GENUINE_WORKER_COUNT=1 \
+STWO_RECURSION_OUTER_STAGE_TELEMETRY=1 \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-ethereum-incremental-leaf-wrapper-v4-replay \
+  -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all
+```
+
+This target pins both canonical-I/O child digests in its regression test and shares the
+wrapper transaction with the full genuine fixture. It includes both cold
+verifications, wrapper proving/reopening, and mutations, but excludes native
+child proving. A failure remains a failed test; retained children do not confer
+recursive proof authority. Use the full genuine target for the complete request.
+Both full proof targets reject `STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE=1`;
+use the separate custody target when stopping before wrapper construction.
+
+The canonical-I/O wrapper replay pair is:
+
+- leaf 0: `fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b`, 8,637,263 bytes;
+- leaf 1: `8759e365005142eaa6b4311271b18e07939da50ad351d313d5e76beff849e0d2`, 8,960,088 bytes.
+
+Both were generated and cold-verified before export. The original label-based
+pair remains in `role0-genuine-stage101` for VM/FRI replay and negative claim
+regression; it is not a valid positive wrapper fixture.

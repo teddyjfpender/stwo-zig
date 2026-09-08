@@ -1,0 +1,39 @@
+1/38 recursive_common_ethereum_incremental_leaf_field_public_v4_test.test.stage102 V4 cold input and field schedule APIs instantiate...OK
+2/38 recursive_common_ethereum_incremental_leaf_field_public_v4_test.test.stage102 V4 source preimage pins role checkpoint and commitment order...OK
+3/38 recursive_common_ethereum_incremental_leaf_field_public_v4_test.test.stage102 V4 source binds actual Ethereum completion word and tuple...OK
+4/38 recursive_common_ethereum_incremental_leaf_field_public_v4_test.test.stage102 V4 schedule is exact 123-call field-native authority...OK
+5/38 recursive_common_ethereum_incremental_leaf_field_public_v4_test.test.stage102 V4 public source cannot relabel canonical-empty or transport SHA...OK
+6/38 recursive_common_ethereum_incremental_leaf_field_public_v4_schema3_test.test.schema3 source binds tuple count capacity and field commitment...OK
+7/38 recursive_common_ethereum_incremental_leaf_field_public_v4_schema3_test.test.schema3 field schedule derives provider geometry from committed stream...OK
+8/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 post-tree1 profile retains every native mix operation...OK
+9/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 relation rows preserve both values from each native draw...OK
+10/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 public logup owners propagate authenticated native view rejection...OK
+11/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 transcript statement metadata matches the shared AIR input...OK
+12/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 default claim shape builds its complete semantics graph...OK
+13/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 public sum reservation does not reject an admitted graph...OK
+14/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.stage102 V4 manifest preserves universal physical layout...OK
+15/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.stage102 V4 bridge projection pins the missing graph authority...OK
+16/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.stage102 V4 materializer type retains live capture ownership...OK
+17/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.stage102 V4 fresh program custody rejects pointer and identity drift...OK
+18/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 genuine runtime allocator counts ownership and host workers...OK
+19/38 recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.fresh composition schedule projection is deterministic across workers...OK
+20/38 recursive_common_ethereum_incremental_leaf_public_semantics_v4_test.test.role0 completion claim consumes actual Ethereum decoded tuple...OK
+21/38 recursive_common_ethereum_incremental_leaf_public_semantics_v4_test.test.role0 completion claim does not synthesize program term for halt...OK
+22/38 recursive_common_ethereum_incremental_leaf_role_aware_io_v4_test.test.schema3 role-aware IO stream is ordered injective and zero padded...OK
+23/38 recursive_common_ethereum_incremental_leaf_role_aware_io_v4_test.test.schema3 role-aware IO claims share the committed tuple witness...OK
+24/38 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.test.campaign provider geometry synthetic two-leaf maximum is checked...OK
+25/38 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.test.campaign provider geometry binds order but not maximum position...OK
+26/38 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.test.campaign provider geometry admits empty active prefixes and rejects forgery...OK
+27/38 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.test.runtime campaign provider geometry admits authenticated non-power-of-two counts...OK
+28/38 recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.test.runtime campaign provider geometry binds inventory and rejects duplicate order...OK
+29/38 recursive_common_ethereum_incremental_leaf_child_public_v4_test.test.child-public binding rejects a resealed claim-hash drift...OK
+30/38 recursive_common_ethereum_incremental_leaf_child_public_v4_test.test.child-public binding rejects an independently resealed IO hash...OK
+31/38 recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4_test.test.row34 geometry binds transcript child hashes publication and verifier core...OK
+32/38 recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4_test.test.publication boundary receipt cannot mint complete row34 geometry...OK
+33/38 recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4_test.test.row34 receipt rejects publication-only authority subdivision...OK
+34/38 recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_test.test.stage102 role0 transcript cohort tree and tuple APIs instantiate...OK
+35/38 recursive_common_ethereum_incremental_leaf_transcript_cohort_v4_test.test.stage102 role0 transcript rows retain inactive recursion lanes...OK
+36/38 recursive_common_ethereum_incremental_leaf_universal_cohort_v4_test.test.schema3 role0 cohort exposes exact 36-row closure without proof escalation...OK
+37/38 recursive_common_ethereum_incremental_leaf_universal_cohort_v4_test.test.role0 native core publishes into the nominal universal manifest...OK
+38/38 recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.role0 statement input allows its authenticated cross-component claim...FAIL (EthereumIncrementalClosureMismatchV4)
+37 passed; 0 skipped; 1 failed.

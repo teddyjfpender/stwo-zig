@@ -195,6 +195,13 @@ pub const BaseGeometryV3 = struct {
         );
     }
 
+    /// Explicit append-only circuit geometry; fixed table columns belong to
+    /// the joined Ethereum prefix, not the compatibility base statement.
+    pub fn deriveWithCircuitProfileV1(base: *const statement_v2.RiscVStatementV2, pcs: PcsAuthorityV3, supplement: RetirementSupplementV2, circuit_profile: frontend.prover_mod.ethereum_circuit_profile_v1.CircuitProfileV1) !BaseGeometryV3 {
+        const shape = try proof_ingress.preflightShapeV2WithCircuitProfileV1(base, supplement, try pcs.config(), VALIDATION_MAX_PROOF_BYTES, circuit_profile);
+        return deriveFromValidatedShape(base, shape.tree_columns, shape.max_column_log_size);
+    }
+
     fn deriveFromValidatedShape(
         base: *const statement_v2.RiscVStatementV2,
         tree_columns: [4]u32,

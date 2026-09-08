@@ -1,11 +1,11 @@
 //! Shared protocol validation for verifier-published OODS mask columns.
 //!
-//! RISC-V recursion currently has two exact two-point LogUp conventions.
-//! Shared/legacy providers request `[current, previous]`; universal typed rows
-//! request `[previous, current]`. Both are authenticated by the native PCS
-//! verifier, and downstream capture identities retain the original order.
+//! Exact native mask orders, including the wider Ethereum provider windows.
+//! Capture identities retain the original order; arbitrary masks are rejected.
 
 const stwo_core = @import("stwo_core");
+const keccak = @import("../air/guest_precompile/keccakf_component.zig");
+const secp = @import("../air/guest_precompile/secp256k1_component.zig");
 
 const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 
@@ -22,20 +22,27 @@ pub const Layout = enum(u8) {
     current = 1,
     current_previous = 2,
     previous_current = 3,
+    secp256k1_main = 4,
+    keccak_state = 5,
 
-    pub fn sampleCount(self: Layout) u8 {
+    pub fn offsets(self: Layout) []const isize {
         return switch (self) {
-            .none => 0,
-            .current => 1,
-            .current_previous, .previous_current => 2,
+            .none => &.{},
+            .current => &.{0},
+            .current_previous => &.{ 0, -1 },
+            .previous_current => &.{ -1, 0 },
+            .secp256k1_main => &secp.MAIN_MASK_OFFSETS,
+            .keccak_state => &keccak.STATE_MASK_OFFSETS,
         };
     }
 
+    pub fn sampleCount(self: Layout) u8 {
+        return @intCast(self.offsets().len);
+    }
+
     pub fn hasPeriodicity(self: Layout) bool {
-        return switch (self) {
-            .current_previous, .previous_current => true,
-            .none, .current => false,
-        };
+        // The native PCS inserts a periodicity term only for two-point masks.
+        return self.sampleCount() == 2;
     }
 };
 
@@ -58,13 +65,22 @@ pub fn classifyColumn(
             .previous_current
         else
             error.SamplePointLayoutMismatch,
+        3, 6 => blk: {
+            const layout: Layout = if (points.len == 3) .secp256k1_main else .keccak_state;
+            const step = current.sub(previous);
+            for (points, layout.offsets()) |point, offset| {
+                if (!point.eql(current.add(step.mulSigned(offset))))
+                    return error.SamplePointLayoutMismatch;
+            }
+            break :blk layout;
+        },
         else => error.SamplePointLayoutMismatch,
     };
 }
 
 /// Accepts the complete protocol vocabulary for one sampled column:
-/// empty, current-only, or either exact ordered current/previous pair.
-/// Previous-only, duplicate, mutated, and wider masks are rejected.
+/// empty, current-only, either current/previous pair, or the native Ethereum
+/// windows. Previous-only, duplicate, reordered and mutated masks are rejected.
 pub fn validateColumn(
     points: []const CirclePointQM31,
     current: CirclePointQM31,

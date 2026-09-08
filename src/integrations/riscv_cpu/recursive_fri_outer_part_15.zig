@@ -62,7 +62,7 @@ pub fn Namespace(comptime context: type) type {
             trace_tree_heights: []const u32,
             column_log_sizes: []const []const u32,
             schedule_facts: ScheduleFacts,
-            vm_air: ?*const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: ?recursion.vm_composition_preparation.Source,
             verifier_plans: ?VerifierPlans,
             segment_transcript: ?SegmentTranscriptInputs,
             proof_in: *recursion.engine.Proof,
@@ -77,7 +77,7 @@ pub fn Namespace(comptime context: type) type {
 
             var circuit = try circuit_mod.build(allocator, profile);
             defer circuit.deinit();
-            var pcs_circuit = try pcs_circuit_mod.build(allocator, pcs_profile);
+            var pcs_circuit = try pcs_circuit_mod.Prepared.init(allocator, pcs_profile);
             defer pcs_circuit.deinit();
             stageTelemetryBegin("verifier.authority-init");
             var authority_timer = try std.time.Timer.start();

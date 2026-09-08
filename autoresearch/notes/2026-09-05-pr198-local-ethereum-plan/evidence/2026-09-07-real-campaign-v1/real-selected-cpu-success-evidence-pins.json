@@ -1,0 +1,37 @@
+[
+  {
+    "file": "real-selected-cpu-success-receipt.json",
+    "bytes": 1973,
+    "sha256": "557fdf949af672eb9bf3dd0bc1dc9ea17761b4e9db188464bf96d31d58496f8e"
+  },
+  {
+    "file": "real-selected-cpu-success-plan.json",
+    "bytes": 3183,
+    "sha256": "150222f938cdc30b772461aa0b6e24cefda7226aaeac6405636f7595d6689f94"
+  },
+  {
+    "file": "real-selected-cpu-success.log",
+    "bytes": 41996,
+    "sha256": "4d8aca0c1e5c53ba8a7ccf09dc60d98c490a5e8659e2981abed43b062319ccc1"
+  },
+  {
+    "file": "real-selected-cpu-success-process-samples.ndjson",
+    "bytes": 83814,
+    "sha256": "0d62d096b85533bd6ee797fffa59185293fc848853754d8b690a70a88ade0d6c"
+  },
+  {
+    "file": "real-selected-cpu-success-phases.json",
+    "bytes": 57496,
+    "sha256": "59e3bff55180faa3ba1ef127d8afbef38f2c9c1fb469ff4f3e02c072cd11afe1"
+  },
+  {
+    "file": "real-selected-cpu-success-column-histograms.json",
+    "bytes": 16335,
+    "sha256": "722157021383de5423ab63156450ac57b04f6bca4eec7c96d65b6483f4be27e7"
+  },
+  {
+    "file": "extract-retained-column-histograms.py",
+    "bytes": 3570,
+    "sha256": "90e5fcac81bbd959cf3f1dd6d9b24565a339160e5f8a967ba124eed3445868dc"
+  }
+]

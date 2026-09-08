@@ -13,6 +13,10 @@ const graph_mod =
     @import("recursive_common_ethereum_incremental_leaf_composition_graph_v4.zig");
 const manifest_mod =
     @import("recursive_common_ethereum_incremental_leaf_universal_manifest_v4.zig");
+const node_public = @import("recursive_field_node_public_v2.zig");
+const public_output = @import("recursive_common_fold_public_output_v3.zig");
+const EXTRA_PUBLIC_WORD_COUNT = node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT;
+
 const publication =
     @import("recursive_segment_v2_verified_publication.zig");
 const secure_artifact =
@@ -34,7 +38,7 @@ const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
 );
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 4;
 pub const CIRCUIT_ID: u32 = 764;
 pub const PRODUCTION_ACTIVATION = false;
 pub const SERIALIZABLE_FRESH_GRAPH = false;
@@ -42,7 +46,7 @@ pub const QUERY_WORD_COUNT: usize = 193;
 pub const TranscriptDigestV4 = recursion.poseidon2_channel.Digest;
 
 const CAPTURE_DOMAIN =
-    "stwo-zig/common-ethereum-incremental-composition-capture/v4-schema3\x00";
+    "stwo-zig/common-ethereum-incremental-composition-capture/v4-schema4\x00";
 
 pub const FreshGraphViewV4 = struct {
     capture_identity_sha256: *const [32]u8,
@@ -61,6 +65,12 @@ pub fn Types(comptime Engine: type) type {
     const Cohort = Graph.CohortV4;
     const Kernel = Graph.KernelV4;
     const VerifiedReplay = Graph.VerifiedReplay;
+    // The enclosing cold owner privately retains this admitted value. Source
+    // inspection must not become unsound if a later replay field borrows storage.
+    comptime {
+        @setEvalBranchQuota(100_000);
+        assertPointerFreeReplay(VerifiedReplay);
+    }
 
     return struct {
         pub const KernelV4 = Kernel;
@@ -178,6 +188,7 @@ pub fn Types(comptime Engine: type) type {
                 errdefer layout.deinit();
                 const profile = composition_v3.InputProfileV3{
                     .sampled_value_count = layout.sampled_value_count,
+                    .field_public_extra_word_count = EXTRA_PUBLIC_WORD_COUNT,
                 };
                 try profile.validate();
                 const claim_inputs = try Graph.ClaimInputsV4.init(replay);
@@ -193,8 +204,7 @@ pub fn Types(comptime Engine: type) type {
                     &layout,
                     profile,
                     &components,
-                    session,
-                    replay,
+                    cohort,
                 );
                 errdefer program.deinit();
 
@@ -211,6 +221,7 @@ pub fn Types(comptime Engine: type) type {
                 try writeInputs(
                     profile,
                     &claim_inputs,
+                    cohort,
                     session,
                     replay,
                     capture,
@@ -236,10 +247,10 @@ pub fn Types(comptime Engine: type) type {
                     .node_values = node_values,
                     .identity_sha256 = undefined,
                 };
-                program.moved = true;
-                layout = undefined;
                 result.identity_sha256 = captureIdentity(&result);
-                errdefer result.deinit();
+                // Locals own cleanup until admission succeeds. In particular,
+                // an allocation failure in validation must not also destroy
+                // the aliases in result.
                 try result.validateAgainst(
                     cohort,
                     session,
@@ -248,6 +259,8 @@ pub fn Types(comptime Engine: type) type {
                     replay,
                     false,
                 );
+                program.moved = true;
+                layout = undefined;
                 return result;
             }
 
@@ -287,18 +300,64 @@ pub fn Types(comptime Engine: type) type {
                 replay: *const VerifiedReplay,
                 rerecord_program: bool,
             ) !void {
-                try validateTransaction(
-                    cohort,
-                    session,
-                    statement,
-                    capture,
-                    replay,
-                );
+                try validateReplayAdmission(cohort, session, replay);
+                try self.validateInputSources(cohort, session, statement, capture, replay);
+                try self.validateRetained();
+                if (!rerecord_program) return;
+
                 const manifest = cohort.manifest();
-                try self.layout.validateAgainstAuthenticatedBinary(
-                    graph_mod.MANIFEST_FAMILY,
-                    manifest,
+                var components = try cohort.initComponents(
+                    &replay.generated,
+                    &replay.relations,
+                    &replay.provider_relations,
                 );
+                defer components.deinit();
+                var expected = try recordProgram(
+                    self.allocator,
+                    manifest,
+                    &self.layout,
+                    self.profile,
+                    &components,
+                    cohort,
+                );
+                defer expected.deinit();
+                if (!std.mem.eql(
+                    u8,
+                    &self.circuit.identity_digest,
+                    &expected.circuit.identity_digest,
+                ) or !bindingsEql(self.bindings, expected.bindings)) {
+                    return error.InvalidEthereumIncrementalCompositionCaptureV4;
+                }
+            }
+
+            /// Binding inspection only: an enclosing opaque owner must already
+            /// privately own the fully admitted pointer-free replay and graph,
+            /// and explicitly validate external materialized/cohort state before
+            /// calling. Legacy capture slices remain mutable, so their complete
+            /// capture identity and current graph inputs are checked every time.
+            /// This neither recomputes closure nor mints verification authority.
+            /// Standalone admission still uses validateAgainstCold.
+            pub fn validateInputSourcesAgainstCold(
+                self: *const CaptureV4,
+                cohort: *Cohort,
+                session: *const secure_artifact.SessionV1,
+                cold: *const Kernel.VerifiedColdReplayV1,
+            ) !void {
+                try cold.validateBorrowed(cohort, session);
+                try self.validateInputSources(cohort, session, &cold.fresh.statement, &cold.fresh.capture, &cold.replay);
+            }
+
+            fn validateInputSources(
+                self: *const CaptureV4,
+                cohort: *Cohort,
+                session: *const secure_artifact.SessionV1,
+                statement: *const secure_artifact.StatementV1,
+                capture: *const OuterProofCapture,
+                replay: *const VerifiedReplay,
+            ) !void {
+                try validateTransactionBindings(session, statement, capture, replay);
+                const manifest = cohort.manifest();
+                try self.layout.validateAgainstEthereumWrapperV1(manifest);
                 try self.claim_inputs.validateAgainst(replay);
                 if (self.format_version != FORMAT_VERSION or
                     self.schema_version != SCHEMA_VERSION or
@@ -342,6 +401,7 @@ pub fn Types(comptime Engine: type) type {
                 try writeInputs(
                     self.profile,
                     &self.claim_inputs,
+                    cohort,
                     session,
                     replay,
                     capture,
@@ -349,37 +409,13 @@ pub fn Types(comptime Engine: type) type {
                 );
                 if (!qm31SliceEql(self.input_values, expected_inputs))
                     return error.InvalidEthereumIncrementalCompositionCaptureV4;
-                try self.validateRetained();
-                if (!rerecord_program) return;
-
-                var components = try cohort.initComponents(
-                    &replay.generated,
-                    &replay.relations,
-                    &replay.provider_relations,
-                );
-                defer components.deinit();
-                var expected = try recordProgram(
-                    self.allocator,
-                    manifest,
-                    &self.layout,
-                    self.profile,
-                    &components,
-                    session,
-                    replay,
-                );
-                defer expected.deinit();
-                if (!std.mem.eql(
-                    u8,
-                    &self.circuit.identity_digest,
-                    &expected.circuit.identity_digest,
-                ) or !bindingsEql(self.bindings, expected.bindings)) {
-                    return error.InvalidEthereumIncrementalCompositionCaptureV4;
-                }
             }
 
             pub fn validateRetained(self: *const CaptureV4) !void {
                 try self.layout.validateSelfConsistency();
                 try self.profile.validate();
+                if (self.profile.field_public_extra_word_count != EXTRA_PUBLIC_WORD_COUNT)
+                    return error.InvalidEthereumIncrementalCompositionCaptureV4;
                 try self.circuit.validate();
                 if (self.input_values.len != try composition.recursionInputCount(
                     self.profile.graphProfile(),
@@ -463,30 +499,393 @@ pub fn Types(comptime Engine: type) type {
             }
         };
 
-        const OwnedProgram = struct {
-            circuit: recorder.Circuit,
-            bindings: []composition.RecursionInputBinding,
-            moved: bool = false,
-
-            fn deinit(self: *OwnedProgram) void {
-                if (!self.moved) {
-                    const allocator = self.circuit.allocator;
-                    allocator.free(self.bindings);
-                    self.circuit.deinit();
-                }
-                self.* = undefined;
-            }
-        };
-
         fn recordProgram(
             allocator: std.mem.Allocator,
             manifest: *const manifest_mod.Manifest,
             layout: *const capture_layout.CaptureLayoutV3,
             profile: composition_v3.InputProfileV3,
             components: *const Cohort.Components,
+            cohort: *const Cohort,
+        ) !OwnedProgram {
+            return recordProgramWithAuthority(Graph.recordCohort, allocator, manifest, layout, profile, components, cohort);
+        }
+
+        fn writeInputs(
+            profile: composition_v3.InputProfileV3,
+            claim_inputs: *const Graph.ClaimInputsV4,
+            cohort: *const Cohort,
             session: *const secure_artifact.SessionV1,
             replay: *const VerifiedReplay,
+            capture: *const OuterProofCapture,
+            destination: []QM31,
+        ) !void {
+            const public_words = cohort.publicationWords();
+            for (public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], session.parent_statement_words) |word, expected|
+                if (word != expected.toU32()) return error.InvalidEthereumIncrementalCompositionCaptureV4;
+            try writePublicInputs(profile, &public_words, &claim_inputs.values, replay.audited.wire_boundary.claimed_sum, &replay.relations, capture, destination);
+        }
+
+        fn validateTransaction(
+            cohort: *Cohort,
+            session: *const secure_artifact.SessionV1,
+            statement: *const secure_artifact.StatementV1,
+            capture: *const OuterProofCapture,
+            replay: *const VerifiedReplay,
+        ) !void {
+            try validateReplayAdmission(cohort, session, replay);
+            try validateTransactionBindings(session, statement, capture, replay);
+        }
+
+        /// Full acceptance remains explicit and is never inferred from a seal.
+        fn validateReplayAdmission(
+            cohort: *Cohort,
+            session: *const secure_artifact.SessionV1,
+            replay: *const VerifiedReplay,
+        ) !void {
+            try cohort.validate();
+            try cohort.validateSession(session);
+            try replay.validateAgainst(cohort);
+        }
+
+        /// Recheck exposed capture contents and their original admitted bindings
+        /// without regenerating private value-only claims or relation closure.
+        fn validateTransactionBindings(
+            session: *const secure_artifact.SessionV1,
+            statement: *const secure_artifact.StatementV1,
+            capture: *const OuterProofCapture,
+            replay: *const VerifiedReplay,
+        ) !void {
+            try statement.validateAgainstSession(session);
+            try replay.validateStatementAudit(statement.audit_sha256);
+            if (session.source_kind !=
+                .ethereum_incremental_leaf_wrapper_v4 or
+                !std.meta.eql(
+                    statement.capture_id,
+                    publication.captureIdentity(capture),
+                ) or !std.mem.eql(
+                u8,
+                &statement.claims_sha256,
+                &replay.claims.seal,
+            ) or !std.mem.eql(
+                u8,
+                &statement.closure_sha256,
+                &replay.audited.closure.closure_id,
+            )) return error.InvalidEthereumIncrementalCompositionCaptureV4;
+        }
+
+        fn captureIdentity(value: *const CaptureV4) [32]u8 {
+            var hash = Sha256.init(.{});
+            hash.update(CAPTURE_DOMAIN);
+            hashInt(&hash, u16, value.format_version);
+            hashInt(&hash, u16, value.schema_version);
+            hashInt(&hash, u8, @intFromBool(value.production_activation));
+            hash.update(&value.reserved);
+            hash.update(&value.session_identity_sha256);
+            hash.update(&value.statement_identity_sha256);
+            hash.update(&value.claims_sha256);
+            hash.update(&value.transcript_audit_sha256);
+            hash.update(&value.cohort_audit_sha256);
+            hash.update(&value.closure_sha256);
+            hash.update(&value.manifest_seal);
+            hash.update(&value.layout.identity);
+            hash.update(&value.circuit.identity_digest);
+            hashInt(&hash, u32, @as(u32, @intCast(value.bindings.len)));
+            for (value.bindings) |binding| {
+                hashInt(&hash, u32, binding.node_id);
+                hashRecursionSource(&hash, binding.source);
+            }
+            for (value.claim_inputs.values) |item| hashQm31(&hash, item);
+            for (value.input_values) |item| hashQm31(&hash, item);
+            for (value.node_values) |item| hashQm31(&hash, item);
+            return hash.finalResult();
+        }
+    };
+}
+
+fn bindingsEql(
+    left: []const composition.RecursionInputBinding,
+    right: []const composition.RecursionInputBinding,
+) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |lhs, rhs| if (!std.meta.eql(lhs, rhs)) return false;
+    return true;
+}
+
+fn qm31SliceEql(left: []const QM31, right: []const QM31) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |lhs, rhs| if (!lhs.eql(rhs)) return false;
+    return true;
+}
+
+fn m31SliceEql(left: []const M31, right: []const M31) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |lhs, rhs| if (!lhs.eql(rhs)) return false;
+    return true;
+}
+
+fn hashQm31(hash: *Sha256, value: QM31) void {
+    for (value.toM31Array()) |word|
+        hashInt(hash, u32, word.toU32());
+}
+
+/// Shared input ABI: the 412 body words precede PCS inputs; the 38
+/// header/digest inputs form the appended opt-in tail. Only ABI coordinates
+/// are constants. The public values and relation challenges are graph inputs.
+fn recordPublicBoundary(
+    statement_words: *const [node_public.STATEMENT_WORD_COUNT]recorder.Scalar,
+    extra: []const recorder.Scalar,
+    challenges: *const recorder.ChallengeSet,
+) !recorder.Scalar {
+    if (extra.len != EXTRA_PUBLIC_WORD_COUNT) return error.InvalidWitnessShape;
+    var words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
+    @memcpy(words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], statement_words);
+    for (extra, 0..) |word, index|
+        words[if (index < node_public.HEADER_WORD_COUNT) index else index + node_public.STATEMENT_WORD_COUNT] = word;
+    return public_output.recordSum(&words, challenges);
+}
+
+fn assertPointerFreeReplay(comptime T: type) void {
+    switch (@typeInfo(T)) {
+        .pointer => @compileError("Ethereum admitted replay must not retain borrowed storage: " ++ @typeName(T)),
+        .optional => |optional| assertPointerFreeReplay(optional.child),
+        .array => |array| assertPointerFreeReplay(array.child),
+        .@"struct" => |info| inline for (info.fields) |field|
+            assertPointerFreeReplay(field.type),
+        .@"union" => |info| inline for (info.fields) |field|
+            assertPointerFreeReplay(field.type),
+        else => {},
+    }
+}
+
+fn hashRecursionSource(
+    hash: *Sha256,
+    source: composition.RecursionSource,
+) void {
+    hashInt(hash, u8, @intFromEnum(std.meta.activeTag(source)));
+    switch (source) {
+        .parent_binary_selector => {},
+        .child_kind_selector => |kind| hashInt(
+            hash,
+            u8,
+            @intFromEnum(kind),
+        ),
+        .statement_word, .field_public_word => |word| hashInt(hash, u32, word),
+        .sampled_value,
+        .claimed_sum,
+        .transcript_claimed_sum,
+        .public_wire_boundary,
+        => |coordinate| {
+            hashInt(hash, u32, coordinate.item_index);
+            hashInt(hash, u32, coordinate.word_index);
+        },
+        .relation_challenge => |coordinate| {
+            hashInt(hash, u32, coordinate.challenge);
+            hashInt(hash, u32, coordinate.word_index);
+        },
+        .composition_randomness,
+        .oods_point,
+        => |word| hashInt(hash, u32, word),
+    }
+}
+
+fn hashInt(hash: *Sha256, comptime T: type, value: anytype) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, @intCast(value), .little);
+    hash.update(&bytes);
+}
+
+comptime {
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 4 or
+        PRODUCTION_ACTIVATION or SERIALIZABLE_FRESH_GRAPH or
+        QUERY_WORD_COUNT != 193 or CIRCUIT_ID != 764)
+    {
+        @compileError("Ethereum incremental composition capture V4 drifted");
+    }
+    _ = secure_engine;
+}
+
+test "Ethereum symbolic public boundary matches native and rejects changed words and challenges" {
+    const allocator = std.testing.allocator;
+    const boundary_mod = @import("recursive_common_ethereum_incremental_leaf_public_statement_boundary_v4.zig");
+    const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+    const first = try publicBoundaryFixture("first");
+    const second = try publicBoundaryFixture("second");
+    const first_claim = try boundary_mod.PublicStatementBoundaryV4.derive(&first, &relations);
+    const second_claim = try boundary_mod.PublicStatementBoundaryV4.derive(&second, &relations);
+    var circuit = try publicBoundaryCircuit(allocator);
+    defer circuit.deinit();
+    var again = try publicBoundaryCircuit(allocator);
+    defer again.deinit();
+    try std.testing.expectEqualSlices(u8, &circuit.identity_digest, &again.identity_digest);
+    const original_identity = circuit.identity_digest;
+    const values = try allocator.alloc(QM31, circuit.nodes.len);
+    defer allocator.free(values);
+    const challenge_count = composition_v3.RELATION_CHALLENGE_COUNT;
+    var inputs: [node_public.AIR_WORD_COUNT + 2 * challenge_count + 1]QM31 = undefined;
+    for ([_]*const node_public.NodePublicV2{ &first, &second }, [_]QM31{ first_claim.claimed_sum, second_claim.claimed_sum }) |node, claim| {
+        const words = try node.canonicalAirWords();
+        for (words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], 0..) |word, index|
+            inputs[index] = QM31.fromBase(M31.fromCanonical(word));
+        for (0..EXTRA_PUBLIC_WORD_COUNT) |index|
+            inputs[node_public.STATEMENT_WORD_COUNT + index] = QM31.fromBase(M31.fromCanonical(words[if (index < node_public.HEADER_WORD_COUNT) index else index + node_public.STATEMENT_WORD_COUNT]));
+        for (relations.elements, 0..) |element, index| {
+            inputs[node_public.AIR_WORD_COUNT + 2 * index] = element.z;
+            inputs[node_public.AIR_WORD_COUNT + 2 * index + 1] = element.alpha;
+        }
+        inputs[inputs.len - 1] = claim;
+        try circuit.evaluateInto(&inputs, values);
+        // No witness words enter construction: both native statements use the
+        // same subgraph. Other boundaries in the complete graph remain separate.
+        try std.testing.expectEqualSlices(u8, &original_identity, &circuit.identity_digest);
+        const relation_index: usize = @intFromEnum(boundary_mod.DOMAIN);
+        for ([_]usize{ 0, node_public.STATEMENT_WORD_COUNT, node_public.STATEMENT_WORD_COUNT + 6, node_public.AIR_WORD_COUNT - 1, node_public.AIR_WORD_COUNT + 2 * relation_index, node_public.AIR_WORD_COUNT + 2 * relation_index + 1, inputs.len - 1 }) |index| {
+            const original = inputs[index];
+            inputs[index] = original.add(QM31.one());
+            try std.testing.expectError(error.UnsatisfiedCircuit, circuit.evaluateInto(&inputs, values));
+            inputs[index] = original;
+        }
+    }
+}
+
+fn publicBoundaryCircuit(allocator: std.mem.Allocator) !recorder.Circuit {
+    var builder = recorder.Builder.init(allocator);
+    defer builder.deinit();
+    var body: [node_public.STATEMENT_WORD_COUNT]recorder.Scalar = undefined;
+    var extra: [EXTRA_PUBLIC_WORD_COUNT]recorder.Scalar = undefined;
+    var draws: [composition_v3.RELATION_CHALLENGE_COUNT][2]recorder.Scalar = undefined;
+    for (&body) |*word| word.* = (try builder.input()).value;
+    for (&extra) |*word| word.* = (try builder.input()).value;
+    for (&draws) |*pair| for (pair) |*value| {
+        value.* = (try builder.input()).value;
+    };
+    const native_claim = (try builder.input()).value;
+    try builder.activate();
+    const challenges = try recorder.ChallengeSet.init(draws);
+    try builder.constrainZero((try recordPublicBoundary(&body, &extra, &challenges)).sub(native_claim));
+    try builder.check();
+    builder.deactivate();
+    return builder.finish();
+}
+
+fn publicBoundaryFixture(source: []const u8) !node_public.NodePublicV2 {
+    const span = recursion.span_statement;
+    const digest = recursion.poseidon2_channel.hashBytes("ethereum-boundary-fixture", 0x4658);
+    const initial = try span.MachineState.init(0, [_]u32{0} ** 32, digest, digest);
+    const final = try span.MachineState.init(4, [_]u32{0} ** 32, digest, digest);
+    const complete = try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, digest, initial, final, digest, digest, 8);
+    const job = try span.JobContext.init(complete, 210);
+    const statement = try span.SpanStatement.emptyLeaf(job, 210);
+    var words: [node_public.STATEMENT_WORD_COUNT]u32 = undefined;
+    for (&words, try statement.canonicalWords()) |*out, word| out.* = word.toU32();
+    return node_public.NodePublicV2.initLeaf(try @import("recursive_node_artifact_v1.zig").TaskCoordinateV1.init(0, 210), words, recursion.poseidon2_channel.hashBytes(source, 0x4658));
+}
+
+test "Ethereum symbolic public boundary closes all 450 authenticated input sources" {
+    const air = recursion.air;
+    const allocator = std.testing.allocator;
+    const InputAir = air.vm_air_composition_input;
+    const InputWitness = air.vm_air_composition_input_witness;
+    const StatementAir = air.field_statement_word_v3;
+    var input_definition = try InputAir.build(allocator);
+    defer input_definition.deinit();
+    var statement_definition = try StatementAir.build(allocator);
+    defer statement_definition.deinit();
+    const input_plan = try air.universal_relation_binding.Binding(InputAir).authenticate(&input_definition);
+    const statement_plan = try air.universal_relation_binding.Binding(StatementAir).authenticate(&statement_definition);
+    var ledger = air.relation_interaction.TupleLedger.init(allocator);
+    defer ledger.deinit();
+    const node = try publicBoundaryFixture("source-join");
+    const words = try node.canonicalAirWords();
+    const profile = composition_v3.InputProfileV3{ .sampled_value_count = 0, .field_public_extra_word_count = EXTRA_PUBLIC_WORD_COUNT };
+    const scope = recursion.binary_fri_outer_source.LEFT_COMPOSITION_STATEMENT_SCOPE;
+    var count: usize = 0;
+    var extras: usize = 0;
+    for (0..try composition.recursionInputCount(profile.graphProfile())) |index| {
+        const source = composition.expectedRecursionSource(profile.graphProfile(), index) orelse return error.InvalidWitnessShape;
+        const node_index: usize = switch (source) {
+            .statement_word => |word| node_public.HEADER_WORD_COUNT + word,
+            .field_public_word => |word| blk: {
+                extras += 1;
+                break :blk word;
+            },
+            else => continue,
+        };
+        count += 1;
+        const value = M31.fromCanonical(words[node_index]);
+        const source_index = @import("recursive_common_fold_public_hash_v3.zig").nodeWordIndex(node_index);
+        const input_row = try InputWitness.logicalRow(.{
+            .classification = .{ .recursion_input = .{ .verifier_id = 1, .statement_scope = scope, .source = source } },
+            .circuit_id = CIRCUIT_ID,
+            .node_id = @intCast(index),
+            .use_count = 1,
+        }, value, .binary_node);
+        var statement_row: [StatementAir.LOGICAL_INPUT_COUNT]M31 = undefined;
+        statement_row[0..StatementAir.PHYSICAL_MAIN_COLUMN_COUNT].* = try StatementAir.mainRow(value.toU32());
+        const pp = [_]u32{ 1, 1, 0, 31, 0, 0, 0, 0, @intCast(2 * node_index), scope, source_index, 1, 1 };
+        for (statement_row[StatementAir.PHYSICAL_MAIN_COLUMN_COUNT..], pp) |*slot, word| slot.* = M31.fromCanonical(word);
+        for (statement_plan.preparedEntries(statement_row)) |entry| {
+            if (entry.domain == .recursion_statement_word and !entry.numerator.isZero())
+                try ledger.append(entry.domain, 12, entry.ordinal, entry.role, entry.numerator, entry.values[0..entry.arity]);
+        }
+        for (input_plan.preparedEntries(input_row)) |entry| {
+            if (entry.domain == .recursion_statement_word and !entry.numerator.isZero())
+                try ledger.append(entry.domain, 18, entry.ordinal, entry.role, entry.numerator, entry.values[0..entry.arity]);
+        }
+    }
+    try std.testing.expectEqual(@as(usize, 450), count);
+    try std.testing.expectEqual(@as(usize, 38), extras);
+    try std.testing.expect(ledger.classify().isClosed());
+    // Source joining is tuple-exact, including headers and digests; changing
+    // one consumer leaves a real unmatched tuple rather than being resealed.
+    const original = ledger.contributions.pop().?;
+    var changed = original.tuple_prefix[0..3].*;
+    changed[2] = changed[2].add(QM31.one());
+    try ledger.append(original.domain, 18, 0, original.role, original.signed_weight, &changed);
+    try std.testing.expect(!ledger.classify().isClosed());
+}
+
+pub const OwnedProgram = struct {
+    circuit: recorder.Circuit,
+    bindings: []composition.RecursionInputBinding,
+    moved: bool = false,
+
+    pub fn deinit(self: *OwnedProgram) void {
+        if (!self.moved) {
+            const allocator = self.circuit.allocator;
+            allocator.free(self.bindings);
+            self.circuit.deinit();
+        }
+        self.* = undefined;
+    }
+};
+
+pub const recordProgramWithAuthority = RecordingForManifest(manifest_mod).recordProgramWithAuthority;
+pub const writePublicInputs = RecordingForManifest(manifest_mod).writePublicInputs;
+
+/// One recorder and input writer for each explicitly selected Ethereum
+/// manifest. Selection changes admission, never the shared input coordinates.
+pub fn RecordingForManifest(comptime ManifestMod: type) type {
+    const initial = ManifestMod == recursion.air.ethereum_initial_input_manifest_v1;
+    if (!initial and ManifestMod != manifest_mod) @compileError("unsupported Ethereum composition manifest");
+    return struct {
+        pub const CLAIM_MANIFEST_FAMILY = if (initial) composition_v3.ManifestFamilyV3.ethereum_initial_wrapper_v1 else graph_mod.CLAIM_MANIFEST_FAMILY;
+        pub const CLAIM_POLICY = if (initial) composition_v3.ClaimPolicyV3.ethereum_initial_wrapper_v1 else graph_mod.CLAIM_POLICY;
+        const SharedProgramRecorder = composition_v3.segment_recorder_v3.ProgramRecorderForManifest(ManifestMod, .binary_node, ManifestMod.COMPONENT_COUNT);
+
+        pub fn recordProgramWithAuthority(
+            comptime recordComponents: anytype,
+            allocator: std.mem.Allocator,
+            manifest: *const ManifestMod.Manifest,
+            layout: *const capture_layout.CaptureLayoutV3,
+            profile: composition_v3.InputProfileV3,
+            components: anytype,
+            boundary: anytype,
         ) !OwnedProgram {
+            if (initial)
+                try layout.validateAgainstEthereumInitialWrapperV1(manifest)
+            else
+                try layout.validateAgainstEthereumWrapperV1(manifest);
+            try profile.validate();
             const graph_profile = profile.graphProfile();
             const input_count = try composition.recursionInputCount(
                 graph_profile,
@@ -569,7 +968,10 @@ pub fn Types(comptime Engine: type) type {
                 base_inputs,
                 &cursor,
             );
-            if (cursor != input_count) return error.InvalidWitnessShape;
+            const extra_public_words = base_inputs[cursor..];
+            cursor += profile.field_public_extra_word_count;
+            if (profile.field_public_extra_word_count != EXTRA_PUBLIC_WORD_COUNT or cursor != input_count)
+                return error.InvalidWitnessShape;
             const challenges = try recorder.ChallengeSet.init(challenge_draws);
             const oods_point = recorder.pointFromSeed(oods_seed);
             const split_composition = try composition_v3
@@ -588,37 +990,30 @@ pub fn Types(comptime Engine: type) type {
                     else
                         recorder.Scalar.zero(),
                 ));
-            for (statement_words, session.parent_statement_words) |
-                actual,
-                expected,
-            | try builder.constrainZero(
-                actual.sub(recorder.Scalar.fromBase(expected)),
-            );
             _ = try composition_v3
                 .recordClaimPolicyConstraintsForManifestPolicy(
                 &builder,
                 &kind_selectors,
                 &claim_inputs,
-                graph_mod.CLAIM_MANIFEST_FAMILY,
-                graph_mod.CLAIM_POLICY,
+                CLAIM_MANIFEST_FAMILY,
+                CLAIM_POLICY,
             );
             try builder.constrainZero(public_wire_boundary.sub(
-                recorder.Scalar.fromSecure(
-                    replay.audited.wire_boundary.claimed_sum,
-                ),
+                try boundary.recordPublicWireBoundary(&challenges),
             ));
             var claimed_total = recorder.Scalar.zero();
-            for (claim_inputs[0..graph_mod.PHYSICAL_CLAIM_COUNT]) |claim|
+            for (claim_inputs[0..ManifestMod.COMPONENT_COUNT]) |claim|
                 claimed_total = claimed_total.add(claim);
             try builder.constrainZero(claimed_total
                 .add(public_wire_boundary)
-                .add(recorder.Scalar.fromSecure(
-                replay.audited.verifier_input_boundary.claimed_sum,
-            )));
+                // validateTransaction admits only the zero verifier-input
+                // boundary (zero terms and zero claim). It has no witness value.
+                .add(recorder.Scalar.zero())
+                .add(try recordPublicBoundary(&statement_words, extra_public_words, &challenges)));
 
             var denominators: recorder.DenominatorCache =
                 .{null} ** stwo_core.circle.M31_CIRCLE_LOG_ORDER;
-            var program = try Graph.ProgramRecorderV4.initAuthenticatedBinary(
+            var program = try SharedProgramRecorder.initAuthenticatedBinary(
                 &builder,
                 manifest,
                 graph_mod.MANIFEST_FAMILY,
@@ -630,7 +1025,7 @@ pub fn Types(comptime Engine: type) type {
                 oods_point,
                 &denominators,
             );
-            const recorded = try Graph.recordCohort(&program, components);
+            const recorded = try recordComponents(&program, components);
             try builder.constrainZero(
                 split_composition.sub(recorded.accumulation),
             );
@@ -651,159 +1046,45 @@ pub fn Types(comptime Engine: type) type {
             return .{ .circuit = circuit, .bindings = bindings };
         }
 
-        fn writeInputs(
+        /// Shared Ethereum composition input ABI. Public values remain graph inputs.
+        pub fn writePublicInputs(
             profile: composition_v3.InputProfileV3,
-            claim_inputs: *const Graph.ClaimInputsV4,
-            session: *const secure_artifact.SessionV1,
-            replay: *const VerifiedReplay,
+            public_words: *const [node_public.AIR_WORD_COUNT]u32,
+            claim_inputs: *const [composition_v3.COMPOSITION_CLAIM_INPUT_COUNT]QM31,
+            wire_boundary: QM31,
+            relations: *const recursion.air.universal_challenges.UniversalRelations,
             capture: *const OuterProofCapture,
             destination: []QM31,
         ) !void {
+            var statement_words: recursion.span_statement.StatementWords = undefined;
+            for (&statement_words, public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT]) |*word, value| {
+                if (value >= stwo_core.fields.m31.Modulus) return error.InvalidEthereumIncrementalCompositionCaptureV4;
+                word.* = M31.fromCanonical(value);
+            }
+            var extra: [EXTRA_PUBLIC_WORD_COUNT]M31 = undefined;
+            for (&extra, 0..) |*word, index| {
+                const value = public_words[if (index < node_public.HEADER_WORD_COUNT) index else index + node_public.STATEMENT_WORD_COUNT];
+                if (value >= stwo_core.fields.m31.Modulus) return error.InvalidEthereumIncrementalCompositionCaptureV4;
+                word.* = M31.fromCanonical(value);
+            }
             try composition_v3.writeInputsFromValidatedProfileAndManifestPolicy(
                 profile,
-                graph_mod.CLAIM_MANIFEST_FAMILY,
-                graph_mod.CLAIM_POLICY,
+                CLAIM_MANIFEST_FAMILY,
+                CLAIM_POLICY,
                 .{
                     .parent_binary_selector = true,
                     .proof_kind = .binary_node,
-                    .statement_words = &session.parent_statement_words,
+                    .statement_words = &statement_words,
+                    .field_public_extra_words = &extra,
                     .sampled_values = capture.sampled_values,
-                    .claim_inputs = &claim_inputs.values,
-                    .public_wire_boundary = replay.audited.wire_boundary.claimed_sum,
-                    .relations = &replay.relations,
+                    .claim_inputs = claim_inputs,
+                    .public_wire_boundary = wire_boundary,
+                    .relations = relations,
                     .composition_randomness = capture.composition_randomness,
                     .oods_seed = capture.oods_seed,
                 },
                 destination,
             );
         }
-
-        fn validateTransaction(
-            cohort: *Cohort,
-            session: *const secure_artifact.SessionV1,
-            statement: *const secure_artifact.StatementV1,
-            capture: *const OuterProofCapture,
-            replay: *const VerifiedReplay,
-        ) !void {
-            try cohort.validate();
-            try cohort.validateSession(session);
-            try statement.validateAgainstSession(session);
-            try replay.validateAgainst(cohort);
-            try replay.validateStatementAudit(statement.audit_sha256);
-            if (session.source_kind !=
-                .ethereum_incremental_leaf_wrapper_v4 or
-                !std.meta.eql(
-                    statement.capture_id,
-                    publication.captureIdentity(capture),
-                ) or !std.mem.eql(
-                u8,
-                &statement.claims_sha256,
-                &replay.claims.seal,
-            ) or !std.mem.eql(
-                u8,
-                &statement.closure_sha256,
-                &replay.audited.closure.closure_id,
-            )) return error.InvalidEthereumIncrementalCompositionCaptureV4;
-        }
-
-        fn captureIdentity(value: *const CaptureV4) [32]u8 {
-            var hash = Sha256.init(.{});
-            hash.update(CAPTURE_DOMAIN);
-            hashInt(&hash, u16, value.format_version);
-            hashInt(&hash, u16, value.schema_version);
-            hashInt(&hash, u8, @intFromBool(value.production_activation));
-            hash.update(&value.reserved);
-            hash.update(&value.session_identity_sha256);
-            hash.update(&value.statement_identity_sha256);
-            hash.update(&value.claims_sha256);
-            hash.update(&value.transcript_audit_sha256);
-            hash.update(&value.cohort_audit_sha256);
-            hash.update(&value.closure_sha256);
-            hash.update(&value.manifest_seal);
-            hash.update(&value.layout.identity);
-            hash.update(&value.circuit.identity_digest);
-            hashInt(&hash, u32, @as(u32, @intCast(value.bindings.len)));
-            for (value.bindings) |binding| {
-                hashInt(&hash, u32, binding.node_id);
-                hashRecursionSource(&hash, binding.source);
-            }
-            for (value.claim_inputs.values) |item| hashQm31(&hash, item);
-            for (value.input_values) |item| hashQm31(&hash, item);
-            for (value.node_values) |item| hashQm31(&hash, item);
-            return hash.finalResult();
-        }
     };
-}
-
-fn bindingsEql(
-    left: []const composition.RecursionInputBinding,
-    right: []const composition.RecursionInputBinding,
-) bool {
-    if (left.len != right.len) return false;
-    for (left, right) |lhs, rhs| if (!std.meta.eql(lhs, rhs)) return false;
-    return true;
-}
-
-fn qm31SliceEql(left: []const QM31, right: []const QM31) bool {
-    if (left.len != right.len) return false;
-    for (left, right) |lhs, rhs| if (!lhs.eql(rhs)) return false;
-    return true;
-}
-
-fn m31SliceEql(left: []const M31, right: []const M31) bool {
-    if (left.len != right.len) return false;
-    for (left, right) |lhs, rhs| if (!lhs.eql(rhs)) return false;
-    return true;
-}
-
-fn hashQm31(hash: *Sha256, value: QM31) void {
-    for (value.toM31Array()) |word|
-        hashInt(hash, u32, word.toU32());
-}
-
-fn hashRecursionSource(
-    hash: *Sha256,
-    source: composition.RecursionSource,
-) void {
-    hashInt(hash, u8, @intFromEnum(std.meta.activeTag(source)));
-    switch (source) {
-        .parent_binary_selector => {},
-        .child_kind_selector => |kind| hashInt(
-            hash,
-            u8,
-            @intFromEnum(kind),
-        ),
-        .statement_word => |word| hashInt(hash, u32, word),
-        .sampled_value,
-        .claimed_sum,
-        .transcript_claimed_sum,
-        .public_wire_boundary,
-        => |coordinate| {
-            hashInt(hash, u32, coordinate.item_index);
-            hashInt(hash, u32, coordinate.word_index);
-        },
-        .relation_challenge => |coordinate| {
-            hashInt(hash, u32, coordinate.challenge);
-            hashInt(hash, u32, coordinate.word_index);
-        },
-        .composition_randomness,
-        .oods_point,
-        => |word| hashInt(hash, u32, word),
-    }
-}
-
-fn hashInt(hash: *Sha256, comptime T: type, value: anytype) void {
-    var bytes: [@sizeOf(T)]u8 = undefined;
-    std.mem.writeInt(T, &bytes, @intCast(value), .little);
-    hash.update(&bytes);
-}
-
-comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or
-        PRODUCTION_ACTIVATION or SERIALIZABLE_FRESH_GRAPH or
-        QUERY_WORD_COUNT != 193 or CIRCUIT_ID != 764)
-    {
-        @compileError("Ethereum incremental composition capture V4 drifted");
-    }
-    _ = secure_engine;
 }

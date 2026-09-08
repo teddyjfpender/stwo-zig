@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T07:13:32.717192+00:00",
+  "status": "source_fmt_ast_passed_no_replay_executed",
+  "scope": "existing saved-input replay reaches actual complete Tree2 and independent cold domain closure without PCS or native proving",
+  "source_files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_statement_root_cohort_replay.zig",
+      "sha256": "a57c58765173d98e238c95f0c67ddd4f9063fa71e41197cf73de200783c3580a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "sha256": "5dfb716589918853a58e60cbabff43be260dc6975215442779cd7a4d621868ee"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "sha256": "9154b954f3b1dd6e795622c3aebb645e7f7c7bd9221bc3b0cce7fc372d18c28e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_v4_test_root.zig",
+      "sha256": "ce25c51f8d8403903287ab4b45c988dd2cc8f2f452f108e96f95f4d8941aa16d"
+    }
+  ],
+  "route": [
+    "select ordinary36 or Initial38 from explicit materialized initial admission",
+    "Geometry.init then Complete.Cohort.init; never SecureCohort.init because it derives Tree0 PCS",
+    "deterministic universal/provider relations derived from Poseidon ETC1 version1 on each side",
+    "rebuildGeneratedInteractions generates full Tree2 privately then releases its columns",
+    "serialize manifest and pointer-free Generated claims/audits",
+    "destroy all producer geometry/cohort storage and require dedicated allocator empty",
+    "independently build cold geometry/cohort from already-native-verified source",
+    "decode publication and independently rebuild entire Tree2 from cold rows; compare complete Generated including native audits18..34 against published bytes",
+    "full validateGenerated additionally exercises independent cold prefix/suffix row audit and domain closure",
+    "destroy verifier geometry/cohort storage and require dedicated allocator empty"
+  ],
+  "phase_diagnostics": [
+    "prepare",
+    "tree2_generate",
+    "producer_closure",
+    "serialize",
+    "producer_destroy",
+    "cold_prepare",
+    "cold_tree2",
+    "cold_closure",
+    "verifier_destroy"
+  ],
+  "resource_fields": [
+    "wall_ns",
+    "process_cpu_ns",
+    "current_physical_footprint_bytes",
+    "lifetime_peak_physical_footprint_bytes",
+    "dedicated_cohort_allocator_live_bytes",
+    "dedicated_cohort_allocator_peak_bytes",
+    "pre-allocation_tree2_value_bytes"
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-validation-ownership",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "compile_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "check-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-statement-root-cohort-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_inputs": "Existing independently pinned saved Stage101 native pair/ELF/global metadata; existing explicit initial admission selects Initial38. No new native proof generated.",
+  "note": "Corrected active sources format/AST passed. Parent owns frozen v6 semantic execution. Baseline failure is real and is not SIGTERM runner attribution.",
+  "supersedes": "tree2-cold-closure-source-v4.json; codec runtime failure confirmed independently: Zig Stringify omits void fields, not null",
+  "execution": "root_cohort_run.has_side_effects=true ensures current pinned external corpus is reopened on each invocation",
+  "live_progress": "All phase/resource/summary messages use ethereum_wrapper_resources_v1.progress, preserving stderr and STWO_ETHEREUM_PROOF_PROGRESS append logging",
+  "transport_fix": "Require exactly non-void fields; initialize void internally and reject any supplied void field. Other fields use standard arena JSON decoder. No protocol Generated layout change.",
+  "required_codec_regression": "Ethereum cohort replay publication preserves absent and present initial claims",
+  "codec_cases": [
+    "ordinary omitted void round trip",
+    "Initial38 claims array round trip",
+    "supplied null or numeric void rejected",
+    "null Initial38 array rejected",
+    "missing non-void field rejected",
+    "same-count unknown-field substitution rejected"
+  ],
+  "focused_gate": "test-ethereum-validation-ownership now requires all six tests, including direct codec regression in small structural root",
+  "baseline_runtime_evidence": "codec-frozen-binary-result.json; existing frozen v3 binary index0 result_flags1; normal process exit0; no compiler or real replay"
+}

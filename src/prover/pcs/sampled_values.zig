@@ -85,7 +85,6 @@ pub fn evaluateAndReleaseWithWorkRecorder(
 
         const tree_values = try allocator.alloc([]QM31, tree.columns.len);
         out[tree_idx] = tree_values;
-        initialized_trees += 1;
 
         var initialized_columns: usize = 0;
         errdefer {
@@ -101,6 +100,9 @@ pub fn evaluateAndReleaseWithWorkRecorder(
                 return error.ShapeMismatch;
             }
         }
+        // Transfer cleanup to the outer owner only after every column exists.
+        // Until then the inner errdefer owns this partially initialized tree.
+        initialized_trees += 1;
     }
 
     var selected_coefficient_evaluation = false;
@@ -195,6 +197,9 @@ pub fn evaluateAndReleaseWithWorkRecorder(
             if (points.len == 0) continue;
             const entry = try barycentric_cache.getOrPut(column.log_size);
             if (!entry.found_existing) {
+                // An unsuccessful constructor must not leave a map entry
+                // whose uninitialized value is later destroyed.
+                errdefer _ = barycentric_cache.remove(column.log_size);
                 entry.value_ptr.* = try prover_circle_eval.BarycentricContext.init(
                     allocator,
                     column.log_size,

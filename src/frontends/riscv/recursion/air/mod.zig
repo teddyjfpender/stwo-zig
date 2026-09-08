@@ -13,6 +13,9 @@ pub const control_witness = @import("control_witness.zig");
 pub const control_witness_heterogeneous_v2 =
     @import("control_witness_heterogeneous_v2.zig");
 pub const direct_constraint_program = @import("direct_constraint_program.zig");
+pub const field_public_word_v3 = @import("field_public_word_v3.zig");
+pub const fixed_wire_v3 = @import("fixed_wire_v3.zig");
+pub const field_statement_word_v3 = @import("field_statement_word_v3.zig");
 pub const fri_merkle_anchor = @import("fri_merkle_anchor.zig");
 pub const fri_merkle_anchor_relation = @import("fri_merkle_anchor_relation.zig");
 pub const fri_merkle_anchor_witness = @import("fri_merkle_anchor_witness.zig");
@@ -95,6 +98,9 @@ pub const relation_challenge_witness = @import("relation_challenge_witness.zig")
 pub const temporal_packed_relation_challenge_v2 =
     @import("temporal_packed_relation_challenge_v2.zig");
 pub const statement_input = @import("statement_input.zig");
+pub const statement_input_roots_v3 = @import("statement_input_roots_v3.zig");
+pub const statement_root_physical_audit = @import("statement_root_physical_audit.zig");
+pub const vm_statement_roots = @import("vm_statement_roots.zig");
 pub const statement_input_relation = @import("statement_input_relation.zig");
 pub const statement_input_witness = @import("statement_input_witness.zig");
 pub const statement_semantics_input = @import("statement_semantics_input.zig");
@@ -107,6 +113,8 @@ pub const segment_publication_input_provider_component_v2 =
     @import("segment_publication_input_provider_component_v2.zig");
 pub const segment_publication_input_provider_v2 =
     @import("segment_publication_input_provider_v2.zig");
+pub const segment_publication_input_provider_witness_v2 =
+    @import("segment_publication_input_provider_witness_v2.zig");
 pub const trace_merkle = @import("trace_merkle.zig");
 pub const trace_merkle_relation = @import("trace_merkle_relation.zig");
 pub const trace_merkle_witness = @import("trace_merkle_witness.zig");
@@ -181,3 +189,25 @@ pub const vm_public_logup_input_relation = @import("vm_public_logup_input_relati
 pub const vm_public_logup_input_witness = @import("vm_public_logup_input_witness.zig");
 pub const wire_relation = @import("wire_relation.zig");
 pub const wire_interaction = @import("wire_interaction.zig");
+
+pub const statement_semantics_bytes_v2 = @import("statement_semantics_bytes_v2.zig");
+pub const transcript_payload_clocks_v2 = @import("transcript_payload_clocks_v2.zig");
+/// Opt-in raw-wire routing; availability does not select an active manifest.
+pub const ethereum_transcript_payload_raw_v1 = @import("ethereum_transcript_payload_raw_v1.zig");
+
+pub const ethereum_vm_public_claim_input_v1 = @import("ethereum_vm_public_claim_input_v1.zig");
+
+pub const ethereum_publication_hash_v1 = @import("ethereum_publication_hash_v1.zig");
+
+pub const ethereum_publication_control_v1 = @import("ethereum_publication_control_v1.zig");
+
+pub const ethereum_transcript_state_v1 = @import("ethereum_transcript_state_v1.zig");
+
+pub const ethereum_public_logup_input_v1 = @import("ethereum_public_logup_input_v1.zig");
+
+// Opt-in linear initial-input lane; not selected by any active manifest.
+pub const ethereum_initial_input_lane_v1 = @import("ethereum_initial_input_lane_v1.zig");
+
+// Opt-in companion bridge; no selected manifest/default changes.
+pub const ethereum_initial_input_packet_v1 = @import("ethereum_initial_input_packet_v1.zig");
+pub const ethereum_initial_input_manifest_v1 = @import("ethereum_initial_input_manifest_v1.zig");

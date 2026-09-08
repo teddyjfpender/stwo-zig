@@ -320,7 +320,7 @@ pub fn compile(
         input.base_profile,
         &extension_geometry,
         claims,
-        transcript_aggregates,
+        &transcript_aggregates,
     );
     const relations = relations_mod.RelationsV2.init(
         base_draws,
@@ -334,17 +334,22 @@ pub fn compile(
     );
     defer layout.deinit();
     const point = support.pointFromSeed(oods_seed);
+    const mask_log_size = @import("stwo_core").verifier_types.compositionMaskLogSize(
+        extension_geometry.max_log_degree_bound,
+        input.base_profile.composition_log_split,
+    ) orelse return error.InvalidVerifierProgram;
     var denominators: [31]?Scalar = .{null} ** 31;
     const base_result = try base_graph.record(
+        .legacy_role_filtered_v1,
         input.base_profile,
         input.lookup_manifest,
         &selected,
         &layout,
         claims[0..@as(usize, input.base_profile.input_profile.claimed_sum_count)],
-        &relations,
+        &relations.base,
         point,
         composition_randomness,
-        extension_geometry.max_log_degree_bound,
+        mask_log_size,
         &denominators,
     );
     const extension_result = try extension_graph.record(
@@ -354,6 +359,7 @@ pub fn compile(
         &relations,
         point,
         composition_randomness,
+        mask_log_size,
         &denominators,
         base_result.accumulation,
     );
@@ -424,14 +430,16 @@ pub fn compile(
     return result;
 }
 
-fn bindTranscriptAggregates(
+pub fn bindTranscriptAggregates(
     builder: *support.Builder,
     selector: Scalar,
     profile: *const profile_mod.ProfileV2,
-    extension: *const extension_geometry_mod.GeometryV2,
+    extension: ?*const extension_geometry_mod.GeometryV2,
     claims: []const Scalar,
-    transcript_aggregates: [TRANSCRIPT_CLAIM_COUNT]Scalar,
+    transcript_aggregates: []const Scalar,
 ) !void {
+    const expected_count = if (extension != null) TRANSCRIPT_CLAIM_COUNT else BASE_TRANSCRIPT_CLAIM_COUNT;
+    if (transcript_aggregates.len != expected_count) return error.InvalidClaimCount;
     var reconstructed = [_]Scalar{Scalar.zero()} ** TRANSCRIPT_CLAIM_COUNT;
     for (profile.entries) |entry| switch (entry.registry) {
         .opcode_lookup => |key| try addClaimRange(
@@ -453,7 +461,7 @@ fn bindTranscriptAggregates(
         .opcode_semantic => {},
     };
     var claim_cursor: u32 = profile.input_profile.claimed_sum_count;
-    for (extension.components, 0..) |component, component_index| {
+    if (extension) |extra| for (extra.components, 0..) |component, component_index| {
         try addClaimRange(
             &reconstructed[BASE_TRANSCRIPT_CLAIM_COUNT + component_index],
             claims,
@@ -461,9 +469,9 @@ fn bindTranscriptAggregates(
             component.interaction_batch_count,
         );
         claim_cursor = try add(claim_cursor, component.interaction_batch_count);
-    }
+    };
     if (@as(usize, claim_cursor) != claims.len) return error.InvalidClaimCount;
-    for (transcript_aggregates, reconstructed) |authenticated, aggregate| {
+    for (transcript_aggregates, reconstructed[0..expected_count]) |authenticated, aggregate| {
         try builder.constrainZero(selector.mul(authenticated.sub(aggregate)));
     }
     try builder.check();

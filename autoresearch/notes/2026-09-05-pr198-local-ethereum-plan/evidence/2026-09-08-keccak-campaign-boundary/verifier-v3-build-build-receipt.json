@@ -1,0 +1,22 @@
+{
+  "schema": "stwo.ethereum.frozen-product.v1",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v4/manifest.json",
+    "bytes": 1098931,
+    "sha256": "bbc0db972825c4a4535ece8fa68581030168b09249975a5404f03303583cdf2d"
+  },
+  "build_log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v3/build.log",
+    "bytes": 348,
+    "sha256": "3bdb24115e89c2a4d0e6ce8489256c3222cdbee6da79141ce1b24604539678a5"
+  },
+  "exit_code": 0,
+  "elapsed_ns_including_lock_wait": 664538057250,
+  "optimization": "ReleaseSafe",
+  "source_scope": "Built only from immutable complete source copy; all source files rehashed before and after build",
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v3/bin/ethereum-full-leaf-bundle-verify-v1",
+    "bytes": 3681504,
+    "sha256": "0f95c78060f98c631c2b7e949c5ebd9cac0c9a0b7e845634785b2b4c2378a4bd"
+  }
+}

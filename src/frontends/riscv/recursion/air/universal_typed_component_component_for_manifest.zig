@@ -483,48 +483,59 @@ pub fn ComponentForManifest(
                 sources[MAIN_COUNT + PP_COUNT ..],
                 interaction[self.placement.interaction_offset..interaction_end],
             );
+            // Validate source geometry before allocating local quotient buffers.
+            // Missing coefficients are recovered and degree-checked from the
+            // complete committed LDE, without retaining a second source set.
             var owned_count: usize = 0;
-            for (sources) |poly| if (try sourceNeedsExtension(
-                poly,
-                self.log_size,
-                eval_log_size,
-            )) {
-                owned_count += 1;
-            };
+            for (sources, 0..) |poly, source_index| {
+                const needs_extension = sourceNeedsExtension(poly, self.log_size, eval_log_size) catch |err| {
+                    if (err == error.InvalidProofShape) std.debug.print(
+                        "RECURSION_COMPONENT_SHAPE air={s} roster_row={d} source={d} trace_log={d} quotient_log={d} committed_log={d} coefficient_log={?d} error={s}\n",
+                        .{ @typeName(Air), self.placement.geometry.roster_row, source_index, self.log_size, eval_log_size, poly.log_size, if (poly.coefficients) |coefficients| coefficients.logSize() else null, @errorName(err) },
+                    );
+                    return err;
+                };
+                owned_count += @intFromBool(needs_extension);
+            }
+            const values_allocator = trace.quotient_values_allocator orelse allocator;
             const owned_buffers = try allocator.alloc([]M31, owned_count);
             var owned_initialized: usize = 0;
             errdefer {
                 for (owned_buffers[0..owned_initialized]) |values|
-                    allocator.free(values);
+                    values_allocator.free(values);
                 allocator.free(owned_buffers);
             }
             var evaluations: [SOURCE_COUNT][]const M31 = undefined;
-            for (sources, &evaluations) |poly, *target| {
-                target.* = try evaluationValues(
-                    allocator,
-                    poly,
-                    eval_log_size,
-                    eval_size,
-                    owned_buffers,
-                    &owned_initialized,
-                );
-            }
-            std.debug.assert(owned_initialized == owned_count);
-            if (owned_count != 0) {
-                var twiddles = try prover_twiddles.precomputeM31(
-                    allocator,
-                    eval_domain.half_coset,
-                );
-                defer prover_twiddles.deinitM31(allocator, &twiddles);
-                try prover_circle.poly.evaluateBuffersWithTwiddles(
-                    owned_buffers,
-                    eval_domain,
-                    prover_twiddles.TwiddleTree([]const M31).init(
-                        twiddles.root_coset,
-                        twiddles.twiddles,
-                        twiddles.itwiddles,
-                    ),
-                );
+            {
+                var twiddles: ?prover_twiddles.TwiddleTree([]M31) = if (owned_count != 0)
+                    try prover_twiddles.precomputeM31(allocator, eval_domain.half_coset)
+                else
+                    null;
+                defer if (twiddles) |*tree| prover_twiddles.deinitM31(allocator, tree);
+                const transform: ?prover_twiddles.TwiddleTree([]const M31) = if (twiddles) |tree|
+                    .{ .root_coset = tree.root_coset, .twiddles = tree.twiddles, .itwiddles = tree.itwiddles }
+                else
+                    null;
+                for (sources, &evaluations) |poly, *target| {
+                    target.* = try evaluationValues(
+                        values_allocator,
+                        poly,
+                        self.log_size,
+                        eval_log_size,
+                        eval_size,
+                        transform,
+                        owned_buffers,
+                        &owned_initialized,
+                    );
+                }
+                std.debug.assert(owned_initialized == owned_count);
+                if (owned_count != 0) {
+                    try prover_circle.poly.evaluateBuffersWithTwiddles(
+                        owned_buffers,
+                        eval_domain,
+                        transform.?,
+                    );
+                }
             }
             const denominator_inverse = try quotientDenominators(
                 DENOMINATOR_COUNT,
@@ -547,6 +558,7 @@ pub fn ComponentForManifest(
                 .component = self,
                 .evaluations = evaluations,
                 .owned_buffers = owned_buffers,
+                .values_allocator = values_allocator,
                 .denominator_inverse = denominator_inverse,
                 .column_accumulator = accumulator_columns[0],
                 .eval_size = eval_size,
@@ -653,6 +665,7 @@ pub fn ComponentForManifest(
             component: *const Self,
             evaluations: [SOURCE_COUNT][]const M31,
             owned_buffers: [][]M31,
+            values_allocator: std.mem.Allocator,
             denominator_inverse: [DENOMINATOR_COUNT]M31,
             column_accumulator: prover_air_accumulation.ColumnAccumulator,
             eval_size: usize,
@@ -673,7 +686,7 @@ pub fn ComponentForManifest(
             fn deinitErased(context: *anyopaque) void {
                 const self: *PreparedDomainState = @ptrCast(@alignCast(context));
                 const allocator = self.allocator;
-                for (self.owned_buffers) |values| allocator.free(values);
+                for (self.owned_buffers) |values| self.values_allocator.free(values);
                 allocator.free(self.owned_buffers);
                 allocator.destroy(self);
             }

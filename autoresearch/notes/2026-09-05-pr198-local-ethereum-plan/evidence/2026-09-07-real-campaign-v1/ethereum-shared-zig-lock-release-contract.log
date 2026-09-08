@@ -1,0 +1,6 @@
+test_release_gates_run_the_complete_test_graph_in_requested_mode (scripts.tests.test_ci.CiTests.test_release_gates_run_the_complete_test_graph_in_requested_mode) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.006s
+
+OK

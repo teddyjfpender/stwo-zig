@@ -1,0 +1,23 @@
+thread 30010560 panic: A top-level step with name "test-recursion-protocol" already exists
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/Build.zig:1307:44: 0x102ec5c33 in step (build)
+    if (gop.found_existing) std.debug.panic("A top-level step with name \"{s}\" already exists", .{name});
+                                           ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/build.zig:964:11: 0x102ec623f in addFocusedTests (build)
+    b.step(spec.step, spec.description).dependOn(dependency);
+          ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/build.zig:663:20: 0x102ea7dbf in build (build)
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+                   ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/Build.zig:2214:33: 0x102e92aff in runBuild__anon_21209 (build)
+        .void => build_zig.build(b),
+                                ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/build_runner.zig:366:29: 0x102e8ac73 in main (build)
+        try builder.runBuild(root);
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:627:37: 0x102e94e37 in main (build)
+            const result = root.main() catch |err| {
+                                    ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x4f41ffffffffffff in ??? (???)
+error: the following build command crashed:
+.zig-cache/o/2bc1d4ef8f6f5cbe7364c9125a53362b/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x651a74c8 -Z93b7959f757fffab --maxrss 25769803776 -j1 test-recursion-protocol -Doptimize=ReleaseSafe --summary all

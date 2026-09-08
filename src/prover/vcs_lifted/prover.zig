@@ -62,6 +62,9 @@ pub fn MerkleProverLifted(comptime H: type) type {
             prefix_state_bytes: usize = 0,
             leaf_layer_bytes: usize = 0,
             leaf_phase_peak_bytes: usize = 0,
+            /// Bounded stack cache storage across active tail workers;
+            /// reported separately from the heap-only leaf phase metric.
+            tail_cache_bytes: usize = 0,
             tail_absorptions: usize = 0,
             repeated_tail_absorptions: usize = 0,
         };
@@ -358,6 +361,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
             // domains, use the row-batch path to keep the transient hasher
             // array bounded (saves ~(N - batch_size) * sizeof(H) peak RAM,
             // e.g. >100 MiB for 2^20 leaves with Blake2s).
+            try layers_bottom_up.ensureUnusedCapacity(allocator, 1);
             const leaves = blk: {
                 if (sorted.len > 0) {
                     const max_col_log_size = sorted[sorted.len - 1].log_size;
@@ -369,7 +373,7 @@ pub fn MerkleProverLifted(comptime H: type) type {
                 }
                 break :blk try LeafOps.build(allocator, layer_alloc, sorted);
             };
-            try layers_bottom_up.append(allocator, leaves);
+            layers_bottom_up.appendAssumeCapacity(leaves);
 
             if (leaves.len > 1) {
                 std.debug.assert(std.math.isPowerOfTwo(leaves.len));

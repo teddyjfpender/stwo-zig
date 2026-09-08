@@ -118,6 +118,7 @@ pub const Statement = struct {
             signer_calls,
             secp,
             try canonicalAdmission(core, keccak_calls, signer_calls),
+            keccak_trace.maximum_log_size,
         );
         try result.validate(core);
         return result;
@@ -132,14 +133,19 @@ pub const Statement = struct {
         signer_calls: u32,
         secp: SecpShapes,
     ) Error!Statement {
+        return canonicalV2WithCircuitProfileV1(native, keccak_calls, signer_calls, secp, .legacy_v4);
+    }
+
+    pub fn canonicalV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, keccak_calls: u32, signer_calls: u32, secp: SecpShapes, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!Statement {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         const result = try initCanonical(
             keccak_calls,
             signer_calls,
             secp,
             try canonicalAdmissionV2(native, keccak_calls, signer_calls),
+            circuit_profile.keccakMaximumLogSize(),
         );
-        try result.validateV2(native);
+        try result.validateV2WithCircuitProfileV1(native, circuit_profile);
         return result;
     }
 
@@ -148,6 +154,7 @@ pub const Statement = struct {
         signer_calls: u32,
         secp: SecpShapes,
         admission: Admission,
+        admitted_keccak_maximum_log_size: u32,
     ) Error!Statement {
         const external = std.math.add(u32, keccak_calls, signer_calls) catch
             return error.ArithmeticOverflow;
@@ -165,6 +172,7 @@ pub const Statement = struct {
                 keccak_calls,
                 signer_calls,
                 secp,
+                admitted_keccak_maximum_log_size,
             ),
             .admission = admission,
         };
@@ -175,6 +183,7 @@ pub const Statement = struct {
         core: *const base_statement.RiscVStatement,
     ) Error!void {
         try self.validateStructure(core);
+        try self.validateKeccakMaximumLogSize(keccak_trace.maximum_log_size);
         const expected_admission = try canonicalAdmission(
             core,
             self.counts.keccak_calls,
@@ -190,8 +199,13 @@ pub const Statement = struct {
         self: *const Statement,
         native: *const statement_v2.RiscVStatementV2,
     ) Error!void {
+        return self.validateV2WithCircuitProfileV1(native, .legacy_v4);
+    }
+
+    pub fn validateV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
         native.validate() catch return error.InvalidSegmentV2Boundary;
         try self.validateStructure(&native.core);
+        try self.validateKeccakMaximumLogSize(circuit_profile.keccakMaximumLogSize());
         const expected_admission = try canonicalAdmissionV2(
             native,
             self.counts.keccak_calls,
@@ -199,6 +213,15 @@ pub const Statement = struct {
         );
         if (!std.meta.eql(self.admission, expected_admission))
             return error.AdmissionCertificateMismatch;
+    }
+
+    fn validateKeccakMaximumLogSize(self: *const Statement, maximum: u32) Error!void {
+        const max_calls = keccak_trace.maximumCallsForLogSize(maximum) catch return error.InvalidComponentGeometry;
+        if (self.counts.keccak_calls > max_calls or self.components[0].log_size > maximum)
+            return error.InvalidComponentGeometry;
+        const rows = self.components[0].n_rows;
+        const expected_log = if (rows == 0) keccak_trace.minimum_log_size else @max(keccak_trace.minimum_log_size, std.math.log2_int_ceil(u32, rows));
+        if (self.components[0].log_size != expected_log) return error.InvalidComponentGeometry;
     }
 
     /// Geometry-only check for internal trace/assembly helpers. Entry points
@@ -277,6 +300,11 @@ pub const Statement = struct {
         self.mixValidatedInto(channel);
     }
 
+    pub fn mixIntoV2WithCircuitProfileV1(self: *const Statement, native: *const statement_v2.RiscVStatementV2, channel: anytype, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+        try self.validateV2WithCircuitProfileV1(native, circuit_profile);
+        self.mixValidatedInto(channel);
+    }
+
     fn mixValidatedInto(self: *const Statement, channel: anytype) void {
         channel.mixU32s(&.{
             0x4757_5453, // "STWG"
@@ -348,6 +376,7 @@ fn canonicalDescriptors(
     keccak_calls: u32,
     signer_calls: u32,
     secp: SecpShapes,
+    admitted_keccak_maximum_log_size: u32,
 ) Error![component_count]Descriptor {
     const slots = std.math.divCeil(u32, keccak_calls, 2) catch unreachable;
     const keccak_rows = std.math.mul(u32, slots, keccak_witness.row_count) catch
@@ -359,7 +388,7 @@ fn canonicalDescriptors(
             keccak_trace.minimum_log_size,
             std.math.log2_int_ceil(u32, keccak_rows),
         );
-    if (keccak_log > keccak_trace.maximum_log_size)
+    if (keccak_log > admitted_keccak_maximum_log_size)
         return error.InvalidComponentGeometry;
     const shapes = [component_count]Shape{
         .{ .log_size = keccak_log, .n_rows = keccak_rows },

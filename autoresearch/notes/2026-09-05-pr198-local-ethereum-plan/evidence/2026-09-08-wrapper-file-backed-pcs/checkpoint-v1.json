@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "scope": "bounded memory recovery for real segment2 wrapper; full real proof not yet accepted",
+  "recorded_at": "2026-09-08T02:27:11.353906+00:00",
+  "source_manifest_sha256": "8fbdbfe38e4c167cb769ab34255f0f614ad9029c240216e64058a38b00bcf0a9",
+  "storage_mode": "explicit file-backed retained LDE columns; no AIR/profile/transcript change",
+  "gates": {
+    "allocator": "3/3 passed",
+    "complete_small_stark": "3/3 passed; mapped and ordinary canonical bytes identical, scratch destroyed before fresh verification",
+    "focused_pcs": "8/8 passed including discovery; actual mapped complete PCS proof parity and allocation failure custody",
+    "broad_pcs": "failed; both failures independently reproduced on prechange frozenv2"
+  },
+  "tests_are_not_real_wrapper_acceptance": true,
+  "real_wrapper_execution": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v4/execution.json",
+  "session": 51199,
+  "initial_source_exception": "full current initial38 integration changes excluded from frozen ordinary wrapper source",
+  "logs": {
+    "allocator-v2.log": "6299ca4b1761ecce075e651d5e5635bf1aae6315769fef171cc882ccb50fd4b6",
+    "small-complete-stark-v1.log": "d461ddc4e953a08dbee0d06560422fc463f09f7d23b7f3471b96bf61b022f01d",
+    "focused-pcs-v1.log": "64107b0bd9045375ad2e6c2dfce25ec7ad11d1fa5e408b65f48533f2ec35a4eb",
+    "broad-pcs-v4.log": "ea546cc5a19beff865b878aceb8b85fb50db8f1ee07848bc6902a6305f050235",
+    "baseline-failures-v2.log": "41eb234bc5892ae128cb308d0cc3f2a75752d5ffea997249604dc8e0b6877268"
+  }
+}

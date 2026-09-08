@@ -2,9 +2,11 @@
 
 const std = @import("std");
 const artifact_io = @import("ethereum_precompile_artifact_io.zig");
+const snapshot_batch = @import("ethereum_block_snapshot_batch.zig");
 const contract = @import("ethereum_block_leaf_contract.zig");
 
 pub const Options = struct {
+    snapshot_workers: usize = 16,
     compact_tape_manifest: ?[]const u8 = null,
     compact_tape_root: ?[]const u8 = null,
     elf: []const u8,
@@ -22,7 +24,7 @@ pub const Options = struct {
 
     pub fn parse(arguments: []const []const u8) !Options {
         if (arguments.len != 20 and arguments.len != 22 and
-            arguments.len != 24 and arguments.len != 26)
+            arguments.len != 24 and arguments.len != 26 and arguments.len != 28)
             return error.InvalidArguments;
         var result = Options{
             .elf = undefined,
@@ -37,14 +39,19 @@ pub const Options = struct {
             .source_root = undefined,
             .source_root_kind = undefined,
         };
-        var seen: u13 = 0;
+        var seen: u14 = 0;
         var index: usize = 0;
         while (index < arguments.len) : (index += 2) {
             if (index + 1 >= arguments.len or arguments[index + 1].len == 0)
                 return error.InvalidArguments;
             const name = arguments[index];
             const value = arguments[index + 1];
-            if (std.mem.eql(u8, name, "--compact-tape-manifest")) {
+            if (std.mem.eql(u8, name, "--snapshot-workers")) {
+                try take(&seen, 8192);
+                result.snapshot_workers = try std.fmt.parseUnsigned(usize, value, 10);
+                if (result.snapshot_workers == 0 or result.snapshot_workers > snapshot_batch.MAX_WORKERS)
+                    return error.InvalidSnapshotBatchGeometry;
+            } else if (std.mem.eql(u8, name, "--compact-tape-manifest")) {
                 try take(&seen, 2048);
                 result.compact_tape_manifest = value;
             } else if (std.mem.eql(u8, name, "--compact-tape-root")) {
@@ -94,7 +101,8 @@ pub const Options = struct {
                 result.source_root_kind = .precreated_parent;
             } else return error.InvalidArguments;
         }
-        if (seen != 1023 and seen != 2047 and seen != 8191)
+        const source_seen = seen & 8191;
+        if (source_seen != 1023 and source_seen != 2047 and source_seen != 8191)
             return error.InvalidArguments;
         if ((result.compact_tape_manifest == null) !=
             (result.compact_tape_root == null))
@@ -195,7 +203,7 @@ pub const ProofProfileSelection = enum {
 
 const SourceRootKind = enum { exact, precreated_parent };
 
-fn take(seen: *u13, bit: u13) !void {
+fn take(seen: *u14, bit: u14) !void {
     if (seen.* & bit != 0) return error.DuplicateArgument;
     seen.* |= bit;
 }

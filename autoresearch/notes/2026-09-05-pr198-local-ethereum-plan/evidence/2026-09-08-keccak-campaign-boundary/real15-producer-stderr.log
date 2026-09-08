@@ -1,0 +1,50 @@
+INCREMENTAL_FULL_LEAF_RESOURCE_POLICY_V1 composition_allocation_budget_bytes=17179869184 pcs_retained_byte_budget_bytes=25769803776 host_admission_limit_bytes=34359738368 process_cap_enforced=false
+SELECTED_ETHEREUM_LEAF_ADMISSION_V1 segment=15 campaign_segments=121 full_campaign_sealed=false
+INCREMENTAL_FULL_LEAF_INPUT_PHASES_V1 retained_open_ns=31116875 selection_ns=250 replay_program_ns=35244375 fixed_program_admission_ns=3429826750 capture_admission_ns=83332200708
+INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=500502 poseidon_calls=500502 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=3307939312 source_column_bytes=1653969656 columns=16605 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator
+INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1 retained_bytes=2137741328 columns=8241 budget_bytes=25769803776 retention=never
+info: resident RISC-V semantic composition: 46 components, 19 kernels, 24.533 ms GPU
+info: resident RISC-V lookup composition: 43 components, 16 kernels, 15.402 ms GPU
+STAGE101_PROFILE depth=0 id=stage101_leaf_transaction seconds=31.823513000
+STAGE101_PROFILE depth=1 id=stage101_input_admission seconds=2.563157000
+STAGE101_PROFILE depth=1 id=stage101_compact_replay seconds=0.169119000
+STAGE101_PROFILE depth=1 id=stage101_prepared_proof_transaction seconds=1.550817000
+STAGE101_PROFILE depth=1 id=stage101_prove seconds=27.347649000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=0.015847000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=0.112179000
+STAGE101_PROFILE depth=2 id=riscv_opcode_trace_generation seconds=1.718835000
+STAGE101_PROFILE depth=3 id=riscv_infrastructure_trace_generation seconds=1.374206000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=0.144288000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=4.050472000
+STAGE101_PROFILE depth=2 id=riscv_interaction_opcode seconds=2.446964000
+STAGE101_PROFILE depth=2 id=riscv_interaction_program seconds=0.735033000
+STAGE101_PROFILE depth=2 id=riscv_interaction_memory seconds=0.191905000
+STAGE101_PROFILE depth=2 id=riscv_interaction_merkle seconds=0.239822000
+STAGE101_PROFILE depth=2 id=riscv_interaction_poseidon seconds=0.126299000
+STAGE101_PROFILE depth=2 id=riscv_interaction_clock seconds=0.380294000
+STAGE101_PROFILE depth=2 id=riscv_interaction_tables seconds=0.121113000
+STAGE101_PROFILE depth=2 id=source_column_pack seconds=0.087723000
+STAGE101_PROFILE depth=2 id=merkle_commit seconds=3.978015000
+STAGE101_PROFILE depth=2 id=draw_random_coeff seconds=0.000003000
+STAGE101_PROFILE depth=2 id=composition_trace_extract seconds=0.000082000
+STAGE101_PROFILE depth=2 id=composition_evaluation seconds=4.415791000
+STAGE101_PROFILE depth=2 id=composition_interpolate_and_split seconds=0.002728000
+STAGE101_PROFILE depth=2 id=composition_commit seconds=0.028097000
+STAGE101_PROFILE depth=2 id=oods_point_and_mask_points seconds=0.001728000
+STAGE101_PROFILE depth=2 id=sampled_value_evaluation seconds=0.149808000
+STAGE101_PROFILE depth=2 id=sampled_value_channel_mix seconds=0.014334000
+STAGE101_PROFILE depth=2 id=fri_quotient_build_and_commit seconds=0.329333000
+STAGE101_PROFILE depth=2 id=proof_of_work seconds=0.005012000
+STAGE101_PROFILE depth=2 id=fri_decommit seconds=0.004561000
+STAGE101_PROFILE depth=2 id=trace_decommit seconds=0.132770000
+STAGE101_PROFILE depth=2 id=constraint_check_and_assembly seconds=0.001951000
+STAGE101_PROFILE depth=1 id=stage101_encode seconds=0.173860000
+INCREMENTAL_FULL_LEAF_VERIFY_POLICY_V1 workers=1
+INCREMENTAL_FULL_LEAF_VALIDATION_V2 producer_ns=31823070625 producer_auth_count=1 producer_auth_ns=2206648000 producer_reuses=272 cold_ns=37630626125 cold_auth_count=1 cold_auth_ns=2216092000 cold_reuses=272
+INCREMENTAL_FULL_LEAF_CLAIM_ADMISSION schema=5 profile=fixed_program_narrow_v5
+INCREMENTAL_FULL_LEAF_PHASES_V1 transaction_ns=31804154584 admission_ns=2563109833 replay_ns=169116750 witness_ns=1072786167 profile_ns=93522625 prove_ns=27347260833 encode_ns=173858417
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=producer wall_ns=31823224833 cpu_ns=24826464125 lifetime_peak_footprint_bytes=6156375176
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=fresh_verifier wall_ns=37630697417 cpu_ns=37618175042 lifetime_peak_footprint_bytes=6156375176
+ETHEREUM_PREPARED_METAL_V1 claim_schema=5 aot_manifest_sha256=320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 initialization_ns=52723000 producer_ns=31823070625 cold_verify_ns=37630626125 device_dispatches=81 host_fallbacks=3 independently_cold_verified=true
+INCREMENTAL_FULL_LEAF_RESOURCES_V1 phase=complete_request wall_ns=156319120917 cpu_ns=149270585209 lifetime_peak_footprint_bytes=6156375176

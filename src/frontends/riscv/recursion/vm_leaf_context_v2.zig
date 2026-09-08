@@ -405,32 +405,9 @@ fn writeSelectedDetailedClaims(
     claim: *const statement.RiscVInteractionClaim,
     destination: []QM31,
 ) !void {
-    _ = try authenticated.canonicalInteractionClaim(core, manifest, claim);
-    var expected_count: usize = authenticated.detailed_claim_count;
-    for (core.infra_descs[0..core.n_infra]) |descriptor| {
-        expected_count = std.math.add(
-            usize,
-            expected_count,
-            statement.nClaimedSumsForInfra(descriptor.kind),
-        ) catch return error.InvalidContextCounts;
-    }
-    if (destination.len != expected_count)
-        return error.InvalidContextCounts;
-    var cursor: usize = 0;
-    for (core.component_descs[0..core.n_components], 0..) |descriptor, index| {
-        const count = manifest.entryForFamily(descriptor.family)
-            .detailed_claim_count;
-        const values = try claim.opcodeClaims(descriptor.family, index);
-        const selected: usize = count;
-        @memcpy(destination[cursor..][0..selected], values[0..selected]);
-        cursor += selected;
-    }
-    for (core.infra_descs[0..core.n_infra], 0..) |descriptor, index| {
-        const values = try claim.infraClaims(descriptor.kind, index);
-        @memcpy(destination[cursor..][0..values.len], values);
-        cursor += values.len;
-    }
-    if (cursor != destination.len) return error.InvalidContextCounts;
+    const selected = try @import("../prover/guest_precompile/ethereum_transcript.zig")
+        .SelectedBaseClaimsV3.init(core, manifest, authenticated, claim);
+    try selected.write(destination);
 }
 
 fn deriveCanonicalClaims(

@@ -1,4 +1,4 @@
-//! Fresh one-pass observer for retained 210-leaf source authority.
+//! Fresh one-pass observer for explicitly admitted retained campaign authority.
 //!
 //! One execution simultaneously mints STWEMT01 and STWIMT04.  Retained
 //! STWESG31 supplies the already-sealed global statement for each callback;
@@ -66,7 +66,7 @@ pub const ObserverV4 = struct {
     }
 
     pub fn deinit(self: *ObserverV4) void {
-        self.compact_artifacts.deinit(self.allocator);
+        compact_manifest.deinitOwnedArtifacts(self.allocator, &self.compact_artifacts);
         if (self.public_wire_owner) |*owner| owner.deinit();
         if (self.owner) |*owner| owner.deinit();
         if (self.capture) |*capture| capture.deinit();
@@ -304,7 +304,7 @@ pub const ObserverV4 = struct {
                 self.publish_wall_ns,
                 publish_wall_ns,
             );
-            try self.compact_artifacts.append(self.allocator, .{
+            try compact_manifest.appendOwnedArtifact(self.allocator, &self.compact_artifacts, .{
                 .artifact = evidence.identity(compact_path, compact_bytes),
                 .capture_wall_ns = capture_wall_ns,
                 .completion = captured.leaf.completion,
@@ -350,12 +350,12 @@ pub const ObserverV4 = struct {
     }
 
     pub fn validateComplete(self: *const ObserverV4) !void {
-        if (self.observed_count != publication.CANONICAL_SEGMENT_COUNT or
-            self.compact_artifacts.items.len != publication.CANONICAL_SEGMENT_COUNT or
+        if (self.observed_count != self.retained.sources.len or
+            self.compact_artifacts.items.len != self.retained.sources.len or
             !self.terminal_output_validated or self.owner == null or
             self.capture == null or self.public_wire_owner == null or
             self.public_wire_owner.?.publishedCount() !=
-                publication.CANONICAL_SEGMENT_COUNT)
+                self.retained.sources.len)
         {
             return error.IncompleteIncrementalCapturePublicationV4;
         }

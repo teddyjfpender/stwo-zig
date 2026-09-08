@@ -1,0 +1,21 @@
+--- ordinary-v7/src/integrations/riscv_cpu/build_segment_steps.zig
++++ parent-v1/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -1668,6 +1668,18 @@
+     const ethereum_root_run = b.addRunArtifact(ethereum_root_exe);
+     if (b.args) |args| ethereum_root_run.addArgs(args);
+     b.step("run-ethereum-wrapper-root-verifier", "Verify from durable root proof/public inputs and independently supplied key hash").dependOn(&ethereum_root_run.step);
++    const saved_real_parent_root = support.createHarnessModule(b, "ethereum_wrapper_saved_real_parent_v1_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
++    saved_real_parent_root.addImport("stwo_artifact_store", artifact_store);
++    saved_real_parent_root.addImport("stwo_prover_engine", prover);
++    saved_real_parent_root.addImport("stwo_prover_api", prover_api);
++    saved_real_parent_root.addImport("interop_postcard", postcard);
++    saved_real_parent_root.strip = ctx.ethereum_proof_strip;
++    const saved_real_parent_names: []const []const u8 = &.{"Ethereum saved real wrapper siblings prove and verify after destruction"};
++    const saved_real_parent_test = b.addTest(.{ .root_module = saved_real_parent_root, .filters = saved_real_parent_names });
++    b.step("check-ethereum-saved-real-parent", "Compile the saved Ethereum wrapper sibling-to-parent proof route").dependOn(&saved_real_parent_test.step);
++    const saved_real_parent_run = b.addRunArtifact(saved_real_parent_test);
++    saved_real_parent_run.has_side_effects = true; // Reopen pinned external children and freshly verify the produced parent.
++    b.step("test-ethereum-saved-real-parent", "Prove saved wrapper siblings 2 and 3 and verify their parent after producer destruction").dependOn(support.ProofTestGuard.add(b, saved_real_parent_run, saved_real_parent_names, "Ethereum saved real parent proof guard"));
+     const detached_verifier_root = support.createHarnessModule(b, "recursive_common_fold_verifier_command_v2.zig", target, optimize, core, cpu_backend, frontend, integration);
+     detached_verifier_root.addImport("stwo_prover_engine", prover);
+     detached_verifier_root.addImport("stwo_prover_api", prover_api);

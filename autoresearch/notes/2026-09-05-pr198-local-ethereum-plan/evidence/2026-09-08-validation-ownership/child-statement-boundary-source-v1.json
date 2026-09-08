@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T07:48:26.137682+00:00",
+  "status": "source_fmt_ast_passed_runtime_not_run",
+  "source_files": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_child_statement_v4.zig",
+      "sha256": "9297c55e958e05b039aef6d964b307d6a79d1b1019b5920884ee2d6b0bd48040"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_child_statement_v4_test.zig",
+      "sha256": "152aecee4eed82a7dd48e76523d9514537fa2b53b72457eee5e9c3284ca53171"
+    }
+  ],
+  "scope": "ChildStatement owns source metadata and validates prepared state locally; full public validate remains hostile mutable-input boundary",
+  "admission": "public init validates materialized and child, obtains admitted binding, copies exact raw statement words and materialized identity, then builds rows/circuit/evaluation and locally finalizes",
+  "public_validate": "materialized.validate + child.validate + exact live materialized identity/raw words/child binding comparison + local row/circuit/evaluation checks",
+  "local_validation": "no materialized or child pointer reads; copied binding integrity, exact copied words, preprocessing/circuit/evaluation/identity checks retained",
+  "cheap_getters": [
+    "logSizes",
+    "logSizesWithAdditionalStatementRows",
+    "statementWords",
+    "statementSemanticsValues",
+    "identity"
+  ],
+  "locally_validated_nested_getters": [
+    "statementInputPreprocessing",
+    "statementSemanticsPreprocessing",
+    "loweringCircuit",
+    "loweringEvaluation"
+  ],
+  "identity_compatibility": "Same domain, version fields and hashing order; reads identical materialized identity bytes from owned copy rather than mutable parent. Runtime byte-equivalence not yet checked.",
+  "cleanup_fix": "Existing direct backing/row11_values errdefers now disarm when Storage takes ownership, preventing duplicate free during post-transfer validation failure. All other allocation guards retained.",
+  "tests": [
+    "Ethereum child statement owns source snapshots and rejects changed prepared rows",
+    "Ethereum child statement constructor unwinds every allocation failure"
+  ],
+  "test_scope": "Module-local test-only fixture builds actual statement circuit and rows with deliberately absent upstream hierarchy. It does not admit a native proof. Checks source snapshot mismatch, changed child binding, all getters, mutation of exposed evaluation backing, late constructor failure cleanup, exhaustive allocation failure cleanup.",
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_child_statement_v4_test.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum child statement"
+  ],
+  "coordination": "Parent owns structural root/build gate wiring and semantic queue; wrapper_memory owns ChildPublic and parent owns Native explicit admission. No frozen source or heavy job changed."
+}

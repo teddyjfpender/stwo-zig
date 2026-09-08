@@ -217,7 +217,7 @@ pub const SourceAuthorityV4 = struct {
         var result = SourceAuthorityV4{
             .coordinate = input.coordinate,
             .statement_digest = try field_public_mod.statementDigest(
-                input.statement_words,
+                input.publicationStatementWords(),
             ),
             .native_statement_authority = capture.statement.authority_id,
             .public_wire_id = capture.statement.public_data.wireId(),
@@ -282,7 +282,7 @@ pub fn deriveNodePublic(
     const source = try SourceAuthorityV4.seal(Engine, input);
     const result = try field_public_mod.NodePublicV2.initLeaf(
         input.coordinate,
-        input.statement_words,
+        input.publicationStatementWords(),
         source.source_digest,
     );
     try result.validateLeafSource(source.source_digest);
@@ -301,7 +301,7 @@ pub const PoseidonScheduleV4 = struct {
     ) !PoseidonScheduleV4 {
         const source = try SourceAuthorityV4.seal(Engine, input);
         const result = try buildFromAuthority(
-            input.statement_words,
+            input.publicationStatementWords(),
             source,
         );
         try result.validateAgainst(Engine, input);
@@ -316,7 +316,7 @@ pub const PoseidonScheduleV4 = struct {
         try self.source.validateAgainst(Engine, input);
         try self.node_public.validateLeafSource(self.source.source_digest);
         const expected = try buildFromAuthority(
-            input.statement_words,
+            input.publicationStatementWords(),
             self.source,
         );
         if (!std.meta.eql(self.*, expected))

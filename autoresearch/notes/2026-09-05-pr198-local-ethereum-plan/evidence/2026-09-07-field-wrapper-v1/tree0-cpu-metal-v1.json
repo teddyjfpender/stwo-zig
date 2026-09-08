@@ -1,0 +1,56 @@
+{
+  "result": "stopped_by_sampled_footprint_guard_before_metal_root",
+  "genuine_cpu_root_derivation_completed": true,
+  "cpu_tree0_request_ns": 271594183042,
+  "cpu_tree0_lifetime_peak_footprint_bytes": 32206135320,
+  "metal_root_parity_verified": false,
+  "metal_speedup_measured": false,
+  "sampled_peak_footprint_bytes": 36443941960,
+  "stop_bytes": 34359738368,
+  "monitor_elapsed_ns": 456985673875,
+  "exit_code": -15,
+  "pinned_inputs_and_binary_unchanged": true,
+  "exact_geometry": {
+    "preprocessed_columns": 619,
+    "native_preprocessed_bytes": 4559583744,
+    "lde_blowup1_bytes": 9119167488,
+    "noncontiguous_duplicate_coefficient_bytes": 4379791360,
+    "log24_duplicate_coefficient_bytes": 4227858432
+  },
+  "allocation_explanation": "Inferred from exact manifest geometry and allocation ordering: Metal generic preparation allocates LDE arena plus coefficient buffers for noncontiguous source-height groups while unrelated cohort/main rows remain live. No completed GPU commit receipt or allocation stack was obtained before the guard stop.",
+  "next_fix": "Keep owned admitted TreeStorage and value metadata, destroy unrelated CPU Cohort before Metal initialization/commit; separately group physical column backing by native height without changing logical order. Production Cohort Metal peak remains unmeasured.",
+  "files": {
+    "tree0-cpu-metal-v1-plan.json": {
+      "bytes": 1882,
+      "sha256": "bb42bfefbf9790126de4c75adc1c8e0577e7d82193a8f4fe9e0ebc66be1e9010"
+    },
+    "tree0-cpu-metal-v1-receipt.json": {
+      "bytes": 611,
+      "sha256": "9ab7225f9870e25d9cb3795de774ce8cd22f93dfcab7cd12e84c4294d7a7b7d2"
+    },
+    "tree0-cpu-metal-v1-run.py": {
+      "bytes": 4416,
+      "sha256": "e2781029b8a015f3f74b433d77c833c41df27596c14e1f73a9c2d382edd8a8a7"
+    },
+    "tree0-cpu-metal-v1-stderr.log": {
+      "bytes": 7067,
+      "sha256": "08f14b69cdd9d5cf15aac075513272b3a1ad2d62131885caa3ec5100ad487221"
+    },
+    "tree0-cpu-metal-v1-progress.log": {
+      "bytes": 5886,
+      "sha256": "e4a991199b0d55821acf8c096c04ab623e7b95b92db30f58e5c3c90d9fcdc127"
+    },
+    "tree0-cpu-metal-v1-process-samples.ndjson": {
+      "bytes": 28778,
+      "sha256": "c7b57e5f38a1647eda5d519eb6c880c0d2a3bd7c25cd90e3604f957e788c212d"
+    },
+    "tree0-cpu-metal-v1-cpu-tree0.sample.txt": {
+      "bytes": 63964,
+      "sha256": "6006fa16f0718fd921e9e6f4e03d4878c5f5d086931d57b2b5c40991e11317a9"
+    },
+    "tree0-cpu-metal-v1-prior-admitted-root.json": {
+      "bytes": 569,
+      "sha256": "cff2f02d9e1bbc4d0e2608c01867c65128b2299bacc62842c25ad2133a4b96bf"
+    }
+  }
+}

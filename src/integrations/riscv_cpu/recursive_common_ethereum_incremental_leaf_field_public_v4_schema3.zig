@@ -162,14 +162,16 @@ pub const SourceAuthorityV4 = struct {
         witness: *const role_io.OwnedWitnessV4,
     ) !SourceAuthorityV4 {
         comptime requirePoseidonEngine(Engine);
-        try input.validate();
+        // Schema2 seals the same live input and performs its full admission.
+        // Finish that admission before inspecting the tuple witness.
+        const base = try schema2.SourceAuthorityV4.seal(Engine, input);
         try witness.validateAgainst(
             &input.stage101.public_data.data,
             &input.stage101.role_aware_public.value,
             &input.stage101.relations.base,
         );
         var result = SourceAuthorityV4{
-            .base = try schema2.SourceAuthorityV4.seal(Engine, input),
+            .base = base,
             .role_io_tuple_count = witness.active_tuple_count,
             .role_io_tuple_capacity = witness.padded_tuple_capacity,
             .role_io_commitment = witness.commitment,
@@ -236,7 +238,7 @@ pub const OwnedPoseidonScheduleV4 = struct {
         const source = try SourceAuthorityV4.seal(Engine, input, witness);
         var result = try buildFromAuthority(
             allocator,
-            input.statement_words,
+            input.publicationStatementWords(),
             source,
             witness.calls(),
         );
@@ -258,15 +260,7 @@ pub const OwnedPoseidonScheduleV4 = struct {
     ) !void {
         try self.source.validateAgainst(Engine, input, witness);
         try self.node_public.validateLeafSource(self.source.source_digest);
-        var expected = try buildFromAuthority(
-            self.allocator,
-            input.statement_words,
-            self.source,
-            witness.calls(),
-        );
-        defer expected.deinit();
-        if (!scheduleEql(self, &expected))
-            return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+        try validateSchedule(self, input.publicationStatementWords(), self.source, witness.calls());
     }
 
     pub fn callsSlice(
@@ -310,7 +304,7 @@ pub fn deriveNodePublic(
     const source = try SourceAuthorityV4.seal(Engine, input, witness);
     const result = try node_public_mod.NodePublicV2.initLeaf(
         input.coordinate,
-        input.statement_words,
+        input.publicationStatementWords(),
         source.source_digest,
     );
     try result.validateLeafSource(source.source_digest);
@@ -346,15 +340,12 @@ pub const testing = struct {
         source: SourceAuthorityV4,
         io_calls: []const poseidon_air.Call,
     ) !void {
-        var expected = try buildFromProjectedAuthority(
-            schedule.allocator,
-            statement_words,
-            source,
-            io_calls,
-        );
-        defer expected.deinit();
-        if (!scheduleEql(schedule, &expected))
-            return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+        try source.validateStructure();
+        if (io_calls.len == 0 or !std.meta.eql(
+            source.role_io_commitment,
+            role_io.testingDigestFromCalls(io_calls),
+        )) return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+        try validateSchedule(schedule, statement_words, source, io_calls);
     }
 };
 
@@ -374,31 +365,63 @@ fn buildFromAuthority(
     ) catch return error.ArithmeticOverflow;
     const calls = try allocator.alloc(poseidon_air.Call, total_calls);
     errdefer allocator.free(calls);
+    @memcpy(calls[0..io_calls.len], io_calls);
+    const fixed = try writeFixedSchedule(statement_words, source, io_calls.len, calls[io_calls.len..]);
+    var result = OwnedPoseidonScheduleV4{
+        .allocator = allocator,
+        .source = source,
+        .node_public = fixed.node_public,
+        .phases = fixed.phases,
+        .calls = calls,
+        .provider_log_size = fixed.provider_log_size,
+        .identity_sha256 = undefined,
+    };
+    result.identity_sha256 = scheduleIdentity(&result);
+    return result;
+}
+
+const FixedScheduleV4 = struct {
+    node_public: node_public_mod.NodePublicV2,
+    phases: [5]PhaseRangeV4,
+    provider_log_size: u32,
+};
+
+/// Construction and validation use the same fixed suffix; the I/O prefix is
+/// already owned and authenticated by the tuple witness.
+fn writeFixedSchedule(
+    statement_words: [STATEMENT_WORD_COUNT]u32,
+    source: SourceAuthorityV4,
+    io_call_count: usize,
+    fixed_calls: []poseidon_air.Call,
+) Error!FixedScheduleV4 {
+    std.debug.assert(fixed_calls.len == FIXED_PROVIDER_CALL_COUNT);
+    const total_calls = std.math.add(usize, io_call_count, FIXED_PROVIDER_CALL_COUNT) catch
+        return error.ArithmeticOverflow;
     const node_public = try node_public_mod.NodePublicV2.initLeaf(
         source.base.coordinate,
         statement_words,
         source.source_digest,
     );
-    var result = OwnedPoseidonScheduleV4{
-        .allocator = allocator,
-        .source = source,
+    // The source hash and published statement hash share the same global
+    // statement under global admission (or the same local legacy statement).
+    if (!std.meta.eql(source.base.statement_digest, node_public.statement_digest))
+        return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+    var result: FixedScheduleV4 = .{
         .node_public = node_public,
         .phases = undefined,
-        .calls = calls,
-        .provider_log_size = try role_io.providerLogSize(@intCast(total_calls)),
-        .identity_sha256 = undefined,
+        .provider_log_size = try role_io.providerLogSize(
+            std.math.cast(u32, total_calls) orelse return error.ArithmeticOverflow,
+        ),
     };
     var cursor: usize = 0;
-    @memcpy(result.calls[0..io_calls.len], io_calls);
     result.phases[@intFromEnum(PhaseV4.io_stream)] = .{
         .phase = .io_stream,
         .first_call = 0,
-        .call_count = @intCast(io_calls.len),
+        .call_count = @intCast(io_call_count),
         .output_digest = source.role_io_commitment,
     };
-    cursor += io_calls.len;
     result.phases[@intFromEnum(PhaseV4.statement)] = appendHash(
-        result.calls,
+        fixed_calls,
         &cursor,
         .statement,
         &statement_words,
@@ -406,7 +429,7 @@ fn buildFromAuthority(
     );
     const source_preimage = try source.preimage();
     result.phases[@intFromEnum(PhaseV4.source)] = appendHash(
-        result.calls,
+        fixed_calls,
         &cursor,
         .source,
         &source_preimage,
@@ -414,7 +437,7 @@ fn buildFromAuthority(
     );
     const subtree_preimage = subtreePreimage(&node_public);
     result.phases[@intFromEnum(PhaseV4.subtree)] = appendHash(
-        result.calls,
+        fixed_calls,
         &cursor,
         .subtree,
         &subtree_preimage,
@@ -422,13 +445,13 @@ fn buildFromAuthority(
     );
     const output_preimage = outputPreimage(&node_public);
     result.phases[@intFromEnum(PhaseV4.output)] = appendHash(
-        result.calls,
+        fixed_calls,
         &cursor,
         .output,
         &output_preimage,
         node_public_mod.OUTPUT_DIGEST_DOMAIN,
     );
-    if (cursor != result.calls.len or
+    if (cursor != fixed_calls.len or
         !std.meta.eql(
             result.phases[@intFromEnum(PhaseV4.statement)].output_digest,
             node_public.statement_digest,
@@ -442,8 +465,37 @@ fn buildFromAuthority(
         result.phases[@intFromEnum(PhaseV4.output)].output_digest,
         node_public.output_digest,
     )) return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
-    result.identity_sha256 = scheduleIdentity(&result);
+    for (result.phases[1..]) |*phase|
+        phase.first_call = std.math.add(u32, phase.first_call, @intCast(io_call_count)) catch
+            return error.ArithmeticOverflow;
     return result;
+}
+
+fn validateSchedule(
+    actual: *const OwnedPoseidonScheduleV4,
+    statement_words: [STATEMENT_WORD_COUNT]u32,
+    source: SourceAuthorityV4,
+    io_calls: []const poseidon_air.Call,
+) Error!void {
+    const total_calls = std.math.add(usize, io_calls.len, FIXED_PROVIDER_CALL_COUNT) catch
+        return error.ArithmeticOverflow;
+    if (io_calls.len == 0 or actual.calls.len != total_calls)
+        return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+    var fixed_calls: [FIXED_PROVIDER_CALL_COUNT]poseidon_air.Call = undefined;
+    const fixed = try writeFixedSchedule(statement_words, source, io_calls.len, &fixed_calls);
+    if (!std.meta.eql(actual.source, source) or
+        !std.meta.eql(actual.node_public, fixed.node_public) or
+        !std.meta.eql(actual.phases, fixed.phases) or
+        actual.provider_log_size != fixed.provider_log_size)
+        return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+    for (actual.calls[0..io_calls.len], io_calls) |value, expected|
+        if (!std.meta.eql(value, expected))
+            return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+    for (actual.calls[io_calls.len..], fixed_calls) |value, expected|
+        if (!std.meta.eql(value, expected))
+            return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
+    if (!std.mem.eql(u8, &actual.identity_sha256, &scheduleIdentity(actual)))
+        return error.EthereumIncrementalFieldScheduleMismatchV4Schema3;
 }
 
 fn validateProjectedFields(value: *const SourceAuthorityV4) Error!void {
@@ -562,24 +614,6 @@ fn appendPermutation(
     };
     cursor.* += 1;
     poseidon.permute(state);
-}
-
-fn scheduleEql(
-    left: *const OwnedPoseidonScheduleV4,
-    right: *const OwnedPoseidonScheduleV4,
-) bool {
-    if (!std.meta.eql(left.source, right.source) or
-        !std.meta.eql(left.node_public, right.node_public) or
-        !std.meta.eql(left.phases, right.phases) or
-        left.provider_log_size != right.provider_log_size or
-        !std.mem.eql(u8, &left.identity_sha256, &right.identity_sha256) or
-        left.calls.len != right.calls.len)
-    {
-        return false;
-    }
-    for (left.calls, right.calls) |actual, expected|
-        if (!std.meta.eql(actual, expected)) return false;
-    return true;
 }
 
 fn scheduleIdentity(value: *const OwnedPoseidonScheduleV4) [32]u8 {

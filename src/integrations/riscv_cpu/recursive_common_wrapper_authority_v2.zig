@@ -38,6 +38,32 @@ pub const Error = registry_mod.Error || error{
     InvalidRecursiveProofReference,
 };
 
+/// Reconstructs the native query mask from the verifier capture itself. The
+/// composition-tree column logs and authenticated trace-path depth must agree;
+/// no stale circuit/profile field or inferred maximum is accepted.
+pub fn queryLogSizeFromCapture(
+    capture: *const ProofCapture,
+) !u32 {
+    if (capture.column_log_sizes.len !=
+        COMMITMENT_TREE_COUNT or
+        capture.trace_paths.len != COMMITMENT_TREE_COUNT)
+    {
+        return error.FreshWrapperCaptureMismatch;
+    }
+    const composition_index = COMMITMENT_TREE_COUNT - 1;
+    const logs = capture.column_log_sizes[composition_index];
+    if (logs.len == 0) return error.FreshWrapperCaptureMismatch;
+    var query_log_size: u32 = 0;
+    for (logs) |log_size| {
+        if (log_size == 0 or log_size >= 31)
+            return error.FreshWrapperCaptureMismatch;
+        query_log_size = @max(query_log_size, log_size);
+    }
+    if (capture.trace_paths[composition_index].path_depth != query_log_size)
+        return error.FreshWrapperCaptureMismatch;
+    return query_log_size;
+}
+
 pub const FreshWrapperViewV2 = struct {
     artifact: *const RecursiveNodeArtifact,
     geometry: *const Geometry,

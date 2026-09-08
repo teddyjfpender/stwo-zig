@@ -36,114 +36,17 @@ pub fn Namespace(comptime context: type) type {
         const ColumnBuffer = context.d_ColumnBuffer;
         const TreeStorage = context.d_TreeStorage;
 
-        pub fn vmInputParameters(
-            kind: vm_input_witness.ProofKind,
-        ) [vm_input_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(vm_input_witness.SAMPLED_VALUE_KIND),
-                M31.fromCanonical(vm_input_witness.VM_CLAIMED_SUM_KIND),
-                M31.fromCanonical(vm_input_witness.RECURSION_CLAIMED_SUM_KIND),
-                M31.fromCanonical(vm_input_witness.CHALLENGE_SCOPE),
-                M31.fromCanonical(vm_input_witness.COMPOSITION_RANDOMNESS_KIND),
-                M31.fromCanonical(vm_input_witness.OODS_POINT_KIND),
-                M31.fromCanonical(vm_input_witness.TRANSCRIPT_CLAIMED_SUM_KIND),
-            };
-        }
-
-        pub fn merkleRootParameters(
-            kind: merkle_root_witness.ProofKind,
-        ) [merkle_root_air.PARAMETER_COUNT]M31 {
-            return kind.selectors()[0..2].*;
-        }
-
-        pub fn traceMerkleParameters(
-            kind: trace_merkle_witness.ProofKind,
-        ) [trace_merkle_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(trace_merkle_witness.LEAF_TAG),
-                M31.fromCanonical(trace_merkle_witness.TRACE_POSITION_KIND),
-            };
-        }
-
-        pub fn friLeafParameters(
-            kind: fri_leaf_witness.ProofKind,
-        ) [fri_leaf_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(fri_leaf_witness.LEAF_TAG),
-            };
-        }
-
-        pub fn friAnchorParameters(
-            kind: fri_anchor_witness.ProofKind,
-        ) [fri_anchor_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(fri_anchor_witness.FRI_MERKLE_KIND),
-            };
-        }
-
-        pub fn queryBitsParameters(
-            reference: query_bits_witness.Reference,
-            kind: query_bits_witness.ProofKind,
-        ) ![query_bits_air.PARAMETER_COUNT]M31 {
-            return query_bits_witness.parameterValues(reference, kind);
-        }
-
-        pub fn queryMappingParameters(
-            kind: query_mapping_witness.ProofKind,
-        ) [query_mapping_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{ selectors[0], selectors[1] };
-        }
-
-        pub fn controlParameters(
-            kind: control_witness.ProofKind,
-        ) [control_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(control_witness.POSITION_FIELD),
-                M31.fromCanonical(control_witness.OFFSET_FIELD),
-            };
-        }
-
-        pub fn inputParameters(kind: input_witness.ProofKind) [input_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(input_witness.FRI_ALPHA_KIND),
-                M31.fromCanonical(input_witness.FRI_FOLD_KIND),
-                M31.fromCanonical(input_witness.LAST_LAYER_KIND),
-                M31.fromCanonical(input_witness.POSITION_FIELD),
-                M31.fromCanonical(input_witness.OFFSET_FIELD),
-                M31.fromCanonical(input_witness.COEFFICIENT_KIND),
-            };
-        }
-
-        pub fn pcsParameters(kind: pcs_witness.ProofKind) [pcs_air.PARAMETER_COUNT]M31 {
-            const selectors = kind.selectors();
-            return .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(pcs_witness.SAMPLED_VALUE_KIND),
-                M31.fromCanonical(pcs_witness.OODS_POINT_KIND),
-                M31.fromCanonical(pcs_witness.DEEP_RANDOMNESS_KIND),
-                M31.fromCanonical(pcs_witness.DEEP_POSITION_KIND),
-            };
-        }
+        const shared_parameters = @import("recursive_fri_component_parameters.zig");
+        pub const vmInputParameters = shared_parameters.vmInputParameters;
+        pub const merkleRootParameters = shared_parameters.merkleRootParameters;
+        pub const traceMerkleParameters = shared_parameters.traceMerkleParameters;
+        pub const friLeafParameters = shared_parameters.friLeafParameters;
+        pub const friAnchorParameters = shared_parameters.friAnchorParameters;
+        pub const queryBitsParameters = shared_parameters.queryBitsParameters;
+        pub const queryMappingParameters = shared_parameters.queryMappingParameters;
+        pub const controlParameters = shared_parameters.controlParameters;
+        pub const inputParameters = shared_parameters.inputParameters;
+        pub const pcsParameters = shared_parameters.pcsParameters;
 
         pub fn fillPreprocessed(authority: *const Authority, tree: *TreeStorage) !void {
             if (authority.segment_transcript_inputs != null) {
@@ -159,8 +62,8 @@ pub fn Namespace(comptime context: type) type {
                     authority.log_sizes[LogIndex.vm_input],
                 );
                 defer columns.deinit();
-                try vm_air.executor.generatePreprocessedInto(
-                    &vm_air.prepared.preprocessing,
+                try vm_air.prepared.generatePreprocessedInto(
+                    &vm_air.executor,
                     &columns.views,
                 );
                 columns.scatter(

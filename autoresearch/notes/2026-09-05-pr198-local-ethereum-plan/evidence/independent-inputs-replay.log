@@ -1,0 +1,20 @@
+test-ethereum-independent-inputs-replay
++- Ethereum independent input reconstruction guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46834223875 process_cpu_ns=49277554250 parallelism_milli=1052 peak_footprint_bytes=288293680 energy_nj=227376386669 instructions=1099293767644 cycles=196004990536 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1241487917 process_cpu_ns=1239000792 parallelism_milli=997 peak_footprint_bytes=288293680 energy_nj=6339174617 instructions=27899022926 cycles=4932316839 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=4759146458 process_cpu_ns=4751726625 parallelism_milli=998 peak_footprint_bytes=1956890928 energy_nj=24786169393 instructions=85366728541 cycles=18942349692 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38304916 public_ns=288720084 transcript_ns=136070041 profile_ns=28167 program_ns=64899083 prepare_ns=65486250 fri_ns=3445356917 seal_ns=38217417 total_ns=4077085125 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469168 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617292 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=60 bytes=856164950 peak=1893492493 allocated=3176175424 freed=2320010474 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=producer-destroyed allocations=0 bytes=0 peak=1893492493 allocated=3176175424 freed=3176175424 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38747000 public_ns=291743125 transcript_ns=135240708 profile_ns=24834 program_ns=64542833 prepare_ns=64934583 fri_ns=3400345209 seal_ns=38442208 total_ns=4034022833 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469168 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617292 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_ROLE0_INDEPENDENT_INPUTS producer_destroyed=true rebuilt_from_serialized_native_inputs=true wrapper_verified=false
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=105890691833 process_cpu_ns=110754596083 parallelism_milli=1045 peak_footprint_bytes=1958037904 energy_nj=518688325263 instructions=2428989101970 cycles=440646293223 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-independent-inputs-replay success
++- Ethereum independent input reconstruction guard success
+   +- run test 1 passed 1m MaxRSS:1G
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+

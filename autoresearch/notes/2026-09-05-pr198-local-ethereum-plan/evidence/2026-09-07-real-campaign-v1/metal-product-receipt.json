@@ -1,0 +1,11 @@
+{
+  "schema": "stwo.ethereum.real-leaf-metal-product.v2",
+  "status": "compiled_and_13_tests_passed",
+  "proof_status": "not run; awaits CPU reference",
+  "executable": {
+    "path": ".git/local-ethereum/real-leaf-metal-product-v2/bin/stage101-metal-autoresearch-v1",
+    "bytes": 10765120,
+    "sha256": "fad6dce237797e7f62831a2efaddd43469b549356cad75f457f0538631a9d451"
+  },
+  "admission": "explicit STWO_ZIG_STAGE101_BENCHMARK_ADMISSION_V2; original V1 pins unchanged"
+}

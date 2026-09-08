@@ -73,6 +73,7 @@ pub fn Assembly(comptime direction: Direction) type {
                 base,
                 claim,
                 core.nInteractionColumns(),
+                .legacy_v4,
             );
         }
 
@@ -89,7 +90,21 @@ pub fn Assembly(comptime direction: Direction) type {
             manifest: *const lookup_physical_v2.Manifest,
             authenticated: *const lookup_physical_v2.AuthenticatedStatement,
         ) !*Self {
-            try extension.validateV2(native);
+            return createAuthenticatedLookupV2WithCircuitProfileV1(allocator, native, extension, relations, base, claim, manifest, authenticated, .legacy_v4);
+        }
+
+        pub fn createAuthenticatedLookupV2WithCircuitProfileV1(
+            allocator: std.mem.Allocator,
+            native: *const statement_v2.RiscVStatementV2,
+            extension: *const statement_mod.Statement,
+            relations: *const relations_mod.Relations,
+            base: []const Handle,
+            claim: *const types.ExtensionClaim,
+            manifest: *const lookup_physical_v2.Manifest,
+            authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+        ) !*Self {
+            try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
             const core = &native.core;
             const base_interaction_columns = try authenticated.totalInteractionColumns(
                 core,
@@ -103,6 +118,7 @@ pub fn Assembly(comptime direction: Direction) type {
                 base,
                 claim,
                 base_interaction_columns,
+                circuit_profile,
             );
         }
 
@@ -132,6 +148,7 @@ pub fn Assembly(comptime direction: Direction) type {
                 base,
                 claim,
                 base_interaction_columns,
+                .legacy_v4,
             );
         }
 
@@ -143,6 +160,7 @@ pub fn Assembly(comptime direction: Direction) type {
             base: []const Handle,
             claim: *const types.ExtensionClaim,
             base_interaction_columns: usize,
+            circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
         ) !*Self {
             try extension.validateStructure(core);
             try claim.validate(extension);
@@ -155,18 +173,12 @@ pub fn Assembly(comptime direction: Direction) type {
             );
             const self = try allocator.create(Self);
             errdefer allocator.destroy(self);
-            self.keccak = if (direction == .prover)
-                try keccak_component.KeccakShardComponent.initProver(
-                    claim.keccak_shard,
-                    placements.keccak,
-                    &relations.keccak,
-                )
-            else
-                try keccak_component.KeccakShardComponent.initVerifier(
-                    claim.keccak_shard,
-                    placements.keccak,
-                    &relations.keccak,
-                );
+            self.keccak = try keccak_component.KeccakShardComponent.initWithMaximumLogSize(
+                claim.keccak_shard,
+                placements.keccak,
+                &relations.keccak,
+                circuit_profile.keccakMaximumLogSize(),
+            );
             self.chi = if (direction == .prover)
                 try keccak_table_component.KeccakTableComponent.initProver(
                     .chi,

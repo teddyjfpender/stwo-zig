@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "status": "passed_shared_build_test_lock",
+  "captured_at_utc": "2026-09-07T15:57:37.213149+00:00",
+  "tests": {
+    "wrapper_and_command_tests": 13,
+    "existing_release_graph_contract": 1,
+    "total_passed": 14,
+    "compiler_or_proof_launched": false
+  },
+  "behavior": [
+    "zig_protocol_test serializes by default on same machine-wide lock as zig_serial_build",
+    "one build_lock context manager owns contention reporting and release",
+    "protocol wrapper options must precede ROOT; arguments after ROOT including -- remain Zig arguments",
+    "explicit --no-lock available for callers already holding lock",
+    "serial launcher exports STWO_ZIG_BUILD_HELD_LOCK only while it owns lock and removes inherited marker with --no-lock",
+    "known nested native/release build gates explicitly pass --no-lock when serial launcher reports ownership",
+    "held-lock environment marker coordinates scheduling; it is not security authority"
+  ],
+  "subprocess_regressions": [
+    "both wrappers block until competing lock owner releases; Zig not started early",
+    "child exit7 propagates and lock is released",
+    "nested protocol command completes while original parent retains lock",
+    "serial --no-lock clears stale inherited ownership marker",
+    "wrapper option-like filter and runtime arguments preserved"
+  ],
+  "commands": [
+    "/opt/homebrew/opt/python@3.12/bin/python3.12 -m unittest scripts.tests.test_zig_serial_build scripts.tests.test_zig_protocol_command -v",
+    "/opt/homebrew/opt/python@3.12/bin/python3.12 -m unittest scripts.tests.test_ci.CiTests.test_release_gates_run_the_complete_test_graph_in_requested_mode -v"
+  ],
+  "source_files": [
+    {
+      "path": "scripts/zig_serial_build.py",
+      "bytes": 5750,
+      "sha256": "2c66348b36f878caec8ba286b207f75957fcd28ced795f1738545429fec09032"
+    },
+    {
+      "path": "scripts/zig_protocol_test.py",
+      "bytes": 1560,
+      "sha256": "8055ac504fdbac8a1dacf98f3219feeabfbe7bf0551143b6ee77e0b2dedec34b"
+    },
+    {
+      "path": "scripts/tests/test_zig_serial_build.py",
+      "bytes": 8592,
+      "sha256": "c7932b457f6282b1efeed16be101cb2f3f902be504297657cd64e9a0089164e5"
+    },
+    {
+      "path": "build_support/gates/native.zig",
+      "bytes": 1598,
+      "sha256": "bed0127fee490f4e35df9282599ed51cc7113d790c3177890562de4ad5672b48"
+    },
+    {
+      "path": "build_support/gates/release.zig",
+      "bytes": 4037,
+      "sha256": "9e9d120ecf585634052e4faf40e4f574417edfe37cc662ad1245649c6776922d"
+    }
+  ],
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-shared-zig-lock-tests-v1.log",
+      "bytes": 2085,
+      "sha256": "35114be5668f5d26ad003b2dd685fead04257fc7847655e10a71d4418efe08d1"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-shared-zig-lock-tests-v2.log",
+      "bytes": 2479,
+      "sha256": "ea89d33f70292e7df6d2bbeb6c79e3076f0d9b55c1161c5c0eab9d7b3bc01d99"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-shared-zig-lock-release-contract.log",
+      "bytes": 266,
+      "sha256": "d49d8fb6911074dd3449f48c080435813519d7b303973938f2c65d7e23580e80"
+    }
+  ]
+}

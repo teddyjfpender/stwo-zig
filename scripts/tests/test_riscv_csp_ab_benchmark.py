@@ -195,6 +195,7 @@ class SourceSnapshotTests(unittest.TestCase):
         git(root, "init", "--quiet")
         git(root, "config", "user.name", "Snapshot Test")
         git(root, "config", "user.email", "snapshot@example.invalid")
+        git(root, "config", "commit.gpgsign", "false")
         (root / ".gitignore").write_text(".zig-cache/\n__pycache__/\n", encoding="utf-8")
         (root / "src").mkdir()
         (root / "src" / "tracked.bin").write_bytes(b"tracked-v1\x00")

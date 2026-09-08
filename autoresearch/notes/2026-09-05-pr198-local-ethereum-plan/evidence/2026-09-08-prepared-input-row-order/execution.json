@@ -1,0 +1,42 @@
+{
+  "status": "failed",
+  "pid": 67019,
+  "started_at": "2026-09-08T11:46:50.261099+00:00",
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v7/request.json",
+    "bytes": 7284,
+    "sha256": "afb1e450e440044b03d7962743361fc84e15879a5dd7f9a2ef7fc4dd28457e37"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v18/manifest.json",
+    "bytes": 1103778,
+    "sha256": "e0bb141158bf666065ee78f2739f253324fb4c1becb44ba2472bd13741d24552"
+  },
+  "source_files_rehashed_before": 5781,
+  "input_files_rehashed_before": 6,
+  "child_pid": 67020,
+  "exit_code": 1,
+  "wall_seconds": 434.4412858339492,
+  "finished_at": "2026-09-08T11:54:04.703928+00:00",
+  "pins_unchanged": true,
+  "missing_markers": [
+    "ETHEREUM_ROOT_COHORT transcript_operational_rows_owned=true changed_live_execution_rejected=true",
+    "diagnostic=native_prepared_regression",
+    "ETHEREUM_ROOT_COHORT_VALIDATION phase=cold_prepare",
+    "ETHEREUM_ROOT_COHORT_GRAPH_AUDIT phase=cold_prepare",
+    "producer_destroyed=true serialized_bytes=",
+    "complete=true components=36 tree2_generated=true serialized=true producer_destroyed=true independent_cold_closure=true verifier_destroyed=true pcs=false native_proving=false wrapper_proof=false"
+  ],
+  "counts": [
+    [
+      "1",
+      "2"
+    ]
+  ],
+  "guard_passed": false,
+  "log_identity": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v7/replay.log",
+    "bytes": 4046,
+    "sha256": "d2d7854e01046d3dee607939de2086c0de01b866eb02ba73fa7eff68ae47d726"
+  }
+}

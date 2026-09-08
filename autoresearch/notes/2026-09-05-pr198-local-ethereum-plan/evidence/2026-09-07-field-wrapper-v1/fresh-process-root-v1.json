@@ -1,0 +1,99 @@
+{
+  "fixture": "two-segment genuine precompile fixture; not real block",
+  "passed": true,
+  "cases": [
+    {
+      "case": "genuine",
+      "passed": true,
+      "returncode": 0,
+      "elapsed_s": 0.9037604159675539,
+      "inputs_sha256": "5a1a53371911b878efc56f8702390737aef2554be9e0b6e305dd19cc139a44e3",
+      "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4"
+    },
+    {
+      "case": "wrong-key-pin",
+      "passed": true,
+      "returncode": 1,
+      "elapsed_s": 0.02133149979636073,
+      "inputs_sha256": "5a1a53371911b878efc56f8702390737aef2554be9e0b6e305dd19cc139a44e3",
+      "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+      "rejection": "error: EthereumRootKeyHashMismatch"
+    },
+    {
+      "case": "changed-claim",
+      "passed": true,
+      "returncode": 1,
+      "elapsed_s": 0.13356245798058808,
+      "inputs_sha256": "a4b3f59ca12e57812ba7405eb5b741ac8149419f30dc538257ca04c1731f4eac",
+      "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+      "rejection": "error: InvalidEthereumRootClaimClosure"
+    },
+    {
+      "case": "changed-nonce",
+      "passed": true,
+      "returncode": 1,
+      "elapsed_s": 0.13028341601602733,
+      "inputs_sha256": "269099a9789ed702d203d17dc4ecc04f4b58e8f8974b074fb76ecfa4516c1715",
+      "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+      "rejection": "error: InvalidEthereumRootInteractionPow"
+    },
+    {
+      "case": "changed-proof",
+      "passed": true,
+      "returncode": 1,
+      "elapsed_s": 0.13102941610850394,
+      "inputs_sha256": "0408c238a4eba9d08700ead7e7ce01f05ef8bd02e806bff6835a59d252fe3612",
+      "proof_sha256": "c128d48b49aadf85e3959004635a077753de4e4b2684f58f173c44996c547e2f",
+      "rejection": "error: NonCanonicalSecureTemporalParentProof"
+    }
+  ],
+  "source_and_verifier_unchanged": true,
+  "independently_expected_key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+  "verifier_sha256": "836a243b7aaf7d52e0294bc507953e8da6587c2a40c057b75d2f72d860a101fc",
+  "proof_sha256": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+  "request_ns": 197734708,
+  "verify_ns": 110557000,
+  "peak_footprint_bytes": 53379432,
+  "proof_bytes": 3033435,
+  "native_inputs_used": false,
+  "endpoint": "verified_ethereum_field_leaf_wrapper",
+  "retained_local_outputs": ".git/local-ethereum/field9-root-independent-check-v1",
+  "files": {
+    "root-check-plan-v1.json": {
+      "bytes": 890,
+      "sha256": "7b447671c752d2ba07bb067a3930423d7ba1c68a813a6e5086407fd6ea25c5dc"
+    },
+    "root-check-receipt-v1.json": {
+      "bytes": 11511,
+      "sha256": "718832638af377dd5afbf35d06450fad37d24f51bcc9dab93407d5b663ceef67"
+    },
+    "ethereum-field9-root-independent-check-v1.log": {
+      "bytes": 5937,
+      "sha256": "854079703623a32edee23a5d0d1688ccdcd242376c2d0f442eb619b55ed573df"
+    },
+    "ethereum-selected-leaf-and-root-verifier-build-v1.log": {
+      "bytes": 749,
+      "sha256": "11b69c196c30e13e439ccbd8c1a80af80e84e63fa6aa187b63fc4d7ff79e3ea9"
+    },
+    "ethereum-wrapper-tree0-compile-v1.log": {
+      "bytes": 242,
+      "sha256": "dad7a329a15fb622cabd8c51f4674849ab88646332b324a5080e1c9b57f1a3e3"
+    },
+    "root-check-wrong-key-pin-v1.stderr.log": {
+      "bytes": 35,
+      "sha256": "c5c1efb8a75fe9f947ac43cf3929c575a8bc12e027c23f8ba252b8a25aadf528"
+    },
+    "root-check-changed-claim-v1.stderr.log": {
+      "bytes": 39,
+      "sha256": "e3fad5a2f5182493ce9267235a9ec866f49a406aa5039e8b2ee78e426c97a037"
+    },
+    "root-check-changed-nonce-v1.stderr.log": {
+      "bytes": 41,
+      "sha256": "6c6eb7ed114a187abe95b328f7df306caafd79dc7b393495437112f1fc42456b"
+    },
+    "root-check-changed-proof-v1.stderr.log": {
+      "bytes": 45,
+      "sha256": "7fb81d4d8a8c6e8656f2ef9d459c480720f518f41299cf82d6eee01b8539cd89"
+    }
+  }
+}

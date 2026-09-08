@@ -67,12 +67,13 @@ pub fn runPrepared(
         @as(usize, 1),
         std.math.log2_int_ceil(usize, complete_poseidon_calls),
     ));
-    const manifest = manifest_mod.build(
+    const manifest = manifest_mod.buildWithProviderShape(
         log_sizes,
         &source_preflight.transcript_manifest,
         &source_preflight.statement_manifest,
         &source_preflight.public_manifest,
         &source_preflight.boundary_manifest,
+        source_preflight.input_provider_shape,
     ) catch |err| return failStage("manifest", err);
 
     var init_timer = try std.time.Timer.start();

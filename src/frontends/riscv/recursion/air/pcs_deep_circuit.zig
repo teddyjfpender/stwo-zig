@@ -30,6 +30,8 @@ pub const SamplePointLayout = shard_0.SamplePointLayout;
 pub const Profile = shard_0.Profile;
 pub const Witness = shard_0.Witness;
 pub const Circuit = shard_0.Circuit;
+pub const Prepared = @import("pcs_deep_circuit_prepared.zig").Prepared;
+pub const FrozenEvaluation = @import("pcs_deep_circuit_prepared.zig").FrozenEvaluation;
 pub const Evaluation = shard_0.Evaluation;
 /// Builds the proof-independent graph. The implementation is deliberately
 /// flat and capacity-planned: graph construction is cold, while evaluation is

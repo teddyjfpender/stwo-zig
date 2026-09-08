@@ -1,0 +1,14 @@
+test-ethereum-statement-root-replay
++- saved Ethereum statement-root admission guard
+   +- run test stderr
+VM_COMPOSITION_UNSAT output=43/44 node=540227 value=.{ .c0 = .{ .a = .{ .v = 2070952444 }, .b = .{ .v = 1691708050 } }, .c1 = .{ .a = .{ .v = 769913679 }, .b = .{ .v = 2111650184 } } }
+VM_COMPOSITION_UNSAT output=43/44 node=540227 value=.{ .c0 = .{ .a = .{ .v = 133435008 }, .b = .{ .v = 600909704 } }, .c1 = .{ .a = .{ .v = 751616457 }, .b = .{ .v = 1466995166 } } }
+ETHEREUM_STATEMENT_ROOT_REPLAY roots=2 entry=556503780 exit=1153293839 graph=673deaf420946061e67da28f10b0391565e61e507efa5fb1d46dec8fd5e9a937 native_capture_valid=true graph_stable=true changed_roots_rejected=2 segment_statement_routing_closed=true routing_negative_cases_rejected=4 physical_native_recursive_parity=true outer_provider_closure=false
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38297958 public_ns=288518667 transcript_ns=136159375 profile_ns=32583 program_ns=66516042 prepare_ns=65140708 fri_ns=3403896667 seal_ns=38907541 total_ns=4037471916 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-statement-root-replay success
++- saved Ethereum statement-root admission guard success
+   +- run test 1 passed 27s MaxRSS:1G
+      +- compile test ReleaseSafe native success 49s MaxRSS:2G
+

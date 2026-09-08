@@ -1,0 +1,66 @@
+{
+  "baseline_products": [
+    {
+      "backend": "cpu",
+      "build_identity": {
+        "abi": "none",
+        "arch": "aarch64",
+        "cpu_model": "apple_m4",
+        "optimize": "ReleaseFast",
+        "os": "macos"
+      },
+      "historically_verified_implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/stwo-zig-riscv-cpu",
+      "sha256": "18c32837c91e7762bb46d13dfce6e4e048f5b891d501c0631881f95588847e52"
+    },
+    {
+      "backend": "metal",
+      "build_identity": {
+        "abi": "none",
+        "arch": "aarch64",
+        "cpu_model": "apple_m4",
+        "optimize": "ReleaseFast",
+        "os": "macos"
+      },
+      "historically_verified_implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/stwo-zig-riscv-metal",
+      "sha256": "ee7029c59de63a8de2049abbdb0a9deb46b4f51daa9574b16de19fd0e06eb673"
+    },
+    {
+      "backend": "trace",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/riscv-trace-dump",
+      "provenance": {
+        "build_identity_published": false,
+        "implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+        "implementation_dirty": false,
+        "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+        "surface": "public-values diagnostic provenance",
+        "unvalidated": [
+          "target architecture, operating system, ABI, and CPU model",
+          "optimize mode"
+        ],
+        "unvalidated_reason": "the trace dumper publishes no `applications` registry, so the target and optimize checks the prover CLI receives have no source here; it contributes cycle counts, not timings",
+        "witness_layout_sha256": "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000"
+      },
+      "sha256": "c3634dbc3e74069b2b58e28b096531a79a24ab253e67897394a90bf2a59837b9",
+      "validation": "Exact existing binary hash matches previously executed authenticated trace receipt; guest execution not repeated."
+    }
+  ],
+  "benchmarks_run": false,
+  "candidate_products_built": false,
+  "canonical_cases": 16,
+  "canonical_negative_fixtures": 1,
+  "clean": true,
+  "current_head": "0b6c919c820ca6965fe4a83e227d341b294a4194",
+  "current_source_sha256": "8d9011b981c3eeed8c89a7c607233570b53340a8898f5851566c8ca46bc39978",
+  "plan_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/csp-checked-views-20260907-comparison-plan.json",
+  "plan_seal_sha256": "02fe4b89759bac75097af7f972e84c6887f2304d34d0568725d40f2a931b5173",
+  "python_executable": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+  "python_version": "3.12.12 (main, Oct  9 2025, 11:07:00) [Clang 17.0.0 (clang-1700.6.3.2)]",
+  "schema": "stwo.local-csp-reviewed-readiness-receipt.v1",
+  "seal_sha256": "8f5ca27d2fd179a99b96d521f518e9fa9ce70cfbda832b510f0c852544bb0a65",
+  "source_snapshot_receipt": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907.json",
+    "sha256": "8b4742dc781885db12141f3cea03715596f296e4fd1f4d23f5c189ecf3d1fc6f"
+  }
+}

@@ -1,0 +1,27 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 251s
+test-ethereum-air-preflight
++- Ethereum genuine AIR preflight guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=1 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_COMPLETION_OPENING admitted_version=1 whole_elf_pinned=true
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=130942976708 process_cpu_ns=130898651084 parallelism_milli=999 peak_footprint_bytes=1763100688 energy_nj=574271124044 instructions=2320614941572 cycles=519430014940 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=325242993541 process_cpu_ns=325072023791 parallelism_milli=999 peak_footprint_bytes=1763100688 energy_nj=1385262018504 instructions=5251016305295 cycles=1289907913727 workers=1 host_byte_budget=8589934592
+VM_COMPOSITION_UNSAT output=43/44 node=615848 value=.{ .c0 = .{ .a = .{ .v = 476917779 }, .b = .{ .v = 341301161 } }, .c1 = .{ .a = .{ .v = 717212211 }, .b = .{ .v = 1911588405 } } }
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=9762006125 public_ns=69499011375 transcript_ns=13967658209 profile_ns=71500 program_ns=80167708 prepare_ns=0 fri_ns=0 seal_ns=0 total_ns=93360801584 nodes=615849 node_bytes=12316980 output_bytes=176 binding_bytes=2802736 schedule_bytes=9136348 evaluation_bytes=9853584 input_bytes=700684 claim_bytes=33488 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=636398240166 process_cpu_ns=636134133666 parallelism_milli=999 peak_footprint_bytes=1763100688 energy_nj=2737841430016 instructions=10557849935453 cycles=2524432386389 workers=1 host_byte_budget=8589934592
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=materialize error=UnsatisfiedCircuit
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS', the following test command failed:
+./.zig-cache/o/0f92ebca5e6eb29cbddc7174253eef7b/test --cache-dir=./.zig-cache --seed=0x9dbb4bd2 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-air-preflight transitive failure
++- Ethereum genuine AIR preflight guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/99b4be8092662371a3484b82edc34198/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x9dbb4bd2 -Z2c37bde6c52348f5 --maxrss 25769803776 -j1 test-ethereum-air-preflight -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

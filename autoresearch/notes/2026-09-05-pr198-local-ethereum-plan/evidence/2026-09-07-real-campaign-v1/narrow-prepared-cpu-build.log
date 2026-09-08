@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded
+build-ethereum-prepared-leaf-cpu-v1 success
++- install ethereum-prepared-leaf-cpu-v1 success
+   +- compile exe ethereum-prepared-leaf-cpu-v1 ReleaseSafe native success 1m MaxRSS:5G
+

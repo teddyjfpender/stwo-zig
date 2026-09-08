@@ -47,10 +47,14 @@ pub const metallib_argv = [_][]const u8{
 };
 
 pub fn build(allocator: std.mem.Allocator, output_dir: []const u8) !void {
+    return buildForProfile(allocator, output_dir, .core_v2);
+}
+
+pub fn buildForProfile(allocator: std.mem.Allocator, output_dir: []const u8, profile: artifact.Profile) !void {
     try requireFullXcode(allocator);
     var toolchain = try measureToolchainIdentity(allocator);
     defer toolchain.deinit();
-    try artifact.emit(allocator, output_dir);
+    try artifact.emitForProfile(allocator, output_dir, profile);
 
     var directory = try std.fs.cwd().openDir(output_dir, .{});
     defer directory.close();
@@ -62,7 +66,7 @@ pub fn build(allocator: std.mem.Allocator, output_dir: []const u8) !void {
 
     try runCompiler(allocator, metallib_argv[0..], output_dir);
     try requireNonempty(directory, artifact.metallib_filename);
-    _ = try artifact.finalizeBuild(allocator, output_dir, toolchain.view());
+    _ = try artifact.finalizeBuildForProfile(allocator, output_dir, toolchain.view(), profile);
 }
 
 const OwnedTool = struct {

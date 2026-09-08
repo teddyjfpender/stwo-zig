@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 517s
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test 37/38 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.role0 statement input allows its authenticated cross-component claim' failed
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.role0 statement input allows its authenticated cross-component claim', the following test command failed:
+./.zig-cache/o/afb079252a6d4936fe5410dde1dbc349/test --cache-dir=./.zig-cache --seed=0x1c14d96d --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 37/38 tests passed; 1 failed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 transitive failure
++- recursive common Ethereum incremental leaf V4 structural guard transitive failure
+   +- run test 37/38 passed, 1 failed
+      +- compile test ReleaseSafe native success 34s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/be54bf92fc799c6b4e0584cacbad2114/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x1c14d96d -Z6def0c2beca70a6e --maxrss 25769803776 -j1 test-recursive-common-ethereum-incremental-leaf-field-public-v4 -Doptimize=ReleaseSafe --summary all

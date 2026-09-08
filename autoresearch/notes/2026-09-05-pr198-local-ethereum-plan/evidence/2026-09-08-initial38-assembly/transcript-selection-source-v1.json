@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T04:11:18.254458+00:00",
+  "status": "source_and_ast_checked_semantic_gates_not_started",
+  "scope": "selected Initial38 transcript publication only; ordinary aliases and operation ordering retained; no initial composition or fold activation",
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_detached_transcript_v1.zig",
+      "sha256": "f5e60a873f06cfa71524195f2cd283433bcf8c880fe08dee9d7a2fe21a4725ca"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig",
+      "sha256": "3ef2e6bc68b6c9fefe5f9bed70ec0cec86b715e219f260eb355c51c8ce56d381"
+    }
+  ],
+  "ast_commands": [
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/ethereum_wrapper_detached_transcript_v1.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig"
+    ]
+  ],
+  "ast_exit_codes": [
+    0,
+    0
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_wrapper_verifier_components_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum detached field admission preserves session projection without custody",
+    "--test-filter",
+    "Ethereum detached transcript dynamic frames match public wire and provider emitters",
+    "--test-filter",
+    "Ethereum initial detached transcript admits38 claims with native frame parity",
+    "--test-filter",
+    "Ethereum field transcript native emitters match explicit program frames",
+    "--test-filter",
+    "Ethereum field transcript requires explicit admission and preserves legacy kind tags"
+  ],
+  "artifact_compile_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_wrapper_verifier_components_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-fno-emit-bin",
+    "--test-no-exec",
+    "--test-filter",
+    "Ethereum detached transcript replays independently pinned field9 proof after input destruction",
+    "--test-filter",
+    "Ethereum initial detached transcript replays independently pinned field9 proof after input destruction"
+  ],
+  "artifact_runtime_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_wrapper_verifier_components_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum initial detached transcript replays independently pinned field9 proof after input destruction"
+  ],
+  "required_initial_artifact_environment": [
+    "STWO_ETHEREUM_INITIAL_ROOT_REPLAY_DIR",
+    "STWO_ETHEREUM_INITIAL_ROOT_KEY_SHA256"
+  ],
+  "queue": "Not queued: ordinary real wrapper2, sibling3 and parent priority per parent instruction."
+}

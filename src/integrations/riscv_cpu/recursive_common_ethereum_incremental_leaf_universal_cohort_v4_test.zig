@@ -45,3 +45,24 @@ test "role0 native core publishes into the nominal universal manifest" {
     try std.testing.expectEqual(@as(usize, 34), native.LAST_ROW);
     try std.testing.expectEqual(@as(usize, 35), complete.COMPONENT_COUNT - 1);
 }
+
+test "Ethereum geometry rejects missing source admission before allocating preparation" {
+    // Intentionally incomplete ingress: fixed-program admission must reject
+    // before any remaining witness is read or a preparation owner is allocated.
+    const Materialized = @import("recursive_common_ethereum_incremental_leaf_campaign_materializer_v4.zig").PreparedOwnedCampaignCaptureV4(Engine);
+    var source: Materialized = undefined;
+    source.program_admission = null;
+    source.initial_input_admission = null;
+    source.base.input.fixed_program = null;
+    source.base.input.stage101.profile.schema_version = 5;
+    var allocator = std.testing.FailingAllocator.init(std.testing.allocator, .{ .fail_index = 0 });
+    const Geometry = @import("recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig").OwnerV4(Engine);
+    try std.testing.expectError(error.EthereumFixedProgramAdmissionRequired, Geometry.init(allocator.allocator(), &source));
+    try std.testing.expectError(error.EthereumFixedProgramAdmissionRequired, Geometry.initForLogSizes(allocator.allocator(), &source, @splat(4)));
+    try std.testing.expectEqual(@as(usize, 0), allocator.allocated_bytes);
+}
+
+test "Ethereum native prepared projection owns inputs and moves buffers across every allocation failure" {
+    const Core = @import("recursive_fri_outer.zig").NativeSegmentCoreV2;
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, Core.testing.exerciseProjectionOwnership, .{});
+}

@@ -1,0 +1,15 @@
+test-recursive-common-fold-field-public-v2
++- run test 3/4 passed, 1 failed
+error: 'recursive_field_statement_word_v3_test.test.field statement bridge rejects noncanonical limb aliases' failed: FIELD_STATEMENT_BRIDGE_DIGEST=c2c67855ae1f62a00d657887d92d7db711282a085fed9c87e32677f5c97d4716
+expected 0, found 194
+index 0 incorrect. expected 0, found 194
+error: while executing test 'recursive_common_fold_suffix_input_boundary_v2.test.suffix input producer is tuple-derived and policy rejects wrong role', the following test command failed:
+./.zig-cache/o/98913641abd14bdc15752054ebd14018/test --cache-dir=./.zig-cache --seed=0xa2a8435e --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 3/4 tests passed; 1 failed
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 3/4 passed, 1 failed
+   +- compile test ReleaseSafe native success 7s MaxRSS:656M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bda74839e0255df849331a477c60552/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xa2a8435e -Z0b6b008dd4df8d2f --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 -Doptimize=ReleaseSafe --summary all

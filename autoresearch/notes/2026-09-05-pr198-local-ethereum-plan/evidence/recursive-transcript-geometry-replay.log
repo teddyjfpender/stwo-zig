@@ -1,0 +1,17 @@
+test-ethereum-incremental-leaf-transcript-v4-replay
++- saved Ethereum transcript geometry replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays transcript geometry' failed: ETHEREUM_TRANSCRIPT_GEOMETRY phase=counts contexts={ 58, 1, 1, 76, 1, 25, 202, 1, 1, 1, 1, 1, 1, 10, 1, 1, 25 } relation_draws=25 randomness_draws=33 query_draws=25 pow_checks=2
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=39904542 public_ns=293856208 transcript_ns=137419250 profile_ns=27250 program_ns=67566042 prepare_ns=57862750 fri_ns=4165122625 seal_ns=39434708 total_ns=4801195750 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_ROLE0_REPLAY_ERROR=EthereumIncrementalTranscriptGeometryMismatchV4
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays transcript geometry', the following test command failed:
+./.zig-cache/o/194b0012194864783389beac7c75dd1d/test --cache-dir=./.zig-cache --seed=0xe8d5171d --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-transcript-v4-replay transitive failure
++- saved Ethereum transcript geometry replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ab33e9b6bf5a998a4c0713b6452e20e9/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xe8d5171d -Z86a3f970fa1e5589 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-transcript-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

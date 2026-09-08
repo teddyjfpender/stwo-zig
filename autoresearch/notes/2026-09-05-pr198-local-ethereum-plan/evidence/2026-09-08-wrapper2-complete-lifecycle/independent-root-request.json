@@ -1,0 +1,32 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v4/scripts/ethereum_wrapper_root_check.py",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480",
+    "--expected-key-sha256",
+    "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/independent-root-check-extended-v2",
+    "--timeout",
+    "600",
+    "--rejection-fixtures",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/independent-root-rejections-v1",
+    "--rejection-manifest-sha256",
+    "79afeaa5c0972622f318fb3a83487ec1843652387337599f7c621fe523e431c4"
+  ],
+  "fixtures_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/independent-root-rejections-v1/manifest.json",
+    "bytes": 2264,
+    "sha256": "79afeaa5c0972622f318fb3a83487ec1843652387337599f7c621fe523e431c4"
+  },
+  "custody": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/post-publication-rejection-plan-v2/finalized-request.json",
+    "bytes": 9416,
+    "sha256": "0998d255489f2b437bfefd4436d4c3ef52d33f1474577228f5aec463a4ec95f7"
+  },
+  "unset_env": [
+    "STWO_ZIG_BUILD_HELD_LOCK",
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1"
+  ]
+}

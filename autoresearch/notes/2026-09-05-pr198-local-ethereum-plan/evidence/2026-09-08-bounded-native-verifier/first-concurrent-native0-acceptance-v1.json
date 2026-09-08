@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-09-08T06:16:02.653288+00:00",
+  "endpoint": "verified_native_selected_leaf_fixed_program_v5",
+  "global_segment": 0,
+  "accepted_new_proof_count": 0,
+  "meaning": "Fresh re-verification of already accepted native0 completed in bounded lane concurrently with long wrapper proof; not new block coverage",
+  "request_seconds": 87.053939542,
+  "scheduler_elapsed_seconds": 87.19511341699399,
+  "verifier_reported_peak_bytes": 2390526184,
+  "sampled_peak_bytes": 2388429008,
+  "prior_request_seconds": 85.3645245,
+  "resource_envelope_passed": true,
+  "proof_receipts": {
+    "request.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000000-1788848001405400000/request.json",
+      "bytes": 1033,
+      "sha256": "01608ab65f0d9af5e72d0eb99192ccd89b835bb5fd01269b2eb6f6585783c7c0"
+    },
+    "execution.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000000-1788848001405400000/execution.json",
+      "bytes": 41,
+      "sha256": "080953d5401dd520174c99e7384abdeb6c0c9ebd9d24b42d934e3d5ecc19e51a"
+    },
+    "stdout.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000000-1788848001405400000/stdout.json",
+      "bytes": 1155,
+      "sha256": "64817bd3f0716d63280a40fc9356f731eeacbca3e6c3469cb634a1f85db050d1"
+    },
+    "scheduling.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000000-1788848001405400000/scheduling.json",
+      "bytes": 1164,
+      "sha256": "602c798f56b6a480f217574d51cfb094c6bcc16740cbdbea40919767505618ce"
+    }
+  },
+  "process_snapshot": [
+    "44583 44582       02:42  28832 /opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -m scripts.ethereum_full_leaf_bundle_producer --prover /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v7/bin/ethereum-prepared-leaf-metal-v1 --verifier /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1 --materialization /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json --publication-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4 --selected-leaf-admission-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1 --output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2 --claim-admission fixed_program_narrow_v5 --backend metal --aot-bundle /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle --aot-manifest-sha256 320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 --workers 1 --host-byte-budget 17179869184 --pcs-retained-byte-budget 25769803776 --host-byte-limit 34359738368 --timeout-seconds 14400 --verification-policy /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/bounded-native-verifier-admission-v1/policy.json --verification-policy-sha256 870e2b8689f5b417764d28e499197a7ca34421e7b2db03ddbb18856054b1a65b",
+    "45272 44583       00:13 1011360 /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1 verify-leaf-fixed-program-v5 /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/leaf-000002.json /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e --workers 1"
+  ],
+  "wrapper_cancelled_by_this_agent": false,
+  "native_producer_started_by_migration": false
+}

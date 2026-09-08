@@ -168,6 +168,20 @@ pub fn preflightShapeV2WithRetirementSupplementV2ForVerifierConfig(
     );
 }
 
+/// Geometry admission for the explicit Ethereum circuit. Independent program
+/// Tree0 authority is checked by the enclosing native/profile verifier.
+pub fn preflightShapeV2WithCircuitProfileV1(
+    statement: *const statement_v2.RiscVStatementV2,
+    supplement: RetirementSupplementV2,
+    pcs_config: stwo_core.pcs.PcsConfig,
+    max_wire_bytes: usize,
+    circuit_profile: @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+) Error!postcard.proof_preflight.Shape {
+    if (max_wire_bytes == 0) return error.InvalidProofResourceLimit;
+    try statement_validation.validateV2WithRetirementSupplementAndCircuitProfileV1(statement, .proof, supplement, circuit_profile);
+    return preflightShapeFromValidatedCore(statement.core, pcs_config, max_wire_bytes);
+}
+
 /// Allocation-free validation of one external Poseidon proof wire.
 pub fn validate(
     raw: []const u8,

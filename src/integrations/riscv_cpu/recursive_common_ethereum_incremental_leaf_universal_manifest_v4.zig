@@ -31,7 +31,16 @@ const roster = air.universal_roster;
 const range_bridge = air.range_check_8_8_bridge;
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 15;
+pub const StatementRootProfile = recursion.incremental_ethereum_composition_profile_v4;
+pub const StatementInputAir = StatementRootProfile.StatementRootProvider;
+pub const StatementSemanticsAir = StatementRootProfile.StatementByteProvider;
+pub const PublicLogupAir = StatementRootProfile.PublicLogupProvider;
+pub const PublicLogupControlAir = StatementRootProfile.PublicationControlProvider;
+pub const ClaimHashAir = StatementRootProfile.PublicationHashProvider;
+pub const ClaimInputAir = StatementRootProfile.ClaimInputProvider;
+pub const TranscriptStateAir = StatementRootProfile.TranscriptStateProvider;
+pub const TranscriptPayloadAir = StatementRootProfile.ClockPayloadProvider;
 pub const ROLE = registry_mod.CircuitRoleV4
     .ethereum_incremental_leaf_wrapper_v4;
 pub const COMPONENT_COUNT: usize = roster.COMPONENT_COUNT;
@@ -40,10 +49,10 @@ pub const MINIMUM_PROVIDER_LOG_SIZE: u32 =
 pub const RANGE_LOG_SIZE: u32 = range_bridge.LOG_SIZE;
 pub const MINIMUM_PROVIDER_ACTIVE_ROW_COUNT: u32 =
     field_public.MINIMUM_PROVIDER_ACTIVE_ROW_COUNT;
-pub const PREPROCESSED_COLUMN_COUNT: u32 = 570;
-pub const MAIN_COLUMN_COUNT: u32 = 1044;
-pub const INTERACTION_COLUMN_COUNT: u32 = 560;
-pub const CONSTRAINT_COUNT: u32 = 1312;
+pub const PREPROCESSED_COLUMN_COUNT: u32 = 619;
+pub const MAIN_COLUMN_COUNT: u32 = 1054;
+pub const INTERACTION_COLUMN_COUNT: u32 = 616;
+pub const CONSTRAINT_COUNT: u32 = 1343;
 
 pub const PRODUCTION_ACTIVATION = false;
 pub const CALLER_AUTHORED_LOG_SIZES_ADMITTED = false;
@@ -92,6 +101,67 @@ const VERIFICATION_KEY_DOMAIN: u32 = 0x4549_5652; // "EIVR"
 const NEXT_PARENT_KEY_DOMAIN: u32 = 0x4549_4e52; // "EINR"
 const AIR_PROGRAM_DOMAIN: u32 = 0x4549_4152; // "EIAR"
 
+/// Ethereum-only key admission includes the exact immutable arithmetic
+/// program, even when a program change leaves padded geometry unchanged.
+pub const PUBLIC_SUMS_ADMISSION_VERSION: u16 = 1;
+pub const ProgramBoundIdentitiesV1 = struct {
+    contract: [32]u8,
+    program: [32]u8,
+    profile: [32]u8,
+    padding: [32]u8,
+    table: [32]u8,
+    verification_key: channel.Digest,
+    next_parent_key: channel.Digest,
+    air_program: channel.Digest,
+};
+
+/// The cohort supplies the identity copied from its independently constructed
+/// public-sums owner. A proof-supplied digest is never an admission input.
+pub fn identitiesWithPublicSumsProgram(
+    log_sizes: LogSizesV4,
+    authority: *const CampaignProviderGeometryAuthorityV4,
+    complete: CompleteProviderGeometryV4,
+    public_sums_program_identity: [32]u8,
+) Error!ProgramBoundIdentitiesV1 {
+    const manifest = try buildForCampaignAuthority(log_sizes, authority, complete);
+    return bindPublicSumsProgram(
+        try contractIdentity(log_sizes, authority, complete),
+        manifest.seal,
+        public_sums_program_identity,
+    );
+}
+
+/// Pure identity derivation shared by admission and its focused mutation
+/// checks. This value bundle owns no graph, lease, or cached authority.
+pub fn bindPublicSumsProgram(
+    geometry_contract: [32]u8,
+    manifest_seal: [32]u8,
+    public_sums_program_identity: [32]u8,
+) Error!ProgramBoundIdentitiesV1 {
+    if (std.mem.allEqual(u8, &geometry_contract, 0) or
+        std.mem.allEqual(u8, &manifest_seal, 0) or
+        std.mem.allEqual(u8, &public_sums_program_identity, 0))
+        return error.EthereumIncrementalUniversalManifestMismatchV4;
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/ethereum-public-sums-program-admission/v1\x00");
+    hashInt(&hash, u16, PUBLIC_SUMS_ADMISSION_VERSION);
+    hash.update(&geometry_contract);
+    hash.update(&public_sums_program_identity);
+    const contract = hash.finalResult();
+    const program = domainIdentityFromContract(PROGRAM_DOMAIN, contract, manifest_seal);
+    const profile = domainIdentityFromContract(PROFILE_DOMAIN, contract, manifest_seal);
+    return .{
+        .contract = contract,
+        .program = program,
+        .profile = profile,
+        .padding = domainIdentityFromContract(PADDING_DOMAIN, contract, manifest_seal),
+        .table = domainIdentityFromContract(TABLE_LAYOUT_DOMAIN, contract, manifest_seal),
+        .verification_key = channel.hashBytes(&contract, VERIFICATION_KEY_DOMAIN),
+        .next_parent_key = channel.hashBytes(&profile, NEXT_PARENT_KEY_DOMAIN),
+        .air_program = channel.hashBytes(&program, AIR_PROGRAM_DOMAIN),
+    };
+}
+
 pub fn keyIndex(key: ComponentKey) u8 {
     return base.keyIndex(key);
 }
@@ -100,12 +170,12 @@ pub fn keyIndex(key: ComponentKey) u8 {
 /// future real cohort supplies only logs recomputed from its live sources.
 pub fn buildForDerivedLogSizes(log_sizes: LogSizesV4) Error!Manifest {
     try validateDerivedLogSizes(log_sizes);
-    const result = try universal_manifest.build(log_sizes);
+    const result = try universal_manifest.buildForCatalog(StatementRootProfile.StatementRoutingOuterCatalog, log_sizes);
     try validateExact(&result, log_sizes);
     return result;
 }
 
-/// Exact schema-3 builder for one live provider measurement. This remains an
+/// Exact schema-6 builder for one live provider measurement. This remains an
 /// audit-only result until one capacity is frozen from every authenticated
 /// cold leaf in the runtime-count campaign.
 pub fn buildForLiveProviderGeometry(
@@ -127,7 +197,7 @@ pub fn buildForCampaignPublicationAudit(
     try authority.validateStructure();
     return buildForLiveProviderGeometry(
         log_sizes,
-        authority.provider_geometry,
+        authority.view().provider_geometry,
     );
 }
 
@@ -172,7 +242,7 @@ pub fn validateExact(
 ) Error!void {
     try validateDerivedLogSizes(log_sizes);
     try value.validate();
-    const expected = try universal_manifest.build(log_sizes);
+    const expected = try universal_manifest.buildForCatalog(StatementRootProfile.StatementRoutingOuterCatalog, log_sizes);
     if (!std.meta.eql(value.*, expected) or
         value.roster_count != COMPONENT_COUNT or
         value.total_preprocessed_columns != PREPROCESSED_COLUMN_COUNT or
@@ -231,7 +301,7 @@ fn validateCampaignAndCompleteProvider(
 ) Error!void {
     try authority.validateStructure();
     try complete.validate();
-    const publication = authority.provider_geometry;
+    const publication = authority.view().provider_geometry;
     try publication.validate();
     try validateDerivedLogSizes(log_sizes);
     if (complete.field_publication_call_count !=
@@ -253,7 +323,7 @@ pub fn contractIdentity(
 ) Error![32]u8 {
     try authority.validateStructure();
     try complete.validate();
-    const provider = authority.provider_geometry;
+    const provider = authority.view().provider_geometry;
     const manifest = try buildForCampaignAuthority(
         log_sizes,
         authority,
@@ -263,6 +333,9 @@ pub fn contractIdentity(
     hash.update(CONTRACT_DOMAIN);
     hashInt(&hash, u16, FORMAT_VERSION);
     hashInt(&hash, u16, SCHEMA_VERSION);
+    const composition = @import("ethereum_wrapper_composition_v1.zig");
+    hashInt(&hash, u16, composition.VERSION);
+    hashInt(&hash, u8, composition.LOG_SPLIT);
     hashInt(&hash, u8, @intFromEnum(ROLE));
     hashInt(&hash, u32, field_public.SOURCE_DIGEST_DOMAIN);
     hashInt(&hash, u32, provider.role_io_tuple_capacity);
@@ -272,11 +345,11 @@ pub fn contractIdentity(
     hashInt(&hash, u32, provider.provider_active_row_count);
     hashInt(&hash, u32, provider.provider_log_size);
     hashInt(&hash, u32, provider.provider_row_capacity);
-    hash.update(&authority.geometry_identity_sha256);
+    hash.update(&authority.view().geometry_identity_sha256);
     hashInt(&hash, u32, complete.stage101_transcript_call_count);
-    hashInt(&hash, u32, complete.child_claim_hash_call_count);
     hashInt(&hash, u32, complete.child_io_hash_call_count);
     hashInt(&hash, u32, complete.field_publication_call_count);
+    hashInt(&hash, u32, complete.native_identity_hash_call_count);
     hashInt(&hash, u32, complete.verifier_core_call_count);
     hashInt(&hash, u32, complete.total_call_count);
     hashInt(&hash, u32, complete.provider_log_size);
@@ -296,86 +369,11 @@ pub fn contractIdentity(
     return hash.finalResult();
 }
 
-pub fn programIdentity(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error![32]u8 {
-    return domainIdentity(PROGRAM_DOMAIN, log_sizes, authority, complete);
-}
-
-pub fn profileIdentity(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error![32]u8 {
-    return domainIdentity(PROFILE_DOMAIN, log_sizes, authority, complete);
-}
-
-pub fn paddingLayoutIdentity(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error![32]u8 {
-    return domainIdentity(PADDING_DOMAIN, log_sizes, authority, complete);
-}
-
-pub fn tableLayoutIdentity(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error![32]u8 {
-    return domainIdentity(TABLE_LAYOUT_DOMAIN, log_sizes, authority, complete);
-}
-
-pub fn verificationKeyId(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error!channel.Digest {
-    return channel.hashBytes(
-        &try contractIdentity(log_sizes, authority, complete),
-        VERIFICATION_KEY_DOMAIN,
-    );
-}
-
-pub fn nextParentVkId(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error!channel.Digest {
-    return channel.hashBytes(
-        &try profileIdentity(log_sizes, authority, complete),
-        NEXT_PARENT_KEY_DOMAIN,
-    );
-}
-
-pub fn airProgramId(
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error!channel.Digest {
-    return channel.hashBytes(
-        &try programIdentity(log_sizes, authority, complete),
-        AIR_PROGRAM_DOMAIN,
-    );
-}
-
-fn domainIdentity(
-    domain: []const u8,
-    log_sizes: LogSizesV4,
-    authority: *const CampaignProviderGeometryAuthorityV4,
-    complete: CompleteProviderGeometryV4,
-) Error![32]u8 {
-    const manifest = try buildForCampaignAuthority(
-        log_sizes,
-        authority,
-        complete,
-    );
+fn domainIdentityFromContract(domain: []const u8, contract: [32]u8, manifest_seal: [32]u8) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(domain);
-    hash.update(&try contractIdentity(log_sizes, authority, complete));
-    hash.update(&manifest.seal);
+    hash.update(&contract);
+    hash.update(&manifest_seal);
     return hash.finalResult();
 }
 
@@ -403,12 +401,12 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 15 or
         @intFromEnum(ROLE) != 0 or COMPONENT_COUNT != 36 or
         MINIMUM_PROVIDER_LOG_SIZE != 8 or RANGE_LOG_SIZE != 16 or
         MINIMUM_PROVIDER_ACTIVE_ROW_COUNT != 129 or
-        PREPROCESSED_COLUMN_COUNT != 570 or MAIN_COLUMN_COUNT != 1044 or
-        INTERACTION_COLUMN_COUNT != 560 or CONSTRAINT_COUNT != 1312 or
+        PREPROCESSED_COLUMN_COUNT != 619 or MAIN_COLUMN_COUNT != 1054 or
+        INTERACTION_COLUMN_COUNT != 616 or CONSTRAINT_COUNT != 1343 or
         PRODUCTION_ACTIVATION or CALLER_AUTHORED_LOG_SIZES_ADMITTED or
         REGISTRY_PADDING_AVAILABLE or CAMPAIGN_PROVIDER_GEOMETRY_FROZEN or
         !UNFROZEN_GEOMETRY_ONLY_BUILD_AVAILABLE or

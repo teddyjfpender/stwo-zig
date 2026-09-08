@@ -1,0 +1,84 @@
+{
+  "scope": "Existing genuine legacy common-fold proof and explicit Ethereum namespace rejection; no valid Ethereum parent proof yet",
+  "passed": true,
+  "cases": [
+    {
+      "name": "legacy-positive",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/key.json",
+        "d851a6465f6edb02cbeb8a3bc8173b40b86ad6642e07b791478e8b08975a9b37",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/inputs.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/proof.bin"
+      ],
+      "exit_code": 0,
+      "expected_acceptance": true
+    },
+    {
+      "name": "legacy-wrong-pin",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/key.json",
+        "0000000000000000000000000000000000000000000000000000000000000000",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/inputs.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/proof.bin"
+      ],
+      "exit_code": 1,
+      "expected_acceptance": false
+    },
+    {
+      "name": "ethereum-rejects-legacy-transport",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+        "--ethereum-v1",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/key.json",
+        "d851a6465f6edb02cbeb8a3bc8173b40b86ad6642e07b791478e8b08975a9b37",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/inputs.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/proof.bin"
+      ],
+      "exit_code": 1,
+      "expected_acceptance": false
+    },
+    {
+      "name": "ethereum-rejects-resealed-legacy-proof",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+        "--ethereum-v1",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-command-check-v1/resealed-ethereum-key.json",
+        "2b51d59c6727164c8df656461ea76b76fda1c7e61a9fc0533a49686096eef22f",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/inputs.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/proof.bin"
+      ],
+      "exit_code": 1,
+      "expected_acceptance": false
+    }
+  ],
+  "inputs": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+      "bytes": 4294928,
+      "sha256": "1e08ab2f9a1f803b944ea5cae1f0fe2612a794f286b10ffba0ea707969b9815f"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/key.json",
+      "bytes": 18802,
+      "sha256": "d851a6465f6edb02cbeb8a3bc8173b40b86ad6642e07b791478e8b08975a9b37"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/inputs.json",
+      "bytes": 5524,
+      "sha256": "35b7d8842e028676ee23d8e5213f7244aa23c0bab93ddaa16d8582e527074c1d"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/proof.bin",
+      "bytes": 2886425,
+      "sha256": "5924d48f0f568074bf7c29c6f6f58b009a81c4fca3d94399a936db2527bbdecb"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-command-check-v1/resealed-ethereum-key.json",
+      "bytes": 18844,
+      "sha256": "2b51d59c6727164c8df656461ea76b76fda1c7e61a9fc0533a49686096eef22f"
+    }
+  ],
+  "ethereum_parent_verified": false
+}

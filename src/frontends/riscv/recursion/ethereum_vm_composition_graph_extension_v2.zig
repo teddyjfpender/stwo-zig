@@ -45,6 +45,7 @@ pub fn record(
     relations: *const relations_mod.RelationsV2,
     point: anytype,
     composition_randomness: Scalar,
+    mask_log_size: u32,
     denominators: *[31]?Scalar,
     initial_accumulation: Scalar,
 ) !Result {
@@ -64,6 +65,7 @@ pub fn record(
         &relations.keccak,
         point,
         composition_randomness,
+        mask_log_size,
         denominators,
         &result,
     );
@@ -75,6 +77,7 @@ pub fn record(
         &relations.keccak,
         point,
         composition_randomness,
+        mask_log_size,
         denominators,
         &result,
     );
@@ -86,6 +89,7 @@ pub fn record(
         &relations.keccak,
         point,
         composition_randomness,
+        mask_log_size,
         denominators,
         &result,
     );
@@ -109,6 +113,7 @@ pub fn record(
         &relations.secp,
         point,
         composition_randomness,
+        mask_log_size,
         denominators,
         &result,
     );
@@ -128,6 +133,7 @@ fn recordKeccak(
     relations: anytype,
     point: anytype,
     randomness: Scalar,
+    mask_log_size: u32,
     denominators: *[31]?Scalar,
     result: *Result,
 ) !void {
@@ -140,7 +146,7 @@ fn recordKeccak(
     }
     const denominator = support.quotientDenominator(
         component.log_size,
-        layout.extension.max_log_degree_bound,
+        mask_log_size,
         point,
         denominators,
     );
@@ -227,6 +233,7 @@ fn recordKeccak(
         component.interaction_batch_count;
     if (result.instruction_count - instruction_before != expected)
         return error.InvalidInstructionCount;
+    support.diagnosticCheckpoint("ethereum", @intFromEnum(component.kind), result.instruction_count, result.accumulation);
 }
 
 fn recordKeccakTable(
@@ -237,6 +244,7 @@ fn recordKeccakTable(
     relations: anytype,
     point: anytype,
     randomness: Scalar,
+    mask_log_size: u32,
     denominators: *[31]?Scalar,
     result: *Result,
 ) !void {
@@ -253,7 +261,7 @@ fn recordKeccakTable(
     }
     const denominator = support.quotientDenominator(
         component.log_size,
-        layout.extension.max_log_degree_bound,
+        mask_log_size,
         point,
         denominators,
     );
@@ -296,6 +304,7 @@ fn recordKeccakTable(
         component.interaction_batch_count;
     if (result.instruction_count - instruction_before != expected)
         return error.InvalidInstructionCount;
+    support.diagnosticCheckpoint("ethereum", @intFromEnum(component.kind), result.instruction_count, result.accumulation);
 }
 
 fn recordSecp(
@@ -306,6 +315,7 @@ fn recordSecp(
     relations: anytype,
     point: anytype,
     randomness: Scalar,
+    mask_log_size: u32,
     denominators: *[31]?Scalar,
     result: *Result,
 ) !void {
@@ -317,7 +327,7 @@ fn recordSecp(
     }
     const denominator = support.quotientDenominator(
         component.log_size,
-        layout.extension.max_log_degree_bound,
+        mask_log_size,
         point,
         denominators,
     );
@@ -382,6 +392,7 @@ fn recordSecp(
         component.interaction_batch_count;
     if (result.instruction_count - instruction_before != expected)
         return error.InvalidInstructionCount;
+    support.diagnosticCheckpoint("ethereum", @intFromEnum(component.kind), result.instruction_count, result.accumulation);
 }
 
 fn appendPairs(

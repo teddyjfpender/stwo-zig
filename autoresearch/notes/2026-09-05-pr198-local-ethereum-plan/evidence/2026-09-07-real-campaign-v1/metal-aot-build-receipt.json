@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.ethereum-real-leaf-metal-aot-build.v1",
+  "bundle": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-aot-v1-20260907",
+  "files": {
+    "stwo_zig_core.manifest.json": {
+      "bytes": 64571,
+      "sha256": "d51ffc6f4de6307c47604c67a352f724f3763d798f188ab86ab71c226013acba"
+    },
+    "stwo_zig_core.metallib": {
+      "bytes": 2688763,
+      "sha256": "9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7"
+    },
+    "stwo_zig_core.metal": {
+      "bytes": 1427031,
+      "sha256": "c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786"
+    }
+  },
+  "build_status": "success",
+  "runtime_probe": {
+    "status": "passed",
+    "exact_kernel_exports": 166,
+    "function_constants": 0,
+    "parity": "AOT/JIT kernel parity",
+    "log": "probe.log"
+  },
+  "proof_status": "not run",
+  "command": ".git/local-ethereum/metal-core-aot-builder-20260907/bin/metal-core-aot build --output-dir /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-aot-v1-20260907"
+}

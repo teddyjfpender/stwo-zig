@@ -1,0 +1,40 @@
+{
+  "schema": "stwo.ethereum.narrow-poseidon-component-gate.v1",
+  "tests_passed": 7,
+  "includes_root_sentinel": true,
+  "complete_component_proof": true,
+  "complete_guest_leaf": false,
+  "csp_benchmark_pass_claimed": false,
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/ethereum_narrow_poseidon_proof_test_root.zig -O ReleaseSafe --test-filter \"Ethereum narrow degree3 Poseidon\"",
+  "shared_lock": "/tmp/stwo-zig-build.lock",
+  "log_sha256": "f5658d6f759d83de2299f1512ae8ff8df12e72ed9690b2e4609497a9b0094c4a",
+  "source_sha256": {
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_degree3_v1.zig": "4d35594afc8bb7a19a8bead963458ca53df0e3fe96354c589c82b7ad0f67a88c",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_component_v1.zig": "71fecf1ca2a55b09dc619549374de6dc2d1ed9db7ec691f756da612c7ed107c5",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_degree3_v1_test.zig": "9d6f0d55064c7bbcadca8f8f0553401de4c25aec141931bc0278cb3dea462fae",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_proof_v1_test.zig": "2e9f145c042128a4dafe1a5411a4371ec4786c9d374d3d5fb701e01ec6151d37",
+    "src/frontends/riscv/prover/base_component_assembly.zig": "e0442026d761f2dcb4b91d5800545d969604adbed29968dab4fcf1220bef1c1c",
+    "src/frontends/riscv/prover/proof_workspace.zig": "897cd4e789aab99f04db769cb1dee161ea29b2a4c7faad10275b2f7e713d2390",
+    "src/frontends/riscv/prover/main_trace_support.zig": "fe23fe64ee8f339c1fa0ce257572b6d59083c8564ca5ed2cde8a6ae1347b917f",
+    "src/frontends/riscv/prover/main_trace.zig": "9c61fb8c9a1f98e0e8ed2c3f27044a3052404eb572e07b644720ad901fc86778",
+    "src/frontends/riscv/prover/main_trace_plan_execution_production.zig": "69131b9c75cf9ed3b4ab0016c9628cd16043f59c0bd9a20d424d22ba90dfcc9c",
+    "src/frontends/riscv/prover/main_trace_plan_execution_production_state.zig": "6a84f9c0690901e5b5a5ec726e68b7967b00c5c02e237a682abb9fcf280237a5",
+    "src/frontends/riscv/prover/main_trace_plan_execution_production_generators.zig": "ee21aa599a01c55060a2f6f582335c7dbc5e4924dd317ec915271216077c2f0f",
+    "src/frontends/riscv/ethereum_narrow_poseidon_proof_test_root.zig": "47330d4cc680d0590aadcb7672ff1aded927d71657c1d81498cfa9b67e1eef60",
+    "src/frontends/riscv/poseidon_materialization_frontier_test_root.zig": "1b957a1815d4133e876db69d00365670a15a0b3ccd0eb6b793c2b1888a7eeae5"
+  },
+  "geometry": {
+    "main_columns": 287,
+    "preprocessed_columns": 2,
+    "interaction_columns": 8,
+    "direct_constraints": 286,
+    "logup_constraints": 2,
+    "max_degree": 3,
+    "quotient_expansion_log": 1,
+    "composition_split_log": 1,
+    "pcs_blowup_log": 1
+  },
+  "remaining": "Combined schema5 native/recursive admission and real leaf total-request performance are not established by this component gate.",
+  "log": "narrow-poseidon-selected-root-v1.log",
+  "root_dependency_note": "Dedicated canonical protocol root includes CPU and proof_wire; existing frontend frontier root keeps its original backend-free dependency boundary."
+}

@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "milestone": "real-program recursive wrapper admission",
+  "status": "blocked_at_composition_oods_equality",
+  "real_wrapper_proof_generated": false,
+  "input_pair": "real-program-wrapper-pair-1-2-v1",
+  "selected_global_segment": 1,
+  "native_cold_pair_verified": true,
+  "full_elf_completion_opening_admitted": true,
+  "canonical_claim_equalities_passed": 43,
+  "failed_graph_output": 43,
+  "graph_output_count": 44,
+  "failed_node": 615848,
+  "failed_qm31_words": [
+    476917779,
+    341301161,
+    717212211,
+    1911588405
+  ],
+  "wall_ns": 636398240166,
+  "peak_footprint_bytes": 1763100688,
+  "phase_wall_ns": {
+    "cold_open": 130942976708,
+    "campaign": 325242993541,
+    "materialization": 93360801584
+  },
+  "campaign_subrange_regression": {
+    "passed": 1,
+    "failed": 0
+  },
+  "lease_native_gate": {
+    "passed": 1,
+    "failed": 1,
+    "rebased_actual_proof_lease_mutation_case": "passed",
+    "older_nonfinal_final_case": "SegmentResultMismatch; independently being classified"
+  },
+  "source_note": "Real AIR v2 precedes one-line VerifiedLink immutable lease reuse and pair-slot selector; no full real wrapper success inferred. Opt-in matched native/symbolic cumulative diagnosis is queued.",
+  "logs": {
+    "ethereum-real-program-wrapper-air-v2.log": {
+      "sha256": "a03586ff794f9072b4089d547c74f1b2e9aaeadca15c9eea4bf23c2a03eefb66",
+      "bytes": 3339
+    },
+    "ethereum-real-program-wrapper-air-v2.sample.txt": {
+      "sha256": "99c7a5a8106ef7f8656c4c534f296b594047dd1e6c3c1abd3b302064fdf9d648",
+      "bytes": 1964602
+    },
+    "ethereum-campaign-subrange-v1.log": {
+      "sha256": "366788247bbe855605f0ff17046efbede3c673566b70faebf9ce2a48f101e604",
+      "bytes": 319
+    },
+    "ethereum-verified-link-lease-v1.log": {
+      "sha256": "192ff6fe1cb7a5ce7e7c58ae5070bd8958787e91e67b8069e3591763e1258370",
+      "bytes": 1382
+    },
+    "ethereum-verified-link-lease-direct-v2.log": {
+      "sha256": "2d1874754677079d65f31ee2eaa3b28a371d0dfe80e820bb8309f1b2737205e1",
+      "bytes": 433
+    }
+  }
+}

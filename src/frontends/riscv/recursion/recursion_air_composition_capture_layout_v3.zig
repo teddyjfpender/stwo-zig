@@ -23,6 +23,56 @@ const universal_roster = @import("air/universal_roster.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
+pub const ETHEREUM_WRAPPER_COMPOSITION_VERSION: u16 = 1;
+pub const ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT: u32 = 2;
+
+/// Fixed Ethereum wrapper facts, derived without a proof or query positions.
+/// The capture constructor below uses the same column/sample/split rules.
+pub const EthereumWrapperGeometryV1 = struct {
+    tree_column_counts: [TREE_COUNT]u32,
+    tree_heights: [TREE_COUNT]u32,
+    sampled_value_count: u32,
+    composition_log_size: u32,
+    composition_log_split: u32,
+    composition_chunk_log_degree: u32,
+};
+
+pub fn ethereumWrapperFixedGeometry(manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
+    return ethereumWrapperFixedGeometryForCount(universal_roster.COMPONENT_COUNT, manifest, fri_log_blowup);
+}
+
+pub fn ethereumInitialWrapperFixedGeometryV1(manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
+    return ethereumWrapperFixedGeometryForCount(@import("air/ethereum_initial_input_manifest_v1.zig").COMPONENT_COUNT, manifest, fri_log_blowup);
+}
+
+fn ethereumWrapperFixedGeometryForCount(comptime component_count: usize, manifest: anytype, fri_log_blowup: u32) Error!EthereumWrapperGeometryV1 {
+    try manifest.validate();
+    if (manifest.roster_count != component_count or fri_log_blowup >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+        return error.InvalidCompositionGeometry;
+    const split = ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT;
+    const columns = try expectedTreeColumnCounts(manifest, split);
+    const composition_log = try deriveNormalizedCompositionLogSize(manifest, split);
+    const chunk_log = composition_log - split;
+    var heights: [TREE_COUNT]u32 = @splat(0);
+    var samples: usize = 0;
+    for (columns, 0..) |count, tree| for (0..count) |column| {
+        samples = std.math.add(usize, samples, try expectedSampleCount(manifest, POSEIDON_ROSTER_ROW, tree, column)) catch return error.ArithmeticOverflow;
+    };
+    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+        const geometry = manifest.placements[row].?.geometry;
+        const height = std.math.add(u32, geometry.log_size, fri_log_blowup) catch return error.ArithmeticOverflow;
+        if (height >= stwo_core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidTraceLogGeometry;
+        for ([_]u16{ geometry.preprocessed_columns, geometry.main_columns, geometry.interaction_columns }, 0..) |count, tree|
+            if (count != 0) {
+                heights[tree] = @max(heights[tree], height);
+            };
+    }
+    heights[COMPOSITION_TREE_INDEX] = std.math.add(u32, chunk_log, fri_log_blowup) catch return error.ArithmeticOverflow;
+    if (heights[COMPOSITION_TREE_INDEX] >= stwo_core.circle.M31_CIRCLE_LOG_ORDER) return error.InvalidTraceLogGeometry;
+    var counts: [TREE_COUNT]u32 = undefined;
+    for (columns, &counts) |count, *out| out.* = std.math.cast(u32, count) orelse return error.CircuitTooLarge;
+    return .{ .tree_column_counts = counts, .tree_heights = heights, .sampled_value_count = std.math.cast(u32, samples) orelse return error.CircuitTooLarge, .composition_log_size = composition_log, .composition_log_split = split, .composition_chunk_log_degree = chunk_log };
+}
 pub const LAYOUT_DOMAIN =
     "stwo-zig/typed-air/recursion-composition-capture-layout/v3\x00";
 pub const INPUT_AUTHORITY_DOMAIN =
@@ -44,7 +94,7 @@ pub const HEAP_ALLOCATIONS_PER_SAMPLE_WRITE: usize = 0;
 pub const EMPTY_SAMPLE_COUNT: u32 = 0;
 pub const CANONICAL_EMPTY_LAYOUT_SCHEMA_VERSION: u16 = 1;
 
-pub const Error = std.mem.Allocator.Error || segment_manifest_mod.Error ||
+pub const Error = std.mem.Allocator.Error || @import("air/ethereum_initial_input_manifest_v1.zig").Error || segment_manifest_mod.Error ||
     universal_manifest_mod.Error || error{
     AliasedInput,
     ArithmeticOverflow,
@@ -107,6 +157,7 @@ pub const CaptureLayoutV3 = struct {
             manifest,
             manifest.catalog_identity,
             capture,
+            null,
         );
         result.manifest_seal =
             segment_manifest_mod.programGeometryShaId(manifest);
@@ -129,6 +180,7 @@ pub const CaptureLayoutV3 = struct {
             manifest,
             [_]u8{0} ** 32,
             capture,
+            null,
         );
     }
 
@@ -178,7 +230,59 @@ pub const CaptureLayoutV3 = struct {
             manifest,
             [_]u8{0} ** 32,
             capture,
+            null,
         );
+    }
+
+    /// Explicit wrapper-v1 policy, selected by the caller's authenticated
+    /// Ethereum wrapper contract, never inferred from untrusted proof shape.
+    /// Native leaf and all existing capture constructors retain split one.
+    pub fn initEthereumWrapperV1(
+        allocator: std.mem.Allocator,
+        manifest: anytype,
+        capture: anytype,
+    ) Error!CaptureLayoutV3 {
+        return initEthereumWrapperForCount(universal_roster.COMPONENT_COUNT, allocator, manifest, capture);
+    }
+
+    pub fn initEthereumInitialWrapperV1(allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
+        return initEthereumWrapperForCount(@import("air/ethereum_initial_input_manifest_v1.zig").COMPONENT_COUNT, allocator, manifest, capture);
+    }
+
+    fn initEthereumWrapperForCount(comptime component_count: usize, allocator: std.mem.Allocator, manifest: anytype, capture: anytype) Error!CaptureLayoutV3 {
+        try manifest.validate();
+        if (manifest.roster_count != component_count or
+            manifest.roster_rows[POSEIDON_ROSTER_ROW] != POSEIDON_ROSTER_ROW)
+            return error.ManifestAuthorityMismatch;
+        return initForManifest(
+            allocator,
+            .binary_node,
+            .ethereum_incremental_leaf_wrapper_v4,
+            POSEIDON_ROSTER_ROW,
+            manifest,
+            [_]u8{0} ** 32,
+            capture,
+            ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT,
+        );
+    }
+
+    pub fn validateAgainstEthereumWrapperV1(
+        self: *const CaptureLayoutV3,
+        manifest: anytype,
+    ) Error!void {
+        return self.validateAgainstEthereumWrapperForCount(universal_roster.COMPONENT_COUNT, manifest);
+    }
+
+    pub fn validateAgainstEthereumInitialWrapperV1(self: *const CaptureLayoutV3, manifest: anytype) Error!void {
+        return self.validateAgainstEthereumWrapperForCount(@import("air/ethereum_initial_input_manifest_v1.zig").COMPONENT_COUNT, manifest);
+    }
+
+    fn validateAgainstEthereumWrapperForCount(self: *const CaptureLayoutV3, comptime component_count: usize, manifest: anytype) Error!void {
+        if (manifest.roster_count != component_count) return error.ManifestAuthorityMismatch;
+        try self.validateAgainstAuthenticatedBinary(.ethereum_incremental_leaf_wrapper_v4, manifest);
+        if (self.composition_log_split != ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT or
+            self.composition_log_size != try deriveNormalizedCompositionLogSize(manifest, ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT))
+            return error.InvalidCompositionGeometry;
     }
 
     pub fn deinit(self: *CaptureLayoutV3) void {
@@ -502,6 +606,7 @@ fn initForManifest(
     manifest: anytype,
     catalog_identity: [32]u8,
     capture: anytype,
+    normalized_split: ?u32,
 ) Error!CaptureLayoutV3 {
     if (capture.sampled_points.len != TREE_COUNT or
         capture.column_log_sizes.len != TREE_COUNT)
@@ -522,22 +627,20 @@ fn initForManifest(
         split,
         qm31.SECURE_EXTENSION_DEGREE,
     ) orelse return error.InvalidCompositionGeometry;
-    if (split != verifier_types.COMPOSITION_LOG_SPLIT or
+    if (split != (normalized_split orelse verifier_types.COMPOSITION_LOG_SPLIT) or
         composition_columns != expected_composition_columns)
     {
         return error.InvalidCompositionGeometry;
     }
 
-    const composition_log_size = try deriveCompositionLogSize(manifest);
+    const composition_log_size = if (normalized_split) |admitted_split|
+        try deriveNormalizedCompositionLogSize(manifest, admitted_split)
+    else
+        try deriveCompositionLogSize(manifest);
     if (composition_log_size <= split)
         return error.InvalidCompositionGeometry;
     const quotient_bound = composition_log_size - split;
-    const expected_columns = [TREE_COUNT]usize{
-        @intCast(manifest.total_preprocessed_columns),
-        @intCast(manifest.total_main_columns),
-        @intCast(manifest.total_interaction_columns),
-        expected_composition_columns,
-    };
+    const expected_columns = try expectedTreeColumnCounts(manifest, split);
     for (capture.sampled_points, capture.column_log_sizes, expected_columns) |
         points,
         logs,
@@ -614,6 +717,22 @@ fn initForManifest(
     return result;
 }
 
+fn deriveNormalizedCompositionLogSize(manifest: anytype, split: u32) Error!u32 {
+    var result: u32 = 0;
+    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+        const geometry = manifest.placements[row].?.geometry;
+        if (geometry.protocol_constraint_degree < 2)
+            return error.InvalidCompositionGeometry;
+        const local_split = @max(@as(u32, 1), std.math.log2_int_ceil(u32, geometry.protocol_constraint_degree - 1));
+        if (local_split > split) return error.InvalidCompositionGeometry;
+        const bound = std.math.add(u32, geometry.log_size, split) catch return error.ArithmeticOverflow;
+        if (bound >= stwo_core.circle.M31_CIRCLE_LOG_ORDER)
+            return error.InvalidCompositionGeometry;
+        result = @max(result, bound);
+    }
+    return result;
+}
+
 fn deriveCompositionLogSize(manifest: anytype) Error!u32 {
     var composition_log_size: u32 = 0;
     for (manifest.roster_rows[0..manifest.roster_count]) |row| {
@@ -630,6 +749,15 @@ fn deriveCompositionLogSize(manifest: anytype) Error!u32 {
         );
     }
     return composition_log_size;
+}
+
+fn expectedTreeColumnCounts(manifest: anytype, split: u32) Error![TREE_COUNT]usize {
+    return .{
+        @intCast(manifest.total_preprocessed_columns),
+        @intCast(manifest.total_main_columns),
+        @intCast(manifest.total_interaction_columns),
+        verifier_types.compositionColumnCount(split, qm31.SECURE_EXTENSION_DEGREE) orelse return error.InvalidCompositionGeometry,
+    };
 }
 
 fn expectedSampleCount(

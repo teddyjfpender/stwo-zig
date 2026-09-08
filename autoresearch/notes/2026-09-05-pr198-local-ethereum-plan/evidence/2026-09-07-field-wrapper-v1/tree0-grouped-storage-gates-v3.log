@@ -1,0 +1,11 @@
+test-ethereum-grouped-tree-storage
++- Ethereum grouped tree storage guard
+   +- run test stderr
+GROUPED_TREE_STORAGE actual_fft_merkle=true source_words=2112 duplicate_coefficient_words_before=1344 after=0
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-ethereum-grouped-tree-storage success
++- Ethereum grouped tree storage guard success
+   +- run test 2 passed 267ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:597M
+

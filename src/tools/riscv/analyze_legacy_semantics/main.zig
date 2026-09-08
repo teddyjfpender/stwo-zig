@@ -7,7 +7,7 @@
 
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const semantics = @import("semantics.zig");
+const semantics = frontend.diagnostics.revm_legacy;
 const witness_codes = @import("witness_codes.zig");
 
 const runner = frontend.runner;

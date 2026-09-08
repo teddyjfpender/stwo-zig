@@ -1,0 +1,9 @@
+waiting for shared build/proof lock
+acquired shared lock
+1/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse preserves every Merkle layer across caps and uneven worker ranges...OK
+2/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse handles empty and uniform height trees...OK
+3/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse measured heterogeneous commitment comparison...poseidon_tail_reuse_bench synthetic=true workers=1 baseline_ns={ 162122708, 160560916, 161272500 } reused_ns={ 100360500, 100418208, 100572209 } baseline_median_ns=161272500 reused_median_ns=100418208 baseline_absorptions=1703936 reused_absorptions=1074176 prefix_heap_bytes=18432 leaf_heap_bytes=524288 tail_cache_stack_bytes=11776
+OK
+4/4 poseidon_bounded_prefix_test.test.Poseidon bounded tail reuse rejects mismatched column geometry before allocation...OK
+All 4 tests passed.
+exit_code=0

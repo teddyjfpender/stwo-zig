@@ -469,6 +469,11 @@ test {
     _ = @import("air/memory_commitment/mod.zig");
     _ = @import("air/memory_commitment/poseidon2.zig");
     _ = @import("air/memory_commitment/poseidon2_air.zig");
+    _ = @import("air/memory_commitment/ethereum_node_v1.zig");
+    _ = @import("air/memory_commitment/ethereum_node_component_v1.zig");
+    _ = @import("air/memory_commitment/ethereum_path_v1.zig");
+    _ = @import("air/memory_commitment/ethereum_word_tree_v1.zig");
+    _ = @import("ethereum_commitment_v1_test_root.zig");
     _ = @import("air/memory_commitment/sparse_merkle.zig");
     _ = @import("air/memory_commitment/trace.zig");
 

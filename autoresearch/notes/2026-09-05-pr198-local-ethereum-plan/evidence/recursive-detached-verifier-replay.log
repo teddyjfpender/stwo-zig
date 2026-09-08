@@ -1,0 +1,21 @@
+test-recursive-common-fold-transcript-replay-v1
++- Common-fold retained proof replay guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3312 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+FIELD_SESSION_KEY_AIR kind=canonical_empty limbs=48 changed_value_rejected=true native_session_seal=false
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+SECURE_TRANSCRIPT_AIR_ROWS control=176 sponge=1656 binding=1656 state=178 word=11824 pow=2 challenges=47 randomness=32 lanes=2
+COMMON_FOLD_PUBLIC_BOUNDARY_AIR words=450 extra_inputs=38 source_join=true changed_public_input_rejected=true native_public_sum_literal=false
+FIELD_SESSION_KEY_AIR kind=common_fold limbs=48 changed_value_rejected=true native_session_seal=false
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=178 frames=180 permutations=1756 queries=193
+COMMON_FOLD_DETACHED_VERIFIER verify_ns=330749500 rebuilt_child_cohort=false transcript_matches=true changed_root_or_claims_rejected=true independent_key_admission=false
+COMMON_FOLD_CHECKPOINT_REPLAY fresh_fold_proving=false cold_verified=true checks_ns=233509917208
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-replay-v1 success
++- Common-fold retained proof replay guard success
+   +- run test 1 passed 4m MaxRSS:6G
+      +- compile test ReleaseSafe native cached 51ms MaxRSS:34M
+

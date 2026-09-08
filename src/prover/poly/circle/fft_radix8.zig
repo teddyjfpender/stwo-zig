@@ -66,7 +66,9 @@ fn run(
                 else
                     @as(usize, 4) >> @intCast(step);
                 const block_count = 4 / half_span;
-                const twiddle_offset = pair_count -
+                // A larger canonical tower stores this transform's twiddles
+                // in its suffix, just as the scalar layer kernels expect.
+                const twiddle_offset = twiddles.len -
                     (@as(usize, 1) << @intCast(log_size - substage));
 
                 inline for (0..block_count) |block| {

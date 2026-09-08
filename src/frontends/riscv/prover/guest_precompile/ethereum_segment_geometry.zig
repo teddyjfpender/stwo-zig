@@ -112,12 +112,23 @@ pub fn requireTree1Residency(
     log_blowup_factor: u32,
     host_byte_budget: usize,
 ) residency_estimate.Error!residency_estimate.Estimate {
+    return requireTree1ResidencyWithPolicy(column_log_sizes, log_blowup_factor, host_byte_budget, tree1_coefficient_retention_policy);
+}
+
+/// Explicit execution admission uses the actual commitment scheme retention.
+/// Legacy callers retain the predecessor default through the wrapper above.
+pub fn requireTree1ResidencyWithPolicy(
+    column_log_sizes: []const u32,
+    log_blowup_factor: u32,
+    retained_byte_budget: usize,
+    retention_policy: residency_estimate.RetentionPolicy,
+) residency_estimate.Error!residency_estimate.Estimate {
     const estimate = try residency_estimate.estimate(
         column_log_sizes,
         log_blowup_factor,
-        tree1_coefficient_retention_policy,
+        retention_policy,
     );
-    const budget = std.math.cast(u64, host_byte_budget) orelse
+    const budget = std.math.cast(u64, retained_byte_budget) orelse
         return error.ResidencyEstimateOverflow;
     try estimate.requireWithin(budget);
     return estimate;

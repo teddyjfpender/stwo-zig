@@ -761,7 +761,7 @@ fn hashRecursionSource(
             u8,
             @intFromEnum(kind),
         ),
-        .statement_word => |word| hashInt(hash, u32, word),
+        .statement_word, .field_public_word => |word| hashInt(hash, u32, word),
         .sampled_value,
         .claimed_sum,
         .transcript_claimed_sum,

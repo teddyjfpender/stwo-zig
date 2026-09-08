@@ -16,6 +16,15 @@ const witness = @import("keccakf_witness.zig");
 
 pub const minimum_log_size: u32 = 5;
 pub const maximum_log_size: u32 = 16;
+/// Explicit Ethereum-v5 ceiling; legacy generation keeps log16.
+pub const ethereum_maximum_log_size: u32 = 18;
+
+pub fn maximumCallsForLogSize(admitted_maximum_log_size: u32) Error!usize {
+    if (admitted_maximum_log_size != maximum_log_size and
+        admitted_maximum_log_size != ethereum_maximum_log_size)
+        return error.CallRangeTooLarge;
+    return ((@as(usize, 1) << @intCast(admitted_maximum_log_size)) / witness.row_count) * authority.geometry.operations_per_slot;
+}
 pub const maximum_slots_per_shard: usize =
     (@as(usize, 1) << maximum_log_size) / witness.row_count;
 pub const maximum_calls_per_shard: usize =
@@ -87,9 +96,20 @@ pub fn generateShard(
     first_call_index: usize,
     counters: *counters_mod.Counters,
 ) Error!Shard {
+    return generateShardWithMaximumLogSize(allocator, records, first_call_index, counters, maximum_log_size);
+}
+
+pub fn generateShardWithMaximumLogSize(
+    allocator: std.mem.Allocator,
+    records: []const call_buffer.Record,
+    first_call_index: usize,
+    counters: *counters_mod.Counters,
+    admitted_maximum_log_size: u32,
+) Error!Shard {
+    const maximum_calls = try maximumCallsForLogSize(admitted_maximum_log_size);
     if (records.len == 0 and first_call_index != 0)
         return error.CallIndexOutOfRange;
-    if (records.len > maximum_calls_per_shard) return error.CallRangeTooLarge;
+    if (records.len > maximum_calls) return error.CallRangeTooLarge;
     const call_end = std.math.add(usize, first_call_index, records.len) catch
         return error.CallIndexOutOfRange;
     if (call_end > authority.geometry.maximum_calls)
@@ -108,7 +128,7 @@ pub fn generateShard(
             minimum_log_size,
             @as(u32, @intCast(std.math.log2_int_ceil(usize, n_rows))),
         );
-    if (log_size > maximum_log_size) return error.CallRangeTooLarge;
+    if (log_size > admitted_maximum_log_size) return error.CallRangeTooLarge;
     const domain_size = @as(usize, 1) << @intCast(log_size);
     const preprocessed_cells = std.math.mul(
         usize,

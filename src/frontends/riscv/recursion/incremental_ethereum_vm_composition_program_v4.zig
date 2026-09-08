@@ -1,11 +1,8 @@
-//! Proof-independent composition program for a full Ethereum V4 leaf.
-//!
-//! This is an append-only sibling of `ethereum_vm_composition_program_v2`.
-//! It records the identical authenticated base and fourteen Ethereum AIRs,
-//! then appends the incremental-memory bridge at its exact committed column
-//! offsets.  The sampled-value order is the native four-tree PCS order: the
-//! bridge tail is removed only in a temporary graph-value view used by the
-//! unchanged base/extension recorders.  No proof value can select geometry.
+//! Legacy specialized and opt-in statement-root Ethereum composition profiles.
+//! Both record native base, fourteen Ethereum AIRs and the incremental bridge
+//! in native four-tree PCS order. The default keeps frozen V4 identities.
+//! Schema 2 takes bridge roots through statement inputs; it requires the outer
+//! provider cohort to close those lookups before independent-root admission.
 
 const std = @import("std");
 
@@ -70,33 +67,14 @@ pub const Error = error{
     VerifierProgramMismatch,
 };
 
-pub const BridgeInputV4 = struct {
-    geometry: bridge_external.GeometryV3,
-    entry_root: u32,
-    exit_root: u32,
+const admission = @import("incremental_ethereum_composition_profile_v4.zig");
+pub const BridgeInputV4 = admission.BridgeInputV4;
+pub const CompilerInputV4 = admission.CompilerInputV4;
+pub const StatementRootCompilerInput = admission.StatementRootCompilerInput;
 
-    pub fn validateAfterPrefix(
-        self: BridgeInputV4,
-        prefix: bridge_external.PrefixColumnsV3,
-    ) !void {
-        try self.geometry.validateAfterPrefix(prefix);
-        const modulus = @import("stwo_core").fields.m31.Modulus;
-        if (self.entry_root >= modulus or self.exit_root >= modulus)
-            return error.InvalidBridgeCompositionGeometry;
-    }
-};
-
-pub const CompilerInputV4 = struct {
-    core_statement: *const statement_mod.RiscVStatement,
-    extension_statement: *const ethereum_statement.Statement,
-    lookup_manifest: *const lookup_manifest.Manifest,
-    authenticated_lookup: *const lookup_manifest.AuthenticatedStatement,
-    base_profile: *const profile_mod.ProfileV2,
-    bridge: BridgeInputV4,
-};
-
-/// Pointer-free program authority. It retains no proof values, roots, or
-/// freshness capability beyond the typed bridge roots required by its AIR.
+/// Mutable compiler output containing owned graph buffers and typed bridge
+/// roots. Runtime Ethereum preparation keeps it private inside
+/// `vm_composition_preparation`; its metadata alone is not proof authority.
 pub const ProgramV4 = struct {
     allocator: std.mem.Allocator,
     format_version: u16 = FORMAT_VERSION,
@@ -105,6 +83,7 @@ pub const ProgramV4 = struct {
     outputs: []u32,
     bindings: []graph_mod.VmInputBinding,
     input_profile: graph_mod.InputProfile,
+    claim_routing: ?admission.ClaimRoutingPlan = null,
     base_profile_sha256: [32]u8,
     base_geometry_sha256: [32]u8,
     extension_geometry_sha256: [32]u8,
@@ -146,7 +125,9 @@ pub const ProgramV4 = struct {
 
     pub fn validate(self: *const ProgramV4) !void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
+            self.schema_version != (if (self.claim_routing != null) @as(u16, 3) else if (self.input_profile.vm_statement_root_count == 0) SCHEMA_VERSION else @as(u16, 2)) or
+            (self.input_profile.vm_statement_root_count != 0 and self.input_profile.vm_statement_root_count != 2) or
+            (self.input_profile.vm_statement_root_count == 2 and (self.bridge_entry_root != 0 or self.bridge_exit_root != 0)) or
             self.input_profile.relation_challenge_count !=
                 relations_mod.RELATION_COUNT or
             self.input_profile.transcript_claimed_sum_count !=
@@ -170,6 +151,12 @@ pub const ProgramV4 = struct {
             }))
         {
             return error.InvalidVerifierProgram;
+        }
+        if (self.claim_routing) |routing| {
+            try routing.validate();
+            if (self.input_profile.vm_statement_root_count != 2 or
+                self.input_profile.claimed_sum_count != routing.physical_count)
+                return error.InvalidVerifierProgram;
         }
         try self.graph().validate();
         const lane_value = self.lane();
@@ -199,7 +186,7 @@ pub const ProgramV4 = struct {
 
     pub fn validateAgainst(self: *const ProgramV4, input: CompilerInputV4) !void {
         try self.validate();
-        var expected = try compile(self.allocator, input);
+        var expected = try compileInternal(self.allocator, input, null, self.input_profile.vm_statement_root_count == 2, self.claim_routing != null, self.input_profile.vm_native_continuation_roots);
         defer expected.deinit();
         if (!programsEqual(self, &expected))
             return error.VerifierProgramMismatch;
@@ -223,6 +210,7 @@ pub const ProgramV4 = struct {
         hash.update(&self.reference_sha256);
         hash.update(&self.schedule_sha256);
         hashInputProfile(&hash, self.input_profile);
+        if (self.claim_routing) |routing| hash.update(&routing.identity());
         return hash.finalResult();
     }
 
@@ -240,27 +228,60 @@ pub fn compile(
     allocator: std.mem.Allocator,
     input: CompilerInputV4,
 ) !ProgramV4 {
-    return compileInternal(allocator, input, null);
+    return compileInternal(allocator, input, null, false, false, false);
 }
 
-/// Fresh-construction sibling for process-local recursive materializers.
-/// The returned schedule is the exact schedule compiled while minting the
-/// program and remains owned by the caller.  This avoids compiling and then
-/// discarding the same O(graph) schedule before the row-18 witness adopts it.
-/// Durable/cold callers continue to use `compile` and its independent audit.
+/// Retains the compiler's authenticated schedule for transfer to row 18.
+/// Independent boundaries use `compile` and `ProgramV4.validateAgainst`.
 pub fn compileRetainingSchedule(
     allocator: std.mem.Allocator,
     input: CompilerInputV4,
     retained_schedule: *graph_mod.CompiledSchedule,
 ) !ProgramV4 {
-    return compileInternal(allocator, input, retained_schedule);
+    return compileInternal(allocator, input, retained_schedule, false, false, false);
+}
+
+pub fn compileWithStatementRootsRetainingSchedule(
+    allocator: std.mem.Allocator,
+    input: StatementRootCompilerInput,
+    retained_schedule: *graph_mod.CompiledSchedule,
+) !ProgramV4 {
+    return compileStatementRootProfile(allocator, input, retained_schedule, false);
+}
+
+pub fn compileWithClaimAliasesRetainingSchedule(
+    allocator: std.mem.Allocator,
+    input: StatementRootCompilerInput,
+    retained_schedule: *graph_mod.CompiledSchedule,
+) !ProgramV4 {
+    return compileStatementRootProfile(allocator, input, retained_schedule, true);
+}
+
+fn compileStatementRootProfile(
+    allocator: std.mem.Allocator,
+    input: StatementRootCompilerInput,
+    retained_schedule: *graph_mod.CompiledSchedule,
+    claim_aliases: bool,
+) !ProgramV4 {
+    return compileInternal(allocator, .{
+        .core_statement = input.core_statement,
+        .extension_statement = input.extension_statement,
+        .lookup_manifest = input.lookup_manifest,
+        .authenticated_lookup = input.authenticated_lookup,
+        .base_profile = input.base_profile,
+        .bridge = .{ .geometry = input.bridge_geometry, .entry_root = 0, .exit_root = 0 },
+    }, retained_schedule, true, claim_aliases, input.native_continuation_roots);
 }
 
 fn compileInternal(
     allocator: std.mem.Allocator,
     input: CompilerInputV4,
     retained_schedule: ?*graph_mod.CompiledSchedule,
+    statement_roots: bool,
+    claim_aliases: bool,
+    native_continuation_roots: bool,
 ) !ProgramV4 {
+    if (native_continuation_roots and !statement_roots) return error.InvalidVerifierProgram;
     try input.base_profile.validateAuthority(
         allocator,
         input.core_statement,
@@ -304,7 +325,7 @@ fn compileInternal(
             base_geometry.sampled_value_count,
             extension_geometry.sampled_value_count,
         ),
-        BRIDGE_SAMPLED_VALUE_COUNT,
+        try add(BRIDGE_SAMPLED_VALUE_COUNT, fixedProgramSampleCount(input.base_profile)),
     );
     const claimed_sum_count = try add(
         try add(
@@ -313,11 +334,23 @@ fn compileInternal(
         ),
         BRIDGE_DETAILED_CLAIM_COUNT,
     );
+    const claim_routing: ?admission.ClaimRoutingPlan = if (claim_aliases) blk: {
+        if (!statement_roots) return error.InvalidVerifierProgram;
+        var counts: [ETHEREUM_TRANSCRIPT_CLAIM_COUNT]u32 = undefined;
+        for (&counts, extension_geometry.components) |*count, component|
+            count.* = component.interaction_batch_count;
+        break :blk try admission.ClaimRoutingPlan.init(input.base_profile.input_profile.claimed_sum_count, counts);
+    } else null;
+    if (claim_routing) |routing| {
+        if (routing.logical_count != claimed_sum_count) return error.InvalidClaimCount;
+    }
     const input_profile = graph_mod.InputProfile{
         .sampled_value_count = sampled_value_count,
-        .claimed_sum_count = claimed_sum_count,
+        .claimed_sum_count = if (claim_routing) |routing| routing.physical_count else claimed_sum_count,
         .relation_challenge_count = relations_mod.RELATION_COUNT,
         .transcript_claimed_sum_count = TRANSCRIPT_CLAIM_COUNT,
+        .vm_statement_root_count = if (statement_roots) 2 else 0,
+        .vm_native_continuation_roots = native_continuation_roots,
     };
     const input_count = try graph_mod.vmInputCount(input_profile);
     const air_instruction_count = try add(
@@ -331,6 +364,12 @@ fn compileInternal(
         extension_geometry.max_log_degree_bound,
         try add(input.bridge.geometry.log_size, 1),
     );
+    // Native verification evaluates trace quotients on the split domain.
+    // Composition reconstruction below still uses the full degree bound.
+    const mask_log_size = @import("stwo_core").verifier_types.compositionMaskLogSize(
+        maximum_log_degree_bound,
+        input.base_profile.composition_log_split,
+    ) orelse return error.InvalidVerifierProgram;
 
     var builder = support.Builder.init(allocator);
     defer builder.deinit();
@@ -351,11 +390,16 @@ fn compileInternal(
     );
     const claims = try allocator.alloc(Scalar, claimed_sum_count);
     defer allocator.free(claims);
-    for (claims, 0..) |*value, item| value.* = try support.secureInput(
-        &builder,
-        .claimed_sum,
-        @intCast(item),
-    );
+    for (claims, 0..) |*value, item| {
+        const route: admission.ClaimRoutingPlan.Route = if (claim_routing) |routing|
+            try routing.route(@intCast(item))
+        else
+            .{ .detailed = @intCast(item) };
+        switch (route) {
+            .detailed => |physical| value.* = try support.secureInput(&builder, .claimed_sum, physical),
+            .canonical => {}, // Filled from authenticated canonical nodes below.
+        }
+    }
     var transcript_aggregates: [TRANSCRIPT_CLAIM_COUNT]Scalar = undefined;
     for (&transcript_aggregates, 0..) |*value, item| value.* =
         try support.secureInput(
@@ -363,6 +407,9 @@ fn compileInternal(
             .transcript_claimed_sum,
             @intCast(item),
         );
+    if (claim_routing) |routing| for (routing.aliases) |alias| {
+        claims[alias.logical] = transcript_aggregates[alias.canonical];
+    };
     var base_draws: [relations_mod.BASE_RELATION_COUNT][2]Scalar = undefined;
     for (&base_draws, 0..) |*pair, challenge| {
         pair[0] = try support.challengeInput(&builder, @intCast(challenge), 0);
@@ -380,6 +427,13 @@ fn compileInternal(
         .composition_randomness,
     );
     const oods_seed = try support.scalarInput(&builder, .oods_point);
+    const root_values: [2]Scalar = if (statement_roots) .{
+        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 0 } else .{ .statement_word = @import("air/vm_statement_roots.zig").word_indices[0] }),
+        try builder.input(if (native_continuation_roots) .{ .native_continuation_root = 1 } else .{ .statement_word = @import("air/vm_statement_roots.zig").word_indices[1] }),
+    } else .{
+        Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.bridge.entry_root)),
+        Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.bridge.exit_root)),
+    };
     try builder.check();
 
     try bindTranscriptAggregates(
@@ -399,6 +453,7 @@ fn compileInternal(
         &base_geometry,
         &extension_geometry,
         sampled,
+        input.base_profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1,
     );
     defer split.deinit();
     var layout = try support.SampleLayoutV2.init(
@@ -410,16 +465,18 @@ fn compileInternal(
     defer layout.deinit();
     const point = support.pointFromSeed(oods_seed);
     var denominators: [31]?Scalar = .{null} ** 31;
-    const base_result = try base_graph.record(
+    const base_result = try base_graph.recordWithFixedProgram(
+        .full_state_split_multiplicity_v3,
         input.base_profile,
         input.lookup_manifest,
         &selected,
         &layout,
+        split.fixed_program_values,
         claims[0..@as(usize, input.base_profile.input_profile.claimed_sum_count)],
-        &relations,
+        &relations.base,
         point,
         composition_randomness,
-        maximum_log_degree_bound,
+        mask_log_size,
         &denominators,
     );
     const ethereum_claim_end: usize = @intCast(
@@ -432,17 +489,19 @@ fn compileInternal(
         &relations,
         point,
         composition_randomness,
+        mask_log_size,
         &denominators,
         base_result.accumulation,
     );
     const bridge_accumulation = try recordBridge(
         &split,
         input.bridge,
+        root_values,
         claims[ethereum_claim_end],
         &relations,
         point,
         composition_randomness,
-        maximum_log_degree_bound,
+        mask_log_size,
         &denominators,
         extension_result.accumulation,
     );
@@ -491,17 +550,19 @@ fn compileInternal(
 
     var result = ProgramV4{
         .allocator = allocator,
+        .schema_version = if (claim_aliases) 3 else if (statement_roots) 2 else SCHEMA_VERSION,
         .nodes = nodes,
         .outputs = outputs,
         .bindings = bindings,
         .input_profile = input_profile,
+        .claim_routing = claim_routing,
         .base_profile_sha256 = input.base_profile.identity_digest,
         .base_geometry_sha256 = base_geometry.identity_sha256,
         .extension_geometry_sha256 = extension_geometry.identity_sha256,
         .selected_lookup_compiler_sha256 = selected.identity_sha256,
         .bridge_geometry_sha256 = input.bridge.geometry.identity_sha256,
-        .bridge_entry_root = input.bridge.entry_root,
-        .bridge_exit_root = input.bridge.exit_root,
+        .bridge_entry_root = if (statement_roots) 0 else input.bridge.entry_root,
+        .bridge_exit_root = if (statement_roots) 0 else input.bridge.exit_root,
         .maximum_log_degree_bound = maximum_log_degree_bound,
         .protocol_profile_sha256 = protocolProfileIdentity(),
         .graph_sha256 = graph_sha256,
@@ -529,12 +590,14 @@ const SplitSampleLayoutV4 = struct {
     allocator: std.mem.Allocator,
     base_and_ethereum: []Scalar,
     bridge_values: [BRIDGE_SAMPLED_VALUE_COUNT]Scalar,
+    fixed_program_values: ?[@import("../air/program/interaction.zig").FIXED_COLUMN_COUNT]Scalar = null,
 
     fn init(
         allocator: std.mem.Allocator,
         base: *const base_geometry_mod.GeometryV2,
         extension: *const extension_geometry_mod.GeometryV2,
         all: []const Scalar,
+        fixed_program: bool,
     ) !SplitSampleLayoutV4 {
         const compact_count = try add(
             base.sampled_value_count,
@@ -542,7 +605,7 @@ const SplitSampleLayoutV4 = struct {
         );
         if (all.len != @as(
             usize,
-            @intCast(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT)),
+            @intCast(try add(try add(compact_count, BRIDGE_SAMPLED_VALUE_COUNT), if (fixed_program) @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT else 0)),
         ))
             return error.InvalidBridgeSampleLayout;
         const compact = try allocator.alloc(Scalar, compact_count);
@@ -569,6 +632,12 @@ const SplitSampleLayoutV4 = struct {
             @memcpy(compact[compact_at..compact_end], all[source_at..ordinary_end]);
             source_at = ordinary_end;
             compact_at = compact_end;
+            if (tree == 0 and fixed_program) {
+                const count = @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT;
+                if (source_at + count > all.len) return error.InvalidBridgeSampleLayout;
+                result.fixed_program_values = all[source_at..][0..count].*;
+                source_at += count;
+            }
             const bridge_count: usize = switch (tree) {
                 0 => bridge_external.PREPROCESSED_COLUMNS,
                 1 => bridge_external.MAIN_COLUMNS,
@@ -633,6 +702,7 @@ const SplitSampleLayoutV4 = struct {
 fn recordBridge(
     layout: *const SplitSampleLayoutV4,
     input: BridgeInputV4,
+    root_values: [2]Scalar,
     claim: Scalar,
     relations: *const relations_mod.RelationsV2,
     point: anytype,
@@ -651,8 +721,8 @@ fn recordBridge(
         try layout.bridgeInteractionSecure(0, 0),
         try layout.bridgeInteractionSecure(0, 1),
         claim,
-        Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.entry_root)),
-        Scalar.fromBase(@import("stwo_core").fields.m31.M31.fromU64(input.exit_root)),
+        root_values[0],
+        root_values[1],
         &relations.base,
     );
     const denominator = support.quotientDenominator(
@@ -743,12 +813,16 @@ fn transcriptComponentForInfra(
     };
 }
 
+fn fixedProgramSampleCount(profile: *const profile_mod.ProfileV2) u32 {
+    return if (profile.circuit_profile.programPolicy() == .fixed_decoded_table_v1) @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT else 0;
+}
+
 fn bridgePrefix(
     profile: *const profile_mod.ProfileV2,
     extension: *const extension_geometry_mod.GeometryV2,
 ) !bridge_external.PrefixColumnsV3 {
     return .{
-        .preprocessed = try add(profile.preprocessed_column_count, extension.columns[0].len),
+        .preprocessed = try add(try add(profile.preprocessed_column_count, extension.columns[0].len), fixedProgramSampleCount(profile)),
         .main = try add(profile.main_column_count, extension.columns[1].len),
         .interaction = try add(profile.interaction_column_count, extension.columns[2].len),
     };
@@ -773,6 +847,7 @@ fn programsEqual(left: *const ProgramV4, right: *const ProgramV4) bool {
     if (left.format_version != right.format_version or
         left.schema_version != right.schema_version or
         !std.meta.eql(left.input_profile, right.input_profile) or
+        !std.meta.eql(left.claim_routing, right.claim_routing) or
         !std.meta.eql(left.base_profile_sha256, right.base_profile_sha256) or
         !std.meta.eql(left.base_geometry_sha256, right.base_geometry_sha256) or
         !std.meta.eql(left.extension_geometry_sha256, right.extension_geometry_sha256) or
@@ -798,13 +873,7 @@ fn programsEqual(left: *const ProgramV4, right: *const ProgramV4) bool {
     return true;
 }
 
-fn hashInputProfile(hash: *Sha256, profile: graph_mod.InputProfile) void {
-    hashInt(hash, u32, profile.sampled_value_count);
-    hashInt(hash, u32, profile.claimed_sum_count);
-    hashInt(hash, u32, profile.relation_challenge_count);
-    hashInt(hash, u32, profile.transcript_claimed_sum_count);
-    hashInt(hash, u32, profile.public_wire_boundary_count);
-}
+const hashInputProfile = admission.hashInputProfile;
 
 fn anyZero(values: anytype) bool {
     inline for (values) |value| if (std.mem.allEqual(u8, &value, 0)) return true;

@@ -1,0 +1,58 @@
+{
+  "status": "source_fmt_ast_passed_semantic_gates_pending",
+  "recorded_at": "2026-09-08T06:33:38.530167+00:00",
+  "scope": "One shared upstream admission per complete closure boundary; local owned preparation checks and private admission comparison afterward",
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_cohort_v4.zig",
+      "sha256": "d67c0f277632ec34a5320fd3aee7743be3c084c1a01a4f793d5e4ee242f242db"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig",
+      "sha256": "2f5069d22ecf814b8d6fbfc1125594ebd3c2677f68812c226592785fa4392bc0"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig",
+      "sha256": "e2898ec4619430982961eb98717a8a11279c246478a211509f47254a81aeed76"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig",
+      "sha256": "b36441cfbc3bdc54a3642d532749dd5d85f5b1ecef2f368e4f711c5154abe0eb"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig",
+      "sha256": "5995cc504ba8b3b6dc1a0486bf033a5f42febb98c1b8ca2e6e353cb050e7cf30"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig",
+      "sha256": "f97bbdaacd112d2a34ac3c94aa4831a8c1fbd2dc9a5d318db9975a5b984415d4"
+    }
+  ],
+  "static_call_counts_per_secure_audit_global_closure": {
+    "native_storage_validate": {
+      "before": 4,
+      "after": 1
+    },
+    "full_transcript_rows_validate": {
+      "before": 3,
+      "after": 0
+    },
+    "complete_validate_structure": {
+      "before": 2,
+      "after": 1
+    },
+    "geometry_validate": {
+      "before": 1,
+      "after": 1
+    }
+  },
+  "count_limitations": "Source-level call counts only, excluding deeper generic core work and Initial38 additional checks; not runtime measurements or latency estimates",
+  "preserved": [
+    "Full external mutable-input validation",
+    "Complete core/provider readiness checks",
+    "Local row seals, direct roots and relation-plan checks",
+    "Fresh dynamic claim decomposition",
+    "Padding target and private admitted metadata comparison",
+    "No cached validated flag or caller-supplied trust receipt"
+  ]
+}

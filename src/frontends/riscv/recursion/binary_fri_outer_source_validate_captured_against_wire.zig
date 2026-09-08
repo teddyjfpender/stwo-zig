@@ -311,7 +311,7 @@ pub fn hashRecursionInputSource(hash: anytype, source: composition.RecursionSour
     switch (source) {
         .parent_binary_selector => {},
         .child_kind_selector => |kind| hashInt(hash, u8, @intFromEnum(kind)),
-        .statement_word => |word| hashInt(hash, u32, word),
+        .statement_word, .field_public_word => |word| hashInt(hash, u32, word),
         .sampled_value, .claimed_sum, .transcript_claimed_sum, .public_wire_boundary => |coordinate| {
             hashInt(hash, u32, coordinate.item_index);
             hashInt(hash, u32, coordinate.word_index);
@@ -352,9 +352,9 @@ pub fn sourceAuthorityDigest(source: anytype) air_digest.Digest {
         const shape_id = child.shape.id() catch unreachable;
         for (shape_id) |word| hashInt(&hash, u32, word);
         hash.update(&child.capture.circuit.identity_digest);
-        hash.update(&child.capture.pcs_circuit.identity_digest);
+        hash.update(&child.capture.pcs_circuit.view().identity_digest);
         hashQm31Slice(&hash, child.capture.evaluation.values);
-        hashQm31Slice(&hash, child.capture.pcs_evaluation.values);
+        hashQm31Slice(&hash, child.capture.pcs_evaluation.view().values);
         if (child.composition) |composition_authority|
             hash.update(&composition_authority.authority_digest)
         else

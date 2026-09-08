@@ -1,0 +1,258 @@
+{
+  "n_reachable_files": 2707,
+  "n_imported_files": 563,
+  "n_generic_instances": 3322,
+  "n_inline_calls": 117542,
+  "cpu_ns_parse": 259494328,
+  "cpu_ns_astgen": 1808028682,
+  "cpu_ns_sema": 4163078624,
+  "cpu_ns_codegen": 2012767053,
+  "cpu_ns_link": 6817108,
+  "real_ns_files": 285552625,
+  "real_ns_decls": 6252556416,
+  "real_ns_llvm_emit": 232850305458,
+  "real_ns_link_flush": 24071667,
+  "ns_total": 239541544500,
+  "top_sema": [
+    {
+      "name": "fixed_generator_signed_table",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/guest_precompile/secp256k1_affine.zig",
+      "sema_count": 2,
+      "sema_ns": 2192980956,
+      "codegen_ns": 0,
+      "link_ns": 17792
+    },
+    {
+      "name": "evaluateInto",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/semantic_eval.zig",
+      "sema_count": 4,
+      "sema_ns": 200242742,
+      "codegen_ns": 654393083,
+      "link_ns": 0
+    },
+    {
+      "name": "fixed_generator_endomorphism_signed_table",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/guest_precompile/secp256k1_affine.zig",
+      "sema_count": 2,
+      "sema_ns": 86667873,
+      "codegen_ns": 0,
+      "link_ns": 11208
+    },
+    {
+      "name": "nameLeaves",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/extract/model.zig",
+      "sema_count": 297,
+      "sema_ns": 79223833,
+      "codegen_ns": 6225537,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_div_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 52927375,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 52223584,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_load_store_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 51500750,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "lookupsRowInto",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_div_evaluator.zig",
+      "sema_count": 6,
+      "sema_ns": 46492749,
+      "codegen_ns": 100944750,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_mulh_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 42966666,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_base_alu_reg_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 42745207,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 42368459,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_lt_reg_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 42196249,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_base_alu_imm_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 41261834,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_jalr_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 40561333,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "unnamed",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/extract/model.zig",
+      "sema_count": 2,
+      "sema_ns": 39485415,
+      "codegen_ns": 75458,
+      "link_ns": 0
+    },
+    {
+      "name": "lookupsRowInto",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_mulh_authority.zig",
+      "sema_count": 6,
+      "sema_ns": 35497584,
+      "codegen_ns": 73002583,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_jal_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 34641749,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_mul_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 34254876,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_lt_imm_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 33648876,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_branch_lt_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 33572457,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_auipc_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 33136208,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_branch_eq_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 32764209,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "evaluate",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/fixed_load_store.zig",
+      "sema_count": 6,
+      "sema_ns": 27827377,
+      "codegen_ns": 57289708,
+      "link_ns": 0
+    },
+    {
+      "name": "print",
+      "file": "/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/Io/Writer.zig",
+      "sema_count": 103,
+      "sema_ns": 27282836,
+      "codegen_ns": 4269668,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_lui_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 24944082,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/typed_fence_authority.zig",
+      "sema_count": 1,
+      "sema_ns": 24251501,
+      "codegen_ns": 0,
+      "link_ns": 0
+    },
+    {
+      "name": "expectProducer",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/work_profile.zig",
+      "sema_count": 9,
+      "sema_ns": 23695795,
+      "codegen_ns": 61000,
+      "link_ns": 0
+    },
+    {
+      "name": "evaluate",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/lang/fixed_shift_common.zig",
+      "sema_count": 6,
+      "sema_ns": 19937373,
+      "codegen_ns": 39890082,
+      "link_ns": 0
+    },
+    {
+      "name": "evaluateDirect",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/guest_precompile/secp256k1_point_direct.zig",
+      "sema_count": 3,
+      "sema_ns": 18021875,
+      "codegen_ns": 39296916,
+      "link_ns": 0
+    },
+    {
+      "name": "evaluateDirect",
+      "file": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/guest_precompile/secp256k1_scalar_direct.zig",
+      "sema_count": 3,
+      "sema_ns": 15766085,
+      "codegen_ns": 35645958,
+      "link_ns": 0
+    }
+  ]
+}

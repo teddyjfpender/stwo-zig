@@ -1,0 +1,30 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 60s
+test-pcs-commitments
++- run test 148/149 passed, 1 failed
+thread 39159367 panic: integer overflow
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/expand.zig:117:67: 0x102af846f in test.run-broadcast replication equals the scalar lifting gather (test)
+    for (&src_buf, 0..) |*value, index| value.* = @as(u64, index) * 0x9e3779b97f4a7c15;
+                                                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x1029dc5df in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x1029db0b7 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x1029d8887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xa305ffffffffffff in ??? (???)
+error: 'pcs.scheme.test.FRI Merkle work follows packed-leaf and constant-parent execution' failed: expected 0, found 1
+error: while executing test 'vcs_lifted.expand.test.run-broadcast replication equals the scalar lifting gather', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/27a34a090f5879db85917deb07050ac8/test --cache-dir=./.zig-cache --seed=0x25b1cf0d --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 148/149 tests passed; 1 failed
+test-pcs-commitments transitive failure
++- run test 148/149 passed, 1 failed
+   +- compile test ReleaseSafe native success 41s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/b87c754ea1514008b4f9592b158b99da/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover .zig-cache /Users/theodorepender/.cache/zig --seed 0x25b1cf0d -Zd09716dbba081364 --maxrss 25769803776 -j1 test-pcs-commitments -Doptimize=ReleaseSafe --summary all

@@ -123,8 +123,9 @@ pub const OwnedInputProviderTraces = struct {
     main: [input_provider_air.PHYSICAL_MAIN_COLUMN_COUNT][]M31,
     interaction: [input_provider_air.INTERACTION_COLUMN_COUNT][]M31,
 
-    pub fn init(allocator: std.mem.Allocator) !OwnedInputProviderTraces {
-        const row_count = input_provider_authority.TRACE_ROW_COUNT;
+    pub fn init(allocator: std.mem.Allocator, shape: input_provider_authority.Shape) !OwnedInputProviderTraces {
+        try shape.validate();
+        const row_count = shape.traceRowCount();
         const column_count = input_provider_air.PREPROCESSED_COLUMN_COUNT +
             input_provider_air.PHYSICAL_MAIN_COLUMN_COUNT +
             input_provider_air.INTERACTION_COLUMN_COUNT;

@@ -43,6 +43,7 @@ pub const InitializationPolicy = union(enum) {
     authenticated_aot: struct {
         bundle_path: []const u8,
         manifest_sha256: [32]u8,
+        profile: core_aot.Profile = .core_v2,
     },
 };
 
@@ -77,16 +78,17 @@ pub fn initialize(allocator: std.mem.Allocator, policy: InitializationPolicy) !v
             shared_identity = sourceIdentity();
         },
         .authenticated_aot => |aot| {
-            var admission = try core_aot.admit(
+            var admission = try core_aot.admitForProfile(
                 allocator,
                 aot.bundle_path,
                 aot.manifest_sha256,
+                aot.profile,
             );
             defer admission.deinit();
             shared_runtime = try runtime_mod.Runtime.initFromAotAdmission(&admission);
             shared_identity = .{
                 .origin = .authenticated_core_aot,
-                .source_sha256 = core_aot.sourceDigest(),
+                .source_sha256 = aot.profile.sourceDigest(),
                 .manifest_sha256 = aot.manifest_sha256,
                 .metallib_sha256 = admission.metallib.sha256,
                 .metallib_bytes = admission.metallib.bytes,
@@ -186,6 +188,7 @@ fn policyMatchesIdentity(policy: InitializationPolicy, identity: RuntimeIdentity
     return switch (policy) {
         .source_jit => identity.origin == .diagnostic_source_jit,
         .authenticated_aot => |aot| identity.origin == .authenticated_core_aot and
+            std.meta.eql(identity.source_sha256, aot.profile.sourceDigest()) and
             identity.manifest_sha256 != null and
             std.meta.eql(identity.manifest_sha256.?, aot.manifest_sha256),
     };
@@ -213,7 +216,7 @@ test "Metal shared runtime policy identity matching is exact" {
 
     const aot = RuntimeIdentity{
         .origin = .authenticated_core_aot,
-        .source_sha256 = [_]u8{2} ** 32,
+        .source_sha256 = core_aot.Profile.core_v2.sourceDigest(),
         .manifest_sha256 = [_]u8{3} ** 32,
         .metallib_sha256 = [_]u8{4} ** 32,
         .metallib_bytes = 4096,
@@ -225,4 +228,9 @@ test "Metal shared runtime policy identity matching is exact" {
         },
     }, aot));
     try std.testing.expect(!policyMatchesIdentity(.source_jit, aot));
+}
+
+test "Ethereum AOT runtime cannot reuse a core library for a different admitted profile" {
+    const identity = RuntimeIdentity{ .origin = .authenticated_core_aot, .source_sha256 = core_aot.Profile.core_v2.sourceDigest(), .manifest_sha256 = .{3} ** 32 };
+    try std.testing.expect(!policyMatchesIdentity(.{ .authenticated_aot = .{ .bundle_path = "/same-pin", .manifest_sha256 = .{3} ** 32, .profile = .ethereum_fixed_program_narrow_v1 } }, identity));
 }

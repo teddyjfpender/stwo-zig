@@ -193,8 +193,9 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
     defer initialized_indices.deinit(allocator);
     errdefer {
         for (initialized_indices.items) |idx| out[idx].deinit(allocator);
-        allocator.free(out);
     }
+    // Reserve before moving a source buffer into its coefficient owner.
+    try initialized_indices.ensureTotalCapacity(allocator, owned_columns.len);
 
     var groups = try buildLogSizeGroupsFromColumns(allocator, owned_columns);
     defer deinitLogSizeGroups(allocator, &groups);
@@ -244,7 +245,6 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
 
             total_columns += chunk_len;
 
-            try work_value_slices.append(allocator, batch_values);
             try work_items.append(allocator, .{
                 .values = batch_values,
                 .domain = domain,
@@ -255,6 +255,9 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
                 .group_indices_end = batch_start + chunk_len,
                 .group_item_idx = group_idx,
             });
+            // Transfer ownership last; the local errdefer owns this slice
+            // until all borrowed work descriptors have been recorded.
+            try work_value_slices.append(allocator, batch_values);
         }
     }
 
@@ -298,7 +301,7 @@ pub fn interpolateOwnedColumnsForExtensionForBackend(
         for (group.indices.items[meta.group_indices_start..meta.group_indices_end], 0..) |idx, bi| {
             out[idx] = try prover_circle.CircleCoefficients.initOwned(batch_values[bi]);
             owned_columns[idx].values = &[_]M31{};
-            try initialized_indices.append(allocator, idx);
+            initialized_indices.appendAssumeCapacity(idx);
         }
     }
 
@@ -360,6 +363,7 @@ fn recordInterpolationCompletion(
 /// from work_pool.zig, avoiding duplicate thread pool creation overhead.
 fn getOrInitFftPool() ?*std.Thread.Pool {
     const pool = work_pool_mod.getGlobalPool() orelse return null;
+    if (pool.workerCount() <= 1) return null;
     return &pool.pool;
 }
 
@@ -436,7 +440,6 @@ pub fn extendCoefficientColumnsByGroupForBackend(
         for (out) |column| {
             if (column.values.len != 0) allocator.free(column.values);
         }
-        allocator.free(out);
     }
 
     var groups = try buildLogSizeGroupsFromCoefficients(allocator, coeffs);
@@ -506,13 +509,13 @@ pub fn extendCoefficientColumnsByGroupForBackend(
 
             total_columns += chunk_len;
 
-            try work_value_slices.append(allocator, batch_values);
             try work_items.append(allocator, .{
                 .values = batch_values,
                 .domain = domain,
                 .twiddle_tree = twiddle_tree,
                 .extension = batch_extension,
             });
+            try work_value_slices.append(allocator, batch_values);
         }
     }
 

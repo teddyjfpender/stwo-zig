@@ -42,3 +42,6 @@ pub const Row = shard_0.Row;
 pub const PreparedBatch = shard_1.PreparedBatch;
 pub const providerCall = shard_1.providerCall;
 pub const logicalRow = shard_1.logicalRow;
+pub const rowFromCall = shard_0.rowFromCall;
+pub const rowsFromTraceAlloc = shard_1.rowsFromTraceAlloc;
+pub const traceLogSize = shard_1.traceLogSize;

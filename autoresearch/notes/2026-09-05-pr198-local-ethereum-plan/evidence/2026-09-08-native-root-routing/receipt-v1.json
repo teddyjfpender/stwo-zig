@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "scope": "canonical scalar publication and shared frame routing, not complete wrapper acceptance",
+  "gate": "test-ethereum-native-root-routing",
+  "passed_tests": 7,
+  "compile_seconds": 9,
+  "compile_max_rss": "743M",
+  "run_ms": 652,
+  "run_max_rss": "2M",
+  "retained_failure": "v1 fixture lacked optional fixed_program field required by shared emitter; fixed fixture only",
+  "checks": [
+    "snapshot digest distinct from continuation scalar",
+    "canonical raw-limb join and M31 alias rejection",
+    "missing and duplicate root-use rejection",
+    "incorrect multiplicity rejection",
+    "frame tuple closure and witness mutations"
+  ],
+  "pending": [
+    "joint public-sum source routing gate",
+    "real pair AIR and exact closure",
+    "real wrapper proof and independent verification"
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_identity_routing_v4.zig": "9c4a910a632046bbfe03c29d804ca41e0064540d4d66b638c3b8a881f4d0f844",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.zig": "d8eab9ce1ece53cfaa38dd6049775dc6bb2e31d57e3073d6440adacbd081c55f",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_suffix_rows_v4.zig": "59b075bc65d78c4255c964c565f020575106544a4c466d3c28a4f02b81b0ca18",
+    "src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig": "4e77f47345ac5c7705e26cf2df972c5550dce7817402d5dbd180a237423fddcf",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "3bbe30f873e03e7e6783ed82dc7c6717a347928f418b73ae44568d65181162ab"
+  },
+  "source_pin_scope": "working tree after focused run; includes pending suffix integration and preflight reporting not exercised by seven-case gate; frozen integrated receipt supersedes this source provenance"
+}

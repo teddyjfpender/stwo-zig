@@ -368,8 +368,8 @@ pub fn Namespace(comptime context: type) type {
             var cursor: usize = 0;
             if (authority.vm_air) |prepared| {
                 storage[cursor] = .{
-                    .circuit_identity = prepared.prepared.evaluation.circuit_identity,
-                    .values = prepared.prepared.evaluation.values,
+                    .circuit_identity = prepared.prepared.view().evaluation.circuit_identity,
+                    .values = prepared.prepared.view().evaluation.values,
                 };
                 cursor += 1;
             }
@@ -387,6 +387,11 @@ pub fn Namespace(comptime context: type) type {
             } else if (public_native_sum_evaluation != null) {
                 return error.AuthorityMismatch;
             }
+            if (authority.statement_arithmetic) |prepared| {
+                const evaluations = prepared.evaluations();
+                @memcpy(storage[cursor..][0..evaluations.len], &evaluations);
+                cursor += evaluations.len;
+            }
             if (authority.segment_transcript_inputs) |inputs| {
                 storage[cursor] = inputs.statement.prepared.loweringEvaluation();
                 cursor += 1;
@@ -401,8 +406,8 @@ pub fn Namespace(comptime context: type) type {
             }
             const base = [2]lowering.Evaluation{
                 .{
-                    .circuit_identity = captured.pcs_evaluation.circuit_identity,
-                    .values = captured.pcs_evaluation.values,
+                    .circuit_identity = captured.pcs_evaluation.view().circuit_identity,
+                    .values = captured.pcs_evaluation.view().values,
                 },
                 .{
                     .circuit_identity = captured.evaluation.circuit_identity,
@@ -413,8 +418,8 @@ pub fn Namespace(comptime context: type) type {
             cursor += base.len;
             if (authority.vm_air) |prepared| {
                 storage[cursor] = .{
-                    .circuit_identity = prepared.prepared.evaluation.circuit_identity,
-                    .values = prepared.prepared.evaluation.values,
+                    .circuit_identity = prepared.prepared.view().evaluation.circuit_identity,
+                    .values = prepared.prepared.view().evaluation.values,
                 };
             } else {
                 storage[cursor] = .{

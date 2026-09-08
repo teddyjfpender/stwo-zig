@@ -1,0 +1,11 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test stderr
+ETHEREUM_ROLE_BINDING capacity=2 inputs=544 nodes=2492 constraints=528 node_estimate=4848
+
+Build Summary: 4/4 steps succeeded; 89/89 tests passed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 success
++- recursive common Ethereum incremental leaf V4 structural guard success
+   +- run test 89 passed 1s MaxRSS:66M
+      +- compile test ReleaseSafe native success 57s MaxRSS:4G
+

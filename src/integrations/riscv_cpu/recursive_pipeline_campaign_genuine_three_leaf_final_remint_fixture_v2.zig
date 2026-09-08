@@ -277,21 +277,25 @@ pub fn Types(
                 const empty_coordinate = try self.empty_source.coordinate();
                 const role0_statement = try span.SpanStatement
                     .fromCanonicalWords(
-                    &self.active_role0.session.parent_statement_words,
+                    &self.active_role0.sessionView().parent_statement_words,
                 );
                 const empty_statement = try self.empty_source.leaf.statement();
                 const expected_empty_session = channel.hashBytes(
                     &self.shape.identity_sha256,
                     EMPTY_SESSION_DOMAIN,
                 );
-                if (self.materialized.campaign_authority != self.campaign or
+                if (!std.mem.eql(
+                    u8,
+                    &self.materialized.campaign_authority.view().authority_identity_sha256,
+                    &self.campaign.view().authority_identity_sha256,
+                ) or
                     self.materialized.campaign_leaf_index !=
                         ACTIVE_ROLE0_LEAF_INDEX or
-                    self.active_role0.materialized != self.materialized or
-                    self.campaign.leaf_count != REAL_LEAF_COUNT or
+                    self.active_role0.materializedOwner() != self.materialized or
+                    self.campaign.view().leaf_count != REAL_LEAF_COUNT or
                     !std.mem.eql(
                         u8,
-                        &self.campaign.campaign_inventory
+                        &self.campaign.view().campaign_inventory
                             .table_identity_sha256,
                         &self.table.content_sha256,
                     ) or !std.meta.eql(self.empty_source.shape, self.shape) or
@@ -304,10 +308,10 @@ pub fn Types(
                         expected_empty_session,
                     ) or !std.meta.eql(
                     self.empty_source.source.segment_leaf_vk_id,
-                    self.active_role0.session.verification_key_id,
+                    self.active_role0.sessionView().verification_key_id,
                 ) or !std.meta.eql(
                     self.empty_source.source.recursive_parent_vk_id,
-                    self.active_role0.session.next_parent_vk_id,
+                    self.active_role0.sessionView().next_parent_vk_id,
                 )) {
                     return error.GenuineThreeLeafCampaignFixtureMismatchV2;
                 }
@@ -462,7 +466,7 @@ fn buildEmptySource(
 ) !empty_source_mod.ColdInputV2 {
     try active_role0.validateBorrowed();
     const statement = try span.SpanStatement.fromCanonicalWords(
-        &active_role0.session.parent_statement_words,
+        &active_role0.sessionView().parent_statement_words,
     );
     if (statement.job.segment_count != REAL_LEAF_COUNT or
         statement.slots.height != 0 or
@@ -476,8 +480,8 @@ fn buildEmptySource(
         statement.job,
         EMPTY_LEAF_INDEX,
         channel.hashBytes(&shape.identity_sha256, EMPTY_SESSION_DOMAIN),
-        active_role0.session.verification_key_id,
-        active_role0.session.next_parent_vk_id,
+        active_role0.sessionView().verification_key_id,
+        active_role0.sessionView().next_parent_vk_id,
     );
     const source = try empty_source_mod.SourceArtifactV2.seal(shape, &leaf);
     const bytes = try source.encodeCanonical(shape);

@@ -11,6 +11,9 @@ const pcs_core = @import("stwo_core").pcs;
 const pcs_verifier = @import("stwo_core").pcs.verifier;
 const prover_pcs = @import("stwo_prover_engine").pcs;
 const m31 = @import("stwo_core").fields.m31;
+const fixed_program_table = @import("../air/program/fixed_table_v1.zig");
+const program_commitment = @import("../air/program/commitment.zig");
+const base_assembly = @import("base_component_assembly.zig");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const logup = @import("../air/logup.zig");
@@ -34,7 +37,6 @@ const ethereum_preprocessed =
 const ethereum_transcript = @import("guest_precompile/ethereum_transcript.zig");
 const ethereum_types = @import("guest_precompile/ethereum_types.zig");
 const external_tree = @import("guest_precompile/external_profile_tree.zig");
-const base_verifier = @import("verifier.zig");
 const proof_capture_sha256 = @import("proof_capture_sha256.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const types = @import("types.zig");
@@ -105,6 +107,7 @@ pub fn FreshVerifiedCaptureV4(
             );
             try self.extension_claim.validate(&self.extension);
             try self.receipt.validateAgainst(&self.public_data.data);
+            if (self.public_sums.circuit_profile != self.profile.circuitProfile()) return error.InvalidIncrementalEthereumFreshCapture;
             try self.public_sums.validateAgainst(
                 &self.public_data.data,
                 &self.role_aware_public.value,
@@ -120,16 +123,18 @@ pub fn FreshVerifiedCaptureV4(
                     &self.extension,
                     &self.authenticated,
                     &self.manifest,
+                    self.profile.circuitProfile(),
                 ),
             );
             try self.ethereum_air
-                .validateAgainstAuthenticatedLookupV2Authority(
+                .validateAgainstAuthenticatedLookupV2AuthorityWithCircuitProfileV1(
                 &self.statement,
                 &self.extension,
                 &self.extension_claim,
                 &self.relations,
                 &self.manifest,
                 &self.authenticated,
+                self.profile.circuitProfile(),
             );
             const canonical = try self.authenticated.canonicalInteractionClaim(
                 &self.statement.core,
@@ -206,6 +211,7 @@ pub fn verifyWithEngineUsingChannelAndCapture(
         extension_claim,
         bridge_claim,
         null,
+        null,
         channel,
         capture_out,
     );
@@ -244,6 +250,54 @@ pub fn verifyWithEngineUsingChannelAndCaptureTakingLease(
         extension_claim,
         bridge_claim,
         validated_lease_inout,
+        null,
+        channel,
+        capture_out,
+    );
+}
+
+/// Independent ELF-derived owner is required by the explicit fixed circuit.
+pub fn verifyWithEngineUsingChannelAndCaptureWithProgramAdmissionTakingLease(
+    comptime Engine: type,
+    comptime Profile: type,
+    allocator: std.mem.Allocator,
+    statement_value: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    role_aware_public: *const public_data_v1.PublicData,
+    profile: *const Profile,
+    proof_in: types.ProofForEngine(Engine),
+    base_claim: *const statement.RiscVInteractionClaim,
+    extension_claim: *const ethereum_types.ExtensionClaim,
+    bridge_claim: QM31,
+    validated_lease_inout: *?public_data_v2.PublicDataV2
+        .OwnedValidatedLeaseV2,
+    program: anytype,
+    channel: *Engine.Channel,
+    capture_out: *FreshVerifiedCaptureV4(Engine, Profile),
+) !void {
+    var transferred = false;
+    errdefer if (!transferred) {
+        var owned = proof_in;
+        owned.deinit(allocator);
+    };
+    const descriptor = profile.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired;
+    try program.validateDescriptor(descriptor);
+    const rows = try program.rows();
+    transferred = true;
+    return verifyWithEngineUsingChannelAndCaptureInternal(
+        Engine,
+        Profile,
+        allocator,
+        statement_value,
+        extension,
+        role_aware_public,
+        profile,
+        proof_in,
+        base_claim,
+        extension_claim,
+        bridge_claim,
+        validated_lease_inout,
+        rows,
         channel,
         capture_out,
     );
@@ -263,19 +317,21 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
     bridge_claim: QM31,
     validated_lease_inout: ?*?public_data_v2.PublicDataV2
         .OwnedValidatedLeaseV2,
+    fixed_rows: ?[]const program_commitment.Row,
     channel: *Engine.Channel,
     capture_out: *FreshVerifiedCaptureV4(Engine, Profile),
 ) !void {
     var proof = proof_in;
     var proof_moved = false;
     defer if (!proof_moved) proof.deinit(allocator);
+    if ((profile.circuitProfile() == .fixed_program_narrow_v1) != (fixed_rows != null)) return error.EthereumFixedProgramAdmissionRequired;
     if (proof.commitment_scheme_proof.commitments.items.len !=
         COMMITMENT_TREE_COUNT)
     {
         return error.InvalidIncrementalEthereumProofShape;
     }
     try statement_value.validate();
-    try extension.validateV2(statement_value);
+    try extension.validateV2WithCircuitProfileV1(statement_value, profile.circuitProfile());
     try extension_claim.validate(extension);
     try incremental_public.validateSharedAuthority(
         &statement_value.public_data,
@@ -302,6 +358,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         extension,
         &authenticated,
         &manifest,
+        profile.circuitProfile(),
     );
     try profile.bridge_geometry.validateAfterPrefix(prefix);
 
@@ -310,20 +367,21 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         &profile.bridge_geometry,
     );
     defer bridge_tree0.deinit();
-    const tree0_blocks = [_]external_tree.BorrowedBlock{bridge_tree0.block()};
-    const tree0_columns = try ethereum_preprocessed.generateWithExternalBlocks(
-        allocator,
-        &statement_value.core,
-        extension,
-        &tree0_blocks,
-    );
-    try verifyPreprocessedRoot(
-        Engine,
-        allocator,
-        pcs_config,
-        tree0_columns,
-        proof.commitment_scheme_proof.commitments.items[0],
-    );
+    var fixed_columns: ?fixed_program_table.ColumnsV1 = if (fixed_rows) |rows| try fixed_program_table.ColumnsV1.init(allocator, rows, statement_value.core.infra_descs[0].log_size) else null;
+    defer if (fixed_columns) |*columns| columns.deinit(allocator);
+    var tree0_blocks: [2]external_tree.BorrowedBlock = undefined;
+    var tree0_block_count: usize = 0;
+    var fixed_views: [fixed_program_table.COLUMN_COUNT][]const m31.M31 = undefined;
+    if (fixed_columns) |columns| {
+        for (columns.values, &fixed_views) |column, *view| view.* = column;
+        tree0_blocks[tree0_block_count] = .{ .log_size = columns.log_size, .columns = &fixed_views };
+        tree0_block_count += 1;
+    }
+    tree0_blocks[tree0_block_count] = bridge_tree0.block();
+    tree0_block_count += 1;
+    const expected_tree0 = try deriveExpectedPreprocessedRootInternal(Engine, allocator, &statement_value.core, extension, &profile.bridge_geometry, pcs_config, fixed_rows);
+    if (!std.meta.eql(expected_tree0, proof.commitment_scheme_proof.commitments.items[0]))
+        return error.InvalidIncrementalEthereumPreprocessedRoot;
 
     const empty_main =
         [_][]const @import("stwo_core").fields.m31.M31{&.{}} **
@@ -343,7 +401,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         allocator,
         &statement_value.core,
         extension,
-        &tree0_blocks,
+        tree0_blocks[0..tree0_block_count],
     );
     defer allocator.free(tree0_logs);
     const tree1_logs = try ethereum_main.logSizesWithExternalBlocks(
@@ -405,7 +463,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         base_claim,
         extension_claim,
     );
-    incremental_bridge.mixClaim(channel, bridge_claim);
+    try profile.mixFinalClaims(allocator, channel, &statement_value.core, &manifest, &authenticated, base_claim, bridge_claim);
     try scheme.commit(
         allocator,
         proof.commitment_scheme_proof.commitments.items[2],
@@ -418,10 +476,11 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         &manifest,
         base_claim,
     );
-    const public_sums = try incremental_public.VerifiedPublicSumsV4.init(
+    const public_sums = try incremental_public.VerifiedPublicSumsV4.initWithCircuitProfile(
         &statement_value.public_data,
         role_aware_public,
         &relations.base,
+        profile.circuitProfile(),
     );
     try logup.verifyGlobalCancellation(
         &.{
@@ -435,22 +494,15 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
     const workspace = try proof_workspace.VerificationWorkspace.create(allocator);
     defer workspace.destroy(allocator);
     workspace.canonical = canonical;
-    const base_components = try base_verifier
-        .assembleComponentsAuthenticatedLookupV2WithIncrementalBoundaryV3(
-        workspace,
-        &statement_value.core,
-        base_claim,
-        &relations.base,
-        statement_value.core.nMainColumns(),
-        try authenticated.totalInteractionColumns(
-            &statement_value.core,
-            &manifest,
-        ),
-        &manifest,
-        &authenticated,
-    );
+    try base_assembly.assembleIntoAuthenticatedLookupV2WithCircuitProfile(.verifier, workspace, &statement_value.core, base_claim, &relations.base, statement_value.core.nMainColumns(), try authenticated.totalInteractionColumns(&statement_value.core, &manifest), &manifest, &authenticated, profile.circuitProfile());
+    if (fixed_rows != null) {
+        var indices: [fixed_program_table.COLUMN_COUNT]usize = undefined;
+        for (&indices, 0..) |*index, offset| index.* = profile.bridge_geometry.placement.is_first_col_idx - fixed_program_table.COLUMN_COUNT + offset;
+        workspace.components.infra[0].fixed_program_columns = indices;
+    }
+    const base_components = workspace.components.active();
     const ethereum_components = try ethereum_assembly.Assembly(.verifier)
-        .createAuthenticatedLookupV2(
+        .createAuthenticatedLookupV2WithCircuitProfileV1(
         allocator,
         statement_value,
         extension,
@@ -459,6 +511,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         extension_claim,
         &manifest,
         &authenticated,
+        profile.circuitProfile(),
     );
     defer ethereum_components.destroy(allocator);
     const roots = try incrementalRoots(statement_value);
@@ -497,6 +550,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         tree2_logs,
         pcs_config.fri_config.log_blowup_factor,
     );
+    try printCompositionDiagnostics(allocator, &statement_value.core, extension, assembly.active(), &proof_capture);
     const transcript_final_digest = channel.digestWords();
     const transcript_final_draw_count = channel.n_draws;
     try validateTranscriptCheckpoint(
@@ -529,13 +583,14 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
     );
     var role_aware_owned = true;
     defer if (role_aware_owned) owned_role_aware.deinit();
-    const owned_sums = try incremental_public.VerifiedPublicSumsV4.init(
+    const owned_sums = try incremental_public.VerifiedPublicSumsV4.initWithCircuitProfile(
         &owned_public.data,
         &owned_role_aware.value,
         &relations.base,
+        profile.circuitProfile(),
     );
     const ethereum_air = try ethereum_context.ContextV1
-        .initVerifiedAuthenticatedLookupV2(
+        .initVerifiedAuthenticatedLookupV2WithCircuitProfileV1(
         &owned_statement,
         extension,
         extension_claim,
@@ -544,6 +599,7 @@ fn verifyWithEngineUsingChannelAndCaptureInternal(
         base_components.len,
         &manifest,
         &authenticated,
+        profile.circuitProfile(),
     );
     const owned_claim = try allocator.create(statement.RiscVInteractionClaim);
     var claim_owned = true;
@@ -595,6 +651,7 @@ fn prefixColumns(
     extension: *const ethereum_statement.Statement,
     authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     manifest: *const lookup_physical_v2.Manifest,
+    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1,
 ) !incremental_bridge.PrefixColumnsV3 {
     var result = incremental_bridge.PrefixColumnsV3{
         .preprocessed = native.core.nPreprocessedColumns(),
@@ -614,17 +671,71 @@ fn prefixColumns(
             descriptor.interaction_columns,
         );
     }
+    if (circuit_profile.programPolicy() == .fixed_decoded_table_v1) result.preprocessed = try add(result.preprocessed, fixed_program_table.COLUMN_COUNT);
     try result.validate();
     return result;
 }
 
-fn verifyPreprocessedRoot(
+/// Derive the joined leaf's fixed Tree0 independently of all proof roots.
+/// These inputs are admitted circuit geometry: selectors, canonical tables,
+/// extension active counts, bridge placement and PCS parameters. No execution
+/// values or candidate commitment are accepted by this constructor.
+/// The caller still authenticates the complete native statement/profile at
+/// its input boundary; this helper checks the fixed geometry it consumes.
+pub fn deriveExpectedPreprocessedRoot(
     comptime Engine: type,
     allocator: std.mem.Allocator,
+    native_core: *const statement.RiscVStatement,
+    extension: *const ethereum_statement.Statement,
+    geometry: *const incremental_bridge.GeometryV3,
     pcs_config: pcs_core.PcsConfig,
-    columns: []prover_pcs.ColumnEvaluation,
-    expected: Engine.Hasher.Hash,
-) !void {
+) !Engine.Hasher.Hash {
+    return deriveExpectedPreprocessedRootInternal(Engine, allocator, native_core, extension, geometry, pcs_config, null);
+}
+
+pub fn deriveExpectedPreprocessedRootWithFixedProgramV1(comptime Engine: type, allocator: std.mem.Allocator, native_core: *const statement.RiscVStatement, extension: *const ethereum_statement.Statement, geometry: *const incremental_bridge.GeometryV3, pcs_config: pcs_core.PcsConfig, fixed_rows: []const program_commitment.Row) !Engine.Hasher.Hash {
+    return deriveExpectedPreprocessedRootInternal(Engine, allocator, native_core, extension, geometry, pcs_config, fixed_rows);
+}
+
+fn deriveExpectedPreprocessedRootInternal(comptime Engine: type, allocator: std.mem.Allocator, native_core: *const statement.RiscVStatement, extension: *const ethereum_statement.Statement, geometry: *const incremental_bridge.GeometryV3, pcs_config: pcs_core.PcsConfig, fixed_rows: ?[]const program_commitment.Row) !Engine.Hasher.Hash {
+    if (native_core.n_components > statement.MAX_COMPONENTS or
+        native_core.n_infra > statement.MAX_INFRA_COMPONENTS)
+        return error.InvalidIncrementalEthereumProofShape;
+    try extension.validateStructure(native_core);
+    const manifest = lookup_physical_v2.Manifest.native();
+    const authenticated = try lookup_physical_v2.AuthenticatedStatement.init(native_core, &manifest);
+    var prefix = incremental_bridge.PrefixColumnsV3{
+        .preprocessed = native_core.nPreprocessedColumns(),
+        .main = native_core.nMainColumns(),
+        .interaction = std.math.cast(u32, try authenticated.totalInteractionColumns(native_core, &manifest)) orelse return error.InvalidIncrementalEthereumProofShape,
+    };
+    for (extension.components) |descriptor| {
+        prefix.preprocessed = try add(prefix.preprocessed, descriptor.preprocessed_columns);
+        prefix.main = try add(prefix.main, descriptor.main_columns);
+        prefix.interaction = try add(prefix.interaction, descriptor.interaction_columns);
+    }
+    if (fixed_rows != null) prefix.preprocessed = try add(prefix.preprocessed, fixed_program_table.COLUMN_COUNT);
+    try geometry.validateAfterPrefix(prefix);
+    var bridge_tree0 = try incremental_bridge.PreprocessedTraceV3.init(allocator, geometry);
+    defer bridge_tree0.deinit();
+    var fixed_columns: ?fixed_program_table.ColumnsV1 = if (fixed_rows) |rows| try fixed_program_table.ColumnsV1.init(allocator, rows, native_core.infra_descs[0].log_size) else null;
+    defer if (fixed_columns) |*columns| columns.deinit(allocator);
+    var blocks: [2]external_tree.BorrowedBlock = undefined;
+    var count: usize = 0;
+    var fixed_views: [fixed_program_table.COLUMN_COUNT][]const m31.M31 = undefined;
+    if (fixed_columns) |columns| {
+        for (columns.values, &fixed_views) |column, *view| view.* = column;
+        blocks[count] = .{ .log_size = columns.log_size, .columns = &fixed_views };
+        count += 1;
+    }
+    blocks[count] = bridge_tree0.block();
+    count += 1;
+    const columns = try ethereum_preprocessed.generateWithExternalBlocks(
+        allocator,
+        native_core,
+        extension,
+        blocks[0..count],
+    );
     var moved = false;
     errdefer if (!moved) freeColumns(allocator, columns);
     var scheme = try Engine.init(allocator, pcs_config);
@@ -635,8 +746,70 @@ fn verifyPreprocessedRoot(
     try Engine.commit(&scheme, allocator, columns, null, &channel);
     var roots = try scheme.roots(allocator);
     defer roots.deinit(allocator);
-    if (roots.items.len != 1 or !std.meta.eql(roots.items[0], expected))
-        return error.InvalidIncrementalEthereumPreprocessedRoot;
+    if (roots.items.len != 1) return error.InvalidIncrementalEthereumPreprocessedRoot;
+    return roots.items[0];
+}
+
+/// Opt-in replay attribution after successful native verification. Borrow the
+/// authenticated sample values and use the actual assembled components, so the
+/// diagnostic cannot substitute another AIR or change the transcript.
+fn printCompositionDiagnostics(
+    allocator: std.mem.Allocator,
+    base: *const statement.RiscVStatement,
+    extension: *const ethereum_statement.Statement,
+    component_list: []const @import("stwo_core").air.components.Component,
+    capture: anytype,
+) !void {
+    const selected = std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_COMPOSITION_DIAGNOSTICS") catch |err| {
+        if (err == error.EnvironmentVariableNotFound) return;
+        return err;
+    };
+    defer allocator.free(selected);
+    if (!std.mem.eql(u8, selected, "1")) return;
+    const core = @import("stwo_core");
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const scratch = arena.allocator();
+    const trees = try scratch.alloc([][]QM31, capture.sampled_points.len);
+    var cursor: usize = 0;
+    for (capture.sampled_points, trees) |point_columns, *columns| {
+        columns.* = try scratch.alloc([]QM31, point_columns.len);
+        for (point_columns, columns.*) |points, *values| {
+            if (points.len > capture.sampled_values.len - cursor) return error.InvalidCompositionDiagnosticShape;
+            values.* = capture.sampled_values[cursor..][0..points.len];
+            cursor += points.len;
+        }
+    }
+    if (cursor != capture.sampled_values.len) return error.InvalidCompositionDiagnosticShape;
+    const mask = core.air.components.MaskValues.initOwned(trees);
+    const components = core.air.components.Components{
+        .components = component_list,
+        .n_preprocessed_columns = capture.column_log_sizes[0].len,
+    };
+    const mask_log_size = core.verifier_types.compositionMaskLogSize(components.compositionLogDegreeBound(), try components.compositionLogSplit()) orelse return error.InvalidCompositionDiagnosticShape;
+    const point = core.circle.secureFieldPointFromRandomSeed(capture.oods_seed);
+    var accumulator = core.air.accumulation.PointEvaluationAccumulator.init(capture.composition_randomness);
+    const opcode_count: usize = @as(usize, base.n_components) * 2;
+    const base_count = opcode_count + base.n_infra;
+    if (component_list.len != base_count + extension.components.len + 1) return error.InvalidCompositionDiagnosticShape;
+    std.debug.print("NATIVE_COMPOSITION_CONTEXT mask_log_size={d} randomness={any} oods_seed={any}\n", .{ mask_log_size, capture.composition_randomness, capture.oods_seed });
+    var constraints: usize = 0;
+    for (component_list, 0..) |component, ordinal| {
+        try component.evaluateConstraintQuotientsAtPoint(point, &mask, &accumulator, mask_log_size);
+        constraints += component.nConstraints();
+        const name = if (ordinal < opcode_count)
+            @tagName(base.component_descs[ordinal / 2].family)
+        else if (ordinal < base_count)
+            @tagName(base.infra_descs[ordinal - opcode_count].kind)
+        else if (ordinal < base_count + extension.components.len)
+            @tagName(extension.components[ordinal - base_count].kind)
+        else
+            "incremental_bridge";
+        const section = if (ordinal < base_count) "base" else if (ordinal < base_count + extension.components.len) "ethereum" else "bridge";
+        const section_index = if (ordinal < base_count) ordinal else if (ordinal < base_count + extension.components.len) ordinal - base_count else 0;
+        const adapter = if (ordinal < opcode_count) (if (ordinal % 2 == 0) "semantic" else "lookup") else "component";
+        std.debug.print("NATIVE_COMPOSITION_CHECKPOINT ordinal={d} section={s} index={d} name={s} adapter={s} constraints={d} component_constraints={d} value={any}\n", .{ ordinal, section, section_index, name, adapter, constraints, component.nConstraints(), accumulator.finalize() });
+    }
 }
 
 fn validateCaptureLogs(

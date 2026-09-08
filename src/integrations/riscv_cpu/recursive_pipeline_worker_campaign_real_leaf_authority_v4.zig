@@ -152,7 +152,7 @@ pub fn CampaignAuthorityV4(comptime ActiveSources: type) type {
                 &expected_namespace,
                 &campaign_namespace_sha256,
             ) or shape.real_leaf_count != self.table.segment_count or
-                shape.real_leaf_count != self.campaign_geometry.leaf_count or
+                shape.real_leaf_count != self.campaign_geometry.view().leaf_count or
                 self.stage101_admissions.len != self.table.records.len or
                 !std.mem.eql(
                     u8,
@@ -160,7 +160,7 @@ pub fn CampaignAuthorityV4(comptime ActiveSources: type) type {
                     &self.table.content_sha256,
                 ) or !std.mem.eql(
                 u8,
-                &self.campaign_geometry.campaign_inventory
+                &self.campaign_geometry.view().campaign_inventory
                     .table_identity_sha256,
                 &self.table.content_sha256,
             )) return error.CampaignRealLeafAuthorityMismatchV4;

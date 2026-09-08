@@ -94,14 +94,7 @@ pub fn trySpawn(
                     return;
                 };
             // work-profile-plan:commitment-tree-merkle
-            const tree = Tree.initOwnedWithBackingAndWorkRecorder(
-                worker_allocator,
-                prepared.columns,
-                prepared.coefficients,
-                prepared.column_backing_buffers,
-                prepared.coefficient_backing_buffers,
-                worker_work_recorder,
-            ) catch |err| {
+            const tree = Tree.initPrepared(worker_allocator, &prepared, worker_work_recorder) catch |err| {
                 prepared.deinit(worker_allocator);
                 out.err = err;
                 return;

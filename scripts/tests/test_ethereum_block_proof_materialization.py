@@ -92,6 +92,30 @@ def fixture(root: Path) -> tuple[Path, dict]:
 
 
 class MaterializationAdmissionTests(unittest.TestCase):
+    def test_explicit_dynamic_v2_admission_keeps_legacy_closed(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            root = Path(raw)
+            path, manifest = fixture(root)
+            source_path = root / "source-request.json"
+            source = store.read_canonical_json(source_path, "source")
+            source.update(schema=stream_request.SOURCE_SCHEMA_V2,
+                          pcs=stream_request.RECURSIVE_POSEIDON_PCS,
+                          proof_policy=copy.deepcopy(stream_request.RECURSIVE_DYNAMIC_POLICY))
+            source_path.write_bytes(protocol.canonical_bytes(source))
+            manifest.update(schema=subject.RECURSIVE_MATERIALIZATION_SCHEMA,
+                            pcs=source["pcs"], source_request={"schema": source["schema"], **identity(source_path)})
+            publish(path, manifest)
+            self.assertEqual(subject.validate_recursive(path)["manifest"]["segment_count"], 2)
+            with self.assertRaises(protocol.ProofProtocolError):
+                subject.validate(path)
+            for changed in (119, 120.0):
+                source["proof_policy"]["conjectured_security_bits"] = changed
+                source_path.write_bytes(protocol.canonical_bytes(source))
+                manifest["source_request"].update(identity(source_path))
+                publish(path, manifest)
+                with self.assertRaises(protocol.ProofProtocolError):
+                    subject.validate_recursive(path)
+
     def test_reopens_every_materialized_authority_and_preserves_id_domains(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             path, expected = fixture(Path(raw))

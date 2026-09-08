@@ -18,8 +18,8 @@ const publication =
     @import("recursive_segment_v2_verified_publication.zig");
 const secure_artifact =
     @import("recursive_temporal_secure_parent_artifact_v1.zig");
-const suffix_closure =
-    @import("recursive_common_fold_suffix_closure_v2.zig");
+const node_public = @import("recursive_field_node_public_v2.zig");
+const public_output = @import("recursive_common_fold_public_output_v3.zig");
 const validation_token =
     @import("recursive_process_local_validation_token_v1.zig");
 
@@ -37,7 +37,7 @@ const OuterProofCapture = stwo_core.pcs.verifier.VerifiedProofCapture(
 );
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 5;
 pub const CIRCUIT_ID: u32 = 763;
 pub const PRODUCTION_ACTIVATION = false;
 pub const SERIALIZABLE_FRESH_GRAPH = false;
@@ -160,6 +160,7 @@ pub fn TypesForGraph(
                 errdefer layout.deinit();
                 const profile = composition_v3.InputProfileV3{
                     .sampled_value_count = layout.sampled_value_count,
+                    .field_public_extra_word_count = node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT,
                 };
                 try profile.validate();
                 const claim_inputs = try Graph.ClaimInputsV2.init(replay);
@@ -170,13 +171,12 @@ pub fn TypesForGraph(
                 );
                 defer components.deinit();
                 var program = try recordProgram(
+                    Graph.recordCohort,
                     allocator,
                     manifest,
                     &layout,
                     profile,
                     &components,
-                    session,
-                    replay,
                 );
                 errdefer program.deinit();
 
@@ -190,11 +190,11 @@ pub fn TypesForGraph(
                     program.circuit.nodes.len,
                 );
                 errdefer allocator.free(node_values);
-                try writeInputs(
+                try writePublicInputs(
                     profile,
-                    &claim_inputs,
-                    session,
-                    replay,
+                    cohort.inputs.live.input.outputNodePublic(),
+                    &claim_inputs.values,
+                    &replay.relations,
                     capture,
                     input_values,
                 );
@@ -303,11 +303,11 @@ pub fn TypesForGraph(
                     self.input_values.len,
                 );
                 defer self.allocator.free(expected_inputs);
-                try writeInputs(
+                try writePublicInputs(
                     self.profile,
-                    &self.claim_inputs,
-                    session,
-                    replay,
+                    cohort.inputs.live.input.outputNodePublic(),
+                    &self.claim_inputs.values,
+                    &replay.relations,
                     capture,
                     expected_inputs,
                 );
@@ -323,13 +323,12 @@ pub fn TypesForGraph(
                 );
                 defer components.deinit();
                 var expected = try recordProgram(
+                    Graph.recordCohort,
                     self.allocator,
                     manifest,
                     &self.layout,
                     self.profile,
                     &components,
-                    session,
-                    replay,
                 );
                 defer expected.deinit();
                 if (!std.mem.eql(
@@ -344,6 +343,8 @@ pub fn TypesForGraph(
             pub fn validateRetained(self: *const CaptureV2) !void {
                 try self.layout.validateSelfConsistency();
                 try self.profile.validate();
+                if (self.profile.field_public_extra_word_count != node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT)
+                    return error.InvalidCommonFoldCompositionCapture;
                 try self.circuit.validate();
                 if (self.input_values.len != try composition.recursionInputCount(
                     self.profile.graphProfile(),
@@ -485,232 +486,6 @@ pub fn TypesForGraph(
             }
         };
 
-        const OwnedProgram = struct {
-            circuit: recorder.Circuit,
-            bindings: []composition.RecursionInputBinding,
-            moved: bool = false,
-
-            fn deinit(self: *OwnedProgram) void {
-                if (!self.moved) {
-                    const allocator = self.circuit.allocator;
-                    allocator.free(self.bindings);
-                    self.circuit.deinit();
-                }
-                self.* = undefined;
-            }
-        };
-
-        fn recordProgram(
-            allocator: std.mem.Allocator,
-            manifest: *const manifest_mod.Manifest,
-            layout: *const capture_layout.CaptureLayoutV3,
-            profile: composition_v3.InputProfileV3,
-            components: *const Cohort.Components,
-            session: *const secure_artifact.SessionV1,
-            replay: *const VerifiedReplay,
-        ) !OwnedProgram {
-            const graph_profile = profile.graphProfile();
-            const input_count = try composition.recursionInputCount(
-                graph_profile,
-            );
-            const bindings = try allocator.alloc(
-                composition.RecursionInputBinding,
-                input_count,
-            );
-            errdefer allocator.free(bindings);
-            const base_inputs = try allocator.alloc(recorder.Scalar, input_count);
-            defer allocator.free(base_inputs);
-            const sampled_values = try allocator.alloc(
-                recorder.Scalar,
-                layout.sampled_value_count,
-            );
-            defer allocator.free(sampled_values);
-            var builder = recorder.Builder.init(allocator);
-            defer builder.deinit();
-            try builder.reserve(
-                input_count,
-                @as(usize, manifest.total_constraints) +
-                    composition_v3.STATEMENT_WORD_COUNT + 768,
-            );
-            for (base_inputs, bindings, 0..) |*value, *binding, index| {
-                const input = try builder.input();
-                value.* = input.value;
-                binding.* = .{
-                    .node_id = input.node_id,
-                    .source = composition.expectedRecursionSource(
-                        graph_profile,
-                        index,
-                    ) orelse return error.InvalidWitnessShape,
-                };
-            }
-            try builder.activate();
-            errdefer if (builder.active) builder.deactivate();
-
-            var cursor: usize = 0;
-            const parent_binary_selector = base_inputs[cursor];
-            cursor += 1;
-            var kind_selectors: [composition_v3.PROGRAM_KIND_COUNT]recorder.Scalar =
-                undefined;
-            @memcpy(
-                &kind_selectors,
-                base_inputs[cursor..][0..composition_v3.PROGRAM_KIND_COUNT],
-            );
-            cursor += composition_v3.PROGRAM_KIND_COUNT;
-            var statement_words: [composition_v3.STATEMENT_WORD_COUNT]recorder.Scalar =
-                undefined;
-            @memcpy(
-                &statement_words,
-                base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT],
-            );
-            cursor += composition_v3.STATEMENT_WORD_COUNT;
-            for (sampled_values) |*value|
-                value.* = composition_v3.takeSecureRecorderInput(
-                    base_inputs,
-                    &cursor,
-                );
-            var claim_inputs: [composition_v3.COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar =
-                undefined;
-            for (&claim_inputs) |*value|
-                value.* = composition_v3.takeSecureRecorderInput(
-                    base_inputs,
-                    &cursor,
-                );
-            const public_wire_boundary = composition_v3.takeSecureRecorderInput(
-                base_inputs,
-                &cursor,
-            );
-            var challenge_draws: [composition_v3.RELATION_CHALLENGE_COUNT][2]recorder.Scalar =
-                undefined;
-            for (&challenge_draws) |*draw| {
-                draw[0] = composition_v3.takeSecureRecorderInput(
-                    base_inputs,
-                    &cursor,
-                );
-                draw[1] = composition_v3.takeSecureRecorderInput(
-                    base_inputs,
-                    &cursor,
-                );
-            }
-            const composition_randomness =
-                composition_v3.takeSecureRecorderInput(base_inputs, &cursor);
-            const oods_seed = composition_v3.takeSecureRecorderInput(
-                base_inputs,
-                &cursor,
-            );
-            if (cursor != input_count) return error.InvalidWitnessShape;
-            const challenges = try recorder.ChallengeSet.init(challenge_draws);
-            const oods_point = recorder.pointFromSeed(oods_seed);
-            const split_composition = try composition_v3
-                .reconstructSplitCompositionForLayout(
-                layout,
-                sampled_values,
-                oods_point,
-            );
-
-            const one = recorder.Scalar.one();
-            try builder.constrainZero(parent_binary_selector.sub(one));
-            for (kind_selectors, 0..) |selector, index|
-                try builder.constrainZero(selector.sub(
-                    if (index == composition_v3.proofKindIndex(.binary_node))
-                        one
-                    else
-                        recorder.Scalar.zero(),
-                ));
-            for (statement_words, session.parent_statement_words) |
-                actual,
-                expected,
-            | try builder.constrainZero(
-                actual.sub(recorder.Scalar.fromBase(expected)),
-            );
-            _ = try composition_v3
-                .recordClaimPolicyConstraintsForManifestPolicy(
-                &builder,
-                &kind_selectors,
-                &claim_inputs,
-                graph_mod.CLAIM_MANIFEST_FAMILY,
-                graph_mod.CLAIM_POLICY,
-            );
-            try builder.constrainZero(public_wire_boundary.sub(
-                recorder.Scalar.fromSecure(
-                    replay.audited.wire_boundary.claimed_sum,
-                ),
-            ));
-            var claimed_total = recorder.Scalar.zero();
-            for (claim_inputs[0..graph_mod.PHYSICAL_CLAIM_COUNT]) |claim|
-                claimed_total = claimed_total.add(claim);
-            try builder.constrainZero(claimed_total
-                .add(public_wire_boundary)
-                .add(recorder.Scalar.fromSecure(
-                suffix_closure
-                    .frameworkBoundarySumExceptWireAssumeValidated(
-                    replay.audited.verifier_input_boundary.claimed_sum,
-                    replay.audited.field_public_boundary.claimed_sum,
-                    &replay.audited.suffix_input_boundary.domains,
-                ),
-            )));
-
-            var denominators: recorder.DenominatorCache =
-                .{null} ** stwo_core.circle.M31_CIRCLE_LOG_ORDER;
-            var program = try Graph.ProgramRecorderV2.initAuthenticatedBinary(
-                &builder,
-                manifest,
-                graph_mod.MANIFEST_FAMILY,
-                layout,
-                sampled_values,
-                &claim_inputs,
-                &challenges,
-                composition_randomness,
-                oods_point,
-                &denominators,
-            );
-            const recorded = try Graph.recordCohort(&program, components);
-            try builder.constrainZero(
-                split_composition.sub(recorded.accumulation),
-            );
-            try builder.check();
-            builder.deactivate();
-            var circuit = try builder.finish();
-            errdefer circuit.deinit();
-            try composition.validateRecursionBindings(.{
-                .verifier_id = recursion.binary_fri_outer_source
-                    .LEFT_RECURSION_VERIFIER_ID,
-                .circuit_id = CIRCUIT_ID,
-                .statement_scope = recursion.binary_fri_outer_source
-                    .LEFT_COMPOSITION_STATEMENT_SCOPE,
-                .graph = circuit.graph(),
-                .profile = graph_profile,
-                .bindings = bindings,
-            });
-            return .{ .circuit = circuit, .bindings = bindings };
-        }
-
-        fn writeInputs(
-            profile: composition_v3.InputProfileV3,
-            claim_inputs: *const Graph.ClaimInputsV2,
-            session: *const secure_artifact.SessionV1,
-            replay: *const VerifiedReplay,
-            capture: *const OuterProofCapture,
-            destination: []QM31,
-        ) !void {
-            try composition_v3.writeInputsFromValidatedProfileAndManifestPolicy(
-                profile,
-                graph_mod.CLAIM_MANIFEST_FAMILY,
-                graph_mod.CLAIM_POLICY,
-                .{
-                    .parent_binary_selector = true,
-                    .proof_kind = .binary_node,
-                    .statement_words = &session.parent_statement_words,
-                    .sampled_values = capture.sampled_values,
-                    .claim_inputs = &claim_inputs.values,
-                    .public_wire_boundary = replay.audited.wire_boundary.claimed_sum,
-                    .relations = &replay.relations,
-                    .composition_randomness = capture.composition_randomness,
-                    .oods_seed = capture.oods_seed,
-                },
-                destination,
-            );
-        }
-
         fn validateTransaction(
             cohort: *Cohort,
             session: *const secure_artifact.SessionV1,
@@ -808,7 +583,7 @@ fn hashRecursionSource(
             u8,
             @intFromEnum(kind),
         ),
-        .statement_word => |word| hashInt(hash, u32, word),
+        .statement_word, .field_public_word => |word| hashInt(hash, u32, word),
         .sampled_value,
         .claimed_sum,
         .transcript_claimed_sum,
@@ -834,10 +609,226 @@ fn hashInt(hash: *Sha256, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 5 or
         PRODUCTION_ACTIVATION or SERIALIZABLE_FRESH_GRAPH or
         CIRCUIT_ID == 751 or CIRCUIT_ID == 761 or CIRCUIT_ID == 762)
     {
         @compileError("common-fold composition capture contract drifted");
     }
+}
+
+// Shared by native cold capture and explicit-key recursive witness preparation.
+pub const OwnedProgram = struct {
+    circuit: recorder.Circuit,
+    bindings: []composition.RecursionInputBinding,
+    moved: bool = false,
+
+    pub fn deinit(self: *OwnedProgram) void {
+        if (!self.moved) {
+            const allocator = self.circuit.allocator;
+            allocator.free(self.bindings);
+            self.circuit.deinit();
+        }
+        self.* = undefined;
+    }
+};
+
+pub fn recordProgram(
+    comptime recordCohort: anytype,
+    allocator: std.mem.Allocator,
+    manifest: *const manifest_mod.Manifest,
+    layout: *const capture_layout.CaptureLayoutV3,
+    profile: composition_v3.InputProfileV3,
+    components: anytype,
+) !OwnedProgram {
+    const graph_profile = profile.graphProfile();
+    const input_count = try composition.recursionInputCount(
+        graph_profile,
+    );
+    const bindings = try allocator.alloc(
+        composition.RecursionInputBinding,
+        input_count,
+    );
+    errdefer allocator.free(bindings);
+    const base_inputs = try allocator.alloc(recorder.Scalar, input_count);
+    defer allocator.free(base_inputs);
+    const sampled_values = try allocator.alloc(
+        recorder.Scalar,
+        layout.sampled_value_count,
+    );
+    defer allocator.free(sampled_values);
+    var builder = recorder.Builder.init(allocator);
+    defer builder.deinit();
+    try builder.reserve(
+        input_count,
+        @as(usize, manifest.total_constraints) +
+            768,
+    );
+    for (base_inputs, bindings, 0..) |*value, *binding, index| {
+        const input = try builder.input();
+        value.* = input.value;
+        binding.* = .{
+            .node_id = input.node_id,
+            .source = composition.expectedRecursionSource(
+                graph_profile,
+                index,
+            ) orelse return error.InvalidWitnessShape,
+        };
+    }
+    try builder.activate();
+    errdefer if (builder.active) builder.deactivate();
+
+    var cursor: usize = 0;
+    const parent_binary_selector = base_inputs[cursor];
+    cursor += 1;
+    var kind_selectors: [composition_v3.PROGRAM_KIND_COUNT]recorder.Scalar =
+        undefined;
+    @memcpy(
+        &kind_selectors,
+        base_inputs[cursor..][0..composition_v3.PROGRAM_KIND_COUNT],
+    );
+    cursor += composition_v3.PROGRAM_KIND_COUNT;
+    var public_words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
+    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT],
+        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
+    cursor += composition_v3.STATEMENT_WORD_COUNT;
+    for (sampled_values) |*value|
+        value.* = composition_v3.takeSecureRecorderInput(
+            base_inputs,
+            &cursor,
+        );
+    var claim_inputs: [composition_v3.COMPOSITION_CLAIM_INPUT_COUNT]recorder.Scalar =
+        undefined;
+    for (&claim_inputs) |*value|
+        value.* = composition_v3.takeSecureRecorderInput(
+            base_inputs,
+            &cursor,
+        );
+    const public_wire_boundary = composition_v3.takeSecureRecorderInput(
+        base_inputs,
+        &cursor,
+    );
+    var challenge_draws: [composition_v3.RELATION_CHALLENGE_COUNT][2]recorder.Scalar =
+        undefined;
+    for (&challenge_draws) |*draw| {
+        draw[0] = composition_v3.takeSecureRecorderInput(
+            base_inputs,
+            &cursor,
+        );
+        draw[1] = composition_v3.takeSecureRecorderInput(
+            base_inputs,
+            &cursor,
+        );
+    }
+    const composition_randomness =
+        composition_v3.takeSecureRecorderInput(base_inputs, &cursor);
+    const oods_seed = composition_v3.takeSecureRecorderInput(
+        base_inputs,
+        &cursor,
+    );
+    for (base_inputs[cursor..], bindings[cursor..]) |value, binding|
+        public_words[binding.source.field_public_word] = value;
+    cursor += profile.field_public_extra_word_count;
+    if (cursor != input_count) return error.InvalidWitnessShape;
+    const challenges = try recorder.ChallengeSet.init(challenge_draws);
+    const oods_point = recorder.pointFromSeed(oods_seed);
+    const split_composition = try composition_v3
+        .reconstructSplitCompositionForLayout(
+        layout,
+        sampled_values,
+        oods_point,
+    );
+
+    const one = recorder.Scalar.one();
+    try builder.constrainZero(parent_binary_selector.sub(one));
+    for (kind_selectors, 0..) |selector, index|
+        try builder.constrainZero(selector.sub(
+            if (index == composition_v3.proofKindIndex(.binary_node))
+                one
+            else
+                recorder.Scalar.zero(),
+        ));
+    _ = try composition_v3
+        .recordClaimPolicyConstraintsForManifestPolicy(
+        &builder,
+        &kind_selectors,
+        &claim_inputs,
+        graph_mod.CLAIM_MANIFEST_FAMILY,
+        graph_mod.CLAIM_POLICY,
+    );
+    // Fixed-wire anchors are already included in physical claim 10.
+    try builder.constrainZero(public_wire_boundary);
+    var claimed_total = recorder.Scalar.zero();
+    for (claim_inputs[0..graph_mod.PHYSICAL_CLAIM_COUNT]) |claim|
+        claimed_total = claimed_total.add(claim);
+    try builder.constrainZero(claimed_total
+        .add(public_wire_boundary)
+        .add(try public_output.recordSum(&public_words, &challenges)));
+
+    var denominators: recorder.DenominatorCache =
+        .{null} ** stwo_core.circle.M31_CIRCLE_LOG_ORDER;
+    var program = try composition_v3.segment_recorder_v3.ProgramRecorderForManifest(manifest_mod, .binary_node, manifest_mod.COMPONENT_COUNT).initAuthenticatedBinary(
+        &builder,
+        manifest,
+        graph_mod.MANIFEST_FAMILY,
+        layout,
+        sampled_values,
+        &claim_inputs,
+        &challenges,
+        composition_randomness,
+        oods_point,
+        &denominators,
+    );
+    const recorded = try recordCohort(&program, components);
+    try builder.constrainZero(
+        split_composition.sub(recorded.accumulation),
+    );
+    try builder.check();
+    builder.deactivate();
+    var circuit = try builder.finish();
+    errdefer circuit.deinit();
+    try composition.validateRecursionBindings(.{
+        .verifier_id = recursion.binary_fri_outer_source
+            .LEFT_RECURSION_VERIFIER_ID,
+        .circuit_id = CIRCUIT_ID,
+        .statement_scope = recursion.binary_fri_outer_source
+            .LEFT_COMPOSITION_STATEMENT_SCOPE,
+        .graph = circuit.graph(),
+        .profile = graph_profile,
+        .bindings = bindings,
+    });
+    return .{ .circuit = circuit, .bindings = bindings };
+}
+
+pub fn writePublicInputs(
+    profile: composition_v3.InputProfileV3,
+    public_node: *const node_public.NodePublicV2,
+    claim_inputs: *const [composition_v3.COMPOSITION_CLAIM_INPUT_COUNT]QM31,
+    relations: *const recursion.air.universal_challenges.UniversalRelations,
+    capture: *const OuterProofCapture,
+    destination: []QM31,
+) !void {
+    const words = try public_node.canonicalAirWords();
+    var statement_words: [node_public.STATEMENT_WORD_COUNT]M31 = undefined;
+    for (&statement_words, public_node.statement_words) |*value, word| value.* = M31.fromCanonical(word);
+    var extra: [node_public.AIR_WORD_COUNT - node_public.STATEMENT_WORD_COUNT]M31 = undefined;
+    for (&extra, 0..) |*value, index| value.* = M31.fromCanonical(words[if (index < node_public.HEADER_WORD_COUNT) index else index + node_public.STATEMENT_WORD_COUNT]);
+    try composition_v3.writeInputsFromValidatedProfileAndManifestPolicy(
+        profile,
+        graph_mod.CLAIM_MANIFEST_FAMILY,
+        graph_mod.CLAIM_POLICY,
+        .{
+            .parent_binary_selector = true,
+            .proof_kind = .binary_node,
+            .statement_words = &statement_words,
+            .field_public_extra_words = &extra,
+            .sampled_values = capture.sampled_values,
+            .claim_inputs = claim_inputs,
+            .public_wire_boundary = QM31.zero(),
+            .relations = relations,
+            .composition_randomness = capture.composition_randomness,
+            .oods_seed = capture.oods_seed,
+        },
+        destination,
+    );
 }

@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "observed_at": "2026-09-08T04:49:10.831194+00:00",
+  "scope": "Live wrapper2 observation, not proof acceptance or complete phase attribution",
+  "process": "  PID  PPID STAT ELAPSED  %CPU    RSS COMMAND\n40352 40345 R      32:35 100.0 17957968 ./.zig-cache/o/b7e1ea10776a8cd885f2ceea9d700e30/test --cache-dir=./.zig-cache --seed=0x34da27cd --listen=-\n",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "progress_snapshot": "ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=100184833791 process_cpu_ns=100152127875 parallelism_milli=999 peak_footprint_bytes=1708803944 energy_nj=424370644997 instructions=1541539238945 cycles=397546819297 workers=1 host_byte_budget=17179869184\nETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=152201180333 process_cpu_ns=152162128208 parallelism_milli=999 peak_footprint_bytes=1708803944 energy_nj=549375983408 instructions=1026284742235 cycles=603998058841 workers=1 host_byte_budget=17179869184\nETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=134945502083 process_cpu_ns=134896271667 parallelism_milli=999 peak_footprint_bytes=3002600712 energy_nj=498703177730 instructions=1029780922062 cycles=535325780226 workers=1 host_byte_budget=17179869184\nETHEREUM_COHORT_RESOURCES phase=begin wall_ns=375 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=30506146736 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none\nETHEREUM_COHORT_RESOURCES phase=geometry-ready wall_ns=307436082125 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=30506146736 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none\nETHEREUM_COHORT_RESOURCES phase=prefix-components wall_ns=44236669625 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=30506146736 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none\nETHEREUM_COHORT_RESOURCES phase=prefix-rows wall_ns=74231434333 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=31979626568 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none\nETHEREUM_COHORT_RESOURCES phase=suffix-rows wall_ns=233886133959 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=31979626568 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none\n",
+  "sample": {
+    "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-wrapper-file-backed-pcs/real-wrapper-v7-preparation-sample.txt",
+    "sha256": "181c5a12c55f4598ffb50bea8589aabade921677ef95a4c2149c51fbde9e2f4f",
+    "duration_seconds": 1,
+    "interval_ms": 10
+  },
+  "observation": "84 main-thread samples in suffix preparation through child statement Storage.validate -> prepared campaign validate -> role-aware witness validation; sampled arithmetic includes continuation compensation field inversions",
+  "action": "Keep running proof unchanged. Retain repeated validation and inversions for post-delivery profiling; this sample establishes neither whole-request share nor a resource failure.",
+  "accepted_segments": 20,
+  "native19": "production complete, standalone verifier pending shared lock",
+  "accepted_ordinary_wrappers": 0,
+  "accepted_ordinary_parents": 0,
+  "block_bundle_verified": false,
+  "block_root_verified": false
+}

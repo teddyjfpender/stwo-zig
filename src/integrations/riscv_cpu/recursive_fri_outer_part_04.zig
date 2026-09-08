@@ -224,7 +224,7 @@ pub fn Namespace(comptime context: type) type {
                 .poseidon2 = try V2Poseidon2Adapter.init(
                     manifest,
                     logs[LogIndex.poseidon2],
-                    @intCast(self.poseidon_calls.calls.len),
+                    @intCast(self.poseidonCallCount()),
                     provider_relations,
                     relations,
                     generated.poseidon2_partials,

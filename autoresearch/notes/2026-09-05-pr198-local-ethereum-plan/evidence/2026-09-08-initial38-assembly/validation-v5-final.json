@@ -1,0 +1,94 @@
+{
+  "scope": "execute remaining prepared boundary and initial root admission regressions after fixture-only repair; no real proof acceptance",
+  "gates": [
+    "test-ethereum-prepared-wrapper-boundary",
+    "test-ethereum-initial-root-admission"
+  ],
+  "source_manifest_sha256": "dfc3b0b8eb70b25f67c3858545ed2ee51eeb50737776ce53fc5106e9e21fd180",
+  "status": "passed",
+  "supersedes": [
+    "initial38-root-lifecycle-source-v4"
+  ],
+  "created_at": "2026-09-08T03:53:12.921610+00:00",
+  "inherited_compile_acceptance": {
+    "source_manifest_sha256": "181a588f6aab4c9526b50338f01c6ca701da06f14fabac546d4458858d186357",
+    "receipt": {
+      "gate": "check-ethereum-complete-proof",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v4/source/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v4/source/src/integrations/riscv_cpu",
+        "check-ethereum-complete-proof",
+        "-Dethereum-proof-strip=true",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v4/check-ethereum-complete-proof.log",
+      "pid": 38890,
+      "exit_code": 0,
+      "wall_seconds": 149.40562837501056
+    },
+    "note": "v5 changes only profile mutation fixture inside test; production assembly/kernel unchanged; runtime pyc excluded"
+  },
+  "writer_closure_gate": {
+    "snapshot": "initial38-writers-source-v6",
+    "source_manifest_sha256": "4cceed6147223fb3657a2846657ba7a4fed505328b9eb2407dcfcec616a67c02",
+    "session": 54616,
+    "log": "/tmp/ethereum-initial-complete-writers-closure-v6.log",
+    "log_sha256": "e9179ca8c14bc0bed04db5286e7528ff7f65f08efbf5202888f703b5d249b656",
+    "status": "passed",
+    "exit_code": 0,
+    "test_count": 2,
+    "supersedes_scope_incomplete_gate": {
+      "session": 28180,
+      "exit_code": 0,
+      "test_count": 1,
+      "note": "Only closure test discovered; explicit root import added before claiming writer coverage"
+    }
+  },
+  "results": [
+    {
+      "gate": "test-ethereum-prepared-wrapper-boundary",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/source/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/source/src/integrations/riscv_cpu",
+        "test-ethereum-prepared-wrapper-boundary",
+        "-Dethereum-proof-strip=true",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/test-ethereum-prepared-wrapper-boundary.log",
+      "pid": 39432,
+      "exit_code": 0,
+      "wall_seconds": 141.90847050002776
+    },
+    {
+      "gate": "test-ethereum-initial-root-admission",
+      "argv": [
+        "/opt/homebrew/opt/python@3.14/bin/python3.14",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/source/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/source/src/integrations/riscv_cpu",
+        "test-ethereum-initial-root-admission",
+        "-Dethereum-proof-strip=true",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/initial38-root-lifecycle-source-v5/test-ethereum-initial-root-admission.log",
+      "pid": 39547,
+      "exit_code": 0,
+      "wall_seconds": 123.06764145917259
+    }
+  ],
+  "pid": 39430,
+  "started": "2026-09-08T03:53:12.947984+00:00"
+}

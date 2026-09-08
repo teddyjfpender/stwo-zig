@@ -1,0 +1,119 @@
+{
+  "version": 2,
+  "passed": true,
+  "endpoint": "verified_native_selected_leaf",
+  "segment_index": 9,
+  "segment_count": 121,
+  "full_block_coverage": false,
+  "producer_process_destroyed": true,
+  "producer_snapshot_authority_used": false,
+  "retained_materialization_admission_destroyed_before_proof": true,
+  "request_ns": 70718253458,
+  "verify_ns": 70637749875,
+  "peak_footprint_bytes": 1029882912,
+  "worker_count": 1,
+  "proof_bytes": 62552044,
+  "proof_sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8",
+  "metadata_sha256": "3d0775148bd5055e6d22c9cafabd3f6bd0a82086bf8d18456bf222b6e4c67bc8",
+  "materialization_sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+  "verifier_sha256": "3b3496022e092f636dcc62a7c8f492c6c80653505d4d0a999b1c041c5186f84d",
+  "cold_ownership_gate_tests_passed": 8,
+  "real_artifact_negative_cases": [
+    {
+      "name": "changed-clock-resealed-transport",
+      "passed": true,
+      "exit_code": 1,
+      "elapsed_ns": 127755750,
+      "expected_error": "BoundaryClockOutOfRange",
+      "stderr_sha256": "47b0103918da5c3342ef7cb2c04d59befc383265d78ae41f27afa9d2ed929811"
+    },
+    {
+      "name": "changed-proof-original-seal",
+      "passed": true,
+      "exit_code": 1,
+      "elapsed_ns": 130331000,
+      "expected_error": "IncrementalFullLeafProofArtifactContentMismatchV4",
+      "stderr_sha256": "632d9b92ab0fd24963768474d2c74d1f9c9230c1cd64721694cc2d7c829103e1"
+    }
+  ],
+  "stopped_baseline": {
+    "completed": false,
+    "passed": false,
+    "elapsed_ns": 560463771792,
+    "reason": "parent-authorized stop of repeated full canonical-wire authentication after measured baseline",
+    "static_minimum_full_authentications": 97,
+    "static_minimum_continuation_roots": 194
+  },
+  "limitations": [
+    "One selected nonfinal segment, not full block coverage.",
+    "Previous borrowed baseline was stopped incomplete; no complete-baseline speed ratio is claimed.",
+    "Changed-clock negative recomputes transport seal and proof hash, then fails semantic cold admission.",
+    "Changed-proof negative retains original transport seal and tests transport integrity, not an isolated PCS mutation."
+  ],
+  "files": {
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-stopped-v1-plan.json": {
+      "sha256": "2806f156df4831e9b8096bace861da7dc748cd9c7aff9ef53166a3ee0620facb",
+      "bytes": 2147
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-stopped-v1-receipt.json": {
+      "sha256": "d3134767049f4629ba09eb5bc42c948258379baeb94d61b0091ef7aba740b33e",
+      "bytes": 487
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-stopped-v1-live.sample.txt": {
+      "sha256": "0488af803777a25068f6696251cfa7aca9735e774e4c58a6646a9bcd75969cb7",
+      "bytes": 2424030
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-plan.json": {
+      "sha256": "790599dd662bd2e6fb1f2c0b1e89f35e13f5d1492285f3abde229bd329afd984",
+      "bytes": 2127
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-receipt.json": {
+      "sha256": "fb5fc11a5fa02da541f8b35c8fc6835d452338b450b79cce303ce65ee4c00adb",
+      "bytes": 1640
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-stdout.json": {
+      "sha256": "107e996ee3c862b76dde9133de0fa566fcb4a806dc2c34a54ba3dbe29566e65b",
+      "bytes": 676
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-stderr.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-run.py": {
+      "sha256": "3c007307f1cc2dc15c0f0186f1b4dfb94bee834da10509f09170c1917d15a6a6",
+      "bytes": 2512
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-fresh-v2-binary-retention.json": {
+      "sha256": "9c8b97ca1f1ddcc9054b9c864307bb0b8950f7b3e2181f851610c5a7f9791f07",
+      "bytes": 1223
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-negatives-v1-plan.json": {
+      "sha256": "1c51c8b32caa499a5d9b9773f8e0927876589f30c2d65b021770f66ee32b547f",
+      "bytes": 3558
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-negatives-v1-receipt.json": {
+      "sha256": "3be4704c17dfece13568abeeb40ea4bd3931b6e2747009856e17ad67569e5334",
+      "bytes": 708
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-negatives-v1-run.py": {
+      "sha256": "14c87d0321f7e645c290a3f8d500b5503f7e107209aa2aa451b3d1ebbd705707",
+      "bytes": 3582
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-negative-changed-clock-resealed-transport.log": {
+      "sha256": "47b0103918da5c3342ef7cb2c04d59befc383265d78ae41f27afa9d2ed929811",
+      "bytes": 31
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-negative-changed-proof-original-seal.log": {
+      "sha256": "632d9b92ab0fd24963768474d2c74d1f9c9230c1cd64721694cc2d7c829103e1",
+      "bytes": 57
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-wire-gates-v2.log": {
+      "sha256": "d37478b149d99910a5f4aefa2106bb3ee9216eae3a0b1f99811a03fc29c53cac",
+      "bytes": 249
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-cpu-cold-verifier-build-v1.log": {
+      "sha256": "56bb77515e595e23f45388875b87d3e3d31bf60ba389756aeeb2c5a62bab89bd",
+      "bytes": 233
+    }
+  }
+}

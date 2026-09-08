@@ -1,0 +1,10 @@
+{
+  "status": "compiled_real_replay_running_not_acceptance",
+  "pid": 67860,
+  "observed_at": "2026-09-08T12:12:58.633767+00:00",
+  "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v19/source/src/integrations/riscv_cpu/.zig-cache/o/a8bc92e0eb55bf626a1e1a6cbcc702d5/test",
+  "bytes": 11018040,
+  "sha256": "307a8c2962d1c78d97ee3fab544fcc2c5e256424fa99f66dd7f3837cd399b915",
+  "source_manifest_sha256": "e5467995260207c8e168aaf749aec5379fdf2b45ce1c88adf25d5a7688a34499",
+  "request_sha256": "be0071a0aabc301df3e2d3340ccccadc2ed4e6102cbc189abde02c920725d6f4"
+}

@@ -1,0 +1,235 @@
+{
+  "schema": "stwo.ethereum.real-metal-leaf-release-failure.v1",
+  "request": {
+    "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+    "exit_code": 1,
+    "monitor_elapsed_ns": 252653546917,
+    "sampled_peak_footprint_bytes": 29351712296,
+    "stopped_for_footprint_limit": false,
+    "policy": {
+      "worker_count": 1,
+      "composition_host_budget_bytes": 17179869184,
+      "pcs_retained_byte_budget_bytes": 25769803776,
+      "monitor_footprint_stop_bytes": 34359738368,
+      "sample_interval_seconds": 2,
+      "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+    },
+    "verified_and_published": false,
+    "ended_unix_ns": 1788796280881991000,
+    "real_seconds": 252.6,
+    "user_seconds": 174.44,
+    "sys_seconds": 13.12,
+    "maximum_resident_set_size_bytes": 16519757824,
+    "peak_memory_footprint_bytes": 29376648744
+  },
+  "cryptographic_native_verification_passed": true,
+  "byte_identical_to_freshly_verified_cpu_proof": true,
+  "computed_artifact_sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8",
+  "published_artifact": false,
+  "failure": "Stage101SmallCirclePlacementMismatch",
+  "admitted_tiny_fixture_count": 3,
+  "observed_real_small_circle_count": 0,
+  "other_cpu_fallbacks": 0,
+  "ordered_phases": [
+    {
+      "depth": 0,
+      "id": "stage101_leaf_transaction",
+      "seconds": 161.563113
+    },
+    {
+      "depth": 1,
+      "id": "stage101_input_admission",
+      "seconds": 2.280843
+    },
+    {
+      "depth": 1,
+      "id": "stage101_compact_replay",
+      "seconds": 0.19142
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prepared_proof_transaction",
+      "seconds": 5.7963
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prove",
+      "seconds": 152.038876
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.019394
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 0.425193
+    },
+    {
+      "depth": 2,
+      "id": "riscv_opcode_trace_generation",
+      "seconds": 12.02002
+    },
+    {
+      "depth": 3,
+      "id": "riscv_infrastructure_trace_generation",
+      "seconds": 11.968654
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 2.646757
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 16.150666
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_opcode",
+      "seconds": 2.851021
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_program",
+      "seconds": 0.962466
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_memory",
+      "seconds": 0.16666
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_merkle",
+      "seconds": 2.135887
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_poseidon",
+      "seconds": 1.196723
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_clock",
+      "seconds": 0.359569
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_tables",
+      "seconds": 0.12723
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.288297
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 15.331235
+    },
+    {
+      "depth": 2,
+      "id": "draw_random_coeff",
+      "seconds": 2e-06
+    },
+    {
+      "depth": 2,
+      "id": "composition_trace_extract",
+      "seconds": 0.000114
+    },
+    {
+      "depth": 2,
+      "id": "composition_evaluation",
+      "seconds": 46.900636
+    },
+    {
+      "depth": 2,
+      "id": "composition_interpolate_and_split",
+      "seconds": 0.050533
+    },
+    {
+      "depth": 2,
+      "id": "composition_commit",
+      "seconds": 0.120144
+    },
+    {
+      "depth": 2,
+      "id": "oods_point_and_mask_points",
+      "seconds": 0.002305
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_evaluation",
+      "seconds": 0.276942
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_channel_mix",
+      "seconds": 0.014769
+    },
+    {
+      "depth": 2,
+      "id": "fri_quotient_build_and_commit",
+      "seconds": 27.930249
+    },
+    {
+      "depth": 2,
+      "id": "proof_of_work",
+      "seconds": 0.005353
+    },
+    {
+      "depth": 2,
+      "id": "fri_decommit",
+      "seconds": 0.011948
+    },
+    {
+      "depth": 2,
+      "id": "trace_decommit",
+      "seconds": 0.62443
+    },
+    {
+      "depth": 2,
+      "id": "constraint_check_and_assembly",
+      "seconds": 0.006671
+    },
+    {
+      "depth": 1,
+      "id": "stage101_encode",
+      "seconds": 0.293234
+    }
+  ],
+  "exclusive_depth2_seconds": {
+    "source_column_pack": 2.954448,
+    "merkle_commit": 31.907094,
+    "riscv_opcode_trace_generation": 12.02002,
+    "riscv_interaction_opcode": 2.851021,
+    "riscv_interaction_program": 0.962466,
+    "riscv_interaction_memory": 0.16666,
+    "riscv_interaction_merkle": 2.135887,
+    "riscv_interaction_poseidon": 1.196723,
+    "riscv_interaction_clock": 0.359569,
+    "riscv_interaction_tables": 0.12723,
+    "draw_random_coeff": 2e-06,
+    "composition_trace_extract": 0.000114,
+    "composition_evaluation": 46.900636,
+    "composition_interpolate_and_split": 0.050533,
+    "composition_commit": 0.120144,
+    "oods_point_and_mask_points": 0.002305,
+    "sampled_value_evaluation": 0.276942,
+    "sampled_value_channel_mix": 0.014769,
+    "fri_quotient_build_and_commit": 27.930249,
+    "proof_of_work": 0.005353,
+    "fri_decommit": 0.011948,
+    "trace_decommit": 0.62443,
+    "constraint_check_and_assembly": 0.006671
+  },
+  "stage_prove_seconds": 152.038876,
+  "cpu_baseline_stage_prove_seconds": 1089.657096,
+  "stage_prove_ratio": 7.16696363895771,
+  "request_success_speedup_claimed": false,
+  "source_provenance": "Frozen executable SHA2508075106915ff951ee685849283b9d5e75cd8043c8d72ad8abbf2441e88dcd and build log retained. Shared source freeze held through build; no full source snapshot retained. Binary predates subsequent OOM-only lifted-Merkle cleanup fixes. Current checkout cannot replace missing historical source snapshot."
+}

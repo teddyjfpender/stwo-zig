@@ -337,7 +337,9 @@ pub const Plan = struct {
     protocol_id: channel.Digest,
     shape_id: channel.Digest,
     authority_digest: channel.Digest,
-    steps: []VerifierStep,
+    /// Finalized schedule storage is read-only through borrowed plan views.
+    /// Construction retains mutable storage only until admission completes.
+    steps: []const VerifierStep,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -744,7 +746,7 @@ test "R-012 verifier plan detects schedule mutation omission and extension" {
     extended[plan.steps.len] = .complete;
     try std.testing.expectError(error.ExtraStep, plan.verifyControlTrace(extended));
 
-    plan.steps[0] = .bind_statement;
+    @constCast(plan.steps)[0] = .bind_statement;
     try std.testing.expectError(error.ScheduleDigestMismatch, plan.validate());
 }
 

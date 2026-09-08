@@ -1,0 +1,17 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test 47/50 passed, 3 failed
+error: 'recursive_common_ethereum_incremental_leaf_statement_routing_v4_test.test.Ethereum clock routing pins shared AIR and preserves legacy namespaces' failed: TRANSCRIPT_CLOCK_AIR_SEAL=517e0d14867eb7677e0a9952a48e701eff8903b58906fb0dcedff5b33b2bb045
+error: 'recursive_common_ethereum_incremental_leaf_statement_routing_v4_test.test.Ethereum clock routing closes native sources and matches admitted graph wires' failed
+error: 'recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 Ethereum detailed claim frames authenticate exact input routing' failed
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.role0 statement input allows its authenticated cross-component claim', the following test command failed:
+./.zig-cache/o/0d1595545f5897d70f36d5a059e346aa/test --cache-dir=./.zig-cache --seed=0xb9f0906f --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 47/50 tests passed; 3 failed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 transitive failure
++- recursive common Ethereum incremental leaf V4 structural guard transitive failure
+   +- run test 47/50 passed, 3 failed
+      +- compile test ReleaseSafe native success 39s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/d48113e94976a60efa4a7b8b47f69d71/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb9f0906f -Zc998fb50d16f54ca --maxrss 25769803776 -j1 test-recursive-common-ethereum-incremental-leaf-field-public-v4 -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

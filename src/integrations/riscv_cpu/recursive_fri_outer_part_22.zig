@@ -64,8 +64,8 @@ pub fn Namespace(comptime context: type) type {
             var result = QM31.zero();
             var contribution_count: usize = 0;
             for (
-                vm_air.prepared.preprocessing.rows,
-                vm_air.prepared.schedule_values,
+                vm_air.prepared.view().preprocessing.rows,
+                vm_air.prepared.view().schedule_values,
             ) |row, value| {
                 const coordinate = detailedClaimCoordinate(row) orelse continue;
                 const tuple = verifierInputBoundaryTuple(coordinate, value);
@@ -85,8 +85,8 @@ pub fn Namespace(comptime context: type) type {
             const vm_air = authority.vm_air orelse return;
             var contribution_count: usize = 0;
             for (
-                vm_air.prepared.preprocessing.rows,
-                vm_air.prepared.schedule_values,
+                vm_air.prepared.view().preprocessing.rows,
+                vm_air.prepared.view().schedule_values,
             ) |row, value| {
                 const coordinate = detailedClaimCoordinate(row) orelse continue;
                 const base_tuple = verifierInputBoundaryTuple(coordinate, value);
@@ -132,12 +132,12 @@ pub fn Namespace(comptime context: type) type {
         }
 
         pub fn validateDetailedClaimBoundaryCount(
-            prepared: *const recursion.vm_air_composition_circuit.Prepared,
+            prepared: recursion.vm_composition_preparation.Source,
             actual: usize,
         ) !void {
             const expected = std.math.mul(
                 usize,
-                @as(usize, prepared.circuit.input_profile.claimed_sum_count),
+                @as(usize, prepared.view().circuit.input_profile.claimed_sum_count),
                 vm_input_witness.SECURE_VALUE_WORD_COUNT,
             ) catch return error.ArithmeticOverflow;
             if (actual != expected) return error.AuthorityMismatch;
@@ -191,12 +191,12 @@ pub fn Namespace(comptime context: type) type {
             channel.mixU32s(&.{ TRANSCRIPT_DOMAIN, FORMAT_VERSION });
             channel.mixU32s(&.{@intFromBool(authority.vm_air != null)});
             if (authority.vm_air) |vm_air| {
-                channel.mixU32s(&digestWords(vm_air.prepared.circuit.identity_digest));
-                channel.mixU32s(&digestWords(vm_air.prepared.circuit.reference_digest));
-                channel.mixU32s(&digestWords(vm_air.prepared.circuit.schedule_digest));
-                channel.mixU32s(&digestWords(vm_air.prepared.circuit.air_profile_digest));
+                channel.mixU32s(&digestWords(vm_air.prepared.view().circuit.identity_digest));
+                channel.mixU32s(&digestWords(vm_air.prepared.view().circuit.reference_digest));
+                channel.mixU32s(&digestWords(vm_air.prepared.view().circuit.schedule_digest));
+                channel.mixU32s(&digestWords(vm_air.prepared.view().circuit.air_profile_digest));
                 channel.mixU32s(&digestWords(
-                    vm_air.prepared.preprocessing.authority_digest,
+                    vm_air.prepared.view().preprocessing.authority_digest,
                 ));
             }
             channel.mixU32s(&authority.vm_schedule.authority_digest);

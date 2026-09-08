@@ -13,15 +13,21 @@ const support =
 const M31 = stwo_core.fields.m31.M31;
 const air = frontend.recursion.air;
 
+pub const Generated = struct {
+    claims: components.ClaimsV4,
+    audits: [8]air.relation_interaction.DomainAudit,
+};
+
 pub fn generateAll(
     prepared: anytype,
     relations: *const air.universal_challenges.UniversalRelations,
     destination: []const []M31,
-) !components.ClaimsV4 {
+) !Generated {
     const owners = &prepared.components.owners;
     const logs = prepared.components.log_sizes;
 
-    var statement_input = try components.StatementInputFramework.generatePrepared(
+    var statement_input = try support.generateWithAudit(
+        components.StatementInputFramework,
         prepared.allocator,
         &owners.statement_input.relation,
         prepared.rows.statement_input,
@@ -30,7 +36,8 @@ pub fn generateAll(
     );
     defer statement_input.deinit(prepared.allocator);
     var statement_semantics =
-        try components.StatementSemanticsFramework.generatePrepared(
+        try support.generateWithAudit(
+            components.StatementSemanticsFramework,
             prepared.allocator,
             &owners.statement_semantics.relation,
             prepared.rows.statement_semantics,
@@ -38,7 +45,8 @@ pub fn generateAll(
             relations,
         );
     defer statement_semantics.deinit(prepared.allocator);
-    var claim_input = try components.ClaimInputFramework.generatePrepared(
+    var claim_input = try support.generateWithAudit(
+        components.ClaimInputFramework,
         prepared.allocator,
         &owners.claim_input.relation,
         prepared.rows.claim_input,
@@ -46,7 +54,8 @@ pub fn generateAll(
         relations,
     );
     defer claim_input.deinit(prepared.allocator);
-    var claim_hash = try components.ClaimHashFramework.generatePrepared(
+    var claim_hash = try support.generateWithAudit(
+        components.ClaimHashFramework,
         prepared.allocator,
         &owners.claim_hash.relation,
         prepared.rows.claim_hash,
@@ -54,7 +63,8 @@ pub fn generateAll(
         relations,
     );
     defer claim_hash.deinit(prepared.allocator);
-    var io_hash = try components.IoHashFramework.generatePrepared(
+    var io_hash = try support.generateWithAudit(
+        components.IoHashFramework,
         prepared.allocator,
         &owners.io_hash.relation,
         prepared.rows.io_hash,
@@ -63,7 +73,8 @@ pub fn generateAll(
     );
     defer io_hash.deinit(prepared.allocator);
     var claim_semantics =
-        try components.ClaimSemanticsFramework.generatePrepared(
+        try support.generateWithAudit(
+            components.ClaimSemanticsFramework,
             prepared.allocator,
             &owners.claim_semantics.relation,
             prepared.rows.claim_semantics,
@@ -71,7 +82,8 @@ pub fn generateAll(
             relations,
         );
     defer claim_semantics.deinit(prepared.allocator);
-    var public_logup = try components.PublicLogupFramework.generatePrepared(
+    var public_logup = try support.generateWithAudit(
+        components.PublicLogupFramework,
         prepared.allocator,
         &owners.public_logup.relation,
         prepared.rows.public_logup,
@@ -80,7 +92,8 @@ pub fn generateAll(
     );
     defer public_logup.deinit(prepared.allocator);
     var public_logup_control =
-        try components.PublicLogupControlFramework.generatePrepared(
+        try support.generateWithAudit(
+            components.PublicLogupControlFramework,
             prepared.allocator,
             &owners.public_logup_control.relation,
             prepared.rows.public_logup_control,
@@ -91,70 +104,79 @@ pub fn generateAll(
 
     try copy(
         components.StatementInputFramework,
-        &statement_input.columns,
+        &statement_input.interaction.columns,
         prepared.manifest,
         .statement_input,
         destination,
     );
     try copy(
         components.StatementSemanticsFramework,
-        &statement_semantics.columns,
+        &statement_semantics.interaction.columns,
         prepared.manifest,
         .statement_semantics_input,
         destination,
     );
     try copy(
         components.ClaimInputFramework,
-        &claim_input.columns,
+        &claim_input.interaction.columns,
         prepared.manifest,
         .vm_public_claim_input,
         destination,
     );
     try copy(
         components.ClaimHashFramework,
-        &claim_hash.columns,
+        &claim_hash.interaction.columns,
         prepared.manifest,
         .vm_public_claim_hash,
         destination,
     );
     try copy(
         components.IoHashFramework,
-        &io_hash.columns,
+        &io_hash.interaction.columns,
         prepared.manifest,
         .vm_public_io_hash,
         destination,
     );
     try copy(
         components.ClaimSemanticsFramework,
-        &claim_semantics.columns,
+        &claim_semantics.interaction.columns,
         prepared.manifest,
         .vm_public_claim_semantics_input,
         destination,
     );
     try copy(
         components.PublicLogupFramework,
-        &public_logup.columns,
+        &public_logup.interaction.columns,
         prepared.manifest,
         .vm_public_logup_input,
         destination,
     );
     try copy(
         components.PublicLogupControlFramework,
-        &public_logup_control.columns,
+        &public_logup_control.interaction.columns,
         prepared.manifest,
         .vm_public_logup_control,
         destination,
     );
 
-    return .{ .values = .{
-        statement_input.claimed_sum,
-        statement_semantics.claimed_sum,
-        claim_input.claimed_sum,
-        claim_hash.claimed_sum,
-        io_hash.claimed_sum,
-        claim_semantics.claimed_sum,
-        public_logup.claimed_sum,
-        public_logup_control.claimed_sum,
+    return .{ .claims = .{ .values = .{
+        statement_input.interaction.claimed_sum,
+        statement_semantics.interaction.claimed_sum,
+        claim_input.interaction.claimed_sum,
+        claim_hash.interaction.claimed_sum,
+        io_hash.interaction.claimed_sum,
+        claim_semantics.interaction.claimed_sum,
+        public_logup.interaction.claimed_sum,
+        public_logup_control.interaction.claimed_sum,
+    } }, .audits = .{
+        statement_input.audit,
+        statement_semantics.audit,
+        claim_input.audit,
+        claim_hash.audit,
+        io_hash.audit,
+        claim_semantics.audit,
+        public_logup.audit,
+        public_logup_control.audit,
     } };
 }
 

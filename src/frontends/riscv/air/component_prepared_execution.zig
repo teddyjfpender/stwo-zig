@@ -163,21 +163,30 @@ pub fn run(
                         previous_row,
                     );
                 }
-                const constraints = program_interaction.evaluate(
-                    sampled,
-                    is_active,
-                    is_first,
-                    sums,
-                    previous,
-                    self.program_claims,
-                    self.relations,
-                );
-                const powers = column_accumulator.random_coeff_powers;
-                row_evaluation = QM31.zero();
-                for (constraints, 0..) |constraint, index| {
-                    row_evaluation = row_evaluation.add(
-                        powers[powers.len - 1 - index].mul(constraint),
+                if (self.fixed_program_columns != null) {
+                    var fixed: [program_interaction.FIXED_COLUMN_COUNT]QM31 = undefined;
+                    for (&fixed, 0..) |*value, index| value.* = QM31.fromBase(evaluations[inter_start + program_interaction.N_COLUMNS + index][row]);
+                    const constraints = program_interaction.evaluateFixedGeneric(QM31, sampled, fixed, is_active, is_first, sums, previous, self.program_claims, self.relations);
+                    const powers = column_accumulator.random_coeff_powers;
+                    row_evaluation = QM31.zero();
+                    for (constraints, 0..) |constraint, index| row_evaluation = row_evaluation.add(powers[powers.len - 1 - index].mul(constraint));
+                } else {
+                    const constraints = program_interaction.evaluate(
+                        sampled,
+                        is_active,
+                        is_first,
+                        sums,
+                        previous,
+                        self.program_claims,
+                        self.relations,
                     );
+                    const powers = column_accumulator.random_coeff_powers;
+                    row_evaluation = QM31.zero();
+                    for (constraints, 0..) |constraint, index| {
+                        row_evaluation = row_evaluation.add(
+                            powers[powers.len - 1 - index].mul(constraint),
+                        );
+                    }
                 }
             },
             .memory => {

@@ -1,0 +1,15 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test 52/53 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.test.role0 schema3 base claim frames bind exact header and selected input words' failed
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.role0 statement input allows its authenticated cross-component claim', the following test command failed:
+./.zig-cache/o/82bff77fad97fbdb4504b820789c4c60/test --cache-dir=./.zig-cache --seed=0x3163ebe4 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 52/53 tests passed; 1 failed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 transitive failure
++- recursive common Ethereum incremental leaf V4 structural guard transitive failure
+   +- run test 52/53 passed, 1 failed
+      +- compile test ReleaseSafe native success 40s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/28212d97976f8e974fe6223e45a5f4e2/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x3163ebe4 -Z3198280298e4e8f8 --maxrss 25769803776 -j1 test-recursive-common-ethereum-incremental-leaf-field-public-v4 -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

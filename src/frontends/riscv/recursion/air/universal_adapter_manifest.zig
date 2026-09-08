@@ -22,6 +22,7 @@ const roster = @import("universal_roster.zig");
 /// outer manifests expose the same tiny contract with their own key enum;
 /// keeping the conversion here preserves every frozen-V1 call site and byte.
 pub const ComponentKey = roster.Component;
+pub const COMPONENT_COUNT = roster.COMPONENT_COUNT;
 
 pub fn keyIndex(key: ComponentKey) u8 {
     return @intFromEnum(key);
@@ -215,7 +216,13 @@ pub const Manifest = struct {
     /// Binds the manifest and relation registry before challenge draws.
     pub fn mixStatementPrefix(self: *const Manifest, channel: anytype) Error!void {
         try self.validate();
-        channel.mixU32s(&.{
+        channel.mixU32s(&self.transcriptHeader());
+        channel.mixU32s(&digestWords(self.seal));
+        channel.mixU32s(&digestWords(relation.registryOrderDigest()));
+    }
+
+    pub fn transcriptHeader(self: *const Manifest) [7]u32 {
+        return .{
             TRANSCRIPT_DOMAIN,
             TRANSCRIPT_FORMAT_VERSION,
             self.roster_count,
@@ -223,9 +230,7 @@ pub const Manifest = struct {
             self.total_main_columns,
             self.total_interaction_columns,
             self.total_constraints,
-        });
-        channel.mixU32s(&digestWords(self.seal));
-        channel.mixU32s(&digestWords(relation.registryOrderDigest()));
+        };
     }
 };
 
@@ -289,75 +294,8 @@ pub const Builder = struct {
     }
 };
 
-pub const ClaimVector = struct {
-    manifest_seal: digest.Digest,
-    admitted_mask: u64,
-    bound_mask: u64,
-    values: [roster.COMPONENT_COUNT]QM31,
-    seal: digest.Digest,
-
-    pub fn init(manifest: *const Manifest) Error!ClaimVector {
-        try manifest.validate();
-        var mask: u64 = 0;
-        for (manifest.roster_rows[0..manifest.roster_count]) |row|
-            mask |= rosterBit(row);
-        return .{
-            .manifest_seal = manifest.seal,
-            .admitted_mask = mask,
-            .bound_mask = 0,
-            .values = [_]QM31{QM31.zero()} ** roster.COMPONENT_COUNT,
-            .seal = [_]u8{0} ** 32,
-        };
-    }
-
-    pub fn bind(
-        self: *ClaimVector,
-        row: ComponentKey,
-        value: QM31,
-    ) Error!void {
-        const index = keyIndex(row);
-        const bit = rosterBit(index);
-        if ((self.admitted_mask & bit) == 0) return error.ClaimNotAdmitted;
-        if ((self.bound_mask & bit) != 0) return error.ClaimAlreadyBound;
-        self.values[index] = value;
-        self.bound_mask |= bit;
-    }
-
-    pub fn sealClaims(self: *ClaimVector, manifest: *const Manifest) Error!void {
-        try validateClaimGeometry(self, manifest);
-        if (self.bound_mask != self.admitted_mask) return error.ClaimMissing;
-        self.seal = claimDigest(self, manifest);
-    }
-
-    pub fn validate(self: *const ClaimVector, manifest: *const Manifest) Error!void {
-        try validateClaimGeometry(self, manifest);
-        if (self.bound_mask != self.admitted_mask) return error.ClaimMissing;
-        if (!std.mem.eql(u8, &self.seal, &claimDigest(self, manifest)))
-            return error.ClaimSealMismatch;
-    }
-
-    /// Claimed sums are absorbed in canonical roster order, before the
-    /// interaction commitment, exactly where the generic outer prover expects
-    /// the component claim vector.
-    pub fn mixInteractionClaims(
-        self: *const ClaimVector,
-        manifest: *const Manifest,
-        channel: anytype,
-    ) Error!void {
-        try self.validate(manifest);
-        channel.mixU32s(&.{manifest.roster_count});
-        for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-            const placement_value = manifest.placements[row].?;
-            channel.mixU32s(&.{
-                row,
-                placement_value.geometry.log_size,
-                placement_value.geometry.interaction_columns,
-            });
-            channel.mixFelts(&.{self.values[row]});
-        }
-        channel.mixU32s(&digestWords(self.seal));
-    }
-};
+const ProofProtocol = @import("manifest_proof_protocol.zig").Types(@This());
+pub const ClaimVector = ProofProtocol.ClaimVector;
 
 /// Type-erased binding returned by one concrete typed adapter.  The component
 /// object remains caller-owned and must stay at a stable address through the
@@ -373,93 +311,7 @@ pub const AdapterBinding = struct {
 /// Final ordered handoff to generic PCS/FRI proving and independent
 /// verification.  No allocation or virtual dispatch occurs while assembling
 /// the gate; virtual dispatch begins only inside the existing proof engine.
-pub const ProofGate = struct {
-    manifest_seal: digest.Digest,
-    roster_rows: [roster.COMPONENT_COUNT]u8,
-    verifier_components: [roster.COMPONENT_COUNT]core_components.Component,
-    prover_components: [roster.COMPONENT_COUNT]prover_component.ComponentProver,
-    claims: ClaimVector,
-    count: u8,
-    sealed: bool,
-
-    pub fn init(manifest: *const Manifest) Error!ProofGate {
-        try manifest.validate();
-        return .{
-            .manifest_seal = manifest.seal,
-            .roster_rows = [_]u8{0} ** roster.COMPONENT_COUNT,
-            .verifier_components = undefined,
-            .prover_components = undefined,
-            .claims = try ClaimVector.init(manifest),
-            .count = 0,
-            .sealed = false,
-        };
-    }
-
-    pub fn append(
-        self: *ProofGate,
-        manifest: *const Manifest,
-        binding: AdapterBinding,
-    ) Error!void {
-        if (self.sealed) return error.AdapterCountMismatch;
-        try manifest.validate();
-        if (!std.mem.eql(u8, &self.manifest_seal, &manifest.seal) or
-            !std.mem.eql(u8, &binding.manifest_seal, &manifest.seal))
-        {
-            return error.ManifestSealMismatch;
-        }
-        if (self.count >= manifest.roster_count)
-            return error.AdapterCountMismatch;
-        const expected_row = manifest.roster_rows[self.count];
-        if (binding.placement.geometry.roster_row != expected_row)
-            return error.AdapterOrderMismatch;
-        const expected = manifest.placements[expected_row].?;
-        if (!binding.placement.eql(expected) or
-            binding.verifier.nConstraints() !=
-                @as(usize, expected.geometry.direct_constraints) +
-                    expected.geometry.interaction_batches or
-            binding.prover.nConstraints() != binding.verifier.nConstraints())
-        {
-            return error.AdapterGeometryMismatch;
-        }
-
-        try self.claims.bind(@enumFromInt(expected_row), binding.claimed_sum);
-        self.roster_rows[self.count] = expected_row;
-        self.verifier_components[self.count] = binding.verifier;
-        self.prover_components[self.count] = binding.prover;
-        self.count += 1;
-    }
-
-    pub fn sealGate(self: *ProofGate, manifest: *const Manifest) Error!void {
-        if (self.count != manifest.roster_count)
-            return error.AdapterCountMismatch;
-        try self.claims.sealClaims(manifest);
-        self.sealed = true;
-    }
-
-    pub fn validate(self: *const ProofGate, manifest: *const Manifest) Error!void {
-        try manifest.validate();
-        if (!self.sealed or self.count != manifest.roster_count or
-            !std.mem.eql(u8, &self.manifest_seal, &manifest.seal))
-        {
-            return error.AdapterCountMismatch;
-        }
-        for (self.roster_rows[0..self.count], manifest.roster_rows[0..manifest.roster_count]) |
-            got,
-            expected,
-        | if (got != expected) return error.AdapterOrderMismatch;
-        try self.claims.validate(manifest);
-    }
-
-    pub fn verifierSlice(self: *const ProofGate) Error![]const core_components.Component {
-        if (!self.sealed) return error.AdapterCountMismatch;
-        return self.verifier_components[0..self.count];
-    }
-
-    pub fn proverSlice(self: *const ProofGate) Error![]const prover_component.ComponentProver {
-        if (!self.sealed) return error.AdapterCountMismatch;
-        return self.prover_components[0..self.count];
-    }
-};
+pub const ProofGate = ProofProtocol.ProofGate;
 
 fn emptyManifest() Manifest {
     return .{
@@ -511,42 +363,6 @@ fn manifestDigest(manifest: *const Manifest) digest.Digest {
     hashInt(&hash, u32, manifest.total_interaction_columns);
     hashInt(&hash, u32, manifest.total_constraints);
     return hash.finalResult();
-}
-
-fn claimDigest(claims: *const ClaimVector, manifest: *const Manifest) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hash.update(CLAIM_DOMAIN);
-    hash.update(&manifest.seal);
-    hashInt(&hash, u64, claims.admitted_mask);
-    hashInt(&hash, u64, claims.bound_mask);
-    for (manifest.roster_rows[0..manifest.roster_count]) |row| {
-        hashInt(&hash, u8, row);
-        for (claims.values[row].toM31Array()) |coordinate|
-            hashInt(&hash, u32, coordinate.toU32());
-    }
-    return hash.finalResult();
-}
-
-fn validateClaimGeometry(
-    claims: *const ClaimVector,
-    manifest: *const Manifest,
-) Error!void {
-    try manifest.validate();
-    if (!std.mem.eql(u8, &claims.manifest_seal, &manifest.seal))
-        return error.ManifestSealMismatch;
-    var expected_mask: u64 = 0;
-    for (manifest.roster_rows[0..manifest.roster_count]) |row|
-        expected_mask |= rosterBit(row);
-    if (claims.admitted_mask != expected_mask or
-        (claims.bound_mask & ~expected_mask) != 0)
-    {
-        return error.ClaimSealMismatch;
-    }
-}
-
-fn rosterBit(row: u8) u64 {
-    std.debug.assert(row < 64);
-    return @as(u64, 1) << @intCast(row);
 }
 
 fn checkedAdd(lhs: u32, rhs: anytype) Error!u32 {

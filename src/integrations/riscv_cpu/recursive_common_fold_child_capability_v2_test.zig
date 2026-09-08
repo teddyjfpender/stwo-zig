@@ -14,6 +14,15 @@ const Tagged = subject.TaggedFoldChildV2(
 );
 
 test "schema4 child capability is typed role-neutral and production closed" {
+    // Compile the concrete backend's ownership and worker handoff paths even
+    // while production geometry/parity admission remains unavailable.
+    const Backend = @import("recursive_common_fold_secure_proof_v2.zig").BackendV2(
+        @import("recursive_common_canonical_empty_universal_proof_v2.zig").CAPTURE_DERIVED_FIXED_WIRE_DIMENSIONS_V2,
+    );
+    std.mem.doNotOptimizeAway(&Backend.proveAndColdVerify);
+    std.mem.doNotOptimizeAway(&Backend.coldOpen);
+    std.mem.doNotOptimizeAway(&Backend.OwnedColdProof.fullAuditAgainst);
+    std.mem.doNotOptimizeAway(&Backend.OwnedColdProof.requireFoldChild);
     try std.testing.expectEqual(@as(u16, 2), subject.FORMAT_VERSION);
     try std.testing.expectEqual(@as(u16, 1), subject.SCHEMA_VERSION);
     try std.testing.expectEqual(@as(usize, 193), subject.QUERY_WORD_COUNT);

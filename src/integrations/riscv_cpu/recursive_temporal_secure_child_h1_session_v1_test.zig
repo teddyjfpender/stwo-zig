@@ -17,9 +17,7 @@ const h1_graph =
     @import("recursive_temporal_secure_child_h1_graph_v1.zig");
 const h1_manifest =
     @import("recursive_temporal_ethereum_poseidon_h1_manifest_v1.zig");
-const v3_test_support = @import(
-    "../../frontends/riscv/recursion/recursion_air_composition_circuit_v3_test_support.zig",
-);
+const v3_test_support = frontend.recursion.recursion_air_composition_circuit_v3_test_support;
 
 const recursion = frontend.recursion;
 const composition_v3 = recursion.recursion_air_composition_circuit_v3;

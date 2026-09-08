@@ -77,7 +77,7 @@ pub const RawObserverV4 = struct {
     }
 
     pub fn deinit(self: *RawObserverV4) void {
-        self.compact_artifacts.deinit(self.allocator);
+        compact_manifest.deinitOwnedArtifacts(self.allocator, &self.compact_artifacts);
         if (self.program_words.len != 0)
             self.allocator.free(self.program_words);
         self.profiler.deinit();
@@ -226,7 +226,7 @@ pub const RawObserverV4 = struct {
                 publish_wall_ns,
             );
 
-            try self.compact_artifacts.append(self.allocator, .{
+            try compact_manifest.appendOwnedArtifact(self.allocator, &self.compact_artifacts, .{
                 .artifact = evidence.identity(compact_path, compact_bytes),
                 .capture_wall_ns = capture_wall_ns,
                 .completion = captured.leaf.completion,
@@ -273,9 +273,9 @@ pub const RawObserverV4 = struct {
 
     pub fn validateComplete(self: *const RawObserverV4) !void {
         try self.raw_owner.requireComplete();
-        if (self.observed_count != publication.CANONICAL_SEGMENT_COUNT or
+        if (self.observed_count != self.retained.sources.len or
             self.compact_artifacts.items.len !=
-                publication.CANONICAL_SEGMENT_COUNT or
+                self.retained.sources.len or
             !self.terminal_output_validated)
         {
             return error.IncompleteIncrementalRawPublicationV4;

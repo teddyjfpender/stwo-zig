@@ -212,3 +212,38 @@ test "keccakf component: zero-call prepared evaluator uses authenticated V2 slic
         stale.evaluateConstraintQuotientsOnDomain(&trace, &stale_accumulator),
     );
 }
+
+test "keccakf component: explicit Ethereum log18 admits real campaign geometry while legacy stays log16" {
+    const relations = relations_mod.Relations.dummy();
+    const placement = component_mod.Placement{ .preprocessed_offset = 0, .main_offset = 0, .interaction_offset = 0 };
+    try std.testing.expectEqual(@as(usize, 4518), try trace_mod.maximumCallsForLogSize(16));
+    try std.testing.expectEqual(@as(usize, 18078), try trace_mod.maximumCallsForLogSize(18));
+    try std.testing.expectError(error.CallRangeTooLarge, trace_mod.maximumCallsForLogSize(19));
+    for ([_]u32{ 5509, 9828, 18078 }) |calls| {
+        const rows = try std.math.mul(u32, (calls + 1) / 2, @intCast(authority.geometry.rows_per_slot));
+        const claim = component_mod.Claim{
+            .log_size = std.math.log2_int_ceil(u32, rows),
+            .n_rows = rows,
+            .first_call_index = 0,
+            .call_count = calls,
+            .batch_sums = @splat(QM31.zero()),
+            .component_sum = QM31.zero(),
+        };
+        // This checks structural admission only; actual claim correctness is
+        // established by the retained full-leaf proving/verification gate.
+        try std.testing.expectError(error.InvalidClaim, claim.validate());
+        try std.testing.expectError(error.InvalidClaim, component_mod.KeccakShardComponent.initProver(claim, placement, &relations));
+        try claim.validateWithMaximumLogSize(18);
+        const admitted = try component_mod.KeccakShardComponent.initWithMaximumLogSize(claim, placement, &relations, 18);
+        try std.testing.expectEqual(component_mod.constraint_count, admitted.asVerifierComponent().nConstraints());
+        var changed = claim;
+        changed.log_size += 1;
+        try std.testing.expectError(error.InvalidClaim, changed.validateWithMaximumLogSize(18));
+        changed = claim;
+        changed.n_rows -= 1;
+        try std.testing.expectError(error.InvalidClaim, changed.validateWithMaximumLogSize(18));
+    }
+    const slots = try trace_mod.maximumCallsForLogSize(18) / 2;
+    try std.testing.expect(slots <= authority.geometry.maximum_slots);
+    try std.testing.expect(slots * authority.geometry.compact.chi_lookups_per_slot < 0x7fff_ffff);
+}

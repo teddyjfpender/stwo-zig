@@ -12,6 +12,8 @@ const lookup_physical_v2 =
     @import("../air/lang/lookup_physical_manifest_v2.zig");
 const statement_mod = @import("../air/statement.zig");
 const profile_mod = @import("vm_air_profile_v2.zig");
+const base_assembly = @import("../prover/base_component_assembly.zig");
+const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");
 
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
@@ -266,7 +268,20 @@ pub fn expectedSampledValueCount(
     statement: *const statement_mod.RiscVStatement,
     manifest: *const lookup_physical_v2.Manifest,
 ) !u32 {
+    return expectedSampledValueCountWithCircuitProfile(statement, manifest, .legacy_v4);
+}
+
+/// Fixed program columns are an extension after the base tree prefix. They
+/// enter the incremental compiler separately, not these base sample offsets.
+pub fn expectedSampledValueCountWithCircuitProfile(
+    statement: *const statement_mod.RiscVStatement,
+    manifest: *const lookup_physical_v2.Manifest,
+    circuit_profile: circuit.CircuitProfileV1,
+) !u32 {
     try manifest.validate();
+    if (statement.n_components > statement_mod.MAX_COMPONENTS or
+        statement.n_infra > statement_mod.MAX_INFRA_COMPONENTS)
+        return error.InvalidColumnGeometry;
     var interaction: u32 = 0;
     for (statement.component_descs[0..statement.n_components]) |descriptor| {
         interaction = std.math.add(
@@ -277,10 +292,13 @@ pub fn expectedSampledValueCount(
         ) catch return error.ArithmeticOverflow;
     }
     for (statement.infra_descs[0..statement.n_infra]) |descriptor| {
+        const layout = base_assembly.infrastructureDescriptorForCircuit(descriptor.kind, circuit_profile);
+        if (descriptor.n_columns != layout.main_columns)
+            return error.InvalidColumnGeometry;
         interaction = std.math.add(
             u32,
             interaction,
-            statement_mod.nInteractionColsForInfra(descriptor.kind),
+            @intCast(layout.interaction_columns),
         ) catch return error.ArithmeticOverflow;
     }
     const composition = verifier_types.compositionColumnCount(

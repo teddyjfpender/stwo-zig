@@ -70,9 +70,7 @@ pub fn snapshot(value: anytype) !process_validation.SnapshotV1 {
             value.fresh.statement.capture_id,
         ),
         .claims_identity_sha256 = value.claims.seal,
-        .query_identity_sha256 = querySnapshotIdentity(
-            &value.query_authority,
-        ),
+        .query_identity_sha256 = querySnapshotIdentity(value),
         .geometry_identity_sha256 = value.geometry_value.authority_identity_sha256,
         .node_public_identity_sha256 = node_public_identity,
         .graph_capture_identity_sha256 = value.composition_capture.identity_sha256,
@@ -123,7 +121,8 @@ fn captureIdTransportIdentity(words: anytype) [32]u8 {
     return hash.finalResult();
 }
 
-fn querySnapshotIdentity(value: anytype) [32]u8 {
+fn querySnapshotIdentity(owner: anytype) [32]u8 {
+    const value = &owner.query_authority;
     var hash = Sha256.init(.{});
     hash.update("stwo-zig/canonical-empty-query-snapshot/v2\x00");
     for (value.query_words) |word| hashInt(&hash, u32, word.toU32());
@@ -131,6 +130,7 @@ fn querySnapshotIdentity(value: anytype) [32]u8 {
     hash.update(std.mem.asBytes(&value.final_transcript_digest));
     hashInt(&hash, u32, value.final_transcript_draw_count);
     hash.update(&value.query_words_identity_sha256);
+    owner.transcript.updateStorageIdentity(&hash);
     return hash.finalResult();
 }
 

@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 384s
+
+Build Summary: 3/3 steps succeeded
+install-stage101-leaf-autoresearch-v1 success
++- install stage101-metal-autoresearch-v1 success
+   +- compile exe stage101-metal-autoresearch-v1 ReleaseSafe native success 1m MaxRSS:6G
+

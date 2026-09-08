@@ -1,0 +1,249 @@
+1/248 incremental_memory_transition_test_root.test_0...OK
+2/248 air.memory_commitment.incremental_transition_v1.test.incremental transition matches full roots and closes existing buses...OK
+3/248 air.memory_commitment.incremental_transition_v1.test.incremental transition mutations fail relation closure...OK
+4/248 air.memory_commitment.incremental_transition_v1.test.non-default untouched subtrees are shared across both roots...OK
+5/248 air.memory_commitment.incremental_transition_v1.test.sparse touched words reserve unpaired parents at upper depths...OK
+6/248 air.memory_commitment.incremental_frontier_v1.test.shared frontier row consumes one identical subtree under both roots...OK
+7/248 air.memory_commitment.incremental_frontier_component_v1.test.incremental frontier component pins geometry and public roots...OK
+8/248 air.memory_commitment.incremental_bridge_v2.test.changed-only bridge mode numerators are exact...OK
+9/248 air.memory_commitment.incremental_bridge_component_v2.test.incremental bridge v2 component pins claim geometry roots masks and degrees...OK
+10/248 air.memory_commitment.incremental_bridge_component_v2.test.incremental bridge v2 component rejects invalid public authority...OK
+11/248 air.memory_commitment.incremental_bridge_component_v2.test.incremental bridge v2 component binds exact one-hot selectors...OK
+12/248 air.memory_commitment.incremental_transition_v2.test.changed-only transition hashes only changed exit paths...OK
+13/248 air.memory_commitment.incremental_transition_v2.test.read-only touched words reuse the authenticated root...OK
+14/248 air.memory_commitment.incremental_transition_v2.test.sparse changed bytes reserve one parent per unpaired child...OK
+15/248 air.memory_commitment.boundary.test.memory boundary: ordinary words produce initial then final rows...OK
+16/248 air.memory_commitment.boundary.test.memory boundary: public input and output follow oracle inclusion policy...OK
+17/248 air.memory_commitment.boundary.test.memory boundary: row, root, and node mutations fail validation...OK
+18/248 air.memory_commitment.boundary.test.memory boundary: invalid addresses and duplicate words fail closed...OK
+19/248 air.memory_commitment.merkle_node.test.Merkle node AIR: leaves, nodes, hashes, and public root cancel...OK
+20/248 air.memory_commitment.merkle_node.test.Merkle node AIR: inactive rows cannot inject un-hashed tree edges...OK
+21/248 air.memory_commitment.poseidon2_air.test.poseidon2 AIR test module is linked...OK
+22/248 air.memory_commitment.poseidon2_air.test.poseidon2 narrow row pairs are field-identical to the generic entry builder...OK
+23/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: empty tree has pinned default root and no claims...OK
+24/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: leaves sort deterministically and use default siblings...OK
+25/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: linear batched frontier is byte-identical...OK
+26/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: count-only frontier rejects noncanonical index order...OK
+27/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: linear batched frontier preserves validation errors...OK
+28/248 air.memory_commitment.sparse_merkle.test.sparse Merkle autoresearch: compare reference and linear batched frontier...SKIP
+29/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: duplicate and out-of-domain leaves fail closed...OK
+30/248 air.memory_commitment.sparse_merkle.test.sparse Merkle: leaf and internal-node mutations are rejected...OK
+31/248 air.memory_commitment.poseidon2.test.memory Poseidon2: pinned default hash chain...OK
+32/248 air.memory_commitment.poseidon2.test.memory Poseidon2: scalar pair vector is stable...OK
+33/248 air.memory_commitment.poseidon2.test.memory Poseidon2: four-lane hashes equal scalar hashes...OK
+34/248 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+35/248 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+36/248 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+37/248 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+38/248 air.logup.test.geometry: trace-order shift equals evaluation at point minus coset step...OK
+39/248 air.logup.test.cumulativeColumn accumulates batched fractions and reports the claim...OK
+40/248 air.logup.test.pairConstraint vanishes exactly on honest cumulative columns...OK
+41/248 air.logup.test.state chain closes for one, two, many, and interleaved shards...OK
+42/248 air.logup.test.state chain rejects omission, duplication, boundary mutation, and field cycles...OK
+43/248 air.logup.test.program bus balances executed rows against ROM multiplicities...OK
+44/248 infra_trace.test.infra_trace: genPoseidon2Columns basic...OK
+45/248 infra_trace.test.infra_trace: genPoseidon2Columns empty traces...OK
+46/248 infra_trace.test.infra_trace: genMerkleColumns basic...OK
+47/248 infra_trace.test.infra_trace: genMerkleColumns empty...OK
+48/248 infra_trace.test.infra_trace: genMerkleColumns clamps to domain_size...OK
+49/248 infra_trace.test.infra_trace: genProgramColumns basic...OK
+50/248 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns basic...OK
+51/248 infra_trace.test.infra_trace: genProgramColumns row count with duplicates...OK
+52/248 infra_trace.test.infra_trace: genProgramColumns enabler count and multiplicity sum...OK
+53/248 infra_trace.test.infra_trace: genProgramColumns all columns have domain_size length...OK
+54/248 infra_trace.test.infra_trace: genProgramColumns empty trace...OK
+55/248 infra_trace.test.infra_trace: genMemoryColumns row count...OK
+56/248 infra_trace.test.infra_trace: genMemoryColumns value decomposition...OK
+57/248 infra_trace.test.infra_trace: genMemoryColumns all columns have domain_size length...OK
+58/248 infra_trace.test.infra_trace: genMemoryColumns includes register accesses...OK
+59/248 infra_trace.test.infra_trace: genMemClockUpdateColumns empty when no gaps...OK
+60/248 infra_trace.test.infra_trace: genMemClockUpdateColumns with gap filling...OK
+61/248 infra_trace.test.infra_trace: genMemClockUpdateColumns all columns have domain_size length...OK
+62/248 infra_trace.test.infra_trace: genRegClockUpdateColumns empty when no gaps...OK
+63/248 infra_trace.test.infra_trace: genRegClockUpdateColumns with gap filling...OK
+64/248 infra_trace.test.infra_trace: genRegClockUpdateColumns all columns have domain_size length...OK
+65/248 infra_trace.test.infra_trace: unified clock updates preserve address spaces...OK
+66/248 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns empty trace...OK
+67/248 infra_trace.test.infra_trace: genPreprocessedMultiplicityColumns all tables same size...OK
+68/248 infra_trace.test.infra_trace: multiplicityLogSize consistency...OK
+69/248 air.lookups.entry.test.lookup entry domains retain transcript order...OK
+70/248 air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+71/248 air.memory_commitment.interaction.test.memory boundary interaction is padding invariant...OK
+72/248 runner.memory_state.test.memory state: continuation treats newly touched zero words as absent leaves...OK
+73/248 runner.memory_state.test.memory state: address union is sorted and duplicate free...OK
+74/248 runner.memory_state.test.memory state: leaf-local first-access values replace entry snapshot...OK
+75/248 runner.memory_state.test.memory state: captures initialized and accessed RW words in address order...OK
+76/248 runner.memory_state.test.memory state: first and last segment roles classify IO independently...OK
+77/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: exact narrow pair matches the pinned permutation...OK
+78/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: generated column schedule matches pinned Rust...OK
+79/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: arbitrary canonical narrow pairs satisfy every constraint...OK
+80/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: input, intermediate, output, and conflicting flags fail...OK
+81/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: padding is zero and the enabler is boolean...OK
+82/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: Merkle input and narrow output cancel exactly...OK
+83/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: carried narrow output preserves active interaction terms...OK
+84/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: retained IO outputs remove permutation replay exactly...OK
+85/248 air.memory_commitment.poseidon2_air_test.Tests(.{ .std = std, .M31 = fields.m31.M31, .QM31 = fields.qm31.QM31, .logup = air.logup, .relations_mod = air.relation_challenges, .permutation = air.memory_commitment.poseidon2, .WIDTH = 16, .N_MAIN_COLUMNS = 445, .N_CONSTRAINTS = 430, .INPUT_START = 1, .TEMP_START = 17, .WIDE_COLUMN = 443, .IO_COLUMN = 444, .OUTPUT_START = 427, .Call = air.memory_commitment.poseidon2_air.Call, .Claims = air.memory_commitment.poseidon2_air.Claims, .fill = (function 'fill'), .output = (function 'output'), .evaluate = (function 'evaluate'), .generateInteraction = (function 'generateInteraction'), .generateIoInteractionFromOutputs = (function 'generateIoInteractionFromOutputs'), .claimsFromIoOutputs = (function 'claimsFromIoOutputs'), .claimsFromIoOutputsInto = (function 'claimsFromIoOutputsInto'), .rowPairsFromCall = (function 'rowPairsFromCall'), .rowPairs = (function 'rowPairs'), .secureRow = (function 'secureRow'), .expectAllZero = (function 'expectAllZero') }).test.poseidon2 AIR: retained IO claims-only audit matches active and padded domains...OK
+86/248 common.poseidon2.test.poseidon2: permutation is deterministic...OK
+87/248 common.poseidon2.test.poseidon2: non-zero output from zero input...OK
+88/248 common.poseidon2.test.poseidon2: hashPair produces 8 elements...OK
+89/248 common.poseidon2.test.poseidon2: sbox is x^5...OK
+90/248 common.poseidon2.test.poseidon2: mds4x4 circulant correctness...OK
+91/248 common.poseidon2.test.poseidon2: permuteTraced produces same output as permute...OK
+92/248 common.poseidon2.test.poseidon2: permuteTraced captures initial state...OK
+93/248 common.poseidon2.test.poseidon2: PermuteTrace flatten produces 443 values...OK
+94/248 common.poseidon2.test.poseidon2: permuteTraced round traces are non-trivial...OK
+95/248 runner.trace.test.trace groups opcode families...OK
+96/248 runner.trace.test.trace rejects execution-only opcodes before family witness generation...OK
+97/248 runner.trace.test.trace hands out filtered opcodes index-parallel to its rows...OK
+98/248 runner.trace.test.the total family map is reachable only through the filter...OK
+99/248 runner.trace.test.witness rows satisfy base and shift semantic evaluators...OK
+100/248 runner.trace.test.witness rows satisfy comparison and branch semantic evaluators...OK
+101/248 runner.trace.test.witness rows satisfy upper jump and memory semantic evaluators...OK
+102/248 runner.trace.test.padding rows remain inactive for flag and explicit-enabler families...OK
+103/248 runner.decode.test_0...OK
+104/248 isa.decode.test.decode ADD x1, x2, x3 (0x003100B3)...OK
+105/248 isa.decode.test.architectural operand and memory effects ignore encoding-only fields...OK
+106/248 isa.decode.test.decode ADDI x5, x0, 42 (0x02A00293)...OK
+107/248 isa.decode.test.decode SW x5, 0(x2) (0x00512023)...OK
+108/248 isa.decode.test.decode LW x6, 0(x2) (0x00012303)...OK
+109/248 isa.decode.test.decode BEQ x1, x2, +8 (0x00208463)...OK
+110/248 isa.decode.test.decode JAL x1, +0 (0x000000EF)...OK
+111/248 isa.decode.test.decode LUI x1, 0x12345000 (0x12345_0B7)...OK
+112/248 isa.decode.test.decode MUL x1, x2, x3 (0x023100B3)...OK
+113/248 isa.decode.test.decoder and proof boundary reject the manifest-owned preflight matrix...OK
+114/248 isa.decode.test.proof opcode conversion covers the profile and rejects host controls...OK
+115/248 isa.decode.test.decode SUB x1, x2, x3 (0x403100B3)...OK
+116/248 isa.decode.test.decode ADDI with negative immediate...OK
+117/248 isa.decode.test.decoder equivalence: Zig decoder vs known RV32IM instruction encodings...OK
+118/248 air.trace_columns.test.opcode-family widths pin compact reads and sound x0 extensions...OK
+119/248 air.trace_columns.test.total opcode family columns is 646...OK
+120/248 air.program.table.test.decoded program table: unique PCs retain order and multiplicity...OK
+121/248 air.program.table.test.decoded program table: changing a word at one PC is rejected...OK
+122/248 air.program.table.test.decoded program table: instruction addresses are aligned and commitment-bounded...OK
+123/248 air.program.table.test.decoded program table: manifest rejection matrix fails before row construction...OK
+124/248 air.program.table.test.decoded program table: empty fetch stream produces an empty table...OK
+125/248 air.program.decode.test.decoded program: every proof-bearing RV32IM word maps to its protocol id...OK
+126/248 air.program.decode.test.decoded program: pinned numeric tuple vectors...OK
+127/248 air.program.decode.test.decoded program: negative signed immediates use canonical M31...OK
+128/248 air.program.decode.test.decoded program: rejects the manifest-owned proof preflight matrix...OK
+129/248 air.program.decode.test.decoded program: Poseidon2 profile appends one exact CUSTOM-0 tuple...OK
+130/248 air.program.decode.test.decoded program: Keccak-f profile owns the same isolated extension slot...OK
+131/248 air.program.decode.test.decoded program: Ethereum profile separates Keccak-f and signer recovery...OK
+132/248 air.program.decode.test.decoded program: CUSTOM-0 authority remains profile-separated...OK
+133/248 air.program.decode.test.decoded declared program: Ethereum unimp padding is exact and never executable...OK
+134/248 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+135/248 air.program.opcode.test.program opcode: legacy ids stay stable and local extensions append...OK
+136/248 opcode_manifest.test.opcode manifest is complete and preserves legacy protocol ids...OK
+137/248 opcode_manifest.test.host-control instructions have no proof-family field...OK
+138/248 opcode_manifest.test.opcode manifest owns a unique fail-closed decoder matrix...OK
+139/248 runner.state_chain.test.state_chain: register access tracking...OK
+140/248 runner.state_chain.test.state_chain: clock gap filling...OK
+141/248 runner.state_chain.test.state_chain: decomposeU32...OK
+142/248 runner.state_chain.test.state_chain: memory access tracking...OK
+143/248 runner.state_chain.test.state_chain: reserved transition batch commits without allocation...OK
+144/248 runner.state_chain.test.state_chain: memory transition retains the first aligned baseline...OK
+145/248 runner.state_chain.test.state_chain: mixed register and memory accesses...OK
+146/248 runner.state_chain.test.state_chain: no gap filling when within MAX_CLOCK_DIFF...OK
+147/248 runner.state_chain.test.state_chain: effective predecessor matches saturating oracle distance...OK
+148/248 runner.state_chain.test.state_chain: gap filling generates correct chain...OK
+149/248 runner.state_chain.test.state_chain: long memory transition joins synthetic rows to the real access...OK
+150/248 runner.memory.test.Memory readU32/writeU32 roundtrip...OK
+151/248 runner.memory.test.Memory byte-level access...OK
+152/248 runner.memory.test.Memory readByte returns 0 for untouched addresses...OK
+153/248 runner.memory.test.Memory canonical initialized inventory merges only new words...OK
+154/248 runner.memory.test.Memory canonical inventory rejects count divergence...OK
+155/248 runner.memory.test.Memory little-endian byte order...OK
+156/248 runner.memory.test.Memory readU16/writeU16 roundtrip...OK
+157/248 runner.memory.test.Memory accesses preserve wrapping page-boundary semantics...OK
+158/248 runner.memory.test.Memory prepared aligned writes commit without lazy allocation...OK
+159/248 air.transcript.claims.test.claim transcript: canonical component order is pinned...OK
+160/248 air.transcript.claims.test.claim transcript: main and interaction mix call boundaries are canonical...OK
+161/248 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+162/248 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+163/248 air.semantics.mod.test_0...OK
+164/248 air.trace_columns.m_extension.test.RV32M layouts expose exact oracle boundary fields...OK
+165/248 isa.execution_profile.test.execution profile wire IDs, names, and semantic identity are pinned...OK
+166/248 isa.custom0.test.Poseidon2 CUSTOM-0 admits exactly the 32 rs1 encodings in the extension profile...OK
+167/248 isa.custom0.test.Poseidon2 CUSTOM-0 compares every fixed encoding bit...OK
+168/248 isa.custom0.test.CUSTOM-0 decoder does not claim ordinary RV32IM words...OK
+169/248 isa.custom0.test.Keccak-f encoding is exact and admitted only by its profile...OK
+170/248 isa.custom0.test.Ethereum profile combines unchanged Keccak-f and exact signer recovery...OK
+171/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: ADD accepts byte carry chain...OK
+172/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: compact sources alias consumed and emitted values...OK
+173/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: ADD rejects a forged result...OK
+174/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: x0 discards arithmetic and bitwise results...OK
+175/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: SUB accepts unsigned wraparound...OK
+176/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: decoded tuple uses pinned Stark-V ids...OK
+177/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: access lookups emit at derived subclocks...OK
+178/248 air.semantics.base_alu_reg.Semantics(fields.qm31.QM31).selfTests().test.base alu reg semantics: oracle adapter preserves access-first layout...OK
+179/248 air.semantics.common.Ops(fields.qm31.QM31).selfTests().test.semantics common: compose little-endian word...OK
+180/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: exact ADDI accepts an honest row...OK
+181/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: rs1 must emit the value it consumed...OK
+182/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: exact ADDI rejects known impossible witness...OK
+183/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: byte carries reject M31 word alias...OK
+184/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: x0 discards arithmetic and bitwise results...OK
+185/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: negative immediate sign extends by bytes...OK
+186/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: access lookups preserve register chain values...OK
+187/248 air.semantics.base_alu_imm.Semantics(fields.qm31.QM31).selfTests().test.base alu imm semantics: oracle adapter preserves access-first layout...OK
+188/248 air.semantics.shifts_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts reg: exact SLL row and tuple are accepted...OK
+189/248 air.semantics.shifts_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts reg: forged output and non-hot markers are rejected...OK
+190/248 air.semantics.shifts_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts reg: read-only sources must emit the value they consumed...OK
+191/248 air.semantics.shifts_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts reg: arithmetic right shift binds sign extension...OK
+192/248 air.semantics.shifts_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts reg: adapter follows oracle access-first order...OK
+193/248 air.semantics.shift_common.Semantics(fields.qm31.QM31).selfTests().test.shift common: logical right shift cannot choose arithmetic sign fill...OK
+194/248 air.semantics.shift_common.Semantics(fields.qm31.QM31).selfTests().test.shift common: arithmetic sign range binds operand bit 31...OK
+195/248 air.semantics.shifts_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts imm: exact SLLI row is accepted...OK
+196/248 air.semantics.shifts_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts imm: immediate and carry forgeries are rejected...OK
+197/248 air.semantics.shifts_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts imm: rs1 must emit the value it consumed...OK
+198/248 air.semantics.shifts_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.shifts imm: adapter uses oracle access-first order...OK
+199/248 air.semantics.lt_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt reg: exact unsigned comparison is accepted...OK
+200/248 air.semantics.lt_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt reg: forged result and multiple diff markers are rejected...OK
+201/248 air.semantics.lt_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt reg: read-only source access must emit the value it consumed...OK
+202/248 air.semantics.lt_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt reg: signed negative-to-zero comparison uses M31 limbs...OK
+203/248 air.semantics.lt_reg_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt reg: adapter preserves oracle witness order...OK
+204/248 air.semantics.lt_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt imm: exact unsigned comparison is accepted...OK
+205/248 air.semantics.lt_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt imm: forged result and malformed immediate are rejected...OK
+206/248 air.semantics.lt_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt imm: read-only source access must emit the value it consumed...OK
+207/248 air.semantics.lt_imm_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lt imm: adapter preserves exact immediate decomposition...OK
+208/248 air.semantics.branch_eq_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch eq: BEQ equality accepts and binds decoded program tuple...OK
+209/248 air.semantics.branch_eq_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch eq: forged equality over unequal limbs is rejected...OK
+210/248 air.semantics.branch_eq_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch eq: BNE inequality requires a valid inverse marker...OK
+211/248 air.semantics.branch_eq_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch eq: read-only source access must emit the value it consumed...OK
+212/248 air.semantics.branch_eq_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch eq: exact 30-column adapter follows pinned order...OK
+213/248 air.semantics.control_common.Ops(fields.qm31.QM31).selfTests().test.control common: register access preserves signed relation requests...OK
+214/248 air.semantics.branch_lt_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch lt: honest BLTU row accepts and emits exact lookups...OK
+215/248 air.semantics.branch_lt_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch lt: signed BGE correctly does not take negative-one versus zero...OK
+216/248 air.semantics.branch_lt_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch lt: forged comparison and branch target are rejected...OK
+217/248 air.semantics.branch_lt_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch lt: read-only source access must emit the value it consumed...OK
+218/248 air.semantics.branch_lt_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.branch lt: exact 37-column adapter preserves final witnesses...OK
+219/248 air.semantics.lui_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lui: exact lookup writes the decomposed upper immediate...OK
+220/248 air.semantics.lui_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lui: forged non-boolean enabler is rejected...OK
+221/248 air.semantics.lui_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.lui: exact adapter has upstream enabler first...OK
+222/248 air.semantics.auipc_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.auipc: honest result satisfies direct equation and exact ranges...OK
+223/248 air.semantics.auipc_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.auipc: forged destination is rejected...OK
+224/248 air.semantics.auipc_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.auipc: p + 2 aliased immediate decomposition is rejected...OK
+225/248 air.semantics.auipc_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.auipc: exact adapter has upstream enabler first...OK
+226/248 air.semantics.jal_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jal oracle: honest jump binds link and target...OK
+227/248 air.semantics.jal_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jal oracle: forged link register is rejected...OK
+228/248 air.semantics.jal_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jal oracle: duplicate predecessor request is exact...OK
+229/248 air.semantics.jal_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jal oracle: adapter preserves physical order...OK
+230/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: honest odd sum clears bit zero to an aligned target...OK
+231/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: rs1 write-back through the access chain is rejected...OK
+232/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: target bit, word split, and link register are bound...OK
+233/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: signed immediate and u32 wraparound use exact byte carries...OK
+234/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: misaligned cleared target is rejected row locally...OK
+235/248 air.semantics.jalr_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.jalr: exact adapter expands rd then rs1 after leading enabler...OK
+236/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: signed byte load is accepted with exact address roles...OK
+237/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: forged selected byte and unaligned selector are rejected...OK
+238/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: compact reads alias consumed and emitted values...OK
+239/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: byte store preserves the unmarked bytes of the word...OK
+240/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: signed-load range requests bind the selected sign byte...OK
+241/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: a load to x0 still constrains memory but discards its result...OK
+242/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: word store reverses register and memory roles...OK
+243/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: a base near the field modulus cannot alias an address...OK
+244/248 air.semantics.load_store_legacy_test_oracle.Semantics(fields.qm31.QM31).selfTests().test.load store: adapter follows exact role and flag order...OK
+245/248 air.lookups.tables.schema.test.table schemas match pinned log sizes, arities, and boundary tuples...OK
+246/248 air.lookups.tables.schema.test.table indices roundtrip sampled rows and reject mutations...OK
+247/248 air.lookups.tables.schema.test.range M31 duplicate row is deterministic but not index-addressable...OK
+248/248 air.lookups.tables.schema.test.preprocessed columns use deterministic committed bit-reversed order...OK
+247 passed; 1 skipped; 0 failed.

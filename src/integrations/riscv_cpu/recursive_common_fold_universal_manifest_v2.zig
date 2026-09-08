@@ -17,10 +17,11 @@ const base = air.universal_adapter_manifest;
 const range_bridge = air.range_check_8_8_bridge;
 const roster = air.universal_roster;
 const universal_manifest = air.universal_manifest;
+pub const catalog = @import("recursive_common_fold_catalog_v3.zig");
 const Sha256 = std.crypto.hash.sha2.Sha256;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 2;
 pub const COMPONENT_COUNT: usize = roster.COMPONENT_COUNT;
 pub const COMMON_FOLD_ROLE =
     registry_mod.CircuitRoleV1.common_fold_field_v2;
@@ -88,7 +89,7 @@ pub fn validateExact(
 /// mint geometry, registry parity, or a production capability.
 pub fn buildForDerivedLogSizes(log_sizes: LogSizes) Error!Manifest {
     try validateDerivedLogSizes(log_sizes);
-    const result = try universal_manifest.build(log_sizes);
+    const result = try universal_manifest.buildForCatalog(catalog, log_sizes);
     try validateForDerivedLogSizes(&result, log_sizes);
     return result;
 }
@@ -99,7 +100,7 @@ pub fn validateForDerivedLogSizes(
 ) Error!void {
     try validateDerivedLogSizes(log_sizes);
     try manifest.validate();
-    const expected = try universal_manifest.build(log_sizes);
+    const expected = try universal_manifest.buildForCatalog(catalog, log_sizes);
     if (!std.meta.eql(manifest.*, expected) or
         manifest.roster_count != COMPONENT_COUNT)
     {
@@ -202,7 +203,7 @@ pub const AuthorityV2 = struct {
     ) Error!AuthorityV2 {
         try parity.validate(registry, geometries);
         const log_sizes = try exactLogSizes(parity);
-        const manifest_value = try universal_manifest.build(log_sizes);
+        const manifest_value = try universal_manifest.buildForCatalog(catalog, log_sizes);
         try validateManifest(&manifest_value, log_sizes, parity);
         var result = AuthorityV2{
             .registry = registry,
@@ -220,7 +221,7 @@ pub const AuthorityV2 = struct {
     pub fn validate(self: *const AuthorityV2) Error!void {
         try self.parity.validate(self.registry, self.geometries);
         const expected_logs = try exactLogSizes(self.parity);
-        const expected_manifest = try universal_manifest.build(expected_logs);
+        const expected_manifest = try universal_manifest.buildForCatalog(catalog, expected_logs);
         try validateManifest(
             &self.manifest_value,
             self.log_sizes,
@@ -394,7 +395,7 @@ fn validateManifest(
     parity: *const PaddingParity,
 ) Error!void {
     try manifest.validate();
-    const expected = try universal_manifest.build(log_sizes);
+    const expected = try universal_manifest.buildForCatalog(catalog, log_sizes);
     if (!std.meta.eql(manifest.*, expected) or
         manifest.roster_count != COMPONENT_COUNT or
         manifest.total_preprocessed_columns !=
@@ -452,11 +453,140 @@ fn hashInt(hash: *Sha256, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 2 or
         COMPONENT_COUNT != 36 or POSEIDON_ROW != 34 or RANGE_ROW != 35 or
         field_public.POSEIDON_CALL_COUNT != 116 or PRODUCTION_ACTIVATION or
         !REQUIRES_THREE_COLD_GEOMETRIES or SERIALIZABLE_GEOMETRY_CAPABILITY)
     {
         @compileError("common-fold universal manifest contract drifted");
     }
+}
+
+/// Shared derived geometry for explicit-key folds. Existing bootstrap identities
+/// retain their caller-owned authority domain and inactive-row floor.
+pub fn DerivedPolicyForLive(comptime Live: type, comptime Fixed: type, comptime authority_domain: []const u8) type {
+    return struct {
+        pub fn initManifest(
+            live: *const Live,
+            source_owner: *const Fixed.OwnerV2,
+            suffix_logs: [17]u32,
+        ) !Manifest {
+            try live.requireFixedWireSource();
+            try source_owner.validate();
+            var logs = [_]u32{4} **
+                COMPONENT_COUNT;
+            try source_owner.transcriptRows().installLogSizes(&logs);
+            for (suffix_logs, 18..) |log_size, index| logs[index] = log_size;
+            logs[RANGE_ROW] = range_bridge.LOG_SIZE;
+            return buildForDerivedLogSizes(logs);
+        }
+
+        pub fn validateManifest(
+            value: *const Manifest,
+            live: *const Live,
+            source_owner: *const Fixed.OwnerV2,
+            suffix_logs: [17]u32,
+        ) !void {
+            const expected = try initManifest(live, source_owner, suffix_logs);
+            if (!std.meta.eql(value.*, expected))
+                return error.BootstrapManifestMismatch;
+        }
+
+        pub fn contractIdentity(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) ![32]u8 {
+            return contractIdentityForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn profileIdentity(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) ![32]u8 {
+            return profileIdentityForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn programIdentity(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) ![32]u8 {
+            return programIdentityForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn paddingLayoutIdentity(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) ![32]u8 {
+            return paddingIdentityForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn tableLayoutIdentity(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) ![32]u8 {
+            return tableLayoutIdentityForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn verificationKeyId(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) !channel.Digest {
+            return verificationKeyIdForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn nextParentVkId(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) !channel.Digest {
+            return nextParentVkIdForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn airProgramId(
+            _: *const Live,
+            manifest: *const Manifest,
+        ) !channel.Digest {
+            return airProgramIdForDerivedManifest(
+                manifest,
+                try logsOf(manifest),
+            );
+        }
+
+        pub fn authorityIdentity(
+            live: *const Live,
+            manifest: *const Manifest,
+        ) [32]u8 {
+            var hash = Sha256.init(.{});
+            hash.update(authority_domain);
+            hash.update(&live.identity_sha256);
+            hash.update(&manifest.seal);
+            return hash.finalResult();
+        }
+        fn logsOf(value: *const Manifest) !LogSizes {
+            var result: LogSizes = undefined;
+            for (COMPONENT_KEYS, &result) |key, *log| log.* = (try value.placement(key)).geometry.log_size;
+            try validateForDerivedLogSizes(value, result);
+            return result;
+        }
+    };
 }

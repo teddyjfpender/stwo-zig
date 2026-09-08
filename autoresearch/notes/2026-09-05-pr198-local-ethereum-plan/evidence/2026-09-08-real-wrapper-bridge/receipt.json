@@ -1,0 +1,58 @@
+{
+  "recorded_at": "2026-09-07T20:07:04.890160+00:00",
+  "scope": "Failed real segment1 wrapper materialization after successful native verification of retained pair1/2",
+  "matching_component_count": 122,
+  "base_component_count": 108,
+  "ethereum_component_count": 14,
+  "native_final": [
+    1864147797,
+    1128166270,
+    667221954,
+    298649585
+  ],
+  "composition_sample": [
+    1864147797,
+    1128166270,
+    667221954,
+    298649585
+  ],
+  "graph_final": [
+    1387230018,
+    786865109,
+    2097493390,
+    534544827
+  ],
+  "unsatisfied_residual": [
+    476917779,
+    341301161,
+    717212211,
+    1911588405
+  ],
+  "first_divergent_component": "incremental_bridge",
+  "bridge_constraint_count": 6,
+  "request_ns": 322225115834,
+  "peak_footprint_bytes": 1763117096,
+  "whole_block_verified": false,
+  "real_wrapper_verified": false,
+  "files": {
+    "matched-diagnostic.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-real-wrapper-bridge/matched-diagnostic.log",
+      "sha256": "34f36e4575f0f685443203786d1f0315690ce7d087ee743aa652bc296cfd0390",
+      "bytes": 2344177
+    },
+    "component-comparison.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-real-wrapper-bridge/component-comparison.json",
+      "sha256": "9c76bb6fbc8b734597fbaf5e97fa7d1d14e8a207052d4f176c61600a0ef4c039",
+      "bytes": 52749
+    },
+    "compare.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-real-wrapper-bridge/compare.py",
+      "sha256": "b2cc4328a8bb262a4ea9c33982e691fd8e048168b0cf74e1f98a843df22868c8",
+      "bytes": 1599
+    }
+  },
+  "native_pair_manifest": {
+    "path": ".git/local-ethereum/real-program-wrapper-pair-1-2-v1/native-inputs-v1.json",
+    "sha256": "ce02d3a7d3ec890df9e1ca1cc9fa1dc18f76cf5f6f6b73b755375911424e2c04"
+  }
+}

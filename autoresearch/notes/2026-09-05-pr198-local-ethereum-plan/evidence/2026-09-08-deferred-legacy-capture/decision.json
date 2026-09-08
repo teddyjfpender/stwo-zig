@@ -1,0 +1,8 @@
+{
+  "status": "deferred_not_runtime_validated",
+  "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig",
+  "accepted_v15_sha256": "bbb8ec0f49640ab0ea02561a2b526e0cc96a52bed7642033d24c87777d22d64f",
+  "deferred_v19_sha256": "a24453f8ca9d3c8afaa41f9fe2e977ad922ea3e1b77e561fa052e1b934b25eb8",
+  "reason": "Next root production and detached parent do not call this legacy capture constructor. Restore accepted implementation instead of imposing an unused optimization and its 45-60 minute retained-candidate acceptance on delivery. Keep full legacy diagnostic path. Frozen running v19 replay is unchanged.",
+  "acceptance_if_reintroduced": "test-ethereum-wrapper-candidate-replay with STWO_ETHEREUM_COMPOSITION_ADMISSION_REGRESSION=1 and independently accepted canonical wrapper envelope; require complete parity, mutation rejection, cold verification and terminal guarded1/1."
+}

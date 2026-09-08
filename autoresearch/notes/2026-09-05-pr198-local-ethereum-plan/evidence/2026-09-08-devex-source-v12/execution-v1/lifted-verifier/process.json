@@ -1,0 +1,10 @@
+{
+  "pid": 57973,
+  "argv": [
+    "python3",
+    "-c",
+    "import subprocess, sys\nfrom scripts.zig_serial_build import build_lock\nwith build_lock(label=\"Ethereum lifted verifier regression\"):\n    result = subprocess.run(['zig', 'test', '/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/source/src/core/vcs_lifted_verifier_test_root.zig', '-O', 'ReleaseSafe', '--test-filter', 'vcs_lifted verifier:'], timeout=900, check=False)\nraise SystemExit(result.returncode)\n"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/source",
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/lifted-verifier.log"
+}

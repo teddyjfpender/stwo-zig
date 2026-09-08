@@ -1,0 +1,44 @@
+test-ethereum-complete-proof
++- Ethereum complete proof lifecycle guard
+   +- run test 2/3 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper' failed: ETHEREUM_BASE_BOUND_PROGRAM sha256=ecfd324f8088f9c985210b728d91851fb1144254f0bb6d52aa3d7ed0e3625f55 bytes=1048 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/base-bound-v3/program.elf
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47169714834 process_cpu_ns=49720102833 parallelism_milli=1054 peak_footprint_bytes=289981256 energy_nj=229219581489 instructions=1101062645226 cycles=197150925775 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1258501375 process_cpu_ns=1256258542 parallelism_milli=998 peak_footprint_bytes=289981256 energy_nj=6450430498 instructions=27903886489 cycles=4962090679 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=5123988958 process_cpu_ns=5123012500 parallelism_milli=999 peak_footprint_bytes=1958562120 energy_nj=25419674752 instructions=86552604495 cycles=20328166216 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38846375 public_ns=293282916 transcript_ns=136376209 profile_ns=38041 program_ns=66759167 prepare_ns=65476208 fri_ns=3797752250 seal_ns=39482625 total_ns=4438016250 nodes=540192 node_bytes=10803840 output_bytes=176 binding_bytes=2468976 schedule_bytes=8051316 evaluation_bytes=8643072 input_bytes=617244 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=74 bytes=856174946 peak=1893502489 allocated=3177384412 freed=2321209466 untracked=0
+ETHEREUM_COHORT_RESOURCES phase=begin wall_ns=1000 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=geometry-ready wall_ns=5230082250 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=prefix-components wall_ns=1691900958 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=prefix-rows wall_ns=4219688833 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=suffix-rows wall_ns=2591280750 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=provider-main wall_ns=1905900292 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-begin wall_ns=14250 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=true ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_TUPLE_RESERVATION phase=before prefix_bound=3811136 suffix_bound=452820 native_bound=142942382 range_bound=65536 contribution_bound=147272324 bytes=20029036064
+ETHEREUM_COHORT_RESOURCES phase=ledger-reserved wall_ns=398167 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=true ledger_len=0 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-prefix wall_ns=2719651208 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=true ledger_len=944216 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=128413376 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-suffix wall_ns=46054958 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=17836897864 ledger_present=true ledger_len=1083160 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=147309760 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-native wall_ns=17274723167 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=27332448608 ledger_present=true ledger_len=68788337 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=9355213832 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=range-provider wall_ns=1901788875 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=27332448608 ledger_present=true ledger_len=68788787 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=9355275032 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-range wall_ns=2876167 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=27332448608 ledger_present=true ledger_len=68788872 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=9355286592 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_TUPLE_RESERVATION phase=after contribution_bound=147272324 actual=68788872 unused=78483452 unused_bytes=10673749472 capacity=147272324
+ETHEREUM_COHORT_RESOURCES phase=ledger-classified wall_ns=27608224625 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=27332448608 ledger_present=true ledger_len=68788872 ledger_capacity=147272324 tuple_record_bytes=136 ledger_used_bytes=9355286592 ledger_capacity_bytes=20029036064 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=ledger-released wall_ns=4118519125 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=27332448608 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+SECURE_Q193_STAGE=prove.stark error=InvalidProofShape
+SECURE_Q193_STAGE=engine.prove error=InvalidProofShape
+ETHEREUM_INCREMENTAL_ROLE0_Q193_STAGE=role0.engine error=InvalidProofShape
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=597676632792 process_cpu_ns=1583265862625 parallelism_milli=2649 peak_footprint_bytes=45273744552 energy_nj=6025912043549 instructions=28360782677672 cycles=5761557536980 workers=1 host_byte_budget=8589934592
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=role0_prove error=InvalidProofShape
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper', the following test command failed:
+./.zig-cache/o/86ce3bac499f49625bb9b60b9c9bdd1a/test --cache-dir=./.zig-cache --seed=0x44956a7f --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 2/3 tests passed; 1 failed
+test-ethereum-complete-proof transitive failure
++- Ethereum complete proof lifecycle guard transitive failure
+   +- run test 2/3 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/3010a837b0f48ca493b601ba621d6a25/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x44956a7f -Z779c5c21bc934c80 --maxrss 25769803776 -j1 test-ethereum-complete-proof -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

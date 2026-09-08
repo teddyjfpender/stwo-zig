@@ -106,7 +106,7 @@ pub fn Namespace(comptime context: type) type {
                 .right = &inactive,
             };
 
-            const pcs_input_count = captured.pcs_circuit.bindings.len;
+            const pcs_input_count = captured.pcs_circuit.view().bindings.len;
             const pcs_active_inputs = try allocator.alloc(M31, pcs_input_count);
             defer allocator.free(pcs_active_inputs);
             const pcs_inactive_inputs = try allocator.alloc(M31, pcs_input_count);

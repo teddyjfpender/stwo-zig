@@ -644,3 +644,43 @@ fn providerResidencyRequest(count: usize) shard_planner.Request {
         .requested_parallel_shards = 1,
     };
 }
+
+test "authenticated VM AIR ProfileV2 schema5 compiles fixed program and narrow Poseidon through active Ethereum program" {
+    const allocator = std.testing.allocator;
+    var native = support.retainedSegmentZeroCore();
+    for (native.infra_descs[0..native.n_infra]) |*descriptor| if (descriptor.kind == .poseidon2) {
+        descriptor.n_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
+    };
+    const manifest = lookup_manifest_mod.Manifest.native();
+    const authenticated = try lookup_manifest_mod.AuthenticatedStatement.init(&native, &manifest);
+    const count = try geometry_mod.expectedSampledValueCountWithCircuitProfile(&native, &manifest, .fixed_program_narrow_v1);
+    var profile = try profile_mod.deriveAuthorityWithCircuitProfile(allocator, &native, &manifest, &authenticated, count, .fixed_program_narrow_v1);
+    defer profile.deinit();
+    const extension = try ethereum_statement.Statement.canonical(&native, 0, 0, support.emptySecpShapes());
+    var geometry = try extension_geometry.GeometryV2.init(allocator, &profile, &native, &extension);
+    defer geometry.deinit();
+    const bridge_mod = @import("../prover/incremental_bridge_external_v3.zig");
+    const prefix: bridge_mod.PrefixColumnsV3 = .{
+        .preprocessed = @intCast(profile.preprocessed_column_count + geometry.columns[0].len + @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT),
+        .main = @intCast(profile.main_column_count + geometry.columns[1].len),
+        .interaction = @intCast(profile.interaction_column_count + geometry.columns[2].len),
+    };
+    const incremental = @import("incremental_ethereum_vm_composition_program_v4.zig");
+    const input: incremental.StatementRootCompilerInput = .{ .core_statement = &native, .extension_statement = &extension, .lookup_manifest = &manifest, .authenticated_lookup = &authenticated, .base_profile = &profile, .bridge_geometry = try bridge_mod.GeometryV3.canonicalAfterPrefix(1, prefix) };
+    var compiled = try @import("vm_composition_preparation.zig").Compiled.initEthereumWithClaimAliases(allocator, input);
+    defer compiled.deinit();
+    const program = compiled.program();
+    try std.testing.expectEqual(count + geometry.sampled_value_count + incremental.BRIDGE_SAMPLED_VALUE_COUNT + @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT, program.input_profile.sampled_value_count);
+    try std.testing.expect(program.nodes.len > program.bindings.len);
+    // Retained graph construction traverses the production symbolic program
+    // and Poseidon evaluators. Admission must still require the six PP columns.
+    var omitted = input;
+    var missing_prefix = prefix;
+    missing_prefix.preprocessed -= @import("../air/program/interaction.zig").FIXED_COLUMN_COUNT;
+    omitted.bridge_geometry = try bridge_mod.GeometryV3.canonicalAfterPrefix(1, missing_prefix);
+    if (@import("vm_composition_preparation.zig").Compiled.initEthereumWithClaimAliases(allocator, omitted)) |unexpected| {
+        var invalid = unexpected;
+        invalid.deinit();
+        return error.TestUnexpectedResult;
+    } else |_| {}
+}

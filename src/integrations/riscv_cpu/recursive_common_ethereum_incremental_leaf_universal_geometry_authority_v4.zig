@@ -7,11 +7,14 @@
 //! verifier-derived schema-3 row source; claim closure remains unavailable.
 
 const std = @import("std");
+const progress = @import("ethereum_wrapper_resources_v1.zig").progress;
 
 const campaign_materializer =
     @import("recursive_common_ethereum_incremental_leaf_campaign_materializer_v4.zig");
 const complete_provider =
     @import("recursive_common_ethereum_incremental_leaf_complete_provider_geometry_v4.zig");
+const native_core =
+    @import("recursive_common_ethereum_incremental_leaf_native_core_v4.zig");
 const rows_10_34 =
     @import("recursive_common_ethereum_incremental_leaf_rows_10_34_v4.zig");
 const transcript_geometry =
@@ -82,34 +85,59 @@ pub fn OwnerV4(comptime Engine: type) type {
             materialized: *const Materialized,
             requested_log_sizes: ?manifest_mod.LogSizesV4,
         ) !*Self {
+            var phase: ?std.time.Timer = std.time.Timer.start() catch null;
+            progress("ETHEREUM_GEOMETRY_PREPARATION phase=begin\n", .{});
             try materialized.validate();
-            const suffix = if (requested_log_sizes) |logs|
-                try Suffix.initForLogSizes(
-                    allocator,
-                    materialized,
-                    logs[10..35].*,
-                )
-            else
-                try Suffix.init(allocator, materialized);
-            var suffix_moved = false;
-            errdefer if (!suffix_moved) suffix.deinit();
-            const plans = try (try suffix.nativeCore()).scheduleView();
-            const prefix = try transcript_geometry.AuthorityV4.mint(
-                &materialized.base.transcript,
-                plans.vm,
-                plans.recursion,
+            markPreparationPhase(&phase, "materialized-admission");
+            // Stable transcript ownership precedes native-row preparation.
+            // Rows borrow these plans, prefix and program for their lifetime.
+            const backing = try allocator.create(Storage);
+            errdefer allocator.destroy(backing);
+            backing.allocator = allocator;
+            backing.materialized = materialized;
+            backing.plans = try native_core.buildPlans(
+                allocator,
+                &materialized.base.captured_fri,
+                materialized.campaign_authority.view().provider_geometry.role_io_tuple_capacity,
             );
-            var program = try transcript_program.ProgramAuthorityV4.init(
+            errdefer for (&backing.plans) |*plan| plan.deinit();
+            backing.prefix = try transcript_geometry.AuthorityV4.mint(
+                &materialized.base.transcript,
+                &backing.plans[0],
+                &backing.plans[1],
+            );
+            markPreparationPhase(&phase, "plans-prefix");
+            backing.program = try transcript_program.ProgramAuthorityV4.init(
                 Engine,
                 allocator,
                 materialized,
-                plans.vm,
-                plans.recursion,
+                &backing.plans[0],
+                &backing.plans[1],
             );
-            var program_moved = false;
-            errdefer if (!program_moved) program.deinit();
+            errdefer backing.program.deinit();
+            markPreparationPhase(&phase, "program");
+            backing.rows = try TranscriptRows.init(
+                allocator,
+                materialized,
+                &backing.program,
+                &backing.prefix,
+                &backing.plans[0],
+                &backing.plans[1],
+            );
+            errdefer backing.rows.deinit();
+            markPreparationPhase(&phase, "transcript-rows");
+            backing.suffix = try Suffix.initWithTranscript(allocator, materialized, if (requested_log_sizes) |logs| logs[10..35].* else null, &backing.program);
+            errdefer backing.suffix.deinit();
+            markPreparationPhase(&phase, "suffix");
+            const suffix = backing.suffix;
+            const prefix = &backing.prefix;
+            const program = &backing.program;
+            const suffix_view = try suffix.geometryView();
+            const plans = try suffix_view.native.scheduleView();
+            try prefix.validateAgainst(&materialized.base.transcript, plans.vm, plans.recursion);
+            try program.validateAgainst(Engine, materialized, plans.vm, plans.recursion);
             const active_prefix_logs = prefix.log_sizes;
-            const derived_logs = try deriveLogSizes(&prefix, suffix);
+            const derived_logs = deriveLogSizes(prefix, suffix_view.log_sizes);
             const logs = requested_log_sizes orelse derived_logs;
             for (
                 logs[0..active_prefix_logs.len],
@@ -123,47 +151,27 @@ pub fn OwnerV4(comptime Engine: type) type {
             )) return error.EthereumIncrementalUniversalGeometryMismatchV4;
             if (logs[35] != derived_logs[35])
                 return error.EthereumIncrementalUniversalGeometryMismatchV4;
-            const complete = try suffix.completeProviderGeometry();
+            const complete = suffix_view.complete_provider;
             const manifest_value = try manifest_mod.buildForCampaignAuthority(
                 logs,
                 materialized.campaign_authority,
                 complete,
             );
-            try (try suffix.nativeCore()).validateAgainstManifest(
+            try suffix_view.native.validateAgainstManifest(
                 &manifest_value,
             );
 
-            const backing = try allocator.create(Storage);
-            var backing_initialized = false;
-            errdefer if (!backing_initialized) allocator.destroy(backing);
-            backing.* = .{
-                .allocator = allocator,
-                .materialized = materialized,
-                .prefix = prefix,
-                .program = program,
-                .rows = undefined,
-                .rows_initialized = false,
-                .suffix = suffix,
-                .log_sizes = logs,
-                .complete_provider = complete,
-                .manifest_value = manifest_value,
-                .identity_sha256 = undefined,
-            };
-            backing_initialized = true;
-            suffix_moved = true;
-            program_moved = true;
-            errdefer backing.destroy();
-            backing.rows = try TranscriptRows.init(
-                allocator,
-                materialized,
-                &backing.program,
-                &backing.prefix,
-                plans.vm,
-                plans.recursion,
-            );
-            backing.rows_initialized = true;
-            backing.identity_sha256 = try backing.computeIdentity();
-            try backing.validate();
+            backing.log_sizes = logs;
+            backing.complete_provider = complete;
+            backing.manifest_value = manifest_value;
+            const rows_view = try backing.rows.views();
+            backing.identity_sha256 = backing.computeIdentity(rows_view.identity_sha256, suffix_view.identity_sha256);
+            markPreparationPhase(&phase, "manifest-projection");
+            // Source admission and every child constructor completed in this
+            // synchronous transaction. Only our local geometry projection is
+            // new; no borrowed source or child has escaped for mutation.
+            try backing.validatePrepared();
+            markPreparationPhase(&phase, "local-finalization");
             return handle(backing);
         }
 
@@ -175,29 +183,57 @@ pub fn OwnerV4(comptime Engine: type) type {
             try storageConst(self).validate();
         }
 
+        /// Internal proof construction reads our independently owned transcript
+        /// rows and plans. Native inputs remain borrowed and are still admitted
+        /// on every call. External source/proof admission must use validate.
+        pub fn validateOperational(self: *const Self) !void {
+            const value = storageConst(self);
+            try value.materialized.validate();
+            try value.suffix.validate();
+            try value.validateProjection(false);
+        }
+
+        /// Read-only metadata admitted at construction. These allocations and
+        /// fixed geometry remain immutable through provider finalization.
+        /// Input, mutation and proof boundaries call `validate` explicitly.
+        pub const GeometryViewV4 = struct {
+            manifest: *const manifest_mod.Manifest,
+            suffix: *const Suffix,
+            log_sizes: manifest_mod.LogSizesV4,
+            complete_provider: CompleteProviderGeometryV4,
+            identity_sha256: [32]u8,
+        };
+
+        pub fn geometryView(self: *const Self) !GeometryViewV4 {
+            const value = storageConst(self);
+            return .{
+                .manifest = &value.manifest_value,
+                .suffix = value.suffix,
+                .log_sizes = value.log_sizes,
+                .complete_provider = value.complete_provider,
+                .identity_sha256 = value.identity_sha256,
+            };
+        }
+
         pub fn transcriptGeometry(
             self: *const Self,
         ) !*const transcript_geometry.AuthorityV4 {
-            try self.validate();
             return &storageConst(self).prefix;
         }
 
         pub fn transcriptProgram(
             self: *const Self,
         ) !*const transcript_program.ProgramAuthorityV4 {
-            try self.validate();
             return &storageConst(self).program;
         }
 
         pub fn transcriptRows(
             self: *const Self,
         ) !*const TranscriptRows {
-            try self.validate();
             return storageConst(self).rows;
         }
 
         pub fn rows10Through34(self: *const Self) !*const Suffix {
-            try self.validate();
             return storageConst(self).suffix;
         }
 
@@ -205,41 +241,39 @@ pub fn OwnerV4(comptime Engine: type) type {
         /// alone may finalize the shared row-34 provider after validating the
         /// full manifest.
         pub fn rows10Through34Mutable(self: *Self) !*Suffix {
-            try self.validate();
+            // Borrow the opaque child; no ownership or mutable fields escape.
+            // Its native mutation methods authenticate their inputs before
+            // writing. A getter check cannot replace that mutation boundary.
             return storage(self).suffix;
         }
 
         pub fn logSizes(
             self: *const Self,
         ) !manifest_mod.LogSizesV4 {
-            try self.validate();
             return storageConst(self).log_sizes;
         }
 
         pub fn manifest(self: *const Self) !*const manifest_mod.Manifest {
-            try self.validate();
             return &storageConst(self).manifest_value;
         }
 
         pub fn completeProviderGeometry(
             self: *const Self,
         ) !CompleteProviderGeometryV4 {
-            try self.validate();
             return storageConst(self).complete_provider;
         }
 
         pub fn identity(self: *const Self) ![32]u8 {
-            try self.validate();
             return storageConst(self).identity_sha256;
         }
 
         const Storage = struct {
             allocator: std.mem.Allocator,
             materialized: *const Materialized,
+            plans: native_core.PlanPairV4,
             prefix: transcript_geometry.AuthorityV4,
             program: transcript_program.ProgramAuthorityV4,
             rows: *TranscriptRows,
-            rows_initialized: bool,
             suffix: *Suffix,
             log_sizes: manifest_mod.LogSizesV4,
             complete_provider: CompleteProviderGeometryV4,
@@ -248,26 +282,41 @@ pub fn OwnerV4(comptime Engine: type) type {
 
             fn validate(self: *const Storage) !void {
                 try self.materialized.validate();
-                const plans = try (try self.suffix.nativeCore()).scheduleView();
-                try self.prefix.validateAgainst(
-                    &self.materialized.base.transcript,
-                    plans.vm,
-                    plans.recursion,
-                );
-                try self.program.validateAgainst(
-                    Engine,
-                    self.materialized,
-                    plans.vm,
-                    plans.recursion,
-                );
-                if (!self.rows_initialized)
-                    return error.EthereumIncrementalUniversalGeometryMismatchV4;
-                try self.rows.validate();
                 try self.suffix.validate();
-                const derived_logs = try deriveLogSizes(
-                    &self.prefix,
-                    self.suffix,
-                );
+                try self.validatePrepared();
+            }
+
+            // Private constructor finalization, or the tail of full external
+            // admission above. This does not persist permission to skip a later
+            // audit: Materialized remains borrowed and externally mutable.
+            fn validatePrepared(self: *const Storage) !void {
+                try self.validateProjection(true);
+            }
+
+            fn validateProjection(self: *const Storage, comptime admit_transcript_source: bool) !void {
+                const suffix_view = try self.suffix.geometryView();
+                const plans = try suffix_view.native.scheduleView();
+                if (admit_transcript_source) {
+                    try self.prefix.validateAgainst(
+                        &self.materialized.base.transcript,
+                        plans.vm,
+                        plans.recursion,
+                    );
+                    try self.program.validateAgainstPreparedSource(
+                        Engine,
+                        self.materialized,
+                        plans.vm,
+                        plans.recursion,
+                    );
+                }
+                // Transcript rows own their operational plans, metadata and
+                // witness arrays. The cold branch additionally replays source.
+                if (admit_transcript_source)
+                    try self.rows.validateRowsAgainstLiveSource()
+                else
+                    try self.rows.validatePreparedRows();
+                const rows_view = try self.rows.views();
+                const derived_logs = deriveLogSizes(&self.prefix, suffix_view.log_sizes);
                 for (
                     self.log_sizes[0..self.prefix.log_sizes.len],
                     self.prefix.log_sizes,
@@ -279,15 +328,16 @@ pub fn OwnerV4(comptime Engine: type) type {
                     derived_logs[self.prefix.log_sizes.len..35],
                 ) or self.log_sizes[35] != derived_logs[35])
                     return error.EthereumIncrementalUniversalGeometryMismatchV4;
-                const expected_complete =
-                    try self.suffix.completeProviderGeometry();
+                const expected_complete = suffix_view.complete_provider;
                 try manifest_mod.validateExactForCampaignAuthority(
                     &self.manifest_value,
                     self.log_sizes,
                     self.materialized.campaign_authority,
                     self.complete_provider,
                 );
-                try (try self.suffix.nativeCore()).validateAgainstManifest(
+                // suffix.validate above admitted this same privately owned
+                // native source. Check its manifest projection locally here.
+                try suffix_view.native.validatePreparedAgainstManifest(
                     &self.manifest_value,
                 );
                 if (!std.meta.eql(
@@ -297,26 +347,29 @@ pub fn OwnerV4(comptime Engine: type) type {
                     !std.mem.eql(
                         u8,
                         &self.identity_sha256,
-                        &(try self.computeIdentity()),
+                        &self.computeIdentity(rows_view.identity_sha256, suffix_view.identity_sha256),
                     ))
                 {
                     return error.EthereumIncrementalUniversalGeometryMismatchV4;
                 }
             }
 
-            fn computeIdentity(self: *const Storage) ![32]u8 {
+            fn computeIdentity(
+                self: *const Storage,
+                rows_identity: [32]u8,
+                suffix_identity: [32]u8,
+            ) [32]u8 {
                 var hash = std.crypto.hash.sha2.Sha256.init(.{});
                 hash.update(IDENTITY_DOMAIN);
                 hashInt(&hash, u16, FORMAT_VERSION);
                 hashInt(&hash, u16, SCHEMA_VERSION);
                 hash.update(&self.materialized.identity_sha256);
-                hash.update(&self.materialized.campaign_authority
+                hash.update(&self.materialized.campaign_authority.view()
                     .authority_identity_sha256);
                 hash.update(&self.prefix.identity_sha256);
                 hash.update(&self.program.identity_sha256);
-                const rows_view = try self.rows.views();
-                hash.update(&rows_view.identity_sha256);
-                hash.update(&(try self.suffix.identity()));
+                hash.update(&rows_identity);
+                hash.update(&suffix_identity);
                 hash.update(&self.complete_provider.identity_sha256);
                 hash.update(&self.manifest_value.seal);
                 for (self.log_sizes) |log_size|
@@ -326,9 +379,10 @@ pub fn OwnerV4(comptime Engine: type) type {
 
             fn destroy(self: *Storage) void {
                 const allocator = self.allocator;
-                if (self.rows_initialized) self.rows.deinit();
-                self.program.deinit();
+                self.rows.deinit();
                 self.suffix.deinit();
+                self.program.deinit();
+                for (&self.plans) |*plan| plan.deinit();
                 self.* = undefined;
                 allocator.destroy(self);
             }
@@ -348,13 +402,17 @@ pub fn OwnerV4(comptime Engine: type) type {
     };
 }
 
+fn markPreparationPhase(timer: *?std.time.Timer, comptime name: []const u8) void {
+    const elapsed: ?u64 = if (timer.*) |*value| value.lap() else null;
+    progress("ETHEREUM_GEOMETRY_PREPARATION phase={s} ns={?d}\n", .{ name, elapsed });
+}
+
 fn deriveLogSizes(
     prefix: *const transcript_geometry.AuthorityV4,
-    suffix: anytype,
-) !manifest_mod.LogSizesV4 {
+    suffix_logs: rows_10_34.LogSizesV4,
+) manifest_mod.LogSizesV4 {
     var result: manifest_mod.LogSizesV4 = undefined;
     @memcpy(result[0..transcript_geometry.ROW_COUNT], &prefix.log_sizes);
-    const suffix_logs = try suffix.logSizes();
     @memcpy(
         result[rows_10_34.FIRST_ROW .. rows_10_34.LAST_ROW + 1],
         &suffix_logs,

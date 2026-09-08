@@ -1,0 +1,295 @@
+Analysis of sampling ethereum-prepared-leaf-cpu-v1 (pid 10652) every 1 millisecond
+Process:         ethereum-prepared-leaf-cpu-v1 [10652]
+Path:            /Users/USER/*/ethereum-prepared-leaf-cpu-v1
+Load Address:    0x1028fc000
+Identifier:      ethereum-prepared-leaf-cpu-v1
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  time [10650]
+
+Date/Time:       2026-09-07 18:35:39.149 +0400
+Launch Time:     2026-09-07 18:26:32.598 +0400
+OS Version:      macOS 15.3.1 (24D70)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         19.5G
+Physical footprint (peak):  19.9G
+Idle exit:                  untracked
+----
+
+Call graph:
+    814 Thread_36165820   DispatchQueue_1: com.apple.main-thread  (serial)
+      814 start  (in dyld) + 2840  [0x19bcdc274]
+        814 main  (in ethereum-prepared-leaf-cpu-v1) + 3212  [0x1029fab9c]
+          814 ethereum_incremental_full_leaf_replay_command_v4.runWithEnginesInternal__anon_7352  (in ethereum-prepared-leaf-cpu-v1) + 23180  [0x1029f5684]
+            814 ethereum_incremental_full_leaf_prepared_replay_producer_v4.produceAllocWithRecorderAndTiming__anon_13902  (in ethereum-prepared-leaf-cpu-v1) + 19476  [0x1029a9530]
+              814 prover.incremental_ethereum_orchestration_v3.provePreparedAfterAdmission__anon_27900  (in ethereum-prepared-leaf-cpu-v1) + 11012  [0x102994cb8]
+                385 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1196  [0x102a6aad0]
+                + 120 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 436  [0x102a65d6c]
+                + ! 119 air.memory_commitment.merkle_node.rowPairsFromNode  (in ethereum-prepared-leaf-cpu-v1) + 348  [0x102a6701c]
+                + ! : 34 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 1360  [0x102bd3f3c]
+                + ! : | 34 _platform_memmove  (in libsystem_platform.dylib) + 180,192  [0x19c092ac4,0x19c092ad0]
+                + ! : 29 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 1456  [0x102bd3f9c]
+                + ! : | 21 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 284  [0x102a7efc8]
+                + ! : | + 21 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1508,1532,...  [0x102b6c99c,0x102b6c9b4,...]
+                + ! : | 8 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 244  [0x102a7efa0]
+                + ! : |   8 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! : |     8 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 88,140,...  [0x102bd52bc,0x102bd52f0,...]
+                + ! : 26 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 1384  [0x102bd3f54]
+                + ! : | 16 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 244  [0x102a7efa0]
+                + ! : | + 15 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! : | + ! 15 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 1376,1408,...  [0x102bd57c4,0x102bd57e4,...]
+                + ! : | + 1 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 1508  [0x102bd5848]
+                + ! : | 7 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 284  [0x102a7efc8]
+                + ! : | + 7 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! : | +   7 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 1376,156,...  [0x102bd57c4,0x102bd5300,...]
+                + ! : | 2 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 32  [0x102a7eecc]
+                + ! : | 1 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 3468  [0x102b6d144]
+                + ! : 13 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 1512  [0x102bd3fd4]
+                + ! : | 12 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 132  [0x102a7ef30]
+                + ! : | + 12 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1508,256,...  [0x102b6c99c,0x102b6c4b8,...]
+                + ! : | 1 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 196  [0x102a7ef70]
+                + ! : 9 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 80,164,...  [0x102bd3a3c,0x102bd3a90,...]
+                + ! : 4 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 900  [0x102bd3d70]
+                + ! : | 4 _platform_memmove  (in libsystem_platform.dylib) + 180,12  [0x19c092ac4,0x19c092a1c]
+                + ! : 2 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 980  [0x102bd3dc0]
+                + ! : | 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+                + ! : 2 air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1) + 1080  [0x102bd3e24]
+                + ! :   2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+                + ! 1 air.memory_commitment.merkle_node.rowPairsFromNode  (in ethereum-prepared-leaf-cpu-v1) + 404  [0x102a67054]
+                + 81 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 796  [0x102a65ed4]
+                + ! 49 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+                + ! : 37 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1372,1156,...  [0x102a6a118,0x102a6a040,...]
+                + ! : 10 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! : | 10 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 864,56,...  [0x102ad5a10,0x102ad56e8,...]
+                + ! : 2 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102ad5a8c]
+                + ! 30 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 1436,1452,...  [0x102a6775c,0x102a6776c,...]
+                + ! 1 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 216  [0x102a67298]
+                + ! : 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + ! 1 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1464  [0x102a6a174]
+                + 81 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1052  [0x102a65fd4]
+                + ! 50 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+                + ! : 38 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1156,1172,...  [0x102a6a040,0x102a6a050,...]
+                + ! : 10 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! : | 10 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 864,56,...  [0x102ad5a10,0x102ad56e8,...]
+                + ! : 2 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102ad5a8c]
+                + ! 30 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 1064,4144,...  [0x102a675e8,0x102a681f0,...]
+                + ! 1 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 216  [0x102a67298]
+                + !   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 43 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1312  [0x102a660d8]
+                + ! 39 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+                + ! : 22 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1172,1220,...  [0x102a6a050,0x102a6a080,...]
+                + ! : 17 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! :   17 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 860,932,...  [0x102ad5a0c,0x102ad5a54,...]
+                + ! 3 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 1692,3988,...  [0x102a6785c,0x102a68154,...]
+                + ! 1 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 216  [0x102a67298]
+                + !   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 41 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 440,3732,...  [0x102a65d70,0x102a66a4c,...]
+                + 6 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 328  [0x102a65d00]
+                + ! 6 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 2 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 716  [0x102a65e84]
+                + ! 2 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 2 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 952  [0x102a65f70]
+                + ! 2 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 2 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1220  [0x102a6607c]
+                + ! 2 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 860  [0x102a65f14]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1128  [0x102a66020]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1412  [0x102a6613c]
+                + ! 1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                + !   1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 2100  [0x102a663ec]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 4248  [0x102a66c50]
+                + ! 1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                + !   1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                + 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 4456  [0x102a66d20]
+                + ! 1 air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 4508  [0x102a66d54]
+                + !   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                +   1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                220 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1296  [0x102a6ab34]
+                + 70 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 348  [0x102a68e30]
+                + ! 21 air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1) + 1144  [0x102a68c10]
+                + ! : 21 air.relation_challenges.RelationElements(32).combineBase  (in ethereum-prepared-leaf-cpu-v1) + 188,212,...  [0x102a721a8,0x102a721c0,...]
+                + ! 15 air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1) + 1092  [0x102a68bdc]
+                + ! : 15 air.relation_challenges.RelationElements(16).combineBase  (in ethereum-prepared-leaf-cpu-v1) + 216,156,...  [0x102a72000,0x102a71fc4,...]
+                + ! 15 air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1) + 84,52,...  [0x102a687ec,0x102a687cc,...]
+                + ! 11 air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1) + 1108  [0x102a68bec]
+                + ! : 11 air.relation_challenges.RelationElements(16).combineBase  (in ethereum-prepared-leaf-cpu-v1) + 264,216,...  [0x102a72030,0x102a72000,...]
+                + ! 8 air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1) + 1124  [0x102a68bfc]
+                + !   8 air.relation_challenges.RelationElements(16).combineBase  (in ethereum-prepared-leaf-cpu-v1) + 216,192,...  [0x102a72000,0x102a71fe8,...]
+                + 59 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 544  [0x102a68ef4]
+                + ! 37 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+                + ! : 21 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! : | 21 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 856,932,...  [0x102ad5a08,0x102ad5a54,...]
+                + ! : 13 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1148,476,...  [0x102a6a038,0x102a69d98,...]
+                + ! : 3 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102ad5a8c]
+                + ! 22 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 700,732,...  [0x102a6747c,0x102a6749c,...]
+                + 53 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102a690b0]
+                + ! 41 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+                + ! : 24 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1172,1196,...  [0x102a6a050,0x102a6a068,...]
+                + ! : 13 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! : | 13 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 864,932,...  [0x102ad5a10,0x102ad5a54,...]
+                + ! : 4 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102ad5a8c]
+                + ! 12 air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 424,512,...  [0x102a67368,0x102a673c0,...]
+                + 23 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 2024,2052,...  [0x102a694bc,0x102a694d8,...]
+                + 3 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 312  [0x102a68e0c]
+                + ! 3 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 2 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 468  [0x102a68ea8]
+                + ! 2 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 2 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 624  [0x102a68f44]
+                + ! 2 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                + !   2 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                + 2 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 672  [0x102a68f74]
+                + ! 2 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1040  [0x102a690e4]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1068  [0x102a69100]
+                + ! 1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                + !   1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 1916  [0x102a69450]
+                + ! 1 infra_trace.permutation.BitReversalTable.init  (in ethereum-prepared-leaf-cpu-v1) + 160  [0x1029b68c0]
+                + !   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 3548  [0x102a69ab0]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 3604  [0x102a69ae8]
+                + ! 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                + 1 air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1) + 3632  [0x102a69b04]
+                +   1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                +     1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+                57 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 2056  [0x102a6ae2c]
+                + 43 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1172,1148,...  [0x102a6a050,0x102a6a038,...]
+                + 14 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                +   14 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 388,864,...  [0x102ad5834,0x102ad5a10,...]
+                41 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 3560  [0x102a6b40c]
+                + 40 air.memory_commitment.incremental_bridge_v2.rowPair  (in ethereum-prepared-leaf-cpu-v1) + 308  [0x102a6a2c4]
+                + ! 31 air.memory_commitment.incremental_bridge_v2.rowPairGeneric__anon_83703  (in ethereum-prepared-leaf-cpu-v1) + 3240  [0x102b6de28]
+                + ! : 31 _platform_memmove  (in libsystem_platform.dylib) + 180,192,...  [0x19c092ac4,0x19c092ad0,...]
+                + ! 6 air.memory_commitment.incremental_bridge_v2.rowPairGeneric__anon_83703  (in ethereum-prepared-leaf-cpu-v1) + 3400  [0x102b6dec8]
+                + ! : 5 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 244  [0x102a7efa0]
+                + ! : | 4 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! : | + 4 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 60,164,...  [0x102bd52a0,0x102bd5308,...]
+                + ! : | 1 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 76  [0x102b6c404]
+                + ! : 1 air.lookups.entry.Builder(fields.qm31.QM31).List.pairWith__anon_55426  (in ethereum-prepared-leaf-cpu-v1) + 284  [0x102a7efc8]
+                + ! :   1 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! :     1 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 1284  [0x102bd5768]
+                + ! 3 air.memory_commitment.incremental_bridge_v2.rowPairGeneric__anon_83703  (in ethereum-prepared-leaf-cpu-v1) + 3292  [0x102b6de5c]
+                + !   3 _platform_memmove  (in libsystem_platform.dylib) + 180,0  [0x19c092ac4,0x19c092a10]
+                + 1 air.memory_commitment.incremental_bridge_v2.rowPair  (in ethereum-prepared-leaf-cpu-v1) + 136  [0x102a6a218]
+                27 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1820  [0x102a6ad40]
+                + 19 _platform_memmove  (in libsystem_platform.dylib) + 180,204  [0x19c092ac4,0x19c092adc]
+                + 4 air.memory_commitment.interaction.entriesGeneric__anon_112254  (in ethereum-prepared-leaf-cpu-v1) + 1540,164,...  [0x102bd3880,0x102bd3320,...]
+                + 1 air.memory_commitment.interaction.entriesGeneric__anon_112254  (in ethereum-prepared-leaf-cpu-v1) + 1284  [0x102bd3780]
+                + ! 1 _platform_memmove  (in libsystem_platform.dylib) + 12  [0x19c092a1c]
+                + 1 air.memory_commitment.interaction.entriesGeneric__anon_112254  (in ethereum-prepared-leaf-cpu-v1) + 1456  [0x102bd382c]
+                + ! 1 _platform_memmove  (in libsystem_platform.dylib) + 196  [0x19c092ad4]
+                + 1 air.memory_commitment.interaction.entriesGeneric__anon_112254  (in ethereum-prepared-leaf-cpu-v1) + 1560  [0x102bd3894]
+                + ! 1 _platform_memmove  (in libsystem_platform.dylib) + 36  [0x19c092a34]
+                + 1 air.memory_commitment.interaction.entriesGeneric__anon_112254  (in ethereum-prepared-leaf-cpu-v1) + 1636  [0x102bd38e0]
+                +   1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+                25 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1852  [0x102a6ad60]
+                + 25 _platform_memmove  (in libsystem_platform.dylib) + 180,196  [0x19c092ac4,0x19c092ad4]
+                18 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 3592  [0x102a6b42c]
+                + 11 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1172,1356,...  [0x102a6a050,0x102a6a108,...]
+                + 5 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                + ! 5 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 932,364,...  [0x102ad5a54,0x102ad581c,...]
+                + 2 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 988  [0x102ad5a8c]
+                17 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 4896  [0x102a6b944]
+                + 15 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 1172,212,...  [0x102a6a050,0x102a69c90,...]
+                + 2 fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+                +   2 fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 872,932  [0x102ad5a18,0x102ad5a54]
+                13 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 2020  [0x102a6ae08]
+                + 10 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+                + ! 10 air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 1376,1424,...  [0x102bd57c4,0x102bd57f4,...]
+                + 3 air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 48,76  [0x102b6c3e8,0x102b6c404]
+                7 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1928  [0x102a6adac]
+                + 5 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+                + 2 DYLD-STUB$$memcpy  (in ethereum-prepared-leaf-cpu-v1) + 4  [0x102d63ef8]
+                2 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1928,5116  [0x102a6adac,0x102a6ba20]
+                1 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1096  [0x102a6aa6c]
+                + 1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+                1 air.memory_commitment.incremental_transition_v2.Witness.verifyMerkleAndPoseidonCancellation  (in ethereum-prepared-leaf-cpu-v1) + 1128  [0x102a6aa8c]
+                  1 posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+                    1 __munmap  (in libsystem_kernel.dylib) + 8  [0x19c01e908]
+
+Total number in stack (recursive counted multiple, when >=5):
+        19       _platform_memset  (in libsystem_platform.dylib) + 0  [0x19c092740]
+        13       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x19c092a10]
+        13       fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1) + 0  [0x102ad56b0]
+        9       fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 0  [0x102a69bbc]
+        8       fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1) + 792  [0x102a69ed4]
+        7       __munmap  (in libsystem_kernel.dylib) + 0  [0x19c01e900]
+        7       air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1) + 0  [0x102bd5264]
+        7       posix.munmap  (in ethereum-prepared-leaf-cpu-v1) + 12  [0x102ce2458]
+        6       air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 1832  [0x102b6cae0]
+        5       air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 0  [0x102a671c0]
+        5       air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1) + 3820  [0x102a680ac]
+        5       air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1) + 0  [0x102b6c3b8]
+
+Sort by top of stack, same collapsed (when >= 5):
+        fields.qm31.QM31.inv  (in ethereum-prepared-leaf-cpu-v1)        204
+        _platform_memmove  (in libsystem_platform.dylib)        129
+        fields.m31.powPMinus2  (in ethereum-prepared-leaf-cpu-v1)        105
+        air.logup.cumulativeColumn  (in ethereum-prepared-leaf-cpu-v1)        97
+        air.relation_challenges.RelationElements(4).combine  (in ethereum-prepared-leaf-cpu-v1)        46
+        air.memory_commitment.merkle_node.generateInteraction  (in ethereum-prepared-leaf-cpu-v1)        41
+        air.lookups.entry.Builder(fields.qm31.QM31).Entry.denominatorWith__anon_83687  (in ethereum-prepared-leaf-cpu-v1)        38
+        air.relation_challenges.RelationElements(16).combineBase  (in ethereum-prepared-leaf-cpu-v1)        34
+        _platform_memset  (in libsystem_platform.dylib)        31
+        air.memory_commitment.poseidon2_air.generateInteraction  (in ethereum-prepared-leaf-cpu-v1)        23
+        air.relation_challenges.RelationElements(32).combineBase  (in ethereum-prepared-leaf-cpu-v1)        21
+        air.memory_commitment.poseidon2_air.InteractionContext.rowPairsAt  (in ethereum-prepared-leaf-cpu-v1)        15
+        air.memory_commitment.merkle_node.rowPairsGeneric__anon_112281  (in ethereum-prepared-leaf-cpu-v1)        9
+        __munmap  (in libsystem_kernel.dylib)        8
+
+Binary Images:
+       0x1028fc000 -        0x102f123df +ethereum-prepared-leaf-cpu-v1 (0) <BBC94728-64C8-35C4-AAF7-61AE0C8D9CDF> /Users/*/ethereum-prepared-leaf-cpu-v1
+       0x19bc84000 -        0x19bcd5ca3  libobjc.A.dylib (928.3) <B2882096-462B-3878-BE2A-410F7B1A27FD> /usr/lib/libobjc.A.dylib
+       0x19bcd6000 -        0x19bd57f3f  dyld (1.0.0 - 1245.1) <398A133C-9BCB-317F-A064-A40D3CEA3C0F> /usr/lib/dyld
+       0x19bd58000 -        0x19bd5bff8  libsystem_blocks.dylib (95) <A33D811C-BD2D-3833-9C38-9BF3960A1F8C> /usr/lib/system/libsystem_blocks.dylib
+       0x19bd5c000 -        0x19bda6fff  libxpc.dylib (2866.81.1) <564B7785-E7C4-3231-8BF1-3FBB266B6599> /usr/lib/system/libxpc.dylib
+       0x19bda7000 -        0x19bdc2fff  libsystem_trace.dylib (1612.80.7) <7F5EC174-AB45-37E7-B783-83A04B6154A1> /usr/lib/system/libsystem_trace.dylib
+       0x19bdc3000 -        0x19be62fdf  libcorecrypto.dylib (1736.80.2) <8A08F4FE-C92E-35AA-BBB8-45A9D7A00AAD> /usr/lib/system/libcorecrypto.dylib
+       0x19be63000 -        0x19bea4fff  libsystem_malloc.dylib (657.80.3) <1480B446-99F7-3757-9D4E-5BA3014A2726> /usr/lib/system/libsystem_malloc.dylib
+       0x19bea5000 -        0x19beebfff  libdispatch.dylib (1504.60.7) <5576E4FD-AAD2-3608-8C8F-4EEC421236F9> /usr/lib/system/libdispatch.dylib
+       0x19beec000 -        0x19beeeffb  libsystem_featureflags.dylib (94) <64FD190D-C0D7-3B9A-837B-E63EA386BE14> /usr/lib/system/libsystem_featureflags.dylib
+       0x19beef000 -        0x19bf70ffb  libsystem_c.dylib (1669.60.4) <92699527-645F-3D8D-AED8-1CFB0C034E15> /usr/lib/system/libsystem_c.dylib
+       0x19bf71000 -        0x19bffeffb  libc++.1.dylib (1800.105) <BBAB286C-2E51-3D64-9AE3-A4102935FE32> /usr/lib/libc++.1.dylib
+       0x19bfff000 -        0x19c019fff  libc++abi.dylib (1800.105) <E7DBA219-4E97-307D-8E80-E0D97BE8517B> /usr/lib/libc++abi.dylib
+       0x19c01a000 -        0x19c054ff7  libsystem_kernel.dylib (11215.81.4) <EEE9D0D3-DFFC-37CB-9CED-B27CD0286D8C> /usr/lib/system/libsystem_kernel.dylib
+       0x19c055000 -        0x19c061fff  libsystem_pthread.dylib (535) <642FAF7A-874E-37E6-8ABA-2B0CC09A3025> /usr/lib/system/libsystem_pthread.dylib
+       0x19c062000 -        0x19c08effb  libdyld.dylib (1245.1) <C0C53058-94D2-3D9E-9E92-56BA8B43C327> /usr/lib/system/libdyld.dylib
+       0x19c08f000 -        0x19c096feb  libsystem_platform.dylib (340.60.2) <984D08B8-F85C-36F5-9E17-5BFF7FC779A3> /usr/lib/system/libsystem_platform.dylib
+       0x19c097000 -        0x19c0c6ffb  libsystem_info.dylib (592) <8C7C4902-FEC1-3776-87FF-2373BA19B1CE> /usr/lib/system/libsystem_info.dylib
+       0x19f7ad000 -        0x19f7b7ff7  libsystem_darwin.dylib (1669.60.4) <F23DCA7C-AF18-3BB9-9D2F-FFBC4645DDC1> /usr/lib/system/libsystem_darwin.dylib
+       0x19fc10000 -        0x19fc22fff  libsystem_notify.dylib (327.60.1) <A3EE7CB1-6FCC-37AB-A8BC-256B9642B47D> /usr/lib/system/libsystem_notify.dylib
+       0x1a1bbe000 -        0x1a1bd8ff7  libsystem_networkextension.dylib (2063.80.10) <CD0C82E0-9B1B-3CAA-8CA7-466D1C439C3B> /usr/lib/system/libsystem_networkextension.dylib
+       0x1a1c54000 -        0x1a1c6cffb  libsystem_asl.dylib (402) <26693E85-AFDC-38E2-B939-D6EC865FA506> /usr/lib/system/libsystem_asl.dylib
+       0x1a375d000 -        0x1a3765fff  libsystem_symptoms.dylib (2001.80.5) <695D143C-5D59-37B0-8784-4AE727AFEEF5> /usr/lib/system/libsystem_symptoms.dylib
+       0x1a6eba000 -        0x1a6ee8ff7  libsystem_containermanager.dylib (689) <A72C2FD5-969A-342F-B8A4-4216D7C7957E> /usr/lib/system/libsystem_containermanager.dylib
+       0x1a80f7000 -        0x1a80fbfff  libsystem_configuration.dylib (1351.80.2) <C218F939-9E60-37A3-B2EC-93837054946D> /usr/lib/system/libsystem_configuration.dylib
+       0x1a80fc000 -        0x1a8102fff  libsystem_sandbox.dylib (2401.81.2) <BF38E17B-6A57-3EE2-A805-8E9B35542182> /usr/lib/system/libsystem_sandbox.dylib
+       0x1a9014000 -        0x1a9016ffb  libquarantine.dylib (181.80.2) <90D46A44-087C-3900-8509-EA90C6CFAD58> /usr/lib/system/libquarantine.dylib
+       0x1a9723000 -        0x1a9729ffb  libsystem_coreservices.dylib (171.1) <579E4601-365D-346F-9CD9-37851FB2874C> /usr/lib/system/libsystem_coreservices.dylib
+       0x1a9b90000 -        0x1a9bcdfff  libsystem_m.dylib (3289) <1B9E3C19-420A-38C5-96CE-6C2CE6EB56BA> /usr/lib/system/libsystem_m.dylib
+       0x1a9bcf000 -        0x1a9bd2ff7  libmacho.dylib (1022.1) <9E0F73E3-1865-3F72-9ED1-465C68D23BA6> /usr/lib/system/libmacho.dylib
+       0x1a9bf0000 -        0x1a9bfdfff  libcommonCrypto.dylib (600033.60.1) <1C8E15A6-869F-3AAD-AAE8-5825C7C4F902> /usr/lib/system/libcommonCrypto.dylib
+       0x1a9bfe000 -        0x1a9c09fff  libunwind.dylib (1800.85) <BEFBB85F-B46E-3C52-9A92-2F8EE957E3D9> /usr/lib/system/libunwind.dylib
+       0x1a9c0a000 -        0x1a9c11fff  liboah.dylib (342) <D8407F3E-5522-3C66-8A60-C29567136FD5> /usr/lib/liboah.dylib
+       0x1a9c12000 -        0x1a9c1cff7  libcopyfile.dylib (213.40.2) <0D18978A-4446-31EE-8228-25FABB44DB94> /usr/lib/system/libcopyfile.dylib
+       0x1a9c1d000 -        0x1a9c20fff  libcompiler_rt.dylib (103.3) <F22CE10B-B1DF-3A58-9B8B-7F0ED73962DF> /usr/lib/system/libcompiler_rt.dylib
+       0x1a9c21000 -        0x1a9c25ffb  libsystem_collections.dylib (1669.60.4) <74DC56B7-7BE5-3392-835A-7C6863986FF2> /usr/lib/system/libsystem_collections.dylib
+       0x1a9c26000 -        0x1a9c29ffb  libsystem_secinit.dylib (153.60.1) <9BFA7CCC-E31E-3D39-832D-CA425269A795> /usr/lib/system/libsystem_secinit.dylib
+       0x1a9c2a000 -        0x1a9c2cfff  libremovefile.dylib (75.80.1) <D242539B-BA45-363C-8B08-83FBCE4EC1C2> /usr/lib/system/libremovefile.dylib
+       0x1a9c2d000 -        0x1a9c2dfff  libkeymgr.dylib (31) <95E4D67C-51BF-36C9-99B5-35F5E2D6E2CA> /usr/lib/system/libkeymgr.dylib
+       0x1a9c2e000 -        0x1a9c36fff  libsystem_dnssd.dylib (2559.80.8) <35DE5A07-AF58-33F0-A950-1F7CCAE85F3E> /usr/lib/system/libsystem_dnssd.dylib
+       0x1a9c37000 -        0x1a9c3cffb  libcache.dylib (95) <46788F12-8B07-3253-BF23-C49BC753A327> /usr/lib/system/libcache.dylib
+       0x1a9c3d000 -        0x1a9c3effb  libSystem.B.dylib (1351) <E7A14776-89AB-310A-9FCF-F47CAE8043B6> /usr/lib/libSystem.B.dylib
+       0x27cc36000 -        0x27cc39fff  libsystem_darwindirectory.dylib (122) <E3036CCB-95CF-3BD6-AA4F-58543B923EA5> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x27cc3a000 -        0x27cc40fff  libsystem_eligibility.dylib (160.60.1) <4C8AC363-F171-3A08-85F8-7542B9C79A87> /usr/lib/system/libsystem_eligibility.dylib
+       0x27cc41000 -        0x27cc46fff  libsystem_sanitizers.dylib (17.1) <F0A7379E-6861-3B3F-BB56-1B08B1BEE98A> /usr/lib/system/libsystem_sanitizers.dylib

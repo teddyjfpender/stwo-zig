@@ -1,0 +1,4 @@
+   Compiling stwo-ethereum-host-validation v0.1.0 (/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/host_validation)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.31s
+     Running `autoresearch/benchmarks/guest_runtime/host_validation/target/debug/stwo-ethereum-host-validation .git/local-ethereum/projected-input-recheck/canonical-input.ssz .git/local-ethereum/projected-input-recheck/host-output.bin`
+host_validation_verified=true output_bytes=43 elapsed_ms=391 rv32_execution_verified=false

@@ -84,7 +84,7 @@ pub fn SourceViewV4(comptime Engine: type) type {
         pub fn validateBorrowed(self: Self) !void {
             try self.materialized.validate();
             const capture = &self.materialized.input.stage101;
-            const expected_lane = self.materialized.composition_program.lane();
+            const expected_lane = self.materialized.composition.program().lane();
             try expected_lane.graph.validate();
             if (self.role != ROLE or
                 self.node_public != &self.materialized.schedule.node_public or
@@ -140,7 +140,7 @@ pub fn sourceView(
         .completion_program_circuit = &value.completion_program_circuit,
         .completion_program_prepared = &value.completion_program_prepared,
         .captured_fri = &value.captured_fri,
-        .vm_lane = value.composition_program.lane(),
+        .vm_lane = value.composition.program().lane(),
         .source_identity_sha256 = sourceIdentity(Engine, value),
     };
     try result.validateBorrowed();
@@ -162,9 +162,9 @@ fn sourceIdentity(
     hash.update(&value.completion_program_claim.identity_sha256);
     for (value.input.stage101.statement.authority_id) |word|
         hashInt(&hash, u32, word);
-    hash.update(&value.composition_program.graph_sha256);
+    hash.update(&value.composition.program().graph_sha256);
     hash.update(&value.captured_fri.circuit.identity_digest);
-    hash.update(&value.captured_fri.pcs_circuit.identity_digest);
+    hash.update(&value.captured_fri.pcs_circuit.view().identity_digest);
     for (value.schedule.source.source_digest) |word|
         hashInt(&hash, u32, word);
     hashInt(

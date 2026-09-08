@@ -1,0 +1,15 @@
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes' failed: RECORDED_TRANSCRIPT_PAYLOAD_ROW kind=binary_node row=.{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = 1, .sequence = 0, .tag = 1398013953, .args = { 1, 8, 0, 0 }, .payload_index = 0, .source_kind = .commitment, .item_index = 0, .limb_index = 0, .constant_mask = 1, .input_use_count = 1, .constant_value = 954990678, .source_hash_id = 0, .source_word_index = 8 }
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes', the following test command failed:
+./.zig-cache/o/d0ca91fed7e568b78d0f45bcaa4c6f8b/test --cache-dir=./.zig-cache --seed=0x83b719dc --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-common-fold-transcript-source-v1 transitive failure
++- Common-fold parent transcript source guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a8c1799627decdb41677879641d6fead/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x83b719dc -Z313b8554f98275b7 --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-source-v1 -Doptimize=ReleaseSafe --summary all

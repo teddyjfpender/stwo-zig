@@ -97,6 +97,8 @@ pub fn ComponentTable(comptime Handle: type) type {
         opcode_lookup: [MAX_COMPONENTS]opcode_component.OpcodeLookupComponent,
         infra: [MAX_INFRA_COMPONENTS]riscv_component.RiscVTraceComponent,
         hash: [MAX_HASH_COMPONENTS]hash_component.HashComponent,
+        /// Used only by the explicitly selected Ethereum narrow provider.
+        narrow_poseidon: @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig").Component,
         table: [component_order.LOOKUP_TABLE_COUNT]lookup_table_component.LookupTableComponent,
         clock: clock_update_component.ClockUpdateComponent,
         handles: [MAX_COMPONENT_HANDLES]Handle,

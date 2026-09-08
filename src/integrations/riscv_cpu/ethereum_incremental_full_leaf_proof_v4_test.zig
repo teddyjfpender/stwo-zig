@@ -58,6 +58,14 @@ const TestStage = enum {
 };
 
 test "full Ethereum incremental V4 proof coldly verifies q193 capture" {
+    try exerciseFullLeaf(false);
+}
+
+test "Ethereum schema4 real admission frames preserve exact legacy schema2 and schema3 bytes" {
+    try exerciseFullLeaf(true);
+}
+
+fn exerciseFullLeaf(comptime frames_only: bool) !void {
     const allocator = std.testing.allocator;
     var stage: TestStage = .session_init;
     errdefer |err| std.debug.print(
@@ -250,6 +258,28 @@ test "full Ethereum incremental V4 proof coldly verifies q193 capture" {
         &extension,
         artifact_v4.default_limits,
     );
+    const detailed_profile = try prepared.mintProfileWithAdmission(
+        &boundary_artifact,
+        public_authority,
+        &native,
+        &extension,
+        .selected_detailed_v3,
+    );
+    try detailed_profile.validateAgainstInputs(
+        allocator,
+        &boundary_artifact,
+        &public_wire,
+        public_authority,
+        &native,
+        &extension,
+        artifact_v4.default_limits,
+    );
+    try std.testing.expectEqual(profile_mod.ClaimAdmissionV4.legacy_aggregate_v2, try profile.claimAdmission());
+    try std.testing.expectEqual(profile_mod.ClaimAdmissionV4.selected_detailed_v3, try detailed_profile.claimAdmission());
+    try std.testing.expect(!std.mem.eql(u8, &profile.identity_sha256, &detailed_profile.identity_sha256));
+    var relabeled = profile;
+    relabeled.schema_version = @intFromEnum(profile_mod.ClaimAdmissionV4.selected_detailed_v3);
+    try std.testing.expectError(error.InvalidIncrementalEthereumLeafAuthorityV4, relabeled.validateAgainstStatement(&native, &extension, public_authority.public_data));
     try profile.protocol.validate();
     try std.testing.expect(Engine.Hasher == frontend.recursion.engine.Hasher);
     try std.testing.expect(
@@ -266,6 +296,33 @@ test "full Ethereum incremental V4 proof coldly verifies q193 capture" {
     );
     try std.testing.expectEqual(@as(usize, 14), extension.components.len);
     try std.testing.expectEqual(@as(u32, 193), profile.protocol.pcs.query_count);
+
+    if (frames_only) {
+        const frame_tests = @import("ethereum_incremental_field_transcript_v4_test_support.zig");
+        try frame_tests.checkLegacy(&profile, &native, public_authority.public_data);
+        try frame_tests.checkLegacy(&detailed_profile, &native, public_authority.public_data);
+        const field_profile = try prepared.mintProfileWithAdmission(
+            &boundary_artifact,
+            public_authority,
+            &native,
+            &extension,
+            .field_authority_v4,
+        );
+        try field_profile.validateAgainstInputs(
+            allocator,
+            &boundary_artifact,
+            &public_wire,
+            public_authority,
+            &native,
+            &extension,
+            artifact_v4.default_limits,
+        );
+        try frame_tests.checkField(&field_profile, &native, public_authority.public_data);
+        try frame_tests.checkFinalClaims(&profile, &native);
+        try frame_tests.checkFinalClaims(&detailed_profile, &native);
+        try frame_tests.checkFinalClaims(&field_profile, &native);
+        return;
+    }
 
     stage = .prove;
     var prove_channel = Engine.Channel{};

@@ -1,0 +1,17 @@
+test-ethereum-validation-ownership
++- Ethereum validation ownership guard
+   +- run test 19/20 passed, 1 failed
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+error: 'recursive_common_ethereum_incremental_leaf_child_statement_v4_test.test.Ethereum child statement owns source snapshots and rejects changed prepared rows' failed: expected error.UnsatisfiedCircuit, found error.EthereumIncrementalChildStatementMismatchV4
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_cohort_v4_test.test.Ethereum geometry rejects missing source admission before allocating preparation', the following test command failed:
+./.zig-cache/o/719ef4c1e95cd0339611774a24fb7c77/test --cache-dir=./.zig-cache --seed=0xc381f537 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 19/20 tests passed; 1 failed
+test-ethereum-validation-ownership transitive failure
++- Ethereum validation ownership guard transitive failure
+   +- run test 19/20 passed, 1 failed
+      +- compile test ReleaseSafe native success 56s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/17f4fa774ad3472b9cd3d45086549cc8/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v10/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xc381f537 -Z5bbc4c1953db8b97 --maxrss 25769803776 -j1 test-ethereum-validation-ownership -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all

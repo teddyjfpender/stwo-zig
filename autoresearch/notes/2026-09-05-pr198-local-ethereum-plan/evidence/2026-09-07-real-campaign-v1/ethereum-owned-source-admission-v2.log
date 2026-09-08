@@ -1,0 +1,45 @@
+1/4 pcs_commitments_test_root.test_0...OK
+2/4 pcs.owned_source_admission_test.test.PCS owned source admission releases every partial ownership stage on allocation failure...Segmentation fault at address 0x102c40000
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/columns/storage.zig:104:10: 0x10262e984 in freeOwnedColumnEvaluations (root)
+    for (columns) |column| {
+         ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_dispatch.zig:19:55: 0x10262e717 in commitConstant__anon_27841 (root)
+    errdefer column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
+                                                      ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:147:54: 0x10262f00f in commitOwnedPreparedWithRecorderAndBacking__anon_27774 (root)
+                return commit_dispatch.commitConstant(
+                                                     ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:106:66: 0x10263109b in commitOwnedWithRecorderAndBacking__anon_27752 (root)
+            return self.commitOwnedPreparedWithRecorderAndBacking(
+                                                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:86:58: 0x102631127 in commitOwnedWithRecorder__anon_27740 (root)
+            return self.commitOwnedWithRecorderAndBacking(
+                                                         ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:68:48: 0x10263119f in commitOwned__anon_27525 (root)
+            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+                                               ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:95:27: 0x102631b73 in commitFixture (root)
+    try scheme.commitOwned(allocator, first, &channel);
+                          ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:107:35: 0x1026321ab in allocationCase (root)
+    var scheme = try commitFixture(allocator, use_packing, retention);
+                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1146:9: 0x10263254f in checkAllAllocationFailures__anon_26623 (root)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:114:51: 0x102632e5f in test.PCS owned source admission releases every partial ownership stage on allocation failure (root)
+        try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationCase, .{ false, retention });
+                                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x1025e310b in mainTerminal (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:66:28: 0x1025ddc67 in main (root)
+        return mainTerminal();
+                           ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x1025dd67f in main (root)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x49267fffffffffff in ??? (???)
+error: the following test command crashed:
+.zig-cache/o/843ad13d2a1e0d15f27cb490cf0744b1/root --seed=0x3a8642a9

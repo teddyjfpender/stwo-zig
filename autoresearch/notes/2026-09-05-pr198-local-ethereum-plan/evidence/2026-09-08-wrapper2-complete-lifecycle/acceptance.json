@@ -1,0 +1,41 @@
+{
+  "status": "accepted_real_ordinary_leaf_wrapper",
+  "coordinate": {
+    "height": 0,
+    "reserved": "\u0000\u0000\u0000",
+    "index": 2,
+    "global_ordinal": 2
+  },
+  "expected_key_sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+  "candidate": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480",
+  "candidate_files": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480/key.json",
+      "bytes": 20912431,
+      "sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480/inputs.json",
+      "bytes": 6180,
+      "sha256": "3ffccebb793814ae951c554decdaa68ba21c5dce94f22ca0b969ede157cef45f"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480/proof.bin",
+      "bytes": 3028338,
+      "sha256": "0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480"
+    }
+  ],
+  "lifecycle_tests": 3,
+  "independent_cases": 10,
+  "independent_verifier_request_ns": 198666125,
+  "independent_verifier_verify_ns": 110779250,
+  "independent_process_s": 0.5172361249569803,
+  "proof_bytes": 3028338,
+  "native_inputs_used": false,
+  "whole_block_root": false,
+  "native_accepted_segments": 21,
+  "native_total_segments": 121,
+  "next_consumer": "segment3 wrapper with admitted compatible geometry, then actual parent",
+  "evidence": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-wrapper2-complete-lifecycle",
+  "independent_receipt_sha256": "a0f85e09b6b7892a3a4c493b987a61c920928a14fde5292a40c8a9773491abd9"
+}

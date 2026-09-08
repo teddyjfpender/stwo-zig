@@ -55,7 +55,7 @@ pub fn Namespace(comptime context: type) type {
         /// captured circuit itself.
         pub const NativeSegmentCoreAuthorityInputsV2 = struct {
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             transcript_prepared: *const segment_transcript_source_v2.PreparedV2,
             transcript_program: *const recursion.transcript_program_v2.Program,
@@ -116,8 +116,9 @@ pub fn Namespace(comptime context: type) type {
         /// and it accepts full q193 query words only after the core checks
         /// their low-bit projection against the native PCS capture.
         pub const NativeSegmentCoreAuthorityInputsV4 = struct {
+            statement_arithmetic: *const recursion.ethereum_statement_arithmetic_v4.Prepared,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             public_native_sum_lane: lowering.Lane,
             public_native_sum_evaluation: lowering.Evaluation,
@@ -189,7 +190,7 @@ pub fn Namespace(comptime context: type) type {
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !void {
-                try owner.validateComplete();
+                try owner.validatePreparedComplete();
                 try relations.validate();
                 try provider_relations.validateAgainst(relations);
                 if (self.format_version != NATIVE_V2_CORE_FORMAT_VERSION or

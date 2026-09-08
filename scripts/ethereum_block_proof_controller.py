@@ -13,6 +13,7 @@ from scripts import ethereum_block_proof_plan_authority as plan_authority
 from scripts import ethereum_block_proof_profile_plan as profile_plan
 from scripts import ethereum_block_proof_store as store
 from scripts import ethereum_block_proof_stream_request as stream_request
+from scripts.ethereum_full_leaf_bundle_producer import run as run_full_leaf_bundle
 
 
 ChildRunner = Callable[[dict[str, Any], dict[str, Any]], dict[str, Any]]

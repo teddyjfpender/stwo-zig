@@ -1,4 +1,4 @@
-//! Retained-authority, fresh one-pass 210-segment capture command.
+//! Retained-authority, fresh one-pass capture with explicit campaign admission.
 //!
 //! This is an execution/materialization transaction only. It emits no native
 //! proof authority. Reopening an unsealed root reexecutes the VM from segment
@@ -42,14 +42,13 @@ pub fn run(
         .reopen_unsealed => try requireDirectory(options.publication_root),
     }
 
-    var retained = try retained_mod.RetainedAuthorityV4.open(
+    var retained = try retained_mod.RetainedAuthorityV4.openWithCampaignGeometryV1(
         allocator,
         options.retained_materialization_result,
+        options.campaign_geometry,
     );
     defer retained.deinit();
     const execution = try retained.executionAuthority();
-    if (execution.segment_count != publication.CANONICAL_SEGMENT_COUNT)
-        return error.CanonicalIncrementalSegmentCountRequired;
 
     var observer = try observer_mod.ObserverV4.init(
         allocator,
@@ -213,7 +212,7 @@ fn publishOrAdmitCompact(
             var parsed = try compact_manifest.parse(allocator, bytes);
             defer parsed.deinit();
             const value = parsed.value;
-            if (value.segment_count != publication.CANONICAL_SEGMENT_COUNT or
+            if (value.segment_count != retained.sources.len or
                 value.artifacts.len != observer.compact_artifacts.items.len or
                 !identityMatches(value.elf, retained.elfEvidence()) or
                 !identityMatches(

@@ -1,0 +1,41 @@
+{
+  "status": "running",
+  "full_block_verified": false,
+  "scope": "Serial121-leaf Metal campaign, with accepted9/120 imports and mandatory fresh verification of every leaf and final bundle",
+  "source_manifest_sha256": "6e656c3591c2b57fe3c536cf2b02505944a2a30f792f204f607895172b427c4c",
+  "controller_pid": 24546,
+  "exec_session": 98614,
+  "process_memory_cap_enforced": false,
+  "imported_producer_seconds": 362.24,
+  "imported_external_verifier_ns": 157123693832,
+  "files": {
+    "prepared-launch-v2.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/metal-field5-campaign-v2-prepared-launch-v2.json",
+      "sha256": "9a0e40256606a8e4ff37921ebf7dcf863f52099459a69b8857752e5d75a6514e",
+      "bytes": 6174
+    },
+    "controller-start-v2.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/metal-field5-campaign-v2-controller-start-v2.json",
+      "sha256": "9819420ef020030133215690e13550970c11c367a8dac00cb850a961383097e3",
+      "bytes": 2751
+    },
+    "controller-run-v2.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/metal-field5-campaign-v2-controller-run-v2.py",
+      "sha256": "309613c4778dfa0cbb1d6856a26b4dae67f0c10471b000d3bdd7b41523d9d5bf",
+      "bytes": 2751
+    },
+    "import-accounting-v1.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/metal-field5-campaign-v2-import-accounting-v1.json",
+      "sha256": "1ca585f67bb42fe8c2380da3c13f477ea1670f57bd713a9d299ccf78b4e9f098",
+      "bytes": 2229
+    },
+    "import-script": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/metal-field5-campaign-v2-import.py",
+      "sha256": "898d2af4224ea9c49d95e236375ff6aae555c901cb701bc562cb6675643b58cf",
+      "bytes": 4650
+    }
+  },
+  "first_campaign_leaf_status": "produced_and_independently_verified",
+  "first_campaign_leaf_evidence": "real-metal-campaign-leaf0-v1.json",
+  "checkpoint": "Controller proceeding with leaf1; complete121-leaf bundle verification pending"
+}

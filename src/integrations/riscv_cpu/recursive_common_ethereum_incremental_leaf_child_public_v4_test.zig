@@ -3,7 +3,7 @@ const std = @import("std");
 const subject =
     @import("recursive_common_ethereum_incremental_leaf_child_public_v4.zig");
 
-test "child-public binding rejects a resealed claim-hash drift" {
+test "child-public binding rejects removed legacy claim hash admission" {
     const claim = digest(101);
     const input = digest(211);
     const output = digest(307);
@@ -14,11 +14,9 @@ test "child-public binding rejects a resealed claim-hash drift" {
         .statement_words_identity_sha256 = identity(71),
         .claim_words_identity_sha256 = identity(83),
         .claim_digest = claim,
-        .claim_hash_output_digest = claim,
         .public_input_digest = input,
         .public_output_digest = output,
         .io_hash_output_digests = .{ input, output },
-        .child_claim_hash_call_count = 33,
         .child_io_hash_call_count = 67,
         .identity_sha256 = undefined,
     };
@@ -26,7 +24,10 @@ test "child-public binding rejects a resealed claim-hash drift" {
     try value.validate();
 
     var drift = value;
-    drift.claim_hash_output_digest[0] += 1;
+    drift.schema_version = 3;
+    try std.testing.expectEqual(@as(u16, 4), value.schema_version);
+    try std.testing.expect(!@hasField(subject.ChildPublicBindingV4, "claim_hash_output_digest"));
+    try std.testing.expect(!@hasField(subject.ChildPublicBindingV4, "child_claim_hash_call_count"));
     drift = subject.testing.resealBinding(drift);
     try std.testing.expectError(
         error.EthereumIncrementalChildPublicMismatchV4,
@@ -45,11 +46,9 @@ test "child-public binding rejects an independently resealed IO hash" {
         .statement_words_identity_sha256 = identity(47),
         .claim_words_identity_sha256 = identity(57),
         .claim_digest = claim,
-        .claim_hash_output_digest = claim,
         .public_input_digest = input,
         .public_output_digest = output,
         .io_hash_output_digests = .{ input, output },
-        .child_claim_hash_call_count = 17,
         .child_io_hash_call_count = 35,
         .identity_sha256 = undefined,
     };
@@ -77,4 +76,12 @@ fn identity(seed: u8) [32]u8 {
     for (&result, 0..) |*byte, index|
         byte.* = seed +% @as(u8, @intCast(index));
     return result;
+}
+
+test "child-public source snapshot deep owns IO and rejects changed admission values" {
+    try subject.testing.exerciseSourceSnapshot(std.testing.allocator);
+}
+
+test "child-public source snapshot frees every partial allocation" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, subject.testing.exerciseSourceSnapshot, .{});
 }

@@ -16,6 +16,7 @@ const projection_air = @import("air/ethereum_leaf_link_projection_v1.zig");
 const source_air = @import("air/ethereum_leaf_link_source_v1.zig");
 const metadata_v3 = @import("segment_leaf_local_authority_v3.zig");
 const link_v3 = @import("segment_leaf_local_verified_link_v3.zig");
+const local_projection_v3 = @import("segment_leaf_local_projection_v3.zig");
 const leaf_v2 = @import("segment_leaf_authority_v2.zig");
 const segment_v2 = @import("segment_statement_v2.zig");
 const span = @import("span_statement.zig");
@@ -343,31 +344,33 @@ fn fillProjectionRows(
     }
     for (0..span.SPAN_STATEMENT_CANONICAL_WORDS) |index| {
         const statement_index = segment_v2.fixed_layout.base_statement + index;
-        if (localCountLimb(index)) |limb| {
-            const metadata_index = METADATA_LOCAL_COUNT_START + limb;
-            destination[at] = rawStatementRow(
-                source_air.METADATA_SCOPE,
-                metadata_index,
+        switch (try local_projection_v3.canonicalWordSourceV1(index)) {
+            .local_cycle_count_limb => |limb| {
+                const metadata_index = METADATA_LOCAL_COUNT_START + @as(usize, limb);
+                destination[at] = rawStatementRow(
+                    source_air.METADATA_SCOPE,
+                    metadata_index,
+                    leaf_v2.WIRE_SCOPE,
+                    statement_index,
+                    false,
+                );
+                metadata_uses[metadata_index] += 1;
+            },
+            .zero => destination[at] = constantStatementRow(
                 leaf_v2.WIRE_SCOPE,
                 statement_index,
-                false,
-            );
-            metadata_uses[metadata_index] += 1;
-        } else if (localZeroWord(index)) {
-            destination[at] = constantStatementRow(
-                leaf_v2.WIRE_SCOPE,
-                statement_index,
-            );
-        } else {
-            const metadata_index = METADATA_BASE_START + index;
-            destination[at] = rawStatementRow(
-                source_air.METADATA_SCOPE,
-                metadata_index,
-                leaf_v2.WIRE_SCOPE,
-                statement_index,
-                false,
-            );
-            metadata_uses[metadata_index] += 1;
+            ),
+            .global_word => |source| {
+                const metadata_index = METADATA_BASE_START + source;
+                destination[at] = rawStatementRow(
+                    source_air.METADATA_SCOPE,
+                    metadata_index,
+                    leaf_v2.WIRE_SCOPE,
+                    statement_index,
+                    false,
+                );
+                metadata_uses[metadata_index] += 1;
+            },
         }
         at += 1;
     }
@@ -613,23 +616,6 @@ fn verifierStatementRow(
     result.statement_scope = statement_scope;
     result.statement_index = @intCast(statement_index);
     return result;
-}
-
-fn localCountLimb(index: usize) ?usize {
-    inline for (.{
-        span.canonical_layout.total_cycles_start,
-        span.canonical_layout.executed_cycle_count_start,
-    }) |start| if (index >= start and index < start + 2) return index - start;
-    return null;
-}
-
-fn localZeroWord(index: usize) bool {
-    return (index >= span.canonical_layout.total_cycles_start + 2 and
-        index < span.canonical_layout.total_cycles_start + 4) or
-        (index >= span.canonical_layout.first_cycle_start and
-            index < span.canonical_layout.first_cycle_start + 4) or
-        (index >= span.canonical_layout.executed_cycle_count_start + 2 and
-            index < span.canonical_layout.executed_cycle_count_start + 4);
 }
 
 fn hashSchedulesEqual(left: *const HashScheduleV1, right: *const HashScheduleV1) bool {

@@ -4,9 +4,9 @@
 //! Ethereum+incremental transcript: its profile frames, fifty relation draws,
 //! and forty-three aggregate claims are different protocol operations.  This
 //! owner classifies every operation recorded by the successful Stage101 cold
-//! verifier and binds it to the exact VM verifier-plan step.  Only proof
-//! values which are also supplied by a typed recursion input row are dynamic;
-//! all remaining verifier-derived words are committed preprocessing.
+//! verifier and binds it to the exact VM verifier-plan step. Schema4 delegates
+//! every native profile frame to the shared exhaustive classification. Private
+//! auxiliary provenance is hash-bound without claiming canonical V2 validity.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
@@ -25,11 +25,15 @@ const recursion = frontend.recursion;
 const recording = recursion.recording_poseidon_channel_v4;
 const schedule = recursion.air.verifier_schedule;
 const transcript_program = recursion.transcript_program_v2;
+const ethereum_transcript = frontend.prover_mod.guest_precompile.ethereum_transcript;
+const publication = recursion.ethereum_publication_routing_v1;
+const public_sums = @import("recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig");
+pub const field_frames = @import("recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.zig");
 const CONSTANT_TAG_BASE: u32 = 0x400;
 const CONTEXT_COUNT = types.CONTEXT_COUNT;
 const BASE_STATEMENT_WIRE_OFFSET = types.BASE_STATEMENT_WIRE_OFFSET;
 const BASE_STATEMENT_WORD_COUNT = types.BASE_STATEMENT_WORD_COUNT;
-const RELATION_DRAW_COUNT = types.RELATION_DRAW_COUNT;
+const RELATION_CHALLENGE_COUNT = types.RELATION_CHALLENGE_COUNT;
 const QUERY_WORD_COUNT = types.QUERY_WORD_COUNT;
 const ContextRangeV4 = types.ContextRangeV4;
 const OperationV4 = types.OperationV4;
@@ -40,6 +44,7 @@ const Error = types.Error;
 pub const DerivedV4 = struct {
     contexts: [CONTEXT_COUNT]ContextRangeV4,
     operations: []OperationV4,
+    field_plan: ?*field_frames.OwnedPlan = null,
 };
 
 pub fn derive(
@@ -81,25 +86,69 @@ pub fn derive(
         }
     }
 
-    try classifyPreTree0(captured, vm_plan, contexts[0], operations);
+    var phase: usize = 0;
+    errdefer std.debug.print("ETHEREUM_TRANSCRIPT_PROGRAM context={d} counts={any}\n", .{ phase + 1, contexts });
+    const capture = &captured.base.input.stage101;
+    const field_plan: ?*field_frames.OwnedPlan = if (capture.profile.usesFieldTranscript()) blk: {
+        const native_view = try capture.statement.public_data.authenticatedView();
+        const layout = try recursion.segment_statement_v2_transcript_layout.Layout.fromView(&native_view);
+        break :blk try field_frames.OwnedPlan.initFromAdmittedWithClaimShape(allocator, &capture.profile, &capture.statement, &capture.role_aware_public.value, layout, execution, .{
+            .pre_tree0 = .{ .first = contexts[0].first, .count = contexts[0].count },
+            .post_tree1 = .{ .first = contexts[3].first, .count = contexts[3].count },
+        }, try captured.claimShape());
+    } else null;
+    errdefer if (field_plan) |plan| plan.deinit();
+    if (field_plan) |plan| {
+        const pcs_sequence = try sequenceForSimple(vm_plan, .bind_pcs_parameters);
+        const statement_sequence = try sequenceForSimple(vm_plan, .bind_statement);
+        const protocol_sequence = try sequenceForSimple(vm_plan, .bind_protocol);
+        const public_claim_sequence = try sequenceForSimple(vm_plan, .absorb_public_claim);
+        for (plan.descriptors(), 0..) |descriptor, index| {
+            const operation = &operations[descriptor.operation_index];
+            operation.verifier_sequence = switch (@import("ethereum_incremental_field_transcript_v4.zig").verifierBinding(descriptor.phase, descriptor.kind)) {
+                .pcs => pcs_sequence,
+                .statement => statement_sequence,
+                .protocol => protocol_sequence,
+                .public_claim => public_claim_sequence,
+            };
+            operation.tag = CONSTANT_TAG_BASE + 0x100 + @as(u32, @intCast(@intFromEnum(descriptor.kind)));
+            operation.args = .{ descriptor.ordinal, descriptor.payload_word_count, @intFromEnum(descriptor.phase), 0 };
+            operation.payload = .{ .field_frame = @intCast(index) };
+        }
+    } else try classifyPreTree0(captured, vm_plan, contexts[0], operations);
+    phase = 1;
     try classifyCommitment(execution, vm_plan, contexts[1], operations, 0);
+    phase = 2;
     try classifyCommitment(execution, vm_plan, contexts[2], operations, 1);
-    try requireSingleContext(execution, contexts[3], .mix);
+    phase = 3;
+    try requireMixContext(execution, contexts[3]);
+    phase = 4;
     try classifyPow(execution, vm_plan, contexts[4], operations, true);
+    phase = 5;
     try classifyRelations(replay, vm_plan, contexts[5], operations);
-    try classifyInteractionClaims(captured, vm_plan, contexts[6], operations);
+    phase = 6;
+    try classifyInteractionClaims(allocator, captured, vm_plan, contexts[6], operations);
+    phase = 7;
     try classifyCommitment(execution, vm_plan, contexts[7], operations, 2);
+    phase = 8;
     try classifyDraw(execution, captured, vm_plan, contexts[8], operations, .composition);
+    phase = 9;
     try classifyCommitment(execution, vm_plan, contexts[9], operations, 3);
+    phase = 10;
     try classifyDraw(execution, captured, vm_plan, contexts[10], operations, .oods);
+    phase = 11;
     try classifySampled(execution, captured, vm_plan, contexts[11], operations);
+    phase = 12;
     try classifyDraw(execution, captured, vm_plan, contexts[12], operations, .deep);
+    phase = 13;
     try classifyFri(execution, captured, vm_plan, contexts[13], operations);
+    phase = 14;
     try classifyLastLayer(execution, captured, vm_plan, contexts[14], operations);
+    phase = 15;
     try classifyPow(execution, vm_plan, contexts[15], operations, false);
+    phase = 16;
     try classifyQueries(replay, vm_plan, contexts[16], operations);
-
-    return .{ .contexts = contexts, .operations = operations };
+    return .{ .contexts = contexts, .operations = operations, .field_plan = field_plan };
 }
 
 fn contextRanges(execution: *const recording.ExecutionV4) ![CONTEXT_COUNT]ContextRangeV4 {
@@ -156,6 +205,39 @@ fn classifyPreTree0(
         .wire_offset = BASE_STATEMENT_WIRE_OFFSET,
         .word_count = BASE_STATEMENT_WORD_COUNT,
     } };
+    // Fixed protocol operation coordinates; values remain committed payloads.
+    for (std.enums.values(publication.NativeField)) |field| {
+        const ordinal = publication.operationOrdinal(field);
+        if (ordinal >= range.count) return mismatch();
+        const operation_index = @as(usize, range.first) + ordinal;
+        const native_payload = try operationPayload(&captured.base.transcript.execution, operation_index);
+        if (native_payload.len != publication.payloadWordCount(field)) return mismatch();
+        const source = &captured.schedule.source.base;
+        switch (field) {
+            .statement_authority => try requireU32Payload(native_payload, &source.native_statement_authority),
+            .wire_id => try requireU32Payload(native_payload, &source.public_wire_id),
+            .protocol_id => try requireU32Payload(native_payload, &source.protocol_id),
+            .completion => {
+                const completion = source.completion;
+                const expected = [_]u32{
+                    completion.completion_kind,
+                    completion.address_limbs[0] + (completion.address_limbs[1] << 16),
+                    completion.value_limbs[0] + (completion.value_limbs[1] << 16),
+                    completion.clock_limbs[0] + (completion.clock_limbs[1] << 16),
+                };
+                try requireU32Payload(native_payload, &expected);
+            },
+        }
+        operations[operation_index].payload = .{ .native_publication = field };
+    }
+}
+
+fn requireU32Payload(payload: []const M31, expected: []const u32) !void {
+    if (payload.len != expected.len * 2) return mismatch();
+    for (expected, 0..) |word, index| {
+        if (payload[index * 2].toU32() != (word & 0xffff) or
+            payload[index * 2 + 1].toU32() != (word >> 16)) return mismatch();
+    }
 }
 
 fn classifyCommitment(
@@ -212,30 +294,28 @@ fn classifyRelations(
     range: ContextRangeV4,
     operations: []OperationV4,
 ) !void {
-    if (range.count != RELATION_DRAW_COUNT) return mismatch();
+    if (range.count != RELATION_CHALLENGE_COUNT) return mismatch();
     for (0..range.count) |local| {
         const index: usize = @as(usize, range.first) + local;
         const native = replay.execution.operations[index];
         if (native.effect != .draw) return mismatch();
-        const challenge: u32 = @intCast(local / 2);
-        const half: u32 = @intCast(local % 2);
+        const challenge: u32 = @intCast(local);
         const drawn = try operationDraw(&replay.execution, index);
-        const expected = replay.relation_draws[local].toM31Array();
-        if (!m31SlicesEql(drawn[0..4], &expected)) return mismatch();
+        const z = replay.relation_draws[2 * local].toM31Array();
+        const alpha = replay.relation_draws[2 * local + 1].toM31Array();
+        if (!m31SlicesEql(&drawn, &(z ++ alpha))) return mismatch();
         operations[index].verifier_sequence = try sequenceForRelation(
             plan,
             challenge,
         );
         operations[index].tag = 7;
-        operations[index].args = .{ challenge, half, 0, 0 };
-        operations[index].draw = .{ .relation_limb = .{
-            .challenge = challenge,
-            .half = half,
-        } };
+        operations[index].args = .{ challenge, 0, 0, 0 };
+        operations[index].draw = .{ .relation_challenge = challenge };
     }
 }
 
 fn classifyInteractionClaims(
+    allocator: std.mem.Allocator,
     captured: anytype,
     plan: *const schedule.Plan,
     range: ContextRangeV4,
@@ -245,8 +325,13 @@ fn classifyInteractionClaims(
     var local: usize = 0;
     try consumeConstant(range, &local, operations, sequence);
     const capture = &captured.base.input.stage101;
-    const canonical = try capture.base_claim.canonical(&capture.statement.core);
-    for (canonical.claimed_sums, 0..) |claim, claim_index|
+    const canonical = try capture.authenticated.canonicalInteractionClaim(
+        &capture.statement.core,
+        &capture.manifest,
+        capture.base_claim,
+    );
+    const view = canonical.view();
+    for (view.claimed_sums, 0..) |claim, claim_index|
         try consumeClaim(
             &captured.base.transcript.execution,
             range,
@@ -257,58 +342,72 @@ fn classifyInteractionClaims(
             claim,
         );
     try consumeConstant(range, &local, operations, sequence);
-    for (canonical.log_sizes) |_|
+    for (view.log_sizes) |_|
         try consumeConstant(range, &local, operations, sequence);
 
+    // ExtensionClaim.mixInto emits its domain/count header before components.
+    try consumeConstant(range, &local, operations, sequence);
     const extension = &capture.extension_claim;
-    try consumeComponent(
-        &captured.base.transcript.execution,
-        range,
-        &local,
-        operations,
-        sequence,
-        28,
-        extension.keccak_shard.component_sum,
-    );
-    try consumeClaim(
-        &captured.base.transcript.execution,
-        range,
-        &local,
-        operations,
-        sequence,
-        29,
-        extension.keccak_chi_table,
-    );
-    try consumeClaim(
-        &captured.base.transcript.execution,
-        range,
-        &local,
-        operations,
-        sequence,
-        30,
-        extension.keccak_xor5_table,
-    );
-    inline for (.{
-        extension.product_base.component_sum,
-        extension.product_scalar.component_sum,
-        extension.linear_base.component_sum,
-        extension.linear_scalar.component_sum,
-        extension.point.component_sum,
-        extension.split.component_sum,
-        extension.scalar.component_sum,
-        extension.table.component_sum,
-        extension.recovery.component_sum,
-        extension.byte.component_sum,
-        extension.recovery_caller.component_sum,
-    }, 31..) |claim, claim_index| try consumeComponent(
-        &captured.base.transcript.execution,
-        range,
-        &local,
-        operations,
-        sequence,
-        @intCast(claim_index),
-        claim,
-    );
+    const routing = captured.base.composition.program().claim_routing orelse return mismatch();
+    if (routing.base_count != captured.base.base_profile.input_profile.claimed_sum_count or
+        routing.logical_count != captured.base.full_detailed_claim_count) return mismatch();
+    var detailed_at = routing.base_count;
+    for (extension.componentClaims(), 28..) |claim, claim_index| {
+        if (claim.has_batch_frame) {
+            try consumeComponent(
+                &captured.base.transcript.execution,
+                range,
+                &local,
+                operations,
+                sequence,
+                @intCast(claim_index),
+                &detailed_at,
+                &routing,
+                claim.detailed,
+                claim.total,
+            );
+        } else {
+            // The admitted graph aliases this singleton to the canonical
+            // input already supplied by its sole native frame.
+            try consumeClaim(
+                &captured.base.transcript.execution,
+                range,
+                &local,
+                operations,
+                sequence,
+                @intCast(claim_index),
+                claim.total,
+            );
+            detailed_at = std.math.add(u32, detailed_at, @intCast(claim.detailed.len)) catch return mismatch();
+        }
+    }
+    if (@as(u64, detailed_at) + 1 != captured.base.full_detailed_claim_count)
+        return mismatch();
+    switch (try capture.profile.claimAdmission()) {
+        .legacy_aggregate_v2 => {},
+        .selected_detailed_v3, .field_authority_v4, .fixed_program_narrow_v5 => {
+            const selected = try ethereum_transcript.SelectedBaseClaimsV3.init(
+                &capture.statement.core,
+                &capture.manifest,
+                &capture.authenticated,
+                capture.base_claim,
+            );
+            if (selected.count != routing.base_count or
+                (routing.physicalRange(0, routing.base_count) catch return mismatch()) != 0)
+                return mismatch();
+            const claims = try allocator.alloc(QM31, selected.count);
+            defer allocator.free(claims);
+            try selected.write(claims);
+            try consumeDetailedBaseClaims(
+                &captured.base.transcript.execution,
+                range,
+                &local,
+                operations,
+                sequence,
+                claims,
+            );
+        },
+    }
     try consumeClaim(
         &captured.base.transcript.execution,
         range,
@@ -328,10 +427,15 @@ fn consumeComponent(
     operations: []OperationV4,
     sequence: u32,
     claim_index: u32,
+    detailed_at: *u32,
+    routing: *const recursion.incremental_ethereum_composition_profile_v4.ClaimRoutingPlan,
+    detailed: []const QM31,
     claim: QM31,
 ) !void {
     try consumeConstant(range, local, operations, sequence);
-    try consumeConstant(range, local, operations, sequence);
+    const physical_first = routing.physicalRange(detailed_at.*, @intCast(detailed.len)) catch return mismatch();
+    try consumeDetailedClaims(execution, range, local, operations, sequence, physical_first, detailed);
+    detailed_at.* = std.math.add(u32, detailed_at.*, @intCast(detailed.len)) catch return mismatch();
     try consumeClaim(
         execution,
         range,
@@ -341,6 +445,72 @@ fn consumeComponent(
         claim_index,
         claim,
     );
+}
+
+/// Schema-3 native base claims are mixed after extension claims and before
+/// the bridge. Match both frames to the shared native definition before any
+/// classification is committed; legacy profiles never call this function.
+pub fn consumeDetailedBaseClaims(
+    execution: *const recording.ExecutionV4,
+    range: ContextRangeV4,
+    local: *usize,
+    operations: []OperationV4,
+    sequence: u32,
+    claims: []const QM31,
+) !void {
+    if (local.* >= range.count) return mismatch();
+    const header_index = @as(usize, range.first) + local.*;
+    if (header_index >= operations.len) return mismatch();
+    const payload = try operationPayload(execution, header_index);
+    const header = try ethereum_transcript.selectedBaseClaimsHeaderV3(claims.len);
+    // Native mixU32s preserves every host bit as low/high u16 field words.
+    // The recording stores those eight words, not the four host integers.
+    if (payload.len != header.len * 2) return mismatch();
+    for (header, 0..) |expected, index| {
+        if (payload[index * 2].toU32() != (expected & 0xffff) or
+            payload[index * 2 + 1].toU32() != (expected >> 16))
+            return mismatch();
+    }
+    var next = local.* + 1;
+    try consumeDetailedClaims(execution, range, &next, operations, sequence, 0, claims);
+    operations[header_index].verifier_sequence = sequence;
+    operations[header_index].payload = .constant;
+    local.* = next;
+}
+
+/// Classify a native batch frame only after its exact values have been
+/// matched to the same detailed-claim ordering consumed by the VM graph.
+/// These words are already mixed before composition randomness by the native
+/// Ethereum transcript; aggregate equality is not an authentication substitute.
+pub fn consumeDetailedClaims(
+    execution: *const recording.ExecutionV4,
+    range: ContextRangeV4,
+    local: *usize,
+    operations: []OperationV4,
+    sequence: u32,
+    first_claim: u32,
+    detailed: []const QM31,
+) !void {
+    if (local.* >= range.count or detailed.len == 0) return mismatch();
+    const index: usize = @as(usize, range.first) + local.*;
+    if (index >= operations.len) return mismatch();
+    const payload = try operationPayload(execution, index);
+    const count = std.math.cast(u32, detailed.len) orelse return mismatch();
+    const end = std.math.add(u32, first_claim, count) catch return mismatch();
+    const word_count = std.math.mul(usize, detailed.len, 4) catch return mismatch();
+    if (end >= stwo_core.fields.m31.Modulus or payload.len != word_count)
+        return mismatch();
+    for (detailed, 0..) |claim, item| {
+        const words = claim.toM31Array();
+        for (words, 0..) |word, limb| if (!payload[item * 4 + limb].eql(word))
+            return mismatch();
+    }
+    operations[index].verifier_sequence = sequence;
+    operations[index].payload = .{ .detailed_claims = .{
+        .first_claim = first_claim,
+        .claim_count = count,
+    } };
+    local.* += 1;
 }
 
 fn consumeConstant(
@@ -667,6 +837,15 @@ fn classifyQueries(
     if (first_word != QUERY_WORD_COUNT) return mismatch();
 }
 
+pub fn requireMixContext(execution: *const recording.ExecutionV4, range: ContextRangeV4) Error!void {
+    const end = @as(usize, range.first) + range.count;
+    if (range.count == 0 or end > execution.operations.len) return mismatch();
+    // The native V4 post-tree1 profile mixes the main claim, shard manifest,
+    // Ethereum extension and bridge authority in separate operations.
+    for (execution.operations[range.first..end]) |operation|
+        if (operation.effect != .mix) return mismatch();
+}
+
 fn requireSingleContext(
     execution: *const recording.ExecutionV4,
     range: ContextRangeV4,
@@ -708,24 +887,98 @@ fn operationDraw(
     return frame.output[0..recording.RATE].*;
 }
 
+/// Exact shared frame descriptors determine masks and coordinates. Dynamic
+/// auxiliary raw V2 words are private committed transcript/hash inputs under
+/// the execution-only profile; this does not prove canonical V2 validity.
+pub fn fieldMetadata(plan: *const field_frames.OwnedPlan, frame_index: u32, payload_index: u32) Error!PayloadMetadataV4 {
+    if (frame_index >= plan.descriptors().len) return mismatch();
+    const descriptor = plan.descriptors()[frame_index];
+    if (payload_index >= descriptor.payload_word_count) return mismatch();
+    const words = plan.wordsFor(frame_index) catch return mismatch();
+    const raw_native = descriptor.kind == .native_statement_words;
+    var result: PayloadMetadataV4 = .{
+        .source_kind = .protocol,
+        .item_index = 0,
+        .limb_index = 0,
+        .constant_mask = 0,
+        .input_use_count = 0,
+        .raw_native = raw_native,
+    };
+    switch (words[payload_index]) {
+        .fixed_protocol => |expected| {
+            result.constant_mask = 1;
+            result.expected_constant = expected;
+        },
+        .admitted_geometry => |geometry| {
+            result.constant_mask = 1;
+            result.expected_constant = geometry.expected;
+        },
+        .existing_source => |source| {
+            if (raw_native) {
+                switch (source.projection) {
+                    .canonical_m31_limb => {}, // Root export has its own exact2-use topology.
+                    .same_value => switch (source.endpoint) {
+                        .statement_word => |endpoint| {
+                            result.source_kind = .statement;
+                            result.item_index = endpoint.scope;
+                            result.limb_index = endpoint.index;
+                            result.input_use_count = if (endpoint.scope == 0) 1 else 0;
+                        },
+                        else => return mismatch(),
+                    },
+                }
+            } else {
+                result.source_kind = .statement;
+                result.item_index = publication.STATEMENT_SCOPE;
+                result.limb_index = switch (source.endpoint) {
+                    .raw_publication => |index| index,
+                    else => publication.fieldFrameSourceIndex(std.math.add(u32, descriptor.payload_word_first, payload_index) catch return mismatch()) orelse return mismatch(),
+                };
+            }
+        },
+        .unresolved_v2 => if (!raw_native) return mismatch(),
+    }
+    return result;
+}
+
 pub fn metadata(
     operation: OperationV4,
     payload_index: u32,
 ) Error!PayloadMetadataV4 {
     return switch (operation.payload) {
         .none => mismatch(),
-        .constant => constantMetadata(payload_index),
-        .statement_span => |span| if (payload_index >= span.wire_offset and
-            payload_index - span.wire_offset < span.word_count)
-            .{
-                .source_kind = .statement,
-                .item_index = 2,
-                .limb_index = payload_index - span.wire_offset,
-                .constant_mask = 0,
-                .input_use_count = 1,
-            }
-        else
-            constantMetadata(payload_index),
+        .field_frame => mismatch(), // Requires the owning shared descriptor plan.
+        .constant => constantMetadata(),
+        .native_publication => |field| .{
+            .source_kind = .statement,
+            .item_index = publication.STATEMENT_SCOPE,
+            .limb_index = publication.rawIndex(field, payload_index) orelse return mismatch(),
+            .constant_mask = 0,
+            .input_use_count = 0,
+        },
+        .statement_span => |span| blk: {
+            if (payload_index >= span.wire_offset and
+                payload_index - span.wire_offset < span.word_count)
+                break :blk .{
+                    .source_kind = .statement,
+                    .item_index = recursion.air.statement_input.STATEMENT_INPUT_ITEM,
+                    .limb_index = payload_index - span.wire_offset,
+                    .constant_mask = 0,
+                    .input_use_count = 1,
+                };
+            const clocks = recursion.ethereum_clock_routing_v1;
+            if (clocks.indexFromWire(payload_index)) |index|
+                break :blk .{
+                    .source_kind = .statement,
+                    .item_index = clocks.STATEMENT_SCOPE,
+                    .limb_index = index,
+                    .constant_mask = 0,
+                    // This profile routes the authenticated transcript word
+                    // directly to the clock statement consumer, not row 10.
+                    .input_use_count = 0,
+                };
+            break :blk constantMetadata();
+        },
         .commitment => |tree| dynamicMetadata(.commitment, tree, payload_index, 1),
         .interaction_pow_nonce => dynamicMetadata(
             .interaction_pow_nonce,
@@ -733,12 +986,17 @@ pub fn metadata(
             payload_index,
             0,
         ),
-        .transcript_claimed_sum => |item| dynamicMetadata(
-            .claimed_sum,
-            item,
-            payload_index,
-            1,
-        ),
+        .transcript_claimed_sum => |item| blk: {
+            if (item >= public_sums.CANONICAL_CLAIM_COUNT or payload_index >= 4) return mismatch();
+            break :blk dynamicMetadata(.claimed_sum, item, payload_index, public_sums.CANONICAL_CLAIM_TRANSCRIPT_USE_COUNT);
+        },
+        .detailed_claims => |claims| blk: {
+            if (claims.claim_count == 0 or payload_index / 4 >= claims.claim_count)
+                return mismatch();
+            const item = std.math.add(u32, claims.first_claim, payload_index / 4) catch return mismatch();
+            if (item >= stwo_core.fields.m31.Modulus) return mismatch();
+            break :blk dynamicMetadata(.vm_air_claimed_sum, item, payload_index % 4, 1);
+        },
         .sampled_values => dynamicMetadata(
             .sampled_value,
             payload_index / 4,
@@ -766,11 +1024,12 @@ pub fn metadata(
     };
 }
 
-fn constantMetadata(payload_index: u32) PayloadMetadataV4 {
+fn constantMetadata() PayloadMetadataV4 {
     return .{
         .source_kind = .protocol,
         .item_index = 0,
-        .limb_index = payload_index,
+        // Fixed words emit no semantic input tuple. Normalize its unused coordinates.
+        .limb_index = 0,
         .constant_mask = 1,
         .input_use_count = 0,
     };
@@ -813,4 +1072,169 @@ fn add(left: anytype, right: anytype) !u32 {
 
 fn mismatch() Error {
     return error.EthereumIncrementalTranscriptProgramMismatchV4;
+}
+
+test "role0 transcript clock metadata preserves the canonical statement route" {
+    const clocks = recursion.ethereum_clock_routing_v1;
+    const operation = OperationV4{
+        .recording_index = 3,
+        .context = .profile_pre_tree0,
+        .context_ordinal = 3,
+        .effect = .mix,
+        .verifier_sequence = 0,
+        .tag = 0,
+        .args = .{ 0, 0, 0, 0 },
+        .payload = .{ .statement_span = .{ .wire_offset = BASE_STATEMENT_WIRE_OFFSET, .word_count = BASE_STATEMENT_WORD_COUNT } },
+        .draw = .none,
+    };
+    for (0..clocks.WORD_COUNT) |index| {
+        const row = try metadata(operation, @intCast(clocks.WIRE_START + index));
+        try std.testing.expectEqual(InputKindV4.statement, row.source_kind);
+        try std.testing.expectEqual(clocks.STATEMENT_SCOPE, row.item_index);
+        try std.testing.expectEqual(@as(u32, @intCast(index)), row.limb_index);
+        try std.testing.expectEqual(@as(u32, 0), row.constant_mask);
+        try std.testing.expectEqual(@as(u32, 0), row.input_use_count);
+    }
+    for (0..BASE_STATEMENT_WORD_COUNT) |index| {
+        const row = try metadata(operation, BASE_STATEMENT_WIRE_OFFSET + @as(u32, @intCast(index)));
+        try std.testing.expectEqual(InputKindV4.statement, row.source_kind);
+        try std.testing.expectEqual(@as(u32, 0), row.item_index);
+        try std.testing.expectEqual(@as(u32, @intCast(index)), row.limb_index);
+        try std.testing.expectEqual(@as(u32, 0), row.constant_mask);
+        try std.testing.expectEqual(@as(u32, 1), row.input_use_count);
+    }
+    for ([_]usize{ BASE_STATEMENT_WIRE_OFFSET - 1, BASE_STATEMENT_WIRE_OFFSET + BASE_STATEMENT_WORD_COUNT, clocks.WIRE_START - 1, clocks.WIRE_START + clocks.WORD_COUNT }) |index| {
+        const row = try metadata(operation, @intCast(index));
+        try std.testing.expectEqual(InputKindV4.protocol, row.source_kind);
+        try std.testing.expectEqual(@as(u32, 1), row.constant_mask);
+        try std.testing.expectEqual(@as(u32, 0), row.input_use_count);
+    }
+}
+
+test "role0 schema3 base claim frames bind exact header and selected input words" {
+    const allocator = std.testing.allocator;
+    var claims: [35]QM31 = undefined;
+    for (&claims, 0..) |*claim, index| {
+        const value: u32 = @intCast(100 + 4 * index);
+        claim.* = QM31.fromU32Unchecked(value, value + 1, value + 2, value + 3);
+    }
+    var execution = try baseFrameFixture(allocator, &claims, .valid);
+    defer execution.deinit();
+    const recorded_header = try operationPayload(&execution, 1);
+    try std.testing.expectEqual(@as(usize, 8), recorded_header.len);
+    const expected_header = [_]u32{ 0x5453, 0x4757, 0x4245, 0x3344, 3, 0, 35, 0 };
+    for (recorded_header, expected_header) |actual, expected|
+        try std.testing.expectEqual(expected, actual.toU32());
+    var operations = baseFrameOperations();
+    var local: usize = 1;
+    try consumeDetailedBaseClaims(&execution, .{ .first = 0, .count = 4 }, &local, &operations, 7, &claims);
+    try std.testing.expectEqual(@as(usize, 3), local);
+    try std.testing.expect(operations[1].payload == .constant);
+    try std.testing.expect(operations[3].payload == .constant); // Bridge not consumed.
+    try std.testing.expectEqual(@as(u32, 0), operations[2].payload.detailed_claims.first_claim);
+    try std.testing.expectEqual(@as(u32, 35), operations[2].payload.detailed_claims.claim_count);
+
+    const air = recursion.air;
+    var producer_definition = try air.transcript_payload.build(allocator);
+    defer producer_definition.deinit();
+    const producer = try air.universal_relation_binding.Binding(air.transcript_payload).authenticate(&producer_definition);
+    var consumer_definition = try air.vm_air_composition_input.build(allocator);
+    defer consumer_definition.deinit();
+    const consumer = try air.vm_air_composition_input_relation.authenticate(&consumer_definition);
+    var ledger = air.relation_interaction.TupleLedger.init(allocator);
+    defer ledger.deinit();
+    for (0..claims.len * 4) |index| {
+        const source = try metadata(operations[2], @intCast(index));
+        try std.testing.expectEqual(InputKindV4.vm_air_claimed_sum, source.source_kind);
+        try std.testing.expectEqual(@as(u32, @intCast(index / 4)), source.item_index);
+        try std.testing.expectEqual(@as(u32, @intCast(index % 4)), source.limb_index);
+        const row: air.transcript_payload_witness.Row = .{
+            .row_mask = 1,
+            .segment_mask = 1,
+            .binary_mask = 0,
+            .verifier_id = 0,
+            .sequence = 2,
+            .tag = 0,
+            .args = .{ 0, 0, 0, 0 },
+            .payload_index = @intCast(index),
+            .source_kind = .vm_air_claimed_sum,
+            .item_index = source.item_index,
+            .limb_index = source.limb_index,
+            .constant_mask = source.constant_mask,
+            .input_use_count = source.input_use_count,
+            .constant_value = 0,
+            .source_hash_id = execution.operations[2].first_hash_id,
+            .source_word_index = @intCast(recording.RATE + index),
+        };
+        const value = claims[index / 4].toM31Array()[index % 4];
+        const provided = producer.preparedEntries(try air.transcript_payload_witness.logicalRowForEthereumRecordedFrame(row, value, .segment_leaf));
+        const consumer_row: air.vm_air_composition_input_witness.Row = .{
+            .classification = .{ .vm_input = .{ .claimed_sum = .{ .item_index = source.item_index, .word_index = source.limb_index } } },
+            .circuit_id = 7,
+            .node_id = @intCast(1 + index),
+            .use_count = 1,
+        };
+        const consumed = consumer.preparedEntries(try air.vm_air_composition_input_witness.logicalRow(consumer_row, value, .segment_leaf));
+        for ([_][]const air.relation_interaction.Entry{ &provided, &consumed }, [_]u8{ 5, 18 }) |entries, component| for (entries) |entry| {
+            if (entry.domain == .recursion_verifier_input_word)
+                try ledger.append(entry.domain, component, entry.ordinal, entry.role, entry.numerator, entry.values[0..entry.arity]);
+        };
+    }
+    try std.testing.expect(ledger.classify().isClosed());
+    try std.testing.expectError(error.EthereumIncrementalTranscriptProgramMismatchV4, metadata(operations[2], 140));
+
+    for ([_]BaseFrameCorruption{ .domain, .version, .count, .changed_value, .swapped_values, .truncated, .reordered }) |mode| {
+        var changed = try baseFrameFixture(allocator, &claims, mode);
+        defer changed.deinit();
+        var rejected = baseFrameOperations();
+        const before = rejected;
+        var cursor: usize = 1;
+        try std.testing.expectError(error.EthereumIncrementalTranscriptProgramMismatchV4, consumeDetailedBaseClaims(&changed, .{ .first = 0, .count = 4 }, &cursor, &rejected, 7, &claims));
+        try std.testing.expectEqual(@as(usize, 1), cursor);
+        try std.testing.expectEqualDeep(before, rejected);
+    }
+}
+
+const BaseFrameCorruption = enum { valid, domain, version, count, changed_value, swapped_values, truncated, reordered };
+
+fn baseFrameFixture(allocator: std.mem.Allocator, claims: *const [35]QM31, mode: BaseFrameCorruption) !recording.ExecutionV4 {
+    var channel = recording.Channel.init(allocator);
+    defer channel.deinit();
+    channel.setContextTag(7);
+    channel.mixFelts(&.{QM31.fromU32Unchecked(11, 0, 0, 0)}); // Extension tail.
+    var header = try ethereum_transcript.selectedBaseClaimsHeaderV3(claims.len);
+    switch (mode) {
+        .domain => header[1] ^= 1,
+        .version => header[2] = 2,
+        .count => header[3] += 1,
+        else => {},
+    }
+    var detailed = claims.*;
+    if (mode == .changed_value) detailed[0] = detailed[0].add(QM31.one());
+    if (mode == .swapped_values) std.mem.swap(QM31, &detailed[0], &detailed[1]);
+    if (mode == .reordered) {
+        channel.mixFelts(&detailed);
+        channel.mixU32s(&header);
+    } else {
+        channel.mixU32s(&header);
+        channel.mixFelts(detailed[0..if (mode == .truncated) detailed.len - 1 else detailed.len]);
+    }
+    channel.mixFelts(&.{QM31.fromU32Unchecked(19, 0, 0, 0)}); // Bridge.
+    return channel.finish();
+}
+
+fn baseFrameOperations() [4]OperationV4 {
+    var operations: [4]OperationV4 = undefined;
+    for (&operations, 0..) |*operation, index| operation.* = .{
+        .recording_index = @intCast(index),
+        .context = .interaction_claims,
+        .context_ordinal = @intCast(index),
+        .effect = .mix,
+        .verifier_sequence = 0,
+        .tag = 0,
+        .args = .{ 0, 0, 0, 0 },
+        .payload = .constant,
+        .draw = .none,
+    };
+    return operations;
 }

@@ -1,5 +1,6 @@
 //! Proof-independent diagnostic surfaces owned by the RISC-V frontend.
 
+pub const revm_legacy = @import("revm_legacy.zig");
 pub const public_values = @import("public_values.zig");
 pub const segment_manifest = @import("segment_manifest.zig");
 

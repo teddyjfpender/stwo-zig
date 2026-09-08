@@ -85,11 +85,35 @@ pub fn decodeWithRetainedLease(
     retained: public_data_v2.PublicDataV2.RetainedSnapshots,
     counters: ?*public_data_v2.PublicDataV2.ValidationCountersV2,
 ) !RetainedOwned {
+    return decodeWithLease(allocator, bytes, max_section_bytes, retained, counters);
+}
+
+/// Fresh-process admission computes both continuation roots before retaining
+/// the same immutable lease used by the native verifier capture.
+pub fn decodeWithColdLease(
+    allocator: std.mem.Allocator,
+    bytes: []const u8,
+    max_section_bytes: usize,
+    counters: ?*public_data_v2.PublicDataV2.ValidationCountersV2,
+) !RetainedOwned {
+    return decodeWithLease(allocator, bytes, max_section_bytes, null, counters);
+}
+
+fn decodeWithLease(
+    allocator: std.mem.Allocator,
+    bytes: []const u8,
+    max_section_bytes: usize,
+    retained: ?public_data_v2.PublicDataV2.RetainedSnapshots,
+    counters: ?*public_data_v2.PublicDataV2.ValidationCountersV2,
+) !RetainedOwned {
     var raw = try decodeRaw(allocator, bytes, max_section_bytes);
     var words_owned = true;
     errdefer if (words_owned) allocator.free(raw.words);
-    var lease = try public_data_v2.PublicDataV2.OwnedValidatedLeaseV2
-        .adoptRetained(allocator, raw.words, retained, counters);
+    const Lease = public_data_v2.PublicDataV2.OwnedValidatedLeaseV2;
+    var lease = if (retained) |snapshots|
+        try Lease.adoptRetained(allocator, raw.words, snapshots, counters)
+    else
+        try Lease.adoptCold(allocator, raw.words, counters);
     words_owned = false;
     errdefer lease.deinit();
     raw.core.public_data = try statement_v2.canonicalCorePublicData(lease.data());

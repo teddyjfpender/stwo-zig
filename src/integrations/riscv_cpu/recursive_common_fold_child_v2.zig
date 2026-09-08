@@ -37,6 +37,7 @@ pub const FreshRecursiveIngressV2 = struct {
     geometry_authority: *const manifest_mod.AuthorityV2,
     geometry: *const registry_mod.AuthenticatedGeometryV1,
     capture: *const common_authority.ProofCapture,
+    transcript: @import("recursive_secure_transcript_rows_v1.zig").View,
     query_words: *const [QUERY_WORD_COUNT]M31,
     query_log_size: u32,
     final_transcript_digest: *const TranscriptDigestV2,
@@ -50,6 +51,11 @@ pub const FreshRecursiveIngressV2 = struct {
         try self.session.validate();
         try self.statement.validateAgainstSession(self.session);
         try self.geometry.validate();
+        if (self.transcript.program.kind != .common_fold or
+            !std.meta.eql(self.transcript.program.manifest_seal, self.geometry_authority.manifest().seal) or
+            !std.meta.eql(self.transcript.execution.final_digest, self.final_transcript_digest.*) or
+            self.transcript.execution.final_draw_count != self.final_transcript_draw_count)
+            return error.CommonFoldFreshIngressMismatch;
         const capture_query_log_size = child_capability
             .queryLogSizeFromCapture(self.capture) catch
             return error.CommonFoldFreshIngressMismatch;

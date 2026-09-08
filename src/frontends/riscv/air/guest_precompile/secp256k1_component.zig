@@ -24,6 +24,9 @@ const trace_mod = @import("secp256k1_component_trace.zig");
 
 const CirclePointQM31 = circle.CirclePointQM31;
 
+/// Exact main-column mask order, also consumed by recursive PCS replay.
+pub const MAIN_MASK_OFFSETS = [_]isize{ 0, -1, 1 };
+
 pub const Placement = struct {
     preprocessed_offset: usize,
     main_offset: usize,
@@ -174,11 +177,10 @@ pub fn Component(comptime Config: type) type {
                 return error.InvalidMaskDegreeBound;
             const preprocessed = try pointColumns(allocator, preprocessed_count, &.{point});
             errdefer freePointColumns(allocator, preprocessed);
-            const main = try pointColumns(allocator, main_count, &.{
-                point,
-                shiftedPoint(max_log_degree_bound, point, -1),
-                shiftedPoint(max_log_degree_bound, point, 1),
-            });
+            var main_points: [MAIN_MASK_OFFSETS.len]CirclePointQM31 = undefined;
+            for (&main_points, MAIN_MASK_OFFSETS) |*sample, offset|
+                sample.* = shiftedPoint(max_log_degree_bound, point, offset);
+            const main = try pointColumns(allocator, main_count, &main_points);
             errdefer freePointColumns(allocator, main);
             const interaction = try pointColumns(allocator, interaction_count, &.{
                 point,

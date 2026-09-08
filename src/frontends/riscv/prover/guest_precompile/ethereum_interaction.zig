@@ -315,7 +315,7 @@ fn generateAndCommitInternal(
 
     const signer_empty = extension.secp_tape.recoveries.items.len == 0;
     const claim = ethereum_types.ExtensionClaim{
-        .keccak_shard = try keccak_component.Claim.canonical(&extension.keccak_shard, k0.claims),
+        .keccak_shard = try keccak_component.Claim.canonicalWithMaximumLogSize(&extension.keccak_shard, k0.claims, @import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size),
         .keccak_chi_table = k1.claim,
         .keccak_xor5_table = k2.claim,
         .product_base = try secp_component.Claim(secp_bundle.ProductBase).canonicalLogical(&extension.secp.product_base, logicalRows(&extension.secp.product_base, signer_empty), s0.claims),

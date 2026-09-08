@@ -1,0 +1,37 @@
+{
+  "schema": "stwo.ethereum.retained-campaign-execution-measurement.v1",
+  "exit_code": 0,
+  "sampled_peak_rss_bytes": 485867520,
+  "sample_interval_seconds": 10,
+  "claim": "proof-free source materialization; not a proof benchmark",
+  "ended_unix_ns": 1788779317076541000,
+  "maximum_resident_set_size_bytes": 847314944,
+  "peak_memory_footprint_bytes": 846742680,
+  "materialization": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v1-121x2097152-20260907/authority/materialization-v2.json",
+    "bytes": 69222,
+    "sha256": "c18ef5246b8364aff36611752cafb70dff16ee3d511edb0e2edd0b9185f0575c"
+  },
+  "source_request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v1-121x2097152-20260907/authority/source-request-v2.json",
+    "bytes": 2221,
+    "sha256": "98008c0294b392843570a09f60b6394a8d622a0c9749a04251e3ccf445a831a1"
+  },
+  "journal": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v1-121x2097152-20260907/execution.ndjson",
+    "bytes": 270437,
+    "sha256": "c3b312abd00b6782a264cc385b078b90697ce76c3dd1216a3cff5a36bc3a4bed"
+  },
+  "monitor_elapsed_ns": 140337025708,
+  "real_seconds": 135.69,
+  "user_seconds": 131.69,
+  "sys_seconds": 3.51,
+  "fresh_v4_capture_admission": {
+    "status": "rejected",
+    "error": "MemoryClockMissing",
+    "first_missing_address_hex": "0x0200e630",
+    "clock": 49491,
+    "guest_declared_data_end_hex": "0x0200e628",
+    "cause": "guest linker proof RW range excludes allocated heap"
+  }
+}

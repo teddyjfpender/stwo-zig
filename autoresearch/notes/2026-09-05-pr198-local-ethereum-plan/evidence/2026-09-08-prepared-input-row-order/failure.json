@@ -1,0 +1,41 @@
+{
+  "status": "real_replay_rejected_before_preparation_completed",
+  "error": "V2CoreCohortMismatch",
+  "source_manifest_sha256": "e0bb141158bf666065ee78f2739f253324fb4c1becb44ba2472bd13741d24552",
+  "request_sha256": "afb1e450e440044b03d7962743361fc84e15879a5dd7f9a2ef7fc4dd28457e37",
+  "runtime_s": 330.105528208,
+  "including_compile_s": 434.4412858339492,
+  "root_cause": "PreparedInputsV4.admit copied committed Tree1 column order into input_values; validateSource and native input writer consume logical preprocessing-row order. ColumnBuffer.scatter writes those rows using framework.committedRow.",
+  "failure_path": "Geometry suffix init -> rows10_34 constructor final validate -> Native.validate -> core.validateCoreReady -> PreparedInputs.validateSource",
+  "planned_repair": "Gather logical inputs using shared committedRow mapping into one owned allocation; retained regression uses real scatter then snapshot.",
+  "accepted_wrapper2_unchanged": true,
+  "new_proof_accepted": false,
+  "retry_started": false,
+  "evidence": [
+    {
+      "path": "compiled-binary.json",
+      "bytes": 631,
+      "sha256": "700d66602ee3b2be12cf91a364927ce67406229dd42dbcd4878bdc5498a01805"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 1740,
+      "sha256": "6685fbd6e8f85afcbf841b3c3e4fa219d91234ce7324b9892e99b1aa7d554618"
+    },
+    {
+      "path": "progress.log",
+      "bytes": 1532,
+      "sha256": "a87ebceef55b4fa9328ba6767593362852c2ff617fa3da663f61d0c3b7425143"
+    },
+    {
+      "path": "replay.log",
+      "bytes": 4046,
+      "sha256": "d2d7854e01046d3dee607939de2086c0de01b866eb02ba73fa7eff68ae47d726"
+    },
+    {
+      "path": "request.json",
+      "bytes": 7284,
+      "sha256": "afb1e450e440044b03d7962743361fc84e15879a5dd7f9a2ef7fc4dd28457e37"
+    }
+  ]
+}

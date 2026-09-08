@@ -1,0 +1,9 @@
+1/8 ethereum_narrow_poseidon_proof_test_root.test_0...OK
+2/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon matches native permutation and exact lookup entries...OK
+3/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon constrains every row and rejects invalid padding and modes...OK
+4/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon keeps quotient expansion and reduces complete row geometry...OK
+5/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon component admission and callbacks compile...OK
+6/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon central profile rejects legacy width and parallel rows match serial...OK
+7/8 air.memory_commitment.poseidon2_narrow_proof_v1_test.test.Ethereum narrow degree3 Poseidon serializes destroys and freshly verifies complete component proof...OK
+8/8 air.memory_commitment.poseidon2_narrow_backend_v1_test.test.Ethereum narrow degree3 Poseidon backend DAG preserves direct lookup and capability ordering...OK
+All 8 tests passed.

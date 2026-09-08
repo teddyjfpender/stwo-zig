@@ -10,6 +10,7 @@ const frontend = @import("stwo_riscv_frontend");
 
 const artifact_v4 = @import("ethereum_incremental_boundary_artifact_v4.zig");
 const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
+const fixed_program_mod = @import("ethereum_fixed_program_admission_v1.zig");
 const profile_mod = @import("ethereum_incremental_full_leaf_profile_v4.zig");
 const orchestration =
     frontend.testing.incremental_ethereum_orchestration_v4_internal;
@@ -26,6 +27,7 @@ const witness_v3 = prover.incremental_commitment_witness_v3;
 pub const FORMAT_VERSION: u16 = 4;
 pub const PRODUCTION_ACTIVE = false;
 pub const Profile = profile_mod.AuthorityV4;
+pub const ClaimAdmissionV4 = profile_mod.ClaimAdmissionV4;
 
 pub fn FreshVerifiedCaptureV4(comptime Engine: type) type {
     comptime requireRecursiveEngine(Engine);
@@ -37,6 +39,7 @@ pub fn FreshVerifiedCaptureV4(comptime Engine: type) type {
 pub const PreparedWitnessV4 = struct {
     cold: artifact_v4.ColdReconstructionV4,
     full: witness_v3.FullWitnessV3,
+    fixed_program: ?*const fixed_program_mod.OwnedV1 = null,
 
     pub fn deinit(self: *PreparedWitnessV4, allocator: std.mem.Allocator) void {
         self.full.deinit(allocator);
@@ -58,6 +61,30 @@ pub const PreparedWitnessV4 = struct {
             artifact,
             &self.cold,
             &self.full.boundary,
+        );
+    }
+
+    pub fn mintProfileWithAdmission(
+        self: *const PreparedWitnessV4,
+        artifact: *const artifact_v4.OwnedArtifactV4,
+        public_authority: boundary_v4.SegmentPublicAuthorityV4,
+        native: *const statement_v2.RiscVStatementV2,
+        ethereum: *const ethereum_statement.Statement,
+        admission: ClaimAdmissionV4,
+    ) !Profile {
+        if (admission == .fixed_program_narrow_v5) {
+            const program = self.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired;
+            return profile_mod.mintFromColdReconstructionWithFixedProgramV1(native, ethereum, public_authority, artifact, &self.cold, &self.full.boundary, program);
+        }
+        if (self.fixed_program != null) return error.EthereumFixedProgramProfileMismatch;
+        return profile_mod.mintFromColdReconstructionWithAdmission(
+            native,
+            ethereum,
+            public_authority,
+            artifact,
+            &self.cold,
+            &self.full.boundary,
+            admission,
         );
     }
 };
@@ -153,6 +180,30 @@ pub fn prepareFullWitnessFromColdArtifactPreparedProgram(
     boundary_owned = false;
     cold_owned = false;
     return .{ .cold = cold, .full = full };
+}
+
+/// Reuses one independent ELF authority across segments; only per-segment
+/// multiplicities and changed memory paths enter the new witness.
+pub fn prepareFullWitnessFromColdArtifactFixedProgramV1(
+    allocator: std.mem.Allocator,
+    execution_sources: anytype,
+    opt_memory: ?*const runner.memory_state.Snapshot,
+    completion: public_data.Completion,
+    program: *const fixed_program_mod.OwnedV1,
+    artifact: *const artifact_v4.OwnedArtifactV4,
+    segment_public_wire: *const public_data_v2.PublicDataV2,
+    public_authority: boundary_v4.SegmentPublicAuthorityV4,
+    limits: artifact_v4.Limits,
+) !PreparedWitnessV4 {
+    try program.validateDescriptor(program.descriptor());
+    var cold = try artifact_v4.coldReconstruct(allocator, artifact, segment_public_wire, public_authority, limits);
+    errdefer cold.deinit();
+    var boundary = try profile_mod.deriveBoundaryWitness(allocator, artifact, public_authority, &cold);
+    errdefer boundary.deinit();
+    const roots = boundary.roots();
+    const fixed_rows = try program.rows();
+    const base = try program.buildWitness(allocator, execution_sources, opt_memory orelse return error.InvalidStatement, completion, boundary.rows(), boundary.transition.merkle_rows, boundary.transition.poseidon_calls, .{ .entry = roots.entry, .exit = roots.exit });
+    return .{ .cold = cold, .full = .{ .base = base, .boundary = boundary, .fixed_program_rows = fixed_rows }, .fixed_program = program };
 }
 
 pub fn prepareStatement(
@@ -281,6 +332,28 @@ pub fn verifyWithEngineUsingChannelAndCaptureTakingLease(
         channel,
         capture_out,
     );
+}
+
+/// Fixed-profile cold verification accepts the independently pinned ELF owner;
+/// proof descriptors alone never supply the preprocessing authority.
+pub fn verifyWithEngineUsingChannelAndCaptureWithProgramAdmissionTakingLease(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    statement: *const statement_v2.RiscVStatementV2,
+    extension: *const ethereum_statement.Statement,
+    role_aware_public: *const public_data.PublicData,
+    profile: *const Profile,
+    proof: prover.ProofForEngine(Engine),
+    base_claim: *const frontend.air.statement.RiscVInteractionClaim,
+    extension_claim: *const prover.guest_precompile.ethereum_types.ExtensionClaim,
+    bridge_claim: @import("stwo_core").fields.qm31.QM31,
+    validated_lease_inout: *?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2,
+    program: *const fixed_program_mod.OwnedV1,
+    channel: *Engine.Channel,
+    capture_out: *FreshVerifiedCaptureV4(Engine),
+) !void {
+    comptime requireRecursiveEngine(Engine);
+    return verifier.verifyWithEngineUsingChannelAndCaptureWithProgramAdmissionTakingLease(Engine, Profile, allocator, statement, extension, role_aware_public, profile, proof, base_claim, extension_claim, bridge_claim, validated_lease_inout, program, channel, capture_out);
 }
 
 fn requireRecursiveEngine(comptime Engine: type) void {

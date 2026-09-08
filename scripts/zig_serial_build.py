@@ -9,7 +9,9 @@ That is not hypothetical: it happened on 2026-09-04 with two concurrent agents.
 
 This wrapper takes an exclusive, machine-wide file lock for the duration of the
 build, so concurrent invocations queue instead of competing, and it passes a
-memory ceiling to the build system.  Waiting is strictly faster than thrashing.
+scheduling budget through focused sub-builds. Zig applies this budget to declared
+step RSS estimates; it is not an operating-system memory limit. Builds default
+to one job at each level. Explicit `-jN` opts into concurrent work.
 
 Usage mirrors `zig build`:
 
@@ -18,16 +20,21 @@ Usage mirrors `zig build`:
 
 Options consumed by the wrapper:
     --cwd DIR         run the build from DIR (default: current directory)
-    --maxrss BYTES    memory ceiling handed to `zig build` (default: 24 GiB)
+    --maxrss BYTES    scheduler budget (default: 2/3 of host RAM, capped at 24 GiB)
+    -jN              jobs per build level (default: 1)
     --lock PATH       lock file (default: /tmp/stwo-zig-build.lock)
-    --no-lock         run immediately; use only for a build you know is small
+    --no-lock         caller already owns the lock; do not lock it again
 
 Everything else is forwarded to `zig build` unchanged.  The exit status is the
-build's own.
+build's own. While holding the lock, STWO_ZIG_BUILD_HELD_LOCK carries its
+path to known nested build gates so they can pass --no-lock explicitly. This
+marker coordinates scheduling; it is not a security authority. --no-lock
+clears any inherited marker before launching Zig.
 """
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 import fcntl
 import os
 import subprocess
@@ -35,66 +42,109 @@ import sys
 import time
 
 DEFAULT_LOCK = "/tmp/stwo-zig-build.lock"
-DEFAULT_MAXRSS = 24 * 1024 * 1024 * 1024
+# Scheduling coordination for known nested build steps, never proof/security authority.
+HELD_LOCK_ENV = "STWO_ZIG_BUILD_HELD_LOCK"
+MAX_DEFAULT_RSS = 24 * 1024 * 1024 * 1024
 
 
-def parse(argv: list[str]) -> tuple[str, int, str | None, list[str]]:
+def default_maxrss() -> int:
+    try:
+        pages = os.sysconf("SC_PHYS_PAGES")
+        page_size = os.sysconf("SC_PAGE_SIZE")
+        if pages > 0 and page_size > 0:
+            return min(MAX_DEFAULT_RSS, pages * page_size * 2 // 3)
+    except (OSError, ValueError):
+        pass
+    return 8 * 1024 * 1024 * 1024
+
+
+def positive(value: str, option: str, maximum: int) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        raise ValueError(f"{option} requires a positive integer") from None
+    if not 0 < number <= maximum:
+        raise ValueError(f"{option} must be between 1 and {maximum}")
+    return number
+
+
+def parse(argv: list[str]) -> tuple[str, int, int, str | None, list[str]]:
     cwd = os.getcwd()
-    maxrss = DEFAULT_MAXRSS
+    maxrss = default_maxrss()
+    jobs = 1
     lock: str | None = DEFAULT_LOCK
     forwarded: list[str] = []
     index = 0
     while index < len(argv):
         argument = argv[index]
-        if argument == "--cwd":
+        if argument == "--":
+            forwarded.extend(argv[index:])
+            break
+        if argument in ("--cwd", "--maxrss", "--lock", "-j"):
             index += 1
-            cwd = argv[index]
-        elif argument == "--maxrss":
-            index += 1
-            maxrss = int(argv[index])
-        elif argument == "--lock":
-            index += 1
-            lock = argv[index]
+            if index == len(argv):
+                raise ValueError(f"{argument} requires a value")
+            value = argv[index]
+            if argument == "--cwd":
+                cwd = value
+            elif argument == "--maxrss":
+                maxrss = positive(value, argument, (1 << 64) - 1)
+            elif argument == "-j":
+                jobs = positive(value, argument, (1 << 32) - 1)
+            else:
+                lock = value
+        elif argument.startswith("-j"):
+            jobs = positive(argument[2:], "-j", (1 << 32) - 1)
         elif argument == "--no-lock":
             lock = None
         else:
             forwarded.append(argument)
         index += 1
-    return cwd, maxrss, lock, forwarded
+    return cwd, maxrss, jobs, lock, forwarded
 
 
-def main() -> int:
-    cwd, maxrss, lock_path, forwarded = parse(sys.argv[1:])
-    if not forwarded:
-        print(__doc__, file=sys.stderr)
-        return 2
-    command = ["zig", "build", *forwarded, "--maxrss", str(maxrss)]
-
-    handle = None
-    if lock_path is not None:
-        handle = open(lock_path, "a+")
+@contextmanager
+def build_lock(lock_path: str | None = DEFAULT_LOCK, *, label: str = "zig_serial_build"):
+    """Hold the shared build/test lock, releasing it even if launching fails."""
+    if lock_path is None:
+        yield
+        return
+    with open(lock_path, "a+") as handle:
         try:
             fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
-            print(
-                f"[zig_serial_build] another build holds {lock_path}; waiting",
-                file=sys.stderr,
-                flush=True,
-            )
+            print(f"[{label}] another build holds {lock_path}; waiting", file=sys.stderr, flush=True)
             started = time.monotonic()
             fcntl.flock(handle, fcntl.LOCK_EX)
-            waited = time.monotonic() - started
-            print(
-                f"[zig_serial_build] acquired after {waited:.0f}s",
-                file=sys.stderr,
-                flush=True,
-            )
-    try:
-        return subprocess.call(command, cwd=cwd)
-    finally:
-        if handle is not None:
+            print(f"[{label}] acquired after {time.monotonic() - started:.0f}s", file=sys.stderr, flush=True)
+        try:
+            yield
+        finally:
             fcntl.flock(handle, fcntl.LOCK_UN)
-            handle.close()
+
+
+def main() -> int:
+    try:
+        cwd, maxrss, jobs, lock_path, forwarded = parse(sys.argv[1:])
+    except ValueError as error:
+        print(f"error: {error}", file=sys.stderr)
+        return 2
+    if not forwarded:
+        print(__doc__, file=sys.stderr)
+        return 2
+    command = ["zig", "build", "--maxrss", str(maxrss), f"-j{jobs}", *forwarded]
+    environment = dict(os.environ)
+    environment["STWO_ZIG_BUILD_MAXRSS"] = str(maxrss)
+    environment["STWO_ZIG_BUILD_JOBS"] = str(jobs)
+
+    # A --no-lock invocation must not advertise ownership inherited from an
+    # unrelated launcher. Known nested gates opt out explicitly only when
+    # this invocation has actually acquired its lock.
+    environment.pop(HELD_LOCK_ENV, None)
+    with build_lock(lock_path):
+        if lock_path is not None:
+            environment[HELD_LOCK_ENV] = lock_path
+        return subprocess.call(command, cwd=cwd, env=environment)
 
 
 if __name__ == "__main__":

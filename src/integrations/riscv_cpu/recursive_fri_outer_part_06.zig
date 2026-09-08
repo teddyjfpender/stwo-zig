@@ -58,7 +58,6 @@ pub fn Namespace(comptime context: type) type {
         ) !void {
             const authority = &owner.authority;
             const vm_air = authority.vm_air orelse return error.AuthorityMismatch;
-            const evaluations = owner.evaluations();
             const pcs_inputs = owner.pcsInputs();
             const query_witness = owner.prepared_query.value;
 
@@ -140,7 +139,7 @@ pub fn Namespace(comptime context: type) type {
                     authority.merkle_root_preprocessing.rows.len,
                 );
                 defer allocator.free(rows);
-                const root_witness = owner.captured.merkleRootWitness();
+                const root_witness = owner.preparedRootWitness();
                 for (
                     authority.merkle_root_preprocessing.rows,
                     rows,
@@ -221,9 +220,8 @@ pub fn Namespace(comptime context: type) type {
                     authority.input_preprocessing.rows.len,
                 );
                 defer allocator.free(rows);
-                for (authority.input_preprocessing.rows, rows) |source, *destination| {
-                    const value = evaluations.at(source.lane).values[source.node_id]
-                        .tryIntoM31() catch return error.AuthorityMismatch;
+                for (authority.input_preprocessing.rows, rows, 0..) |source, *destination, row_index| {
+                    const value = try owner.preparedInputValue(row_index);
                     destination.* = input_witness.logicalInputs(
                         (input_witness.MainRow{
                             .enabler = M31.one(),
@@ -333,18 +331,16 @@ pub fn Namespace(comptime context: type) type {
                     domain_mask,
                 );
             }
-            try appendNativePoseidonProviderTuples(
-                &owner.poseidon_calls,
-                ledger,
-                domain_mask,
-            );
+            try owner.appendPoseidonTupleContributions(ledger, domain_mask);
             if (domain_mask & relationDomainBit(.recursion_wire) != 0) {
                 try appendWireBoundaryTuples(
                     ledger,
                     &authority.lowering_plan,
                 );
             }
-            if (std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV)) {
+            // This optional graph frontier is a cold legacy diagnostic. Owned
+            // V4 operations deliberately retain no mutable capture graph reads.
+            if (owner.prepared_inputs_v4 == null and std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV)) {
                 reportNativeArithmeticTupleFrontier(
                     authority.arithmetic_reference,
                     &authority.lowering_plan,

@@ -18,6 +18,7 @@ const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 
 const aot = @import("aot_bundle_admission.zig");
+const benchmark_admission = @import("stage101_benchmark_admission_v2.zig");
 const throughput_execution = cpu_stage101
     .ethereum_incremental_full_leaf_throughput_execution_v1;
 const replay_command = cpu_stage101
@@ -63,6 +64,26 @@ pub const expected_manifest_sha256 = hexDigest(
 pub const expected_metallib_sha256 = hexDigest(
     "c9a87203415ab4432116db15a65a210849884db2a923ffe5adda2e88268fdb58",
 );
+
+const legacy_admission = benchmark_admission.Admission{
+    .version = 1,
+    .artifact_bytes = expected_artifact_byte_count,
+    .artifact_sha256 = expected_artifact_sha256,
+    .claim_schema = 2,
+    .manifest_sha256 = expected_manifest_sha256,
+    .metallib_sha256 = expected_metallib_sha256,
+};
+
+fn benchmarkAdmissionFromEnvironment(allocator: std.mem.Allocator) !benchmark_admission.Admission {
+    const path = std.process.getEnvVarOwned(allocator, benchmark_admission.environment) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return legacy_admission,
+        else => return err,
+    };
+    defer allocator.free(path);
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 16 * 1024);
+    defer allocator.free(bytes);
+    return benchmark_admission.parse(allocator, bytes);
+}
 
 /// Explicit 5.0-second steady-state leaf budget. Cold runtime initialization
 /// and independent CPU verification are reported separately and cannot be
@@ -144,6 +165,7 @@ const ReleaseStateV1 = struct {
     build_identity_sha256: [32]u8,
     execution_policy: throughput_execution.PolicyV1,
     reference_artifact_bytes: []const u8,
+    admission: benchmark_admission.Admission = legacy_admission,
     budget: ThroughputBudgetV1 = .{},
 
     fn validateOpaque(
@@ -160,7 +182,8 @@ const ReleaseStateV1 = struct {
     ) !void {
         const lifecycle_after = metal.MetalCommitBackend
             .runtimeLifecycleSnapshot();
-        try validateAuthenticatedLifecycle(lifecycle_after);
+        try validateAuthenticatedLifecycle(lifecycle_after, self.admission);
+        try self.admission.validateReference(evidence.artifact_bytes, @intFromEnum(evidence.claim_admission));
         if (!std.meta.eql(
             self.lifecycle_before.identity,
             lifecycle_after.identity,
@@ -198,13 +221,7 @@ const ReleaseStateV1 = struct {
             .independently_cold_verified = true,
         };
         try throughput_receipt.validate();
-        if (producer_resources.wall_ns < evidence.producer_elapsed_ns or
-            cold_resources.wall_ns < evidence.cold_verify_elapsed_ns or
-            preparation.owner_validations != 3 or
-            preparation.proof_view_borrows != 2)
-        {
-            return error.Stage101PreparedExecutionReceiptMismatch;
-        }
+        // Retain the actual counters even when a release policy rejects them.
         printReceipt(
             self,
             evidence,
@@ -212,20 +229,48 @@ const ReleaseStateV1 = struct {
             delta,
             budget_total_ns,
         );
+        if (producer_resources.wall_ns < evidence.producer_elapsed_ns or
+            cold_resources.wall_ns < evidence.cold_verify_elapsed_ns)
+            return error.Stage101PreparedExecutionReceiptMismatch;
+        try validatePreparedBorrowCounts(self.admission.claim_schema, preparation.owner_validations, preparation.proof_view_borrows);
 
         if (!std.mem.eql(
             u8,
             &measured_artifact_sha256,
-            &expected_artifact_sha256,
+            &self.admission.artifact_sha256,
         )) return error.Stage101MetalArtifactByteMismatch;
         if (evidence.fri_query_count != 193)
             return error.Stage101MetalQueryCountMismatch;
         try validateRequiredKernelCoverage(delta.counters);
         try delta.requireResidentRiscPolynomialDispatch();
-        try validateStage101HostPlacements(delta.counters);
+        try validateStage101HostPlacementsForAdmission(delta.counters, self.admission.small_circle_host_placements);
         try self.budget.validate(evidence.timing);
     }
 };
+
+fn validatePreparedBorrowCounts(claim_schema: u32, owner_validations: u64, proof_view_borrows: u64) !void {
+    // The fixed-program route additionally borrows and authenticates the
+    // provider inventory for its measured geometry receipt. This is not a
+    // second witness preparation or a change to the legacy benchmark route.
+    const expected: [2]u64 = switch (claim_schema) {
+        2, 3, 4 => .{ 3, 2 },
+        5 => .{ 5, 3 },
+        else => return error.Stage101BenchmarkClaimAdmissionMismatch,
+    };
+    if (owner_validations != expected[0] or proof_view_borrows != expected[1])
+        return error.Stage101PreparedExecutionReceiptMismatch;
+}
+
+test "Stage101 fixed program inventory borrow has explicit preparation receipt counts" {
+    inline for (.{ 2, 3, 4 }) |schema| {
+        try validatePreparedBorrowCounts(schema, 3, 2);
+        try std.testing.expectError(error.Stage101PreparedExecutionReceiptMismatch, validatePreparedBorrowCounts(schema, 5, 3));
+    }
+    try validatePreparedBorrowCounts(5, 5, 3);
+    try std.testing.expectError(error.Stage101PreparedExecutionReceiptMismatch, validatePreparedBorrowCounts(5, 3, 2));
+    try std.testing.expectError(error.Stage101PreparedExecutionReceiptMismatch, validatePreparedBorrowCounts(5, 4, 3));
+    try std.testing.expectError(error.Stage101PreparedExecutionReceiptMismatch, validatePreparedBorrowCounts(5, 5, 2));
+}
 
 /// Run the retained segment-1 experiment. `arguments` are the Stage101 CPU
 /// command arguments plus an optional `--provider-route <value>` pair, which
@@ -244,21 +289,24 @@ pub fn run(
     );
     defer parsed_route.deinit(allocator);
     switch (parsed_route.route) {
-        .degree5_omit_v1 => return degree5_provider_route.run(
-            allocator,
-            parsed_route.forwarded,
-        ),
+        .degree5_omit_v1 => {
+            if (std.process.hasEnvVarConstant(benchmark_admission.environment))
+                return error.Stage101BenchmarkAdmissionProviderRouteMismatch;
+            return degree5_provider_route.run(allocator, parsed_route.forwarded);
+        },
         .native => {},
     }
     return runNative(allocator, parsed_route.forwarded);
 }
 
-/// The native leaf path, byte-for-byte the command as it was before the route
-/// flag existed. `arguments` carry no `--provider-route` pair.
+/// The native leaf path. Without explicit V2 admission it retains the original
+/// reference/AOT pins. `arguments` carry no `--provider-route` pair.
 fn runNative(
     allocator: std.mem.Allocator,
     arguments: []const []const u8,
 ) !void {
+    const admission = try benchmarkAdmissionFromEnvironment(allocator);
+    const replay_options = try replay_command.Options.parse(arguments);
     const execution_policy = try executionPolicyFromEnvironment(allocator);
     const reference_artifact_path = try std.process.getEnvVarOwned(
         allocator,
@@ -271,22 +319,13 @@ fn runNative(
         max_reference_artifact_bytes,
     );
     defer allocator.free(reference_artifact_bytes);
-    const reference_artifact_sha256 = sha256(reference_artifact_bytes);
-    if (reference_artifact_bytes.len != expected_artifact_byte_count or
-        !std.mem.eql(
-            u8,
-            &reference_artifact_sha256,
-            &expected_artifact_sha256,
-        ))
-    {
-        return error.Stage101ReferenceArtifactMismatch;
-    }
+    try admission.validateReference(reference_artifact_bytes, @intFromEnum(replay_options.claim_admission));
     const bundle_path = try std.process.getEnvVarOwned(
         allocator,
         aot_bundle_environment,
     );
     defer allocator.free(bundle_path);
-    try aot.validate(allocator, bundle_path, expected_manifest_sha256);
+    try aot.validate(allocator, bundle_path, admission.manifest_sha256);
 
     const lifecycle_initial = metal.MetalCommitBackend.runtimeLifecycleSnapshot();
     if (lifecycle_initial.initialized)
@@ -295,14 +334,15 @@ fn runNative(
     try metal.MetalCommitBackend.initializeRuntime(allocator, .{
         .authenticated_aot = .{
             .bundle_path = bundle_path,
-            .manifest_sha256 = expected_manifest_sha256,
+            .manifest_sha256 = admission.manifest_sha256,
+            .profile = try aotProfileForClaimSchema(admission.claim_schema),
         },
     });
     const runtime_initialization_ns = initialization_timer.read();
     defer metal.MetalCommitBackend.shutdown() catch unreachable;
 
     const lifecycle_before = metal.MetalCommitBackend.runtimeLifecycleSnapshot();
-    try validateAuthenticatedLifecycle(lifecycle_before);
+    try validateAuthenticatedLifecycle(lifecycle_before, admission);
     try validatePoseidonMerkleParity(allocator);
     const platform_identity = try metal.MetalCommitBackend
         .runtimePlatformIdentityAlloc(allocator);
@@ -315,6 +355,7 @@ fn runNative(
         .build_identity_sha256 = buildIdentity(),
         .execution_policy = execution_policy,
         .reference_artifact_bytes = reference_artifact_bytes,
+        .admission = admission,
         .budget = try ThroughputBudgetV1.fromEnvironment(allocator),
     };
     try replay_command.runPreparedWithEnginesAndExecution(
@@ -362,8 +403,17 @@ fn environmentUsize(
         error.InvalidStage101ExecutionEnvironment;
 }
 
+fn aotProfileForClaimSchema(schema_version: u32) !metal.shaders.aot_profile.Profile {
+    return switch (schema_version) {
+        2, 3, 4 => .core_v2,
+        5 => .ethereum_fixed_program_narrow_v1,
+        else => error.Stage101BenchmarkClaimAdmissionMismatch,
+    };
+}
+
 fn validateAuthenticatedLifecycle(
     lifecycle: metal.MetalCommitBackend.RuntimeLifecycleSnapshot,
+    admission: benchmark_admission.Admission,
 ) !void {
     if (!lifecycle.initialized or lifecycle.identity == null)
         return error.Stage101AuthenticatedMetalRuntimeMissing;
@@ -376,12 +426,12 @@ fn validateAuthenticatedLifecycle(
         !std.mem.eql(
             u8,
             &identity.manifest_sha256.?,
-            &expected_manifest_sha256,
+            &admission.manifest_sha256,
         ) or
         !std.mem.eql(
             u8,
             &identity.metallib_sha256.?,
-            &expected_metallib_sha256,
+            &admission.metallib_sha256,
         ))
     {
         return error.Stage101AuthenticatedMetalRuntimeMismatch;
@@ -432,10 +482,14 @@ pub const admitted_small_circle_host_placements: u64 = 3;
 fn validateStage101HostPlacements(
     counters: metal.telemetry.CounterValues,
 ) !void {
+    return validateStage101HostPlacementsForAdmission(counters, admitted_small_circle_host_placements);
+}
+
+fn validateStage101HostPlacementsForAdmission(counters: metal.telemetry.CounterValues, expected_small_circle: u64) !void {
     const small_circle = counters.cpu_small_circle_interpolations +|
         counters.cpu_small_circle_evaluations +|
         counters.cpu_small_circle_ldes;
-    if (small_circle != admitted_small_circle_host_placements)
+    if (small_circle != expected_small_circle)
         return error.Stage101SmallCirclePlacementMismatch;
     const admitted = counters.cpu_small_circle_interpolations +|
         counters.cpu_small_circle_evaluations +|
@@ -593,14 +647,18 @@ fn printReceipt(
     delta: metal.MetalCommitBackend.TelemetryDelta,
     budget_total_ns: u64,
 ) void {
+    if (state.admission.version == 2) std.debug.print(
+        "STAGE101_METAL_ADMISSION_V2 claim_schema={} reference_bytes={} small_circle_host_placements={}\n",
+        .{ state.admission.claim_schema, state.admission.artifact_bytes, state.admission.small_circle_host_placements },
+    );
     const timing = evidence.timing;
     const producer_resources = evidence.producer_resources.?;
     const cold_resources = evidence.cold_verifier_resources.?;
     const preparation = evidence.preparation.?;
     const counters = delta.counters;
     const artifact_hex = std.fmt.bytesToHex(artifact_sha256, .lower);
-    const manifest_hex = std.fmt.bytesToHex(expected_manifest_sha256, .lower);
-    const metallib_hex = std.fmt.bytesToHex(expected_metallib_sha256, .lower);
+    const manifest_hex = std.fmt.bytesToHex(state.admission.manifest_sha256, .lower);
+    const metallib_hex = std.fmt.bytesToHex(state.admission.metallib_sha256, .lower);
     const platform_hex = std.fmt.bytesToHex(state.platform_identity_sha256, .lower);
     const build_hex = std.fmt.bytesToHex(state.build_identity_sha256, .lower);
     std.debug.print(
@@ -929,4 +987,51 @@ test "Stage101 budget environment parses an explicit fail-closed budget" {
         @as(u64, 5 * std.time.ns_per_s),
         try default_budget.totalNs(),
     );
+}
+
+comptime {
+    _ = benchmark_admission;
+}
+
+test "Stage101 legacy benchmark admission retains exact reference and AOT pins" {
+    try std.testing.expectEqual(@as(u8, 1), legacy_admission.version);
+    try std.testing.expectEqual(@as(u32, 2), legacy_admission.claim_schema);
+    try std.testing.expectEqual(expected_artifact_byte_count, legacy_admission.artifact_bytes);
+    try std.testing.expectEqual(expected_artifact_sha256, legacy_admission.artifact_sha256);
+    try std.testing.expectEqual(expected_manifest_sha256, legacy_admission.manifest_sha256);
+    try std.testing.expectEqual(expected_metallib_sha256, legacy_admission.metallib_sha256);
+}
+
+test "Stage101 real leaf placement receipt admits zero small transforms and rejects other host work" {
+    // Actual field4 segment9 Metalv4 receipt, after byte-identical proof and
+    // independent native verification. It legitimately has no tiny transforms.
+    var counters = metal.telemetry.CounterValues{
+        .resident_merkle_commits = 10,
+        .metal_poseidon2_merkle_commits = 10,
+        .metal_sampled_value_dispatches = 1,
+        .metal_circle_transform_dispatches = 2,
+        .metal_circle_lde_dispatches = 45,
+        .riscv_base_polynomial_eligible_components = 47,
+        .riscv_lookup_polynomial_eligible_components = 44,
+        .metal_riscv_base_polynomial_batch_dispatches = 1,
+        .metal_riscv_lookup_polynomial_batch_dispatches = 1,
+        .metal_quotient_dispatches = 1,
+        .metal_fri_circle_fold_dispatches = 1,
+        .metal_fri_line_fold_dispatches = 21,
+        .metal_qm31_coordinate_dispatches = 5,
+    };
+    try validateRequiredKernelCoverage(counters);
+    try validateStage101HostPlacementsForAdmission(counters, 0);
+    try std.testing.expectError(error.Stage101SmallCirclePlacementMismatch, validateStage101HostPlacements(counters));
+    counters.cpu_small_circle_ldes = 1;
+    try std.testing.expectError(error.Stage101SmallCirclePlacementMismatch, validateStage101HostPlacementsForAdmission(counters, 0));
+    counters.cpu_small_circle_ldes = 0;
+    counters.cpu_sampled_value_evaluations = 1;
+    try std.testing.expectError(error.Stage101UnexpectedHostFallback, validateStage101HostPlacementsForAdmission(counters, 0));
+}
+
+test "Stage101 fixed program selects separate AOT authority and legacy keeps core" {
+    inline for (.{ 2, 3, 4 }) |version| try std.testing.expectEqual(metal.shaders.aot_profile.Profile.core_v2, try aotProfileForClaimSchema(version));
+    try std.testing.expectEqual(metal.shaders.aot_profile.Profile.ethereum_fixed_program_narrow_v1, try aotProfileForClaimSchema(5));
+    try std.testing.expectError(error.Stage101BenchmarkClaimAdmissionMismatch, aotProfileForClaimSchema(6));
 }

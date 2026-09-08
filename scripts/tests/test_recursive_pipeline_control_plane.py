@@ -8,6 +8,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 
 from scripts import recursive_pipeline_mock as mock
 from scripts import recursive_pipeline_protocol as protocol
@@ -60,6 +61,22 @@ def overwrite_cas_for_test(path: Path, raw: bytes) -> None:
 
 
 class RecursivePipelineControlPlaneTests(unittest.TestCase):
+    def test_cas_read_allocates_for_the_object_not_the_store_ceiling(self) -> None:
+        with tempfile.TemporaryDirectory() as raw:
+            workspace = store_mod.Workspace(Path(raw) / "workspace", create=True)
+            payload = b"small object in a large store"
+            ref = workspace.put_blob(payload, kind=1, schema_version=1)
+            with os.fdopen(workspace._open_blob(ref, "test object"), "rb") as source:
+                reader = MagicMock(wraps=source)
+                reader.__enter__.return_value = reader
+                with patch.object(workspace, "_open_blob", return_value=source.fileno()), \
+                        patch.object(store_mod.os, "fdopen", return_value=reader):
+                    self.assertEqual(workspace.read_blob(ref), payload)
+                reader.read.assert_called_once_with(len(payload) + 1)
+            oversized = {**ref, "byte_count": store_mod.MAX_OBJECT_BYTES + 1}
+            with self.assertRaisesRegex(protocol.PipelineError, "exceeds byte bound"):
+                workspace.read_blob(oversized)
+
     def test_shared_cas_is_immutable_before_publish_and_rejects_mode_drift(self) -> None:
         with tempfile.TemporaryDirectory() as raw:
             workspace = store_mod.Workspace(Path(raw) / "workspace", create=True)

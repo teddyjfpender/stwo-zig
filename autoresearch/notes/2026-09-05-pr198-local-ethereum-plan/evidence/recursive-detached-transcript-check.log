@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 394s
+test-recursive-common-fold-detached-transcript-v2
++- run test stderr
+COMMON_FOLD_DETACHED_TRANSCRIPT proof_verified=true grandchild_inputs=false input_buffers_destroyed=true queries=193 relation_draws=94 changed_recording_rejected=true
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-detached-transcript-v2 success
++- run test 1 passed 1s MaxRSS:34M
+   +- compile test ReleaseSafe native success 45s MaxRSS:2G
+

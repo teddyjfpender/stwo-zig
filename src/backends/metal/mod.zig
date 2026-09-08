@@ -23,6 +23,8 @@ pub const recipes = struct {
 };
 pub const shaders = struct {
     pub const manifest = @import("shaders/manifest.zig");
+    pub const aot_profile = @import("shaders/aot_profile.zig");
+    pub const declaration_digest = @import("shaders/abi_declaration_digest.zig");
 };
 pub const Runtime = runtime.Runtime;
 pub const Tree = runtime.Tree;

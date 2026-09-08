@@ -373,7 +373,7 @@ pub fn Namespace(comptime context: type) type {
                 .poseidon2 = try @FieldType(Components, "poseidon2").init(
                     manifest,
                     logs[LogIndex.poseidon2],
-                    @intCast(self.poseidon_calls.calls.len),
+                    @intCast(self.poseidonCallCount()),
                     provider_relations,
                     relations,
                     generated.poseidon2_partials,
@@ -381,12 +381,56 @@ pub fn Namespace(comptime context: type) type {
             };
         }
 
+        /// Diagnostic borrowing only. Reuses the exact parameter constructors
+        /// selected above; exposes const column evaluations, never core custody.
+        /// Does not finalize the shared provider or generate interactions.
+        pub fn auditNativeSegmentCoreTypedAirRows(self: *const NativeSegmentCoreV2, observer: anytype) !void {
+            const authority = &self.authority;
+            try auditNativeRow(vm_input_air, 18, self, observer, vmInputParameters(.segment_leaf), &authority.vm_air.?.definition, &authority.vm_air.?.relation, self.prepared_relation_rows.vm_input.len);
+            try auditNativeRow(composition_control_air, 19, self, observer, composition_control_witness.ProofKind.segment_leaf.selectors()[0..2].*, &authority.composition_control_definition, &authority.composition_control_relation, authority.composition_control_preprocessing.rows.len);
+            try auditNativeRow(query_bits_air, 20, self, observer, try queryBitsParameters(authority.query_bits_reference, .segment_leaf), &authority.query_bits_definition, &authority.query_bits_relation, authority.query_bits_preprocessing.rows.len);
+            try auditNativeRow(query_mapping_air, 21, self, observer, queryMappingParameters(.segment_leaf), &authority.query_mapping_definition, &authority.query_mapping_relation, authority.query_mapping_preprocessing.rows.len);
+            try auditNativeRow(merkle_root_air, 22, self, observer, merkleRootParameters(.segment_leaf), &authority.merkle_root_definition, &authority.merkle_root_relation, authority.merkle_root_preprocessing.rows.len);
+            try auditNativeRow(trace_merkle_air, 23, self, observer, traceMerkleParameters(.segment_leaf), &authority.trace_merkle_definition, &authority.trace_merkle_relation, self.prepared_relation_rows.trace_merkle.len);
+            try auditNativeRow(pcs_air, 24, self, observer, pcsParameters(.segment_leaf), &authority.pcs_definition, &authority.pcs_relation, authority.pcs_preprocessing.rows.len);
+            try auditNativeRow(fri_leaf_air, 25, self, observer, friLeafParameters(.segment_leaf), &authority.fri_leaf_definition, &authority.fri_leaf_relation, self.prepared_relation_rows.fri_leaf.len);
+            try auditNativeRow(fri_node_air, 26, self, observer, fri_leaf_witness.ProofKind.segment_leaf.selectors()[0..2].*, &authority.fri_node_definition, &authority.fri_node_relation, self.prepared_relation_rows.fri_node.len);
+            try auditNativeRow(fri_anchor_air, 27, self, observer, friAnchorParameters(.segment_leaf), &authority.fri_anchor_definition, &authority.fri_anchor_relation, self.prepared_relation_rows.fri_anchor.len);
+            try auditNativeRow(control_air, 28, self, observer, controlParameters(.segment_leaf), &authority.control_definition, &authority.control_relation, self.prepared_relation_rows.control.len);
+            try auditNativeRow(input_air, 29, self, observer, inputParameters(.segment_leaf), &authority.input_definition, &authority.input_relation, authority.input_preprocessing.rows.len);
+            try auditNativeRow(multiply_air, 30, self, observer, input_witness.ProofKind.segment_leaf.selectors(), &authority.multiply_definition, &authority.multiply_relation, self.invocations.multiply.len);
+            try auditNativeRow(inverse_air, 31, self, observer, input_witness.ProofKind.segment_leaf.selectors(), &authority.inverse_definition, &authority.inverse_relation, self.invocations.inverse.len);
+            try auditNativeRow(linear_air, 32, self, observer, input_witness.ProofKind.segment_leaf.selectors(), &authority.linear_definition, &authority.linear_relation, self.invocations.linear.len);
+            try auditNativeRow(merkle_path_air, 33, self, observer, @as([0]context.d_M31, .{}), &authority.merkle_path_definition, &authority.merkle_path_relation, self.merkle_paths.invocations.len);
+            try observer.logical(vm_input_air, self.prepared_relation_rows.vm_input, &vmInputParameters(.segment_leaf));
+            try observer.logical(trace_merkle_air, self.prepared_relation_rows.trace_merkle, &traceMerkleParameters(.segment_leaf));
+            try observer.logical(fri_leaf_air, self.prepared_relation_rows.fri_leaf, &friLeafParameters(.segment_leaf));
+            try observer.logical(fri_node_air, self.prepared_relation_rows.fri_node, &(fri_leaf_witness.ProofKind.segment_leaf.selectors()[0..2].*));
+            try observer.logical(fri_anchor_air, self.prepared_relation_rows.fri_anchor, &friAnchorParameters(.segment_leaf));
+            try observer.logical(control_air, self.prepared_relation_rows.control, &controlParameters(.segment_leaf));
+        }
+
+        fn auditNativeRow(comptime Air: type, comptime row: usize, self: *const NativeSegmentCoreV2, observer: anytype, parameters: anytype, definition: *const Air.Definition, plan: anytype, logical_rows: usize) !void {
+            const placement = self.authority.manifest.placements[row] orelse return error.V2CoreCohortMismatch;
+            if (placement.geometry.preprocessed_columns != Air.PREPROCESSED_COLUMN_COUNT or
+                placement.geometry.main_columns != Air.PHYSICAL_MAIN_COLUMN_COUNT or
+                placement.geometry.log_size >= 31) return error.V2CoreCohortMismatch;
+            const pp_end = try @import("std").math.add(usize, placement.preprocessed_offset, Air.PREPROCESSED_COLUMN_COUNT);
+            const main_end = try @import("std").math.add(usize, placement.main_offset, Air.PHYSICAL_MAIN_COLUMN_COUNT);
+            if (pp_end > self.preprocessed_tree.evaluations.len or main_end > self.main_tree.evaluations.len)
+                return error.V2CoreCohortMismatch;
+            const Evaluation = @TypeOf(self.preprocessed_tree.evaluations[0]);
+            const pp: []const Evaluation = self.preprocessed_tree.evaluations[placement.preprocessed_offset..pp_end];
+            const main: []const Evaluation = self.main_tree.evaluations[placement.main_offset..main_end];
+            try observer.check(Air, row, placement, pp, main, &parameters, definition, plan, logical_rows);
+        }
+
         fn validateManifestProjection(
             comptime manifest_contract: type,
             self: *NativeSegmentCoreV2,
             manifest: *const manifest_contract.Manifest,
         ) !void {
-            try self.validateCoreReady();
+            try self.validatePreparedCoreReady();
             try self.authority.manifest.validate();
             try manifest.validate();
             inline for (18..35) |row| {

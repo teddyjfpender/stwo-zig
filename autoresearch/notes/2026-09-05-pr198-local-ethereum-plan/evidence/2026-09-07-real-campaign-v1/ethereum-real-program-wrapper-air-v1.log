@@ -1,0 +1,19 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 146s
+test-ethereum-air-preflight
++- Ethereum genuine AIR preflight guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=1 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=first_cold_open error=InvalidCompletionProgramTable
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS', the following test command failed:
+./.zig-cache/o/f5ce19d9ab3cc5cc15f6fe1d19bb25e0/test --cache-dir=./.zig-cache --seed=0xb8a86b17 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-air-preflight transitive failure
++- Ethereum genuine AIR preflight guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/50cfc04522150e52356f0be22bf09d4b/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb8a86b17 -Zb023f8b7893d96a5 --maxrss 25769803776 -j1 test-ethereum-air-preflight -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

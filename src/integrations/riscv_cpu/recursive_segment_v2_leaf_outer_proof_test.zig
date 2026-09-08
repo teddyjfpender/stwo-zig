@@ -19,11 +19,8 @@ const protocol = recursion.protocol;
 const channel = recursion.poseidon2_channel;
 const schedule = recursion.air.verifier_schedule;
 const Engine = subject.Engine;
-/// Development-only escape hatch for the concrete outer-proof hook. The
-/// ordinary gate never observes this flag: only a hook that explicitly
-/// implements `runTupleClosureDiagnostic` may take the short path, and the
-/// complete no-environment proof/verification path remains byte-for-byte
-/// unchanged.
+/// Only hooks implementing `runTupleClosureDiagnostic` may use this flag.
+/// The ordinary proof and verification gate always runs in full.
 pub const TUPLE_CLOSURE_DIAGNOSTIC_ENV =
     "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC";
 
@@ -260,7 +257,6 @@ pub fn runGateWithHook(
         digest("recursive-v2-segment-vk"),
         digest("recursive-v2-parent-vk"),
     );
-    capture_moved = true;
     var bundle = try subject.PreparedNativeV2LeafOuter.init(
         allocator,
         allocator,
@@ -271,6 +267,7 @@ pub fn runGateWithHook(
         recursion.air.universal_challenges.UniversalRelations.dummy(),
         .{ .vm = &vm_plan, .recursion = &recursion_plan },
     );
+    capture_moved = true;
     defer bundle.deinit();
     try bundle.validate();
     try std.testing.expectEqual(@as(u8, 18), bundle.rows_18_34_core.first_row);
@@ -294,8 +291,10 @@ pub fn runGateWithHook(
         @as(usize, 0),
         try bundle.shared_poseidon_layout.verifier_core.count(),
     );
+    // Physical lookup activation adds one header frame (3 permutations) and
+    // three SHA-256 identity frames (4 each) to the old 885-call transcript.
     try std.testing.expectEqual(
-        @as(usize, 885),
+        @as(usize, 900),
         try bundle.shared_poseidon_layout.transcript.count(),
     );
     try std.testing.expectEqual(
@@ -359,7 +358,7 @@ pub fn runGateWithHook(
     defer public_native_sum_evaluation.deinit();
     const core_inputs = core_outer.NativeSegmentCoreAuthorityInputsV2{
         .captured = &bundle.captured_fri,
-        .vm_air = &bundle.vm_air,
+        .vm_air = .{ .borrowed = &bundle.vm_air },
         .transcript_prepared = &source_preflight.transcript_prepared,
         .transcript_program = &bundle.transcript_program,
         .transcript_execution = &bundle.transcript_execution,
@@ -409,7 +408,7 @@ pub fn runGateWithHook(
         bundle.row34_boundary_prefix_calls.len + core_calls.len,
         complete_calls.len,
     );
-    try std.testing.expectEqual(@as(usize, 1_193), complete_calls.len);
+    try std.testing.expectEqual(@as(usize, 1_208), complete_calls.len);
     const complete_layout = try native_core.completeScheduleReceipt();
     try std.testing.expect(complete_layout.call_set_complete);
     try std.testing.expect(complete_layout.verifier_core_range_populated);

@@ -1,0 +1,32 @@
+1/3 pcs_commitments_test_root.test_0...OK
+2/3 pcs.owned_source_admission_test.test.PCS owned source admission releases every partial ownership stage on allocation failure...expected 1, found 0
+FAIL (TestExpectedEqual)
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:110:17: 0x102479773 in expectEqualInner__anon_29636 (root)
+                return error.TestExpectedEqual;
+                ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:88:5: 0x102479aa7 in commitFixture (root)
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items.len);
+    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:93:18: 0x102479c9f in allocationCase (root)
+    var scheme = try commitFixture(allocator, use_packing);
+                 ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1137:9: 0x102479eb7 in checkAllAllocationFailures__anon_26616 (root)
+        try @call(.auto, test_fn, args);
+        ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:99:5: 0x10247a7fb in test.PCS owned source admission releases every partial ownership stage on allocation failure (root)
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationCase, .{false});
+    ^
+3/3 pcs.owned_source_admission_test.test.PCS owned source admission preserves real FFT Merkle roots and adopts aligned coefficients...expected 1, found 0
+FAIL (TestExpectedEqual)
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:110:17: 0x102479773 in expectEqualInner__anon_29636 (root)
+                return error.TestExpectedEqual;
+                ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:88:5: 0x102479aa7 in commitFixture (root)
+    try std.testing.expectEqual(@as(usize, 1), scheme.trees.items.len);
+    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:105:20: 0x1024eedd3 in test.PCS owned source admission preserves real FFT Merkle roots and adopts aligned coefficients (root)
+    var original = try commitFixture(allocator, false);
+                   ^
+1 passed; 0 skipped; 2 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/e6061bf3f543a9747eaf1514dc5bc5c4/root --seed=0x86342176

@@ -1,0 +1,16 @@
+{
+  "recorded_at": "2026-09-08T04:19:55.778642+00:00",
+  "status": "running_not_accepted",
+  "session": 71193,
+  "launcher_pid": 39991,
+  "serial_build_pid": 39992,
+  "test_pid": 40352,
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "execution_receipt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/execution.json",
+  "progress_log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/progress.log",
+  "queue_wait_seconds": 529,
+  "last_phase": "cold_open",
+  "last_phase_wall_ns": 100184833791,
+  "next_required_artifact": "actual wrapper2 serialized root candidate and complete lifecycle terminal PASS, then separate-process root verification",
+  "acceptance": false
+}

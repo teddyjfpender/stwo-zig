@@ -1,0 +1,70 @@
+{
+  "schema": "stwo.ethereum.detached-wrapper-replay-evidence.v1",
+  "recorded_at": "2026-09-07T18:37:11.039538+00:00",
+  "passed": true,
+  "scope": "Accepted small wrapper detached transcript, typed transcript AIR and symbolic composition replay; no parent proof or whole-block admission",
+  "native_claim_schema": 5,
+  "outer_transcript_profile": "field9",
+  "proof_inputs": [
+    {
+      "path": ".git/local-ethereum/root-candidates/d029f4f5819e443e4c9d2f2b6b370ad65a92e5cf9730e5118344989b10773dee/key.json",
+      "bytes": 20835130,
+      "sha256": "d2503c44689dd487e96f12b782fee7a0d063a70a6175804124fce17ad19fac00"
+    },
+    {
+      "path": ".git/local-ethereum/root-candidates/d029f4f5819e443e4c9d2f2b6b370ad65a92e5cf9730e5118344989b10773dee/inputs.json",
+      "bytes": 5962,
+      "sha256": "ab4c53d8588f5ccf1a5cf3f91064e019b8ed6e31c5fc55adc705c337640005ae"
+    },
+    {
+      "path": ".git/local-ethereum/root-candidates/d029f4f5819e443e4c9d2f2b6b370ad65a92e5cf9730e5118344989b10773dee/proof.bin",
+      "bytes": 3039738,
+      "sha256": "d029f4f5819e443e4c9d2f2b6b370ad65a92e5cf9730e5118344989b10773dee"
+    }
+  ],
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-schema5-detached-recursive-replay-v1.log",
+      "bytes": 662,
+      "sha256": "e943ef9c807bfc78664991fe62f2313bd5f62430e6458a04c99a3726c6e136c7"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-schema5-detached-recursive-replay-v2.log",
+      "bytes": 884,
+      "sha256": "957147b1df2534d4202bc177d9316cc8c7146ce872520a2f49bee3b8d8d6369c"
+    }
+  ],
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-detached-field-transcript",
+    "-Doptimize=ReleaseSafe",
+    "-Dethereum-proof-strip=true",
+    "--summary",
+    "all"
+  ],
+  "environment": {
+    "STWO_ETHEREUM_ROOT_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/root-candidates/d029f4f5819e443e4c9d2f2b6b370ad65a92e5cf9730e5118344989b10773dee",
+    "STWO_ETHEREUM_ROOT_KEY_SHA256": "d2503c44689dd487e96f12b782fee7a0d063a70a6175804124fce17ad19fac00"
+  },
+  "source_provenance": "Active worktree target, not an immutable source snapshot; no exact full-source build identity claimed",
+  "verified_checks": [
+    "ordinary verifier and detached terminal identity parity",
+    "source key/input/proof buffers destroyed before AIR replay",
+    "independently admitted child capture shape",
+    "193 queries and 47 challenge rows",
+    "wrong claim and changed Tree0 rejected",
+    "transcript row mutation rejected",
+    "actual wire limbs and composition input mutations rejected",
+    "native OODS and q2 composition parity"
+  ],
+  "fold_admitted": false,
+  "failed_attempt": {
+    "version": 1,
+    "phase": "compilation",
+    "reason": "Direct helper did not supply root interop_postcard module; retry used existing authoritative build target"
+  },
+  "next_gate": "Real-program wrapper and two actual adjacent child proofs consumed by parent AIR"
+}

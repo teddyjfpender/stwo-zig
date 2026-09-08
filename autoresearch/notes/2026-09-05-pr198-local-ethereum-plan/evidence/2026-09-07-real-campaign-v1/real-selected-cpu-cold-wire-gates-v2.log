@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 8/8 tests passed
+test-ethereum-cold-wire-admission success
++- stwo_riscv_frontend test count floor success
+   +- run test 8 passed 320ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:476M
+

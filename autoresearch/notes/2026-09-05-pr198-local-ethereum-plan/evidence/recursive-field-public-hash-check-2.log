@@ -1,0 +1,16 @@
+test-recursive-common-fold-field-public-v2
++- run test 3/4 passed, 1 failed
+FIELD_STATEMENT_BRIDGE_DIGEST=b2befb25386395106050de88684f519c637477304505732a4a25900121253ac6
+error: 'recursive_common_fold_field_public_v2_test.test.common fold derives exact field parent and 116 Poseidon calls' failed: FIELD_PUBLIC_WORD_DIGEST=c02179e9ba469114f19ddc0ff8e1670ba61bd4dd5d0a1b14445e6799feef3017
+expected 0, found 192
+index 0 incorrect. expected 0, found 192
+error: while executing test 'recursive_common_fold_suffix_input_boundary_v2.test.suffix input producer is tuple-derived and policy rejects wrong role', the following test command failed:
+./.zig-cache/o/8a76b141d52110005c598a74fdd804cc/test --cache-dir=./.zig-cache --seed=0x2fa000b3 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 3/4 tests passed; 1 failed
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 3/4 passed, 1 failed
+   +- compile test ReleaseSafe native success 9s MaxRSS:715M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bda74839e0255df849331a477c60552/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x2fa000b3 -Zc30e8122e1da96f3 --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 -Doptimize=ReleaseSafe --summary all

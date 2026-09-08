@@ -168,20 +168,21 @@ pub fn initOwner(
     ) catch |err| return initStageFailure("boundary_staging_traces", err);
     errdefer boundary_staging_traces.deinit();
 
+    const input_provider_shape = try input_provider_authority.Shape.init(prepared.capture.vm_air.detailed_claims.len);
     var input_provider_owner =
         input_provider_authority.AuthorityV2.init(allocator) catch |err|
             return initStageFailure("input_provider_owner", err);
     errdefer input_provider_owner.deinit();
     var input_provider_workspace =
-        input_provider_authority.WorkspaceV2.init(allocator) catch |err|
+        input_provider_authority.WorkspaceV2.initForShape(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_workspace", err);
     errdefer input_provider_workspace.deinit();
     var input_provider_active_traces =
-        OwnedInputProviderTraces.init(allocator) catch |err|
+        OwnedInputProviderTraces.init(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_active_traces", err);
     errdefer input_provider_active_traces.deinit();
     var input_provider_staging_traces =
-        OwnedInputProviderTraces.init(allocator) catch |err|
+        OwnedInputProviderTraces.init(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_staging_traces", err);
     errdefer input_provider_staging_traces.deinit();
     var initial_provider_prepared: input_provider_authority.PreparedAuthorityV2 = undefined;
@@ -569,7 +570,7 @@ pub fn appendTupleContributions(
         .appendPreparedTupleContributions(
         ledger,
         38,
-        &self.input_provider_workspace.logical_rows,
+        self.input_provider_workspace.logical_rows,
         domain_mask,
     );
 }

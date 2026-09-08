@@ -1,0 +1,141 @@
+{
+  "version": 2,
+  "recorded_at": "2026-09-08T04:09:54.109296+00:00",
+  "scope": "Bounded recovery of actual wrapper2 main-tree allocation and ingestion; complete real wrapper remains unaccepted.",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "changed_source_files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_composition_proof_v1_test.zig",
+      "bytes": 13787,
+      "sha256": "30d852db42bf871755cdc4c6cf9afede054469bbf100684c76b12db771fe4e21"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_binary_outer_support.zig",
+      "bytes": 21411,
+      "sha256": "60e0dc96f15bcee003c6d0f17caeae66065e299dba2f1a6bf87c9704eba5a639"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig",
+      "bytes": 100119,
+      "sha256": "445ed0b1c1e6a2707d863d5f901b60d3771ed943e9884552e10b1543c2236a49"
+    },
+    {
+      "path": "src/prover/pcs/columns/circle_transforms.zig",
+      "bytes": 28285,
+      "sha256": "7160dcddc83f96325d43e70477b087f62a4992d826821b8a2c0863a9e2449c2f"
+    },
+    {
+      "path": "src/prover/pcs/columns/preparation.zig",
+      "bytes": 29270,
+      "sha256": "aec478630d0d61e8d5d41b703cba062d08ec24f53ca52d2040a5a411c7617d39"
+    },
+    {
+      "path": "src/prover/pcs/commit_ops.zig",
+      "bytes": 24816,
+      "sha256": "2137f23d09f6cb05619e73b88e191b65842014f9e549366dc128562fccc86f85"
+    },
+    {
+      "path": "src/prover/pcs/retained_column_storage_test.zig",
+      "bytes": 19174,
+      "sha256": "5a361ad8b54133a8071b6a9eeab41de1522c9ece82d0c28b37e0b9dfc94cc945"
+    }
+  ],
+  "validated_source_files": 5756,
+  "initial38_changes_included": false,
+  "storage_policy": {
+    "source_values": "explicit file-backed TreeStorage arenas; metadata ordinary",
+    "retained_values": "file-backed LDE columns",
+    "source_detachment": "shared and borrowed source columns copied only within current batch; caller retains borrowed values",
+    "selected_batch_source_plus_lde_budget_bytes": 268435456,
+    "selected_max_columns": 64,
+    "oversized_single_column_admitted": true,
+    "csp_default_dispatch_unchanged": true
+  },
+  "ownership_regression": {
+    "retained_failure": "retained-allocation-failure-v5.log",
+    "failure_index": 18,
+    "fix": "Single output owner, pre-reserved transfer tracking, batch ownership transfer after fallible metadata, source descriptor lifetime through extension failure.",
+    "gate": "Exhaustive primary allocation failure and per-column retained allocation failure now pass."
+  },
+  "gates": [
+    {
+      "name": "pcs-retained-columns",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/prover",
+        "test-pcs-retained-columns",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T03:58:25.419922+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/pcs-retained-columns.log",
+      "pid": 39659,
+      "exit_code": 0,
+      "wall_seconds": 130.6857776248362,
+      "log_sha256": "f8f8a9492963bc044c09028734b95c938270ea97254309cbc00f09fe625d5598"
+    },
+    {
+      "name": "small-composition",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/integrations/riscv_cpu",
+        "test-ethereum-small-composition-proof",
+        "-Doptimize=ReleaseSafe",
+        "-Dethereum-proof-strip=true",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T04:00:36.108409+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/small-composition.log",
+      "pid": 39722,
+      "exit_code": 0,
+      "wall_seconds": 75.76154970796779,
+      "log_sha256": "f27d5a77530b91a692ab83781e071584a2e7d6d9bd3da1d2229d45f6d525ac51"
+    },
+    {
+      "name": "complete-proof-compile",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/integrations/riscv_cpu",
+        "check-ethereum-complete-proof",
+        "-Doptimize=ReleaseSafe",
+        "-Dethereum-proof-strip=true",
+        "--summary",
+        "all"
+      ],
+      "status": "passed",
+      "started_at": "2026-09-08T04:01:51.849969+00:00",
+      "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/complete-proof-compile.log",
+      "pid": 39753,
+      "exit_code": 0,
+      "wall_seconds": 285.40821420797147,
+      "log_sha256": "8882d94617a5afb4cb8ca3637327921c2b1716b81a4281069b39a35861c781bd"
+    }
+  ],
+  "real_wrapper": {
+    "status": "launched_not_yet_accepted",
+    "execution": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/execution.json",
+    "session": 71193,
+    "parent_pid": 39991,
+    "child_pid": 39992
+  },
+  "acceptance_remaining": "Actual wrapper completion and separate-process independently pinned root verification; small proofs and compilation cannot substitute.",
+  "evidence_sha256": {
+    "focused-pcs-v7.log": "f8f8a9492963bc044c09028734b95c938270ea97254309cbc00f09fe625d5598",
+    "small-complete-stark-v7.log": "f27d5a77530b91a692ab83781e071584a2e7d6d9bd3da1d2229d45f6d525ac51",
+    "complete-proof-compile-v7.log": "8882d94617a5afb4cb8ca3637327921c2b1716b81a4281069b39a35861c781bd",
+    "validation-v7.json": "d9b1d4dee63ace1fa5a7575509febd64063ddddba8939b5390c07668adc6c0f9",
+    "source-audit-v7.json": "ec8c8c836348d643a5ad6d1eb00702997e7ae0c0c6a6d05b16616d0ca0909ad5",
+    "retained-allocation-failure-v5.log": "9b1734152463d1cd0105bf864e6ae3ec5dd3aee8bdfcb9d500745ca12af88418",
+    "real-wrapper-request-v7.json": "91f0948fda76bddc3742144397b70acf5dc0cb0cd067c14a1b9873c58006eaec"
+  }
+}

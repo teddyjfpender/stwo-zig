@@ -1,0 +1,17 @@
+{
+  "schema": "stwo.ethereum.frozen-product.v1",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v5/manifest.json",
+    "bytes": 1099288,
+    "sha256": "b0d5048a566bee0014d4b4926e8f7a287a94bb94eddd2a6d155c76220487a1c0"
+  },
+  "build_log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v5/build.log",
+    "bytes": 73,
+    "sha256": "8bd2501996c06cb461eaf7a31eb93a960fe3f7a3b4d29eadd3ca0c9d4344c918"
+  },
+  "exit_code": -15,
+  "elapsed_ns_including_lock_wait": 289748777084,
+  "optimization": "ReleaseSafe",
+  "source_scope": "Built only from immutable complete source copy; all source files rehashed before and after build"
+}

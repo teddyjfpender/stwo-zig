@@ -8,6 +8,56 @@ const subject = @import("vm_air_profile_v2.zig");
 const SAMPLED_VALUE_COUNT: u32 = 317;
 const MUL_LOOKUP_INDEX: usize = 19;
 
+test "authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as an explicit circuit" {
+    const allocator = std.testing.allocator;
+    const geometry = @import("vm_composition_base_geometry_v2.zig");
+    const narrow = @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig");
+    const program = @import("../air/program/interaction.zig");
+    var statement = support.retainedSegmentZeroCore();
+    var manifest = lookup_physical_v2.Manifest.native();
+    var authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&statement, &manifest);
+    const legacy_samples = try geometry.expectedSampledValueCount(&statement, &manifest);
+    var legacy = try subject.deriveAuthority(allocator, &statement, &manifest, &authenticated, legacy_samples);
+    defer legacy.deinit();
+    var explicit_legacy = try subject.deriveAuthorityWithCircuitProfile(allocator, &statement, &manifest, &authenticated, legacy_samples, .legacy_v4);
+    defer explicit_legacy.deinit();
+    try std.testing.expectEqualSlices(u8, &legacy.identity_digest, &explicit_legacy.identity_digest);
+
+    for (statement.infra_descs[0..statement.n_infra]) |*descriptor| {
+        if (descriptor.kind == .poseidon2)
+            descriptor.n_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
+    }
+    authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&statement, &manifest);
+    try std.testing.expectError(error.InvalidColumnGeometry, geometry.expectedSampledValueCount(&statement, &manifest));
+    const samples = try geometry.expectedSampledValueCountWithCircuitProfile(&statement, &manifest, .fixed_program_narrow_v1);
+    try std.testing.expectEqual(legacy_samples - 158, samples);
+    try std.testing.expectError(error.MainColumnCountMismatch, subject.deriveAuthority(allocator, &statement, &manifest, &authenticated, samples));
+    var fixed = try subject.deriveAuthorityWithCircuitProfile(allocator, &statement, &manifest, &authenticated, samples, .fixed_program_narrow_v1);
+    defer fixed.deinit();
+    try fixed.validateAuthority(allocator, &statement, &manifest, &authenticated);
+    try std.testing.expectEqual(subject.CIRCUIT_SCHEMA_VERSION, fixed.schema_version);
+    try std.testing.expect(!std.mem.eql(u8, &legacy.identity_digest, &fixed.identity_digest));
+    // Fixed program columns are authenticated after the extension prefix,
+    // not silently inserted into the base selector/sample offsets.
+    try std.testing.expectEqual(legacy.preprocessed_column_count, fixed.preprocessed_column_count);
+    var fixed_geometry = try geometry.GeometryV2.init(allocator, &fixed);
+    defer fixed_geometry.deinit();
+    try fixed_geometry.validateAgainst(&fixed);
+    for (fixed.entries) |entry| switch (entry.registry) {
+        .infrastructure => |key| switch (key.kind) {
+            .program => try std.testing.expectEqual(@as(u32, program.N_FIXED_CONSTRAINTS), entry.constraint_count),
+            .poseidon2 => try std.testing.expectEqual(@as(u32, narrow.N_CONSTRAINTS), entry.constraint_count),
+            else => {},
+        },
+        else => {},
+    };
+    fixed.circuit_profile = .legacy_v4;
+    try std.testing.expectError(error.InvalidStatementShape, fixed.validate());
+    fixed.circuit_profile = .fixed_program_narrow_v1;
+    fixed.entries[2 * statement.n_components].constraint_count -= 1;
+    try std.testing.expectError(error.ProfileMismatch, fixed.validateAuthority(allocator, &statement, &manifest, &authenticated));
+}
+
 test "authenticated VM AIR ProfileV2 binds selected physical lookup authority" {
     const allocator = std.testing.allocator;
     var statement = support.retainedSegmentZeroCore();

@@ -58,3 +58,14 @@ pub fn validateV2(
         },
     );
 }
+
+/// Explicit Ethereum fixed-program/narrow provider counterpart. Legacy callers
+/// remain on validateV2 and therefore retain their original width admission.
+pub fn validateV2WithCircuitProfileV1(native: *const statement_v2.RiscVStatementV2, extension: *const statement_mod.Statement, policy: statement_validation.AdmissionPolicy, circuit_profile: @import("../../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1) Error!void {
+    try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
+    try statement_validation.validateV2WithRetirementSupplementAndCircuitProfileV1(native, policy, .{
+        .rows = extension.counts.external_retirements,
+        .extra_memory_terms = extension.admission.extra_memory_terms,
+        .expected_memory_relation_terms = if (extension.counts.external_retirements == 0) 0 else extension.admission.memory_relation_terms,
+    }, circuit_profile);
+}

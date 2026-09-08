@@ -1,0 +1,55 @@
+{
+  "schema": "stwo.local-ethereum.recursive-transcript-progress.v1",
+  "source_state": "uncommitted PR198 engineering tree",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/transcript_air_witness.zig": "b58021b6bf3035face8259690795c34e1237d281fae4e332773880b9b07477a3",
+    "src/frontends/riscv/recursion/air/transcript_air_witness_prepared_batch.zig": "7821e79c68dcc07665bd0a809d0df9ed001a5fe9ffc5be0fefd174de20604588",
+    "src/integrations/riscv_cpu/recursive_binary_outer_support.zig": "c301d8fa671d459cd063d30d752feee9feefaf27c4bf44a97bc85e33d47f313e",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "e311567df3d4fe02084f17541d04d7036572b9d1660c71673bd9d8a4f3c30d6f",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_cohort_v2.zig": "9f9a9cd2e872e1813b0e3855245f19ac5e8eee2e6764c44a3416f0d6c7fe1611",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "cbe226a960cdec9e216c52814a20897d514d0a51f4438751097fdc30e77e9236",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_rows_v4_support.zig": "a6240f6e2ef95168a479923261467ed09d49767d3672c404e769c1aaaaafc9eb"
+  },
+  "upstream_reference": {
+    "repository": "https://github.com/starkware-libs/proving",
+    "commit": "cd7bc5f4697fb188a27e09f9242f1dd76df8afdc",
+    "files": [
+      "crates/stark_verifier/src/verify.rs",
+      "crates/circuit_verifier/src/components/qm31_ops.rs",
+      "crates/circuit_verifier/src/verify.rs"
+    ]
+  },
+  "fixture": "cold-opened canonical-empty q193 proof; not an Ethereum leaf",
+  "recording": {
+    "operations": 174,
+    "hash_frames": 176,
+    "poseidon_permutations": 1649,
+    "frame_words": 12344,
+    "query_words": 193,
+    "interaction_pow_bits": 10,
+    "pcs_pow_bits": 16,
+    "native_replay_equal": true,
+    "all_provider_input_output_lanes_compared": 32,
+    "within_frame_air_state_tuple_cancellation": true
+  },
+  "debug_stack_fix": "heap-owned logical component roster; normal 8176 KiB stack limit; allocator leak check enabled",
+  "checks": {
+    "release_safe_before_heap_fix": "pass 1/1; compile 1m/3G; run 6s/70M",
+    "debug_before_heap_fix": "SIGILL; macOS crash report identified invalid stack access in ComponentSetV2.init",
+    "debug_after_heap_fix": "pass 1/1; compile 14s/2G; run 1m/80M",
+    "final_release_safe_and_role0": "pass 32/32: 31 role0 structural checks plus 1 q193 cold-reopen/AIR recording gate; proof gate 6s/69M; builds 29s/3G and 1m/3G"
+  },
+  "conformance_error_count": 94,
+  "complete_transcript_air_closure": false,
+  "independent_recursive_root": false,
+  "ethereum_leaf_complete": false,
+  "production_activation": false,
+  "canonical_empty_proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+  "logs": [
+    "recursive-secure-transcript-recording-air-safe.log",
+    "recursive-secure-transcript-recording-air-debug.log",
+    "recursive-secure-transcript-recording-air-debug-heap.log",
+    "recursive-secure-transcript-final-safe.log",
+    "recursive-secure-transcript-conformance-final.log"
+  ]
+}

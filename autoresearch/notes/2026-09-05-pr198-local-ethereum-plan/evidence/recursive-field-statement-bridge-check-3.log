@@ -1,0 +1,22 @@
+test-recursive-common-fold-field-public-v2
++- run test stderr
+FIELD_STATEMENT_BRIDGE_DIGEST=c2c67855ae1f62a00d657887d92d7db711282a085fed9c87e32677f5c97d4716
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=10 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+FIELD_STATEMENT_BRIDGE_JOIN contributions=5248 unmatched=0 canonical_words=900
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+
+Build Summary: 7/7 steps succeeded; 5/5 tests passed
+test-recursive-common-fold-field-public-v2 success
++- run test 4 passed 656ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 7s MaxRSS:666M
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 17s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

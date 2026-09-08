@@ -38,9 +38,9 @@ pub const Error = error{
 pub const ControlRelation = binding.Binding(air.control);
 pub const TranscriptAirRelation = binding.Binding(air.transcript_air);
 pub const TranscriptBindingRelation = binding.Binding(air.transcript_binding);
-pub const TranscriptStateRelation = binding.Binding(air.transcript_state);
+pub const TranscriptStateRelation = binding.Binding(air.ethereum_transcript_state_v1);
 pub const TranscriptWordRelation = binding.Binding(air.transcript_word);
-pub const TranscriptPayloadRelation = binding.Binding(air.transcript_payload);
+pub const TranscriptPayloadRelation = binding.Binding(manifest_mod.TranscriptPayloadAir);
 pub const PowCheckRelation = binding.Binding(air.pow_check);
 pub const PowFrameRelation = binding.Binding(air.pow_frame);
 pub const RelationChallengeRelation = binding.Binding(air.relation_challenge);
@@ -93,7 +93,7 @@ const TranscriptBindingAdapter = typed_component.ComponentForManifest(
     manifest_mod,
 );
 const TranscriptStateAdapter = typed_component.ComponentForManifest(
-    air.transcript_state,
+    air.ethereum_transcript_state_v1,
     TranscriptStateRelation,
     manifest_mod,
 );
@@ -103,7 +103,7 @@ const TranscriptWordAdapter = typed_component.ComponentForManifest(
     manifest_mod,
 );
 const TranscriptPayloadAdapter = typed_component.ComponentForManifest(
-    air.transcript_payload,
+    manifest_mod.TranscriptPayloadAir,
     TranscriptPayloadRelation,
     manifest_mod,
 );
@@ -185,7 +185,6 @@ pub fn OwnerV4(comptime Engine: type) type {
             rows: *const Rows,
             manifest: *const manifest_mod.Manifest,
         ) !@This() {
-            try rows.validate();
             try manifest.validate();
             var selected_logs: [ROW_COUNT]u32 = undefined;
             inline for (0..ROW_COUNT) |index| {
@@ -216,6 +215,12 @@ pub fn OwnerV4(comptime Engine: type) type {
             manifest: *const manifest_mod.Manifest,
         ) !void {
             try self.rows.validate();
+            try self.validatePreparedAgainst(manifest);
+        }
+
+        /// Local component-plan checks only. The enclosing owner admits the
+        /// shared source separately; this operation does not authenticate it.
+        pub fn validatePreparedAgainst(self: *const @This(), manifest: *const manifest_mod.Manifest) !void {
             try manifest.validate();
             try self.owners.validate();
             const view = try self.rows.views();
@@ -245,6 +250,30 @@ pub fn OwnerV4(comptime Engine: type) type {
             claims: ClaimsV4,
         ) !ComponentsV4 {
             try self.validateAgainst(manifest);
+            return self.initComponentsUnchecked(manifest, relations, claims);
+        }
+
+        /// Borrow projection for an opaque prepared cohort that owns these
+        /// plans and manifest. This does not admit externally supplied rows.
+        pub fn initComponentsFromPrepared(
+            self: *const @This(),
+            manifest: *const manifest_mod.Manifest,
+            relations: *const universal.UniversalRelations,
+            claims: ClaimsV4,
+        ) !ComponentsV4 {
+            // This public component owner remains mutable. Reauthenticate its
+            // local plans, parameters and geometry; only upstream row replay is
+            // omitted for the opaque prepared owner's projection.
+            try self.validatePreparedAgainst(manifest);
+            return self.initComponentsUnchecked(manifest, relations, claims);
+        }
+
+        fn initComponentsUnchecked(
+            self: *const @This(),
+            manifest: *const manifest_mod.Manifest,
+            relations: *const universal.UniversalRelations,
+            claims: ClaimsV4,
+        ) !ComponentsV4 {
             try relations.validate();
             return .{
                 .control = try ControlAdapter.init(
@@ -352,7 +381,7 @@ pub fn OwnerV4(comptime Engine: type) type {
     };
 }
 
-const ParametersV4 = struct {
+pub const ParametersV4 = struct {
     control: [ControlAdapter.PARAMETER_COLUMN_COUNT]M31,
     transcript_air: [TranscriptAirAdapter.PARAMETER_COLUMN_COUNT]M31,
     transcript_binding: [TranscriptBindingAdapter.PARAMETER_COLUMN_COUNT]M31,
@@ -364,7 +393,7 @@ const ParametersV4 = struct {
     relation_challenge: [RelationChallengeAdapter.PARAMETER_COLUMN_COUNT]M31,
     verifier_randomness: [VerifierRandomnessAdapter.PARAMETER_COLUMN_COUNT]M31,
 
-    fn role0() ParametersV4 {
+    pub fn role0() ParametersV4 {
         const selectors = air.control_witness.ProofKind.segment_leaf.selectors();
         return .{
             .control = selectors[0..2].*,
@@ -440,9 +469,9 @@ pub const OwnersV4 = struct {
     control: AirOwner(air.control, ControlRelation),
     transcript_air: AirOwner(air.transcript_air, TranscriptAirRelation),
     transcript_binding: AirOwner(air.transcript_binding, TranscriptBindingRelation),
-    transcript_state: AirOwner(air.transcript_state, TranscriptStateRelation),
+    transcript_state: AirOwner(air.ethereum_transcript_state_v1, TranscriptStateRelation),
     transcript_word: AirOwner(air.transcript_word, TranscriptWordRelation),
-    transcript_payload: AirOwner(air.transcript_payload, TranscriptPayloadRelation),
+    transcript_payload: AirOwner(manifest_mod.TranscriptPayloadAir, TranscriptPayloadRelation),
     pow_check: AirOwner(air.pow_check, PowCheckRelation),
     pow_frame: AirOwner(air.pow_frame, PowFrameRelation),
     relation_challenge: AirOwner(air.relation_challenge, RelationChallengeRelation),
@@ -462,7 +491,7 @@ pub const OwnersV4 = struct {
         ).init(allocator);
         errdefer transcript_binding.deinit();
         var transcript_state = try AirOwner(
-            air.transcript_state,
+            air.ethereum_transcript_state_v1,
             TranscriptStateRelation,
         ).init(allocator);
         errdefer transcript_state.deinit();
@@ -472,7 +501,7 @@ pub const OwnersV4 = struct {
         ).init(allocator);
         errdefer transcript_word.deinit();
         var transcript_payload = try AirOwner(
-            air.transcript_payload,
+            manifest_mod.TranscriptPayloadAir,
             TranscriptPayloadRelation,
         ).init(allocator);
         errdefer transcript_payload.deinit();

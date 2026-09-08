@@ -128,6 +128,9 @@ pub const OwnedColdProofV2 = struct {
     fresh: secure_engine.FreshVerificationV1,
     composition_capture: composition_capture.CaptureV2,
     query_authority: composition_capture.VerifierQueryAuthorityV2,
+    /// Owned transcript witness from the same cold replay as the graph and
+    /// query authority. It is never serialized as a verifier capability.
+    transcript: *Kernel.RecordedReplayV1,
     claims: manifest_mod.ClaimVector,
     geometry_value: registry_mod.AuthenticatedGeometryV1,
     node_public: artifact_mod.NodePublicV2,
@@ -135,6 +138,8 @@ pub const OwnedColdProofV2 = struct {
 
     pub fn deinit(self: *OwnedColdProofV2) void {
         self.allocator.destroy(self.validation);
+        self.transcript.deinit();
+        self.allocator.destroy(self.transcript);
         self.composition_capture.deinit();
         self.fresh.deinit();
         self.artifact_value.deinit();
@@ -167,6 +172,9 @@ pub const OwnedColdProofV2 = struct {
             readTimer(&replay_timer),
         );
         try self.query_authority.validateAgainst(&replay, &self.fresh);
+        try self.transcript.program.validateRecording(&self.transcript.execution);
+        if (!std.meta.eql(self.transcript.replay, replay))
+            return error.CanonicalEmptyUniversalProofMismatch;
         try self.composition_capture.validateAgainst(
             &cohort,
             &self.session,
@@ -289,6 +297,7 @@ pub const OwnedColdProofV2 = struct {
             .statement = &self.fresh.statement,
             .geometry = &self.geometry_value,
             .capture = &self.fresh.capture,
+            .transcript = self.transcript,
             .query_words = &self.query_authority.query_words,
             .query_log_size = self.query_authority.query_log_size,
             .final_transcript_digest = &self.query_authority.final_transcript_digest,
@@ -308,6 +317,7 @@ pub const FreshRecursiveIngressV2 = struct {
     statement: *const secure_artifact.StatementV1,
     geometry: *const registry_mod.AuthenticatedGeometryV1,
     capture: *const common_authority.ProofCapture,
+    transcript: *const Kernel.RecordedReplayV1,
     query_words: *const [composition_capture.QUERY_WORD_COUNT]stwo_core.fields.m31.M31,
     query_log_size: u32,
     final_transcript_digest: *const composition_capture.TranscriptDigestV2,
@@ -321,11 +331,20 @@ pub const FreshRecursiveIngressV2 = struct {
         try self.session.validate();
         try self.statement.validateAgainstSession(self.session);
         try self.geometry.validate();
+        if (!std.meta.eql(self.transcript.replay.claims, self.claims.*) or
+            !std.meta.eql(self.transcript.replay.query_words, self.query_words.*) or
+            self.transcript.replay.query_log_size != self.query_log_size or
+            !std.meta.eql(self.transcript.execution.final_digest, self.final_transcript_digest.*) or
+            self.transcript.execution.final_draw_count != self.final_transcript_draw_count or
+            !std.meta.eql(self.transcript.replay.final_transcript_digest, self.final_transcript_digest.*) or
+            self.transcript.replay.final_transcript_draw_count != self.final_transcript_draw_count)
+            return error.CanonicalEmptyUniversalEvidenceMismatch;
         if (self.capture.commitments.len !=
             common_authority.COMMITMENT_TREE_COUNT or
             self.capture.queries.raw.len != self.query_words.len or
             self.query_log_size == 0 or self.query_log_size >= 31 or
-            try captureQueryLogSize(self.capture) != self.query_log_size or
+            (common_authority.queryLogSizeFromCapture(self.capture) catch
+                return error.CanonicalEmptyUniversalEvidenceMismatch) != self.query_log_size or
             self.geometry.role != .canonical_empty_field_v2 or
             !std.mem.eql(
                 u8,
@@ -362,30 +381,6 @@ pub const FreshRecursiveIngressV2 = struct {
             return error.CanonicalEmptyUniversalProofShapeMismatch;
     }
 };
-
-fn captureQueryLogSize(
-    capture: *const common_authority.ProofCapture,
-) !u32 {
-    if (capture.column_log_sizes.len !=
-        common_authority.COMMITMENT_TREE_COUNT or
-        capture.trace_paths.len != common_authority.COMMITMENT_TREE_COUNT)
-    {
-        return error.CanonicalEmptyUniversalEvidenceMismatch;
-    }
-    const composition_index = common_authority.COMMITMENT_TREE_COUNT - 1;
-    const logs = capture.column_log_sizes[composition_index];
-    if (logs.len == 0)
-        return error.CanonicalEmptyUniversalEvidenceMismatch;
-    var query_log_size: u32 = 0;
-    for (logs) |log_size| {
-        if (log_size == 0 or log_size >= 31)
-            return error.CanonicalEmptyUniversalEvidenceMismatch;
-        query_log_size = @max(query_log_size, log_size);
-    }
-    if (capture.trace_paths[composition_index].path_depth != query_log_size)
-        return error.CanonicalEmptyUniversalEvidenceMismatch;
-    return query_log_size;
-}
 
 pub fn proveAndColdVerify(
     allocator: std.mem.Allocator,
@@ -470,15 +465,19 @@ fn ownResult(
         return stageFailure("wrapper.own-cohort", err);
     defer cohort.deinit();
     var replay_timer = startTimer();
-    const replay = Kernel.reconstructVerifiedReplay(
+    const transcript = try allocator.create(Kernel.RecordedReplayV1);
+    errdefer allocator.destroy(transcript);
+    transcript.* = Kernel.recordVerifiedReplayWithCohort(
         allocator,
-        inputs,
+        &cohort,
         &session,
         &fresh,
     ) catch |err| return stageFailure("wrapper.verified-replay", err);
+    errdefer transcript.deinit();
+    const replay = &transcript.replay;
     const replay_ns = readTimer(&replay_timer);
     const query_authority = composition_capture.VerifierQueryAuthorityV2.init(
-        &replay,
+        replay,
     ) catch |err| return stageFailure("wrapper.query-authority", err);
     var graph_timer = startTimer();
     var graph_capture = composition_capture.CaptureV2.init(
@@ -487,7 +486,7 @@ fn ownResult(
         &session,
         &fresh.statement,
         &fresh.capture,
-        &replay,
+        replay,
     ) catch |err| return stageFailure("wrapper.composition-capture", err);
     const graph_record_ns = readTimer(&graph_timer);
     errdefer graph_capture.deinit();
@@ -510,12 +509,13 @@ fn ownResult(
         .fresh = fresh,
         .composition_capture = graph_capture,
         .query_authority = query_authority,
+        .transcript = transcript,
         .claims = replay.claims,
         .geometry_value = geometry,
         .node_public = schedule.node_public,
         .validation = validation,
     };
-    cold_token.validateConstructed(&result, &cohort, &replay) catch |err|
+    cold_token.validateConstructed(&result, &cohort, replay) catch |err|
         return stageFailure("wrapper.owned-validate", err);
     validation.* = process_validation.ValidatedOwnerV1.init(
         try cold_token.snapshot(&result),

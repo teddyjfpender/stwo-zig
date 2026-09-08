@@ -115,6 +115,20 @@ pub const TupleClosureReport = struct {
 pub const TupleLedger = struct {
     allocator: std.mem.Allocator,
     contributions: std.ArrayList(TupleContribution) = .empty,
+    sink: ?Sink = null,
+
+    /// Explicit alternative storage for integration-owned diagnostics. Ordinary
+    /// ledgers retain their existing records, sorting and failure provenance.
+    pub const Sink = struct {
+        context: *anyopaque,
+        append_fn: *const fn (*anyopaque, relation.Domain, u8, u8, relation.Role, QM31, []const QM31) std.mem.Allocator.Error!void,
+        classify_fn: *const fn (*anyopaque) TupleClosureReport,
+        print_unmatched_fn: *const fn (*anyopaque, usize) void,
+    };
+
+    pub fn canonicalHash(domain: relation.Domain, values: []const QM31) [32]u8 {
+        return canonicalTupleHash(domain, values);
+    }
 
     pub fn init(allocator: std.mem.Allocator) TupleLedger {
         return .{ .allocator = allocator };
@@ -135,6 +149,7 @@ pub const TupleLedger = struct {
         values: []const QM31,
     ) std.mem.Allocator.Error!void {
         if (signed_weight.isZero()) return;
+        if (self.sink) |sink| return sink.append_fn(sink.context, domain, component, event, role, signed_weight, values);
         var tuple_prefix =
             [_]QM31{QM31.zero()} ** TUPLE_DIAGNOSTIC_PREFIX_ARITY;
         const prefix_len = @min(values.len, tuple_prefix.len);
@@ -156,6 +171,7 @@ pub const TupleLedger = struct {
     /// hash and their signed multiplicities must cancel in M31/QM31 before a
     /// prover is allowed to spend time on denominator inversion or PCS.
     pub fn classify(self: *TupleLedger) TupleClosureReport {
+        if (self.sink) |sink| return sink.classify_fn(sink.context);
         std.mem.sort(
             TupleContribution,
             self.contributions.items,
@@ -191,6 +207,38 @@ pub const TupleLedger = struct {
             cursor = end;
         }
         return report;
+    }
+
+    /// Bounded, allocation-free failure evidence after `classify` has sorted
+    /// the ledger. This reads actual contributions; it never balances them.
+    pub fn printUnmatched(self: *const TupleLedger, limit_per_domain: usize) void {
+        if (self.sink) |sink| return sink.print_unmatched_fn(sink.context, limit_per_domain);
+        const items = self.contributions.items;
+        var cursor: usize = 0;
+        var printed = [_]usize{0} ** universal.RELATION_COUNT;
+        while (cursor < items.len) {
+            const first = items[cursor];
+            var end = cursor + 1;
+            var residual = first.signed_weight;
+            while (end < items.len and items[end].domain == first.domain and
+                std.mem.eql(u8, &items[end].tuple_hash, &first.tuple_hash)) : (end += 1)
+                residual = residual.add(items[end].signed_weight);
+            const domain_index = @intFromEnum(first.domain);
+            if (!residual.isZero() and printed[domain_index] < limit_per_domain) {
+                std.debug.print("TUPLE_UNMATCHED domain={s} hash={s} residual={any} prefix=", .{
+                    @tagName(first.domain), std.fmt.bytesToHex(first.tuple_hash, .lower), residual.toM31Array(),
+                });
+                for (first.tuple_prefix[0..@min(first.arity, TUPLE_DIAGNOSTIC_PREFIX_ARITY)]) |coordinate|
+                    std.debug.print("{any},", .{coordinate.toM31Array()});
+                std.debug.print(" contributions={d}\n", .{end - cursor});
+                for (items[cursor..@min(end, cursor + 8)]) |entry|
+                    std.debug.print("  component={d} event={d} role={s} weight={any}\n", .{
+                        entry.component, entry.event, @tagName(entry.role), entry.signed_weight.toM31Array(),
+                    });
+                printed[domain_index] += 1;
+            }
+            cursor = end;
+        }
     }
 };
 

@@ -52,22 +52,22 @@ pub const PublicLogupControlFramework =
     air.framework_interaction.Runtime(PublicLogupControlRelation.Runtime);
 
 const StatementInputAdapter = typed_component.ComponentForManifest(
-    air.statement_input,
+    manifest_mod.StatementInputAir,
     StatementInputRelation,
     manifest_mod,
 );
 const StatementSemanticsAdapter = typed_component.ComponentForManifest(
-    air.statement_semantics_input,
+    manifest_mod.StatementSemanticsAir,
     StatementSemanticsRelation,
     manifest_mod,
 );
 const ClaimInputAdapter = typed_component.ComponentForManifest(
-    air.vm_public_claim_input,
+    manifest_mod.ClaimInputAir,
     ClaimInputRelation,
     manifest_mod,
 );
 const ClaimHashAdapter = typed_component.ComponentForManifest(
-    air.vm_public_claim_hash,
+    manifest_mod.ClaimHashAir,
     ClaimHashRelation,
     manifest_mod,
 );
@@ -82,7 +82,7 @@ const ClaimSemanticsAdapter = typed_component.ComponentForManifest(
     manifest_mod,
 );
 const PublicLogupAdapter = typed_component.ComponentForManifest(
-    air.vm_public_logup_input,
+    rows_mod.PublicLogupAir,
     PublicLogupRelation,
     manifest_mod,
 );
@@ -156,7 +156,6 @@ pub fn OwnerV4(comptime Engine: type) type {
             rows: *const Rows,
             manifest: *const manifest_mod.Manifest,
         ) !@This() {
-            try rows.validate();
             try manifest.validate();
             var selected_logs: [ROW_COUNT]u32 = undefined;
             inline for (0..ROW_COUNT) |index| {
@@ -186,15 +185,21 @@ pub fn OwnerV4(comptime Engine: type) type {
 
         pub fn validate(self: *const @This()) !void {
             try self.rows.validate();
+            try self.validatePrepared();
+        }
+
+        fn validatePrepared(self: *const @This()) !void {
             try self.manifest.validate();
             try self.owners.validate();
             if (!std.meta.eql(self.parameters, ParametersV4.role0()))
                 return mismatch();
+            // Source geometry is immutable during this synchronous check.
+            // Validate the ownership tree once, not once per component.
+            const source_logs = try self.rows.source.logSizes();
             inline for (0..ROW_COUNT) |index| {
                 const key: manifest_mod.ComponentKey =
                     @enumFromInt(FIRST_ROW + index);
                 const placement = try self.manifest.placement(key);
-                const source_logs = try self.rows.source.logSizes();
                 if (self.log_sizes[index] < source_logs[index] or
                     self.log_sizes[index] >= 31 or
                     placement.geometry.log_size != self.log_sizes[index] or
@@ -214,6 +219,27 @@ pub fn OwnerV4(comptime Engine: type) type {
             claims: ClaimsV4,
         ) !ComponentsV4 {
             try self.validate();
+            return self.initComponentsUnchecked(relations, claims);
+        }
+
+        /// Borrow projection for an opaque prepared cohort that owns these
+        /// plans and manifest. This does not admit externally supplied rows.
+        pub fn initComponentsFromPrepared(
+            self: *const @This(),
+            relations: *const universal.UniversalRelations,
+            claims: ClaimsV4,
+        ) !ComponentsV4 {
+            // Do not grant unchecked adapter construction on the publicly
+            // mutable component owner. Validate its local plans and geometry.
+            try self.validatePrepared();
+            return self.initComponentsUnchecked(relations, claims);
+        }
+
+        fn initComponentsUnchecked(
+            self: *const @This(),
+            relations: *const universal.UniversalRelations,
+            claims: ClaimsV4,
+        ) !ComponentsV4 {
             try relations.validate();
             return .{
                 .statement_input = try StatementInputAdapter.init(
@@ -315,15 +341,7 @@ pub const ParametersV4 = struct {
         const selectors = air.control_slice_witness.ProofKind.segment_leaf
             .selectors();
         return .{
-            .statement_input = .{
-                selectors[0],
-                selectors[1],
-                M31.fromCanonical(air.statement_input.STATEMENT_INPUT_KIND),
-                M31.fromCanonical(air.statement_input.STATEMENT_INPUT_ITEM),
-                M31.fromCanonical(
-                    air.statement_input.VM_CLAIM_STATEMENT_SCOPE,
-                ),
-            },
+            .statement_input = air.statement_input_witness.parameters(.segment_leaf),
             .statement_semantics = .{
                 selectors[0],
                 selectors[1],
@@ -350,19 +368,7 @@ pub const ParametersV4 = struct {
                 M31.fromCanonical(air.vm_public_claim_input.LOW_BYTE_INDEX),
                 M31.fromCanonical(air.vm_public_claim_input.HIGH_BYTE_INDEX),
             },
-            .claim_hash = .{
-                selectors[0],
-                M31.fromCanonical(
-                    air.vm_public_claim_hash.VM_PUBLIC_CLAIM_HASH_DOMAIN,
-                ),
-                M31.fromCanonical(
-                    air.vm_public_claim_hash.VM_CLAIM_HASH_SCOPE,
-                ),
-                M31.fromCanonical(air.vm_public_claim_hash.SEGMENT_VERIFIER_ID),
-                M31.fromCanonical(
-                    air.vm_public_claim_hash.VM_PUBLIC_CLAIM_DIGEST_INPUT_KIND,
-                ),
-            },
+            .claim_hash = .{selectors[0]},
             .io_hash = .{selectors[0]},
             .claim_semantics = .{
                 selectors[0],
@@ -437,19 +443,19 @@ fn AirOwner(comptime Air: type, comptime Relation: type) type {
 }
 
 pub const OwnersV4 = struct {
-    statement_input: AirOwner(air.statement_input, StatementInputRelation),
+    statement_input: AirOwner(manifest_mod.StatementInputAir, StatementInputRelation),
     statement_semantics: AirOwner(
-        air.statement_semantics_input,
+        manifest_mod.StatementSemanticsAir,
         StatementSemanticsRelation,
     ),
-    claim_input: AirOwner(air.vm_public_claim_input, ClaimInputRelation),
-    claim_hash: AirOwner(air.vm_public_claim_hash, ClaimHashRelation),
+    claim_input: AirOwner(manifest_mod.ClaimInputAir, ClaimInputRelation),
+    claim_hash: AirOwner(manifest_mod.ClaimHashAir, ClaimHashRelation),
     io_hash: AirOwner(air.vm_public_io_hash, IoHashRelation),
     claim_semantics: AirOwner(
         air.vm_public_claim_semantics_input,
         ClaimSemanticsRelation,
     ),
-    public_logup: AirOwner(air.vm_public_logup_input, PublicLogupRelation),
+    public_logup: AirOwner(rows_mod.PublicLogupAir, PublicLogupRelation),
     public_logup_control: AirOwner(
         PublicLogupControlAir,
         PublicLogupControlRelation,
@@ -457,22 +463,22 @@ pub const OwnersV4 = struct {
 
     fn init(allocator: std.mem.Allocator) !OwnersV4 {
         var statement_input = try AirOwner(
-            air.statement_input,
+            manifest_mod.StatementInputAir,
             StatementInputRelation,
         ).init(allocator);
         errdefer statement_input.deinit();
         var statement_semantics = try AirOwner(
-            air.statement_semantics_input,
+            manifest_mod.StatementSemanticsAir,
             StatementSemanticsRelation,
         ).init(allocator);
         errdefer statement_semantics.deinit();
         var claim_input = try AirOwner(
-            air.vm_public_claim_input,
+            manifest_mod.ClaimInputAir,
             ClaimInputRelation,
         ).init(allocator);
         errdefer claim_input.deinit();
         var claim_hash = try AirOwner(
-            air.vm_public_claim_hash,
+            manifest_mod.ClaimHashAir,
             ClaimHashRelation,
         ).init(allocator);
         errdefer claim_hash.deinit();
@@ -487,7 +493,7 @@ pub const OwnersV4 = struct {
         ).init(allocator);
         errdefer claim_semantics.deinit();
         var public_logup = try AirOwner(
-            air.vm_public_logup_input,
+            rows_mod.PublicLogupAir,
             PublicLogupRelation,
         ).init(allocator);
         errdefer public_logup.deinit();

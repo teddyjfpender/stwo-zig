@@ -20,6 +20,11 @@ pub const incremental_commitment_witness_v3 =
     @import("prover/incremental_commitment_witness_v3.zig");
 pub const incremental_bridge_external_v3 =
     @import("prover/incremental_bridge_external_v3.zig");
+/// Fixed joined Ethereum Tree0 derivation; accepts no candidate proof root.
+pub const deriveIncrementalEthereumPreprocessedRootWithFixedProgramV1 =
+    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRootWithFixedProgramV1;
+pub const deriveIncrementalEthereumPreprocessedRootV4 =
+    @import("prover/incremental_ethereum_verifier_v3.zig").deriveExpectedPreprocessedRoot;
 pub const incremental_native_orchestration_v3 =
     @import("prover/incremental_native_orchestration_v3.zig");
 pub const incremental_native_verifier_v3 =
@@ -560,3 +565,6 @@ pub const verifyRiscVSegmentLookupV2WithEngine =
 pub const verifyRiscVSegmentLookupV2WithEngineUsingChannel =
     verifier.verifyRiscVSegmentLookupV2WithEngineUsingChannel;
 pub const proveAndVerifyElfWithEngine = @import("prover/elf.zig").proveAndVerifyElfWithEngine;
+
+/// Explicit Ethereum AIR policy; legacy/default proof identities remain unchanged.
+pub const ethereum_circuit_profile_v1 = @import("prover/ethereum_circuit_profile_v1.zig");

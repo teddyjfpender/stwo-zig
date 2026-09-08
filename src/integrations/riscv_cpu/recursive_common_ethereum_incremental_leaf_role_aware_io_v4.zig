@@ -11,7 +11,6 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
 const public_data = frontend.air.public_data;
 const public_data_v2 = frontend.air.public_data_v2;
-const public_logup_v2 = frontend.air.public_logup_v2;
 const public_logup_v4 = frontend.air.incremental_public_logup_v4;
 const relations_mod = frontend.air.relation_challenges;
 const program_decode = frontend.air.program.decode;
@@ -48,6 +47,8 @@ pub const Error = public_data.ValidationError || statement_v2.Error ||
     error{
         ArithmeticOverflow,
         ClockOverflow,
+        DivisionByZero,
+        NonBaseField,
         IncrementalPublicAuthorityMismatchV4,
         IncrementalPublicCompletionMismatchV4,
         InvalidRoleAwareIoCommitmentV4,
@@ -249,7 +250,10 @@ pub const LiveMetricsV4 = struct {
     combined_provider_log_size: u32,
 };
 
+const CircuitProfileV1 = frontend.prover_mod.ethereum_circuit_profile_v1.CircuitProfileV1;
+
 pub const OwnedWitnessV4 = struct {
+    circuit_profile: CircuitProfileV1 = .legacy_v4,
     allocator: std.mem.Allocator,
     active_tuple_count: u32,
     padded_tuple_capacity: u32,
@@ -268,14 +272,19 @@ pub const OwnedWitnessV4 = struct {
         role_aware: *const public_data.PublicData,
         relations: *const relations_mod.Relations,
     ) Error!OwnedWitnessV4 {
+        return initLiveWithCircuitProfile(allocator, native, role_aware, relations, .legacy_v4);
+    }
+
+    pub fn initLiveWithCircuitProfile(allocator: std.mem.Allocator, native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relations_mod.Relations, circuit_profile: CircuitProfileV1) Error!OwnedWitnessV4 {
         const count = try tupleCount(native, role_aware);
         const capacity = try support.liveCapacity(count);
-        return initUnfrozenForAudit(
+        return initWithCircuitProfile(
             allocator,
             native,
             role_aware,
             relations,
             capacity,
+            circuit_profile,
         );
     }
 
@@ -287,6 +296,10 @@ pub const OwnedWitnessV4 = struct {
         relations: *const relations_mod.Relations,
         capacity: u32,
     ) Error!OwnedWitnessV4 {
+        return initWithCircuitProfile(allocator, native, role_aware, relations, capacity, .legacy_v4);
+    }
+
+    pub fn initWithCircuitProfile(allocator: std.mem.Allocator, native: *const public_data_v2.PublicDataV2, role_aware: *const public_data.PublicData, relations: *const relations_mod.Relations, capacity: u32, circuit_profile: CircuitProfileV1) Error!OwnedWitnessV4 {
         try public_logup_v4.validateSharedAuthority(native, role_aware);
         const active_count = try tupleCount(native, role_aware);
         try validateCapacity(active_count, capacity);
@@ -315,19 +328,17 @@ pub const OwnedWitnessV4 = struct {
             tuples[0..active_count],
             relations,
         );
-        const audit = try public_logup_v4.audit(
+        const audit = try public_logup_v4.auditWithCircuitProfile(
             native,
             role_aware,
             relations,
+            circuit_profile,
         );
         try claims.validateAgainstAudit(audit);
-        const public_sum_row = try derivePublicSumRow(
-            native,
-            relations,
-            claims,
-        );
+        const public_sum_row = derivePublicSumRow(audit);
         try public_sum_row.validateAgainstAudit(audit);
         var result = OwnedWitnessV4{
+            .circuit_profile = circuit_profile,
             .allocator = allocator,
             .active_tuple_count = active_count,
             .padded_tuple_capacity = capacity,
@@ -415,17 +426,14 @@ pub const OwnedWitnessV4 = struct {
         );
         if (!support.claimsEql(self.claims, expected_claims))
             return error.RoleAwareIoClaimMismatchV4;
-        const audit = try public_logup_v4.audit(
+        const audit = try public_logup_v4.auditWithCircuitProfile(
             native,
             role_aware,
             relations,
+            self.circuit_profile,
         );
         try self.claims.validateAgainstAudit(audit);
-        const expected_public_sum_row = try derivePublicSumRow(
-            native,
-            relations,
-            expected_claims,
-        );
+        const expected_public_sum_row = derivePublicSumRow(audit);
         if (!support.publicSumRowEql(
             self.public_sum_row,
             expected_public_sum_row,
@@ -746,24 +754,8 @@ pub fn testingClaimsFromTuples(
     return result;
 }
 
-fn derivePublicSumRow(
-    native: *const public_data_v2.PublicDataV2,
-    relations: *const relations_mod.Relations,
-    replacements: RelationClaimsV4,
-) Error!PublicSumRowV4 {
-    var sums = try statement_v2.nativeRelationSums(native, relations);
-    sums.memory_access = sums.memory_access
-        .sub(try public_logup_v2.rwMemoryAccessSum(native, relations))
-        .add(replacements.memory_access);
-    sums.merkle = sums.merkle.sub(
-        try statement_v2.sparseContinuationTreeCompensation(
-            native,
-            relations,
-        ),
-    );
-    sums.program_access = sums.program_access.add(
-        replacements.program_access,
-    );
+fn derivePublicSumRow(audit: public_logup_v4.ReplacementAuditV4) PublicSumRowV4 {
+    const sums = audit.result;
     return .{
         .registers_state = sums.registers_state,
         .memory_access = sums.memory_access,
@@ -829,12 +821,14 @@ fn canonicalWordCount(capacity: u32) Error!usize {
 }
 
 fn identity(value: *const OwnedWitnessV4) [32]u8 {
-    return support.witnessIdentity(
-        value,
-        IDENTITY_DOMAIN,
-        FORMAT_VERSION,
-        SCHEMA_VERSION,
-    );
+    const legacy = support.witnessIdentity(value, IDENTITY_DOMAIN, FORMAT_VERSION, SCHEMA_VERSION);
+    if (value.circuit_profile == .legacy_v4) return legacy;
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("ethereum-role-witness-circuit-profile/v1\x00");
+    hash.update(&legacy);
+    const profile_word = std.mem.toBytes(std.mem.nativeToLittle(u16, @intFromEnum(value.circuit_profile)));
+    hash.update(&profile_word);
+    return hash.finalResult();
 }
 
 comptime {

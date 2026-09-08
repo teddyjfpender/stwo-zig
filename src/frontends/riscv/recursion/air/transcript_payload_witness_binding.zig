@@ -525,6 +525,36 @@ pub fn rowActive(row: Row, kind: ProofKind) bool {
 }
 
 pub fn validateRow(row: Row) direct.Error!void {
+    return validateRowForLayout(row, .legacy_scheduled);
+}
+
+pub fn validateRecordedRow(row: Row) direct.Error!void {
+    return validateRowForLayout(row, .recorded_poseidon);
+}
+
+pub fn validateEthereumRecordedRow(row: Row) direct.Error!void {
+    return validateRowForLayout(row, .ethereum_recorded_poseidon);
+}
+
+/// Only the shared schema4 frame program may select this layout. Auxiliary
+/// protocol words remain private hash inputs; dynamic source coordinates are
+/// bounded separately from the legacy native-publication namespace.
+pub fn validateEthereumFieldRow(row: Row) direct.Error!void {
+    return validateRowForLayout(row, .ethereum_field_poseidon);
+}
+
+fn validateRowForLayout(row: Row, comptime layout: enum { legacy_scheduled, recorded_poseidon, ethereum_recorded_poseidon, ethereum_field_poseidon }) direct.Error!void {
+    const ethereum = layout == .ethereum_recorded_poseidon or layout == .ethereum_field_poseidon;
+    const clocks = @import("../ethereum_clock_routing_v1.zig");
+    const ethereum_clock = ethereum and
+        row.source_kind == .statement and row.item_index == clocks.STATEMENT_SCOPE;
+    const publication = @import("../ethereum_publication_routing_v1.zig");
+    const ethereum_publication = ethereum and
+        row.source_kind == .statement and row.item_index == publication.STATEMENT_SCOPE;
+    const payload_offset = switch (layout) {
+        .legacy_scheduled => PAYLOAD_WORD_OFFSET,
+        .recorded_poseidon, .ethereum_recorded_poseidon, .ethereum_field_poseidon => @import("../poseidon2_channel.zig").RATE,
+    };
     if (row.row_mask != 1 or row.segment_mask > 1 or row.binary_mask > 1 or
         row.segment_mask + row.binary_mask != 1 or
         row.verifier_id >= m31.Modulus or row.sequence >= m31.Modulus or
@@ -533,9 +563,11 @@ pub fn validateRow(row: Row) direct.Error!void {
         row.constant_mask > 1 or row.input_use_count > 2 or
         row.constant_value >= m31.Modulus or
         row.source_hash_id >= m31.Modulus or
-        row.source_word_index != PAYLOAD_WORD_OFFSET + row.payload_index or
+        row.source_word_index != payload_offset + row.payload_index or
         row.source_word_index >= m31.Modulus or
-        row.input_use_count != inputUseCount(row.source_kind))
+        row.input_use_count != (if (ethereum_clock or ethereum_publication) @as(u32, 0) else if (ethereum and
+            row.source_kind == .vm_air_claimed_sum) @as(u32, 1) else if (ethereum and
+            row.source_kind == .claimed_sum) @import("../incremental_ethereum_composition_profile_v4.zig").ClaimRoutingPlan.CANONICAL_TRANSCRIPT_USE_COUNT else inputUseCount(row.source_kind)))
     {
         return error.InvalidTraceRow;
     }
@@ -549,25 +581,40 @@ pub fn validateRow(row: Row) direct.Error!void {
         else => return error.InvalidTraceRow,
     }
     switch (row.source_kind) {
-        .protocol => if (row.constant_mask != 1 or row.item_index > 1 or
-            row.limb_index >= component.DIGEST_WORD_COUNT)
+        // Recorded fixed profile frames can exceed the legacy digest pair.
+        // Their input multiplicity is zero; all coordinates remain canonical.
+        .protocol => if ((layout != .ethereum_field_poseidon and row.constant_mask != 1) or
+            (row.constant_mask == 0 and row.constant_value != 0) or (layout == .legacy_scheduled and
+            (row.item_index > 1 or row.limb_index >= component.DIGEST_WORD_COUNT)))
         {
             return error.InvalidTraceRow;
         },
-        .statement => if (row.constant_mask != 0 or row.constant_value != 0 or
-            row.item_index != 0 or row.limb_index >= component.STATEMENT_WORD_COUNT)
-        {
-            return error.InvalidTraceRow;
+        .statement => {
+            if (row.constant_mask != 0 or row.constant_value != 0)
+                return error.InvalidTraceRow;
+            if (ethereum_clock) {
+                if (row.verifier_id != SEGMENT_VERIFIER_ID or row.limb_index >= clocks.WORD_COUNT)
+                    return error.InvalidTraceRow;
+            } else if (ethereum_publication) {
+                const field_source = layout == .ethereum_field_poseidon and row.limb_index >= publication.FIELD_FRAME_SOURCE_BASE and row.limb_index < 2 * publication.FIELD_FRAME_SOURCE_BASE;
+                if (row.verifier_id != SEGMENT_VERIFIER_ID or (!publication.isNativePayloadIndex(row.limb_index) and !field_source))
+                    return error.InvalidTraceRow;
+            } else if (row.item_index != 0 or row.limb_index >= component.STATEMENT_WORD_COUNT)
+                return error.InvalidTraceRow;
         },
         .pcs_parameters => if (row.constant_mask != 1 or row.item_index != 0 or
             row.limb_index >= component.PCS_PARAMETER_WORD_COUNT)
         {
             return error.InvalidTraceRow;
         },
-        .commitment, .fri_commitment => if (row.constant_mask != 0 or
-            row.constant_value != 0 or row.limb_index >= component.DIGEST_WORD_COUNT)
-        {
-            return error.InvalidTraceRow;
+        .commitment, .fri_commitment => {
+            // The recorded common-fold profile pins tree0 in preprocessing
+            // and still emits its commitment lookup to the verifier AIR.
+            const fixed_tree0 = layout != .legacy_scheduled and
+                row.source_kind == .commitment and row.item_index == 0 and row.constant_mask == 1;
+            if ((!fixed_tree0 and (row.constant_mask != 0 or row.constant_value != 0)) or
+                row.limb_index >= component.DIGEST_WORD_COUNT)
+                return error.InvalidTraceRow;
         },
         .claimed_sum, .sampled_value, .last_layer_coefficient => if (row.constant_mask != 0 or
             row.constant_value != 0 or row.limb_index >= component.QM31_WORD_COUNT)
@@ -587,7 +634,13 @@ pub fn validateRow(row: Row) direct.Error!void {
         {
             return error.InvalidTraceRow;
         },
-        .vm_air_claimed_sum => return error.InvalidTraceRow,
+        .vm_air_claimed_sum => if (!ethereum or
+            row.constant_mask != 0 or row.constant_value != 0 or
+            row.limb_index >= component.QM31_WORD_COUNT or
+            row.verifier_id != SEGMENT_VERIFIER_ID)
+        {
+            return error.InvalidTraceRow;
+        },
     }
 }
 

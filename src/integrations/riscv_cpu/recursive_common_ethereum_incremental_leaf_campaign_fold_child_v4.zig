@@ -162,7 +162,7 @@ pub fn Types(comptime Engine: type) type {
                 authority: *const Authority,
             ) !void {
                 if (self.final_remint != authority or
-                    self.cold.materialized != self.materialized)
+                    self.cold.materializedOwner() != self.materialized)
                 {
                     return error.EthereumIncrementalCampaignFoldChildMismatchV4;
                 }
@@ -175,7 +175,7 @@ pub fn Types(comptime Engine: type) type {
                 const geometry = try authority.geometryForRole(
                     .ethereum_incremental_leaf_wrapper_v4,
                 );
-                if (!std.meta.eql(geometry.*, self.cold.geometry_value))
+                if (!std.meta.eql(geometry.*, self.cold.geometryForPaddingTarget().*))
                     return error.EthereumIncrementalCampaignFoldChildMismatchV4;
                 const expected = try buildNodeArtifact(&self.cold, authority);
                 if (!std.meta.eql(expected, self.node_artifact))
@@ -202,7 +202,7 @@ pub fn Types(comptime Engine: type) type {
             }
 
             pub fn proofBytes(self: *const Self) []const u8 {
-                return self.cold.artifact_bytes;
+                return self.cold.artifactBytes();
             }
 
             pub fn requireFoldChild(self: *const Self) !FreshFoldChildV4 {
@@ -253,8 +253,8 @@ pub fn Types(comptime Engine: type) type {
                 .geometry = geometry,
                 .node_artifact = &lease.node_artifact,
                 .node_public = &lease.node_artifact.node_public,
-                .claimed_sums = &lease.cold.claims.values,
-                .claims_seal = &lease.cold.claims.seal,
+                .claimed_sums = &lease.cold.claimsView().values,
+                .claims_seal = &lease.cold.claimsView().seal,
                 .session = ingress.session,
                 .statement = ingress.statement,
                 .capture = ingress.capture,
@@ -287,18 +287,18 @@ pub fn Types(comptime Engine: type) type {
             );
             const registry = try authority.registryAuthority();
             const geometry = try authority.geometryForRole(ROLE);
-            if (!std.meta.eql(geometry.*, cold.geometry_value))
+            if (!std.meta.eql(geometry.*, cold.geometryForPaddingTarget().*))
                 return error.EthereumIncrementalCampaignFoldChildMismatchV4;
             const entry = try registry.entry(
                 .ethereum_incremental_leaf_wrapper_v4,
             );
-            const source = stage101ArtifactRef(cold.materialized);
+            const source = stage101ArtifactRef(cold.materializedOwner());
             const result = try campaign_artifact.seal(authority.shape, .{
                 .stage_kind = .leaf_wrapper,
                 .node_kind = .real,
                 .child_count = 1,
-                .coordinate = cold.materialized.base.input.coordinate,
-                .node_public = cold.node_public,
+                .coordinate = cold.materializedOwner().base.input.coordinate,
+                .node_public = cold.nodePublic().*,
                 .campaign_namespace_sha256 = authority.shape.campaign_namespace_sha256,
                 .circuit_identity_sha256 = entry.circuit_identity_sha256,
                 .program_identity_sha256 = entry.program_identity_sha256,

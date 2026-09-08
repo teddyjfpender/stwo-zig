@@ -64,6 +64,9 @@ pub const recording_poseidon_channel_v4 =
 pub const relation_summary = @import("relation_summary.zig");
 pub const recursion_air_composition_circuit = @import("recursion_air_composition_circuit.zig");
 pub const recursion_air_composition_circuit_v3 = @import("recursion_air_composition_circuit_v3.zig");
+/// Shared fixtures consumed by integration tests through the frontend owner.
+pub const recursion_air_composition_circuit_v3_test_support =
+    @import("recursion_air_composition_circuit_v3_test_support.zig");
 pub const segment_leaf_authority = @import("segment_leaf_authority.zig");
 pub const segment_leaf_authority_v2 = @import("segment_leaf_authority_v2.zig");
 pub const segment_leaf_local_authority_v3 =
@@ -95,6 +98,7 @@ pub const segment_statement_outer_source = @import("segment_statement_outer_sour
 pub const segment_statement_outer_source_v2 = @import("segment_statement_outer_source_v2.zig");
 pub const segment_statement_outer_components_v2 = @import("segment_statement_outer_components_v2.zig");
 pub const segment_statement_v2 = @import("segment_statement_v2.zig");
+pub const segment_statement_v2_transcript_layout = @import("segment_statement_v2_transcript_layout.zig");
 pub const segment_transcript_witness = @import("segment_transcript_witness.zig");
 pub const scheduled_channel = @import("scheduled_channel.zig");
 pub const scheduled_channel_v2 = @import("scheduled_channel_v2.zig");
@@ -119,8 +123,18 @@ pub const vm_air_composition_circuit_parallel_v4 =
     @import("vm_air_composition_circuit_parallel_v4.zig");
 pub const vm_composition_base_geometry_v2 =
     @import("vm_composition_base_geometry_v2.zig");
+pub const vm_air_composition_prepared_v2 =
+    @import("vm_air_composition_prepared_v2.zig");
 pub const vm_selected_lookup_compiler_v2 =
     @import("vm_selected_lookup_compiler_v2.zig");
 pub const vm_leaf_context = @import("vm_leaf_context.zig");
 pub const vm_leaf_context_v2 = @import("vm_leaf_context_v2.zig");
 pub const ethereum_leaf_context_v1 = @import("ethereum_leaf_context_v1.zig");
+
+pub const vm_composition_preparation = @import("vm_composition_preparation.zig");
+pub const incremental_ethereum_composition_profile_v4 = @import("incremental_ethereum_composition_profile_v4.zig");
+pub const ethereum_statement_arithmetic_v4 = @import("ethereum_statement_arithmetic_v4.zig");
+pub const statement_root_routing_audit = @import("statement_root_routing_audit.zig");
+pub const ethereum_clock_routing_v1 = @import("ethereum_clock_routing_v1.zig");
+
+pub const ethereum_publication_routing_v1 = @import("ethereum_publication_routing_v1.zig");

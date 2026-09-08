@@ -3,15 +3,18 @@ const std = @import("std");
 const prepared =
     @import("ethereum_incremental_prepared_program_commitment_v1.zig");
 const frontend = @import("stwo_riscv_frontend");
-const elf_fixture = frontend.testing.guest_precompile_test_elf;
+const elf_fixture = @import("recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig");
 
 fn buildEthereumElf(allocator: std.mem.Allocator) ![]u8 {
-    const bytes = elf_fixture.buildEthereum();
+    // Reuse the genuine proof fixture's admitted completion and ELF layout.
+    const bytes = elf_fixture.programElf();
     return allocator.dupe(u8, &bytes);
 }
 
 test "prepared program commitment deep owns exact ELF and validates borrowed prefix" {
     const allocator = std.testing.allocator;
+    const runner_only = frontend.testing.guest_precompile_test_elf.buildEthereum();
+    try std.testing.expectError(error.UnsupportedInstructionClass, prepared.PreparedProgramCommitmentV1.create(allocator, &runner_only));
     const source = try buildEthereumElf(allocator);
     defer allocator.free(source);
     var original_source_sha256: [32]u8 = undefined;

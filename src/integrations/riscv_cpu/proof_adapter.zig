@@ -30,7 +30,7 @@ const verified_request_attempt = @import("proof_adapter/verified_request_attempt
 const verify_receipt = @import("proof_adapter/verify_receipt.zig");
 const wire_arena = @import("proof_adapter/wire_arena.zig");
 const wire_reconstruct = @import("proof_adapter/wire_reconstruct.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 
 const WireArena = wire_arena.WireArena;
 const BenchmarkReport = benchmark_report.BenchmarkReport;

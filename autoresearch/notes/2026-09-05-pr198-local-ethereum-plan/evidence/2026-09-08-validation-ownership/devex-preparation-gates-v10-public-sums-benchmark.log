@@ -1,0 +1,3 @@
+1/1 air.incremental_public_logup_v4_bench_test.test.Ethereum surviving public sums sparse work benchmark...ETHEREUM_PUBLIC_SUMS_BENCH source=expanded_existing_authenticated_fixture words=4096 canonical_wire_words=33432 sparse_rw_terms=8192 sparse_continuation_terms=32768 removed_scalar_inversions=81920 surviving_removed_term_inversions=0 scalar_median_ns=10812042 surviving_median_ns=395958 rounds=3 setup_included=false native_proving=false wrapper_proving=false
+OK
+All 1 tests passed.

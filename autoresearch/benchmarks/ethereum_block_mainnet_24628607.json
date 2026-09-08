@@ -147,7 +147,7 @@
         "canonical": "BPO2",
         "schema_id": 5121,
         "block_timestamp": 1773164303,
-        "legacy_activation_field": "bpo1_time",
+        "legacy_activation_field": "bpo2_time",
         "legacy_activation_timestamp": 1767747671,
         "canonical_mainnet_bpo2_timestamp": 1767747671
       },

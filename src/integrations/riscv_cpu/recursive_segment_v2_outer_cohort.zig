@@ -153,12 +153,13 @@ pub const Cohort = struct {
             log_sizes[row] = log_size;
         }
 
-        const manifest_value = try manifest_mod.build(
+        const manifest_value = try manifest_mod.buildWithProviderShape(
             log_sizes,
             &preflight.transcript_manifest,
             &preflight.statement_manifest,
             &preflight.public_manifest,
             &preflight.boundary_manifest,
+            preflight.input_provider_shape,
         );
         const complete_manifest = try allocator.create(manifest_mod.Manifest);
         errdefer allocator.destroy(complete_manifest);
@@ -244,12 +245,13 @@ pub const Cohort = struct {
         try preflight.installLogSizes(&logs);
         const core_logs = try self.core.componentLogSizes();
         for (core_logs, CORE_FIRST_ROW..) |log_size, row| logs[row] = log_size;
-        const rebuilt = try manifest_mod.build(
+        const rebuilt = try manifest_mod.buildWithProviderShape(
             logs,
             &preflight.transcript_manifest,
             &preflight.statement_manifest,
             &preflight.public_manifest,
             &preflight.boundary_manifest,
+            preflight.input_provider_shape,
         );
         if (!std.meta.eql(rebuilt, self.complete_manifest.*))
             return error.ManifestGeometryMismatch;
@@ -821,11 +823,6 @@ pub const Cohort = struct {
             if (!std.meta.eql(manifest_value.*, self.complete_manifest.*))
                 return error.ManifestGeometryMismatch;
         }
-        if (!std.mem.eql(
-            u8,
-            &manifest_value.seal,
-            &self.complete_manifest.seal,
-        )) return error.ManifestGeometryMismatch;
     }
 };
 

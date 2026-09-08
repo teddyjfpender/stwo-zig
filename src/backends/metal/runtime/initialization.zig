@@ -32,6 +32,16 @@ extern fn stwo_zig_metal_runtime_create_from_metallib_data_on_device(
     error_message_len: usize,
 ) ?*anyopaque;
 
+extern fn stwo_zig_metal_runtime_create_from_metallib_data_with_polynomial_exports(
+    bytes: [*]const u8,
+    byte_len: usize,
+    names: [*]const [*]const u8,
+    name_lengths: [*]const usize,
+    count: usize,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+
 pub fn Initialization(comptime MetalError: type) type {
     return struct {
         pub fn fromSource(source: [*:0]const u8) MetalError!*anyopaque {
@@ -74,6 +84,15 @@ pub fn Initialization(comptime MetalError: type) type {
                 message.len,
             ) orelse {
                 std.log.err("Metal AOT data initialization failed: {s}", .{std.mem.sliceTo(&message, 0)});
+                return MetalError.RuntimeInitializationFailed;
+            };
+        }
+
+        pub fn fromMetallibDataWithPolynomialExports(bytes: []const u8, names: []const [*]const u8, name_lengths: []const usize) MetalError!*anyopaque {
+            if (bytes.len == 0 or names.len == 0 or names.len != name_lengths.len) return MetalError.RuntimeInitializationFailed;
+            var message: [1024]u8 = [_]u8{0} ** 1024;
+            return stwo_zig_metal_runtime_create_from_metallib_data_with_polynomial_exports(bytes.ptr, bytes.len, names.ptr, name_lengths.ptr, names.len, &message, message.len) orelse {
+                std.log.err("Metal admitted polynomial initialization failed: {s}", .{std.mem.sliceTo(&message, 0)});
                 return MetalError.RuntimeInitializationFailed;
             };
         }

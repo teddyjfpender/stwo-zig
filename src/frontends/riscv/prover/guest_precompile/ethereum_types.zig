@@ -34,7 +34,7 @@ pub const ExtensionClaim = struct {
         {
             return error.InvalidClaim;
         }
-        try self.keccak_shard.validate();
+        try self.keccak_shard.validateWithMaximumLogSize(@import("../../air/guest_precompile/keccakf_trace.zig").ethereum_maximum_log_size);
         try expectDescriptor(
             self.keccak_shard.log_size,
             self.keccak_shard.n_rows,
@@ -76,50 +76,70 @@ pub const ExtensionClaim = struct {
         }
     }
 
+    /// Borrowed immutable claim data in the statement's canonical component
+    /// order. Native transcript framing and recursive input routing share this
+    /// mapping; scalar claims have one frame, batch claims have count, detailed,
+    /// and aggregate frames. The incremental bridge is a separate component.
+    pub fn componentClaims(self: *const ExtensionClaim) [statement_mod.component_count]ComponentClaimView {
+        var result: [statement_mod.component_count]ComponentClaimView = undefined;
+        for (statement_mod.componentKinds(), &result) |kind, *view| {
+            view.* = switch (kind) {
+                .keccak_shard_v1 => batchClaim(kind, &self.keccak_shard),
+                .keccak_chi_table_v2 => scalarClaim(kind, &self.keccak_chi_table),
+                .keccak_xor5_table_v2 => scalarClaim(kind, &self.keccak_xor5_table),
+                .secp_product_base_v1 => batchClaim(kind, &self.product_base),
+                .secp_product_scalar_v1 => batchClaim(kind, &self.product_scalar),
+                .secp_linear_base_v1 => batchClaim(kind, &self.linear_base),
+                .secp_linear_scalar_v1 => batchClaim(kind, &self.linear_scalar),
+                .secp_point_v1 => batchClaim(kind, &self.point),
+                .secp_split_v1 => batchClaim(kind, &self.split),
+                .secp_scalar_program_v1 => batchClaim(kind, &self.scalar),
+                .secp_signed_table_v1 => batchClaim(kind, &self.table),
+                .secp_recovery_v1 => batchClaim(kind, &self.recovery),
+                .secp_byte_table_v1 => batchClaim(kind, &self.byte),
+                .secp_recovery_caller_v1 => batchClaim(kind, &self.recovery_caller),
+            };
+        }
+        return result;
+    }
+
     pub fn componentSum(self: *const ExtensionClaim) QM31 {
-        var result = self.keccak_shard.component_sum
-            .add(self.keccak_chi_table)
-            .add(self.keccak_xor5_table);
-        inline for (.{
-            self.product_base.component_sum,
-            self.product_scalar.component_sum,
-            self.linear_base.component_sum,
-            self.linear_scalar.component_sum,
-            self.point.component_sum,
-            self.split.component_sum,
-            self.scalar.component_sum,
-            self.table.component_sum,
-            self.recovery.component_sum,
-            self.byte.component_sum,
-            self.recovery_caller.component_sum,
-        }) |sum| result = result.add(sum);
+        var result = QM31.zero();
+        for (self.componentClaims()) |claim| result = result.add(claim.total);
         return result;
     }
 
     /// Mixes every component-local batch claim rather than only aggregates.
     /// Component adapters consume the detailed values, so they are part of the
     /// Fiat-Shamir statement even when the same total could be decomposed in
-    /// several ways.
+    /// several ways. Preserve native call boundaries as well as payload words.
     pub fn mixInto(self: *const ExtensionClaim, channel: anytype) void {
         channel.mixU32s(&.{ 0x4757_5453, 0x3143_5445, statement_mod.component_count });
-        mixComponent(channel, &self.keccak_shard.batch_sums, self.keccak_shard.component_sum);
-        channel.mixFelts(&.{self.keccak_chi_table});
-        channel.mixFelts(&.{self.keccak_xor5_table});
-        inline for (.{
-            self.product_base,
-            self.product_scalar,
-            self.linear_base,
-            self.linear_scalar,
-            self.point,
-            self.split,
-            self.scalar,
-            self.table,
-            self.recovery,
-            self.byte,
-            self.recovery_caller,
-        }) |claim| mixComponent(channel, &claim.batch_sums, claim.component_sum);
+        for (self.componentClaims()) |claim| {
+            if (claim.has_batch_frame)
+                mixComponent(channel, claim.detailed, claim.total)
+            else
+                channel.mixFelts(claim.detailed);
+        }
     }
 };
+
+/// Slices borrow an ExtensionClaim and must not outlive it. No proof values
+/// enter fixed circuit admission through this view.
+pub const ComponentClaimView = struct {
+    kind: statement_mod.Kind,
+    detailed: []const QM31,
+    total: QM31,
+    has_batch_frame: bool,
+};
+
+fn batchClaim(kind: statement_mod.Kind, claim: anytype) ComponentClaimView {
+    return .{ .kind = kind, .detailed = &claim.batch_sums, .total = claim.component_sum, .has_batch_frame = true };
+}
+
+fn scalarClaim(kind: statement_mod.Kind, claim: *const QM31) ComponentClaimView {
+    return .{ .kind = kind, .detailed = @as(*const [1]QM31, @ptrCast(claim))[0..], .total = claim.*, .has_batch_frame = false };
+}
 
 pub fn ProveOutputForEngine(comptime Engine: type) type {
     return struct {

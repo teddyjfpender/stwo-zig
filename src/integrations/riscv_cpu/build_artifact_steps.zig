@@ -32,6 +32,9 @@ pub fn add(ctx: anytype) void {
     addIncrementalPublicWirePublicationV4(ctx);
     addIncrementalCapturePostprocessV4(ctx);
     addIncrementalCapturePostprocessCommandV4(ctx);
+    addRetainedCampaignGeometryV1(ctx);
+    addPreparedLeafCpuV1(ctx);
+    addRetainedFirstSegmentV1(ctx);
     const block_leaf_tests = b.addTest(.{
         .root_module = support.createHarnessModule(
             b,
@@ -251,6 +254,7 @@ fn addIncrementalCapturePostprocessV4(ctx: anytype) void {
         "early V4 owner publishes raw pair and cold-adopts exact restart",
         "early V4 owner rejects order boundary and byte drift",
         "VM-free V4 owner mints sequential jobs then cold-publishes independently",
+        "selected leaf mint cold verifies from admitted entry without campaign seals",
         "sequential mint order failure poisons the process-local owner",
     };
     const compile = b.addTest(.{
@@ -1021,4 +1025,59 @@ fn addPoseidonLeafProcessGate(ctx: anytype) void {
     );
     step.dependOn(&verify.step);
     step.dependOn(&reject.step);
+}
+
+fn addRetainedCampaignGeometryV1(ctx: anytype) void {
+    const b = ctx.b;
+    const root = support.createHarnessModule(b, "ethereum_incremental_campaign_geometry_v1_test.zig", ctx.target, ctx.optimize, ctx.core, ctx.cpu_backend, ctx.frontend, ctx.integration);
+    root.addImport("stwo_prover_api", ctx.prover_api);
+    root.addImport("stwo_prover_engine", ctx.prover);
+    root.addImport("interop_postcard", ctx.postcard);
+    const names: []const []const u8 = &.{
+        "versioned retained campaign admits 61 leaves and smaller budgets without changing legacy 210",
+        "retained campaign CLI preserves legacy and explicitly selects authenticated geometry",
+        "prepared CPU leaf requires explicit policy and preserves retained campaign arguments",
+        "materializer snapshot policy permits synchronous laptop capture without changing default",
+        "retained replay claim admission is explicit across CPU prepared forwarding",
+        "retained leaf PCS lower bound sums mixed geometry and rejects insufficient budget",
+        "retained real leaf PCS decision uses separate budget and actual retention",
+        "explicit one worker proof pool binds commitment helpers without changing default",
+        "capture manifest owns paths after observer callback storage is destroyed",
+    };
+    const compile = b.addTest(.{ .root_module = root, .filters = names });
+    b.step("test-ethereum-retained-campaign-geometry-v1", "Check explicit retained campaign and bounded CPU execution selection").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(compile), names, "retained campaign geometry identity guard"));
+}
+
+fn addRetainedFirstSegmentV1(ctx: anytype) void {
+    const b = ctx.b;
+    const root = support.createHarnessModule(b, "ethereum_retained_first_segment_v1_test.zig", ctx.target, ctx.optimize, ctx.core, ctx.cpu_backend, ctx.frontend, ctx.integration);
+    const names: []const []const u8 = &.{
+        "real retained Ethereum first segment authenticates memory clock projection",
+        "legacy Ethereum guest heap omission is rejected by memory clock admission",
+    };
+    const compile = b.addTest(.{ .root_module = root, .filters = names });
+    const run = b.addRunArtifact(compile);
+    run.has_side_effects = true;
+    b.step("test-ethereum-retained-first-segment-v1", "Validate one real retained segment without capture or proving the rest").dependOn(support.ProofTestGuard.add(b, run, names, "retained first segment identity guard"));
+}
+
+fn addPreparedLeafCpuV1(ctx: anytype) void {
+    const b = ctx.b;
+    // Strip only this explicitly selected CLI and its integration module.
+    // Shared dependency modules and default build identities remain unchanged.
+    const integration = b.createModule(.{
+        .root_source_file = b.path("mod.zig"),
+        .target = ctx.target,
+        .optimize = ctx.optimize,
+        .strip = ctx.ethereum_proof_strip,
+    });
+    var imports = ctx.integration.import_table.iterator();
+    while (imports.next()) |entry| integration.addImport(entry.key_ptr.*, entry.value_ptr.*);
+    const root = support.createHarnessModule(b, "ethereum_prepared_leaf_cpu_v1_main.zig", ctx.target, ctx.optimize, ctx.core, ctx.cpu_backend, ctx.frontend, integration);
+    root.strip = ctx.ethereum_proof_strip;
+    const command = b.addExecutable(.{
+        .name = "ethereum-prepared-leaf-cpu-v1",
+        .root_module = root,
+    });
+    b.step("build-ethereum-prepared-leaf-cpu-v1", "Build the prepared Ethereum full-leaf CPU worker without unrelated product commands").dependOn(&b.addInstallArtifact(command, .{}).step);
 }

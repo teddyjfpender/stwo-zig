@@ -1,0 +1,40 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "exit_code": 0,
+  "monitor_elapsed_ns": 216788955292,
+  "sampled_peak_footprint_bytes": 11538228320,
+  "process_cap_enforced": false,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "host_admission_limit_bytes": 34359738368,
+    "process_cap_enforced": false,
+    "sample_interval_seconds": 2,
+    "limits_scope": "Composition and PCS admission budgets are distinct from host admission; process footprint sampling is observational and does not enforce a cap"
+  },
+  "verified_and_published": true,
+  "ended_unix_ns": 1788808997512496000,
+  "real_seconds": 216.46,
+  "user_seconds": 198.29,
+  "sys_seconds": 2.47,
+  "maximum_resident_set_size_bytes": 11917279232,
+  "peak_memory_footprint_bytes": 12430042208,
+  "artifact": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.stwief04",
+    "bytes": 100960686,
+    "sha256": "730fee53e827a72a3d6a65ef45b9fa2a82e47a1451a20acb78fbc8e7653f550e"
+  },
+  "global_metadata": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.metadata.json",
+    "bytes": 16789,
+    "sha256": "e4f1dbac90e319219a96913b5bffe70e9f458560e581b3db320038c8c30d8d13"
+  },
+  "measurement_lines": [
+    "INCREMENTAL_FULL_LEAF_INPUT_PHASES_V1 retained_open_ns=30809833 selection_ns=334 replay_program_ns=34127041 fixed_program_admission_ns=3353216417 capture_admission_ns=74273828083",
+    "INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=1834123 poseidon_calls=1834123 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d",
+    "INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=7901392112 source_column_bytes=3950696056 columns=16655 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator",
+    "INCREMENTAL_FULL_LEAF_PHASES_V1 transaction_ns=71951416458 admission_ns=5113161000 replay_ns=213831917 witness_ns=3572091667 profile_ns=1271934208 prove_ns=60151820875 encode_ns=291247250",
+    "ETHEREUM_PREPARED_METAL_V1 claim_schema=5 aot_manifest_sha256=320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 initialization_ns=73253125 producer_ns=71978323709 cold_verify_ns=65970608333 device_dispatches=91 host_fallbacks=3 independently_cold_verified=true"
+  ]
+}

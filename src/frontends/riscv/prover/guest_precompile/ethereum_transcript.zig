@@ -151,6 +151,63 @@ pub fn mixInteractionClaimV2(
     extension.mixInto(channel);
 }
 
+/// Schema-3 Ethereum full-leaf admission binds the actual physical component
+/// claims after the legacy Ethereum claim prefix and before the bridge claim
+/// and Tree 2. The shared RV32/CSP transcript keeps its existing protocol.
+pub fn selectedBaseClaimsHeaderV3(count: usize) ![4]u32 {
+    return .{ 0x4757_5453, 0x3344_4245, 3, std.math.cast(u32, count) orelse
+        return error.InvalidContextCounts };
+}
+
+/// Borrowed, immutable view for one explicit transcript/capture operation.
+/// Admission validates the selected physical geometry once. The statement,
+/// manifest and claims must remain immutable for the lifetime of this view.
+pub const SelectedBaseClaimsV3 = struct {
+    core: *const base_statement.RiscVStatement,
+    manifest: *const lookup_physical_v2.Manifest,
+    claim: *const base_statement.RiscVInteractionClaim,
+    count: usize,
+
+    pub fn init(
+        core: *const base_statement.RiscVStatement,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+        claim: *const base_statement.RiscVInteractionClaim,
+    ) !SelectedBaseClaimsV3 {
+        _ = try authenticated.canonicalInteractionClaim(core, manifest, claim);
+        var count: usize = authenticated.detailed_claim_count;
+        for (core.infra_descs[0..core.n_infra]) |descriptor| {
+            count = try std.math.add(usize, count, base_statement.nClaimedSumsForInfra(descriptor.kind));
+        }
+        return .{ .core = core, .manifest = manifest, .claim = claim, .count = count };
+    }
+
+    pub fn write(self: SelectedBaseClaimsV3, destination: []QM31) !void {
+        if (destination.len != self.count) return error.InvalidContextCounts;
+        var cursor: usize = 0;
+        for (self.core.component_descs[0..self.core.n_components], 0..) |descriptor, index| {
+            const count = self.manifest.entryForFamily(descriptor.family).detailed_claim_count;
+            const values = try self.claim.opcodeClaims(descriptor.family, index);
+            @memcpy(destination[cursor..][0..count], values[0..count]);
+            cursor += count;
+        }
+        for (self.core.infra_descs[0..self.core.n_infra], 0..) |descriptor, index| {
+            const values = try self.claim.infraClaims(descriptor.kind, index);
+            @memcpy(destination[cursor..][0..values.len], values);
+            cursor += values.len;
+        }
+        if (cursor != destination.len) return error.InvalidContextCounts;
+    }
+
+    pub fn mix(self: SelectedBaseClaimsV3, allocator: std.mem.Allocator, channel: anytype) !void {
+        const values = try allocator.alloc(QM31, self.count);
+        defer allocator.free(values);
+        try self.write(values);
+        channel.mixU32s(&(try selectedBaseClaimsHeaderV3(self.count)));
+        channel.mixFelts(values);
+    }
+};
+
 pub fn total(
     base: anytype,
     extension: *const types.ExtensionClaim,

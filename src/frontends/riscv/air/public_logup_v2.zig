@@ -61,6 +61,24 @@ pub fn relationSums(
     data: *const public_data_v2.PublicDataV2,
     relations: *const relation_challenges.Relations,
 ) Error!Sums {
+    return relationSumsImpl(true, data, relations);
+}
+
+/// Ethereum V4 replaces sparse RW compensation with its committed full-state
+/// boundary. Preserve every denominator rejection without computing inverses
+/// that this adapter would immediately subtract again.
+pub fn relationSumsWithoutSparseRwV4(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!Sums {
+    return relationSumsImpl(false, data, relations);
+}
+
+fn relationSumsImpl(
+    comptime include_sparse_rw: bool,
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!Sums {
     var cursor = try data.eventCursor();
     const metadata = cursor.metadata();
     var result = Sums{
@@ -80,12 +98,12 @@ pub fn relationSums(
             state.direction,
             .compensation,
         ),
-        .memory_access => |memory| try addBoundaryInverse(
-            &result.memory_access,
-            relations.memory_access.combineBase(memoryTuple(memory)),
-            memory.direction,
-            .compensation,
-        ),
+        .memory_access => |memory| {
+            const denominator = relations.memory_access.combineBase(memoryTuple(memory));
+            if (!include_sparse_rw and memory.address_space == 1) {
+                if (denominator.isZero()) return error.ZeroDenominator;
+            } else try addBoundaryInverse(&result.memory_access, denominator, memory.direction, .compensation);
+        },
     };
 
     // Program and continuation-root anchors are direct public events, not the
@@ -218,6 +236,13 @@ fn addDirectInverse(
         .consume => result.sub(inverse),
         .produce => result.add(inverse),
     };
+}
+
+/// The single sparse-program-tree anchor. Fixed-program Tree0 profiles omit
+/// this together with their program Merkle nodes; continuation anchors remain.
+pub fn programRootAnchor(native: *const public_data_v2.PublicDataV2, relations: *const relation_challenges.Relations) !QM31 {
+    const root = try scalarProgramRoot((try native.metadata()).program);
+    return relations.merkle.combineBase(.{ M31.zero(), M31.zero(), base(root), base(root) }).inv();
 }
 
 fn scalarProgramRoot(program: public_data_v2.Digest) Error!u32 {

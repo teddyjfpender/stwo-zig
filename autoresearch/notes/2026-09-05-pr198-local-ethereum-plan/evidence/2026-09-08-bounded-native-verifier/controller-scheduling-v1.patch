@@ -1,0 +1,362 @@
+--- a/scripts/ethereum_bounded_verifier.py
++++ b/scripts/ethereum_bounded_verifier.py
+@@ -0,0 +1,234 @@
++"""Opt-in, measured native leaf verification beside the serialized heavy lane.
++
++This is a monitored scheduling envelope, not an OS memory limit or proof
++admission. Only the pinned one-worker fixed-program v5 leaf command is allowed.
++Builds, producers, wrappers and whole bundles keep the existing heavy lock.
++"""
++from __future__ import annotations
++
++import argparse
++from contextlib import contextmanager
++import ctypes
++import fcntl
++import hashlib
++import json
++import os
++from pathlib import Path
++import re
++import subprocess
++import sys
++import time
++
++from scripts import ethereum_block_proof_process as transport
++from scripts import ethereum_block_proof_store as store
++from scripts.zig_serial_build import DEFAULT_LOCK, HELD_LOCK_ENV
++
++GIB = 1024 ** 3
++LANE_LOCK = DEFAULT_LOCK + ".bounded-native-verifier"
++MODE = "verify-leaf-fixed-program-v5"
++ENDPOINT = "verified_native_selected_leaf_fixed_program_v5"
++POLICY_SCHEMA = "stwo.ethereum.bounded-native-verifier-policy.v1"
++
++
++def require(condition: bool, message: str) -> None:
++    if not condition:
++        raise ValueError(message)
++
++
++def identity(path: Path) -> dict:
++    return {"path": str(path), **store.file_identity(path, "bounded verifier input")}
++
++
++def checked_file(value: dict) -> Path:
++    require(set(value) == {"path", "bytes", "sha256"}, "invalid pinned file identity")
++    path = Path(value["path"])
++    require(path.is_absolute(), "pinned path must be absolute")
++    store.validate_file_identity(path, {key: value[key] for key in ("bytes", "sha256")}, "bounded verifier input")
++    return path
++
++
++def load_policy(path: Path, sha256: str) -> dict:
++    raw = store.read_regular(path, "bounded verifier policy", maximum=128 * 1024)
++    require(hashlib.sha256(raw).hexdigest() == sha256, "verification scheduling policy pin differs")
++    policy = json.loads(raw)
++    require(set(policy) == {"schema", "verifier", "materialization", "baselines", "child_byte_budget", "host_reserve_bytes", "maximum_proof_bytes", "timeout_seconds"}, "invalid bounded verifier policy fields")
++    require(policy["schema"] == POLICY_SCHEMA, "unsupported bounded verifier policy")
++    for name in ("child_byte_budget", "host_reserve_bytes", "maximum_proof_bytes", "timeout_seconds"):
++        require(type(policy[name]) is int and policy[name] > 0, "invalid scheduling bound")
++    require(policy["child_byte_budget"] <= 3 * GIB and policy["host_reserve_bytes"] >= 6 * GIB
++            and policy["maximum_proof_bytes"] <= 128 * 1024 ** 2 and policy["timeout_seconds"] <= 180,
++            "bounded verifier exceeds admitted lane envelope")
++    binary = checked_file(policy["verifier"])
++    checked_file(policy["materialization"])
++    require(type(policy["baselines"]) is list and 0 < len(policy["baselines"]) <= 210, "missing measured verifier baseline")
++    for baseline in policy["baselines"]:
++        require(set(baseline) == {"request", "execution", "receipt", "plan"}, "invalid baseline custody")
++        values = {name: json.loads(checked_file(pin).read_bytes()) for name, pin in baseline.items()}
++        require(hashlib.sha256(Path(baseline["plan"]["path"]).read_bytes()).hexdigest() == values["request"]["plan_sha256"]
++                and values["plan"]["verifier"] == policy["verifier"], "baseline executable pin differs from sealed campaign")
++        argv = values["request"]["argv"]
++        _check_command(policy, argv)
++        require(Path(argv[0]) == binary and values["execution"]["exit_code"] == 0, "baseline did not execute the admitted verifier")
++        receipt = values["receipt"]
++        require(receipt["endpoint"] == ENDPOINT, "baseline profile differs")
++        measured = receipt["verification"]
++        require(measured["endpoint"] == "verified_native_selected_leaf" and measured["worker_count"] == 1
++                and measured["retained_admission_destroyed_before_proof"] is True,
++                "baseline is not independent one-worker leaf verification")
++        require(all(type(measured[name]) is int for name in ("peak_footprint_bytes", "request_ns", "worker_count")),
++                "invalid measured baseline values")
++        require(bytes(measured["materialization_sha256"]).hex() == policy["materialization"]["sha256"]
++                and 0 < measured["peak_footprint_bytes"] * 5 <= policy["child_byte_budget"] * 4
++                and 0 < measured["request_ns"] <= policy["timeout_seconds"] * 1_000_000_000,
++                "measured verifier exceeds scheduling envelope or lacks 25 percent headroom")
++    return policy
++
++
++def _check_command(policy: dict, argv: list[str]) -> None:
++    require(len(argv) == 8 and argv[0] == policy["verifier"]["path"] and argv[1] == MODE
++            and argv[4] == policy["materialization"]["path"]
++            and argv[5] == policy["materialization"]["sha256"] and argv[6:] == ["--workers", "1"],
++            "bounded lane requires exact pinned one-worker native leaf command")
++
++
++def admit_command(policy: dict, argv: list[str]) -> list[dict]:
++    _check_command(policy, argv)
++    checked_file(policy["verifier"])
++    checked_file(policy["materialization"])
++    proof = store.file_identity(Path(argv[2]), "bounded verifier proof")
++    require(0 < proof["bytes"] <= policy["maximum_proof_bytes"], "proof exceeds measured lane input bound")
++    metadata_bytes = store.read_regular(Path(argv[3]), "bounded verifier metadata", maximum=128 * 1024)
++    metadata = json.loads(metadata_bytes)
++    require(metadata["proof_bytes"] == proof["bytes"] and bytes(metadata["proof_sha256"]).hex() == proof["sha256"],
++            "proof differs from native metadata")
++    return [{"path": argv[2], **proof}, {"path": argv[3], "bytes": len(metadata_bytes),
++                                       "sha256": hashlib.sha256(metadata_bytes).hexdigest()}]
++
++
++def host_headroom() -> dict:
++    """Use OS pressure/availability reporting; unavailable measurements reject."""
++    if sys.platform == "darwin":
++        result = subprocess.run(["/usr/bin/memory_pressure", "-Q"], capture_output=True, text=True, timeout=2, check=True)
++        total = re.search(r"The system has ([0-9]+) ", result.stdout)
++        free = re.search(r"System-wide memory free percentage: ([0-9]+)%", result.stdout)
++        require(total is not None and free is not None and 0 <= int(free[1]) <= 100, "cannot measure host memory pressure")
++        return {"source": "darwin.memory_pressure.Q", "physical_bytes": int(total[1]), "available_bytes": int(total[1]) * int(free[1]) // 100}
++    if sys.platform.startswith("linux"):
++        values = dict(re.findall(r"^(MemTotal|MemAvailable):\s+([0-9]+) kB$", Path("/proc/meminfo").read_text(), re.MULTILINE))
++        require(set(values) == {"MemTotal", "MemAvailable"}, "cannot measure host memory availability")
++        return {"source": "linux.MemAvailable", "physical_bytes": int(values["MemTotal"]) * 1024, "available_bytes": int(values["MemAvailable"]) * 1024}
++    raise ValueError("bounded native verification has no host memory monitor on this platform")
++
++
++class _RusageV0(ctypes.Structure):
++    # macOS SDK sys/resource.h, RUSAGE_INFO_V0: stable physical-footprint ABI.
++    _fields_ = [("uuid", ctypes.c_uint8 * 16)] + [(name, ctypes.c_uint64) for name in (
++        "user", "system", "idle", "interrupts", "pageins", "wired", "resident", "footprint", "started", "exited")]
++
++
++def child_footprint(pid: int) -> int:
++    if sys.platform == "darwin":
++        library = ctypes.CDLL("/usr/lib/libproc.dylib", use_errno=True)
++        usage = _RusageV0()
++        function = library.proc_pid_rusage
++        function.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
++        function.restype = ctypes.c_int
++        if function(pid, 0, ctypes.byref(usage)) != 0:
++            raise OSError(ctypes.get_errno(), "cannot sample native verifier footprint")
++        return int(usage.footprint)
++    if sys.platform.startswith("linux"):
++        values = dict(re.findall(r"^(VmRSS|VmSwap):\s+([0-9]+) kB$", Path(f"/proc/{pid}/status").read_text(), re.MULTILINE))
++        require(set(values) == {"VmRSS", "VmSwap"}, "cannot sample native verifier footprint")
++        return sum(int(value) for value in values.values()) * 1024
++    raise ValueError("unsupported child memory monitor")
++
++
++@contextmanager
++def lane():
++    # One bounded verifier globally, independent of the unchanged heavy lock.
++    with open(LANE_LOCK, "a+b") as lock:
++        try:
++            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
++        except BlockingIOError:
++            raise ValueError("bounded native verifier lane is already occupied") from None
++        try:
++            yield
++        finally:
++            fcntl.flock(lock, fcntl.LOCK_UN)
++
++
++def run(argv: list[str], policy: dict, *, stdout, stderr, timeout: float, observation: dict) -> subprocess.CompletedProcess:
++    observation.update({"schema": "stwo.ethereum.bounded-native-verifier-observation.v1", "resource_envelope_passed": False,
++                        "os_memory_limit": False, "peak_sampled_child_bytes": 0, "poll_seconds": 0.25})
++    child = None
++    started = time.monotonic()
++    try:
++        require(0 < timeout, "bounded verifier timeout must be positive")
++        with lane():
++            try:
++                input_identities = admit_command(policy, argv)
++                host = host_headroom()
++                observation["host_before"] = host
++                require(host["available_bytes"] >= policy["child_byte_budget"] + policy["host_reserve_bytes"], "insufficient measured host headroom for bounded verifier")
++                environment = dict(os.environ)
++                environment.pop(HELD_LOCK_ENV, None)
++                child = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, start_new_session=True, env=environment)
++                observation["pid"] = child.pid
++                deadline = time.monotonic() + min(timeout, policy["timeout_seconds"])
++                while child.poll() is None:
++                    require(time.monotonic() < deadline, "bounded native verifier timed out")
++                    try:
++                        footprint = child_footprint(child.pid)
++                    except OSError:
++                        if child.poll() is not None:
++                            break
++                        raise
++                    observation["peak_sampled_child_bytes"] = max(observation["peak_sampled_child_bytes"], footprint)
++                    require(footprint <= policy["child_byte_budget"], "bounded native verifier exceeded child footprint envelope")
++                    host = host_headroom()
++                    observation["host_latest"] = host
++                    require(host["available_bytes"] >= policy["host_reserve_bytes"], "host headroom fell below verifier reserve")
++                    require(max(os.fstat(stdout.fileno()).st_size, os.fstat(stderr.fileno()).st_size) <= 1024 ** 2,
++                            "bounded native verifier exceeded output transport bound")
++                    time.sleep(0.25)
++                require(transport.drain_process_group(child, "bounded native verifier"), "bounded native verifier left descendants")
++                require(max(os.fstat(stdout.fileno()).st_size, os.fstat(stderr.fileno()).st_size) <= 1024 ** 2,
++                        "bounded native verifier exceeded output transport bound")
++                require(admit_command(policy, argv) == input_identities, "verifier input custody changed during execution")
++                observation["input_identities"] = input_identities
++                observation["resource_envelope_passed"] = True
++                observation["exit_code"] = child.returncode
++                return subprocess.CompletedProcess(argv, child.returncode)
++            finally:
++                # Keep the lane until its child group has drained, including
++                # resource failures; a second verifier cannot race cleanup.
++                if child is not None:
++                    transport.drain_process_group(child, "bounded native verifier cleanup")
++    except BaseException as error:
++        observation["error"] = str(error)
++        raise
++    finally:
++        observation["elapsed_s"] = time.monotonic() - started
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--policy", type=Path, required=True)
++    parser.add_argument("--policy-sha256", required=True)
++    parser.add_argument("--output", type=Path, required=True)
++    parser.add_argument("argv", nargs=argparse.REMAINDER)
++    args = parser.parse_args()
++    policy = load_policy(args.policy, args.policy_sha256)
++    argv = args.argv[1:] if args.argv[:1] == ["--"] else args.argv
++    args.output.mkdir(parents=True, exist_ok=False)
++    observation = {"policy_sha256": args.policy_sha256, "argv": argv}
++    try:
++        with (args.output / "stdout.json").open("xb") as stdout, (args.output / "stderr.log").open("xb") as stderr:
++            result = run(argv, policy, stdout=stdout, stderr=stderr, timeout=policy["timeout_seconds"], observation=observation)
++        raise SystemExit(result.returncode)
++    finally:
++        (args.output / "scheduling.json").write_text(json.dumps(observation, indent=2) + "\n")
++
++
++if __name__ == "__main__":
++    main()
+--- a/scripts/ethereum_full_leaf_bundle_producer.py
++++ b/scripts/ethereum_full_leaf_bundle_producer.py
+@@ -15,6 +15,7 @@
+ from scripts import ethereum_block_proof_materialization as materialization
+ from scripts import ethereum_block_proof_protocol as protocol
+ from scripts import ethereum_block_proof_store as store
++from scripts import ethereum_bounded_verifier as bounded_verifier
+ from scripts.zig_serial_build import build_lock
+ 
+ 
+@@ -26,7 +27,9 @@
+         pcs_retained_byte_budget: int | None = None,
+         claim_admission: str = "field_authority_v4",
+         backend: str = "cpu", aot_bundle: Path | None = None,
+-        aot_manifest_sha256: str | None = None) -> dict:
++        aot_manifest_sha256: str | None = None,
++        verification_policy: Path | None = None,
++        verification_policy_sha256: str | None = None) -> dict:
+     """One producer process at a time; committed leaves survive interruption.
+ 
+     Every invocation finishes by re-verifying every proof in a fresh process,
+@@ -37,6 +40,16 @@
+     protocol.require(claim_admission in ("field_authority_v4", "fixed_program_narrow_v5"),
+                      "unsupported explicit claim admission")
+     protocol.require(backend in ("cpu", "metal"), "unsupported prover backend")
++    protocol.require((verification_policy is None) == (verification_policy_sha256 is None),
++                     "bounded verification requires both policy path and independent pin")
++    verification_schedule = None
++    if verification_policy is not None:
++        protocol.require(claim_admission == "fixed_program_narrow_v5" and workers == 1,
++                         "bounded verification requires fixed-program v5 and one worker")
++        verification_schedule = bounded_verifier.load_policy(verification_policy, verification_policy_sha256)
++        protocol.require(verification_schedule["verifier"]["path"] == str(verifier.resolve())
++                         and verification_schedule["materialization"]["path"] == str(materialization_path.resolve()),
++                         "bounded verifier scheduling admission differs from campaign")
+     aot_files = {}
+     if backend == "metal":
+         protocol.require(aot_bundle is not None and aot_manifest_sha256 is not None,
+@@ -105,6 +118,23 @@
+         if name == "prover" and aot_bundle is not None:
+             for filename, expected in aot_files.items():
+                 store.validate_file_identity(aot_bundle / filename, expected, filename)
++
++    def validate_leaf_receipt(receipt: dict, index: int, leaf: dict, metadata_path: Path) -> None:
++        proof_sha = bytes(leaf["proof_sha256"]).hex()
++        if claim_admission == "fixed_program_narrow_v5":
++            protocol.require(receipt["endpoint"] == "verified_native_selected_leaf_fixed_program_v5",
++                             "leaf verifier used wrong profile endpoint")
++            receipt = receipt["verification"]
++        protocol.require(receipt["endpoint"] == "verified_native_selected_leaf"
++                         and receipt["segment_index"] == index
++                         and receipt["segment_count"] == count
++                         and receipt["worker_count"] == workers
++                         and receipt["proof_bytes"] == leaf["proof_bytes"]
++                         and bytes(receipt["proof_sha256"]).hex() == proof_sha
++                         and bytes(receipt["metadata_file_sha256"]).hex() == store.file_identity(metadata_path, "leaf metadata")["sha256"]
++                         and bytes(receipt["materialization_sha256"]).hex() == plan["materialization"]["sha256"]
++                         and receipt["retained_admission_destroyed_before_proof"] is True,
++                         "leaf verifier receipt differs from intended campaign")
+ 
+     def pending_production(index: int) -> Path | None:
+         # A successful producer is only a candidate. Resume must still freshly
+@@ -213,29 +243,34 @@
+                     str(metadata_path), str(materialization_path),
+                     plan["materialization"]["sha256"], "--workers", str(workers)]
+             check_binary(verifier, "verifier")
+-            publish(verify_attempt / "request.json", {"argv": argv, "plan_sha256": protocol.sha256_bytes(protocol.canonical_bytes(plan))})
+-            with build_lock(label=f"ethereum verify leaf {index}"), (verify_attempt / "stdout.json").open("xb") as stdout, (verify_attempt / "stderr.log").open("xb") as stderr:
+-                process_started = time.monotonic_ns()
+-                verified = subprocess.run(argv, stdout=stdout, stderr=stderr, timeout=timeout_seconds, check=False)
+-                process_ns = time.monotonic_ns() - process_started
++            verify_request = {"argv": argv, "plan_sha256": protocol.sha256_bytes(protocol.canonical_bytes(plan))}
++            if verification_schedule is not None:
++                # Scheduling is per-attempt custody, separate from the immutable
++                # proof campaign. Existing accepted artifacts keep their identity.
++                verify_request["verification_policy_sha256"] = verification_policy_sha256
++            publish(verify_attempt / "request.json", verify_request)
++            if verification_schedule is None:
++                with build_lock(label=f"ethereum verify leaf {index}"), (verify_attempt / "stdout.json").open("xb") as stdout, (verify_attempt / "stderr.log").open("xb") as stderr:
++                    process_started = time.monotonic_ns()
++                    verified = subprocess.run(argv, stdout=stdout, stderr=stderr, timeout=timeout_seconds, check=False)
++                    process_ns = time.monotonic_ns() - process_started
++            else:
++                observation = {"policy_sha256": verification_policy_sha256}
++                try:
++                    with (verify_attempt / "stdout.json").open("xb") as stdout, (verify_attempt / "stderr.log").open("xb") as stderr:
++                        process_started = time.monotonic_ns()
++                        verified = bounded_verifier.run(argv, verification_schedule, stdout=stdout, stderr=stderr,
++                                                        timeout=timeout_seconds, observation=observation)
++                        process_ns = time.monotonic_ns() - process_started
++                finally:
++                    publish(verify_attempt / "scheduling.json", observation)
+             publish(verify_attempt / "execution.json", {"exit_code": verified.returncode, "process_ns": process_ns})
+             check_binary(verifier, "verifier")
++            store.validate_file_identity(output / f"{proof_sha}.bin",
++                                         {"bytes": leaf["proof_bytes"], "sha256": proof_sha}, "freshly verified full leaf")
+             protocol.require(verified.returncode == 0, f"leaf {index} fresh verification failed; retained {verify_attempt}")
+             receipt = json.loads(store.read_regular(verify_attempt / "stdout.json", "leaf verifier receipt", maximum=128 * 1024))
+-            if claim_admission == "fixed_program_narrow_v5":
+-                protocol.require(receipt["endpoint"] == "verified_native_selected_leaf_fixed_program_v5",
+-                                 "leaf verifier used wrong profile endpoint")
+-                receipt = receipt["verification"]
+-            protocol.require(receipt["endpoint"] == "verified_native_selected_leaf"
+-                             and receipt["segment_index"] == index
+-                             and receipt["segment_count"] == count
+-                             and receipt["worker_count"] == workers
+-                             and receipt["proof_bytes"] == leaf["proof_bytes"]
+-                             and bytes(receipt["proof_sha256"]).hex() == proof_sha
+-                             and bytes(receipt["metadata_file_sha256"]).hex() == store.file_identity(metadata_path, "leaf metadata")["sha256"]
+-                             and bytes(receipt["materialization_sha256"]).hex() == plan["materialization"]["sha256"]
+-                             and receipt["retained_admission_destroyed_before_proof"] is True,
+-                             "leaf verifier receipt differs from intended campaign")
++            validate_leaf_receipt(receipt, index, leaf, metadata_path)
+             publish(leaf_path, leaf)
+             leaves.append(leaf)
+             print(f"Ethereum full leaf {index + 1}/{count} independently verified", flush=True)
+@@ -287,6 +322,8 @@
+     parser.add_argument("--aot-manifest-sha256", help="Independent AOT manifest pin; Metal only")
+     parser.add_argument("--selected-leaf-admission-root", type=Path,
+                         help="Create immutable per-index leaf admissions from retained raw pairs; does not seal the campaign")
++    parser.add_argument("--verification-policy", type=Path, help="Explicit measured bounded native verifier lane; producers and final bundle remain serialized")
++    parser.add_argument("--verification-policy-sha256", help="Independent pin for the bounded verification scheduling policy")
+     args = vars(parser.parse_args())
+     args["materialization_path"] = args.pop("materialization")
+     print(json.dumps(run(**args)))

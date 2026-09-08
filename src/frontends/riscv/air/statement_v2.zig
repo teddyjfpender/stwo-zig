@@ -22,10 +22,11 @@ const statement_v1 = @import("statement.zig");
 const channel = @import("../recursion/poseidon2_channel.zig");
 const segment_v2 = @import("../recursion/segment_statement_v2.zig");
 const runner_result = @import("../runner/result.zig");
+pub const authority_preimage = @import("statement_v2_authority_preimage.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
-pub const AUTHORITY_ID_DOMAIN: u32 = 0x5253_5632; // "RSV2"
+pub const FORMAT_VERSION: u16 = authority_preimage.FORMAT_VERSION;
+pub const SCHEMA_VERSION: u16 = authority_preimage.SCHEMA_VERSION;
+pub const AUTHORITY_ID_DOMAIN: u32 = authority_preimage.DOMAIN; // "RSV2"
 pub const RECEIPT_ID_DOMAIN: u32 = 0x5253_5250; // "RSRP"
 pub const NATIVE_SUMS_ID_DOMAIN: u32 = 0x5253_4c32; // "RSL2"
 pub const RELATION_CONTEXT_ID_DOMAIN: u32 = 0x5253_5243; // "RSRC"
@@ -333,14 +334,27 @@ pub const RiscVStatementV2 = struct {
         )) return error.SegmentResultMismatch;
 
         const rows = result.execution_trace.rows.items;
-        const local_cycles = std.math.cast(u32, result.cycle_count) orelse
+        // The canonical statement already authenticated this executed span,
+        // and the reconstructed source above matched it exactly. V2 resumes
+        // retain absolute clocks; an explicitly projected V3 leaf starts at 0.
+        const executed = switch (base_statement.body) {
+            .executed => |value| value,
+            .empty => return error.SegmentResultMismatch,
+        };
+        const clock_start = std.math.cast(u32, executed.first_cycle) orelse
+            return error.SegmentResultMismatch;
+        const clock_end = std.math.cast(u32, std.math.add(
+            u64,
+            executed.first_cycle,
+            executed.cycle_count,
+        ) catch return error.SegmentResultMismatch) orelse
             return error.SegmentResultMismatch;
         const external = result.execution_trace.recordedExternalSteps();
         const represented = std.math.add(usize, rows.len, external) catch
             return error.SegmentResultMismatch;
         result.execution_trace.validateClockRange(
-            0,
-            local_cycles,
+            clock_start,
+            clock_end,
             external,
         ) catch return error.SegmentResultMismatch;
         if (result.execution_trace.step_count != rows.len or
@@ -351,19 +365,17 @@ pub const RiscVStatementV2 = struct {
             return error.SegmentResultMismatch;
         }
         if (external == 0) {
-            const first_clock = std.math.cast(
-                u32,
-                result.global_first_cycle,
-            ) orelse return error.SegmentResultMismatch;
+            const first_clock = std.math.add(u32, clock_start, 1) catch
+                return error.SegmentResultMismatch;
             if (rows[0].pc != result.entry_cpu.pc or
                 rows[rows.len - 1].next_pc != result.exit_cpu.pc or
                 rows[0].clk != first_clock or
-                rows[rows.len - 1].clk != local_cycles)
+                rows[rows.len - 1].clk != clock_end)
             {
                 return error.SegmentResultMismatch;
             }
-        } else if (rows[0].clk == 0 or
-            rows[rows.len - 1].clk > local_cycles)
+        } else if (rows[0].clk <= clock_start or
+            rows[rows.len - 1].clk > clock_end)
         {
             return error.SegmentResultMismatch;
         }
@@ -418,6 +430,7 @@ pub fn sparseContinuationTreeCompensation(
     const view = try authenticatedView(data);
     var result = QM31.zero();
     try addContinuationTreeCompensation(
+        true,
         &result,
         &view,
         view.entry_snapshot,
@@ -425,6 +438,7 @@ pub fn sparseContinuationTreeCompensation(
         &relations.merkle,
     );
     try addContinuationTreeCompensation(
+        true,
         &result,
         &view,
         view.exit_snapshot,
@@ -432,6 +446,18 @@ pub fn sparseContinuationTreeCompensation(
         &relations.merkle,
     );
     return result;
+}
+
+/// V4 removes these sparse-tree fractions algebraically. Their original zero
+/// denominator checks remain part of admission even though no inverse survives.
+pub fn validateSparseContinuationTreeDenominatorsV4(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!void {
+    const view = try authenticatedView(data);
+    var unused_sum = QM31.zero();
+    try addContinuationTreeCompensation(false, &unused_sum, &view, view.entry_snapshot, view.statement.entry_continuation_root, &relations.merkle);
+    try addContinuationTreeCompensation(false, &unused_sum, &view, view.exit_snapshot, view.statement.exit_continuation_root, &relations.merkle);
 }
 
 pub fn nativeRelationSum(
@@ -579,6 +605,7 @@ fn clockSectionMatches(
 }
 
 fn addContinuationTreeCompensation(
+    comptime compute_sum: bool,
     sum: *QM31,
     view: *const segment_v2.CanonicalWireViewV2,
     section: segment_v2.RetainedSectionV2,
@@ -586,7 +613,7 @@ fn addContinuationTreeCompensation(
     relation: *const relation_challenges.RelationElements(4),
 ) Error!void {
     if (section.count == 0) {
-        try subtractMerkleInverse(sum, relation, .{ 0, 0, root, root });
+        try subtractMerkleInverse(compute_sum, sum, relation, .{ 0, 0, root, root });
         return;
     }
     for (0..section.count) |index| {
@@ -595,7 +622,7 @@ fn addContinuationTreeCompensation(
             const shift: u5 = @intCast(limb * 8);
             const value: u8 = @truncate(entry.value >> shift);
             if (value == 0) continue;
-            try subtractMerkleInverse(sum, relation, .{
+            try subtractMerkleInverse(compute_sum, sum, relation, .{
                 entry.address + @as(u32, @intCast(limb)),
                 sparse_merkle.LEAF_DEPTH,
                 value,
@@ -606,6 +633,7 @@ fn addContinuationTreeCompensation(
 }
 
 fn subtractMerkleInverse(
+    comptime compute_sum: bool,
     sum: *QM31,
     relation: *const relation_challenges.RelationElements(4),
     tuple: [4]u32,
@@ -616,8 +644,10 @@ fn subtractMerkleInverse(
         base(tuple[2]),
         base(tuple[3]),
     });
-    const inverse = denominator.inv() catch return error.ZeroDenominator;
-    sum.* = sum.sub(inverse);
+    if (compute_sum) {
+        const inverse = denominator.inv() catch return error.ZeroDenominator;
+        sum.* = sum.sub(inverse);
+    } else if (denominator.isZero()) return error.ZeroDenominator;
 }
 
 fn nonzeroByteCount(
@@ -678,34 +708,14 @@ pub fn authorityIdentityFromGeometry(
         return error.InvalidComponentGeometry;
     }
     const core_public = try canonicalCorePublicData(data);
-    var hash = channel.CanonicalWordHasher.init(AUTHORITY_ID_DOMAIN);
-    updateScalars(&hash, &.{
-        FORMAT_VERSION,
-        SCHEMA_VERSION,
-        @as(u32, @intCast(component_descs.len)),
-        @as(u32, @intCast(infra_descs.len)),
-        core_public.initial_pc,
-        core_public.final_pc,
-        core_public.clock,
+    return authority_preimage.hash(.{
+        .initial_pc = core_public.initial_pc,
+        .final_pc = core_public.final_pc,
+        .cycle_count = core_public.clock,
+        .wire_id = data.wireId(),
+        .component_descs = component_descs,
+        .infra_descs = infra_descs,
     });
-    updateDigest(&hash, data.wireId());
-    for (component_descs) |desc| {
-        updateScalars(&hash, &.{
-            @intFromEnum(desc.family),
-            desc.log_size,
-            desc.n_rows,
-            desc.n_columns,
-        });
-    }
-    for (infra_descs) |desc| {
-        updateScalars(&hash, &.{
-            @intFromEnum(desc.kind),
-            desc.log_size,
-            desc.n_rows,
-            desc.n_columns,
-        });
-    }
-    return hash.finalize();
 }
 
 fn relationContextIdentity(

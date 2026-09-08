@@ -1,16 +1,14 @@
-//! Final common-fold closure over independently authenticated public inputs.
-//!
-//! The frozen binary closure consumes wire and verifier-input boundaries.
-//! Common fold additionally supplies its field-public Poseidon caller and the
-//! four non-verifier-input domains published by the authenticated suffix
-//! fixed-wire authority. No claim in this module is selected from a residual.
+//! Common-fold closure over verifier-owned public inputs.
+//! The binary wire/verifier-input boundaries, published parent words and the
+//! remaining native suffix inputs are all explicit. No boundary is derived
+//! from a residual, and parent hash calls are balanced by committed AIRs.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
 const field_boundary =
-    @import("recursive_common_fold_field_public_closure_v2.zig");
+    @import("recursive_common_fold_public_output_v3.zig");
 const suffix_boundary =
     @import("recursive_common_fold_suffix_input_boundary_v2.zig");
 
@@ -19,7 +17,7 @@ const global_closure = frontend.recursion.binary_global_closure_outer_source;
 const RelationDomain = @TypeOf(global_closure.PROVIDER_DOMAIN);
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 5;
 
 const CLOSURE_DOMAIN =
     "stwo-zig/recursive-common-fold-suffix-closure/v2\x00";
@@ -27,6 +25,35 @@ const CLOSURE_DOMAIN =
 pub const Error = field_boundary.Error || suffix_boundary.Error || error{
     CommonFoldSuffixClosureMismatch,
     RelationNotClosed,
+};
+
+/// Common-fold input: anchors are internal; remaining suffix boundaries may
+/// be empty. The shared row/provider contract is reused without weakening V2.
+pub const Input = struct {
+    rows: [global_closure.PREFIX_ROW_COUNT]global_closure.RowClaimsV1,
+    provider_claim: global_closure.ProviderClaimV1,
+    wire_anchors: global_closure.BoundaryEvidenceV2,
+    identity: [32]u8,
+
+    pub fn init(
+        rows: *const [global_closure.PREFIX_ROW_COUNT]global_closure.RowClaimsV1,
+        provider: *const global_closure.ProviderClaimV1,
+        wire: global_closure.BoundaryEvidenceV2,
+    ) !Input {
+        const prepared = try global_closure.prepareAuthority();
+        const checked = try global_closure.preflightInputs(&prepared, rows, provider);
+        const anchor = try global_closure.BoundarySourceV2.init(.wire, wire);
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update("stwo-zig/common-fold-closure-input/v1\x00");
+        hash.update(&checked.input_id);
+        hash.update(&anchor.identity);
+        return .{ .rows = rows.*, .provider_claim = provider.*, .wire_anchors = wire, .identity = hash.finalResult() };
+    }
+
+    pub fn validate(self: *const Input) !void {
+        const expected = try init(&self.rows, &self.provider_claim, self.wire_anchors);
+        if (!std.mem.eql(u8, &self.identity, &expected.identity)) return error.CommonFoldSuffixClosureMismatch;
+    }
 };
 
 pub const ClosureReceiptV2 = struct {
@@ -42,13 +69,14 @@ pub const ClosureReceiptV2 = struct {
 
     pub fn validateAgainst(
         self: *const ClosureReceiptV2,
-        input: *const global_closure.ClosureInputV2,
-        field: *const field_boundary.BoundaryEvidenceV2,
+        input: *const Input,
+        field: *const field_boundary.BoundaryEvidenceV3,
         suffix: *const suffix_boundary.BoundaryEvidenceV2,
     ) !void {
+        try input.validate();
         try field.validate();
         try suffix.validate();
-        try validateVerifierBoundary(input, suffix);
+        try validateWireAnchors(input);
         var prefix: [global_closure.DOMAIN_COUNT]QM31 =
             [_]QM31{QM31.zero()} ** global_closure.DOMAIN_COUNT;
         var framework = QM31.zero();
@@ -88,15 +116,14 @@ pub const ClosureReceiptV2 = struct {
 };
 
 pub fn close(
-    prepared: *const global_closure.PreparedAuthorityV2,
-    input: *const global_closure.ClosureInputV2,
-    field: *const field_boundary.BoundaryEvidenceV2,
+    input: *const Input,
+    field: *const field_boundary.BoundaryEvidenceV3,
     suffix: *const suffix_boundary.BoundaryEvidenceV2,
 ) !ClosureReceiptV2 {
-    try input.validateAgainst(prepared);
+    try input.validate();
     try field.validate();
     try suffix.validate();
-    try validateVerifierBoundary(input, suffix);
+    try validateWireAnchors(input);
     var result = ClosureReceiptV2{
         .input_identity_sha256 = input.identity,
         .field_boundary_identity_sha256 = field.identity_sha256,
@@ -130,29 +157,21 @@ pub fn close(
     return result;
 }
 
-/// Exact non-wire framework boundaries consumed by the composition graph.
-/// The caller must first validate all three authorities. The verifier-input
-/// suffix entry is deliberately skipped because the frozen V2 boundary is
-/// already supplied separately.
+/// Every remaining suffix contribution is included once, including an empty
+/// verifier-input boundary. These authorities must already be validated.
 pub fn frameworkBoundarySumExceptWireAssumeValidated(
-    verifier_input_claimed_sum: QM31,
     field_public_claimed_sum: QM31,
     suffix_domains: *const [suffix_boundary.DOMAIN_COUNT]suffix_boundary.DomainEvidenceV2,
 ) QM31 {
-    var result = verifier_input_claimed_sum.add(
-        field_public_claimed_sum,
-    );
-    for (suffix_domains) |domain| {
-        if (domain.domain == .recursion_verifier_input_word) continue;
-        result = result.add(domain.claimed_sum);
-    }
+    var result = field_public_claimed_sum;
+    for (suffix_domains) |domain| result = result.add(domain.claimed_sum);
     return result;
 }
 
 /// Failure-only decomposition retaining every authenticated boundary term.
 pub fn reportResidual(
-    input: *const global_closure.ClosureInputV2,
-    field: *const field_boundary.BoundaryEvidenceV2,
+    input: *const Input,
+    field: *const field_boundary.BoundaryEvidenceV3,
     suffix: *const suffix_boundary.BoundaryEvidenceV2,
 ) void {
     var totals = [_]QM31{QM31.zero()} ** global_closure.DOMAIN_COUNT;
@@ -209,23 +228,16 @@ pub fn reportResidual(
 fn addBaseBoundaries(
     totals: *[global_closure.DOMAIN_COUNT]QM31,
     framework: *QM31,
-    input: *const global_closure.ClosureInputV2,
-    field: *const field_boundary.BoundaryEvidenceV2,
+    input: *const Input,
+    field: *const field_boundary.BoundaryEvidenceV3,
 ) void {
     totals[@intFromEnum(global_closure.PROVIDER_DOMAIN)] = totals[
         @intFromEnum(global_closure.PROVIDER_DOMAIN)
     ].add(input.provider_claim.claimed_sum);
-    totals[@intFromEnum(global_closure.WIRE_BOUNDARY_DOMAIN)] = totals[
-        @intFromEnum(global_closure.WIRE_BOUNDARY_DOMAIN)
-    ].add(input.public_boundaries.wire.claimed_sum);
-    totals[@intFromEnum(global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN)] =
-        totals[@intFromEnum(global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN)]
-            .add(input.public_boundaries.verifier_input.claimed_sum);
     totals[@intFromEnum(field.domain)] = totals[@intFromEnum(field.domain)]
         .add(field.claimed_sum);
     framework.* = framework.*
         .add(input.provider_claim.claimed_sum)
-        .add(input.public_boundaries.claimedSum())
         .add(field.claimed_sum);
 }
 
@@ -236,38 +248,18 @@ fn addSuffixBoundaries(
 ) !void {
     try suffix.validate();
     for (suffix.domains) |domain| {
-        // recursion_verifier_input_word is already the frozen V2 public
-        // boundary installed in `ClosureInputV2`.
-        if (domain.domain == .recursion_verifier_input_word) continue;
         const index = @intFromEnum(domain.domain);
         totals[index] = totals[index].add(domain.claimed_sum);
         framework.* = framework.*.add(domain.claimed_sum);
     }
 }
 
-fn validateVerifierBoundary(
-    input: *const global_closure.ClosureInputV2,
-    suffix: *const suffix_boundary.BoundaryEvidenceV2,
-) !void {
-    const expected = try suffix.verifierInputEvidence();
-    const actual = input.public_boundaries.verifier_input;
-    if (!std.mem.eql(
-        u8,
-        &actual.source_authority_id,
-        &expected.source_authority_id,
-    ) or !std.mem.eql(
-        u8,
-        &actual.snapshot_id,
-        &expected.snapshot_id,
-    ) or !std.mem.eql(
-        u8,
-        &actual.tuple_provenance_id,
-        &expected.tuple_provenance_id,
-    ) or actual.tuple_count != expected.tuple_count or
-        !actual.claimed_sum.eql(expected.claimed_sum))
-    {
+fn validateWireAnchors(input: *const Input) !void {
+    const row = input.rows[10];
+    const expected = input.wire_anchors.claimed_sum;
+    if (!row.claimed_sum.eql(expected.add(row.domains[@intFromEnum(global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN)].value)) or
+        !row.domains[@intFromEnum(global_closure.WIRE_BOUNDARY_DOMAIN)].value.eql(expected))
         return error.CommonFoldSuffixClosureMismatch;
-    }
 }
 
 fn closureIdentity(value: *const ClosureReceiptV2) [32]u8 {
@@ -320,6 +312,6 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1)
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 5)
         @compileError("common-fold suffix closure contract drifted");
 }

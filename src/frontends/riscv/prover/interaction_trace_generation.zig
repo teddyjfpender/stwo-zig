@@ -434,12 +434,10 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const generated = try program_interaction.generate(
-                allocator,
-                witness.program.rows,
-                geometry.program_log_size,
-                relations,
-            );
+            const generated = switch (witness.circuit_profile.programPolicy()) {
+                .sparse_merkle_v1 => try program_interaction.generate(allocator, witness.program.rows, geometry.program_log_size, relations),
+                .fixed_decoded_table_v1 => try program_interaction.generateWithPolicy(.fixed_decoded_table_v1, allocator, witness.program.rows, geometry.program_log_size, relations),
+            };
             claim.program_claims[0] = generated.claims.sums;
             for (generated.columns) |values| columns.append(geometry.program_log_size, values);
         }

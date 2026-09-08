@@ -1,6 +1,7 @@
 //! Typed CLI options for the retained-authority V4 capture transaction.
 
 const std = @import("std");
+const campaign_geometry = @import("ethereum_incremental_campaign_geometry_v1.zig");
 const artifact_io = @import("ethereum_precompile_artifact_io.zig");
 
 pub const RootModeV4 = enum { create_under_parent, reopen_unsealed };
@@ -9,12 +10,14 @@ pub const OptionsV4 = struct {
     retained_materialization_result: []const u8,
     publication_root: []const u8,
     root_mode: RootModeV4,
+    campaign_geometry: campaign_geometry.SelectionV1 = .legacy_210,
 
     pub fn parse(arguments: []const []const u8) !OptionsV4 {
-        if (arguments.len != 4) return error.InvalidArguments;
+        if (arguments.len != 4 and arguments.len != 6) return error.InvalidArguments;
         var materialization: ?[]const u8 = null;
         var root: ?[]const u8 = null;
         var mode: ?RootModeV4 = null;
+        var geometry: ?campaign_geometry.SelectionV1 = null;
         var index: usize = 0;
         while (index < arguments.len) : (index += 2) {
             const name = arguments[index];
@@ -35,9 +38,13 @@ pub const OptionsV4 = struct {
                 if (root != null) return error.DuplicateArgument;
                 root = value;
                 mode = .reopen_unsealed;
+            } else if (std.mem.eql(u8, name, "--campaign-geometry")) {
+                if (geometry != null) return error.DuplicateArgument;
+                geometry = try campaign_geometry.SelectionV1.parse(value);
             } else return error.InvalidArguments;
         }
         return .{
+            .campaign_geometry = geometry orelse .legacy_210,
             .retained_materialization_result = materialization orelse
                 return error.InvalidArguments,
             .publication_root = root orelse return error.InvalidArguments,
@@ -69,6 +76,7 @@ pub const OptionsV4 = struct {
             .retained_materialization_result = materialization,
             .publication_root = root,
             .root_mode = self.root_mode,
+            .campaign_geometry = self.campaign_geometry,
         };
     }
 };
@@ -77,6 +85,7 @@ pub const OwnedOptionsV4 = struct {
     retained_materialization_result: []u8,
     publication_root: []u8,
     root_mode: RootModeV4,
+    campaign_geometry: campaign_geometry.SelectionV1 = .legacy_210,
 
     pub fn deinit(self: *OwnedOptionsV4, allocator: std.mem.Allocator) void {
         allocator.free(self.publication_root);

@@ -1,0 +1,18 @@
+{
+  "before_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "after_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "changed_files": [
+    "src/integrations/riscv_cpu/build_segment_steps.zig",
+    "src/integrations/riscv_cpu/ethereum_statement_root_cohort_replay.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_rows_10_34_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_cohort_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_v4_test_root.zig"
+  ],
+  "scope": "Seven validation-boundary files plus replay-only JSON omission correction and its cheap-gate wiring; unchanged producer algorithms, real inputs, profiles",
+  "status": "before production measured; after codec gate running; full replay not launched"
+}

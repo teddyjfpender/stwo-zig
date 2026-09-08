@@ -1,0 +1,32 @@
+test-ethereum-wrapper-geometry
++- Ethereum wrapper geometry compatibility guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=3 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_COMPLETION_OPENING admitted_version=1 whole_elf_pinned=true
+ETHEREUM_WRAPPER_GEOMETRY_EXPECTED key_sha256=0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357 dimensions=.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2453, .queried_value_count = 444865, .trace_path_count = 772, .fri_layer_count = 6, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 25 } key_admitted=true proof_verified=false
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=41611571042 process_cpu_ns=41470753292 parallelism_milli=996 peak_footprint_bytes=1106495048 energy_nj=194498722299 instructions=892821858203 cycles=165163247181 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=70014712125 process_cpu_ns=69788833458 parallelism_milli=996 peak_footprint_bytes=1106495048 energy_nj=262755670563 instructions=509611492410 cycles=279282311523 workers=1 host_byte_budget=17179869184
+ETHEREUM_WRAPPER_SELECTED pair_slot=0 global_segment=3
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=64513381625 process_cpu_ns=64385014959 parallelism_milli=998 peak_footprint_bytes=2901855256 energy_nj=254041476530 instructions=584449084563 cycles=257123936147 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=307701792 public_ns=15806773250 transcript_ns=5082013750 profile_ns=67542 program_ns=79360250 prepare_ns=75350375 fri_ns=3948730500 seal_ns=303239833 total_ns=25603240208 nodes=610022 node_bytes=12200440 output_bytes=176 binding_bytes=2772848 schedule_bytes=9039056 evaluation_bytes=9760352 input_bytes=693212 claim_bytes=32896 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=61 bytes=1215846066 peak=2183303143 allocated=3963492188 freed=2747646122 untracked=0
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+ETHEREUM_GEOMETRY_PREPARATION phase=materialized-admission ns=4283431458
+ETHEREUM_GEOMETRY_PREPARATION phase=plans-prefix ns=2486856417
+ETHEREUM_GEOMETRY_PREPARATION phase=program ns=14169991916
+ETHEREUM_GEOMETRY_PREPARATION phase=transcript-rows ns=11446166875
+ETHEREUM_GEOMETRY_PREPARATION phase=suffix ns=95385352959
+ETHEREUM_GEOMETRY_PREPARATION phase=manifest-projection ns=17268033916
+ETHEREUM_GEOMETRY_PREPARATION phase=local-finalization ns=5718682834
+ETHEREUM_WRAPPER_WIRE_DIMENSIONS global_segment=3 dimensions=.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2453, .queried_value_count = 444865, .trace_path_count = 772, .fri_layer_count = 6, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 25 } proof_verified=false
+ETHEREUM_WRAPPER_GEOMETRY_COMPATIBILITY global_segment=3 compatible=true row_audit=false ledger=false pcs=false proof_verified=false
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=334006844458 process_cpu_ns=330037457125 parallelism_milli=988 peak_footprint_bytes=30183479712 energy_nj=1368807037110 instructions=3858792862051 cycles=1317436080800 workers=1 host_byte_budget=17179869184
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-ethereum-wrapper-geometry success
++- Ethereum wrapper geometry compatibility guard success
+   +- run test 2 passed 5m MaxRSS:18G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

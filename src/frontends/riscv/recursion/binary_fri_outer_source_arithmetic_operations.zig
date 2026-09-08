@@ -220,8 +220,8 @@ pub fn Operations(comptime Context: type) type {
                 left_composition.evaluation,
                 left_composition.evaluation,
                 .{
-                    .circuit_identity = left.capture.pcs_evaluation.circuit_identity,
-                    .values = left.capture.pcs_evaluation.values,
+                    .circuit_identity = left.capture.pcs_evaluation.view().circuit_identity,
+                    .values = left.capture.pcs_evaluation.view().values,
                 },
                 .{
                     .circuit_identity = left.capture.evaluation.circuit_identity,
@@ -229,8 +229,8 @@ pub fn Operations(comptime Context: type) type {
                 },
                 right_composition.evaluation,
                 .{
-                    .circuit_identity = right.capture.pcs_evaluation.circuit_identity,
-                    .values = right.capture.pcs_evaluation.values,
+                    .circuit_identity = right.capture.pcs_evaluation.view().circuit_identity,
+                    .values = right.capture.pcs_evaluation.view().values,
                 },
                 .{
                     .circuit_identity = right.capture.evaluation.circuit_identity,

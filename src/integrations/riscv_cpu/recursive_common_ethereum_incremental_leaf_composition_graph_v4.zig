@@ -41,7 +41,7 @@ pub fn Types(comptime Engine: type) type {
     const Kernel = secure_engine.EngineKernelForManifest(
         Cohort,
         manifest_mod,
-        .ethereum_incremental_leaf_wrapper_v4,
+        .ethereum_incremental_field_v1,
     );
     const ProgramRecorder = segment_recorder.ProgramRecorderForManifest(
         manifest_mod,
@@ -98,14 +98,15 @@ pub fn Types(comptime Engine: type) type {
             manifest: *const manifest_mod.Manifest,
             capture: anytype,
         ) !capture_layout.CaptureLayoutV3 {
-            return capture_layout.CaptureLayoutV3
-                .initAuthenticatedBinaryWithProviderRow(
-                allocator,
-                MANIFEST_FAMILY,
-                PROVIDER_ROW,
-                manifest,
-                capture,
-            );
+            comptime {
+                const admission = @import("ethereum_wrapper_composition_v1.zig");
+                if (manifest_mod.SCHEMA_VERSION != 15 or
+                    admission.VERSION != capture_layout.ETHEREUM_WRAPPER_COMPOSITION_VERSION or
+                    admission.LOG_SPLIT != capture_layout.ETHEREUM_WRAPPER_COMPOSITION_LOG_SPLIT or
+                    PROVIDER_ROW != capture_layout.POSEIDON_ROSTER_ROW)
+                    @compileError("Ethereum wrapper capture admission drifted");
+            }
+            return capture_layout.CaptureLayoutV3.initEthereumWrapperV1(allocator, manifest, capture);
         }
 
         pub fn recordCohort(

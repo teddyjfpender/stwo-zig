@@ -112,6 +112,7 @@ pub const WireArena = struct {
                     .kind = switch (completion.kind) {
                         .halt_flag => .halt_flag,
                         .unretired_self_loop => .unretired_self_loop,
+                        .unretired_program_fetch => return error.UnsupportedCompletion,
                     },
                     .address = completion.address,
                     .value = completion.value,

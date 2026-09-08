@@ -386,7 +386,7 @@ fn addPcHotspotExecutable(
     const b = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_pc_hotspot_cli.zig",
+        .root_source_file = "src/tools/riscv/pc_hotspot/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -416,7 +416,7 @@ fn addFunctionValueExecutable(
     const b = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_function_value_cli.zig",
+        .root_source_file = "src/tools/riscv/function_value/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -446,7 +446,7 @@ fn addAnalyzeLegacySemanticExecutable(
     const b = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_analyze_legacy_semantic_cli.zig",
+        .root_source_file = "src/tools/riscv/analyze_legacy_semantics/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -476,7 +476,7 @@ fn addMemcpyHotspotExecutable(
     const b = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_memcpy_hotspot_cli.zig",
+        .root_source_file = "src/tools/riscv/memcpy_hotspot/main.zig",
         .target = target,
         .optimize = optimize,
     });
@@ -506,7 +506,7 @@ fn addMemcpyAdmissionExecutable(
     const b = context.b;
     const root = graph.create(b, .{
         .product = product,
-        .root_source_file = "src/riscv_memcpy_admission_cli.zig",
+        .root_source_file = "src/tools/riscv/memcpy_admission/main.zig",
         .target = target,
         .optimize = optimize,
     });

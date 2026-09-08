@@ -233,17 +233,17 @@ pub fn Namespace(comptime context: type) type {
             try vm_air.prepared.validate();
             var snapshot = std.crypto.hash.sha2.Sha256.init(.{});
             snapshot.update(SEGMENT_VERIFIER_INPUT_SNAPSHOT_DOMAIN);
-            snapshot.update(&vm_air.prepared.preprocessing.authority_digest);
-            snapshot.update(&vm_air.prepared.circuit.identity_digest);
+            snapshot.update(&vm_air.prepared.view().preprocessing.authority_digest);
+            snapshot.update(&vm_air.prepared.view().circuit.identity_digest);
             var provenance = std.crypto.hash.sha2.Sha256.init(.{});
             provenance.update(SEGMENT_VERIFIER_INPUT_TUPLES_DOMAIN);
-            provenance.update(&vm_air.prepared.preprocessing.authority_digest);
-            provenance.update(&vm_air.prepared.circuit.identity_digest);
+            provenance.update(&vm_air.prepared.view().preprocessing.authority_digest);
+            provenance.update(&vm_air.prepared.view().circuit.identity_digest);
 
             var tuple_count: u32 = 0;
             for (
-                vm_air.prepared.preprocessing.rows,
-                vm_air.prepared.schedule_values,
+                vm_air.prepared.view().preprocessing.rows,
+                vm_air.prepared.view().schedule_values,
             ) |row, value| {
                 const coordinate = detailedClaimCoordinate(row) orelse continue;
                 tuple_count = std.math.add(u32, tuple_count, 1) catch
@@ -260,7 +260,7 @@ pub fn Namespace(comptime context: type) type {
             hashSegmentInt(&snapshot, u32, tuple_count);
             hashSegmentInt(&provenance, u32, tuple_count);
             return .{
-                .source_authority_id = vm_air.prepared.preprocessing.authority_digest,
+                .source_authority_id = vm_air.prepared.view().preprocessing.authority_digest,
                 .snapshot_id = snapshot.finalResult(),
                 .tuple_provenance_id = provenance.finalResult(),
                 .tuple_count = tuple_count,
@@ -324,7 +324,7 @@ pub fn Namespace(comptime context: type) type {
             return hash.finalResult();
         }
 
-        pub fn nativeCoreClaims(claims: Claims) [NATIVE_V2_CORE_ROW_COUNT]QM31 {
+        pub fn nativeCoreClaims(claims: anytype) [NATIVE_V2_CORE_ROW_COUNT]QM31 {
             return .{
                 claims.vm_input,
                 claims.composition_control,
@@ -374,11 +374,16 @@ pub fn Namespace(comptime context: type) type {
             var hash = std.crypto.hash.sha2.Sha256.init(.{});
             hash.update(NATIVE_V2_CORE_AUTHORITY_ID_DOMAIN);
             hashSegmentInt(&hash, u16, NATIVE_V2_CORE_FORMAT_VERSION);
-            hash.update(&owner.captured.circuit.identity_digest);
-            hash.update(&owner.captured.pcs_circuit.identity_digest);
-            hash.update(&owner.vm_air_prepared.circuit.identity_digest);
+            const source_ids = owner.sourceIdentities();
+            hash.update(&source_ids.fri);
+            hash.update(&source_ids.pcs);
+            hash.update(&source_ids.vm);
             hash.update(&owner.public_native_sum_authority_id);
             hash.update(&owner.public_native_sum_evaluation_id);
+            // Only the Ethereum sibling adds this versioned circuit admission.
+            // A null owner preserves every byte of the legacy identity preimage.
+            if (owner.authority.statement_arithmetic) |prepared|
+                hash.update(&prepared.identity());
             for (owner.verifier_plans.vm.authority_digest) |word|
                 hashSegmentInt(&hash, u32, word);
             for (owner.verifier_plans.recursion.authority_digest) |word|

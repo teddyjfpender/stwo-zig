@@ -1,0 +1,46 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v3/bin/stage101-metal-autoresearch-v1",
+    "--retained-materialization-result",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4",
+    "--selected-leaf-admission-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/selected-leaf-000009-v1",
+    "--segment-index",
+    "9",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/segment-000009.stwief04",
+    "--campaign-geometry",
+    "authenticated-v1",
+    "--claim-admission",
+    "field_authority_v4",
+    "--global-metadata-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/segment-000009.metadata.json",
+    "--pcs-retained-byte-budget",
+    "25769803776"
+  ],
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+  },
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-product-v3/bin/stage101-metal-autoresearch-v1",
+    "bytes": 10909344,
+    "sha256": "5d11da9a4b215a6e861116a75ec75ff59df0b59983bc39d9c305f30c77b3cf1e"
+  },
+  "started_unix_ns": 1788793893780016000,
+  "segment_index": 9,
+  "execution_cycles": 2097152,
+  "core_rows": 2096404,
+  "keccak_calls": 682,
+  "signer_calls": 66,
+  "claim_admission": "field_authority_v4",
+  "backend": "authenticated_AOT_Metal",
+  "claim": "one native full leaf core plus providers, serialized producer destruction and fresh native verification; not a block or succinct root"
+}

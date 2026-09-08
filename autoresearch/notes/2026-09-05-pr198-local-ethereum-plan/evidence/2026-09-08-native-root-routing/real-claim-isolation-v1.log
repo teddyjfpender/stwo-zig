@@ -1,0 +1,12 @@
+test-ethereum-real-claim-boundary
++- Ethereum real claim boundary guard
+   +- run test stderr
+  claim semantic output[78] node=11093 value=1483652808/0/0/0
+ETHEREUM_REAL_CLAIM_DIAGNOSTIC original_rejected=true only_snapshot_equalities_changed=true projected_constraints_pass=true proof_verified=false
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-real-claim-boundary success
++- Ethereum real claim boundary guard success
+   +- run test 1 passed 9s MaxRSS:190M
+      +- compile test ReleaseSafe native success 12s MaxRSS:1G
+

@@ -32,6 +32,55 @@ const finishBarycentricWork = owner.testing.finishBarycentricWork;
 const parallelEvaluationPool = owner.testing.parallelEvaluationPool;
 const mergeBackendCoefficientExecution = owner.testing.mergeBackendCoefficientExecution;
 
+test "sampled-value allocation cleanup owns partial trees exactly once" {
+    const Backend = struct {
+        pub fn MerkleTree(comptime H: type) type {
+            return @import("../vcs_lifted/prover.zig").MerkleProverLifted(H);
+        }
+
+        pub fn commitMerkle(comptime H: type, allocator: std.mem.Allocator, columns: []const []const M31) !MerkleTree(H) {
+            return MerkleTree(H).commit(allocator, columns);
+        }
+    };
+    const H = @import("stwo_core").vcs_lifted.blake2_merkle.Blake2sMerkleHasher;
+    const Tree = @import("commitment_tree.zig").CommitmentTreeProverForBackend(Backend, H);
+    const Points = @import("stwo_core").pcs.TreeVec([][]CirclePointQM31);
+    const allocator = std.testing.allocator;
+    const values = [_]M31{M31.one()} ** 8;
+    const columns = [_]@import("stwo_prover_api").ColumnEvaluation{
+        .{ .log_size = 2, .values = values[0..4] },
+        .{ .log_size = 3, .values = &values },
+    };
+    var first = try Tree.init(allocator, columns[0..1]);
+    defer first.deinit(allocator);
+    var second = try Tree.init(allocator, &columns);
+    defer second.deinit(allocator);
+    // Borrow these trees; output allocation failures must not consume them.
+    var trees = [_]Tree{ first, second };
+    var point = [_]CirclePointQM31{circle.SECURE_FIELD_CIRCLE_GEN.mul(17)};
+    var first_points = [_][]CirclePointQM31{&point};
+    var second_points = [_][]CirclePointQM31{ &point, &point };
+    var point_trees = [_][][]CirclePointQM31{ &first_points, &second_points };
+    const points = Points{ .items = &point_trees };
+
+    // Reject after one complete tree and two allocated columns in the next.
+    try std.testing.expectError(error.ShapeMismatch, owner.evaluateAndRelease(
+        Backend,
+        H,
+        allocator,
+        &trees,
+        points,
+        2,
+    ));
+    const AllocationCheck = struct {
+        fn run(a: std.mem.Allocator, borrowed_trees: []Tree, p: Points) !void {
+            var result = try owner.evaluateAndRelease(Backend, H, a, borrowed_trees, p, 3);
+            defer result.deinitDeep(a);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(allocator, AllocationCheck.run, .{ &trees, points });
+}
+
 test "prover pcs: parallel barycentric weights match reference with exact runtime receipt" {
     if (builtin.single_threaded) return;
 

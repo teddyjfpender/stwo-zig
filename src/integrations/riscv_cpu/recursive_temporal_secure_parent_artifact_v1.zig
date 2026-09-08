@@ -481,20 +481,38 @@ pub const SessionV1 = struct {
         )) return error.InvalidSecureTemporalParentSession;
     }
 
+    /// Field-wrapper sessions bind key IDs directly. The caller must first
+    /// absorb the verified node's public words through the cohort authority.
+    /// SHA receipts remain validated transport custody, not semantic payloads.
+    pub fn mixFieldInto(self: *const SessionV1, transcript: anytype) !void {
+        try self.validate();
+        const header = try fieldSessionTranscriptHeader(self.source_kind, self.protocol);
+        transcript.mixU32s(&header);
+        transcript.mixU32s(&self.verification_key_id);
+        transcript.mixU32s(&self.next_parent_vk_id);
+        transcript.mixU32s(&self.air_program_id);
+    }
+
     pub fn mixInto(self: *const SessionV1, transcript: anytype) !void {
         try self.validate();
-        transcript.mixU32s(&.{
-            0x5350_5331, // "SPS1"
-            FORMAT_VERSION,
-            SCHEMA_VERSION,
-            self.protocol.interaction_pow_bits,
-            self.protocol.pcs_pow_bits,
-            self.protocol.fri_query_count,
-            self.protocol.fri_fold_step,
-        });
+        transcript.mixU32s(&sessionTranscriptHeader(self.protocol));
         transcript.mixU32s(&shaWords(self.identity_sha256));
     }
 };
+
+pub fn fieldSessionTranscriptHeader(source_kind: SourceKindV1, protocol: protocol_mod.AuthorityV1) ![7]u32 {
+    var header = sessionTranscriptHeader(protocol);
+    header[0] = switch (source_kind) {
+        .common_fold_field_v2 => 0x4346_5332, // CFS2
+        .canonical_empty_wrapper_v1 => 0x4345_5332, // CES2
+        else => return error.InvalidSecureTemporalParentSession,
+    };
+    return header;
+}
+
+pub fn sessionTranscriptHeader(protocol: protocol_mod.AuthorityV1) [7]u32 {
+    return .{ 0x5350_5331, FORMAT_VERSION, SCHEMA_VERSION, protocol.interaction_pow_bits, protocol.pcs_pow_bits, protocol.fri_query_count, protocol.fri_fold_step };
+}
 
 /// Pointer-free statement sealed only after the native verifier has accepted
 /// the exact retained proof bytes and independently reconstructed all claims.

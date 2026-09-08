@@ -30,8 +30,7 @@ const captured_fri = recursion.captured_fri;
 const base_geometry = recursion.vm_composition_base_geometry_v2;
 const base_profile_mod = recursion.vm_air_profile_v2;
 const ethereum_geometry = recursion.ethereum_composition_extension_geometry_v2;
-const full_program = recursion.incremental_ethereum_vm_composition_program_v4;
-const vm_composition = recursion.vm_air_composition_circuit;
+const composition = recursion.vm_composition_preparation;
 const composition_graph = recursion.air.composition_circuit;
 const bridge = frontend.air.memory_commitment.incremental_bridge_v2;
 
@@ -90,9 +89,7 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
         completion_program_prepared: public_semantics.PreparedCircuitV4,
         transcript: transcript_mod.ReplayV4,
         base_profile: base_profile_mod.ProfileV2,
-        composition_program: full_program.ProgramV4,
-        composition_program_custody: ProgramConstructionCustodyV4,
-        composition_prepared: vm_composition.Prepared,
+        composition: composition.Owned,
         captured_fri: captured_fri.Owned,
         bridge: BridgeProjectionV4,
         base_sampled_value_count: u32,
@@ -155,11 +152,12 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
             }
             if (metrics) |value| value.input_validation_ns = phase_timer.lap();
 
-            var role_aware_io = try role_io.OwnedWitnessV4.initLive(
+            var role_aware_io = try role_io.OwnedWitnessV4.initLiveWithCircuitProfile(
                 allocator,
                 &capture.public_data.data,
                 &capture.role_aware_public.value,
                 &capture.relations.base,
+                capture.profile.circuitProfile(),
             );
             errdefer role_aware_io.deinit();
             try role_aware_io.public_sum_row.validateAgainstVerified(
@@ -195,54 +193,47 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
             );
             errdefer transcript_replay.deinit();
             if (metrics) |value| value.transcript_ns = phase_timer.lap();
-            const base_sampled = try base_geometry.expectedSampledValueCount(
+            const base_sampled = try base_geometry.expectedSampledValueCountWithCircuitProfile(
                 &capture.statement.core,
                 &capture.manifest,
+                capture.profile.circuitProfile(),
             );
-            var profile = try base_profile_mod.deriveAuthority(
+            var profile = try base_profile_mod.deriveAuthorityWithCircuitProfile(
                 allocator,
                 &capture.statement.core,
                 &capture.manifest,
                 &capture.authenticated,
                 base_sampled,
+                capture.profile.circuitProfile(),
             );
             errdefer profile.deinit();
             if (metrics) |value| value.base_profile_ns = phase_timer.lap();
-            var retained_schedule: composition_graph.CompiledSchedule = undefined;
-            var program = try full_program.compileRetainingSchedule(allocator, .{
+            var compiled = try composition.Compiled.initEthereumWithClaimAliases(allocator, .{
                 .core_statement = &capture.statement.core,
                 .extension_statement = &capture.extension,
                 .lookup_manifest = &capture.manifest,
                 .authenticated_lookup = &capture.authenticated,
                 .base_profile = &profile,
-                .bridge = .{
-                    .geometry = capture.profile.bridge_geometry,
-                    .entry_root = capture.profile.continuation_roots.entry,
-                    .exit_root = capture.profile.continuation_roots.exit,
-                },
-            }, &retained_schedule);
-            errdefer program.deinit();
-            var retained_schedule_owned = true;
-            errdefer if (retained_schedule_owned) retained_schedule.deinit();
-            const program_custody = try ProgramConstructionCustodyV4.mint(
-                &program,
-            );
+                .bridge_geometry = capture.profile.bridge_geometry,
+                .native_continuation_roots = capture.profile.usesFieldTranscript(),
+            });
+            var compiled_owned = true;
+            errdefer if (compiled_owned) compiled.deinit();
+            const program = compiled.program();
             if (metrics) |value| try materializer_support.recordProgramResources(
                 value,
                 &program,
-                &retained_schedule,
+                &.{ .rows = compiled.scheduleRows() },
             );
             if (metrics) |value| value.program_compile_ns = phase_timer.lap();
-            // `prepareCompositionProgram` takes the retained schedule on every
-            // success/error path, so this frame must never free it afterward.
-            retained_schedule_owned = false;
+            // Finalization consumes the compiled owner on success and failure.
+            compiled_owned = false;
             var composition_prepared = try prepareCompositionProgram(
                 allocator,
-                &program,
-                program_custody,
-                &retained_schedule,
+                &compiled,
                 &profile,
                 capture,
+                &input.statement_words,
                 execution.worker_count,
                 metrics,
             );
@@ -252,13 +243,13 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
                 &capture.profile,
             );
             const full_sampled = program.input_profile.sampled_value_count;
-            const full_claims = program.input_profile.claimed_sum_count;
+            const full_claims = program.logicalClaimCount();
             const captured_sampled = std.math.cast(
                 u32,
                 capture.proof.sampled_values.len,
             ) orelse return error.EthereumIncrementalProofCaptureShapeMismatchV4;
             const expected_ethereum_sampled = try sub(
-                try sub(full_sampled, base_sampled),
+                try sub(try sub(full_sampled, base_sampled), if (capture.profile.fixed_program != null) frontend.air.program.fixed_table_v1.COLUMN_COUNT else 0),
                 bridge_projection.trace_sampled_value_count,
             );
             const expected_ethereum_claims = try sub(
@@ -299,9 +290,7 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
                 .completion_program_prepared = completion_program_prepared,
                 .transcript = transcript_replay,
                 .base_profile = profile,
-                .composition_program = program,
-                .composition_program_custody = program_custody,
-                .composition_prepared = composition_prepared,
+                .composition = composition_prepared,
                 .captured_fri = fri,
                 .bridge = bridge_projection,
                 .base_sampled_value_count = base_sampled,
@@ -319,28 +308,34 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
         }
 
         pub fn deinit(self: *Self) void {
+            var input = self.deinitRetainingInput();
+            input.deinit();
+        }
+
+        /// Releases derived preparation and returns the original owned input.
+        /// Outer constructors use this to roll back a failed ownership transfer.
+        pub fn deinitRetainingInput(self: *Self) input_mod.FreshInputV4(Engine) {
+            const input = self.input;
             self.schedule.deinit();
             self.role_aware_io.deinit();
             self.completion_program_prepared.deinit();
             self.completion_program_circuit.deinit();
             self.captured_fri.deinit();
-            self.composition_prepared.deinit();
-            self.composition_program.deinit();
+            self.composition.deinit();
             self.base_profile.deinit();
             self.transcript.deinit();
-            self.input.deinit();
             self.* = undefined;
+            return input;
         }
 
-        /// O(1) process-local custody validation. The only large arrays are
-        /// checked by exact allocation/pointer identity minted during fresh
-        /// construction. Use `auditDeep` at an independent trust boundary.
+        /// Validates the live input and preparation custody without rerecording
+        /// the graph. Input validation still scans authenticated source data;
+        /// use `auditDeep` to independently check the derived graph and witness.
         pub fn validate(self: *const Self) !void {
             try self.input.validate();
-            try self.composition_program_custody.validateBorrowed(
-                &self.composition_program,
-            );
+            try self.composition.source().validate();
             const capture = &self.input.stage101;
+            if (self.role_aware_io.circuit_profile != capture.profile.circuitProfile()) return error.EthereumIncrementalMaterializerMismatchV4;
             const expected_provider_geometry =
                 try self.schedule.liveProviderGeometry();
             const captured_sampled = std.math.cast(
@@ -349,42 +344,31 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
             ) orelse return error.EthereumIncrementalMaterializerMismatchV4;
             if (self.format_version != FORMAT_VERSION or
                 self.schema_version != SCHEMA_VERSION or
-                !self.composition_prepared.circuit
-                    .borrowsFreshProgramStorage() or
-                self.composition_prepared.circuit.nodes.ptr !=
-                    self.composition_program.nodes.ptr or
-                self.composition_prepared.circuit.nodes.len !=
-                    self.composition_program.nodes.len or
-                self.composition_prepared.circuit.outputs.ptr !=
-                    self.composition_program.outputs.ptr or
-                self.composition_prepared.circuit.outputs.len !=
-                    self.composition_program.outputs.len or
-                self.composition_prepared.circuit.bindings.ptr !=
-                    self.composition_program.bindings.ptr or
-                self.composition_prepared.circuit.bindings.len !=
-                    self.composition_program.bindings.len or
+                self.composition.program().input_profile.vm_statement_root_count != 2 or
+                self.composition.program().input_profile.vm_native_continuation_roots != capture.profile.usesFieldTranscript() or
+                self.composition.program().claim_routing == null or
                 captured_sampled != self.full_sampled_value_count or
                 self.full_sampled_value_count !=
-                    self.composition_program.input_profile.sampled_value_count or
+                    self.composition.program().input_profile.sampled_value_count or
                 self.full_detailed_claim_count !=
-                    self.composition_program.input_profile.claimed_sum_count or
+                    self.composition.program().logicalClaimCount() or
                 !std.meta.eql(self.provider_geometry, expected_provider_geometry) or
                 !std.mem.eql(
                     u8,
-                    &self.composition_prepared.circuit.air_profile_digest,
-                    &self.composition_program.air_program_identity,
+                    &self.composition.source().view().circuit.air_profile_digest,
+                    &self.composition.program().air_program_identity,
                 ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.graph_digest,
-                &self.composition_program.graph_sha256,
+                &self.composition.source().view().circuit.graph_digest,
+                &self.composition.program().graph_sha256,
             ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.reference_digest,
-                &self.composition_program.reference_sha256,
+                &self.composition.source().view().circuit.reference_digest,
+                &self.composition.program().reference_sha256,
             ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.schedule_digest,
-                &self.composition_program.schedule_sha256,
+                &self.composition.source().view().circuit.schedule_digest,
+                &self.composition.program().schedule_sha256,
             ) or !std.mem.eql(
                 u8,
                 &self.identity_sha256,
@@ -429,7 +413,7 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
                 &capture.manifest,
                 &capture.authenticated,
             );
-            try self.composition_program.validateAgainst(.{
+            try self.composition.auditAgainst(.{
                 .core_statement = &capture.statement.core,
                 .extension_statement = &capture.extension,
                 .lookup_manifest = &capture.manifest,
@@ -441,7 +425,6 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
                     .exit_root = capture.profile.continuation_roots.exit,
                 },
             });
-            try self.composition_prepared.validate();
             try self.bridge.validateAgainst(&capture.profile);
             try self.captured_fri.evaluation.validateAgainst(
                 &self.captured_fri.circuit,
@@ -449,16 +432,17 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
             try self.captured_fri.pcs_evaluation.validateAgainst(
                 &self.captured_fri.pcs_circuit,
             );
-            const expected_base = try base_geometry.expectedSampledValueCount(
+            const expected_base = try base_geometry.expectedSampledValueCountWithCircuitProfile(
                 &capture.statement.core,
                 &capture.manifest,
+                capture.profile.circuitProfile(),
             );
             const expected_full =
-                self.composition_program.input_profile.sampled_value_count;
+                self.composition.program().input_profile.sampled_value_count;
             const expected_claims =
-                self.composition_program.input_profile.claimed_sum_count;
+                self.composition.program().logicalClaimCount();
             const expected_ethereum = try sub(
-                try sub(expected_full, expected_base),
+                try sub(try sub(expected_full, expected_base), if (capture.profile.fixed_program != null) frontend.air.program.fixed_table_v1.COLUMN_COUNT else 0),
                 self.bridge.trace_sampled_value_count,
             );
             const expected_ethereum_claims = try sub(
@@ -492,20 +476,20 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
                 captured_sampled != expected_full or
                 !std.mem.eql(
                     u8,
-                    &self.composition_prepared.circuit.air_profile_digest,
-                    &self.composition_program.air_program_identity,
+                    &self.composition.source().view().circuit.air_profile_digest,
+                    &self.composition.program().air_program_identity,
                 ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.graph_digest,
-                &self.composition_program.graph_sha256,
+                &self.composition.source().view().circuit.graph_digest,
+                &self.composition.program().graph_sha256,
             ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.reference_digest,
-                &self.composition_program.reference_sha256,
+                &self.composition.source().view().circuit.reference_digest,
+                &self.composition.program().reference_sha256,
             ) or !std.mem.eql(
                 u8,
-                &self.composition_prepared.circuit.schedule_digest,
-                &self.composition_program.schedule_sha256,
+                &self.composition.source().view().circuit.schedule_digest,
+                &self.composition.program().schedule_sha256,
             ) or
                 self.captured_fri.trace_roots.len != TREE_COUNT or
                 self.captured_fri.sampled_value_count != expected_full or
@@ -529,9 +513,7 @@ pub fn PreparedCaptureV4(comptime Engine: type) type {
         }
 
         pub fn requireBridgeCompositionGraph(self: *const Self) !void {
-            try self.composition_program_custody.validateBorrowed(
-                &self.composition_program,
-            );
+            try self.composition.source().validate();
         }
     };
 }
@@ -545,26 +527,21 @@ fn materializerIdentity(
 
 fn prepareCompositionProgram(
     allocator: std.mem.Allocator,
-    program: *const full_program.ProgramV4,
-    program_custody: ProgramConstructionCustodyV4,
-    retained_schedule: *composition_graph.CompiledSchedule,
+    compiled: *composition.Compiled,
     profile: *const base_profile_mod.ProfileV2,
     capture: anytype,
+    statement_words: *const [input_mod.STATEMENT_WORD_COUNT]u32,
     worker_count: usize,
     metrics: ?*MaterializationMetricsV4,
-) !vm_composition.Prepared {
-    // Schedule ownership transfers into Prepared even when a later check
-    // fails. No second O(graph) compile or retained graph copy is permitted.
-    var schedule = retained_schedule.*;
-    retained_schedule.* = undefined;
-    var schedule_owned = true;
-    defer if (schedule_owned) schedule.deinit();
-    try program_custody.validateBorrowed(program);
+) !composition.Owned {
+    var compiled_owned = true;
+    defer if (compiled_owned) compiled.deinit();
+    const program = compiled.program();
     const input_values = try allocator.alloc(M31, program.bindings.len);
     defer allocator.free(input_values);
     const detailed_claims = try allocator.alloc(
         QM31,
-        program.input_profile.claimed_sum_count,
+        program.logicalClaimCount(),
     );
     defer allocator.free(detailed_claims);
     if (metrics) |value| {
@@ -579,6 +556,12 @@ fn prepareCompositionProgram(
 
     for (program.bindings, input_values) |binding, *destination| {
         destination.* = switch (binding.source) {
+            .statement_word => |word| blk: {
+                if (!frontend.recursion.air.vm_statement_roots.contains(word))
+                    return error.EthereumIncrementalProofCaptureShapeMismatchV4;
+                break :blk M31.fromCanonical(statement_words[word]);
+            },
+            .native_continuation_root => |side| M31.fromCanonical(if (side == 0) capture.statement.core.public_data.initial_rw_root.? else capture.statement.core.public_data.final_rw_root.?),
             .segment_selector => M31.one(),
             .sampled_value => |coordinate| try secureWord(
                 capture.proof.sampled_values,
@@ -587,7 +570,7 @@ fn prepareCompositionProgram(
             ),
             .claimed_sum => |coordinate| try secureWord(
                 detailed_claims,
-                coordinate.item_index,
+                try program.logicalClaimIndex(coordinate.item_index),
                 coordinate.word_index,
             ),
             .transcript_claimed_sum => |coordinate| try secureWord(
@@ -610,15 +593,8 @@ fn prepareCompositionProgram(
             ),
         };
     }
-    schedule_owned = false;
-    return vm_composition.Prepared.initFromAuthenticatedLaneBorrowedParallelV4(
-        allocator,
-        program.lane(),
-        program.air_program_identity,
-        input_values,
-        &schedule,
-        worker_count,
-    );
+    compiled_owned = false;
+    return compiled.finalize(input_values, worker_count);
 }
 
 fn fillDetailedClaims(
@@ -652,22 +628,8 @@ fn fillDetailedClaims(
     };
     var at: usize = profile.input_profile.claimed_sum_count;
     const extension = &capture.extension_claim;
-    try appendClaims(destination, &at, &extension.keccak_shard.batch_sums);
-    try appendClaims(destination, &at, &.{extension.keccak_chi_table});
-    try appendClaims(destination, &at, &.{extension.keccak_xor5_table});
-    inline for (.{
-        extension.product_base,
-        extension.product_scalar,
-        extension.linear_base,
-        extension.linear_scalar,
-        extension.point,
-        extension.split,
-        extension.scalar,
-        extension.table,
-        extension.recovery,
-        extension.byte,
-        extension.recovery_caller,
-    }) |claim| try appendClaims(destination, &at, &claim.batch_sums);
+    for (extension.componentClaims()) |claim|
+        try appendClaims(destination, &at, claim.detailed);
     try appendClaims(destination, &at, &.{capture.bridge_claim});
     if (at != destination.len)
         return error.EthereumIncrementalProofCaptureShapeMismatchV4;
@@ -677,22 +639,8 @@ fn fillTranscriptClaims(capture: anytype, destination: *[43]QM31) !void {
     const canonical = try capture.base_claim.canonical(&capture.statement.core);
     @memcpy(destination[0..BASE_TRANSCRIPT_CLAIM_COUNT], &canonical.claimed_sums);
     const extension = &capture.extension_claim;
-    destination[28] = extension.keccak_shard.component_sum;
-    destination[29] = extension.keccak_chi_table;
-    destination[30] = extension.keccak_xor5_table;
-    inline for (.{
-        extension.product_base.component_sum,
-        extension.product_scalar.component_sum,
-        extension.linear_base.component_sum,
-        extension.linear_scalar.component_sum,
-        extension.point.component_sum,
-        extension.split.component_sum,
-        extension.scalar.component_sum,
-        extension.table.component_sum,
-        extension.recovery.component_sum,
-        extension.byte.component_sum,
-        extension.recovery_caller.component_sum,
-    }, 31..) |claim, index| destination[index] = claim;
+    for (extension.componentClaims(), BASE_TRANSCRIPT_CLAIM_COUNT..) |claim, index|
+        destination[index] = claim.total;
     destination[42] = capture.bridge_claim;
 }
 

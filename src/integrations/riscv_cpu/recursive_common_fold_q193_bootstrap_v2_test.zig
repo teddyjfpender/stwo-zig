@@ -1,6 +1,9 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
+const checkpoint_store = @import("recursive_node_artifact_store_v2.zig");
+const test_inputs = @import("recursive_common_fold_q193_bootstrap_test_inputs.zig");
+const secure_artifact = @import("recursive_temporal_secure_parent_artifact_v1.zig");
 
 const subject = @import("recursive_common_fold_q193_bootstrap_v2.zig");
 const geometry_support =
@@ -24,6 +27,35 @@ const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 
 test "nonproduction common-fold q193 bootstrap preserves canonical child artifact ownership" {
+    try exerciseBootstrap(.reuse);
+}
+
+test "common-fold q193 transcript program matches the cold verifier" {
+    try exerciseBootstrap(.transcript);
+}
+
+test "common-fold parent owns both child transcript lanes" {
+    try exerciseBootstrap(.source);
+}
+
+test "retained common-fold proof replays through the current cold verifier" {
+    try marked("checkpoint.replay", exerciseBootstrap(.replay));
+}
+
+test "common-fold setup matches across independent canonical child statements" {
+    try exerciseBootstrap(.key);
+}
+
+test "bootstrap sibling input selection validates padding and replay coordinates" {
+    try test_inputs.exercise();
+}
+
+// Share the real proof/cold-open transaction. Transcript diagnostics return
+// before the separate cache lifecycle and eight-round reuse benchmark.
+const Exercise = enum { reuse, transcript, source, replay, key };
+
+fn exerciseBootstrap(comptime mode: Exercise) !void {
+    const record_transcript = mode == .transcript or mode == .replay;
     comptime {
         if (!@hasDecl(
             subject.Fixed.BoundaryV2,
@@ -49,8 +81,21 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
         }
     }
     const allocator = std.testing.allocator;
-    var left_fixture = try Fixture.init(210);
-    var right_fixture = try Fixture.init(211);
+    const checkpoint_root: ?[]u8 = std.process.getEnvVarOwned(allocator, "STWO_RECURSION_CHECKPOINT_STORE") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => null,
+        else => return err,
+    };
+    defer if (checkpoint_root) |root| allocator.free(root);
+    var checkpoint: ?checkpoint_store.cas.Store = if (checkpoint_root) |root|
+        try checkpoint_store.cas.Store.openOrCreate(allocator, root, false)
+    else
+        null;
+    defer if (checkpoint) |*store| store.deinit();
+    const replay_ref: ?checkpoint_store.cas.BlobRefV1 = if (mode == .replay) try test_inputs.checkpointNodeRef(allocator) else null;
+    if (mode == .replay and checkpoint == null) return error.MissingRecursionCheckpointStore;
+    const left_index: u32 = if (mode == .key) 212 else try test_inputs.leftIndex(allocator, if (checkpoint) |*store| store else null, replay_ref);
+    var left_fixture = try Fixture.init(left_index);
+    var right_fixture = try Fixture.init(left_index + 1);
     const left_source = try canonical_input.SourceArtifactV1.seal(
         &left_fixture.leaf,
     );
@@ -140,6 +185,16 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
         "right.fold-child",
         right_lease.requireFoldChild(&registry),
     );
+    if (record_transcript) {
+        // Both producers are gone. The parent sees the exact recordings
+        // retained by its cold child leases, through the worker handoff.
+        try std.testing.expect(left_child.ingress.transcript == left_lease.admission.evidence.cold.transcript);
+        try std.testing.expect(right_child.ingress.transcript == right_lease.admission.evidence.cold.transcript);
+        try @import("recursive_secure_transcript_rows_v1_test.zig").exercise(
+            left_child.ingress.transcript,
+            right_child.ingress.transcript,
+        );
+    }
     try std.testing.expect(
         left_child.ingress.node_public ==
             &left_child.wrapper.artifact.node_public,
@@ -161,7 +216,7 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
         fold_input.FreshFoldInputV2.init(
             left_child.wrapper,
             right_child.wrapper,
-            try node_v2.TaskCoordinateV1.init(1, 105),
+            try node_v2.TaskCoordinateV1.init(1, left_index / 2),
             &registry,
         ),
     );
@@ -174,6 +229,95 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
         ),
     );
 
+    if (mode == .key) return @import("recursive_common_fold_detached_verifier_v2_test.zig").exerciseSetup(&live);
+    if (mode == .replay) {
+        var timer = try std.time.Timer.start();
+        const store = &checkpoint.?;
+        const node = try checkpoint_store.coldOpenRecursiveNodeTransportV2(store, replay_ref.?);
+        const node_bytes = try node.encodeCanonical();
+        var proof = try store.openBlob(
+            try checkpoint_store.toSharedRef(node.proof_ref),
+            .proof_artifact,
+            secure_artifact.SCHEMA_VERSION,
+            secure_artifact.MAX_CANONICAL_PROOF_BYTES + secure_artifact.ARTIFACT_HEADER_BYTE_COUNT + secure_artifact.STATEMENT_ENCODED_BYTE_COUNT,
+        );
+        defer proof.deinit(allocator);
+        // Transport admission grants no verification capability. Rebuild the
+        // current cohort and verify the retained proof before checking its AIR.
+        var cold = try marked("fold.checkpoint-cold-open", subject.coldOpen(allocator, &live, proof.bytes, &node_bytes));
+        defer cold.deinit();
+        try cold.validate();
+        try marked("fold.transcript-air", @import("recursive_secure_transcript_rows_v1_test.zig").exerciseFold(&cold));
+        try marked("fold.detached-verifier", @import("recursive_common_fold_detached_verifier_v2_test.zig").exercise(&cold));
+        std.debug.print("COMMON_FOLD_CHECKPOINT_REPLAY fresh_fold_proving=false cold_verified=true checks_ns={d}\n", .{timer.read()});
+        return;
+    }
+
+    if (mode == .source) {
+        {
+            var counter = std.testing.FailingAllocator.init(allocator, .{});
+            const owner = try subject.Fixed.OwnerV2.init(counter.allocator(), &live);
+            defer owner.deinit();
+            const constructor_allocations = counter.alloc_index;
+            const prefix = owner.transcriptRows();
+            try std.testing.expectEqualDeep(left_child.ingress.transcript.program.identity, prefix.programs[0]);
+            try std.testing.expectEqualDeep(right_child.ingress.transcript.program.identity, prefix.programs[1]);
+            try @import("recursive_secure_transcript_rows_v1_test.zig").validatePrepared(prefix);
+            const row_checks = @import("recursive_secure_transcript_rows_v1_test.zig");
+            try row_checks.validateSemanticJoin(prefix, owner.source());
+            try row_checks.exerciseCanonicalWireBoundary(prefix, owner.source());
+            try @import("recursive_fixed_wire_v3_test.zig").exerciseCaptured(prefix, owner.source());
+            try @import("recursive_field_statement_word_v3_test.zig").exerciseCaptured(.{
+                .{ .program = &left_child.ingress.transcript.program, .execution = &left_child.ingress.transcript.execution },
+                .{ .program = &right_child.ingress.transcript.program, .execution = &right_child.ingress.transcript.execution },
+            }, prefix, owner.source(), .{ left_child.ingress.node_public, right_child.ingress.node_public });
+            inline for (.{ 5, 9 }) |component| {
+                const outputs = @constCast(prefix.logical[component]);
+                const original = outputs[0][1];
+                outputs[0][1] = original.add(M31.one());
+                defer outputs[0][1] = original;
+                try std.testing.expectError(error.RecursiveTranscriptSemanticJoinMismatch, row_checks.validateSemanticJoin(prefix, owner.source()));
+            }
+            {
+                const controls = @constCast(prefix.logical[0]);
+                const last = &controls[controls.len - 1];
+                const original = last[5];
+                last[5] = original.add(M31.one());
+                defer last[5] = original;
+                try std.testing.expectError(error.RecursiveTranscriptSemanticJoinMismatch, row_checks.validateSemanticJoin(prefix, owner.source()));
+            }
+            try owner.validate();
+            // Force a late constructor failure after storage and transcripts
+            // have been acquired. Cleanup must neither free an uninitialized
+            // source nor destroy the storage allocation twice.
+            var fail_late = std.testing.FailingAllocator.init(allocator, .{ .fail_index = constructor_allocations - 1 });
+            if (subject.Fixed.OwnerV2.init(fail_late.allocator(), &live)) |unexpected| {
+                unexpected.deinit();
+                return error.ExpectedConstructorAllocationFailure;
+            } else |err| try std.testing.expectEqual(error.OutOfMemory, err);
+            try std.testing.expect(fail_late.has_induced_failure);
+        }
+        // Exercise component admission without constructing a STARK. This
+        // catches parameter/empty-row failures in the development gate.
+        var cohort = try subject.SecureCohort.init(allocator, .{ .live = &live });
+        defer cohort.deinit();
+        const relations = recursion.air.universal_challenges.UniversalRelations.dummy();
+        const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
+        const generated = try cohort.rebuildGeneratedInteractions(&relations, &providers);
+        var components = try cohort.initComponents(&generated, &relations, &providers);
+        defer components.deinit();
+        const claims = try cohort.claimVector(&generated);
+        const audited = try cohort.auditGlobalClosureV2(&generated, &claims, &relations, &providers);
+        try audited.validate();
+        for (audited.suffix_input_boundary.domains) |boundary| {
+            try std.testing.expectEqual(@as(u32, 0), boundary.tuple_count);
+            try std.testing.expect(boundary.claimed_sum.isZero());
+        }
+        std.debug.print("COMMON_FOLD_CHILD_BOUNDARIES native_suffix_tuples=0 native_suffix_sum=false\n", .{});
+        std.debug.print("COMMON_FOLD_COMPONENT_ADMISSION components=36 fixed_wire_row_10_active=true closure_verified=true\n", .{});
+        return;
+    }
+
     var fold_prove_timer = try std.time.Timer.start();
     var proved = try marked(
         "fold.prove-cold-verify",
@@ -183,7 +327,17 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
             .{ .worker_count = 1 },
         ),
     );
+    var proved_owned = true;
+    defer if (proved_owned) proved.deinit();
     const fold_prove_total_ns = fold_prove_timer.read();
+    // Retain the completed proof before test-only diagnostics can fail. The
+    // separate replay target always invokes the current cold verifier.
+    if (checkpoint) |*store| {
+        const proof_ref = try store.putBytes(.proof_artifact, secure_artifact.SCHEMA_VERSION, proved.proofBytes());
+        try std.testing.expectEqualDeep(try checkpoint_store.toSharedRef(proved.node_artifact.proof_ref), proof_ref);
+        const retained = try checkpoint_store.publishRecursiveNodeV2(store, &proved.node_artifact);
+        std.debug.print("COMMON_FOLD_CHECKPOINT node_sha256={s}\n", .{std.fmt.bytesToHex(retained.sha256, .lower)});
+    }
     try marked("fold.validate", proved.validate());
     try std.testing.expect(!subject.PRODUCTION_ACTIVATION);
     try std.testing.expect(!subject.ROUTER_ACTIVATION);
@@ -221,6 +375,16 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
             .{ .live = &live },
         );
         defer geometry_cohort.deinit();
+        const prefix = geometry_cohort.source_owner.transcriptRows();
+        const statement_count = 2 * @import("recursive_field_node_public_v2.zig").AIR_WORD_COUNT;
+        try std.testing.expectEqual(statement_count + 8, prefix.logical[10].len);
+        const range_requests = geometry_cohort.range_batch.counter.signedTotal().neg().toU32();
+        try std.testing.expect(range_requests > 3 * statement_count);
+        std.debug.print("COMMON_FOLD_STATEMENT_PROVIDER words={d} range_requests={d} native_statement_boundary=false statement_fold_air=true\n", .{ statement_count, range_requests });
+        try prefix.validate();
+        try std.testing.expectEqual(left_child.ingress.transcript.execution.poseidon_calls.len + right_child.ingress.transcript.execution.poseidon_calls.len, prefix.provider.len);
+        try std.testing.expectEqualDeep(left_child.ingress.transcript.program.identity, prefix.programs[0]);
+        try std.testing.expectEqualDeep(right_child.ingress.transcript.program.identity, prefix.programs[1]);
         try geometry_support.validateCaptureDerivedCommonShape(
             geometry_cohort.manifest(),
             &proved.fresh,
@@ -259,10 +423,13 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
     );
     const first_geometry = proved.geometry_value;
     const first_query_identity = proved.query_authority.query_words_identity_sha256;
+    const transcript_identity = proved.transcript.execution.identity_sha256;
+    const program_identity = proved.transcript.program.identity;
     const proof_bytes = try allocator.dupe(u8, proved.proofBytes());
     defer allocator.free(proof_bytes);
     const node_bytes = try proved.node_artifact.encodeCanonical();
     proved.deinit();
+    proved_owned = false;
 
     var fold_cold_timer = try std.time.Timer.start();
     var cold = try marked(
@@ -272,6 +439,15 @@ test "nonproduction common-fold q193 bootstrap preserves canonical child artifac
     const fold_cold_total_ns = fold_cold_timer.read();
     defer cold.deinit();
     try marked("fold.cold-validate", cold.validate());
+    std.debug.print("COMMON_FOLD_FRESH_VERIFICATION producer_destroyed=true verified=true\n", .{});
+    if (record_transcript) {
+        const recorded = cold.transcript;
+        try std.testing.expectEqualDeep(transcript_identity, recorded.execution.identity_sha256);
+        try std.testing.expectEqualDeep(program_identity, recorded.program.identity);
+        try marked("fold.transcript-air", @import("recursive_secure_transcript_rows_v1_test.zig").exerciseFold(&cold));
+        try marked("fold.detached-verifier", @import("recursive_common_fold_detached_verifier_v2_test.zig").exercise(&cold));
+        return;
+    }
     try requireMarked(
         "fold.cold-proof-bytes",
         std.mem.eql(u8, proof_bytes, cold.proofBytes()),

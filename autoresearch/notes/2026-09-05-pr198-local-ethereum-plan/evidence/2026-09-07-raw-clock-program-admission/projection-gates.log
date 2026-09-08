@@ -1,0 +1,76 @@
+1/75 mod.test_0...OK
+2/75 test_inventory.test_0...OK
+3/75 air.extract.mod.test_0...OK
+4/75 air.semantic_eval.test_0...OK
+5/75 runner.decode.test_0...OK
+6/75 air_semantics_test_root.test_0...OK
+7/75 ethereum_runner_test_root.test_0...OK
+8/75 guest_precompile_test_root.test_0...OK
+9/75 isa_test_root.test_0...OK
+10/75 lookup_batch_test_root.test_0...OK
+11/75 outer_parent_statement_source_test_root.test_0...OK
+12/75 outer_parent_range_authority_test_root.test_0...OK
+13/75 outer_parent_statement_air_source_test_root.test_0...OK
+14/75 outer_parent_transcript_source_test_root.test_0...OK
+15/75 owned_statement.test_0...OK
+16/75 recursion_air_test_root.test_0...OK
+17/75 recursion_outer_sources_test_root.test_0...OK
+18/75 row_window_test_root.test_0...OK
+19/75 runner_test_root.test_0...OK
+20/75 segment_public_outer_source_test_root.test_0...OK
+21/75 segment_leaf_outer_bundle_test_root.test_0...OK
+22/75 segment_statement_outer_source_test_root.test_0...OK
+23/75 temporal_pair_node_test_root.test_0...OK
+24/75 testing.test_0...OK
+25/75 aggregation.reference_test.test_0...OK
+26/75 recursion.segment_statement_outer_source_test.test_0...OK
+27/75 recursion.pair_node_test.test_0...OK
+28/75 isa.mod.test_0...OK
+29/75 runner.guest_precompile.mod.test_0...OK
+30/75 runner.minimal_trace.mod.test_0...OK
+31/75 runner.mod.test_0...OK
+32/75 air.guest_precompile.relation_test.test_0...OK
+33/75 air.mod.test_0...OK
+34/75 air.lang.typed_div_adversarial_test.test_0...OK
+35/75 air.lookups.mod.test_0...OK
+36/75 air.lookups.tables.mod.test_0...OK
+37/75 air.lookups.tables.source_ingest.test_0...OK
+38/75 air.memory_commitment.mod.test_0...OK
+39/75 air.preprocessed.mod.test_0...OK
+40/75 air.semantics.mod.test_0...OK
+41/75 air.program.mod.test_0...OK
+42/75 diagnostics.mod.test_0...OK
+43/75 prover.interaction_trace_plan_test.test_0...OK
+44/75 prover.guest_precompile.split_leaf_prepare_test.test_0...OK
+45/75 prover.test_witness_hook.test_0...OK
+46/75 air.lang.opcode_composition_manifest_test.test_0...OK
+47/75 binary_fri_outer_bundle_v2_test_root.test_0...OK
+48/75 binary_global_closure_outer_source_test_root.test_0...OK
+49/75 binary_inactive_outer_source_test_root.test_0...OK
+50/75 binary_pair_nonfri_outer_bundle_test_root.test_0...OK
+51/75 binary_transcript_outer_source_test_root.test_0...OK
+52/75 framework_interaction_test_root.test_0...OK
+53/75 fri_profile_frontier_measurement_test_root.test_0...OK
+54/75 lookup_batch_edit_test_root.test_0...OK
+55/75 lookup_polynomial_v2_edit_test_root.test_0...OK
+56/75 opcode_composition_manifest_test_root.test_0...OK
+57/75 opcode_composition_performance_test_root.test_0...OK
+58/75 proof_phase_meter_test_root.test_0...OK
+59/75 recursion.recursion_air_composition_circuit_v3_test.test_0...OK
+60/75 recursion.segment_leaf_local_authority_v3_test.test.leaf-local V3: adjacent native segments bind global order and exact state...OK
+61/75 recursion.segment_leaf_local_authority_v3_test.test.leaf-local V3: source mutation fleet fails closed...OK
+62/75 recursion.segment_leaf_local_authority_v3_test.test.leaf-local V3: metadata admits global positions beyond V2 without widening a leaf...OK
+63/75 recursion.segment_leaf_local_projection_v3_test.test.leaf-local V3: deterministic local projection enters authenticated V2 custody...OK
+64/75 recursion.segment_leaf_local_projection_v3_test.test.leaf-local V3: a globally positioned nonfinal leaf projects without a resume capability...OK
+65/75 recursion.segment_leaf_local_projection_v3_test.test.leaf-local V3: shared canonical projection preserves native and AIR words...OK
+66/75 recursion.segment_leaf_local_projection_v3_test.test.leaf-local V3: shared canonical projection rejects position and route mutations...OK
+67/75 recursion.segment_statement_outer_source_v2_test_root.test_0...OK
+68/75 row_window_edit_test_root.test_0...OK
+69/75 row_window_expression_v2_edit_test_root.test_0...OK
+70/75 segment_outer_cohort_v2_test_root.test_0...OK
+71/75 segment_public_native_sum_authority_v2_test_root.test_0...OK
+72/75 segment_statement_outer_source_v2_test_root.test_0...OK
+73/75 segment_transcript_outer_source_v2_test_root.test_0...OK
+74/75 transcript_v2_test_root.test_0...OK
+75/75 sail_oracle_test_root.test_0...OK
+All 75 tests passed.

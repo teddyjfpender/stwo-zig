@@ -15,7 +15,7 @@ const capture_receipt =
 const evidence = @import("ethereum_block_leaf_evidence.zig");
 const replay_receipt =
     @import("ethereum_candidate_combined_execution_replay_receipt_v1.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const tape_artifact = @import("bulk_memcpy_tape_artifact_v1.zig");
 
 const elf_receipt = frontend.testing.ethereum_candidate_combined_elf_receipt_v1;

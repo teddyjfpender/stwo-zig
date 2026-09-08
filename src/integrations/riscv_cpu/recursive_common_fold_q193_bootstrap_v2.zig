@@ -11,8 +11,6 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
-const canonical_manifest =
-    @import("recursive_common_canonical_empty_universal_manifest_v2.zig");
 const canonical_proof =
     @import("recursive_common_canonical_empty_universal_proof_v2.zig");
 const canonical_worker =
@@ -311,6 +309,10 @@ pub const BootstrapRootPinV2 = struct {
 pub const BootstrapFixedPolicyV2 = struct {
     pub const RootPin = BootstrapRootPinV2;
 
+    pub fn transcriptView(child: live_mod.FreshFoldChildV2, _: *const BootstrapLiveV2) !@import("recursive_secure_transcript_rows_v1.zig").View {
+        return fixed_source.taggedTranscriptView(child);
+    }
+
     pub fn initRootPin(live: *const BootstrapLiveV2) !RootPin {
         return RootPin.init(live);
     }
@@ -359,121 +361,7 @@ pub const Fixed = fixed_source.TypesForLive(
     BootstrapFixedPolicyV2,
 );
 
-pub const BootstrapManifestPolicyV2 = struct {
-    pub fn initManifest(
-        live: *const BootstrapLiveV2,
-        source_owner: *const Fixed.OwnerV2,
-    ) !manifest_mod.Manifest {
-        try live.requireFixedWireSource();
-        try source_owner.validate();
-        var logs = [_]u32{canonical_manifest.LOGICAL_LOG_SIZE} **
-            manifest_mod.COMPONENT_COUNT;
-        try source_owner.source().installLogSizes(&logs);
-        logs[manifest_mod.RANGE_ROW] = canonical_manifest.RANGE_LOG_SIZE;
-        return manifest_mod.buildForDerivedLogSizes(logs);
-    }
-
-    pub fn validateManifest(
-        value: *const manifest_mod.Manifest,
-        live: *const BootstrapLiveV2,
-        source_owner: *const Fixed.OwnerV2,
-    ) !void {
-        const expected = try initManifest(live, source_owner);
-        if (!std.meta.eql(value.*, expected))
-            return error.BootstrapManifestMismatch;
-    }
-
-    pub fn contractIdentity(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) ![32]u8 {
-        return manifest_mod.contractIdentityForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn profileIdentity(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) ![32]u8 {
-        return manifest_mod.profileIdentityForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn programIdentity(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) ![32]u8 {
-        return manifest_mod.programIdentityForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn paddingLayoutIdentity(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) ![32]u8 {
-        return manifest_mod.paddingIdentityForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn tableLayoutIdentity(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) ![32]u8 {
-        return manifest_mod.tableLayoutIdentityForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn verificationKeyId(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) !recursion.poseidon2_channel.Digest {
-        return manifest_mod.verificationKeyIdForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn nextParentVkId(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) !recursion.poseidon2_channel.Digest {
-        return manifest_mod.nextParentVkIdForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn airProgramId(
-        _: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) !recursion.poseidon2_channel.Digest {
-        return manifest_mod.airProgramIdForDerivedManifest(
-            manifest,
-            try logSizes(manifest),
-        );
-    }
-
-    pub fn authorityIdentity(
-        live: *const BootstrapLiveV2,
-        manifest: *const manifest_mod.Manifest,
-    ) [32]u8 {
-        var hash = Sha256.init(.{});
-        hash.update(BOOTSTRAP_MANIFEST_AUTHORITY_DOMAIN);
-        hash.update(&live.identity_sha256);
-        hash.update(&manifest.seal);
-        return hash.finalResult();
-    }
-};
+pub const BootstrapManifestPolicyV2 = manifest_mod.DerivedPolicyForLive(BootstrapLiveV2, Fixed, BOOTSTRAP_MANIFEST_AUTHORITY_DOMAIN);
 
 pub const SecureCohort = secure_cohort.CohortForLiveV2(
     DIMENSIONS,
@@ -526,6 +414,7 @@ pub const OwnedBootstrapProofV2 = struct {
     fresh: secure_engine.FreshVerificationV1,
     composition_capture: CaptureTypes.CaptureV2,
     query_authority: CaptureTypes.VerifierQueryAuthorityV2,
+    transcript: *Kernel.RecordedReplayV1,
     claims: manifest_mod.ClaimVector,
     geometry_value: registry_mod.AuthenticatedGeometryV1,
     node_artifact: node_mod.RecursiveNodeArtifactV2,
@@ -533,6 +422,8 @@ pub const OwnedBootstrapProofV2 = struct {
 
     pub fn deinit(self: *OwnedBootstrapProofV2) void {
         self.allocator.destroy(self.validation);
+        self.transcript.deinit();
+        self.allocator.destroy(self.transcript);
         self.composition_capture.deinit();
         self.fresh.deinit();
         self.artifact_value.deinit();
@@ -600,6 +491,8 @@ pub const OwnedBootstrapProofV2 = struct {
             readTimer(&replay_timer),
         );
         try replay.validateQueryWordsAgainst(&self.fresh);
+        try self.transcript.program.validateRecording(&self.transcript.execution);
+        if (!std.meta.eql(replay, self.transcript.replay)) return error.BootstrapCommonOutputMismatch;
         try self.query_authority.validateAgainstReplay(&replay);
         try self.composition_capture.validateAgainst(
             &cohort,
@@ -739,6 +632,12 @@ pub fn coldOpen(
     const verifier_and_replay_ns = readTimer(&cold_timer);
     errdefer verified.deinit();
     try verified.validateBorrowed(&cohort, &session);
+    const transcript = try allocator.create(Kernel.RecordedReplayV1);
+    errdefer allocator.destroy(transcript);
+    var record_timer = startTimer();
+    transcript.* = try Kernel.recordColdReplayWithCohort(allocator, &cohort, &session, &verified);
+    errdefer transcript.deinit();
+    const recording_ns = readTimer(&record_timer);
     const result = try ownPreparedResult(
         allocator,
         live,
@@ -746,10 +645,10 @@ pub fn coldOpen(
         artifact_value,
         verified.fresh,
         &cohort,
-        verified.replay,
+        transcript,
         &retained_node,
         verifier_and_replay_ns -| verified.replay_finalize_ns,
-        verified.replay_finalize_ns,
+        verified.replay_finalize_ns + recording_ns,
     );
     verified.fresh = undefined;
     return result;
@@ -771,12 +670,15 @@ fn ownResult(
     // begins with a boundary-only Poseidon schedule and becomes complete only
     // while Tree 1 is rebuilt; minting the graph against a different fresh
     // cohort would correctly fail `RowsNotPrepared`.
-    const replay = try Kernel.reconstructVerifiedReplayWithCohort(
+    const transcript = try allocator.create(Kernel.RecordedReplayV1);
+    errdefer allocator.destroy(transcript);
+    transcript.* = try Kernel.recordVerifiedReplayWithCohort(
         allocator,
         &cohort,
         &session,
         &fresh,
     );
+    errdefer transcript.deinit();
     const replay_ns = readTimer(&replay_timer);
     return ownPreparedResult(
         allocator,
@@ -785,7 +687,7 @@ fn ownResult(
         artifact_value,
         fresh,
         &cohort,
-        replay,
+        transcript,
         retained_node,
         cold_verify_ns,
         replay_ns,
@@ -799,13 +701,14 @@ fn ownPreparedResult(
     artifact_value: secure_artifact.OwnedArtifactV1,
     fresh: secure_engine.FreshVerificationV1,
     cohort: *SecureCohort,
-    replay: Kernel.VerifiedReplay,
+    transcript: *Kernel.RecordedReplayV1,
     retained_node: ?*const node_mod.RecursiveNodeArtifactV2,
     cold_verify_ns: u64,
     replay_ns: u64,
 ) !OwnedBootstrapProofV2 {
+    const replay = &transcript.replay;
     const query_authority = try CaptureTypes.VerifierQueryAuthorityV2.init(
-        &replay,
+        replay,
     );
     var graph_timer = startTimer();
     var graph = try CaptureTypes.CaptureV2.init(
@@ -814,7 +717,7 @@ fn ownPreparedResult(
         &session,
         &fresh.statement,
         &fresh.capture,
-        &replay,
+        replay,
     );
     const graph_record_ns = readTimer(&graph_timer);
     errdefer graph.deinit();
@@ -839,12 +742,13 @@ fn ownPreparedResult(
         .fresh = fresh,
         .composition_capture = graph,
         .query_authority = query_authority,
+        .transcript = transcript,
         .claims = replay.claims,
         .geometry_value = geometry,
         .node_artifact = node,
         .validation = validation,
     };
-    try cold_token.validateConstructed(&result, cohort, &replay);
+    try cold_token.validateConstructed(&result, cohort, replay);
     validation.* = try process_validation.ValidatedOwnerV1.init(
         try cold_token.snapshot(&result),
     );

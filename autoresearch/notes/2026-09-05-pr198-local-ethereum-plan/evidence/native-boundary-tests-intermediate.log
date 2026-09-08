@@ -1,0 +1,37 @@
+test-recursion-preparation
++- stwo_riscv_frontend test count floor
+   +- run test 27/30 passed, 3 failed
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+error: 'recursion.air.ethereum_vm_public_claim_input_v1_test.test.ethereum row12 routing identity preserves CSP seal' failed: ETHEREUM_CLAIM_ROUTING_SEMANTIC_DIGEST=c7760b819c4552610a54664ee48c56c010d92b9ef7c539c926923f375c4c0925
+
+====== expected this output: =========
+0000000000000000000000000000000000000000000000000000000000000000␃
+
+======== instead found this: =========
+c7760b819c4552610a54664ee48c56c010d92b9ef7c539c926923f375c4c0925␃
+
+======================================
+First difference occurs on line 1:
+expected:
+0000000000000000000000000000000000000000000000000000000000000000
+^ ('\x30')
+found:
+c7760b819c4552610a54664ee48c56c010d92b9ef7c539c926923f375c4c0925
+^ ('\x63')
+error: 'recursion.air.ethereum_vm_public_claim_input_v1_test.test.ethereum row12 routing preserves constraints and all live claim routes' failed
+error: 'recursion.air.ethereum_vm_public_claim_input_v1_test.test.ethereum row12 rejects malformed canonical main columns' failed
+error: while executing test 'recursion.air.ethereum_vm_public_claim_input_v1.test_0', the following test command failed:
+./.zig-cache/o/177774b688a37c75f8d475123c7dbc1e/test --cache-dir=./.zig-cache --seed=0xcd747ab6 --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 32/35 tests passed; 3 failed
+test-recursion-preparation transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 27/30 passed, 3 failed
+      +- compile test ReleaseSafe native success 16s MaxRSS:1G
+test-vm-leaf-context-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 301ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:528M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/15ff5ac489f2f829cf53378a1e571094/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xcd747ab6 -Z4590251e5ea6d12f --maxrss 25769803776 -j1 test-recursion-preparation test-vm-leaf-context-v2 -Doptimize=ReleaseSafe --summary all

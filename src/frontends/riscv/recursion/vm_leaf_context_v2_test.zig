@@ -12,6 +12,61 @@ const profile_v2 = @import("vm_air_profile_v2.zig");
 const support = @import("ethereum_leaf_context_v1_test_support.zig");
 const subject = @import("vm_leaf_context_v2.zig");
 
+test "Ethereum selected base claim admission shares context order and binds mutations" {
+    const allocator = std.testing.allocator;
+    const transcript = @import("../prover/guest_precompile/ethereum_transcript.zig");
+    const Channel = @import("poseidon2_channel.zig").Channel;
+    var fixture = try Fixture.init(allocator);
+    defer fixture.deinit();
+    fixture.claim.opcode_claims[0][0] = QM31.one();
+    var context = try fixture.context();
+    defer context.deinit();
+    const selected = try transcript.SelectedBaseClaimsV3.init(
+        &fixture.native.core,
+        &fixture.manifest,
+        &fixture.authenticated,
+        fixture.claim,
+    );
+    try std.testing.expectEqual(@as(usize, 88), selected.count);
+    const values = try allocator.alloc(QM31, selected.count);
+    defer allocator.free(values);
+    try selected.write(values);
+    try std.testing.expectEqualDeep(context.detailed_claims, values);
+    try std.testing.expect(values[0].eql(QM31.one()));
+    try std.testing.expectEqualDeep(
+        [4]u32{ 0x4757_5453, 0x3344_4245, 3, 88 },
+        try transcript.selectedBaseClaimsHeaderV3(selected.count),
+    );
+    try std.testing.expectError(error.InvalidContextCounts, selected.write(values[1..]));
+    var actual = Channel{};
+    try selected.mix(allocator, &actual);
+    var expected = Channel{};
+    expected.mixU32s(&.{ 0x4757_5453, 0x3344_4245, 3, 88 });
+    expected.mixFelts(values);
+    try std.testing.expectEqualDeep(expected.digestWords(), actual.digestWords());
+    const original_challenge = actual.drawSecureFelt();
+
+    // A valid changed claim is freshly admitted, but its pre-composition
+    // transcript is different. A malformed claim shape is rejected outright.
+    fixture.claim.opcode_claims[0][0] = QM31.zero();
+    const changed = try transcript.SelectedBaseClaimsV3.init(
+        &fixture.native.core,
+        &fixture.manifest,
+        &fixture.authenticated,
+        fixture.claim,
+    );
+    var changed_channel = Channel{};
+    try changed.mix(allocator, &changed_channel);
+    try std.testing.expect(!original_challenge.eql(changed_channel.drawSecureFelt()));
+    fixture.claim.n_components -= 1;
+    try std.testing.expectError(error.InvalidClaimGeometry, transcript.SelectedBaseClaimsV3.init(
+        &fixture.native.core,
+        &fixture.manifest,
+        &fixture.authenticated,
+        fixture.claim,
+    ));
+}
+
 test "SegmentV2 VM leaf ContextV2 retains exact verifier instance authority" {
     const allocator = std.testing.allocator;
     var fixture = try Fixture.init(allocator);

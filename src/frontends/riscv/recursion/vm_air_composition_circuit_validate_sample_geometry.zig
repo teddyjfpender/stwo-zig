@@ -100,6 +100,7 @@ pub fn inputWord(
     active: bool,
 ) Error!M31 {
     return switch (source) {
+        .statement_word, .native_continuation_root => return error.BindingCountMismatch,
         .segment_selector => M31.fromCanonical(@intFromBool(active)),
         .sampled_value => |coordinate| secureWord(
             capture.sampled_values,
@@ -210,6 +211,8 @@ pub fn circuitDigest(
     hashInt(&hash, u32, profile.claimed_sum_count);
     hashInt(&hash, u32, profile.relation_challenge_count);
     hashInt(&hash, u32, profile.transcript_claimed_sum_count);
+    @import("air/vm_statement_roots.zig").hashProfileExtension(&hash, profile.vm_statement_root_count);
+    @import("air/vm_statement_roots.zig").hashNativeProfileExtension(&hash, profile.vm_native_continuation_roots);
     hashInt(&hash, u32, @intCast(bindings.len));
     for (bindings) |binding| hashInt(&hash, u32, binding.node_id);
     return hash.finalResult();

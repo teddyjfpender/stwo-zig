@@ -172,6 +172,7 @@ pub fn proveExWithExecution(
         &ignored_phase,
         &ignored_subphase,
         &ignored_evaluation,
+        null,
     );
 }
 
@@ -189,6 +190,42 @@ pub fn proveExWithExecutionDiagnosed(
     cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
     diagnostic: *?prover_api.ProveDiagnostic,
 ) !proof_mod.ExtendedStarkProof(H) {
+    return proveExWithExecutionDiagnosedRetainingFailure(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        composition_stage,
+        cpu_composition_execution,
+        diagnostic,
+        null,
+    );
+}
+
+/// An optional empty output receives the unverified proof only when the final
+/// OODS equality fails. The original error is preserved; the caller owns any
+/// captured proof and must deinitialize it with `allocator`.
+pub fn proveExWithExecutionDiagnosedRetainingFailure(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+    diagnostic: *?prover_api.ProveDiagnostic,
+    failed: ?*?proof_mod.ExtendedStarkProof(H),
+) !proof_mod.ExtendedStarkProof(H) {
+    if (failed) |output| std.debug.assert(output.* == null);
     diagnostic.* = null;
     var diagnostic_phase: prover_api.ProvePhase = .composition;
     var diagnostic_subphase: ?prover_api.CompositionSubphase = .geometry;
@@ -208,6 +245,7 @@ pub fn proveExWithExecutionDiagnosed(
         &diagnostic_phase,
         &diagnostic_subphase,
         &evaluation_diagnostic,
+        failed,
     ) catch |err| {
         prover_api.ProveDiagnostic.recordFirstDetailed(
             diagnostic,
@@ -357,6 +395,7 @@ fn proveExComponents(
         &ignored_phase,
         &ignored_subphase,
         &ignored_evaluation,
+        null,
     );
 }
 
@@ -375,6 +414,7 @@ fn proveExComponentsWithRecorder(
     diagnostic_phase: *prover_api.ProvePhase,
     diagnostic_subphase: *?prover_api.CompositionSubphase,
     evaluation_diagnostic: *?prover_api.EvaluationDiagnostic,
+    failed: ?*?proof_mod.ExtendedStarkProof(H),
 ) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     var owns_scheme = true;
@@ -410,10 +450,10 @@ fn proveExComponentsWithRecorder(
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
     const composition_log_split = try component_provers.compositionLogSplit();
-    if (composition_log_size <= composition_log_split) {
-        return ProvingError.InvalidStructure;
-    }
-    const max_log_degree_bound = composition_log_size - composition_log_split;
+    const max_log_degree_bound = verifier_types.compositionMaskLogSize(
+        composition_log_size,
+        composition_log_split,
+    ) orelse return ProvingError.InvalidStructure;
 
     const random_coeff = blk: {
         var draw_random_coeff_stage = try stage_profile.StageScope.begin(
@@ -601,7 +641,8 @@ fn proveExComponentsWithRecorder(
         recorder,
         diagnostic_phase,
     );
-    errdefer ext_proof.deinit(allocator);
+    var owns_ext_proof = true;
+    errdefer if (owns_ext_proof) ext_proof.deinit(allocator);
 
     diagnostic_phase.* = .finalize;
     {
@@ -638,7 +679,13 @@ fn proveExComponentsWithRecorder(
             &oods_constraint_work_capture,
             .constraint_evaluation,
         );
-        if (!composition_oods_eval.eql(expected)) return ProvingError.ConstraintsNotSatisfied;
+        if (!composition_oods_eval.eql(expected)) {
+            if (failed) |output| {
+                output.* = ext_proof;
+                owns_ext_proof = false;
+            }
+            return ProvingError.ConstraintsNotSatisfied;
+        }
     }
 
     return ext_proof;

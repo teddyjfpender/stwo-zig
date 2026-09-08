@@ -13,7 +13,7 @@ const artifact_validation = @import("artifact_validation.zig");
 const benchmark_report = @import("benchmark_report.zig");
 const identity = @import("guest_profile_identity.zig");
 const pcs_profile = @import("pcs_profile.zig");
-const resource_usage = @import("../resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const transcript_state = @import("transcript_state.zig");
 const verified_request_attempt = @import("verified_request_attempt.zig");
 

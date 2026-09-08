@@ -1,0 +1,82 @@
+{
+  "schema": "stwo.recursive-transcript-payload-progress.v1",
+  "captured_at": "2026-09-05T21:30:12.093400+00:00",
+  "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_state": "uncommitted PR198 engineering tree",
+  "previous_goal_turn_classification": "progress: confirmed nine-component proof pass, recorded its receipt and repaired payload compilation",
+  "current_goal_turn_classification": "progress: ten-component source join closes and rejects changed proof input and randomness",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/binary_fri_outer_bundle.zig": "4ae946cab9ae147f70f3ee7d8a4ed6937f8568ca41cc3d15a1e336e3a5df9169",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "09cc30e86028f3fd3585f9424216d3d2d9f785b91eccdaac637ba039383c9097",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "b39f60ce9ed395c16da54592b71bea4caca36029ef2f791bc9da8c0893ae044d",
+    "src/integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig": "c7ec7732a5e101d729f4b26e5f7417e2f13a9115c44ce105ed27a28df7c5d1c3",
+    "src/integrations/riscv_cpu/recursive_common_fold_poseidon_schedule_v2.zig": "d13616b6700aac294131aa041a9e0a8183784b37cca687a561a5fb71bbc2b737",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_closure_v2.zig": "2fb8a0e64b6df7adcf445c1a7b5b8b15a1f5535358eaaf278948db2099e38376",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "4c6accf71f6d66b4ce074ef02075eb20656a502a33e4fbc376d38316a7f71ce3",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "b5c1f2408440716696984d14ddd720c5a1096eddb3488d35903bd5c478dc115d",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "63c2fbd18e5cdc4751b535d14ffb74d8b37e8b42bc14ed7f10a6d3791f948517",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2.zig": "387d4ff938d8397fea831f815cf0987071a692596c9661d5a4b83a88055758cb",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "d50ad89c0bfc465e21cdc989bf28261791b72b19305b2c5dbd7c1938b3947a30"
+  },
+  "implemented": {
+    "committed_prefix_components": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "bound_proof_inputs": [
+      "commitment",
+      "physical_claimed_sum",
+      "sampled_value",
+      "fri_commitment",
+      "last_layer_coefficient"
+    ],
+    "physical_claim_count": 36,
+    "auxiliary_composition_claims_remain_native": true,
+    "native_boundary_domains_remaining": [
+      "recursion_step",
+      "recursion_verifier_input_word",
+      "recursion_statement_word",
+      "recursion_transcript_payload_word"
+    ]
+  },
+  "verified": {
+    "exact_semantic_join_contributions": 59164,
+    "unmatched_proof_inputs": 0,
+    "unmatched_challenges": 0,
+    "unmatched_randomness": 0,
+    "changed_proof_input_rejected": true,
+    "changed_randomness_rejected": true,
+    "source_test_log": "evidence/recursive-transcript-payload-source-check-4.log",
+    "source_test_passed": true,
+    "source_test_runtime": "16s",
+    "source_test_peak_rss": "1G",
+    "bootstrap_concrete_cohort_compile_passed": true,
+    "build_steps_passed": 6,
+    "format_and_diff_checks_passed": true,
+    "full_proof_passed": true,
+    "full_proof_runtime": "11m",
+    "full_proof_peak_rss": "9G",
+    "full_proof_log": "evidence/recursive-transcript-payload-proof.log",
+    "producer_destroyed_before_fresh_cold_open": true,
+    "field_public_tests_passed": 2,
+    "field_public_runtime": "646ms",
+    "full_build_steps_passed": 7,
+    "full_tests_passed": 3
+  },
+  "pending": [],
+  "payload_prefix_full_proof_verified": true,
+  "independently_verifiable_recursive_root": false,
+  "ethereum_leaf_complete": false,
+  "ethereum_block_bundle_complete": false,
+  "ethereum_benchmark_admissible": false,
+  "latest_source_csp_ab_promotion_verified": false,
+  "csp_protocol_defaults_worker_policy_changed": false
+}

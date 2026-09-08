@@ -55,6 +55,7 @@ test "prover air component prover: composition accumulation" {
 
     const Mock = struct {
         max_log_size: u32,
+        require_no_extension: bool = false,
 
         fn asComponent(self: *const @This()) ComponentProver {
             return .{
@@ -140,14 +141,36 @@ test "prover air component prover: composition accumulation" {
         }
 
         fn evaluateConstraintQuotientsOnDomain(
-            _: *const anyopaque,
+            ctx: *const anyopaque,
             _: *const Trace,
             evaluation_accumulator: *accumulation.DomainEvaluationAccumulator,
         ) !void {
+            if (cast(ctx).require_no_extension and evaluation_accumulator.polynomial_extension_active)
+                return error.UnexpectedPolynomialExtension;
             const values = domainValues();
             var col = try SecureColumnByCoords.fromSecureSlice(std.testing.allocator, &values);
             defer col.deinit(std.testing.allocator);
             try evaluation_accumulator.accumulateColumn(2, &col);
+        }
+
+        fn prepareWithoutExtension(
+            _: *const anyopaque,
+            _: std.mem.Allocator,
+            _: *const Trace,
+            accumulator: *accumulation.DomainEvaluationAccumulator,
+        ) !@import("prepared_domain.zig").PreparedDomainEvaluation {
+            if (accumulator.polynomial_extension_active)
+                return error.UnexpectedPolynomialExtension;
+            return error.ExpectedPreparedCallback;
+        }
+
+        fn parallelWithoutExtension(
+            ctx: *const anyopaque,
+            trace: *const Trace,
+            accumulator: *accumulation.DomainEvaluationAccumulator,
+            _: *@import("../work_pool.zig").WorkPool,
+        ) !void {
+            return evaluateConstraintQuotientsOnDomain(ctx, trace, accumulator);
         }
 
         fn domainValues() [4]QM31 {
@@ -277,6 +300,48 @@ test "prover air component prover: composition accumulation" {
     );
     try std.testing.expect(profiled_eval.eql(eval));
     try std.testing.expect(absent_constraint_capture.receipt == null);
+
+    // An already-wide component needs only the common split declaration.
+    // Exercise direct, parallel and prepared entrypoints: none may activate
+    // q1-to-q2 extension or allocate its separate accumulator buckets.
+    const wide_mock = Mock{ .max_log_size = 3, .require_no_extension = true };
+    var wide = wide_mock.asComponent();
+    wide.prepare_domain_evaluator = Mock.prepareWithoutExtension;
+    wide.domain_parallel_evaluator = Mock.parallelWithoutExtension;
+    wide.backend_composition_capability = ordinary_component.backend_composition_capability;
+    const split_only = try wide.withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 0,
+        .composition_log_split = 2,
+    });
+    try std.testing.expectEqual(wide.maxConstraintLogDegreeBound(), split_only.maxConstraintLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 2), split_only.compositionLogSplit());
+    try std.testing.expect(split_only.ctx == wide.ctx and split_only.vtable == wide.vtable);
+    try std.testing.expect(split_only.prepare_domain_evaluator == wide.prepare_domain_evaluator);
+    try std.testing.expect(split_only.domain_parallel_evaluator == wide.domain_parallel_evaluator);
+    try std.testing.expect(split_only.backend_composition_capability != null);
+    try std.testing.expectError(error.UnsupportedCompositionGeometryOverride, wide.withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 2,
+        .composition_log_split = 2,
+    }));
+    var split_accumulator = try accumulation.DomainEvaluationAccumulator.init(alloc, QM31.one(), 3, 2);
+    defer split_accumulator.deinit();
+    try split_only.evaluateConstraintQuotientsOnDomain(&trace, &split_accumulator);
+    // This callback deliberately does not dispatch pool work.
+    var unused_pool = @import("../work_pool.zig").WorkPool{};
+    try split_only.evaluateConstraintQuotientsOnDomainParallel(&trace, &split_accumulator, &unused_pool);
+    try std.testing.expectError(error.ExpectedPreparedCallback, split_only.prepareConstraintQuotientsOnDomain(
+        alloc,
+        &trace,
+        &split_accumulator,
+    ));
+    try std.testing.expect(!split_accumulator.polynomial_extension_active);
+    try std.testing.expect(split_accumulator.polynomial_extension_accumulations == null);
+    try std.testing.expect(split_accumulator.sub_accumulations[2] != null);
+    const split_handles = [_]ComponentProver{split_only};
+    var split_view = try (ComponentProvers{ .components = &split_handles, .n_preprocessed_columns = 0 }).componentsView(alloc);
+    defer split_view.deinit(alloc);
+    try std.testing.expectEqual(@as(u32, 2), try split_view.asCore().compositionLogSplit());
+    try std.testing.expectEqual(@as(u32, 3), split_view.asCore().compositionLogDegreeBound());
 }
 
 test "prover air component prover: multi-component sequential matches merged accumulators" {

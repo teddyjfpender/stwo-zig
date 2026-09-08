@@ -12,6 +12,7 @@ const m31 = stwo_core.fields.m31;
 const verifier_types = stwo_core.verifier_types;
 
 const base_assembly = @import("../prover/base_component_assembly.zig");
+const circuit = @import("../prover/ethereum_circuit_profile_v1.zig");
 const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const registry = @import("vm_air_profile_v2_registry.zig");
@@ -23,7 +24,16 @@ const Sha256 = std.crypto.hash.sha2.Sha256;
 
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;
+pub const CIRCUIT_SCHEMA_VERSION: u16 = 2;
 pub const PROFILE_DOMAIN = "stwo-zig/riscv/recursion/vm-air-profile/v2\x00";
+pub const CIRCUIT_PROFILE_DOMAIN = "stwo-zig/riscv/recursion/vm-air-profile/ethereum-circuit/v1\x00";
+
+fn schemaForCircuit(profile: circuit.CircuitProfileV1) u16 {
+    return switch (profile) {
+        .legacy_v4 => SCHEMA_VERSION,
+        .fixed_program_narrow_v1 => CIRCUIT_SCHEMA_VERSION,
+    };
+}
 
 pub const Error = std.mem.Allocator.Error || error{
     AirInstructionCountOverflow,
@@ -196,6 +206,7 @@ pub const ProfileV2 = struct {
     allocator: std.mem.Allocator,
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
+    circuit_profile: circuit.CircuitProfileV1 = .legacy_v4,
     lookup_manifest_identity: [32]u8,
     lookup_authenticated_manifest_identity: [32]u8,
     lookup_statement_format_version: u16,
@@ -220,7 +231,7 @@ pub const ProfileV2 = struct {
 
     pub fn validate(self: *const ProfileV2) Error!void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or self.entries.len == 0 or
+            self.schema_version != schemaForCircuit(self.circuit_profile) or self.entries.len == 0 or
             self.entries.len != @as(usize, self.physical_component_count) or
             self.air_instruction_count == 0 or
             self.composition_log_split == 0 or
@@ -300,13 +311,14 @@ pub const ProfileV2 = struct {
         components: []const core_components.Component,
         sampled_value_count: u32,
     ) !void {
-        var expected = try derive(
+        var expected = try deriveWithCircuitProfile(
             allocator,
             statement,
             manifest,
             authenticated,
             components,
             sampled_value_count,
+            self.circuit_profile,
         );
         defer expected.deinit();
         if (!profilesEqual(self, &expected)) return error.ProfileMismatch;
@@ -328,8 +340,9 @@ pub const ProfileV2 = struct {
             statement,
             manifest,
             authenticated,
-            ExpectedSource{ .statement = statement, .manifest = manifest },
+            ExpectedSource{ .statement = statement, .manifest = manifest, .circuit_profile = self.circuit_profile },
             self.input_profile.sampled_value_count,
+            self.circuit_profile,
         );
         defer expected.deinit();
         if (!profilesEqual(self, &expected)) return error.ProfileMismatch;
@@ -337,7 +350,14 @@ pub const ProfileV2 = struct {
 
     fn computeIdentity(self: *const ProfileV2) [32]u8 {
         var hash = Sha256.init(.{});
-        hash.update(PROFILE_DOMAIN);
+        // Preserve the frozen legacy transcript exactly. The opt-in circuit
+        // has a disjoint namespace and an explicit selector/version binding.
+        if (self.circuit_profile == .legacy_v4) {
+            hash.update(PROFILE_DOMAIN);
+        } else {
+            hash.update(CIRCUIT_PROFILE_DOMAIN);
+            hashInt(&hash, u16, @intFromEnum(self.circuit_profile));
+        }
         hashInt(&hash, u16, self.format_version);
         hashInt(&hash, u16, self.schema_version);
         hash.update(&self.lookup_manifest_identity);
@@ -368,6 +388,18 @@ pub fn derive(
     components: []const core_components.Component,
     sampled_value_count: u32,
 ) !ProfileV2 {
+    return deriveWithCircuitProfile(allocator, statement, manifest, authenticated, components, sampled_value_count, .legacy_v4);
+}
+
+pub fn deriveWithCircuitProfile(
+    allocator: std.mem.Allocator,
+    statement: *const statement_mod.RiscVStatement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    components: []const core_components.Component,
+    sampled_value_count: u32,
+    circuit_profile: circuit.CircuitProfileV1,
+) !ProfileV2 {
     return deriveFromSource(
         allocator,
         statement,
@@ -375,6 +407,7 @@ pub fn derive(
         authenticated,
         NativeSource{ .components = components },
         sampled_value_count,
+        circuit_profile,
     );
 }
 
@@ -391,13 +424,25 @@ pub fn deriveAuthority(
     authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     sampled_value_count: u32,
 ) !ProfileV2 {
+    return deriveAuthorityWithCircuitProfile(allocator, statement, manifest, authenticated, sampled_value_count, .legacy_v4);
+}
+
+pub fn deriveAuthorityWithCircuitProfile(
+    allocator: std.mem.Allocator,
+    statement: *const statement_mod.RiscVStatement,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+    sampled_value_count: u32,
+    circuit_profile: circuit.CircuitProfileV1,
+) !ProfileV2 {
     return deriveFromSource(
         allocator,
         statement,
         manifest,
         authenticated,
-        ExpectedSource{ .statement = statement, .manifest = manifest },
+        ExpectedSource{ .statement = statement, .manifest = manifest, .circuit_profile = circuit_profile },
         sampled_value_count,
+        circuit_profile,
     );
 }
 
@@ -427,6 +472,7 @@ const NativeSource = struct {
 const ExpectedSource = struct {
     statement: *const statement_mod.RiscVStatement,
     manifest: *const lookup_physical_v2.Manifest,
+    circuit_profile: circuit.CircuitProfileV1 = .legacy_v4,
 
     fn len(self: ExpectedSource) usize {
         return 2 * @as(usize, self.statement.n_components) +
@@ -456,7 +502,7 @@ const ExpectedSource = struct {
         }
         const descriptor = self.statement.infra_descs[index - opcode_count];
         return .{
-            .n_constraints = registry.constraintCount(descriptor.kind),
+            .n_constraints = registry.constraintCountWithCircuitProfile(descriptor.kind, self.circuit_profile),
             .max_constraint_log_degree_bound = descriptor.log_size + 1,
             .composition_log_split = verifier_types.COMPOSITION_LOG_SPLIT,
         };
@@ -470,6 +516,7 @@ fn deriveFromSource(
     authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     source: anytype,
     sampled_value_count: u32,
+    circuit_profile: circuit.CircuitProfileV1,
 ) !ProfileV2 {
     try manifest.validate();
     try authenticated.validateAgainst(statement, manifest);
@@ -601,9 +648,10 @@ fn deriveFromSource(
     };
     var infra_cursor = base_assembly.InfrastructureCursor.init(opcode_cursor);
     for (statement.infra_descs[0..statement.n_infra], 0..) |descriptor, ordinal| {
-        const placement = try infra_cursor.append(
+        const placement = try infra_cursor.appendWithCircuit(
             descriptor.kind,
             descriptor.n_columns,
+            circuit_profile,
         );
         const batches = statement_mod.nClaimedSumsForInfra(descriptor.kind);
         const entry = EntryV2{
@@ -631,7 +679,7 @@ fn deriveFromSource(
                 .sampled_columns = @intCast(placement.interaction_columns),
                 .declared_columns = @intCast(placement.interaction_columns),
             },
-            .constraint_count = @intCast(registry.constraintCount(descriptor.kind)),
+            .constraint_count = @intCast(registry.constraintCountWithCircuitProfile(descriptor.kind, circuit_profile)),
             .relation_event_count = batches,
             .interaction_batch_count = batches,
             .claimed_sum_offset = state.claimed_sum_count,
@@ -654,6 +702,8 @@ fn deriveFromSource(
         return error.InvalidComponentEntry;
     var result = ProfileV2{
         .allocator = allocator,
+        .schema_version = schemaForCircuit(circuit_profile),
+        .circuit_profile = circuit_profile,
         .lookup_manifest_identity = manifest.identity,
         .lookup_authenticated_manifest_identity = authenticated.manifest_identity,
         .lookup_statement_format_version = authenticated.format_version,
@@ -730,6 +780,7 @@ fn addColumns(lhs: u32, rhs: anytype) Error!u32 {
 fn profilesEqual(lhs: *const ProfileV2, rhs: *const ProfileV2) bool {
     return lhs.format_version == rhs.format_version and
         lhs.schema_version == rhs.schema_version and
+        lhs.circuit_profile == rhs.circuit_profile and
         std.mem.eql(u8, &lhs.lookup_manifest_identity, &rhs.lookup_manifest_identity) and
         std.mem.eql(
             u8,
@@ -866,6 +917,7 @@ pub const testing = struct {
             authenticated,
             Source{ .values = fact_values },
             sampled_value_count,
+            .legacy_v4,
         );
     }
 };

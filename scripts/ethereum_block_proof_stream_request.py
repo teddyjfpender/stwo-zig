@@ -34,6 +34,20 @@ RECURSIVE_PROFILE_NAME = "stwo.ethereum-segment-v3-recursive-poseidon2-m31-v1"
 RECURSIVE_SECURITY_IDENTITY = (
     "bc339bc9bcf2d57ed49caccff618e944ddd03b401d528e7b3cb0d2f514306b04"
 )
+RECURSIVE_SEMANTICS = {
+    "extension_component_count": 14, "configured_pcs_bits": 209,
+    "conjectured_security_bits": 120, "hash_suite": "Poseidon2-M31",
+    "interaction_pow_bits": 10, "profile_name": RECURSIVE_PROFILE_NAME,
+    "proof_kind": "ethereum_segment_v3_poseidon2",
+    "recursive_ingress": "ethereum_segment_v3_full",
+    "security_identity_sha256": RECURSIVE_SECURITY_IDENTITY,
+}
+RECURSIVE_DYNAMIC_POLICY = {
+    **RECURSIVE_SEMANTICS,
+    "descriptor_authority": "fresh-verifier-minted-dynamic-child-v1",
+    "execution_semantics_authority": "source_request.profile_semantic_digest",
+    "verifier_identity_authority": "stream_request.verifier_sha256",
+}
 PROOF_PROFILE_KEYS = {
     "air_program_id_m31_le", "configured_pcs_bits",
     "conjectured_security_bits", "extension_component_count", "hash_suite",
@@ -70,15 +84,7 @@ def validate_recursive_profile(value: Any) -> dict[str, Any]:
     for field in ("child_air_manifest_sha256", "security_identity_sha256"):
         protocol._sha(value[field], f"recursive Ethereum leaf proof profile.{field}")
     protocol.require(
-        value["extension_component_count"] == 14
-        and value["configured_pcs_bits"] == 209
-        and value["conjectured_security_bits"] == 120
-        and value["hash_suite"] == "Poseidon2-M31"
-        and value["interaction_pow_bits"] == 10
-        and value["profile_name"] == RECURSIVE_PROFILE_NAME
-        and value["proof_kind"] == "ethereum_segment_v3_poseidon2"
-        and value["recursive_ingress"] == "ethereum_segment_v3_full"
-        and value["security_identity_sha256"] == RECURSIVE_SECURITY_IDENTITY,
+        all(value[key] == expected for key, expected in RECURSIVE_SEMANTICS.items()),
         "recursive Ethereum leaf proof profile differs",
     )
     return value
@@ -102,7 +108,7 @@ def _source_identity(
 
 
 def validate_source_file(
-    path: Path, *, require_recursive: bool = False,
+    path: Path, *, require_recursive: bool = False, dynamic_policy: bool = False,
 ) -> dict[str, Any]:
     """Reopen an append-only V1-native or V2-recursive SourceRequest."""
     value = store.read_canonical_json(path, "leaf stream source")
@@ -115,13 +121,14 @@ def validate_source_file(
         "segment_step_budget", "strict_completion",
     }
     if schema == SOURCE_SCHEMA_V2:
-        keys.add("proof_profile")
+        keys.add("proof_policy" if dynamic_policy else "proof_profile")
     value = protocol.exact(value, keys, "leaf stream source")
     expected_pcs = (RECURSIVE_POSEIDON_PCS if schema == SOURCE_SCHEMA_V2
                     else NATIVE_BLAKE_PCS)
     protocol.require(
         schema in (SOURCE_SCHEMA_V1, SOURCE_SCHEMA_V2)
         and (not require_recursive or schema == SOURCE_SCHEMA_V2)
+        and (not dynamic_policy or schema == SOURCE_SCHEMA_V2)
         and value["clock_frame"] == "leaf_local"
         and value["execution_profile"] == PROFILE_NAME
         and value["profile_wire_id"] == 3
@@ -137,7 +144,14 @@ def validate_source_file(
         "leaf stream source authority differs",
     )
     if schema == SOURCE_SCHEMA_V2:
-        validate_recursive_profile(value["proof_profile"])
+        if dynamic_policy:
+            policy = protocol.exact(value["proof_policy"], set(RECURSIVE_DYNAMIC_POLICY),
+                                    "recursive Ethereum dynamic proof policy")
+            protocol.require(all(type(policy[key]) is type(expected) and policy[key] == expected
+                                 for key, expected in RECURSIVE_DYNAMIC_POLICY.items()),
+                             "recursive Ethereum dynamic proof policy differs")
+        else:
+            validate_recursive_profile(value["proof_profile"])
     for field in ("elf", "input", "expected_output", "execution_journal"):
         _source_identity(value[field], path, f"leaf stream source {field}")
     return value

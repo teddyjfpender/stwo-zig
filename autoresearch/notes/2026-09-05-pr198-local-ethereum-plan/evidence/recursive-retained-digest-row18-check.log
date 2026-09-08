@@ -1,0 +1,22 @@
+test-recursion-binary-fri-row18
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig:138:23: error: runtime value contains reference to comptime var
+        legacy.update(&rows.source_authority_digest);
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig:138:23: note: comptime var pointers are not available at runtime
+recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig:138:23: note: 'runtime_value.ptr' points to comptime field
+referenced by:
+    comptime: binary_fri_outer_source_test_root.zig:9:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/binary_fri_outer_source_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "R-015 binary FRI rows 18--19 use the admitted composition graph" --test-filter "retained relation rows preserve little-endian digest bytes" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-recursion-binary-fri-row18 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/715bd5f8d885353c2d0d15ab945aa4ac/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x31229ff0 -Z6d497452e1aa30eb --maxrss 25769803776 -j1 test-recursion-binary-fri-row18 -Doptimize=ReleaseSafe --summary all

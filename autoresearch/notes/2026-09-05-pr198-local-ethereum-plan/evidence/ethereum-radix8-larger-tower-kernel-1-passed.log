@@ -1,0 +1,20 @@
+1/1 fft_kernels.test.packed radix-8 pass matches three independent stages...OK
+All 1 tests passed.
+        1.75 real         0.73 user         0.87 sys
+           375652352  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               26898  page reclaims
+                 123  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                7003  voluntary context switches
+                2981  involuntary context switches
+           591815428  instructions retired
+           173260627  cycles elapsed
+            11878808  peak memory footprint

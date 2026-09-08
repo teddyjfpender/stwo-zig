@@ -284,7 +284,7 @@ def validate_manifest(value: Any) -> None:
         "canonical": "BPO2",
         "schema_id": 0x1401,
         "block_timestamp": block["timestamp"],
-        "legacy_activation_field": "bpo1_time",
+        "legacy_activation_field": "bpo2_time",
         "legacy_activation_timestamp": 1_767_747_671,
         "canonical_mainnet_bpo2_timestamp": 1_767_747_671,
     }, "Stwo semantic projection fork authority differs")

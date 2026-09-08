@@ -201,6 +201,7 @@ pub const ManifestFamilyV3 = enum(u8) {
     ethereum_poseidon_h1_v1 = 3,
     temporal_parent_v3 = 4,
     common_fold_field_v2 = 5,
+    ethereum_initial_wrapper_v1 = 6,
 };
 
 pub const ClaimPolicyV3 = enum(u8) {
@@ -211,6 +212,7 @@ pub const ClaimPolicyV3 = enum(u8) {
     ethereum_poseidon_h1 = 5,
     temporal_parent = 6,
     common_fold_field_v2 = 7,
+    ethereum_initial_wrapper_v1 = 8,
 };
 
 pub const TrustedManifestsV3 = struct {

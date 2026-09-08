@@ -154,19 +154,22 @@ pub fn produceAllocWithRecorderAndTiming(
     );
     defer snapshot.deinit();
     const snapshot_ns = prepare_timer.lap();
-    var prepared = try prepared_mod.PreparedProofTransactionV4.initOwned(
-        allocator,
-        .{
-            .replay = &replay,
-            .memory_snapshot = &snapshot.value,
-            .program_source_identity_sha256 = input.replay_authority.source.program,
-            .completion = completion,
-            .boundary_artifact = input.boundary,
-            .public_wire = input.public_wire,
-            .role_aware_public = input.role_aware_public,
-            .public_authority = input.public_authority,
-        },
-    );
+    const prepared_inputs = prepared_mod.InputsV4{
+        .fixed_program = input.fixed_program,
+        .claim_admission = input.claim_admission,
+        .replay = &replay,
+        .memory_snapshot = &snapshot.value,
+        .program_source_identity_sha256 = input.replay_authority.source.program,
+        .completion = completion,
+        .boundary_artifact = input.boundary,
+        .public_wire = input.public_wire,
+        .role_aware_public = input.role_aware_public,
+        .public_authority = input.public_authority,
+    };
+    var prepared = if (input.fixed_program != null)
+        try prepared_mod.PreparedProofTransactionV4.initOwnedWithFixedProgramV1(allocator, prepared_inputs)
+    else
+        try prepared_mod.PreparedProofTransactionV4.initOwned(allocator, prepared_inputs);
     defer prepared.deinit();
     prepare_stage.end();
     const preparation = prepared.counterSnapshot();
@@ -187,7 +190,20 @@ pub fn produceAllocWithRecorderAndTiming(
     var prove_timer = try std.time.Timer.start();
     errdefer prove_stage.end();
     const view = try prepared.proofView();
+    if (input.fixed_program) |program| {
+        const calls = try prepared.providerCallView();
+        std.debug.print("INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows={} omitted_program_calls={} program_calls={} incremental_calls={} poseidon_calls={} fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256={x} table_sha256={x}\n", .{
+            program.descriptor().row_count,            calls.inventory.omitted_fixed_program_call_count,
+            calls.inventory.program_call_count,        calls.inventory.incremental_memory_call_count,
+            calls.inventory.total_call_count,          program.descriptor().elf_sha256,
+            program.descriptor().decoded_table_sha256,
+        });
+    }
+    if (view.profile.usesFieldTranscript()) {
+        if (input.pcs_retained_byte_budget) |budget| try @import("ethereum_incremental_full_leaf_residency_preflight_v1.zig").check(allocator, view, budget);
+    }
     if (prepared_parity.enabled()) {
+        if (input.fixed_program != null) return error.FixedProgramLegacyParityNotApplicable;
         const parity_result = try prepared_parity.comparePreparedAgainstLegacy(
             allocator,
             view,
@@ -210,13 +226,15 @@ pub fn produceAllocWithRecorderAndTiming(
             },
         }
     }
+    var prove_execution = execution;
+    prove_execution.pcs_retained_byte_budget = input.pcs_retained_byte_budget;
     var prove_channel = Engine.Channel{};
     var output = try prepared.proveWithEngineUsingChannel(
         Engine,
         allocator,
         recorder,
         &prove_channel,
-        execution,
+        prove_execution,
     );
     defer output.deinit(allocator);
     prove_stage.end();
@@ -343,19 +361,22 @@ pub fn visitPreparedTransaction(
     );
     defer snapshot.deinit();
     const snapshot_ns = prepare_timer.lap();
-    var prepared = try prepared_mod.PreparedProofTransactionV4.initOwned(
-        allocator,
-        .{
-            .replay = &replay,
-            .memory_snapshot = &snapshot.value,
-            .program_source_identity_sha256 = input.replay_authority.source.program,
-            .completion = completion,
-            .boundary_artifact = input.boundary,
-            .public_wire = input.public_wire,
-            .role_aware_public = input.role_aware_public,
-            .public_authority = input.public_authority,
-        },
-    );
+    const prepared_inputs = prepared_mod.InputsV4{
+        .fixed_program = input.fixed_program,
+        .claim_admission = input.claim_admission,
+        .replay = &replay,
+        .memory_snapshot = &snapshot.value,
+        .program_source_identity_sha256 = input.replay_authority.source.program,
+        .completion = completion,
+        .boundary_artifact = input.boundary,
+        .public_wire = input.public_wire,
+        .role_aware_public = input.role_aware_public,
+        .public_authority = input.public_authority,
+    };
+    var prepared = if (input.fixed_program != null)
+        try prepared_mod.PreparedProofTransactionV4.initOwnedWithFixedProgramV1(allocator, prepared_inputs)
+    else
+        try prepared_mod.PreparedProofTransactionV4.initOwned(allocator, prepared_inputs);
     defer prepared.deinit();
     prepare_stage.end();
     const call_view = try prepared.providerCallView();

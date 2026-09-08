@@ -1,0 +1,61 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v3/bin/ethereum-prepared-leaf-metal-v1",
+    "--retained-materialization-result",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4",
+    "--selected-leaf-admission-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/selected-leaf-000120-metal-v1",
+    "--segment-index",
+    "120",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.stwief04",
+    "--campaign-geometry",
+    "authenticated-v1",
+    "--claim-admission",
+    "fixed_program_narrow_v5",
+    "--global-metadata-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.metadata.json",
+    "--pcs-retained-byte-budget",
+    "25769803776",
+    "--workers",
+    "1",
+    "--host-byte-budget",
+    "17179869184",
+    "--host-byte-limit",
+    "34359738368",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle",
+    "--aot-manifest-sha256",
+    "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3"
+  ],
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "host_admission_limit_bytes": 34359738368,
+    "process_cap_enforced": false,
+    "sample_interval_seconds": 2,
+    "limits_scope": "Composition and PCS admission budgets are distinct from host admission; process footprint sampling is observational and does not enforce a cap"
+  },
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v3/bin/ethereum-prepared-leaf-metal-v1",
+    "bytes": 11079344,
+    "sha256": "fa875dd411af00256092e11cfe9ab99965f8f95827da7fb93d64f9fa3874f608"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v3/manifest.json",
+    "bytes": 1096588,
+    "sha256": "4dda0da39bd211648e2dea6f1098b5005997609c33336caf602d18954745f087"
+  },
+  "cpu_reference_supplied": false,
+  "aot_manifest_sha256": "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+  "started_unix_ns": 1788808780718995000,
+  "segment_index": 120,
+  "execution_cycles": 1988758,
+  "claim_admission": "fixed_program_narrow_v5",
+  "backend": "authenticated_AOT_Metal",
+  "claim": "one native full leaf core plus providers, serialized producer destruction and fresh native verification; not a block or succinct root"
+}

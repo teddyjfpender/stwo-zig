@@ -152,19 +152,19 @@ test "runtime campaign provider geometry admits authenticated non-power-of-two c
         );
         defer authority.deinit();
         try authority.validateStructure();
-        try std.testing.expectEqual(@as(u32, count), authority.leaf_count);
+        try std.testing.expectEqual(@as(u32, count), authority.view().leaf_count);
         try std.testing.expectEqual(
             counts[count - 1],
-            authority.maximum_active_tuple_count,
+            authority.view().maximum_active_tuple_count,
         );
         try std.testing.expectEqual(
             std.math.ceilPowerOfTwo(u32, counts[count - 1]) catch unreachable,
-            authority.provider_geometry.role_io_tuple_capacity,
+            authority.view().provider_geometry.role_io_tuple_capacity,
         );
         try std.testing.expectEqualSlices(
             u8,
             &campaign_identity,
-            &authority.campaign_inventory.table_identity_sha256,
+            &authority.view().campaign_inventory.table_identity_sha256,
         );
     }
 }
@@ -188,13 +188,13 @@ test "runtime campaign provider geometry binds inventory and rejects duplicate o
     defer right.deinit();
     try std.testing.expectEqualSlices(
         u8,
-        &left.geometry_identity_sha256,
-        &right.geometry_identity_sha256,
+        &left.view().geometry_identity_sha256,
+        &right.view().geometry_identity_sha256,
     );
     try std.testing.expect(!std.mem.eql(
         u8,
-        &left.authority_identity_sha256,
-        &right.authority_identity_sha256,
+        &left.view().authority_identity_sha256,
+        &right.view().authority_identity_sha256,
     ));
 
     const duplicate = [_][32]u8{ identities[0], identities[1], identities[1] };
@@ -207,6 +207,44 @@ test "runtime campaign provider geometry binds inventory and rejects duplicate o
             &duplicate,
         ),
     );
+}
+
+test "runtime campaign clone owns immutable observations after source destruction" {
+    var counts = [_]u32{ 3, 5 };
+    var identities = [_][32]u8{ identity(11), identity(31) };
+    var retained = blk: {
+        var original = try subject.testing.mintOwnedFromObservations(
+            std.testing.allocator,
+            identity(71),
+            &counts,
+            &identities,
+        );
+        defer original.deinit();
+        var clone = try original.clone(std.testing.allocator);
+        errdefer clone.deinit();
+        try std.testing.expect(original.view().active_tuple_counts.ptr != clone.view().active_tuple_counts.ptr);
+        try std.testing.expect(original.view().fresh_input_identities.ptr != clone.view().fresh_input_identities.ptr);
+        try std.testing.expectEqualSlices(u8, &original.view().authority_identity_sha256, &clone.view().authority_identity_sha256);
+        break :blk clone;
+    };
+    defer retained.deinit();
+    counts[0] = 99;
+    identities[0][0] ^= 1;
+    try retained.validateStructure();
+    try std.testing.expectEqualSlices(u32, &.{ 3, 5 }, retained.view().active_tuple_counts);
+    try std.testing.expect(@TypeOf(retained.view().active_tuple_counts) == []const u32);
+    try std.testing.expect(@TypeOf(retained.view().fresh_input_identities) == []const [32]u8);
+    // The direct immutable clone must release each partial buffer if either
+    // allocation or the final private-storage allocation fails.
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, cloneWithAllocator, .{&retained});
+    try retained.validateStructure();
+}
+
+fn cloneWithAllocator(allocator: std.mem.Allocator, source: *const subject.OwnedCampaignProviderGeometryV4) !void {
+    var clone = try source.clone(allocator);
+    defer clone.deinit();
+    try clone.validateStructure();
+    try std.testing.expectEqualDeep(source.view().*, clone.view().*);
 }
 
 fn identity(seed: u8) [32]u8 {

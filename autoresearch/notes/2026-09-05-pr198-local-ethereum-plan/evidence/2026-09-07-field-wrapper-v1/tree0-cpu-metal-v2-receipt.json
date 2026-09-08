@@ -1,0 +1,56 @@
+{
+  "exit_code": 0,
+  "passed": true,
+  "stop_reason": null,
+  "source_and_binary_unchanged": true,
+  "elapsed_ns": 467424146541,
+  "sampled_peak_footprint_bytes": 32176693080,
+  "last_sample_process_cpu_ns": 460876088250,
+  "policy": {
+    "workers": 1,
+    "graph_host_byte_budget": 8589934592,
+    "sampled_process_footprint_stop_bytes": 34359738368,
+    "timeout_seconds": 3600,
+    "sample_interval_seconds": 2,
+    "limits_scope": "sampled process monitor is not an allocation guarantee",
+    "cpu_reuse_bounded_tail": true,
+    "metal_reuse_bounded_tail": false,
+    "metal_grouped_source_layout": true,
+    "cohort_destroyed_before_metal": true
+  },
+  "wrapper_proof": false,
+  "prior_verified_key_root_equal": true,
+  "prior_key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+  "expected_preprocessed_root": [
+    540861180,
+    123130679,
+    262723862,
+    1790176245,
+    1552740578,
+    445001413,
+    323999607,
+    1158426385
+  ],
+  "observed_cpu_roots": [
+    [
+      540861180,
+      123130679,
+      262723862,
+      1790176245,
+      1552740578,
+      445001413,
+      323999607,
+      1158426385
+    ],
+    [
+      540861180,
+      123130679,
+      262723862,
+      1790176245,
+      1552740578,
+      445001413,
+      323999607,
+      1158426385
+    ]
+  ]
+}

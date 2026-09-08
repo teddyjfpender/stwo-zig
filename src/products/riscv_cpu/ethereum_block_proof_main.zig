@@ -54,6 +54,15 @@ pub fn main() !void {
     } else if (std.mem.eql(
         u8,
         command,
+        integration.ethereum_incremental_full_leaf_replay_command_v4.prepared_cpu_command_name,
+    )) {
+        try integration.ethereum_incremental_full_leaf_replay_command_v4.runPreparedCpu(
+            allocator,
+            options,
+        );
+    } else if (std.mem.eql(
+        u8,
+        command,
         "ethereum-block-compact-replay",
     )) {
         try integration.ethereum_block_compact_replay.run(

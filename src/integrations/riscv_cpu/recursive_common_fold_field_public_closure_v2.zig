@@ -176,13 +176,14 @@ pub fn derive(
 ) !BoundaryEvidenceV2 {
     try layout.validate(calls);
     try provider_relations.validate();
-    if (calls.len != CALL_COUNT or
+    if (try layout.statement_authority.count() != CALL_COUNT or
         std.mem.allEqual(u8, &source_authority_identity_sha256, 0))
     {
         return error.CommonFoldFieldBoundaryMismatch;
     }
+    const statement_calls = calls[layout.statement_authority.start..layout.statement_authority.end];
     var outputs: [CALL_COUNT][poseidon_air.WIDTH]u32 = undefined;
-    for (calls, &outputs) |call, *output| {
+    for (statement_calls, &outputs) |call, *output| {
         if (call.wide or !call.io or call.narrow_output != null)
             return error.CommonFoldFieldBoundaryMismatch;
         var state: poseidon.State = undefined;
@@ -193,7 +194,7 @@ pub fn derive(
             destination.* = word.toU32();
     }
     const claims = try poseidon_air.claimsFromIoOutputs(
-        calls,
+        statement_calls,
         &outputs,
         provider_log_size,
         &provider_relations.native,

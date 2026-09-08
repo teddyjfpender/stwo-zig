@@ -58,6 +58,11 @@ defer statement.deinit(allocator);
 
 ## Dependencies
 
+The experimental Stage101 commands also depend on `stwo_riscv_cpu_integration`
+for shared leaf orchestration and CPU verification. The normal Metal engine
+retains its explicit backend selection.
+
+
 - `stwo_riscv_frontend`
 - `stwo_core`
 - `stwo_metal_backend`
@@ -147,3 +152,39 @@ zero fallback, runtime identity, and successful independent verification.
 - [CPU integration](../riscv_cpu/README.md)
 - [RISC-V Sail differential gate](../../../conformance/riscv-sail-differential-gate.md)
 - [Repository RISC-V guide](../../../README.md#risc-v-frontend)
+
+## Explicit real-leaf comparison admission
+
+The Stage101 experiment retains its original artifact and AOT pins by default.
+For another freshly CPU-verified retained leaf, explicitly set
+`STWO_ZIG_STAGE101_BENCHMARK_ADMISSION_V2` to a JSON file containing:
+
+```json
+{
+  "schema": "stwo.stage101-benchmark-admission.v2",
+  "artifact_bytes": 123,
+  "artifact_sha256": "<64 lowercase hexadecimal characters>",
+  "claim_schema": 4,
+  "manifest_sha256": "<64 lowercase hexadecimal characters>",
+  "metallib_sha256": "<64 lowercase hexadecimal characters>"
+}
+```
+
+Populate the size and digest from the actual CPU artifact, and both AOT digests
+from the newly built bundle. This is an explicit benchmark custody tuple; it
+does not replace native proof verification. The command still requires exact
+CPU/Metal artifact parity, fresh CPU verification, authenticated AOT identity,
+resident kernel coverage and explicit timing/resource receipts. The V2 tuple
+is accepted only on `--provider-route native`. Its claim schema must match
+`--claim-admission` (`legacy_aggregate_v2`, `selected_detailed_v3` or
+`field_authority_v4`). No legacy pin is overwritten.
+
+`STWO_ZIG_STAGE101_REFERENCE_ARTIFACT` selects the CPU artifact;
+`STWO_RISCV_METAL_AOT_BUNDLE` selects the authenticated bundle. Worker and host
+budget settings remain explicit through `STWO_ZIG_STAGE101_WORKER_COUNT`,
+`STWO_ZIG_STAGE101_HOST_BYTE_BUDGET` and `STWO_ZIG_STAGE101_HOST_BYTE_LIMIT`.
+The host budget applies to the Stage101 composition request, not total process
+memory. Keep one leaf in flight until the complete request is measured.
+`STWO_ZIG_STAGE101_BUDGET_MS` records four explicit phase ceilings when the
+original five-second target is not yet met; raising them does not establish
+that target as achieved.

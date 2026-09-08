@@ -208,7 +208,7 @@ pub const ArithmeticRowsAuthority = struct {
         lanes[2] = .{
             .circuit_id = LEFT_PCS_CIRCUIT_ID,
             .active_in = .binary,
-            .circuit_identity = left.pcs_circuit.identity_digest,
+            .circuit_identity = left.pcs_circuit.view().identity_digest,
             .graph = left.pcs_circuit.graph(),
         };
         lanes[3] = .{
@@ -226,7 +226,7 @@ pub const ArithmeticRowsAuthority = struct {
         lanes[5] = .{
             .circuit_id = RIGHT_PCS_CIRCUIT_ID,
             .active_in = .binary,
-            .circuit_identity = right.pcs_circuit.identity_digest,
+            .circuit_identity = right.pcs_circuit.view().identity_digest,
             .graph = right.pcs_circuit.graph(),
         };
         lanes[6] = .{

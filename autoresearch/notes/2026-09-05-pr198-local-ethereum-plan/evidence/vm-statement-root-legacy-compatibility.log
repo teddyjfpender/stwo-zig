@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 311/312 tests passed; 1 skipped
+test-recursion-vm-composition success
++- run test 311 passed 1 skipped 802ms MaxRSS:16M
+   +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

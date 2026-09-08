@@ -7,6 +7,15 @@
 //! or mint a fresh capability.
 
 const std = @import("std");
+const builtin = @import("builtin");
+
+var validation_attempts = std.atomic.Value(u64).init(0);
+var validation_completions = std.atomic.Value(u64).init(0);
+pub const testing = if (builtin.is_test) struct {
+    pub fn snapshot() struct { attempts: u64, completions: u64 } {
+        return .{ .attempts = validation_attempts.load(.monotonic), .completions = validation_completions.load(.monotonic) };
+    }
+} else struct {};
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 
@@ -20,7 +29,6 @@ const recursion = frontend.recursion;
 const recording = recursion.recording_poseidon_channel_v4;
 const ethereum_transcript =
     frontend.prover_mod.guest_precompile.ethereum_transcript;
-const incremental_bridge = frontend.prover_mod.incremental_bridge_external_v3;
 const transcript = frontend.air.transcript;
 
 pub const FORMAT_VERSION: u16 = 4;
@@ -30,6 +38,8 @@ pub const BASE_RELATION_DRAW_COUNT: usize = 24;
 pub const ETHEREUM_RELATION_DRAW_COUNT: usize = 26;
 pub const RELATION_DRAW_COUNT: usize =
     BASE_RELATION_DRAW_COUNT + ETHEREUM_RELATION_DRAW_COUNT;
+// Each native draw returns both QM31 values (z, alpha) of one challenge.
+pub const RELATION_CHALLENGE_COUNT: usize = RELATION_DRAW_COUNT / 2;
 pub const QUERY_WORD_COUNT: usize = 193;
 
 pub const PRODUCTION_ACTIVATION = false;
@@ -109,6 +119,7 @@ pub const ReplayV4 = struct {
         comptime Engine: type,
         input: *const input_mod.FreshInputV4(Engine),
     ) !void {
+        if (builtin.is_test) _ = validation_attempts.fetchAdd(1, .monotonic);
         try input.validate();
         try self.validate();
         const capture = &input.stage101;
@@ -134,6 +145,7 @@ pub const ReplayV4 = struct {
             if ((full.toU32() & mask) != projected_u32)
                 return error.EthereumIncrementalTranscriptMismatchV4;
         }
+        if (builtin.is_test) _ = validation_completions.fetchAdd(1, .monotonic);
     }
 };
 
@@ -199,7 +211,15 @@ pub fn replay(
         capture.base_claim,
         &capture.extension_claim,
     );
-    incremental_bridge.mixClaim(&channel, capture.bridge_claim);
+    try capture.profile.mixFinalClaims(
+        allocator,
+        &channel,
+        &capture.statement.core,
+        &capture.manifest,
+        &capture.authenticated,
+        capture.base_claim,
+        capture.bridge_claim,
+    );
     setContext(&channel, .tree2_commitment);
     recording.MerkleChannel.mixRoot(&channel, proof.commitments[2]);
 

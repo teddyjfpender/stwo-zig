@@ -1,0 +1,34 @@
+{
+  "builds": [
+    {
+      "label": "metal-v4-build",
+      "exit_code": 0,
+      "receipt": "metal-v4-build-build-receipt.json",
+      "log": "metal-v4-build-build.log",
+      "scope": "compile-only; active Context admission call chain incomplete"
+    },
+    {
+      "label": "verifier-v3-build",
+      "exit_code": 0,
+      "receipt": "verifier-v3-build-build-receipt.json",
+      "log": "verifier-v3-build-build.log",
+      "scope": "compile-only; active Context admission call chain incomplete"
+    },
+    {
+      "label": "metal-v5-canceled",
+      "exit_code": -15,
+      "receipt": "metal-v5-canceled-build-receipt.json",
+      "log": "metal-v5-canceled-build.log",
+      "scope": "dequeued before compilation after checking no child compiler; superseded by explicit Context admission fix"
+    },
+    {
+      "label": "verifier-v4-canceled",
+      "exit_code": -15,
+      "receipt": "verifier-v4-canceled-build-receipt.json",
+      "log": "verifier-v4-canceled-build.log",
+      "scope": "dequeued before compilation after checking no child compiler; superseded by explicit Context admission fix"
+    }
+  ],
+  "real_leaf11_retry_started": false,
+  "original_failure_inputs_and_accepted_leaves_preserved": true
+}

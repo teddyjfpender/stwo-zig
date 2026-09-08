@@ -2,6 +2,7 @@
 
 const dependency_0 = @import("segment_statement_v2_contract.zig");
 const dependency_1 = @import("segment_statement_v2_canonical_wire_view_v2.zig");
+const transcript_layout = @import("segment_statement_v2_transcript_layout.zig");
 
 const BaseStatementWords = dependency_0.BaseStatementWords;
 const ByteLeaf = dependency_1.ByteLeaf;
@@ -327,36 +328,23 @@ pub const SourceV2 = struct {
         destination: []M31,
         statement_v2: StatementV2,
     ) Error!CanonicalWireViewV2 {
-        const expected = try checkedWireWordCount(
-            statement_v2.entry_snapshot_count,
-            statement_v2.exit_snapshot_count,
-            statement_v2.entry_memory_clock_count,
-            statement_v2.exit_memory_clock_count,
-        );
-        if (destination.len != expected) return error.CanonicalLengthMismatch;
+        const layout = try transcript_layout.Layout.fromStatement(&statement_v2);
+        if (destination.len != layout.wordCount()) return error.CanonicalLengthMismatch;
 
         var writer = Writer{ .words = destination };
         statement_v2.writeFixed(&writer);
-        const entry_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .entry_memory_state, self.memory_words, .initial_word);
-        const exit_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .exit_memory_state, self.memory_words, .final_word);
-        const entry_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_memory_clock_count,
-        };
-        writeClockSection(&writer, .entry_memory_clocks, self.entry_memory_clocks);
-        const exit_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_memory_clock_count,
-        };
-        writeClockSection(&writer, .exit_memory_clocks, self.exit_memory_clocks);
+        const entry_snapshot = layout.section(.entry_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.entry_snapshot.tag(), self.memory_words, .initial_word);
+        const exit_snapshot = layout.section(.exit_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.exit_snapshot.tag(), self.memory_words, .final_word);
+        const entry_memory_clocks = layout.section(.entry_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.entry_memory_clocks.tag(), self.entry_memory_clocks);
+        const exit_memory_clocks = layout.section(.exit_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.exit_memory_clocks.tag(), self.exit_memory_clocks);
         std.debug.assert(writer.at == destination.len);
         return .{
             .words = destination,

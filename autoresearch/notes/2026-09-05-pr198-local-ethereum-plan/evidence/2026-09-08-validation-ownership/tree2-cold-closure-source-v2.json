@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T06:19:57.952871+00:00",
+  "status": "source_fmt_ast_passed_no_replay_executed",
+  "scope": "existing saved-input replay reaches actual complete Tree2 and independent cold domain closure without PCS or native proving",
+  "source_files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_statement_root_cohort_replay.zig",
+      "sha256": "1c665cf32040ffa8a347ba3cb59a279c2c8cf0bc64841f5d73f4b015315c3752"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "sha256": "02a1a31903ee49e963554cbe254b8d6317a68b7ac98aff8555ca3cf79a464642"
+    }
+  ],
+  "route": [
+    "select ordinary36 or Initial38 from explicit materialized initial admission",
+    "Geometry.init then Complete.Cohort.init; never SecureCohort.init because it derives Tree0 PCS",
+    "deterministic universal/provider relations derived from Poseidon ETC1 version1 on each side",
+    "rebuildGeneratedInteractions generates full Tree2 privately then releases its columns",
+    "serialize manifest and pointer-free Generated claims/audits",
+    "destroy all producer geometry/cohort storage and require dedicated allocator empty",
+    "independently build cold geometry/cohort from already-native-verified source",
+    "decode publication and independently rebuild entire Tree2 from cold rows; compare complete Generated including native audits18..34 against published bytes",
+    "full validateGenerated additionally exercises independent cold prefix/suffix row audit and domain closure",
+    "destroy verifier geometry/cohort storage and require dedicated allocator empty"
+  ],
+  "phase_diagnostics": [
+    "prepare",
+    "tree2_generate",
+    "producer_closure",
+    "serialize",
+    "producer_destroy",
+    "cold_prepare",
+    "cold_tree2",
+    "cold_closure",
+    "verifier_destroy"
+  ],
+  "resource_fields": [
+    "wall_ns",
+    "process_cpu_ns",
+    "current_physical_footprint_bytes",
+    "lifetime_peak_physical_footprint_bytes",
+    "dedicated_cohort_allocator_live_bytes",
+    "dedicated_cohort_allocator_peak_bytes",
+    "pre-allocation_tree2_value_bytes"
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-validation-ownership",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "compile_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "check-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-statement-root-cohort-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "replay_inputs": "Existing independently pinned saved Stage101 native pair/ELF/global metadata; existing explicit initial admission selects Initial38. No new native proof generated.",
+  "note": "Source and AST acceptance only. Full fresh Tree2 reconstruction authenticates native audits; validateGenerated alone does not. This is genuine AIR interaction generation and cold closure, not wrapper STARK proof acceptance. Parent owns frozen validation queue.",
+  "supersedes": "tree2-cold-closure-source-v1.json; source-only incomplete native audit reconstruction, never replay acceptance"
+}

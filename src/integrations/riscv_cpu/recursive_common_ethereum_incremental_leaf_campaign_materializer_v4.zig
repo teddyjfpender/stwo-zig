@@ -7,6 +7,7 @@
 //! universal wrapper through this type.
 
 const std = @import("std");
+const frontend = @import("stwo_riscv_frontend");
 
 const campaign_mod =
     @import("recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4.zig");
@@ -19,8 +20,11 @@ const materializer =
 const role_io =
     @import("recursive_common_ethereum_incremental_leaf_role_aware_io_v4.zig");
 
+pub const InitialInputAdmissionV1 = @import("recursive_common_ethereum_initial_input_admission_v1.zig").InitialInputAdmissionV1;
+const ProgramAdmission = @import("recursive_common_ethereum_incremental_leaf_program_admission_v1.zig").ProgramAdmissionV1;
+
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 4;
 pub const PRODUCTION_LEAF_COUNT = campaign_mod.PRODUCTION_LEAF_COUNT;
 pub const PRODUCTION_ACTIVATION = false;
 pub const CALLER_AUTHORED_CAPACITY_ADMITTED = false;
@@ -28,7 +32,7 @@ pub const PER_LEAF_GEOMETRY_IS_PROOF_AUTHORITY = false;
 pub const SERIALIZABLE_FRESH_CAPABILITY = false;
 
 const IDENTITY_DOMAIN =
-    "stwo-zig/common-ethereum-incremental-campaign-materializer/v4-schema3\x00";
+    "stwo-zig/common-ethereum-incremental-campaign-materializer/v4-schema4\x00";
 
 pub const Error = error{
     ArithmeticOverflow,
@@ -66,6 +70,8 @@ fn PreparedCampaignCaptureV4ForAuthority(
         campaign_leaf_index: u32,
         campaign_authority: *const Campaign,
         base: Base,
+        program_admission: ?*ProgramAdmission = null,
+        initial_input_admission: ?*InitialInputAdmissionV1 = null,
         role_aware_io: role_io.OwnedWitnessV4,
         schedule: field_public.OwnedPoseidonScheduleV4,
         provider_geometry: field_public.LiveProviderGeometryV4,
@@ -74,8 +80,8 @@ fn PreparedCampaignCaptureV4ForAuthority(
         const Self = @This();
 
         /// Moves `input` only after campaign membership and all common-capacity
-        /// reconstruction have succeeded. The campaign authority is borrowed
-        /// and must outlive this owner and every derived cohort/capture.
+        /// reconstruction have succeeded. Retains a private immutable campaign
+        /// snapshot; the caller may destroy its campaign after this returns.
         pub fn initOwned(
             allocator: std.mem.Allocator,
             input: *input_mod.FreshInputV4(Engine),
@@ -108,6 +114,63 @@ fn PreparedCampaignCaptureV4ForAuthority(
             );
         }
 
+        /// Admission owns the whole ELF independently of per-proof inputs.
+        pub fn initOwnedMeasuredWithProgram(
+            allocator: std.mem.Allocator,
+            input: *input_mod.FreshInputV4(Engine),
+            campaign_authority: *const Campaign,
+            campaign_leaf_index: usize,
+            elf_bytes: []const u8,
+            execution: materializer.MaterializationExecutionV4,
+            metrics: ?*materializer.MaterializationMetricsV4,
+        ) !Self {
+            const admitted = if (input.fixed_program) |fixed| blk: {
+                if (fixed.hasCompletionOpening()) {
+                    var source_sha: [32]u8 = undefined;
+                    std.crypto.hash.sha2.Sha256.hash(elf_bytes, &source_sha, .{});
+                    if (!std.meta.eql(source_sha, fixed.descriptor().elf_sha256)) return error.EthereumFixedProgramSourceMismatch;
+                    break :blk try ProgramAdmission.createWithFixedProgram(allocator, fixed);
+                }
+                break :blk try ProgramAdmission.createFromElf(allocator, elf_bytes);
+            } else try ProgramAdmission.createFromElf(allocator, elf_bytes);
+            errdefer admitted.deinit();
+            const root = input.stage101.role_aware_public.value.program_root orelse
+                return error.EthereumProgramAdmissionRootMismatch;
+            if (admitted.programRoot() != root) return error.EthereumProgramAdmissionRootMismatch;
+            var result = try initOwnedMeasuredWithExecution(allocator, input, campaign_authority, campaign_leaf_index, execution, metrics);
+            errdefer input.* = result.deinitRetainingInput();
+            result.program_admission = admitted;
+            result.identity_sha256 = identity(Engine, &result);
+            // The newly owned admission was checked above; no fallible work
+            // follows transfer, avoiding an ambiguous double-owner rollback.
+            return result;
+        }
+
+        /// Explicit initial job shape; both admission owners survive destruction
+        /// of the caller's retained source and admission handles.
+        pub fn initOwnedMeasuredWithInitialInputs(
+            allocator: std.mem.Allocator,
+            input: *input_mod.FreshInputV4(Engine),
+            campaign_authority: *const Campaign,
+            campaign_leaf_index: usize,
+            elf_bytes: []const u8,
+            initial: *const InitialInputAdmissionV1,
+            execution: materializer.MaterializationExecutionV4,
+            metrics: ?*materializer.MaterializationMetricsV4,
+        ) !Self {
+            try initial.validateInput(input);
+            const owned = try initial.clone(allocator);
+            errdefer owned.deinit();
+            var result = try initOwnedMeasuredWithProgram(allocator, input, campaign_authority, campaign_leaf_index, elf_bytes, execution, metrics);
+            result.initial_input_admission = owned;
+            result.identity_sha256 = identity(Engine, &result);
+            return result;
+        }
+
+        pub fn claimShape(self: *const Self) !frontend.recursion.vm_public_claim.Shape {
+            return if (self.initial_input_admission) |admitted| admitted.claimShape() else try frontend.recursion.vm_public_claim.defaultShape();
+        }
+
         pub fn initOwnedMeasuredWithExecution(
             allocator: std.mem.Allocator,
             input: *input_mod.FreshInputV4(Engine),
@@ -124,20 +187,29 @@ fn PreparedCampaignCaptureV4ForAuthority(
                 input,
             );
 
+            const retained_campaign = try allocator.create(Campaign);
+            errdefer allocator.destroy(retained_campaign);
+            retained_campaign.* = if (@hasDecl(Campaign, "clone"))
+                try campaign_authority.clone(allocator)
+            else
+                campaign_authority.*;
+            errdefer if (@hasDecl(Campaign, "deinit")) retained_campaign.deinit();
+
             var base = try Base.initOwnedMeasuredWithExecution(
                 allocator,
                 input,
                 execution,
                 metrics,
             );
-            errdefer base.deinit();
+            errdefer input.* = base.deinitRetainingInput();
             const capture = &base.input.stage101;
-            var role_aware_io = try role_io.OwnedWitnessV4.initUnfrozenForAudit(
+            var role_aware_io = try role_io.OwnedWitnessV4.initWithCircuitProfile(
                 allocator,
                 &capture.public_data.data,
                 &capture.role_aware_public.value,
                 &capture.relations.base,
-                campaign_authority.provider_geometry.role_io_tuple_capacity,
+                campaign_authority.view().provider_geometry.role_io_tuple_capacity,
+                capture.profile.circuitProfile(),
             );
             errdefer role_aware_io.deinit();
             var schedule = try field_public.OwnedPoseidonScheduleV4.init(
@@ -153,7 +225,7 @@ fn PreparedCampaignCaptureV4ForAuthority(
             var result = Self{
                 .allocator = allocator,
                 .campaign_leaf_index = index_u32,
-                .campaign_authority = campaign_authority,
+                .campaign_authority = retained_campaign,
                 .base = base,
                 .role_aware_io = role_aware_io,
                 .schedule = schedule,
@@ -166,47 +238,59 @@ fn PreparedCampaignCaptureV4ForAuthority(
         }
 
         pub fn deinit(self: *Self) void {
+            var input = self.deinitRetainingInput();
+            input.deinit();
+        }
+
+        pub fn deinitRetainingInput(self: *Self) input_mod.FreshInputV4(Engine) {
+            if (self.program_admission) |admitted| admitted.deinit();
+            if (self.initial_input_admission) |admitted| admitted.deinit();
             self.schedule.deinit();
             self.role_aware_io.deinit();
-            self.base.deinit();
+            const input = self.base.deinitRetainingInput();
+            const campaign = @constCast(self.campaign_authority);
+            if (@hasDecl(Campaign, "deinit")) campaign.deinit();
+            self.allocator.destroy(campaign);
             self.* = undefined;
+            return input;
         }
 
         pub fn validate(self: *const Self) !void {
-            try self.campaign_authority.validateStructure();
             const leaf_index: usize = self.campaign_leaf_index;
-            try self.campaign_authority.validateFreshInputAt(
+            if (self.initial_input_admission) |admitted| {
+                if (self.program_admission == null) return error.EthereumInitialProgramOpeningRequired;
+                try admitted.validateInput(&self.base.input);
+            }
+            if (self.program_admission) |admitted| {
+                try admitted.validateFixedProgramOwner(self.base.input.fixed_program);
+                const root = self.base.input.stage101.role_aware_public.value.program_root orelse return error.EthereumProgramAdmissionRootMismatch;
+                if (admitted.programRoot() != root) return error.EthereumProgramAdmissionRootMismatch;
+            }
+            try self.base.validate();
+            try campaign_mod.validatePreparedInputAt(
                 Engine,
-                self.allocator,
+                self.campaign_authority,
                 leaf_index,
                 &self.base.input,
+                &self.role_aware_io,
+                &self.schedule,
             );
-            try self.base.validate();
             const capture = &self.base.input.stage101;
-            try self.role_aware_io.validateAgainst(
-                &capture.public_data.data,
-                &capture.role_aware_public.value,
-                &capture.relations.base,
-            );
+            if (self.role_aware_io.circuit_profile != capture.profile.circuitProfile()) return error.RoleAwareIoClaimMismatchV4;
             try self.role_aware_io.public_sum_row.validateAgainstVerified(
                 &capture.public_sums,
-            );
-            try self.schedule.validateAgainst(
-                Engine,
-                &self.base.input,
-                &self.role_aware_io,
             );
             const expected_geometry = try self.schedule.liveProviderGeometry();
             if (self.format_version != FORMAT_VERSION or
                 self.schema_version != SCHEMA_VERSION or
-                leaf_index >= self.campaign_authority.active_tuple_counts.len or
+                leaf_index >= self.campaign_authority.view().active_tuple_counts.len or
                 self.role_aware_io.active_tuple_count !=
-                    self.campaign_authority.active_tuple_counts[leaf_index] or
+                    self.campaign_authority.view().active_tuple_counts[leaf_index] or
                 self.role_aware_io.padded_tuple_capacity !=
-                    self.campaign_authority.provider_geometry.role_io_tuple_capacity or
+                    self.campaign_authority.view().provider_geometry.role_io_tuple_capacity or
                 !sharedGeometryEql(
                     expected_geometry,
-                    self.campaign_authority.provider_geometry,
+                    self.campaign_authority.view().provider_geometry,
                 ) or !std.meta.eql(self.provider_geometry, expected_geometry) or
                 !std.mem.eql(
                     u8,
@@ -245,8 +329,14 @@ fn identity(comptime Engine: type, value: anytype) [32]u8 {
     hashInt(&hash, u16, FORMAT_VERSION);
     hashInt(&hash, u16, SCHEMA_VERSION);
     hashInt(&hash, u32, value.campaign_leaf_index);
-    hash.update(&value.campaign_authority.authority_identity_sha256);
+    hash.update(&value.campaign_authority.view().authority_identity_sha256);
     hash.update(&value.base.identity_sha256);
+    hashInt(&hash, u8, @intFromBool(value.program_admission != null));
+    if (value.program_admission) |admitted| hash.update(&admitted.identitySha256());
+    if (value.initial_input_admission) |admitted| {
+        hash.update("initial-input-admission/v1\x00");
+        hash.update(&admitted.identitySha256());
+    }
     hash.update(&value.role_aware_io.identity_sha256);
     hash.update(&value.schedule.identity_sha256);
     hashInt(&hash, u32, value.provider_geometry.role_io_tuple_capacity);
@@ -263,7 +353,7 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 4 or
         PRODUCTION_LEAF_COUNT != 210 or PRODUCTION_ACTIVATION or
         CALLER_AUTHORED_CAPACITY_ADMITTED or
         PER_LEAF_GEOMETRY_IS_PROOF_AUTHORITY or

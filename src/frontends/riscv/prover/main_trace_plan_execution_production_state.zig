@@ -500,6 +500,18 @@ pub fn makeState(comptime Owner: type) type {
             {
                 return error.InvalidProductionTask;
             }
+            if (self.inputs.witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+                const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
+                var destinations = try self.columns(narrow.N_MAIN_COLUMNS, range);
+                if (self.poseidon_work) |work| {
+                    if (work.chunks[chunk_index] != null) return error.DuplicatePoseidonWorkReceipt;
+                }
+                const result = try generators.fillNarrowPoseidonRange(&destinations, self.inputs.witness.poseidonCalls(), self.poseidon_inverse, task.rows orelse return error.InvalidProductionTask, if (self.poseidon_work) |work| &work.authority else null, context);
+                if (result.completed) {
+                    if (self.poseidon_work) |work| work.chunks[chunk_index] = result.receipt orelse return error.PoseidonWorkReceiptNotCaptured;
+                }
+                return result.completed;
+            }
             var destinations = try self.columns(poseidon2_air.N_MAIN_COLUMNS, range);
             if (self.poseidon_work) |work| {
                 if (work.chunks[chunk_index] != null)

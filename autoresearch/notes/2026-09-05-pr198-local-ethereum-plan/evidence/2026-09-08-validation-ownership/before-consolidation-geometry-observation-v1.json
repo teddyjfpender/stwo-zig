@@ -1,0 +1,9 @@
+{
+  "status": "running_observation_not_phase_attribution",
+  "recorded_at": "2026-09-08T06:40:21.008022+00:00",
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "test_pid": 48195,
+  "sample_sha256": "dcb1bc5686cd6bf17c24bbac60d1dc61b84f8eb46c0ba796edf230866f843e68",
+  "observed_stack": "Geometry.init -> Rows10_34.init -> ChildPublic.Storage.validate -> PreparedCampaignCapture.validate -> OwnedPoseidonSchedule.validateAgainst -> RoleIoWitness.validateAgainst -> incremental_public_logup.auditWithCircuitProfile -> field inversions",
+  "limitations": "One second sample with83mainthread samples; not whole-phase allocation/time attribution. Current after-consolidation source is not running yet."
+}

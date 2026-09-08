@@ -192,6 +192,22 @@ test "R-012 recursion transcript claims are append-only and zero-count stable" {
         .public_wire_boundary_count = 0,
     };
     try std.testing.expectEqualDeep(PROFILE, explicit_legacy);
+    var field_profile = explicit_legacy;
+    field_profile.field_public_extra_word_count = 38;
+    const legacy_count = try circuit.recursionInputCount(explicit_legacy);
+    try std.testing.expectEqual(legacy_count + 38, try circuit.recursionInputCount(field_profile));
+    for (0..legacy_count) |index|
+        try std.testing.expectEqualDeep(circuit.expectedRecursionSource(explicit_legacy, index), circuit.expectedRecursionSource(field_profile, index));
+    for (0..38) |index| {
+        const expected: u32 = @intCast(if (index < 6) index else index + 412);
+        const source = circuit.expectedRecursionSource(field_profile, legacy_count + index).?;
+        try std.testing.expectEqualDeep(circuit.RecursionSource{ .field_public_word = expected }, source);
+        try std.testing.expectEqualDeep([2]u32{ 412 + expected, 0 }, circuit.recursionSourceIndices(source));
+    }
+    try std.testing.expect(circuit.expectedRecursionSource(field_profile, legacy_count + 38) == null);
+    try std.testing.expectError(error.InvalidInputSource, circuit.vmInputCount(field_profile));
+    field_profile.field_public_extra_word_count = 37;
+    try std.testing.expectError(error.InvalidInputSource, circuit.recursionInputCount(field_profile));
     try std.testing.expectEqual(
         @as(usize, 424),
         try circuit.recursionInputCount(explicit_legacy),

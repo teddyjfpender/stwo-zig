@@ -13,7 +13,7 @@ const base_receipt = @import("ethereum_poseidon_provider_hpc_receipt_v1.zig");
 const proof_artifact_v1 = @import("ethereum_poseidon_provider_proof_artifact_v1.zig");
 const receipt = @import("ethereum_poseidon_provider_raw_batch_receipt_v2.zig");
 const resource = @import("ethereum_poseidon_provider_resource_plan_v1.zig");
-const resource_usage = @import("resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const support = @import("ethereum_block_leaf_support.zig");
 
 const authority = frontend.testing.narrow_memory_provider_shard_authority;

@@ -1,6 +1,13 @@
 //! Internal fri verifier circuit authority shard; use fri_verifier_circuit.zig publicly.
 
 pub const std = @import("std");
+const builtin = @import("builtin");
+
+// Test-only counts at the shared deep evaluation replay, including calls from
+// mutable and prepared circuit owners. Nodes are attempted audit inventory.
+var evaluation_audit_attempts = std.atomic.Value(u64).init(0);
+var evaluation_audit_completions = std.atomic.Value(u64).init(0);
+var evaluation_audit_nodes = std.atomic.Value(u64).init(0);
 pub const stwo_core = @import("stwo_core");
 pub const M31 = stwo_core.fields.m31.M31;
 pub const m31 = stwo_core.fields.m31;
@@ -138,6 +145,16 @@ pub const Witness = struct {
 };
 
 pub const Circuit = struct {
+    pub const testing = if (builtin.is_test) struct {
+        pub fn snapshot() struct { attempts: u64, completions: u64, nodes: u64 } {
+            return .{
+                .attempts = evaluation_audit_attempts.load(.monotonic),
+                .completions = evaluation_audit_completions.load(.monotonic),
+                .nodes = evaluation_audit_nodes.load(.monotonic),
+            };
+        }
+    } else struct {};
+
     allocator: std.mem.Allocator,
     lifting_log_size: u32,
     log_blowup_factor: u32,
@@ -255,6 +272,10 @@ pub const Circuit = struct {
         self: *const Circuit,
         evaluation: *const Evaluation,
     ) Error!void {
+        if (builtin.is_test) {
+            _ = evaluation_audit_attempts.fetchAdd(1, .monotonic);
+            _ = evaluation_audit_nodes.fetchAdd(self.nodes.len, .monotonic);
+        }
         if (evaluation.values.len != self.nodes.len or
             !std.mem.eql(u8, &evaluation.circuit_identity, &self.identity_digest))
         {
@@ -282,6 +303,7 @@ pub const Circuit = struct {
             if (output >= evaluation.values.len) return error.InvalidGraphOperand;
             if (!evaluation.values[output].isZero()) return error.UnsatisfiedCircuit;
         }
+        if (builtin.is_test) _ = evaluation_audit_completions.fetchAdd(1, .monotonic);
     }
 };
 

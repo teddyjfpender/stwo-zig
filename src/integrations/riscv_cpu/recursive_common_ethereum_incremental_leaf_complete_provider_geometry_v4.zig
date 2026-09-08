@@ -1,4 +1,4 @@
-//! Exact live geometry of the schema-3 role-0 row-34 Poseidon provider.
+//! Exact live geometry of the schema-4 role-0 row-34 Poseidon provider.
 //!
 //! Campaign geometry fixes only the field-publication subrange.  This receipt
 //! seals all three authenticated ranges from the completed native verifier
@@ -10,10 +10,10 @@ const frontend = @import("stwo_riscv_frontend");
 const shared = frontend.recursion.segment_shared_poseidon_schedule_v2;
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 5;
 
 const IDENTITY_DOMAIN =
-    "stwo-zig/common-ethereum-incremental-complete-provider-geometry/v4-schema3\x00";
+    "stwo-zig/common-ethereum-incremental-complete-provider-geometry/v4-schema5\x00";
 
 pub const Error = shared.Error || error{
     ArithmeticOverflow,
@@ -25,24 +25,21 @@ pub const Error = shared.Error || error{
 /// ranges; this role-specific receipt prevents the row-34 wrapper from
 /// silently treating its field-publication suffix as the whole middle range.
 pub const StatementAuthorityCallCountsV4 = struct {
-    child_claim_hash: u32,
     child_io_hash: u32,
     field_publication: u32,
+    native_identity_hash: u32 = 0,
 
     pub fn total(self: StatementAuthorityCallCountsV4) Error!u32 {
-        return std.math.add(
+        const publication_count = std.math.add(
             u32,
-            std.math.add(
-                u32,
-                self.child_claim_hash,
-                self.child_io_hash,
-            ) catch return error.ArithmeticOverflow,
+            self.child_io_hash,
             self.field_publication,
         ) catch return error.ArithmeticOverflow;
+        return std.math.add(u32, publication_count, self.native_identity_hash) catch return error.ArithmeticOverflow;
     }
 
     pub fn validate(self: StatementAuthorityCallCountsV4) Error!void {
-        if (self.child_claim_hash == 0 or self.child_io_hash == 0 or
+        if (self.child_io_hash == 0 or
             self.field_publication == 0)
         {
             return error.EthereumIncrementalCompleteProviderGeometryMismatchV4;
@@ -57,9 +54,9 @@ pub const CompleteProviderGeometryV4 = struct {
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
     stage101_transcript_call_count: u32,
-    child_claim_hash_call_count: u32,
     child_io_hash_call_count: u32,
     field_publication_call_count: u32,
+    native_identity_hash_call_count: u32 = 0,
     verifier_core_call_count: u32,
     total_call_count: u32,
     provider_log_size: u32,
@@ -85,9 +82,9 @@ pub const CompleteProviderGeometryV4 = struct {
         }
         var result = CompleteProviderGeometryV4{
             .stage101_transcript_call_count = try countU32(layout.transcript),
-            .child_claim_hash_call_count = statement_authority.child_claim_hash,
             .child_io_hash_call_count = statement_authority.child_io_hash,
             .field_publication_call_count = statement_authority.field_publication,
+            .native_identity_hash_call_count = statement_authority.native_identity_hash,
             .verifier_core_call_count = try countU32(layout.verifier_core),
             .total_call_count = layout.total_call_count,
             .provider_log_size = provider_log_size,
@@ -103,9 +100,9 @@ pub const CompleteProviderGeometryV4 = struct {
 
     pub fn validate(self: CompleteProviderGeometryV4) Error!void {
         const statement_authority = StatementAuthorityCallCountsV4{
-            .child_claim_hash = self.child_claim_hash_call_count,
             .child_io_hash = self.child_io_hash_call_count,
             .field_publication = self.field_publication_call_count,
+            .native_identity_hash = self.native_identity_hash_call_count,
         };
         try statement_authority.validate();
         const boundary_count = std.math.add(
@@ -162,9 +159,9 @@ fn identity(value: CompleteProviderGeometryV4) [32]u8 {
     hashInt(&hash, u16, value.format_version);
     hashInt(&hash, u16, value.schema_version);
     hashInt(&hash, u32, value.stage101_transcript_call_count);
-    hashInt(&hash, u32, value.child_claim_hash_call_count);
     hashInt(&hash, u32, value.child_io_hash_call_count);
     hashInt(&hash, u32, value.field_publication_call_count);
+    hashInt(&hash, u32, value.native_identity_hash_call_count);
     hashInt(&hash, u32, value.verifier_core_call_count);
     hashInt(&hash, u32, value.total_call_count);
     hashInt(&hash, u32, value.provider_log_size);
@@ -181,6 +178,6 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3)
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 5)
         @compileError("complete provider geometry V4 drifted");
 }

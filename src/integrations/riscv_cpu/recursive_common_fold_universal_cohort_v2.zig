@@ -80,8 +80,8 @@ pub const CohortV2 = struct {
         children: [CHILD_COUNT]FreshFoldChildV2,
         geometry: *const manifest_mod.AuthorityV2,
     ) !CohortV2 {
-        const left = try children[0].projection(&geometry.registry);
-        const right = try children[1].projection(&geometry.registry);
+        const left = try children[0].projection(geometry.registry);
+        const right = try children[1].projection(geometry.registry);
         const public_schedule = try field_public.PoseidonScheduleV2.build(
             left.wrapper.nodePublic(),
             right.wrapper.nodePublic(),
@@ -113,7 +113,7 @@ pub const CohortV2 = struct {
             expected,
             index,
         | {
-            const projection = try child.projection(&self.geometry.registry);
+            const projection = try child.projection(self.geometry.registry);
             if (projection.wrapper.artifact != expected.artifact or
                 projection.wrapper.geometry != expected.geometry or
                 projection.wrapper.capture != expected.capture or
@@ -128,8 +128,8 @@ pub const CohortV2 = struct {
                     self.input.child_refs[index],
                 )) return error.CommonFoldChildCustodyMismatch;
         }
-        const left = try self.children[0].projection(&self.geometry.registry);
-        const right = try self.children[1].projection(&self.geometry.registry);
+        const left = try self.children[0].projection(self.geometry.registry);
+        const right = try self.children[1].projection(self.geometry.registry);
         if (left.graph.lane.graph.nodes.ptr ==
             right.graph.lane.graph.nodes.ptr or
             left.graph.evaluation.values.ptr ==
@@ -164,7 +164,7 @@ pub const CohortV2 = struct {
         var result: [CHILD_COUNT]rows_source.AuthenticatedCompositionLane =
             undefined;
         for (self.children, &result, 0..) |child, *destination, index| {
-            const projection = try child.projection(&self.geometry.registry);
+            const projection = try child.projection(self.geometry.registry);
             destination.* = .{
                 .circuit_id = if (index == 0)
                     LEFT_POSITION_CIRCUIT_ID
@@ -187,10 +187,10 @@ pub const CohortV2 = struct {
     ) !CapturedFriPairV2 {
         try self.validate();
         const left_projection = try self.children[0].projection(
-            &self.geometry.registry,
+            self.geometry.registry,
         );
         const right_projection = try self.children[1].projection(
-            &self.geometry.registry,
+            self.geometry.registry,
         );
         var left = try captured_fri.Owned.init(
             allocator,
@@ -250,7 +250,7 @@ fn authorityIdentity(value: *const CohortV2) ![32]u8 {
     hash.update(&value.input.identity_sha256);
     hash.update(&value.geometry.identity_sha256);
     for (value.children) |child| {
-        const projection = try child.projection(&value.geometry.registry);
+        const projection = try child.projection(value.geometry.registry);
         hashInt(&hash, u8, @intFromEnum(projection.role));
         hash.update(projection.graph.capture_identity_sha256);
         hash.update(projection.graph.layout_identity_sha256);

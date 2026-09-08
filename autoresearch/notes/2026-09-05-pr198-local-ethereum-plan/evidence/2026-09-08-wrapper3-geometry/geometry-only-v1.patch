@@ -1,0 +1,161 @@
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -1370,6 +1370,14 @@
+         "role0 saved Stage101 label input commitment is rejected",
+         "role0 saved Stage101 pair replays recursive wrapper",
+     };
++    const geometry_preflight_names: []const []const u8 = &.{
++        "role0 saved Stage101 pair checks wrapper geometry against pinned child key",
++        "Ethereum wrapper geometry gate rejects every incompatible wire dimension",
++    };
++    const geometry_preflight = b.addTest(.{ .root_module = incremental_leaf_universal_genuine_compile_root, .filters = geometry_preflight_names });
++    const geometry_preflight_run = b.addRunArtifact(geometry_preflight);
++    geometry_preflight_run.has_side_effects = true;
++    b.step("test-ethereum-wrapper-geometry", "Compare a retained wrapper candidate against an independently pinned child key before AIR row scans, ledger or PCS").dependOn(support.ProofTestGuard.add(b, geometry_preflight_run, geometry_preflight_names, "Ethereum wrapper geometry compatibility guard"));
+     const air_preflight_names: []const []const u8 = &.{"role0 saved Stage101 pair checks typed AIR parameters before PCS"};
+     const claim_replay_names: []const []const u8 = &.{"Ethereum retained real claim isolates snapshot and continuation semantics"};
+     const claim_replay = b.addTest(.{ .root_module = incremental_leaf_universal_genuine_compile_root, .filters = claim_replay_names });
+--- a/src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig
++++ b/src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig
+@@ -161,6 +161,30 @@
+     }
+ };
+ 
++const WireDimensions = frontend.recursion.fixed_wire.Dimensions;
++
++fn reportWireDimensions(materialized: anytype, manifest: *const manifest_mod.Manifest) !WireDimensions {
++    const dimensions = try @import("ethereum_wrapper_child_shape_v1.zig").dimensionsForManifest(manifest);
++    std.debug.print("ETHEREUM_WRAPPER_WIRE_DIMENSIONS global_segment={d} dimensions={any} proof_verified=false\n", .{ materialized.base.input.coordinate.index, dimensions });
++    return dimensions;
++}
++
++pub fn requireMatchingWireDimensions(expected: WireDimensions, actual: WireDimensions) !void {
++    if (!std.meta.eql(expected, actual)) return error.EthereumWrapperWireGeometryMismatch;
++}
++
++/// Checks a candidate against independently admitted child geometry without
++/// additional AIR row scans, a tuple ledger, or PCS storage. The shared geometry
++/// owner still allocates its authenticated plan and witness backing.
++pub fn geometryOnly(comptime Engine: type, allocator: std.mem.Allocator, materialized: anytype, expected: WireDimensions) !void {
++    const Geometry = @import("recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig").OwnerV4(Engine);
++    var geometry = try Geometry.init(allocator, materialized);
++    defer geometry.deinit();
++    const actual = try reportWireDimensions(materialized, try geometry.manifest());
++    try requireMatchingWireDimensions(expected, actual);
++    std.debug.print("ETHEREUM_WRAPPER_GEOMETRY_COMPATIBILITY global_segment={d} compatible=true row_audit=false ledger=false pcs=false proof_verified=false\n", .{materialized.base.input.coordinate.index});
++}
++
+ /// Reconstructs only geometry and the prefix/suffix row owners. Constructors
+ /// check their direct roots; this scan additionally compares every omitted
+ /// parameter tail with the exact constants selected by their typed adapter.
+@@ -173,8 +197,7 @@
+     var geometry = try Geometry.init(allocator, materialized);
+     defer geometry.deinit();
+     const manifest = try geometry.manifest();
+-    const dimensions = try @import("ethereum_wrapper_child_shape_v1.zig").dimensionsForManifest(manifest);
+-    std.debug.print("ETHEREUM_WRAPPER_WIRE_DIMENSIONS global_segment={d} dimensions={any} proof_verified=false\n", .{ materialized.base.input.coordinate.index, dimensions });
++    _ = try reportWireDimensions(materialized, manifest);
+     var prefix_components = try PrefixComponents.init(allocator, try geometry.transcriptRows(), manifest);
+     defer prefix_components.deinit();
+     var prefix = try Prefix.init(allocator, &prefix_components, manifest);
+@@ -223,3 +246,24 @@
+     rows[1][2] = M31.zero();
+     try std.testing.expectError(error.NonuniformTypedAirParameter, checkParameters(Tiny, &rows, &.{M31.one()}));
+ }
++
++test "Ethereum wrapper geometry gate rejects every incompatible wire dimension" {
++    const expected = WireDimensions{
++        .commitment_count = 4,
++        .claimed_sum_count = 36,
++        .sampled_value_count = 2453,
++        .queried_value_count = 444865,
++        .trace_path_count = 772,
++        .fri_layer_count = 6,
++        .query_count = 193,
++        .maximum_fold_width = 16,
++        .last_layer_coefficient_count = 1,
++        .maximum_merkle_depth = 25,
++    };
++    try requireMatchingWireDimensions(expected, expected);
++    inline for (std.meta.fields(WireDimensions)) |field| {
++        var changed = expected;
++        @field(changed, field.name) += 1;
++        try std.testing.expectError(error.EthereumWrapperWireGeometryMismatch, requireMatchingWireDimensions(expected, changed));
++    }
++}
+--- a/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig
++++ b/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig
+@@ -41,7 +41,7 @@
+ const Proof = proof_mod.Types(Engine);
+ const Sha256 = std.crypto.hash.sha2.Sha256;
+ const STAGE101_FIXTURE_HOST_BYTE_BUDGET: usize = 8 * 1024 * 1024 * 1024;
+-const WrapperMode = enum { prove, materialize, closure, reconstruct, air_preflight, failed_replay, candidate_replay, allocator_probe, tree0_compare };
++const WrapperMode = enum { prove, materialize, closure, reconstruct, air_preflight, geometry_preflight, failed_replay, candidate_replay, allocator_probe, tree0_compare };
+ const Stage = enum {
+     stage101_build,
+     first_cold_open,
+@@ -228,6 +228,26 @@
+     return parsed.value;
+ }
+ 
++// The comparison authority is a separately pinned ordinary child key, never
++// a dimension vector copied from the candidate being inspected.
++fn expectedWrapperGeometry(allocator: std.mem.Allocator) !frontend.recursion.fixed_wire.Dimensions {
++    const path = try std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY");
++    defer allocator.free(path);
++    const pin = try std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY_SHA256");
++    defer allocator.free(pin);
++    if (pin.len != 64) return error.InvalidEthereumGeometryKeyPin;
++    var digest: [32]u8 = undefined;
++    _ = try std.fmt.hexToBytes(&digest, pin);
++    const bytes = try @import("ethereum_precompile_artifact_io.zig").readFileBounded(allocator, path, 64 * 1024 * 1024);
++    defer allocator.free(bytes);
++    const key = try @import("ethereum_wrapper_root_command_v1.zig").OwnedKeyV1.admit(allocator, bytes, digest);
++    defer key.deinit();
++    const shape = try @import("ethereum_wrapper_child_shape_v1.zig").OwnedV1.create(allocator, key.key());
++    defer shape.deinit();
++    std.debug.print("ETHEREUM_WRAPPER_GEOMETRY_EXPECTED key_sha256={s} dimensions={any} key_admitted=true proof_verified=false\n", .{ pin, shape.wireDimensions() });
++    return shape.wireDimensions();
++}
++
+ fn runWrapper(
+     comptime mode: WrapperMode,
+     allocator: std.mem.Allocator,
+@@ -240,6 +260,7 @@
+     total_usage: *runtime_mod.PhaseUsageMeasurementV4,
+     stage: *Stage,
+ ) !void {
++    const expected_geometry = if (mode == .geometry_preflight) try expectedWrapperGeometry(allocator) else undefined;
+     errdefer {
+         std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed\n", .{});
+         finishAndPrintPhase(total_usage, .total, worker_policy) catch |err|
+@@ -349,12 +370,16 @@
+         try finishAndPrintPhase(total_usage, .total, worker_policy);
+         return;
+     }
+-    if (mode == .air_preflight) {
++    if (mode == .air_preflight or mode == .geometry_preflight) {
+         stage.* = .cohort;
+         var admission_scope: @import("ethereum_native_verification_scope_v1.zig").ScopeV1 = undefined;
+         try admission_scope.initInPlace(worker_policy.worker_count);
+         defer admission_scope.deinit();
+-        try @import("ethereum_typed_air_preflight_v4.zig").audit(Engine, runtime_allocator, &materialized);
++        const preflight = @import("ethereum_typed_air_preflight_v4.zig");
++        if (mode == .geometry_preflight)
++            try preflight.geometryOnly(Engine, runtime_allocator, &materialized, expected_geometry)
++        else
++            try preflight.audit(Engine, runtime_allocator, &materialized);
+         try finishAndPrintPhase(total_usage, .total, worker_policy);
+         return;
+     }
+@@ -1287,6 +1312,10 @@
+     try replaySavedPair(.candidate_replay);
+ }
+ 
++test "role0 saved Stage101 pair checks wrapper geometry against pinned child key" {
++    try replaySavedPair(.geometry_preflight);
++}
++
+ test "role0 saved Stage101 pair checks typed AIR parameters before PCS" {
+     try replaySavedPair(.air_preflight);
+ }

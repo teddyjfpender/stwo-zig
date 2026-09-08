@@ -1,0 +1,15 @@
+{
+  "utc": "2026-09-08T10:19:48.037424+00:00",
+  "test_pid": 58861,
+  "source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+  "request_sha256": "d7d1a1ca8d7e0600a860fff932c3e3885df058403f5a95ac81fc4617e19da117",
+  "sample_sha256": "8300887cd66b00fdfc2686839871e46c8960032ef1877779aa81cbf0a76acc0b",
+  "finding": "Live sequential quotient evaluator reached native qm31_mul_full, after transcript payload component where v11 was killed. This establishes progress beyond that failing stage, not complete proof acceptance.",
+  "order_evidence": [
+    "src/prover/air/component_prover.zig:753 sequential component iteration",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig:142 prefix before suffix and native",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig:165 transcript payload in prefix",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_00.zig:62 native multiplication uses qm31_mul_full"
+  ],
+  "proof_accepted": false
+}

@@ -1,0 +1,13 @@
+{
+  "status": "completed",
+  "pid": 58710,
+  "started_at": "2026-09-08T09:38:46.951140+00:00",
+  "source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+  "request_sha256": "d7d1a1ca8d7e0600a860fff932c3e3885df058403f5a95ac81fc4617e19da117",
+  "validated_source_files": 5780,
+  "validated_inputs_and_verifier": 8,
+  "child_pid": 58711,
+  "exit_code": 0,
+  "wall_seconds": 6484.284633541945,
+  "finished_at": "2026-09-08T11:26:51.289325+00:00"
+}

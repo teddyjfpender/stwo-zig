@@ -16,7 +16,7 @@ const secure_artifact =
     @import("recursive_temporal_secure_parent_artifact_v1.zig");
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 4;
 pub const ROLE = registry_mod.CircuitRoleV4
     .ethereum_incremental_leaf_wrapper_v4;
 pub const PRODUCTION_ACTIVATION = false;
@@ -63,13 +63,6 @@ pub fn geometryFromCold(
         capture.column_log_sizes[3],
         pcs.fri_log_blowup_factor,
     );
-    const composition_columns = stwo_core.verifier_types
-        .compositionColumnCount(
-        stwo_core.verifier_types.COMPOSITION_LOG_SPLIT,
-        stwo_core.fields.qm31.SECURE_EXTENSION_DEGREE,
-    ) orelse return error.InvalidEthereumIncrementalColdGeometryV4;
-    if (capture.column_log_sizes[3].len != composition_columns)
-        return error.InvalidEthereumIncrementalColdGeometryV4;
 
     const table_layout = try cohort.tableLayoutIdentity();
     const proof_shape = try registry_mod.sealProofShapeFromCapture(
@@ -81,14 +74,14 @@ pub fn geometryFromCold(
     var active = [_]u8{0} ** registry_mod.MAX_COMPONENT_COUNT;
     var padded = [_]u8{0} ** registry_mod.MAX_COMPONENT_COUNT;
     var maximum_log_size: u8 = 0;
-    if (cohort.padding_target) |target| {
+    if (cohort.paddingTarget()) |target| {
         const active_logs = try target.activeLogsForRole(ROLE);
         const padded_logs = try target.paddedLogs();
         active = active_logs;
         padded = padded_logs;
         maximum_log_size = target.target.target_trace_log_size;
     } else {
-        for (cohort.log_sizes, 0..) |log_size, index| {
+        for (cohort.logSizes(), 0..) |log_size, index| {
             const compact = std.math.cast(u8, log_size) orelse
                 return error.InvalidEthereumIncrementalColdGeometryV4;
             active[index] = compact;
@@ -121,7 +114,7 @@ pub fn geometryFromCold(
         .proof_shape = proof_shape,
         .authority_identity_sha256 = undefined,
     });
-    if (cohort.padding_target) |target|
+    if (cohort.paddingTarget()) |target|
         try target.validateRemintedGeometry(ROLE, &result);
     return result;
 }
@@ -188,7 +181,11 @@ fn columnDegreeFromCapture(
     composition_logs: anytype,
     blowup: u32,
 ) !u8 {
-    if (composition_logs.len == 0)
+    const expected_columns = stwo_core.verifier_types.compositionColumnCount(
+        @import("ethereum_wrapper_composition_v1.zig").LOG_SPLIT,
+        stwo_core.fields.qm31.SECURE_EXTENSION_DEGREE,
+    ) orelse return error.InvalidEthereumIncrementalColdGeometryV4;
+    if (composition_logs.len != expected_columns)
         return error.InvalidEthereumIncrementalColdGeometryV4;
     const extended = composition_logs[0];
     for (composition_logs[1..]) |log_size|
@@ -201,10 +198,20 @@ fn columnDegreeFromCapture(
 }
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 4 or
         @intFromEnum(ROLE) != 0 or PRODUCTION_ACTIVATION or
         !CAPTURE_DERIVED_ONLY)
     {
         @compileError("role-0 cold geometry V4 drifted");
     }
+}
+
+test "Ethereum cold geometry requires admitted split two composition columns" {
+    var logs = [_]u32{5} ** 16;
+    try std.testing.expectEqual(@as(u8, 4), try columnDegreeFromCapture(&logs, 1));
+    try std.testing.expectError(error.InvalidEthereumIncrementalColdGeometryV4, columnDegreeFromCapture(logs[0..8], 1));
+    logs[15] = 6;
+    try std.testing.expectError(error.InvalidEthereumIncrementalColdGeometryV4, columnDegreeFromCapture(&logs, 1));
+    @memset(&logs, 0);
+    try std.testing.expectError(error.InvalidEthereumIncrementalColdGeometryV4, columnDegreeFromCapture(&logs, 1));
 }

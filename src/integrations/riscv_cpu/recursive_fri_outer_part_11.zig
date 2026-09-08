@@ -81,11 +81,11 @@ pub fn Namespace(comptime context: type) type {
         pub fn initAuthority(
             allocator: std.mem.Allocator,
             circuit: *const circuit_mod.Circuit,
-            pcs_circuit: *const pcs_circuit_mod.Circuit,
+            pcs_circuit: *const pcs_circuit_mod.Prepared,
             trace_tree_heights: []const u32,
             column_log_sizes: []const []const u32,
             schedule_facts: ScheduleFacts,
-            vm_air_prepared: ?*const recursion.vm_air_composition_circuit.Prepared,
+            vm_air_prepared: ?recursion.vm_composition_preparation.Source,
             verifier_plans: ?VerifierPlans,
             segment_transcript_inputs: ?SegmentTranscriptInputs,
             public_native_sum_lane: ?lowering.Lane,
@@ -104,6 +104,7 @@ pub fn Namespace(comptime context: type) type {
                 public_native_sum_lane,
                 authenticated_poseidon_prefix_count,
                 null,
+                null,
             );
         }
 
@@ -113,17 +114,19 @@ pub fn Namespace(comptime context: type) type {
         pub fn initAuthorityForLogSizes(
             allocator: std.mem.Allocator,
             circuit: *const circuit_mod.Circuit,
-            pcs_circuit: *const pcs_circuit_mod.Circuit,
+            pcs_circuit: *const pcs_circuit_mod.Prepared,
             trace_tree_heights: []const u32,
             column_log_sizes: []const []const u32,
             schedule_facts: ScheduleFacts,
-            vm_air_prepared: ?*const recursion.vm_air_composition_circuit.Prepared,
+            vm_air_prepared: ?recursion.vm_composition_preparation.Source,
             verifier_plans: ?VerifierPlans,
             segment_transcript_inputs: ?SegmentTranscriptInputs,
             public_native_sum_lane: ?lowering.Lane,
             authenticated_poseidon_prefix_count: usize,
             requested_log_sizes: ?[LogIndex.count]u32,
+            statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
         ) !Authority {
+            if (statement_arithmetic != null and (public_native_sum_lane == null or segment_transcript_inputs != null)) return error.AuthorityMismatch;
             try circuit.validate();
             try pcs_circuit.validate();
             if ((vm_air_prepared != null) != (verifier_plans != null) or
@@ -386,21 +389,21 @@ pub fn Namespace(comptime context: type) type {
                     .circuit_id = PCS_SEGMENT_CIRCUIT_ID,
                     .profile = pcs_lane_profile,
                     .graph = pcs_circuit.graph(),
-                    .bindings = pcs_circuit.bindings,
+                    .bindings = pcs_circuit.view().bindings,
                 },
                 .{
                     .verifier_id = pcs_witness.LEFT_RECURSION_VERIFIER_ID,
                     .circuit_id = PCS_LEFT_CIRCUIT_ID,
                     .profile = pcs_lane_profile,
                     .graph = pcs_circuit.graph(),
-                    .bindings = pcs_circuit.bindings,
+                    .bindings = pcs_circuit.view().bindings,
                 },
                 .{
                     .verifier_id = pcs_witness.RIGHT_RECURSION_VERIFIER_ID,
                     .circuit_id = PCS_RIGHT_CIRCUIT_ID,
                     .profile = pcs_lane_profile,
                     .graph = pcs_circuit.graph(),
-                    .bindings = pcs_circuit.bindings,
+                    .bindings = pcs_circuit.view().bindings,
                 },
             };
             const pcs_reference = try pcs_witness.Reference.authenticate(
@@ -446,7 +449,8 @@ pub fn Namespace(comptime context: type) type {
                 lowering.Lane,
                 3 + @as(usize, @intFromBool(vm_air != null)) +
                     @as(usize, @intFromBool(public_native_sum_lane != null)) +
-                    3 * @as(usize, @intFromBool(segment_transcript_inputs != null)),
+                    3 * @as(usize, @intFromBool(segment_transcript_inputs != null)) +
+                    2 * @as(usize, @intFromBool(statement_arithmetic != null)),
             );
             errdefer allocator.free(arithmetic_lanes);
             var arithmetic_cursor: usize = 0;
@@ -454,14 +458,19 @@ pub fn Namespace(comptime context: type) type {
                 arithmetic_lanes[arithmetic_cursor] = .{
                     .circuit_id = recursion.vm_air_composition_circuit.CIRCUIT_ID,
                     .active_in = .segment,
-                    .circuit_identity = authority.prepared.circuit.identity_digest,
-                    .graph = authority.prepared.circuit.graph(),
+                    .circuit_identity = authority.prepared.view().circuit.identity_digest,
+                    .graph = authority.prepared.view().circuit.graph(),
                 };
                 arithmetic_cursor += 1;
             }
             if (public_native_sum_lane) |lane| {
                 arithmetic_lanes[arithmetic_cursor] = lane;
                 arithmetic_cursor += 1;
+            }
+            if (statement_arithmetic) |prepared| {
+                const lanes = prepared.lanes();
+                @memcpy(arithmetic_lanes[arithmetic_cursor..][0..lanes.len], &lanes);
+                arithmetic_cursor += lanes.len;
             }
             if (segment_transcript_inputs != null) {
                 const bundle = admitted_segment_leaf_bundle.?;
@@ -475,7 +484,7 @@ pub fn Namespace(comptime context: type) type {
             arithmetic_lanes[arithmetic_cursor] = .{
                 .circuit_id = PCS_SEGMENT_CIRCUIT_ID,
                 .active_in = .segment,
-                .circuit_identity = pcs_circuit.identity_digest,
+                .circuit_identity = pcs_circuit.view().identity_digest,
                 .graph = pcs_circuit.graph(),
             };
             arithmetic_cursor += 1;
@@ -490,8 +499,8 @@ pub fn Namespace(comptime context: type) type {
                 arithmetic_lanes[arithmetic_cursor] = .{
                     .circuit_id = VM_BINARY_CAPACITY_CIRCUIT_ID,
                     .active_in = .binary,
-                    .circuit_identity = authority.prepared.circuit.identity_digest,
-                    .graph = authority.prepared.circuit.graph(),
+                    .circuit_identity = authority.prepared.view().circuit.identity_digest,
+                    .graph = authority.prepared.view().circuit.graph(),
                 };
             } else {
                 arithmetic_lanes[arithmetic_cursor] = .{
@@ -694,7 +703,7 @@ pub fn Namespace(comptime context: type) type {
             const poseidon2_row_count: u32 = @intCast(poseidon2_row_count_usize);
 
             const active_log_sizes = [LogIndex.count]u32{
-                if (vm_air) |authority| authority.prepared.preprocessing.log_size else 0,
+                if (vm_air) |authority| authority.prepared.view().preprocessing.log_size else 0,
                 composition_control_preprocessing.log_size,
                 query_bits_preprocessing.log_size,
                 query_mapping_preprocessing.log_size,
@@ -763,6 +772,7 @@ pub fn Namespace(comptime context: type) type {
                 .lowering_plan = lowering_plan,
                 .vm_air = vm_air,
                 .public_native_sum_lane = public_native_sum_lane,
+                .statement_arithmetic = statement_arithmetic,
                 .segment_transcript_inputs = segment_transcript_inputs,
                 .segment_transcript = segment_transcript,
                 .segment_leaf_admission = if (segment_transcript_inputs) |inputs|

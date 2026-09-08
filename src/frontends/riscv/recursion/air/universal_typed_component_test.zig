@@ -634,3 +634,256 @@ test "R-012 generic adapter verifier point path consumes manifest offsets" {
     );
     try std.testing.expect(accumulator.finalize().isZero());
 }
+
+test "Ethereum typed quotient domains reject recovery larger than quotient buffer" {
+    const helpers = @import("universal_typed_component_contract.zig");
+    const circle_poly = @import("stwo_prover_engine").poly.circle;
+    const trace_log: u32 = 4;
+    const committed_log: u32 = trace_log + 4;
+    const quotient_log: u32 = trace_log + 2;
+    const committed = [_]M31{M31.zero()} ** (1 << committed_log);
+    const coefficients = [_]M31{M31.zero()} ** (1 << trace_log);
+    var poly = prover_component.Poly{ .log_size = committed_log, .values = &committed };
+    try std.testing.expectError(error.InvalidProofShape, helpers.sourceNeedsExtension(poly, trace_log, quotient_log));
+    poly.coefficients = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
+    try std.testing.expect(try helpers.sourceNeedsExtension(poly, trace_log, quotient_log));
+    try std.testing.expect(!try helpers.sourceNeedsExtension(poly, trace_log, committed_log));
+    try std.testing.expectError(error.InvalidProofShape, helpers.sourceNeedsExtension(poly, trace_log + 1, quotient_log));
+}
+
+test "Ethereum typed quotient domains recover released coefficients with exact polynomial parity" {
+    const helpers = @import("universal_typed_component_contract.zig");
+    const circle_poly = @import("stwo_prover_engine").poly.circle;
+    const twiddles_mod = @import("stwo_prover_engine").poly.twiddles;
+    const allocator = std.testing.allocator;
+    for ([_]u32{ 2, 4, 6, 7, 8 }) |trace_log| {
+        const source_domain = helpers.canonic.CanonicCoset.new(trace_log + 1).circleDomain();
+        const quotient_domain = helpers.canonic.CanonicCoset.new(trace_log + 2).circleDomain();
+        const native_size = @as(usize, 1) << @intCast(trace_log);
+        const coefficients = try allocator.alloc(M31, native_size);
+        defer allocator.free(coefficients);
+        for (coefficients, 0..) |*coefficient, index|
+            coefficient.* = M31.fromCanonical(@intCast(index * index + 3 * index + 7));
+        const polynomial = try circle_poly.CircleCoefficients.initBorrowed(coefficients);
+        const committed = try polynomial.evaluate(allocator, source_domain);
+        defer allocator.free(@constCast(committed.values));
+        const original_committed = try allocator.dupe(M31, committed.values);
+        defer allocator.free(original_committed);
+        const expected = try polynomial.evaluate(allocator, quotient_domain);
+        defer allocator.free(@constCast(expected.values));
+        var empty_buffers: [0][]M31 = .{};
+        var borrowed_count: usize = 0;
+        const borrowed = try helpers.evaluationValues(
+            allocator,
+            .{ .log_size = trace_log + 1, .values = committed.values },
+            trace_log,
+            trace_log + 1,
+            source_domain.size(),
+            null,
+            &empty_buffers,
+            &borrowed_count,
+        );
+        try std.testing.expect(borrowed.ptr == committed.values.ptr);
+        try std.testing.expectEqual(@as(usize, 0), borrowed_count);
+        var twiddles = try twiddles_mod.precomputeM31(allocator, quotient_domain.half_coset);
+        defer twiddles_mod.deinitM31(allocator, &twiddles);
+        const transform = twiddles_mod.TwiddleTree([]const M31).init(
+            twiddles.root_coset,
+            twiddles.twiddles,
+            twiddles.itwiddles,
+        );
+        for ([_]bool{ false, true }) |retained| {
+            const source = prover_component.Poly{
+                .log_size = trace_log + 1,
+                .values = committed.values,
+                .coefficients = if (retained) polynomial else null,
+            };
+            try std.testing.expect(try helpers.sourceNeedsExtension(source, trace_log, trace_log + 2));
+            var buffers: [1][]M31 = undefined;
+            var initialized: usize = 0;
+            defer for (buffers[0..initialized]) |buffer| allocator.free(buffer);
+            const values = helpers.evaluationValues(
+                allocator,
+                source,
+                trace_log,
+                trace_log + 2,
+                quotient_domain.size(),
+                transform,
+                &buffers,
+                &initialized,
+            ) catch |err| {
+                std.debug.print("QUOTIENT_RECOVERY_PARITY trace_log={d} retained={} source_log={d} quotient_log={d} tower_matches={} error={s}\n", .{
+                    trace_log,                                                   retained,        source.log_size, quotient_domain.logSize(),
+                    source_domain.half_coset.isDoublingOf(transform.root_coset), @errorName(err),
+                });
+                var recovered = try circle_poly.poly.interpolateFromEvaluationWithTwiddles(
+                    allocator,
+                    committed,
+                    transform,
+                );
+                defer recovered.deinit(allocator);
+                for (recovered.coefficients(), 0..) |actual, index| {
+                    const want = if (index < coefficients.len) coefficients[index] else M31.zero();
+                    if (!actual.eql(want)) {
+                        std.debug.print("QUOTIENT_RECOVERY_COEFFICIENT index={d} actual={d} expected={d}\n", .{ index, actual.v, want.v });
+                        break;
+                    }
+                }
+                return err;
+            };
+            try std.testing.expectEqual(@as(usize, 1), initialized);
+            try std.testing.expect(values.ptr == buffers[0].ptr);
+            try std.testing.expectEqualSlices(M31, coefficients, values[0..native_size]);
+            for (values[native_size..]) |coefficient| try std.testing.expect(coefficient.isZero());
+            try circle_poly.poly.evaluateBuffersWithTwiddles(&buffers, quotient_domain, transform);
+            try std.testing.expectEqualSlices(M31, expected.values, values);
+            try std.testing.expectEqualSlices(M31, original_committed, committed.values);
+        }
+    }
+}
+
+test "Ethereum typed quotient domains reject recovered high degree before truncation" {
+    const helpers = @import("universal_typed_component_contract.zig");
+    const circle_poly = @import("stwo_prover_engine").poly.circle;
+    const twiddles_mod = @import("stwo_prover_engine").poly.twiddles;
+    const allocator = std.testing.allocator;
+    const trace_log: u32 = 4;
+    const source_domain = helpers.canonic.CanonicCoset.new(trace_log + 1).circleDomain();
+    const quotient_domain = helpers.canonic.CanonicCoset.new(trace_log + 2).circleDomain();
+    var coefficients = [_]M31{M31.zero()} ** 32;
+    coefficients[0] = M31.one();
+    coefficients[16] = M31.one();
+    const polynomial = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
+    const committed = try polynomial.evaluate(allocator, source_domain);
+    defer allocator.free(@constCast(committed.values));
+    const source = prover_component.Poly{ .log_size = trace_log + 1, .values = committed.values };
+    var twiddles = try twiddles_mod.precomputeM31(allocator, quotient_domain.half_coset);
+    defer twiddles_mod.deinitM31(allocator, &twiddles);
+    var buffers: [1][]M31 = undefined;
+    var initialized: usize = 0;
+    defer for (buffers[0..initialized]) |buffer| allocator.free(buffer);
+    try std.testing.expectError(error.InvalidProofShape, helpers.evaluationValues(
+        allocator,
+        source,
+        trace_log,
+        trace_log + 2,
+        quotient_domain.size(),
+        .{ .root_coset = twiddles.root_coset, .twiddles = twiddles.twiddles, .itwiddles = twiddles.itwiddles },
+        &buffers,
+        &initialized,
+    ));
+    try std.testing.expectEqual(@as(usize, 0), initialized);
+    try std.testing.expectError(error.InvalidProofShape, helpers.sourceNeedsExtension(source, trace_log + 2, trace_log + 3));
+}
+
+const RawQuotientAir = @import("ethereum_transcript_payload_raw_v1.zig");
+const RawQuotientAdapter = adapter.Component(RawQuotientAir, RawQuotientAir.Relation);
+
+fn runRawQuotientStorage(
+    allocator: std.mem.Allocator,
+    values_allocator: ?std.mem.Allocator,
+    component: *const RawQuotientAdapter,
+    source_trace: *const prover_component.Trace,
+) ![64]QM31 {
+    var trace = source_trace.*;
+    trace.quotient_values_allocator = values_allocator;
+    var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(
+        allocator,
+        QM31.fromU32Unchecked(3, 1, 4, 1),
+        component.maxConstraintLogDegreeBound(),
+        component.nConstraints(),
+    );
+    defer accumulator.deinit();
+    const prover = component.asProverComponent();
+    var prepared = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &accumulator)).?;
+    defer prepared.deinit();
+    var cancellation = prover_task_graph.CancellationToken{};
+    var context = testTaskContext(prepared.context, &cancellation);
+    try prepared.run(&context);
+    var result = try accumulator.finalize();
+    defer result.deinit(allocator);
+    try std.testing.expectEqual(@as(usize, 64), result.len());
+    var values: [64]QM31 = undefined;
+    for (&values, 0..) |*value, index| value.* = result.at(index);
+    return values;
+}
+
+fn failRawQuotientValues(
+    allocator: std.mem.Allocator,
+    component: *const RawQuotientAdapter,
+    trace: *const prover_component.Trace,
+) !void {
+    _ = try runRawQuotientStorage(std.testing.allocator, allocator, component, trace);
+}
+
+fn failRawQuotientMetadata(
+    allocator: std.mem.Allocator,
+    component: *const RawQuotientAdapter,
+    trace: *const prover_component.Trace,
+) !void {
+    // A distinct value allocator catches wrong-owner cleanup when metadata,
+    // twiddles, the accumulator or prepared state fails after value allocation.
+    var values = std.testing.FailingAllocator.init(std.testing.allocator, .{});
+    defer std.debug.assert(values.allocated_bytes == values.freed_bytes);
+    _ = try runRawQuotientStorage(allocator, values.allocator(), component, trace);
+}
+
+test "Ethereum typed quotient domains route owned values and preserve mapped quotient results" {
+    const allocator = std.testing.allocator;
+    var definition = try RawQuotientAir.build(allocator);
+    defer definition.deinit();
+    const relation_plan = try RawQuotientAir.Relation.authenticate(&definition);
+    var builder = manifest_mod.Builder{};
+    _ = try builder.append(RawQuotientAdapter.manifestGeometry(.transcript_payload, 4));
+    const manifest = try builder.seal();
+    const relations = universal.UniversalRelations.dummy();
+    const component = try RawQuotientAdapter.init(
+        &definition,
+        relation_plan,
+        &manifest,
+        .transcript_payload,
+        4,
+        [_]M31{M31.zero()} ** RawQuotientAir.PARAMETER_COUNT,
+        &relations,
+        QM31.zero(),
+    );
+    // Exactly the failing real route's geometry ratio: native log4, committed
+    // log5, quotient log6, no retained coefficients. Nonconstant inputs make
+    // both inverse and forward transforms observable in the quotient parity.
+    const circle_poly = @import("stwo_prover_engine").poly.circle;
+    var coefficients: [16]M31 = undefined;
+    for (&coefficients, 0..) |*value, index| value.* = M31.fromCanonical(@intCast(index * index + 7));
+    const polynomial = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
+    const committed = try polynomial.evaluate(allocator, stwo_core.poly.circle.canonic.CanonicCoset.new(5).circleDomain());
+    defer allocator.free(@constCast(committed.values));
+    const original = try allocator.dupe(M31, committed.values);
+    defer allocator.free(original);
+    const poly = prover_component.Poly{ .log_size = 5, .values = committed.values };
+    var pp = [_]prover_component.Poly{poly} ** RawQuotientAir.PREPROCESSED_COLUMN_COUNT;
+    var main = [_]prover_component.Poly{poly} ** RawQuotientAir.PHYSICAL_MAIN_COLUMN_COUNT;
+    var interaction = [_]prover_component.Poly{poly} ** RawQuotientAir.INTERACTION_COLUMN_COUNT;
+    var trees = [_][]const prover_component.Poly{ &pp, &main, &interaction };
+    const trace = prover_component.Trace{ .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees) };
+    const expected = try runRawQuotientStorage(allocator, null, &component, &trace);
+    var measured = std.testing.FailingAllocator.init(allocator, .{});
+    const actual = try runRawQuotientStorage(allocator, measured.allocator(), &component, &trace);
+    try std.testing.expectEqualDeep(expected, actual);
+    const source_count = pp.len + main.len + interaction.len;
+    try std.testing.expectEqual(source_count, measured.alloc_index);
+    try std.testing.expectEqual(source_count * 64 * @sizeOf(M31), measured.allocated_bytes);
+    try std.testing.expectEqual(measured.allocated_bytes, measured.freed_bytes);
+
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const directory = try tmp.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(directory);
+    var mapped = try @import("stwo_prover_engine").mmap_alloc.FileBackedAllocator.init(directory);
+    defer mapped.deinit();
+    const mapped_result = try runRawQuotientStorage(allocator, mapped.allocator(), &component, &trace);
+    try std.testing.expectEqualDeep(expected, mapped_result);
+    try std.testing.expect(mapped.total_bytes.load(.monotonic) > 0);
+    try std.testing.expectEqual(@as(usize, 0), mapped.live_bytes.load(.monotonic));
+    try std.testing.expectEqualSlices(M31, original, committed.values);
+    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientValues, .{ &component, &trace });
+    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientMetadata, .{ &component, &trace });
+}

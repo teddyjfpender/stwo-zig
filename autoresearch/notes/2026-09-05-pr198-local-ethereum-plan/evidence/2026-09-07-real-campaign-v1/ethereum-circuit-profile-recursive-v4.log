@@ -1,0 +1,15 @@
+1/14 vm_air_profile_v2_test_root.test.authenticated VM AIR ProfileV2 focused inventory compiles...OK
+2/14 recursion.vm_air_profile_v2_test.test.authenticated VM AIR ProfileV2 binds fixed program and narrow Poseidon as an explicit circuit...OK
+3/14 recursion.vm_air_profile_v2_test.test.authenticated VM AIR ProfileV2 binds selected physical lookup authority...OK
+4/14 recursion.vm_air_profile_v2_test.test.authenticated VM AIR ProfileV2 rejects authority and vtable mutations...OK
+5/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 composition geometry is cold-derived...OK
+6/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 provider shard program cold-reopens typed plan...OK
+7/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 selected compiler binds mul eleven batches...OK
+8/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program...OK
+9/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 has a cold-recompiled field-native authority...OK
+10/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 descriptor transports compiler and Tree0 custody...OK
+11/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 rejects aggregate sample-count substitution...OK
+12/14 recursion.vm_composition_program_v2_test.test.authenticated VM AIR ProfileV2 schema5 compiles fixed program and narrow Poseidon through active Ethereum program...OK
+13/14 air.semantic_eval.test_0...OK
+14/14 recursion.ethereum_vm_composition_graph_base_v2.test.authenticated VM AIR ProfileV2 schema5 infrastructure recording equals native evaluator order...OK
+All 14 tests passed.

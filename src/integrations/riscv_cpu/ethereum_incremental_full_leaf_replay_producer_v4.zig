@@ -47,6 +47,7 @@ pub const TimingReceiptV1 = struct {
 pub const ProgramV4 = struct {
     allocator: std.mem.Allocator,
     layout: memory_state.MemoryLayout,
+    halt_flag: u32 = 0,
     minimal_words: []minimal.ProgramWord,
     statement_words: []memory_state.WordState,
     program: minimal.SliceProgram,
@@ -90,6 +91,7 @@ pub const ProgramV4 = struct {
         return .{
             .allocator = allocator,
             .layout = elf.memory_layout,
+            .halt_flag = elf.halt_flag,
             .minimal_words = minimal_words,
             .statement_words = statement_words,
             .program = program,
@@ -203,12 +205,18 @@ pub const ReplayAuthorityV4 = struct {
 /// Borrowed, already-opened inputs for one proof transaction.  Every durable
 /// object is revalidated here or by `prepareFullWitnessFromColdArtifact`.
 pub const ColdInputV4 = struct {
+    /// Execution-only retained PCS evaluation ceiling, separate from the
+    /// composition allocator budget. Excludes scratch and producer witnesses.
+    pcs_retained_byte_budget: ?usize = null,
+    claim_admission: full_leaf.ClaimAdmissionV4 = .legacy_aggregate_v2,
     compact: *const minimal.EthereumMinimalArtifactV1,
     public_wire: *const public_data_v2.PublicDataV2,
     role_aware_public: *const public_data.PublicData,
     public_authority: boundary_authority.SegmentPublicAuthorityV4,
     boundary: *const boundary_artifact.OwnedArtifactV4,
     program: *const ProgramV4,
+    /// Independently admitted once and borrowed across prepared leaf transactions.
+    fixed_program: ?*const @import("ethereum_fixed_program_admission_v1.zig").OwnedV1 = null,
     replay_authority: ReplayAuthorityV4,
     validation_counters: ?*public_data_v2.PublicDataV2.ValidationCountersV2 =
         null,
@@ -218,6 +226,8 @@ pub const ColdInputV4 = struct {
         // transport. This also gives malformed requests deterministic error
         // precedence at the process boundary.
         try self.replay_authority.validate();
+        if ((self.claim_admission == .fixed_program_narrow_v5) != (self.fixed_program != null))
+            return error.EthereumFixedProgramAdmissionRequired;
         try self.compact.validate();
         try self.public_wire.validate();
         try self.role_aware_public.validate();
@@ -467,29 +477,33 @@ pub fn produceAllocWithRecorderAndTiming(
     const core_public = try frontend.air.statement_v2.canonicalCorePublicData(
         &native.public_data,
     );
+    const circuit_profile: @import("ethereum_incremental_full_leaf_profile_v4.zig").CircuitProfileV1 = if (input.claim_admission == .fixed_program_narrow_v5) .fixed_program_narrow_v1 else .legacy_v4;
     var ethereum_witness = try prover.guest_precompile.ethereum_witness.Witness
-        .init(
+        .initWithCircuitProfileV1(
         allocator,
         replay.keccakf_calls.records(),
         replay.keccakf_execution_rows.rows(),
         replay.signer_recovery_calls.records(),
         replay.signer_recovery_execution_rows.rows(),
         core_public.clock,
+        circuit_profile,
     );
     defer ethereum_witness.deinit();
-    const extension = try ethereum_statement.Statement.canonicalV2(
+    const extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(
         &native,
         std.math.cast(u32, replay.keccakf_calls.records().len) orelse
             return error.IncrementalFullLeafReplayResourceOverflowV4,
         std.math.cast(u32, replay.signer_recovery_calls.records().len) orelse
             return error.IncrementalFullLeafReplayResourceOverflowV4,
         ethereum_witness.shapes(),
+        circuit_profile,
     );
-    const profile = try prepared.mintProfile(
+    const profile = try prepared.mintProfileWithAdmission(
         input.boundary,
         input.public_authority,
         &native,
         &extension,
+        input.claim_admission,
     );
     try profile.validateAgainstInputs(
         allocator,

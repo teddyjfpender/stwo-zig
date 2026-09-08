@@ -1,0 +1,20 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 167s
+test-riscv-segment-v2-native-proof
++- native V2 segment proof identity guard
+   +- run test stderr
+V2_NATIVE_PROOF nonfinal cycles=1 proof_estimate=24324 wire_bytes=26537 prove_ms=2734.367 verify_capture_ms=391.566
+  nonfinal_wire_id=57246dda594dd7b25fafa0c5537bfb682c14262156a0620e38a96d0e6d9e7fb0
+  nonfinal_authority_id=6520a02e4f4f10067e9aa75c333e2a3756ca31ee124c434351a2ada033330dbc
+  nonfinal_relation_context_id=422dd9a93fbebb29757e67a96f4f1dbf3ad11da559a305ce5b28097b5e6bc084
+  nonfinal_native_sums_id=59f613aa01d2cb78376e16e1087a7818352bfb7f2d7d6a1126246d407bf542b7
+V2_NATIVE_PROOF final cycles=2 proof_estimate=25240 prove_ms=2734.895 verify_ms=385.720
+  final_wire_id=533847ae7a8941f308d7a23b15f2381a72abf0e70cfcbc56663e0d5f492e50a3
+  final_authority_id=1e9117c3678013c43ede75e71c0228ec32f648d66e1f8f3c6179ed4b13e92e18
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-riscv-segment-v2-native-proof success
++- native V2 segment proof identity guard success
+   +- run test 2 passed 10s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

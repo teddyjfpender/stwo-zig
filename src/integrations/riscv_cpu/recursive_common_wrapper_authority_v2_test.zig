@@ -24,6 +24,17 @@ const QUERY_COUNT: usize = 193;
 test "field wrapper admission requires exact expanded cold proof shape" {
     var capture = CaptureFixture{};
     capture.init();
+    try std.testing.expectEqual(@as(u32, 9), try subject.queryLogSizeFromCapture(&capture.capture));
+    // The query mask is fixed by composition-tree geometry. A column/path
+    // disagreement or an empty/out-of-range degree must not change it.
+    for ([_]u32{ 0, 8, 31 }) |invalid_log| {
+        capture.tree3_logs[0] = invalid_log;
+        try std.testing.expectError(error.FreshWrapperCaptureMismatch, subject.queryLogSizeFromCapture(&capture.capture));
+    }
+    capture.tree3_logs[0] = 9;
+    capture.column_logs[3] = &.{};
+    try std.testing.expectError(error.FreshWrapperCaptureMismatch, subject.queryLogSizeFromCapture(&capture.capture));
+    capture.column_logs[3] = &capture.tree3_logs;
     const fixture = try Fixture.init(&capture.capture);
     var evidence = MockEvidence{
         .artifact_value = fixture.children[0],

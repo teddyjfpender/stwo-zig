@@ -29,7 +29,7 @@ pub const CONTEXT_COUNT: usize = 17;
 pub const EXPECTED_RELATION_DRAW_COUNT: u32 =
     transcript_mod.RELATION_DRAW_COUNT;
 pub const EXPECTED_RELATION_CHALLENGE_COUNT: u32 =
-    EXPECTED_RELATION_DRAW_COUNT / 2;
+    transcript_mod.RELATION_CHALLENGE_COUNT;
 pub const EXPECTED_QUERY_WORD_COUNT: u32 = transcript_mod.QUERY_WORD_COUNT;
 pub const EXPECTED_POW_CHECK_COUNT: u32 = 2;
 pub const TRANSCRIPT_GEOMETRY_AVAILABLE = true;
@@ -188,6 +188,11 @@ fn derive(
     var randomness_draws: u32 = 0;
     var query_draws: u32 = 0;
     var pow_checks: u32 = 0;
+    var phase: []const u8 = "operations";
+    errdefer std.debug.print(
+        "ETHEREUM_TRANSCRIPT_GEOMETRY phase={s} contexts={any} relation_draws={d} randomness_draws={d} query_draws={d} pow_checks={d}\n",
+        .{ phase, contexts, relation_draws, randomness_draws, query_draws, pow_checks },
+    );
 
     for (execution.operations) |operation| {
         if (operation.context_tag == 0 or
@@ -217,6 +222,7 @@ fn derive(
             .mix => {},
         }
     }
+    phase = "counts";
     for (contexts) |count| if (count == 0)
         return error.EthereumIncrementalTranscriptGeometryMismatchV4;
     const expected_query_draws = std.math.divCeil(
@@ -224,13 +230,14 @@ fn derive(
         EXPECTED_QUERY_WORD_COUNT,
         @as(u32, recording.RATE),
     ) catch return error.ArithmeticOverflow;
-    if (relation_draws != EXPECTED_RELATION_DRAW_COUNT or
+    if (relation_draws != EXPECTED_RELATION_CHALLENGE_COUNT or
         query_draws != expected_query_draws or
         pow_checks != EXPECTED_POW_CHECK_COUNT or
         execution.pow_checks.len != pow_checks)
     {
         return error.EthereumIncrementalTranscriptGeometryMismatchV4;
     }
+    phase = "plans";
     const vm_relation_count = try planRelationCount(vm_plan);
     const recursion_relation_count = try planRelationCount(recursion_plan);
     const vm_randomness_count = try planRandomnessCount(vm_plan);
@@ -248,10 +255,12 @@ fn derive(
         vm_randomness_count,
         try mul(recursion_randomness_count, 2),
     );
+    phase = "canonical_recursion";
     const recursion_transcript_counts = try canonicalTranscriptCounts(
         recursion_plan,
     );
 
+    phase = "frames";
     var transcript_words: u32 = 0;
     var payload_words: u32 = 0;
     for (execution.hash_frames) |frame| {

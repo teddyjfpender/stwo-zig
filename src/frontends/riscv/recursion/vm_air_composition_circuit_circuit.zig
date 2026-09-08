@@ -90,12 +90,12 @@ pub const Circuit = struct {
     }
 
     pub fn validate(self: *const Circuit) Error!void {
-        try self.graph().validate();
-        const lane_value = self.lane();
-        const reference_digest = graph_mod.computeReferenceDigest(lane_value, &.{}, &.{});
-        if (!std.mem.eql(u8, &reference_digest, &self.reference_digest))
-            return error.CircuitIdentityMismatch;
-        _ = try self.reference();
+        // Reference admission already checks the graph, canonical input
+        // bindings and reference digest. Keep one authority for those checks.
+        _ = self.reference() catch |err| switch (err) {
+            error.ReferenceSealMismatch => return error.CircuitIdentityMismatch,
+            else => return err,
+        };
         const expected = circuitDigest(
             self.air_profile_digest,
             self.graph_digest,
@@ -407,9 +407,10 @@ pub const Prepared = struct {
     }
 
     pub fn validate(self: *const Prepared) Error!void {
-        try self.circuit.validate();
-        try self.preprocessing.validate();
+        // validateEvaluation admits the circuit before replaying its nodes.
+        // No mutable graph or evaluation is accepted without that full check.
         try self.circuit.validateEvaluation(&self.evaluation);
+        try self.preprocessing.validate();
         if (self.schedule_values.len != self.preprocessing.rows.len or
             self.evaluation.values.len != self.circuit.nodes.len or
             !std.mem.eql(

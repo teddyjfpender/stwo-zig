@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v1/bin/ethereum-full-leaf-bundle-verify-v1",
+    "verify-leaf-fixed-program-v5",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.stwief04",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.metadata.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "--workers",
+    "1"
+  ],
+  "input_sha256": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v1/bin/ethereum-full-leaf-bundle-verify-v1": "a63bec79ffafd2ed489b90317357039f38b03ce05e6e0ddd40bbbd84a29245d2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.stwief04": "5c102cc46a993393409a9a0a9074f1c21817fb235402af6b94d38985aec3ce27",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.metadata.json": "6cebda9ec0ff43805c1f411a28b1dd6df280f2bb92b1b414f1c136d7cce09ffa",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+  },
+  "endpoint": "verified_native_selected_leaf_fixed_program_v5",
+  "producer_process_destroyed": true,
+  "full_block_coverage": false
+}

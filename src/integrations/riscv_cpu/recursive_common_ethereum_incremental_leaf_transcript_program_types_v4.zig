@@ -12,7 +12,13 @@ const recording = recursion.recording_poseidon_channel_v4;
 const segment_wire = recursion.segment_statement_v2;
 
 pub const FORMAT_VERSION: u16 = 4;
-pub const SCHEMA_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 9;
+/// Proves native execution and the public global continuation relation. Raw
+/// session/job/position IDs and retained V2 metadata are committed provenance;
+/// their canonical-document derivation is deliberately outside this claim.
+pub const FIELD_EXECUTION_PROFILE_VERSION: u32 = 1;
+pub const RAW_V2_DOCUMENT_VALIDITY_PROVEN = false;
+pub const EXTERNAL_SESSION_BINDINGS_ESTABLISHED = false;
 pub const CONTEXT_COUNT: usize = 17;
 pub const BASE_STATEMENT_WIRE_OFFSET: u32 = @intCast(
     segment_wire.fixed_layout.base_statement,
@@ -24,6 +30,7 @@ pub const TRANSCRIPT_CLAIM_COUNT: u32 = @intCast(
     materializer.FULL_TRANSCRIPT_CLAIM_COUNT,
 );
 pub const RELATION_DRAW_COUNT: u32 = transcript_mod.RELATION_DRAW_COUNT;
+pub const RELATION_CHALLENGE_COUNT: u32 = transcript_mod.RELATION_CHALLENGE_COUNT;
 pub const QUERY_WORD_COUNT: u32 = transcript_mod.QUERY_WORD_COUNT;
 pub const PROGRAM_AUTHORITY_AVAILABLE = true;
 pub const DIGEST_ONLY_CONSTRUCTION = false;
@@ -45,6 +52,7 @@ pub const InputKindV4 = enum(u32) {
     last_layer_coefficient = 8,
     interaction_pow_nonce = 9,
     pcs_pow_nonce = 10,
+    vm_air_claimed_sum = 12,
 };
 
 pub const ContextRangeV4 = struct {
@@ -68,14 +76,16 @@ pub const PayloadBindingV4 = union(enum(u8)) {
     fri_commitment: u32,
     last_layer_coefficients: u32,
     pcs_pow_nonce,
+    detailed_claims: struct { first_claim: u32, claim_count: u32 },
+    native_publication: recursion.ethereum_publication_routing_v1.NativeField,
+    /// Exact shared field-emitter descriptor; per-word obligations are owned
+    /// by ProgramAuthorityV4, never inferred from recording ordinals.
+    field_frame: u32,
 };
 
 pub const DrawBindingV4 = union(enum(u8)) {
     none,
-    relation_limb: struct {
-        challenge: u32,
-        half: u32,
-    },
+    relation_challenge: u32,
     composition,
     oods,
     deep,
@@ -105,10 +115,12 @@ pub const PayloadMetadataV4 = struct {
     limb_index: u32,
     constant_mask: u32,
     input_use_count: u32,
+    expected_constant: ?u32 = null,
+    raw_native: bool = false,
 };
 
 comptime {
-    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 3 or CONTEXT_COUNT != 17 or
+    if (FORMAT_VERSION != 4 or SCHEMA_VERSION != 9 or CONTEXT_COUNT != 17 or
         BASE_STATEMENT_WIRE_OFFSET != 60 or BASE_STATEMENT_WORD_COUNT != 412 or
         TRANSCRIPT_CLAIM_COUNT != 43 or RELATION_DRAW_COUNT != 50 or
         QUERY_WORD_COUNT != 193 or !PROGRAM_AUTHORITY_AVAILABLE or

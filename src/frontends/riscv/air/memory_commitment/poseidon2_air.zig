@@ -754,18 +754,20 @@ const runtime = @import("poseidon2_air_runtime.zig").Runtime(.{
     .MATERIALIZED_FULL_ROUND_WIDTH = MATERIALIZED_FULL_ROUND_WIDTH,
     .PARTIAL_ROUND_WIDTH = PARTIAL_ROUND_WIDTH,
 });
+/// Symbolic permutation for verifier arithmetic; native hashing is unchanged.
+pub const permuteGeneric = runtime.permuteGeneric;
 const fillFirstFullRound = runtime.fillFirstFullRound;
 const fillMaterializedFullRound = runtime.fillMaterializedFullRound;
 const fillMaterializedPartialRound = runtime.fillMaterializedPartialRound;
 const evaluateFirstFullRound = runtime.evaluateFirstFullRound;
 const evaluateMaterializedFullRound = runtime.evaluateMaterializedFullRound;
 const evaluateMaterializedPartialRound = runtime.evaluateMaterializedPartialRound;
-const externalMatrixM31 = runtime.externalMatrixM31;
-const externalMatrixSecure = runtime.externalMatrixSecure;
+pub const externalMatrixM31 = runtime.externalMatrixM31;
+pub const externalMatrixSecure = runtime.externalMatrixSecure;
 const m4M31 = runtime.m4M31;
 const m4Secure = runtime.m4Secure;
-const internalMatrixM31 = runtime.internalMatrixM31;
-const internalMatrixSecure = runtime.internalMatrixSecure;
+pub const internalMatrixM31 = runtime.internalMatrixM31;
+pub const internalMatrixSecure = runtime.internalMatrixSecure;
 const allocateColumns = runtime.allocateColumns;
 const freeColumns = runtime.freeColumns;
 const baseSecure = runtime.baseSecure;

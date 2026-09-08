@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 50s
+
+Build Summary: 4/4 steps succeeded; 8/8 tests passed
+test-recursion-native-parity success
++- stwo_riscv_frontend test count floor success
+   +- run test 8 passed 5ms MaxRSS:2M
+      +- compile test ReleaseSafe native cached 43ms MaxRSS:34M
+

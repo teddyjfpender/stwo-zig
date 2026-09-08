@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 78s
+
+Build Summary: 12/12 steps succeeded; 20/20 tests passed
+test-ethereum-small-composition-proof success
++- Ethereum small composition proof guard success
+   +- run test 3 passed 936ms MaxRSS:6M
+      +- compile test ReleaseSafe native success 20s MaxRSS:1G
+test-ethereum-prepared-wrapper-boundary success
++- Ethereum prepared wrapper boundary guard success
+   +- run test 8 passed 263ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:612M
+test-ethereum-symbolic-public-boundary success
++- Ethereum symbolic public boundary guard success
+   +- run test 9 passed 272ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 9s MaxRSS:765M
+

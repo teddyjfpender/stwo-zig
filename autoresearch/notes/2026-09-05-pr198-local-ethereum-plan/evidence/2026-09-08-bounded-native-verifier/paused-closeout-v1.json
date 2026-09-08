@@ -1,0 +1,188 @@
+{
+  "timestamp": "2026-09-08T06:27:06.880241+00:00",
+  "controller_paused": true,
+  "controller_reaped": true,
+  "live_native_verifiers": 0,
+  "accepted_proofs_unchanged": 20,
+  "accepted_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    120
+  ],
+  "native19_candidate_unchanged": true,
+  "fresh_bounded_rechecks": [
+    {
+      "index": 0,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000000-1788848001405400000",
+      "request_s": 87.053939542,
+      "envelope_s": 87.19511341699399,
+      "reported_peak_bytes": 2390526184,
+      "sampled_peak_bytes": 2388429008,
+      "receipt_sha256": "64817bd3f0716d63280a40fc9356f731eeacbca3e6c3469cb634a1f85db050d1",
+      "scheduling_sha256": "602c798f56b6a480f217574d51cfb094c6bcc16740cbdbea40919767505618ce"
+    },
+    {
+      "index": 1,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000001-1788848088622787000",
+      "request_s": 60.834283458,
+      "envelope_s": 60.97478637495078,
+      "reported_peak_bytes": 1545668216,
+      "sampled_peak_bytes": 1545389688,
+      "receipt_sha256": "18fce4790a5e558a6a64cfa9d342d33922a002ebba2ff105cc6f05db6c294c19",
+      "scheduling_sha256": "553f7b5f3cad4878ba405eeb262a6d53aac1c08074d844c087642bbb5962cb38"
+    },
+    {
+      "index": 2,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000002-1788848149620992000",
+      "request_s": 59.853037,
+      "envelope_s": 59.94658041605726,
+      "reported_peak_bytes": 1562592864,
+      "sampled_peak_bytes": 1558431304,
+      "receipt_sha256": "007d891796ad8dc1a2c79b97fe94620af40f6059dce836605ad28b5f8a5948b4",
+      "scheduling_sha256": "b509f57f7ed40b21b213344614f2e099742a867fa8daede02e99d731960b82d7"
+    },
+    {
+      "index": 3,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000003-1788848209593416000",
+      "request_s": 44.497947167,
+      "envelope_s": 44.78833099990152,
+      "reported_peak_bytes": 923370672,
+      "sampled_peak_bytes": 923370672,
+      "receipt_sha256": "75bd0010690d6e7b0b4bf0422252732fa0de8da5305e83a693b4becb7ba50038",
+      "scheduling_sha256": "1e895116dcb9fc58631afbf4633e791167122405a36276a5f79eab3f790b6219"
+    },
+    {
+      "index": 4,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000004-1788848254406617000",
+      "request_s": 44.447413625,
+      "envelope_s": 44.59124358301051,
+      "reported_peak_bytes": 895960192,
+      "sampled_peak_bytes": 895960192,
+      "receipt_sha256": "2ae7b568a714369c3f688a8e38a04c2f6e791ddc1101ecac5c72d1243f5bcc37",
+      "scheduling_sha256": "f61f5e608a596f26d727c73e7b13e28f24d59b16ab1f76ea0629d55c9e050c93"
+    },
+    {
+      "index": 5,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000005-1788848298980487000",
+      "request_s": 43.269864917,
+      "envelope_s": 43.49535116599873,
+      "reported_peak_bytes": 900318384,
+      "sampled_peak_bytes": 900318384,
+      "receipt_sha256": "d791d64a21c2fcf6ced599dbf12451c49d682e94b8b8003a73ce5717f3237d20",
+      "scheduling_sha256": "3a0cf7ccf2afb4eb3c8641f9122068c04e318feacb87e479a8ecfd5a435f08b9"
+    },
+    {
+      "index": 6,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000006-1788848342497916000",
+      "request_s": 45.165378916,
+      "envelope_s": 45.41870545805432,
+      "reported_peak_bytes": 896337024,
+      "sampled_peak_bytes": 896337024,
+      "receipt_sha256": "c63dc05f0f2a1bf5555455a8bbf8a97aaf7fb1bf280b2c02fcce0a7fc7434996",
+      "scheduling_sha256": "2226c6a8c76933c13639d2b0b8ac37c1f0a5f305c7b42a4ad489644157033c13"
+    },
+    {
+      "index": 7,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000007-1788848387941087000",
+      "request_s": 42.977966,
+      "envelope_s": 43.269043209031224,
+      "reported_peak_bytes": 896402584,
+      "sampled_peak_bytes": 896402584,
+      "receipt_sha256": "07da84c1ef2dc586364e2c15233dc176a11f848931294f32b6a6218fdd3fad4b",
+      "scheduling_sha256": "c0c98661f0e3fe6a383518fba490749055673f226cec2ea0b3ff08b39666399c"
+    },
+    {
+      "index": 8,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000008-1788848431234014000",
+      "request_s": 44.418669375,
+      "envelope_s": 44.57073924993165,
+      "reported_peak_bytes": 895485056,
+      "sampled_peak_bytes": 895485056,
+      "receipt_sha256": "69d749c5bcfa5ab76f38eda7f2365aaf93835fc90d4b79014a2a8d9a3f7fad5f",
+      "scheduling_sha256": "f5a163ef3b453a8906448ade352f2f63bba8e86423815c87e0a72a69f621d3c5"
+    },
+    {
+      "index": 9,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000009-1788848475828814000",
+      "request_s": 44.480585959,
+      "envelope_s": 44.61560712498613,
+      "reported_peak_bytes": 957105400,
+      "sampled_peak_bytes": 957105400,
+      "receipt_sha256": "d84157e6eb99c39644617ba5a2aab82e476ad96e5a3af818713fb233b50ea967",
+      "scheduling_sha256": "c5054489d779c4ae606ad3275c1453f8850e70ca191f4ccb80e8cad02b9da01e"
+    },
+    {
+      "index": 10,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000010-1788848520472944000",
+      "request_s": 47.085435,
+      "envelope_s": 47.232264917111024,
+      "reported_peak_bytes": 1014187256,
+      "sampled_peak_bytes": 1014187256,
+      "receipt_sha256": "0d5eec7cac28eb239d47b58d5f3e8665d3c1c3af7f9d5d6ead2f44c4fefafc48",
+      "scheduling_sha256": "440bd0918de3d1ecf8c85be81c73ba32b9e28a5945190d69438ff8ec7d37b8fe"
+    },
+    {
+      "index": 11,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000011-1788848567732783000",
+      "request_s": 48.330275042,
+      "envelope_s": 48.556469458853826,
+      "reported_peak_bytes": 1033979152,
+      "sampled_peak_bytes": 1033979152,
+      "receipt_sha256": "fccd3d11505692510cc89496e38c33f0c2ef8f012a22c27a87c12f43055d3f5d",
+      "scheduling_sha256": "ec904bbcf20f59bd120c9b543d2d3aeace925b6a2fb0a7c7665c9c32fafa3c75"
+    },
+    {
+      "index": 12,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000012-1788848616318077000",
+      "request_s": 47.481931792,
+      "envelope_s": 47.76183258299716,
+      "reported_peak_bytes": 981927160,
+      "sampled_peak_bytes": 981927160,
+      "receipt_sha256": "7b34309c2f6ef20a466dae10f45dc7a84ca7d7d125fa6fffaa52f027562b9abe",
+      "scheduling_sha256": "25a75eb0672817665d13be3d5721accbd7af96ce8eeb89161b00155aa2a7b965"
+    },
+    {
+      "index": 13,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000013-1788848664108084000",
+      "request_s": 47.973323375,
+      "envelope_s": 48.264546875143424,
+      "reported_peak_bytes": 942949576,
+      "sampled_peak_bytes": 942949576,
+      "receipt_sha256": "3af2fdb5e32f5be42f627dba58807a92608606fae2f3936e51e9e152572ea40d",
+      "scheduling_sha256": "9b480481f9f46e15173969f6a7a565f4d3d080b103a909f12b4e15faed4521cd"
+    },
+    {
+      "index": 14,
+      "attempt": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000014-1788848712398743000",
+      "request_s": 48.820570375,
+      "envelope_s": 49.101986499968916,
+      "reported_peak_bytes": 945194184,
+      "sampled_peak_bytes": 945194184,
+      "receipt_sha256": "f37973b935a1591bee383b8e4b207d958c5bee6d19f1a2aab63b9fe612db1aa6",
+      "scheduling_sha256": "f3936d0c959e0ddb07d3d5bd4d9a4d72489815e761036ec1f9103243f67023c9"
+    }
+  ],
+  "new_native_producer_started": false,
+  "request_policy": "No receipt reuse; existing recheck-on-resume semantics preserved",
+  "source_manifest_sha256": "0478cbc2348aaf94fea2363fa6d847d1ef1ecf53851521f7b1c65d599f7b69ff",
+  "controller_completed_recheck_progress_records": 14,
+  "successful_bounded_verifier_executions": 15,
+  "last_verifier_finished_before_controller_progress_publication": 14
+}

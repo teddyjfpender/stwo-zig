@@ -1,0 +1,37 @@
+{
+  "active_command": [
+    "python3",
+    "-m",
+    "unittest",
+    "scripts.tests.test_ethereum_bounded_verifier",
+    "scripts.tests.test_ethereum_full_leaf_bundle_producer",
+    "scripts.tests.test_zig_serial_build",
+    "-q"
+  ],
+  "active_tests_passed": 45,
+  "active_seconds": 3.156,
+  "frozen_tests_passed": 37,
+  "global_lock_unchanged": true,
+  "changed_files": [
+    {
+      "path": "scripts/ethereum_bounded_verifier.py",
+      "bytes": 13152,
+      "sha256": "a72f060d7cbebf94afb3956536fa6420983c0c1ce233dbd0735f0fb2c73c5240"
+    },
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "bytes": 22493,
+      "sha256": "f0a7a752478afc64d8d8a2e48bc9b4ef1cc26093df33aeafd78c03c1d5f7c8d4"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_bounded_verifier.py",
+      "bytes": 9745,
+      "sha256": "f2dec736858c1ffb1400a6f2cfb503e58a965af25b54d11f02f6a0ddbd6b54c8"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_full_leaf_bundle_producer.py",
+      "bytes": 21553,
+      "sha256": "4e09cd3468ff3b0eedc12362637e23d279ff7b8bfffd69d70abb07ac151f2103"
+    }
+  ]
+}

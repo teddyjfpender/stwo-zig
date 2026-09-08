@@ -104,7 +104,7 @@ class Workspace:
         descriptor = self._open_blob(ref, where)
         try:
             with os.fdopen(descriptor, "rb") as source:
-                raw = source.read(MAX_OBJECT_BYTES + 1)
+                raw = source.read(ref["byte_count"] + 1)
         except OSError as error:
             raise protocol.PipelineError(f"cannot read {where}") from error
         protocol.require(len(raw) == ref["byte_count"]
@@ -200,6 +200,8 @@ class Workspace:
             temporary.unlink(missing_ok=True)
 
     def _open_blob(self, ref: dict[str, Any], where: str) -> int:
+        protocol.require(ref["byte_count"] <= MAX_OBJECT_BYTES,
+                         f"{where} exceeds byte bound")
         path = self.object_path(ref["sha256"])
         descriptor = durable._open_regular(path, os.O_RDONLY, where)
         try:

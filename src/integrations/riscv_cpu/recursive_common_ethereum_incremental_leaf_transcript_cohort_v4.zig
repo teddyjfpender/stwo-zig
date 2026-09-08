@@ -44,14 +44,101 @@ pub const Error = support.Error || error{
     EthereumIncrementalTranscriptCohortMismatchV4,
 };
 
+/// Owns the admitted logical rows, component plans and manifest snapshot.
+/// No mutable row/plan/manifest alias escapes this owner. Construction and
+/// explicit validate are admission boundaries; operational reads are cheap.
 pub fn PreparedV4(comptime Engine: type) type {
+    const Storage = StorageV4(Engine);
+    return opaque {
+        const Self = @This();
+        pub const Generated = interactions.Generated;
+
+        pub fn init(allocator: std.mem.Allocator, rows: *const rows_mod.OwnerV4(Engine), manifest: *const manifest_mod.Manifest) !*Self {
+            const value = try allocator.create(Storage);
+            errdefer allocator.destroy(value);
+            value.* = try Storage.init(allocator, rows, manifest);
+            return @ptrCast(value);
+        }
+        fn storage(self: *const Self) *const Storage {
+            return @ptrCast(@alignCast(self));
+        }
+        pub fn deinit(self: *Self) void {
+            const value: *Storage = @ptrCast(@alignCast(self));
+            const allocator = value.allocator;
+            value.deinit();
+            allocator.destroy(value);
+        }
+        pub fn validate(self: *const Self) !void {
+            try self.storage().validate();
+        }
+        /// Check our private rows and plans without re-admitting the shared
+        /// source. Complete-cohort acceptance validates Geometry first in the
+        /// same synchronous operation; this check is not source admission.
+        pub fn validatePreparedRows(self: *const Self) !void {
+            try self.storage().validatePreparedRows();
+        }
+        pub fn identity(self: *const Self) [32]u8 {
+            const value = self.storage();
+            return value.seal;
+        }
+        pub fn initComponents(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, claims: components_mod.ClaimsV4) !components_mod.ComponentsV4 {
+            const value = self.storage();
+            return value.components.initComponentsFromPrepared(value.manifest, relations, claims);
+        }
+        /// Const diagnostic projection; no definition arenas or mutable rows
+        /// are exposed. The observer cannot mint preparation/proof authority.
+        pub fn auditTypedAirRows(self: *const Self, observer: anytype) !void {
+            const value = self.storage();
+            inline for (manifest_mod.StatementRootProfile.StatementRoutingOuterCatalog.LOGICAL_ROWS[0..10]) |entry| {
+                const name = @tagName(entry.row);
+                const owner: *const @TypeOf(@field(value.components.owners, name)) = &@field(value.components.owners, name);
+                const logical: []const [entry.Air.LOGICAL_INPUT_COUNT]M31 = @field(value, name);
+                const parameters: []const M31 = &@field(value.components.parameters, name);
+                try observer.check(entry.Air, name, logical, parameters, &owner.direct, &owner.relation);
+            }
+        }
+        pub fn tupleContributionUpperBound(self: *const Self) !usize {
+            return self.storage().tupleContributionUpperBound();
+        }
+        pub fn appendTupleContributions(self: *const Self, ledger: *relation_interaction.TupleLedger) !void {
+            try self.storage().appendTupleContributions(ledger);
+        }
+        pub fn fillPreprocessedInto(self: *const Self, destination: []const []M31) !void {
+            try self.storage().fillPreprocessedInto(destination);
+        }
+        pub fn fillMainInto(self: *const Self, destination: []const []M31) !void {
+            try self.storage().fillMainInto(destination);
+        }
+        pub fn fillInteractionInto(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, destination: []const []M31) !components_mod.ClaimsV4 {
+            return (try self.fillInteractionWithAudit(relations, destination)).claims;
+        }
+        pub fn fillInteractionWithAudit(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, destination: []const []M31) !Generated {
+            return self.storage().fillInteractionInto(relations, destination);
+        }
+        /// Explicit cold check. Returned sums are diagnostic data, never an
+        /// externally supplied capability accepted in place of verification.
+        pub fn auditClaims(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, claims: components_mod.ClaimsV4) ![ROW_COUNT]relation_interaction.DomainAudit {
+            return self.storage().auditClaims(relations, claims);
+        }
+        /// Recompute exact domain sums from locally checked private rows.
+        /// No receipt or validation state is retained. The enclosing complete
+        /// boundary must separately admit its shared source on every call.
+        pub fn auditPreparedClaims(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, claims: components_mod.ClaimsV4) ![ROW_COUNT]relation_interaction.DomainAudit {
+            const value = self.storage();
+            try value.validatePreparedRows();
+            return value.auditClaimsFromPreparedRows(relations, claims);
+        }
+    };
+}
+
+fn StorageV4(comptime Engine: type) type {
     const Rows = rows_mod.OwnerV4(Engine);
     const Components = components_mod.OwnerV4(Engine);
 
     return struct {
         allocator: std.mem.Allocator,
         rows: *const Rows,
-        components: *const Components,
+        components: *Components,
         manifest: *const manifest_mod.Manifest,
         control: []components_mod.ControlRelation.Row,
         transcript_air: []components_mod.TranscriptAirRelation.Row,
@@ -69,11 +156,17 @@ pub fn PreparedV4(comptime Engine: type) type {
 
         pub fn init(
             allocator: std.mem.Allocator,
-            components: *const Components,
-            manifest: *const manifest_mod.Manifest,
+            rows: *const Rows,
+            supplied_manifest: *const manifest_mod.Manifest,
         ) !Self {
-            try components.validateAgainst(manifest);
-            const rows = components.rows;
+            try supplied_manifest.validate();
+            const manifest = try allocator.create(manifest_mod.Manifest);
+            errdefer allocator.destroy(manifest);
+            manifest.* = supplied_manifest.*;
+            const components = try allocator.create(Components);
+            errdefer allocator.destroy(components);
+            components.* = try Components.init(allocator, rows, manifest);
+            errdefer components.deinit();
             const views = try rows.views();
             const control = try allocator.alloc(
                 components_mod.ControlRelation.Row,
@@ -146,7 +239,9 @@ pub fn PreparedV4(comptime Engine: type) type {
             try result.deriveLogicalRows(views);
             try result.validateDirectConstraints();
             result.seal = result.computeSeal();
-            try result.validate();
+            // Components admitted the source and manifest; logical rows were
+            // just derived and their direct constraints checked above. Publish
+            // this private ownership transaction without reaccepting its input.
             return result;
         }
 
@@ -161,12 +256,19 @@ pub fn PreparedV4(comptime Engine: type) type {
             self.allocator.free(self.transcript_binding);
             self.allocator.free(self.transcript_air);
             self.allocator.free(self.control);
+            self.components.deinit();
+            self.allocator.destroy(self.components);
+            self.allocator.destroy(self.manifest);
             self.* = undefined;
         }
 
         pub fn validate(self: *const Self) !void {
-            try self.components.validateAgainst(self.manifest);
             try self.rows.validate();
+            try self.validatePreparedRows();
+        }
+
+        fn validatePreparedRows(self: *const Self) !void {
+            try self.components.validatePreparedAgainst(self.manifest);
             const views = try self.rows.views();
             if (self.components.rows != self.rows or
                 self.control.len != views.control.rows.len or
@@ -188,11 +290,26 @@ pub fn PreparedV4(comptime Engine: type) type {
             try self.validateDirectConstraints();
         }
 
+        /// Resource-only upper bound; the retained rows and plans were admitted
+        /// at construction. No parent traversal or row evaluation is repeated.
+        pub fn tupleContributionUpperBound(self: *const Self) !usize {
+            var count: usize = 0;
+            inline for (.{
+                "control",            "transcript_air",      "transcript_binding", "transcript_state",
+                "transcript_word",    "transcript_payload",  "pow_check",          "pow_frame",
+                "relation_challenge", "verifier_randomness",
+            }) |name| {
+                const rows = @field(self, name);
+                const plan = &@field(self.components.owners, name).relation;
+                count = try std.math.add(usize, count, try std.math.mul(usize, rows.len, plan.events.len));
+            }
+            return count;
+        }
+
         pub fn appendTupleContributions(
             self: *const Self,
             ledger: *relation_interaction.TupleLedger,
         ) !void {
-            try self.validate();
             const owners = &self.components.owners;
             try support.appendTuples(
                 &owners.control.relation,
@@ -277,8 +394,7 @@ pub fn PreparedV4(comptime Engine: type) type {
             self: *const Self,
             relations: *const air.universal_challenges.UniversalRelations,
             destination: []const []M31,
-        ) !components_mod.ClaimsV4 {
-            try self.validate();
+        ) !interactions.Generated {
             try relations.validate();
             const protected = try self.protectedRanges();
             try support.preflightTree(
@@ -299,6 +415,14 @@ pub fn PreparedV4(comptime Engine: type) type {
             claims: components_mod.ClaimsV4,
         ) ![ROW_COUNT]relation_interaction.DomainAudit {
             try self.validate();
+            return self.auditClaimsFromPreparedRows(relations, claims);
+        }
+
+        fn auditClaimsFromPreparedRows(
+            self: *const Self,
+            relations: *const air.universal_challenges.UniversalRelations,
+            claims: components_mod.ClaimsV4,
+        ) ![ROW_COUNT]relation_interaction.DomainAudit {
             try relations.validate();
             const owners = &self.components.owners;
             return .{
@@ -379,12 +503,17 @@ pub fn PreparedV4(comptime Engine: type) type {
                     row.preprocessing,
                     .segment_leaf,
                 );
-            for (self.transcript_state, views.transcript_state) |*target, row|
-                target.* = air.transcript_state_witness.logicalInputs(
+            var terminal_count: usize = 0;
+            for (self.transcript_state, views.transcript_state) |*target, row| {
+                const terminal = row.preprocessing.segment_mask == 1 and row.preprocessing.hash_id == views.terminal_digest_hash_id;
+                terminal_count += @intFromBool(terminal);
+                target.* = air.ethereum_transcript_state_v1.logicalRow(air.transcript_state_witness.logicalInputs(
                     row.main,
                     row.preprocessing,
                     .segment_leaf,
-                );
+                ), terminal);
+            }
+            if (terminal_count != 1) return error.EthereumIncrementalTranscriptRowsMismatchV4;
             for (self.transcript_word, views.transcript_word) |*target, row|
                 target.* = try air.transcript_word_witness.logicalRow(
                     row.preprocessing,
@@ -392,11 +521,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                     .segment_leaf,
                 );
             for (self.transcript_payload, views.transcript_payload) |*target, row|
-                target.* = try air.transcript_payload_witness.logicalRow(
-                    row.preprocessing,
-                    row.value,
-                    .segment_leaf,
-                );
+                target.* = try rows_mod.payloadLogicalRow(row);
             for (self.pow_check, views.pow_check) |*target, row|
                 target.* = powCheckLogicalRow(row);
             for (self.pow_frame, views.pow_frame) |*target, row|
@@ -443,7 +568,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 self.transcript_binding,
             );
             try support.validateDirect(
-                air.transcript_state,
+                air.ethereum_transcript_state_v1,
                 &owners.transcript_state.direct,
                 self.transcript_state,
             );
@@ -453,7 +578,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 self.transcript_word,
             );
             try support.validateDirect(
-                air.transcript_payload,
+                manifest_mod.TranscriptPayloadAir,
                 &owners.transcript_payload.direct,
                 self.transcript_payload,
             );
@@ -484,7 +609,6 @@ pub fn PreparedV4(comptime Engine: type) type {
             tree: usize,
             destination: []const []M31,
         ) !void {
-            try self.validate();
             if (tree != manifest_mod.PREPROCESSED_TREE_INDEX and
                 tree != manifest_mod.MAIN_TREE_INDEX)
             {
@@ -519,7 +643,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 destination,
             );
             support.writePhysical(
-                air.transcript_state,
+                air.ethereum_transcript_state_v1,
                 self.transcript_state,
                 try self.manifest.placement(.transcript_state),
                 tree,
@@ -533,7 +657,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 destination,
             );
             support.writePhysical(
-                air.transcript_payload,
+                manifest_mod.TranscriptPayloadAir,
                 self.transcript_payload,
                 try self.manifest.placement(.transcript_payload),
                 tree,
@@ -607,7 +731,7 @@ pub fn PreparedV4(comptime Engine: type) type {
             self: *const Self,
             relations: *const air.universal_challenges.UniversalRelations,
             destination: []const []M31,
-        ) !components_mod.ClaimsV4 {
+        ) !interactions.Generated {
             return interactions.generateAll(self, relations, destination);
         }
     };

@@ -1,0 +1,12 @@
+test-recursive-common-fold-field-public-v2
++- run test stderr
+FIELD_PUBLIC_WORD_DIGEST=c02179e9ba469114f19ddc0ff8e1670ba61bd4dd5d0a1b14445e6799feef3017
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=0
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=4
+FIELD_STATEMENT_BRIDGE_DIGEST=b2befb25386395106050de88684f519c637477304505732a4a25900121253ac6
+
+Build Summary: 3/3 steps succeeded; 4/4 tests passed
+test-recursive-common-fold-field-public-v2 success
++- run test 4 passed 672ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 9s MaxRSS:749M
+

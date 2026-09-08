@@ -5,7 +5,7 @@ const candidate = @import("analyze_legacy_candidate_v1.zig");
 const scan = @import("analyze_legacy_scan_candidate_v1.zig");
 const bitmap = @import("analyze_legacy_bitmap_candidate_v1.zig");
 const relations = @import("analyze_legacy_relations_candidate_v1.zig");
-const reference = @import("../../../../tools/riscv/analyze_legacy_semantics/semantics.zig");
+const reference = @import("../../diagnostics/revm_legacy.zig");
 
 const sample_source = [_]u8{
     0x60, 0x5b, // PUSH1 0x5b: the immediate must not become a bitmap bit.

@@ -1,0 +1,292 @@
+--- a/src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig
++++ b/src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig
+@@ -497,11 +497,12 @@
+                 };
+                 owned_count += @intFromBool(needs_extension);
+             }
++            const values_allocator = trace.quotient_values_allocator orelse allocator;
+             const owned_buffers = try allocator.alloc([]M31, owned_count);
+             var owned_initialized: usize = 0;
+             errdefer {
+                 for (owned_buffers[0..owned_initialized]) |values|
+-                    allocator.free(values);
++                    values_allocator.free(values);
+                 allocator.free(owned_buffers);
+             }
+             var evaluations: [SOURCE_COUNT][]const M31 = undefined;
+@@ -517,7 +518,7 @@
+                     null;
+                 for (sources, &evaluations) |poly, *target| {
+                     target.* = try evaluationValues(
+-                        allocator,
++                        values_allocator,
+                         poly,
+                         self.log_size,
+                         eval_log_size,
+@@ -557,6 +558,7 @@
+                 .component = self,
+                 .evaluations = evaluations,
+                 .owned_buffers = owned_buffers,
++                .values_allocator = values_allocator,
+                 .denominator_inverse = denominator_inverse,
+                 .column_accumulator = accumulator_columns[0],
+                 .eval_size = eval_size,
+@@ -663,6 +665,7 @@
+             component: *const Self,
+             evaluations: [SOURCE_COUNT][]const M31,
+             owned_buffers: [][]M31,
++            values_allocator: std.mem.Allocator,
+             denominator_inverse: [DENOMINATOR_COUNT]M31,
+             column_accumulator: prover_air_accumulation.ColumnAccumulator,
+             eval_size: usize,
+@@ -683,7 +686,7 @@
+             fn deinitErased(context: *anyopaque) void {
+                 const self: *PreparedDomainState = @ptrCast(@alignCast(context));
+                 const allocator = self.allocator;
+-                for (self.owned_buffers) |values| allocator.free(values);
++                for (self.owned_buffers) |values| self.values_allocator.free(values);
+                 allocator.free(self.owned_buffers);
+                 allocator.destroy(self);
+             }
+--- a/src/frontends/riscv/recursion/air/universal_typed_component_test.zig
++++ b/src/frontends/riscv/recursion/air/universal_typed_component_test.zig
+@@ -775,3 +775,115 @@
+     try std.testing.expectEqual(@as(usize, 0), initialized);
+     try std.testing.expectError(error.InvalidProofShape, helpers.sourceNeedsExtension(source, trace_log + 2, trace_log + 3));
+ }
++
++const RawQuotientAir = @import("ethereum_transcript_payload_raw_v1.zig");
++const RawQuotientAdapter = adapter.Component(RawQuotientAir, RawQuotientAir.Relation);
++
++fn runRawQuotientStorage(
++    allocator: std.mem.Allocator,
++    values_allocator: ?std.mem.Allocator,
++    component: *const RawQuotientAdapter,
++    source_trace: *const prover_component.Trace,
++) ![64]QM31 {
++    var trace = source_trace.*;
++    trace.quotient_values_allocator = values_allocator;
++    var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(
++        allocator,
++        QM31.fromU32Unchecked(3, 1, 4, 1),
++        component.maxConstraintLogDegreeBound(),
++        component.nConstraints(),
++    );
++    defer accumulator.deinit();
++    const prover = component.asProverComponent();
++    var prepared = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &accumulator)).?;
++    defer prepared.deinit();
++    var cancellation = prover_task_graph.CancellationToken{};
++    var context = testTaskContext(prepared.context, &cancellation);
++    try prepared.run(&context);
++    var result = try accumulator.finalize();
++    defer result.deinit(allocator);
++    try std.testing.expectEqual(@as(usize, 64), result.len());
++    var values: [64]QM31 = undefined;
++    for (&values, 0..) |*value, index| value.* = result.at(index);
++    return values;
++}
++
++fn failRawQuotientValues(
++    allocator: std.mem.Allocator,
++    component: *const RawQuotientAdapter,
++    trace: *const prover_component.Trace,
++) !void {
++    _ = try runRawQuotientStorage(std.testing.allocator, allocator, component, trace);
++}
++
++fn failRawQuotientMetadata(
++    allocator: std.mem.Allocator,
++    component: *const RawQuotientAdapter,
++    trace: *const prover_component.Trace,
++) !void {
++    // A distinct value allocator catches wrong-owner cleanup when metadata,
++    // twiddles, the accumulator or prepared state fails after value allocation.
++    var values = std.testing.FailingAllocator.init(std.testing.allocator, .{});
++    defer std.debug.assert(values.allocated_bytes == values.freed_bytes);
++    _ = try runRawQuotientStorage(allocator, values.allocator(), component, trace);
++}
++
++test "Ethereum typed quotient domains route owned values and preserve mapped quotient results" {
++    const allocator = std.testing.allocator;
++    var definition = try RawQuotientAir.build(allocator);
++    defer definition.deinit();
++    const relation_plan = try RawQuotientAir.Relation.authenticate(&definition);
++    var builder = manifest_mod.Builder{};
++    _ = try builder.append(RawQuotientAdapter.manifestGeometry(.transcript_payload, 4));
++    const manifest = try builder.seal();
++    const relations = universal.UniversalRelations.dummy();
++    const component = try RawQuotientAdapter.init(
++        &definition,
++        relation_plan,
++        &manifest,
++        .transcript_payload,
++        4,
++        [_]M31{M31.zero()} ** RawQuotientAir.PARAMETER_COUNT,
++        &relations,
++        QM31.zero(),
++    );
++    // Exactly the failing real route's geometry ratio: native log4, committed
++    // log5, quotient log6, no retained coefficients. Nonconstant inputs make
++    // both inverse and forward transforms observable in the quotient parity.
++    const circle_poly = @import("stwo_prover_engine").poly.circle;
++    var coefficients: [16]M31 = undefined;
++    for (&coefficients, 0..) |*value, index| value.* = M31.fromCanonical(@intCast(index * index + 7));
++    const polynomial = try circle_poly.CircleCoefficients.initBorrowed(&coefficients);
++    const committed = try polynomial.evaluate(allocator, stwo_core.poly.circle.canonic.CanonicCoset.new(5).circleDomain());
++    defer allocator.free(@constCast(committed.values));
++    const original = try allocator.dupe(M31, committed.values);
++    defer allocator.free(original);
++    const poly = prover_component.Poly{ .log_size = 5, .values = committed.values };
++    var pp = [_]prover_component.Poly{poly} ** RawQuotientAir.PREPROCESSED_COLUMN_COUNT;
++    var main = [_]prover_component.Poly{poly} ** RawQuotientAir.PHYSICAL_MAIN_COLUMN_COUNT;
++    var interaction = [_]prover_component.Poly{poly} ** RawQuotientAir.INTERACTION_COLUMN_COUNT;
++    var trees = [_][]const prover_component.Poly{ &pp, &main, &interaction };
++    const trace = prover_component.Trace{ .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees) };
++    const expected = try runRawQuotientStorage(allocator, null, &component, &trace);
++    var measured = std.testing.FailingAllocator.init(allocator, .{});
++    const actual = try runRawQuotientStorage(allocator, measured.allocator(), &component, &trace);
++    try std.testing.expectEqualDeep(expected, actual);
++    const source_count = pp.len + main.len + interaction.len;
++    try std.testing.expectEqual(source_count, measured.alloc_index);
++    try std.testing.expectEqual(source_count * 64 * @sizeOf(M31), measured.allocated_bytes);
++    try std.testing.expectEqual(measured.allocated_bytes, measured.freed_bytes);
++
++    var tmp = std.testing.tmpDir(.{});
++    defer tmp.cleanup();
++    const directory = try tmp.dir.realpathAlloc(allocator, ".");
++    defer allocator.free(directory);
++    var mapped = try @import("stwo_prover_engine").mmap_alloc.FileBackedAllocator.init(directory);
++    defer mapped.deinit();
++    const mapped_result = try runRawQuotientStorage(allocator, mapped.allocator(), &component, &trace);
++    try std.testing.expectEqualDeep(expected, mapped_result);
++    try std.testing.expect(mapped.total_bytes.load(.monotonic) > 0);
++    try std.testing.expectEqual(@as(usize, 0), mapped.live_bytes.load(.monotonic));
++    try std.testing.expectEqualSlices(M31, original, committed.values);
++    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientValues, .{ &component, &trace });
++    try std.testing.checkAllAllocationFailures(allocator, failRawQuotientMetadata, .{ &component, &trace });
++}
+--- a/src/integrations/riscv_cpu/ethereum_wrapper_resources_v1.zig
++++ b/src/integrations/riscv_cpu/ethereum_wrapper_resources_v1.zig
+@@ -8,7 +8,8 @@
+ pub const RetainedColumns = prover.mmap_alloc.FileBackedAllocator;
+ 
+ /// Execution-only opt-in. Scratch storage never selects an AIR or circuit key.
+-/// Callers must destroy all PCS trees before destroying this owner.
++/// Callers must destroy all PCS trees and quotient value buffers before
++/// destroying this owner.
+ pub fn openRetainedColumns(allocator: std.mem.Allocator) !?RetainedColumns {
+     const path = std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_PCS_SCRATCH_DIR") catch |err| switch (err) {
+         error.EnvironmentVariableNotFound => return null,
+--- a/src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig
++++ b/src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig
+@@ -1229,7 +1229,13 @@
+             // second copy here would retain every tree's native coefficients
+             // throughout the proof, including between component evaluations.
+             scheme.setCoefficientRetentionPolicy(retention);
+-            if (retained_columns) |*owner| scheme.setRetainedColumnAllocator(owner.allocator());
++            if (retained_columns) |*owner| {
++                scheme.setRetainedColumnAllocator(owner.allocator());
++                // Quotient extensions can exceed the retained LDE size. Keep
++                // their large value buffers under the same file-backed owner,
++                // whose lifetime encloses the scheme and all proof evaluation.
++                scheme.setQuotientValuesAllocator(owner.allocator());
++            }
+             // Exact root-preserving native-height prefix reuse is selected by
+             // this Ethereum profile only. Other wrappers and CSP retain the
+             // existing PCS default.
+--- a/src/prover/air/component_trace.zig
++++ b/src/prover/air/component_trace.zig
+@@ -49,6 +49,10 @@
+ 
+ pub const Trace = struct {
+     polys: TreeVec([]const Poly),
++    /// Optional execution storage for owned quotient-domain M31 values. The
++    /// owner outlives this borrowed trace and every prepared evaluator. Source
++    /// columns remain immutable; evaluator metadata keeps its caller allocator.
++    quotient_values_allocator: ?std.mem.Allocator = null,
+ };
+ 
+ fn checkedPow2(log_size: u32) Error!usize {
+--- a/src/prover/pcs/retained_column_storage_test.zig
++++ b/src/prover/pcs/retained_column_storage_test.zig
+@@ -371,3 +371,41 @@
+         try std.testing.expect(source_count < 129);
+     }
+ }
++
++test "PCS retained column storage keeps quotient allocator selection explicit in borrowed traces" {
++    const allocator = std.testing.allocator;
++    var values = std.testing.FailingAllocator.init(allocator, .{});
++    var scheme = try Scheme.init(allocator, config);
++    defer scheme.deinit(allocator);
++    var channel = Channel{};
++    try scheme.commitOwned(allocator, try makeColumns(allocator), &channel);
++    try @import("mod.zig").flushPendingCommit(MC, &scheme, allocator, &channel);
++    {
++        var trace = try scheme.trace(allocator);
++        defer trace.polys.deinitDeep(allocator);
++        try std.testing.expect(trace.quotient_values_allocator == null);
++    }
++    // Retained LDE policy alone does not silently change quotient allocation.
++    scheme.setRetainedColumnAllocator(values.allocator());
++    {
++        var trace = try scheme.trace(allocator);
++        defer trace.polys.deinitDeep(allocator);
++        try std.testing.expect(trace.quotient_values_allocator == null);
++    }
++    scheme.setQuotientValuesAllocator(values.allocator());
++    {
++        var trace = try scheme.trace(allocator);
++        defer trace.polys.deinitDeep(allocator);
++        const selected = trace.quotient_values_allocator.?;
++        try std.testing.expect(selected.ptr == values.allocator().ptr);
++        try std.testing.expect(selected.vtable == values.allocator().vtable);
++        try std.testing.expect(trace.polys.items[0][0].values.ptr == scheme.trees.items[0].columns[0].values.ptr);
++    }
++    scheme.setQuotientValuesAllocator(null);
++    {
++        var trace = try scheme.trace(allocator);
++        defer trace.polys.deinitDeep(allocator);
++        try std.testing.expect(trace.quotient_values_allocator == null);
++    }
++    try std.testing.expectEqual(@as(usize, 0), values.alloc_index);
++}
+--- a/src/prover/pcs/scheme.zig
++++ b/src/prover/pcs/scheme.zig
+@@ -87,6 +87,9 @@
+         /// Optional storage for retained LDE values only. Its owner must outlive
+         /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
+         retained_column_allocator: ?std.mem.Allocator = null,
++        /// Optional scratch storage for typed AIR quotient-domain values.
++        /// Its owner must outlive proving and all prepared evaluators.
++        quotient_values_allocator: ?std.mem.Allocator = null,
+         /// Execution-only opt-in; CSP and existing callers retain their path.
+         reuse_bounded_merkle_tail: bool = false,
+         /// Execution-only opt-in for adopting backends; keeps source and
+@@ -160,6 +163,11 @@
+         /// are unchanged. Selected storage currently requires `.never` coefficients.
+         pub fn setRetainedColumnAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+             self.retained_column_allocator = allocator;
++        }
++
++        /// Execution-only opt-in; no commitment or transcript parameter changes.
++        pub fn setQuotientValuesAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
++            self.quotient_values_allocator = allocator;
+         }
+ 
+         const CommitOps = @import("commit_ops.zig").CommitOps(B, H, MC, Self);
+--- a/src/prover/pcs/scheme_views.zig
++++ b/src/prover/pcs/scheme_views.zig
+@@ -42,7 +42,10 @@
+ }
+ 
+ pub fn trace(scheme: anytype, allocator: std.mem.Allocator) !component_prover.Trace {
+-    return .{ .polys = try polynomials(scheme, allocator) };
++    return .{
++        .polys = try polynomials(scheme, allocator),
++        .quotient_values_allocator = scheme.quotient_values_allocator,
++    };
+ }
+ 
+ /// Returns one borrowed backend resource handle per commitment tree. Keeping

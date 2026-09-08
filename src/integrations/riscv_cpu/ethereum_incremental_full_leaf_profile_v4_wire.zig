@@ -189,6 +189,7 @@ pub fn encodeProfile(
     try writer.writeAll(&value.public_boundary_identity_sha256);
     try encodeBridgeGeometry(writer, &value.bridge_geometry);
     try encodeProtocol(writer, &value.protocol);
+    if (value.fixed_program) |fixed| try writeU32s(writer, &try fixed.canonicalWords());
     try writer.writeAll(&value.identity_sha256);
 }
 
@@ -220,6 +221,12 @@ pub fn decodeProfile(
     try cursor.readExact(&result.public_boundary_identity_sha256);
     try decodeBridgeGeometry(&cursor, &result.bridge_geometry);
     try decodeProtocol(&cursor, &result.protocol);
+    result.fixed_program = null;
+    if (result.schema_version == 5) {
+        var words: [36]u32 = undefined;
+        try cursor.readU32Array(&words);
+        result.fixed_program = try profile_mod.FixedProgramDescriptorV1.fromCanonicalWords(words);
+    }
     try cursor.readExact(&result.identity_sha256);
     try cursor.requireDone();
     try result.validateAgainstStatement(native, extension, role_aware);

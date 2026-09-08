@@ -18,6 +18,7 @@ const artifact_v4 = @import("ethereum_incremental_boundary_artifact_v4.zig");
 const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
 const full_leaf = @import("ethereum_incremental_full_leaf_proof_v4.zig");
 const profile_mod = @import("ethereum_incremental_full_leaf_profile_v4.zig");
+const fixed_program_mod = @import("ethereum_fixed_program_admission_v1.zig");
 const prepared_program_mod =
     @import("ethereum_incremental_prepared_program_commitment_v1.zig");
 
@@ -143,6 +144,7 @@ pub const CountersV1 = struct {
 /// Borrowed inputs after compact replay. All owners must outlive the prepared
 /// transaction. No digest-only or reconstructed substitute is accepted.
 pub const InputsV4 = struct {
+    claim_admission: profile_mod.ClaimAdmissionV4 = .legacy_aggregate_v2,
     replay: *const minimal.EthereumReplayResultV1,
     memory_snapshot: *const memory_state.Snapshot,
     program_source_identity_sha256: [32]u8,
@@ -155,8 +157,14 @@ pub const InputsV4 = struct {
     /// `initOwnedWithPreparedProgram` requires this exact live owner, while
     /// `initOwned` rejects it and retains the reconstructing path.
     prepared_program: ?*const prepared_program_mod.PreparedProgramCommitmentV1 = null,
+    fixed_program: ?*const fixed_program_mod.OwnedV1 = null,
 
     pub fn validateBorrowed(self: InputsV4) !void {
+        if ((self.claim_admission == .fixed_program_narrow_v5) != (self.fixed_program != null)) return error.EthereumFixedProgramAdmissionRequired;
+        if (self.fixed_program) |program| {
+            if (self.prepared_program != null) return error.EthereumFixedProgramProfileMismatch;
+            try program.validateSource(self.program_source_identity_sha256, self.memory_snapshot);
+        }
         try self.public_wire.validate();
         try self.role_aware_public.validate();
         try self.public_authority.validate();
@@ -433,6 +441,7 @@ pub const ProviderCallInventoryV1 = struct {
     committed_program_word_count: u64,
     program_leaf_count: u64,
     program_call_count: u64,
+    omitted_fixed_program_call_count: u64 = 0,
     program_commitment_root: u32,
     incremental_memory_call_count: u64,
     total_call_count: u64,
@@ -447,7 +456,7 @@ pub const PreparedProofTransactionV4 = struct {
         allocator: std.mem.Allocator,
         inputs: InputsV4,
     ) !Self {
-        if (inputs.prepared_program != null)
+        if (inputs.prepared_program != null or inputs.fixed_program != null)
             return error.PreparedProgramRequiresExplicitConstructorV4;
         return initOwnedInternal(false, allocator, inputs);
     }
@@ -464,6 +473,11 @@ pub const PreparedProofTransactionV4 = struct {
         return initOwnedInternal(true, allocator, inputs);
     }
 
+    pub fn initOwnedWithFixedProgramV1(allocator: std.mem.Allocator, inputs: InputsV4) !Self {
+        if (inputs.fixed_program == null or inputs.claim_admission != .fixed_program_narrow_v5 or inputs.prepared_program != null) return error.EthereumFixedProgramAdmissionRequired;
+        return initOwnedInternal(false, allocator, inputs);
+    }
+
     fn initOwnedInternal(
         comptime use_prepared_program: bool,
         allocator: std.mem.Allocator,
@@ -477,7 +491,7 @@ pub const PreparedProofTransactionV4 = struct {
                 null;
 
         var witness_timer = try std.time.Timer.start();
-        var prepared = if (use_prepared_program) blk: {
+        var prepared = if (inputs.fixed_program) |program| try full_leaf.prepareFullWitnessFromColdArtifactFixedProgramV1(allocator, .{ inputs.replay.execution_trace.rows.items, inputs.replay.keccakf_execution_rows.rows(), inputs.replay.signer_recovery_execution_rows.rows() }, inputs.memory_snapshot, inputs.completion, program, inputs.boundary_artifact, inputs.public_wire, inputs.public_authority, artifact_v4.default_limits) else if (use_prepared_program) blk: {
             const prepared_program = try inputs.prepared_program.?.borrow();
             break :blk try full_leaf
                 .prepareFullWitnessFromColdArtifactPreparedProgram(
@@ -540,17 +554,19 @@ pub const PreparedProofTransactionV4 = struct {
             &geometry.statement.public_data,
         );
 
-        var external = try ethereum_witness.Witness.init(
+        const circuit_profile: profile_mod.CircuitProfileV1 = if (inputs.claim_admission == .fixed_program_narrow_v5) .fixed_program_narrow_v1 else .legacy_v4;
+        var external = try ethereum_witness.Witness.initWithCircuitProfileV1(
             allocator,
             inputs.replay.keccakf_calls.records(),
             inputs.replay.keccakf_execution_rows.rows(),
             inputs.replay.signer_recovery_calls.records(),
             inputs.replay.signer_recovery_execution_rows.rows(),
             core_public.clock,
+            circuit_profile,
         );
         var external_owned = true;
         errdefer if (external_owned) external.deinit();
-        const extension = try ethereum_statement.Statement.canonicalV2(
+        const extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(
             &geometry.statement,
             std.math.cast(
                 u32,
@@ -561,12 +577,14 @@ pub const PreparedProofTransactionV4 = struct {
                 inputs.replay.signer_recovery_calls.records().len,
             ) orelse return error.IncrementalPreparedResourceOverflowV4,
             external.shapes(),
+            circuit_profile,
         );
-        const profile = try prepared.mintProfile(
+        const profile = try prepared.mintProfileWithAdmission(
             inputs.boundary_artifact,
             inputs.public_authority,
             &geometry.statement,
             &extension,
+            inputs.claim_admission,
         );
         const statement_profile_prepare_ns = profile_timer.read();
 
@@ -625,7 +643,15 @@ pub const PreparedProofTransactionV4 = struct {
         try storage.phase_timing.validate();
         const program_work = storage.prepared_witness.full.base
             .preparedProgramWorkReceipt();
-        if (storage.prepared_program_binding) |binding| {
+        if ((storage.profile.circuitProfile() == .fixed_program_narrow_v1) != (storage.inputs.fixed_program != null)) return error.EthereumFixedProgramAdmissionRequired;
+        if (storage.inputs.fixed_program) |program| {
+            if (storage.prepared_program_binding != null or storage.inputs.prepared_program != null or storage.prepared_witness.fixed_program != program or program_work == null) return error.InvalidIncrementalPreparedProgramBindingV4;
+            try program.validateDescriptor(storage.profile.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired);
+            const expected_rows = try program.rows();
+            const actual_rows = storage.prepared_witness.full.fixed_program_rows orelse return error.EthereumFixedProgramAdmissionRequired;
+            if (actual_rows.ptr != expected_rows.ptr or actual_rows.len != expected_rows.len) return error.InvalidIncrementalPreparedProgramBindingV4;
+            try program_work.?.validate();
+        } else if (storage.prepared_program_binding) |binding| {
             try binding.validate();
             if (storage.inputs.prepared_program != binding.owner or
                 program_work == null)
@@ -927,8 +953,8 @@ fn providerCallInventory(
         return error.IncrementalPreparedResourceOverflowV4;
     const expected_leaves = std.math.mul(u64, committed_words, 4) catch
         return error.IncrementalPreparedResourceOverflowV4;
-    const program_calls = std.math.cast(u64, program.tree.node_count) orelse
-        return error.IncrementalPreparedResourceOverflowV4;
+    const program_nodes = std.math.cast(u64, program.tree.node_count) orelse return error.IncrementalPreparedResourceOverflowV4;
+    const program_calls = if (base.circuit_profile.programPolicy() == .sparse_merkle_v1) program_nodes else 0;
     const incremental_calls = std.math.cast(
         u64,
         storage.prepared_witness.full.boundary.transition.poseidon_calls.len,
@@ -954,6 +980,7 @@ fn providerCallInventory(
         .committed_program_word_count = committed_words,
         .program_leaf_count = program_leaves,
         .program_call_count = program_calls,
+        .omitted_fixed_program_call_count = program_nodes - program_calls,
         .program_commitment_root = program.tree.root,
         .incremental_memory_call_count = incremental_calls,
         .total_call_count = total_calls,
@@ -966,6 +993,10 @@ fn providerCallSourceIdentity(
 ) [32]u8 {
     var hash = Sha256.init(.{});
     hash.update(PROVIDER_CALL_SOURCE_DOMAIN);
+    if (storage.inputs.fixed_program) |program| {
+        hashInt(&hash, u64, inventory.omitted_fixed_program_call_count);
+        for (program.descriptor().canonicalWords() catch unreachable) |word| hashInt(&hash, u32, word);
+    }
     hash.update(&storage.inputs.program_source_identity_sha256);
     hashInt(&hash, u32, inventory.program_base);
     hashInt(&hash, u32, inventory.program_end);

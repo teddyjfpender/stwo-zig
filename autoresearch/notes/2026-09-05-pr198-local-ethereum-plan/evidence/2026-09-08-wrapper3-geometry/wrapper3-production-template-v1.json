@@ -1,0 +1,87 @@
+{
+  "version": 1,
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1",
+    "STWO_ETHEREUM_PROOF_CORPUS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-file-backed-v7/corpus",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-file-backed-v7/progress.log",
+    "STWO_ETHEREUM_PCS_SCRATCH_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-file-backed-v7/scratch",
+    "STWO_ETHEREUM_WRAPPER_PAIR_SLOT": "0"
+  },
+  "acceptance": "full lifecycle terminal exit0; compilation and component test counts alone do not accept proof",
+  "scope": "Actual wrapper3 from native context3/4, ordinary frozen v7 build and mapped source/PCS route; no new profile or optimization",
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/manifest.json",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "required_validation": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-mapped-source-validation-v3/execution.json",
+  "status": "template_only_requires_independent_wrapper2_and_geometry_acceptance",
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-file-backed-v7/complete-proof.log",
+  "unset_env": [
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1",
+    "STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE"
+  ],
+  "retained_input": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-file-backed-v7/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+    "bytes": 8641480
+  },
+  "subsequent_verifier": {
+    "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+    "sha256": "77120ae24d5ef2846cd743baa447bdf7cf5f2641961413db326bd64a89d36907",
+    "arguments": "candidate directory and pre-admitted key SHA from complete-proof output; require receipt statement against expected public input"
+  },
+  "argv_template": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-file-backed-source-v7/source/src/integrations/riscv_cpu",
+    "test-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "inputs": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/native-inputs-v1.json",
+      "bytes": 575,
+      "sha256": "ad25bf6279fc3905c454bd72c2265fce60985762f323e1187b85faa4cad7f35a"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/global-metadata-v1.json",
+      "bytes": 10817,
+      "sha256": "1579f617124d497aa68342c8102ef849c936229c35700d49f70e97bd0fd66230"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/program.elf",
+      "bytes": 3412588,
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+      "bytes": 50730870,
+      "sha256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/6b1b172be94be95904aa7f23c905ab9d23c8c4cf5e886498d95a06b590c7283c.bin",
+      "bytes": 50122902,
+      "sha256": "6b1b172be94be95904aa7f23c905ab9d23c8c4cf5e886498d95a06b590c7283c"
+    }
+  ],
+  "candidate_global_segment": 3,
+  "required_wrapper2_acceptance": null,
+  "required_geometry_acceptance": null,
+  "launch_gate": [
+    "Require terminal passing wrapper2 lifecycle and separate frozen root checker receipt; inspect actual expected public statement and independently admitted key pin",
+    "Require geometry-v2 guarded terminal exit0, both named tests passed and exact ten-dimension compatibility for global3 against wrapper2 admitted key",
+    "Verify current source, retained input and all context pins",
+    "Create a new request.json from this template only after recording both acceptance receipt paths and hashes; rename argv_template to argv",
+    "Use existing run_checked_wrapper.py and shared build lock; do not recompile or modify admitted source unnecessarily"
+  ]
+}

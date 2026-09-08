@@ -1,0 +1,14 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_EMPTY_REUSE_AB proof_sha=23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468 capture_sha=1251c5325be690bcb807d1590a66b303ec984fd02452453288965b4eb6606cc9 preprocessed_root={ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 } prove_ns=1353929917 prove_fresh_verify_ns=541205750 cold_open_total_ns=644347708 baseline_ns=1558948584 optimized_ns=5606041 reduction_bps=9964 q193_ns=415122791 replay_ns=103850250 graph_ns=76752292 cache_hits=3 cache_misses=1 cache_lookup_ns=131943458 cache_rebuild_ns=131940166
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 lanes=2
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 9s MaxRSS:86M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

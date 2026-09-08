@@ -34,9 +34,9 @@ pub fn OwnerV4(comptime NativeOwner: type) type {
             allocator: std.mem.Allocator,
             native: *const NativeOwner,
         ) !*Self {
-            try native.validate();
+            // Native construction admits these fixed plan allocations; row17
+            // owns its projection independently and never mutates either plan.
             const plans = try native.scheduleView();
-            try plans.validate();
             const backing = try allocator.create(Storage);
             errdefer allocator.destroy(backing);
             var preprocessing_value = try control.PublicLogupPreprocessed.init(
@@ -50,13 +50,13 @@ pub fn OwnerV4(comptime NativeOwner: type) type {
             errdefer if (preprocessing_owned) preprocessing_value.deinit();
             backing.* = .{
                 .allocator = allocator,
-                .native = native,
+                .plans = plans,
                 .preprocessing = preprocessing_value,
                 .identity_sha256 = undefined,
             };
             preprocessing_owned = false;
             backing.identity_sha256 = backing.computeIdentity();
-            errdefer backing.destroy();
+            errdefer backing.preprocessing.deinit();
             try backing.validate();
             return handle(backing);
         }
@@ -69,34 +69,38 @@ pub fn OwnerV4(comptime NativeOwner: type) type {
             try storageConst(self).validate();
         }
 
-        pub fn preprocessing(
-            self: *const Self,
-        ) !*const control.PublicLogupPreprocessed {
-            try self.validate();
-            return &storageConst(self).preprocessing;
+        /// Borrowed read-only projection of privately owned immutable rows.
+        /// Full checks belong to construction and explicit validate boundaries.
+        pub const PreprocessingView = struct {
+            rows: []const control.Row,
+            log_size: u32,
+        };
+
+        pub fn preprocessing(self: *const Self) !PreprocessingView {
+            const value = storageConst(self);
+            return .{ .rows = value.preprocessing.rows, .log_size = value.preprocessing.log_size };
         }
 
         pub fn logSize(self: *const Self) !u32 {
-            try self.validate();
             return storageConst(self).preprocessing.log_size;
         }
 
         pub fn identity(self: *const Self) ![32]u8 {
-            try self.validate();
             return storageConst(self).identity_sha256;
         }
 
         const Storage = struct {
             allocator: std.mem.Allocator,
-            native: *const NativeOwner,
+            plans: native_core.ScheduleViewV4,
             preprocessing: control.PublicLogupPreprocessed,
             identity_sha256: [32]u8,
 
             fn validate(self: *const Storage) !void {
-                try self.native.validate();
-                const plans = try self.native.scheduleView();
-                try plans.validate();
-                try self.preprocessing.validateAgainst(
+                // The borrowed plans have stable lifetime and immutable native
+                // ownership. Check our independently owned exact projection,
+                // without walking back through native/campaign validation.
+                const plans = self.plans;
+                try self.preprocessing.validateAgainstSealedPlans(
                     plans.vm,
                     plans.recursion,
                 );
@@ -180,4 +184,59 @@ comptime {
         @compileError("Ethereum incremental public LogUp control V4 drifted");
     }
     _ = native_core;
+}
+
+test "Ethereum control preparation reads immutable rows without revisiting native validation" {
+    const allocator = std.testing.allocator;
+    const recursion = frontend.recursion;
+    const schedule = recursion.air.verifier_schedule;
+    const shape = recursion.fixed_profile.ProofShapeV1{
+        .air_program_id = recursion.poseidon2_channel.hashBytes("control-owner-air", 0x5450),
+        .preprocessing_id = recursion.poseidon2_channel.hashBytes("control-owner-preprocessing", 0x5450),
+        .table_layout_id = recursion.poseidon2_channel.hashBytes("control-owner-layout", 0x5450),
+        .table_count = 16,
+        .claimed_sum_count = 4,
+        .sampled_value_count = 8,
+        .preprocessed_column_count = 4,
+        .tree_column_counts = .{ 4, 4, 4, 4 },
+        .tree_heights = .{ 9, 9, 9, 9 },
+        .column_log_degree = 8,
+        .proof_wire_bytes = 1024,
+        .fri = try recursion.fixed_profile.FriSchedule.init(8, recursion.protocol.PCS_CONFIG.fri_config),
+    };
+    var vm = try schedule.Plan.init(allocator, try schedule.ProgramSpec.init(.vm, 3, 2, 3, 2), shape);
+    defer vm.deinit();
+    var recursive = try schedule.Plan.init(allocator, try schedule.ProgramSpec.init(.recursion, 3, 0, 4, 2), shape);
+    defer recursive.deinit();
+    const Native = struct {
+        plans: native_core.ScheduleViewV4,
+        reads: *usize,
+        pub fn scheduleView(self: *const @This()) !native_core.ScheduleViewV4 {
+            self.reads.* += 1;
+            try self.plans.validate();
+            return self.plans;
+        }
+    };
+    var reads: usize = 0;
+    const native = Native{ .plans = .{ .vm = &vm, .recursion = &recursive, .vm_public_term_count = 2, .recursion_public_term_count = 0 }, .reads = &reads };
+    const Owner = OwnerV4(Native);
+    const owner = try Owner.init(allocator, &native);
+    defer owner.deinit();
+    const expected_identity = try owner.identity();
+    for (0..16) |_| {
+        const view = try owner.preprocessing();
+        try std.testing.expect(@typeInfo(@TypeOf(view.rows)).pointer.is_const);
+        try std.testing.expect(view.rows.len != 0);
+        try std.testing.expectEqual(view.log_size, try owner.logSize());
+        try std.testing.expectEqual(expected_identity, try owner.identity());
+    }
+    try owner.validate();
+    try std.testing.expectEqual(@as(usize, 1), reads);
+    // Deliberate internal fault: explicit validation still checks exact rows.
+    const backing = Owner.storage(owner);
+    const original = backing.preprocessing.rows[0].sequence;
+    backing.preprocessing.rows[0].sequence += 1;
+    try std.testing.expectError(error.ScheduleAuthorityMismatch, owner.validate());
+    backing.preprocessing.rows[0].sequence = original;
+    try owner.validate();
 }

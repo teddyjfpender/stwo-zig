@@ -1,0 +1,14 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 1s
+test-ethereum-small-composition-proof
++- Ethereum small composition proof guard failure
+error: the native recursion proof root compiled 2 tests; expected exactly 1
+
+Build Summary: 2/4 steps succeeded; 1 failed; 2/2 tests passed
+test-ethereum-small-composition-proof transitive failure
++- Ethereum small composition proof guard failure
+   +- run test 2 passed 305ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 19s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a54bf025f9e8b21c944297a724650437/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xfb67dafa -Zf5cb34d74a93cc2a --maxrss 25769803776 -j1 test-ethereum-small-composition-proof -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

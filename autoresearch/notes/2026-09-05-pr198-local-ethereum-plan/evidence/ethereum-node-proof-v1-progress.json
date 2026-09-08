@@ -1,0 +1,92 @@
+{
+  "schema": "stwo.local-ethereum.node-proof-progress.v1",
+  "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_state": "uncommitted PR198 engineering tree",
+  "source_sha256": {
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_v1.zig": "54a7a3ea8bbc399b4d0a9a85dc854719c62b0faaf53f8eac996a32f0b1e64b5e",
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_component_v1.zig": "8198de8816b66bb18e0fc4fb35cfd3514fa1249c9692fcd95779d544577d1e32",
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_proof_v1.zig": "90a0377f4f2b6edf8e2ad5fd5c27e3ef716e44320fdf10490ddd233b79ae63b3",
+    "src/integrations/riscv_cpu/ethereum_node_proof_v1_runner.zig": "71948848f9a1bd5fa93fd1d9a6f62be2dd0460a5dc89f439f3747c70cabdfec9",
+    "src/integrations/riscv_metal/ethereum_node_proof_v1_runner.zig": "c5e321e5f0504d612ec2be4da2170e312d0c66ad2ae551d9f7face21109c8466",
+    "src/integrations/riscv_cpu/build_ethereum_leaf_steps.zig": "812e0e0413d438f7859165c0dd3367cb18c8db66fb6772abcdcc6b76eec2fb65"
+  },
+  "node_rows": 2,
+  "poseidon_provider_rows": 8,
+  "trace_log_size": 4,
+  "caller_main_columns": 161,
+  "caller_interaction_columns": 8,
+  "caller_constraints": 82,
+  "permutation_main_columns": 445,
+  "permutation_component_constraints": 432,
+  "pcs": {
+    "pow_bits": 0,
+    "log_blowup_factor": 1,
+    "log_last_layer_degree_bound": 0,
+    "n_queries": 3,
+    "security_admitted": false
+  },
+  "cpu_and_metal_proof_bytes": 24798,
+  "cpu_and_metal_serialized_sha256": "bb5d6da5cbce1a85bebe70341370e3e8f791a684b700256135a4c5c2cc6eff69",
+  "fresh_verification": "serialized bytes only after producer function returns and destroys witness, pool, scheme, and in-memory proof; same process, new verifier",
+  "negative_checks": [
+    "changed second-squeeze output with correspondingly changed digest rejected by full-I/O bus closure",
+    "nonboolean height witness with balanced provider claims rejected by prover AIR consistency check",
+    "changed canonical claims rejected",
+    "changed serialized proof rejected"
+  ],
+  "focused_debug_tests": 4,
+  "focused_release_safe_tests": 4,
+  "script_tests": 102,
+  "release_safe_diagnostic_single_run": {
+    "cpu": {
+      "produce_ns": 3302584,
+      "fresh_verify_ns": 732125,
+      "exercise_max_rss_mib": 4,
+      "compile_seconds": 19,
+      "compile_max_rss_report": "1G"
+    },
+    "metal": {
+      "produce_ns": 12423875,
+      "fresh_verify_ns": 1054167,
+      "exercise_max_rss_mib": 35,
+      "compile_seconds": 24,
+      "compile_max_rss_report": "1G",
+      "whole_exercise_dispatches_including_negative_cases": 40,
+      "reported_cpu_fallbacks": 0
+    },
+    "benchmark_admissible": false,
+    "caveats": [
+      "tiny diagnostic inputs and low security PCS",
+      "CPU DebugAllocator and Metal smp_allocator differ",
+      "not a repeated A/B benchmark",
+      "RSS is process peak for full exercise including negative checks; initialization excluded from produce timer"
+    ]
+  },
+  "metal_aot_manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+  "provider_bus_closed": true,
+  "merkle_topology_connected": false,
+  "public_root_bound": false,
+  "ethereum_leaf_complete": false,
+  "production_security_admitted": false,
+  "csp_defaults_or_worker_policy_changed_by_node_route": false,
+  "current_source_csp_promotion_ab_complete": false,
+  "source_conformance": {
+    "size_violations": 88,
+    "authority_violations": 6,
+    "previous_total": 95,
+    "current_total": 94
+  },
+  "logs": [
+    "ethereum-node-v1-component-debug.log",
+    "ethereum-node-v1-component-safe.log",
+    "ethereum-node-v1-cpu-proof-debug.log",
+    "ethereum-node-v1-cpu-proof-safe.log",
+    "ethereum-node-v1-metal-proof-debug-initial.log",
+    "ethereum-node-v1-metal-proof-safe.log",
+    "ethereum-node-v1-build-tests.log",
+    "ethereum-node-v1-source-conformance.log",
+    "ethereum-node-v1-configure-closure.json",
+    "ethereum-node-v1-configure-closure.log"
+  ],
+  "configure_scopes_passed": 21
+}

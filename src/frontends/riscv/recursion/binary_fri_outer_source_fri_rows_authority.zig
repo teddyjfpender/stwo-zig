@@ -227,21 +227,21 @@ pub const FriRowsAuthority = struct {
                 .circuit_id = SEGMENT_PCS_CIRCUIT_ID,
                 .profile = left_pcs_profile,
                 .graph = left.pcs_circuit.graph(),
-                .bindings = left.pcs_circuit.bindings,
+                .bindings = left.pcs_circuit.view().bindings,
             },
             .{
                 .verifier_id = pcs_witness.LEFT_RECURSION_VERIFIER_ID,
                 .circuit_id = LEFT_PCS_CIRCUIT_ID,
                 .profile = left_pcs_profile,
                 .graph = left.pcs_circuit.graph(),
-                .bindings = left.pcs_circuit.bindings,
+                .bindings = left.pcs_circuit.view().bindings,
             },
             .{
                 .verifier_id = pcs_witness.RIGHT_RECURSION_VERIFIER_ID,
                 .circuit_id = RIGHT_PCS_CIRCUIT_ID,
                 .profile = right_pcs_profile,
                 .graph = right.pcs_circuit.graph(),
-                .bindings = right.pcs_circuit.bindings,
+                .bindings = right.pcs_circuit.view().bindings,
             },
         };
         const pcs_reference = try pcs_witness.Reference.authenticate(
@@ -372,8 +372,8 @@ pub const FriRowsAuthority = struct {
         var inactive_pcs_evaluation = try left.evaluatePcsInactive();
         errdefer inactive_pcs_evaluation.deinit();
 
-        const pcs_input_count = left.pcs_circuit.bindings.len;
-        if (right.pcs_circuit.bindings.len != pcs_input_count)
+        const pcs_input_count = left.pcs_circuit.view().bindings.len;
+        if (right.pcs_circuit.view().bindings.len != pcs_input_count)
             return error.ProfileMismatch;
         const pcs_input_storage = try allocator.alloc(M31, 3 * pcs_input_count);
         errdefer allocator.free(pcs_input_storage);
@@ -384,31 +384,30 @@ pub const FriRowsAuthority = struct {
             &inactive_pcs_evaluation,
             segment_pcs_inputs,
         );
-        try left.pcs_circuit.inputValuesInto(
-            if (active_children) &left.pcs_evaluation else &inactive_pcs_evaluation,
-            left_pcs_inputs,
-        );
-        try right.pcs_circuit.inputValuesInto(
-            if (active_children) &right.pcs_evaluation else &inactive_pcs_evaluation,
-            right_pcs_inputs,
-        );
+        if (active_children) {
+            try left.pcs_circuit.inputValuesInto(&left.pcs_evaluation, left_pcs_inputs);
+            try right.pcs_circuit.inputValuesInto(&right.pcs_evaluation, right_pcs_inputs);
+        } else {
+            try left.pcs_circuit.inputValuesInto(&inactive_pcs_evaluation, left_pcs_inputs);
+            try right.pcs_circuit.inputValuesInto(&inactive_pcs_evaluation, right_pcs_inputs);
+        }
         const pcs_inputs = pcs_witness.InputWitness{ .lanes = .{
             .{
                 .verifier_id = pcs_witness.SEGMENT_VERIFIER_ID,
                 .circuit_id = SEGMENT_PCS_CIRCUIT_ID,
-                .graph_digest = left.pcs_circuit.graph_digest,
+                .graph_digest = left.pcs_circuit.view().graph_digest,
                 .input_values = segment_pcs_inputs,
             },
             .{
                 .verifier_id = pcs_witness.LEFT_RECURSION_VERIFIER_ID,
                 .circuit_id = LEFT_PCS_CIRCUIT_ID,
-                .graph_digest = left.pcs_circuit.graph_digest,
+                .graph_digest = left.pcs_circuit.view().graph_digest,
                 .input_values = left_pcs_inputs,
             },
             .{
                 .verifier_id = pcs_witness.RIGHT_RECURSION_VERIFIER_ID,
                 .circuit_id = RIGHT_PCS_CIRCUIT_ID,
-                .graph_digest = right.pcs_circuit.graph_digest,
+                .graph_digest = right.pcs_circuit.view().graph_digest,
                 .input_values = right_pcs_inputs,
             },
         } };
@@ -684,11 +683,11 @@ pub const FriRowsAuthority = struct {
         if (!std.mem.eql(u8, &left.circuit.profile_digest, &right.circuit.profile_digest) or
             !std.mem.eql(
                 u8,
-                &left.pcs_circuit.profile_digest,
-                &right.pcs_circuit.profile_digest,
+                &left.pcs_circuit.view().profile_digest,
+                &right.pcs_circuit.view().profile_digest,
             )) return error.ProfileMismatch;
-        const pcs_input_count = left.pcs_circuit.bindings.len;
-        if (right.pcs_circuit.bindings.len != pcs_input_count or
+        const pcs_input_count = left.pcs_circuit.view().bindings.len;
+        if (right.pcs_circuit.view().bindings.len != pcs_input_count or
             self.pcs_input_storage.len != 3 * pcs_input_count)
         {
             return error.ProfileMismatch;

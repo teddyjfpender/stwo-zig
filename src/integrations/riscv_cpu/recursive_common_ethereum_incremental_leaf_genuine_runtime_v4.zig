@@ -2,6 +2,19 @@
 //! Worker count and allocator telemetry never enter proof or artifact bytes.
 
 const std = @import("std");
+
+/// The saved-proof development gates admit bytes at one SHA-pinned boundary.
+pub fn readPinnedStage101(allocator: std.mem.Allocator, path: []const u8, expected_hex: []const u8) ![]u8 {
+    var expected: [32]u8 = undefined;
+    if (expected_hex.len != 64) return error.InvalidStage101ReplayDigest;
+    _ = try std.fmt.hexToBytes(&expected, expected_hex);
+    const bytes = try std.fs.cwd().readFileAlloc(allocator, path, 512 * 1024 * 1024);
+    errdefer allocator.free(bytes);
+    var actual: [32]u8 = undefined;
+    std.crypto.hash.sha2.Sha256.hash(bytes, &actual, .{});
+    if (!std.mem.eql(u8, &expected, &actual)) return error.InvalidStage101ReplayDigest;
+    return bytes;
+}
 const prover_api = @import("stwo_prover_api");
 const work_pool = @import("stwo_prover_engine").work_pool;
 const runtime_usage =
@@ -20,6 +33,201 @@ const Sha256 = std.crypto.hash.sha2.Sha256;
 pub const RuntimePhaseV4 = runtime_usage.RuntimePhaseV4;
 pub const PhaseUsageReceiptV4 = runtime_usage.PhaseUsageReceiptV4;
 pub const PhaseUsageMeasurementV4 = runtime_usage.PhaseUsageMeasurementV4;
+
+/// Custody format shared by native fixture export and cold wrapper replay.
+/// Consumers still admit the ELF independently and verify both native proofs.
+pub const NativeReplayManifestV1 = struct {
+    version: u16 = 1,
+    claim_admission: @import("ethereum_incremental_full_leaf_profile_v4.zig").ClaimAdmissionV4,
+    native_sha256: [2][32]u8,
+    program_sha256: [32]u8,
+    global_metadata_sha256: [32]u8,
+};
+
+pub const GlobalReplayMetadataV1 = struct {
+    version: u16 = 1,
+    leaves: [2]@import("stwo_riscv_frontend").recursion.segment_leaf_local_authority_v3.MetadataV3,
+};
+
+/// Optional durable fixture export is runtime I/O, not proof admission.
+pub fn exportStage101(allocator: std.mem.Allocator, artifacts: []const []const u8) !void {
+    const path = std.process.getEnvVarOwned(
+        allocator,
+        "STWO_ROLE0_GENUINE_STAGE101_EXPORT_DIR",
+    ) catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return,
+        else => return err,
+    };
+    defer allocator.free(path);
+    try exportStage101ToDirectory(allocator, path, artifacts);
+}
+
+/// Explicit corpus destination used by versioned producer-only development
+/// gates. Content-addressed files are never replaced with different bytes.
+pub fn exportStage101ToDirectory(allocator: std.mem.Allocator, path: []const u8, artifacts: []const []const u8) !void {
+    try std.fs.cwd().makePath(path);
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    for (artifacts, 0..) |bytes, index| {
+        var digest: [32]u8 = undefined;
+        Sha256.hash(bytes, &digest, .{});
+        const name = try std.fmt.allocPrint(allocator, "{x}.bin", .{digest});
+        defer allocator.free(name);
+        try writeReplayFile(dir, name, bytes);
+        std.debug.print(
+            "ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf={d} bytes={d} path={s}/{s}\n",
+            .{ index, bytes.len, path, name },
+        );
+    }
+}
+
+/// The whole ELF is independent circuit admission material, retained beside
+/// the native pair rather than reconstructed from observed completion words.
+pub fn exportProgramElf(path: []const u8, elf_bytes: []const u8) !void {
+    try std.fs.cwd().makePath(path);
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    try writeReplayFile(dir, "program.elf", elf_bytes);
+    var digest: [32]u8 = undefined;
+    Sha256.hash(elf_bytes, &digest, .{});
+    std.debug.print("ETHEREUM_BASE_BOUND_PROGRAM sha256={x} bytes={d} path={s}/program.elf\n", .{ digest, elf_bytes.len, path });
+}
+
+/// Retain the complete replay inputs before destroying the producer. Saving
+/// bytes grants no proof authority: these may be the next failing regression.
+pub fn exportWrapperReplay(allocator: std.mem.Allocator, native_inputs: []const []const u8, program_elf: []const u8, wrapper: []const u8, global_metadata_json: ?[]const u8) !void {
+    const corpus = std.process.getEnvVarOwned(allocator, "STWO_ETHEREUM_PROOF_CORPUS") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => return,
+        else => return err,
+    };
+    defer allocator.free(corpus);
+    const digest = try wrapperReplayIdentity(native_inputs, program_elf, wrapper, global_metadata_json);
+    const path = try std.fmt.allocPrint(allocator, "{s}/wrapper-replays/{x}", .{ corpus, digest });
+    defer allocator.free(path);
+    try std.fs.cwd().makePath(path);
+    var dir = try std.fs.cwd().openDir(path, .{});
+    defer dir.close();
+    try writeWrapperReplay(dir, native_inputs, program_elf, wrapper, global_metadata_json);
+    std.debug.print("ETHEREUM_ROLE0_WRAPPER_REPLAY path={s} bytes={d} independently_verified=false\n", .{ path, wrapper.len });
+}
+
+fn wrapperReplayIdentity(native_inputs: []const []const u8, program_elf: []const u8, wrapper: []const u8, global_metadata_json: ?[]const u8) ![32]u8 {
+    if (native_inputs.len != 2) return error.InvalidWrapperReplayLeafCount;
+    var hasher = Sha256.init(.{});
+    hasher.update(if (global_metadata_json != null) "stwo-zig/ethereum-wrapper-replay/v3\x00" else "stwo-zig/ethereum-wrapper-replay/v2\x00");
+    for ([_][]const u8{ native_inputs[0], native_inputs[1], program_elf, wrapper }) |bytes| {
+        var digest: [32]u8 = undefined;
+        Sha256.hash(bytes, &digest, .{});
+        hasher.update(&digest);
+    }
+    if (global_metadata_json) |bytes| {
+        var digest: [32]u8 = undefined;
+        Sha256.hash(bytes, &digest, .{});
+        hasher.update(&digest);
+    }
+    return hasher.finalResult();
+}
+
+fn writeWrapperReplay(dir: std.fs.Dir, native_inputs: []const []const u8, program_elf: []const u8, wrapper: []const u8, global_metadata_json: ?[]const u8) !void {
+    if (native_inputs.len != 2) return error.InvalidWrapperReplayLeafCount;
+    // This is custody only. The fresh input boundary authenticates these
+    // dynamic values against the native proofs and the selected AIR profile.
+    if (global_metadata_json) |bytes| try writeReplayFile(dir, "global-metadata-v1.json", bytes);
+    // Publish the wrapper last: its presence means all replay inputs exist.
+    const names = [_][]const u8{ "leaf-0.bin", "leaf-1.bin", "program.elf", "wrapper.bin" };
+    const artifacts = [_][]const u8{ native_inputs[0], native_inputs[1], program_elf, wrapper };
+    for (names, artifacts) |name, bytes| {
+        try writeReplayFile(dir, name, bytes);
+    }
+}
+
+/// Retain the serialized native case and publish its manifest last. This
+/// records custody; the proof-development consumer freshly verifies each leaf.
+pub fn exportNativeReplayManifest(directory: []const u8, manifest_json: []const u8, global_metadata_json: []const u8) !void {
+    var dir = try std.fs.cwd().openDir(directory, .{});
+    defer dir.close();
+    try writeReplayFile(dir, "global-metadata-v1.json", global_metadata_json);
+    try writeReplayFile(dir, "native-inputs-v1.json", manifest_json);
+}
+
+pub fn writeReplayFile(dir: std.fs.Dir, name: []const u8, bytes: []const u8) !void {
+    // Repeated exports must preserve an existing regression. Compare in
+    // bounded memory; only absent files may be published below.
+    if (try replayFileMatches(dir, name, bytes)) return;
+    var buffer: [64 * 1024]u8 = undefined;
+    var file = try dir.atomicFile(name, .{ .write_buffer = &buffer });
+    defer file.deinit();
+    try file.file_writer.interface.writeAll(bytes);
+    try file.finish();
+}
+
+fn replayFileMatches(dir: std.fs.Dir, name: []const u8, bytes: []const u8) !bool {
+    const file = dir.openFile(name, .{}) catch |err| switch (err) {
+        error.FileNotFound => return false,
+        else => return err,
+    };
+    defer file.close();
+    var buffer: [64 * 1024]u8 = undefined;
+    var offset: usize = 0;
+    while (true) {
+        const count = try file.readAll(&buffer);
+        if (count == 0) break;
+        if (count > bytes.len - offset or !std.mem.eql(u8, buffer[0..count], bytes[offset..][0..count]))
+            return error.WrapperReplayContentMismatch;
+        offset += count;
+    }
+    if (offset != bytes.len) return error.WrapperReplayContentMismatch;
+    return true;
+}
+
+test "role0 wrapper replay retains bytes after producer destruction" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    {
+        const first = try allocator.dupe(u8, "first native proof");
+        defer allocator.free(first);
+        const second = try allocator.dupe(u8, "second native proof");
+        defer allocator.free(second);
+        const wrapper = try allocator.dupe(u8, "wrapper bytes awaiting verification");
+        defer allocator.free(wrapper);
+        try std.testing.expectError(error.InvalidWrapperReplayLeafCount, writeWrapperReplay(tmp.dir, &.{first}, "whole program ELF", wrapper, null));
+        try std.testing.expectError(error.FileNotFound, tmp.dir.statFile("wrapper.bin"));
+        try writeWrapperReplay(tmp.dir, &.{ first, second }, "whole program ELF", wrapper, null);
+        try writeWrapperReplay(tmp.dir, &.{ first, second }, "whole program ELF", wrapper, null);
+        try std.testing.expectError(error.WrapperReplayContentMismatch, writeWrapperReplay(tmp.dir, &.{ first, "different second proof" }, "whole program ELF", wrapper, null));
+        const identity = try wrapperReplayIdentity(&.{ first, second }, "whole program ELF", wrapper, null);
+        try std.testing.expect(!std.mem.eql(u8, &identity, &try wrapperReplayIdentity(&.{ first, second }, "different whole ELF", wrapper, null)));
+        try std.testing.expect(!std.mem.eql(u8, &identity, &try wrapperReplayIdentity(&.{ first, "different second proof" }, "whole program ELF", wrapper, null)));
+        try std.testing.expect(!std.mem.eql(u8, &identity, &try wrapperReplayIdentity(&.{ second, first }, "whole program ELF", wrapper, null)));
+    }
+    const names = [_][]const u8{ "leaf-0.bin", "leaf-1.bin", "program.elf", "wrapper.bin" };
+    const expected = [_][]const u8{ "first native proof", "second native proof", "whole program ELF", "wrapper bytes awaiting verification" };
+    for (names, expected) |name, bytes| {
+        const retained = try tmp.dir.readFileAlloc(allocator, name, 1024);
+        defer allocator.free(retained);
+        try std.testing.expectEqualStrings(bytes, retained);
+    }
+}
+
+test "role0 replay binds retained global metadata without granting proof authority" {
+    const allocator = std.testing.allocator;
+    var tmp = std.testing.tmpDir(.{});
+    defer tmp.cleanup();
+    const inputs: []const []const u8 = &.{ "first", "second" };
+    const metadata = "unverified global metadata";
+    const legacy = try wrapperReplayIdentity(inputs, "elf", "wrapper", null);
+    const global = try wrapperReplayIdentity(inputs, "elf", "wrapper", metadata);
+    const changed = try wrapperReplayIdentity(inputs, "elf", "wrapper", "changed metadata");
+    try std.testing.expect(!std.meta.eql(legacy, global));
+    try std.testing.expect(!std.meta.eql(global, changed));
+    try writeWrapperReplay(tmp.dir, inputs, "elf", "wrapper", metadata);
+    try writeWrapperReplay(tmp.dir, inputs, "elf", "wrapper", metadata);
+    try std.testing.expectError(error.WrapperReplayContentMismatch, writeWrapperReplay(tmp.dir, inputs, "elf", "wrapper", "changed metadata"));
+    const retained = try tmp.dir.readFileAlloc(allocator, "global-metadata-v1.json", 1024);
+    defer allocator.free(retained);
+    try std.testing.expectEqualStrings(metadata, retained);
+}
 
 pub const WorkerPolicyV4 = struct {
     worker_count: usize,
@@ -176,8 +384,6 @@ pub fn stopAfterMaterialize(allocator: std.mem.Allocator) !bool {
 /// `std.testing.allocator`, large graph release does not collect stack traces.
 /// Net allocations and bytes must both return to zero, including on errors.
 pub const TrackedSmpAllocatorV4 = struct {
-    pub const MAX_TRACKED_ALLOCATIONS: usize = 4096;
-
     pub const SnapshotV4 = struct {
         active_allocations: usize,
         active_bytes: usize,
@@ -187,21 +393,16 @@ pub const TrackedSmpAllocatorV4 = struct {
         untracked_active_allocations: usize,
     };
 
-    const AllocationRecordV4 = struct {
-        pointer: usize = 0,
-        byte_count: usize = 0,
-        return_address: usize = 0,
-    };
-
+    const Record = struct { byte_count: usize, return_address: usize };
+    const backing = std.heap.smp_allocator;
+    // ponytail: one lock protects accounting and allocator address reuse;
+    // shard the tracker only if profiling shows contention here.
     mutex: std.Thread.Mutex = .{},
-    active_allocations: usize = 0,
+    records: std.AutoHashMapUnmanaged(usize, Record) = .empty,
     active_bytes: usize = 0,
     peak_active_bytes: usize = 0,
     total_allocated_bytes: u128 = 0,
     total_freed_bytes: u128 = 0,
-    untracked_active_allocations: usize = 0,
-    records: [MAX_TRACKED_ALLOCATIONS]AllocationRecordV4 =
-        .{AllocationRecordV4{}} ** MAX_TRACKED_ALLOCATIONS,
 
     pub fn allocator(self: *TrackedSmpAllocatorV4) std.mem.Allocator {
         return .{ .ptr = self, .vtable = &vtable };
@@ -210,501 +411,143 @@ pub const TrackedSmpAllocatorV4 = struct {
     pub fn isEmpty(self: *TrackedSmpAllocatorV4) bool {
         const value = self.snapshot();
         return value.active_allocations == 0 and value.active_bytes == 0 and
-            value.total_allocated_bytes == value.total_freed_bytes and
-            value.untracked_active_allocations == 0;
+            value.total_allocated_bytes == value.total_freed_bytes;
+    }
+
+    /// Explicit teardown check after every owner borrowing this allocator dies.
+    pub fn requireEmpty(self: *TrackedSmpAllocatorV4) !void {
+        if (self.isEmpty()) return;
+        self.dumpLeaks();
+        return error.EthereumRuntimeAllocatorLeak;
     }
 
     pub fn peakBytes(self: *TrackedSmpAllocatorV4) usize {
-        self.mutex.lock();
-        defer self.mutex.unlock();
-        return self.peak_active_bytes;
+        return self.snapshot().peak_active_bytes;
     }
 
     pub fn snapshot(self: *TrackedSmpAllocatorV4) SnapshotV4 {
         self.mutex.lock();
         defer self.mutex.unlock();
         return .{
-            .active_allocations = self.active_allocations,
+            .active_allocations = self.records.count(),
             .active_bytes = self.active_bytes,
             .peak_active_bytes = self.peak_active_bytes,
             .total_allocated_bytes = self.total_allocated_bytes,
             .total_freed_bytes = self.total_freed_bytes,
-            .untracked_active_allocations = self.untracked_active_allocations,
+            .untracked_active_allocations = 0,
         };
     }
 
     pub fn dumpLeaks(self: *TrackedSmpAllocatorV4) void {
-        // Failure-only reporting deliberately has no allocator parameter and
-        // never calls through `self.allocator()`: observing a residual owner
-        // must not create another tracked allocation or perturb the counters.
         self.mutex.lock();
         defer self.mutex.unlock();
-        for (self.records) |record| {
-            if (record.pointer != 0) std.debug.print(
-                "ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE " ++
-                    "ptr=0x{x} bytes={d} caller=0x{x}\n",
-                .{
-                    record.pointer,
-                    record.byte_count,
-                    record.return_address,
-                },
-            );
+        self.dumpLocked();
+    }
+
+    fn dumpLocked(self: *TrackedSmpAllocatorV4) void {
+        var entries = self.records.iterator();
+        var shown: usize = 0;
+        while (entries.next()) |entry| {
+            if (shown == 16) break;
+            std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE ptr=0x{x} bytes={d} caller=0x{x}\n", .{ entry.key_ptr.*, entry.value_ptr.byte_count, entry.value_ptr.return_address });
+            shown += 1;
         }
+        if (self.records.count() > shown)
+            std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE omitted={d}\n", .{self.records.count() - shown});
     }
 
-    fn recordAlloc(
-        self: *TrackedSmpAllocatorV4,
-        pointer: [*]u8,
-        byte_count: usize,
-        return_address: usize,
-    ) void {
-        self.mutex.lock();
-        defer self.mutex.unlock();
-        const pointer_value = @intFromPtr(pointer);
-        if (pointer_value == 0 or self.findRecordLocked(pointer_value) != null)
-            self.failLocked(
-                "duplicate-allocation",
-                pointer_value,
-                byte_count,
-                byte_count,
-                return_address,
-            );
-        const record_index = self.findEmptyRecordLocked() orelse
-            self.failLocked(
-                "record-capacity-exceeded",
-                pointer_value,
-                0,
-                byte_count,
-                return_address,
-            );
-        const active_allocations = std.math.add(
-            usize,
-            self.active_allocations,
-            1,
-        ) catch self.failLocked(
-            "allocation-count-overflow",
-            pointer_value,
-            0,
-            byte_count,
-            return_address,
-        );
-        const active_bytes = std.math.add(
-            usize,
-            self.active_bytes,
-            byte_count,
-        ) catch self.failLocked(
-            "allocation-bytes-overflow",
-            pointer_value,
-            0,
-            byte_count,
-            return_address,
-        );
-        const total_allocated_bytes = std.math.add(
-            u128,
-            self.total_allocated_bytes,
-            @as(u128, byte_count),
-        ) catch self.failLocked(
-            "total-allocation-bytes-overflow",
-            pointer_value,
-            0,
-            byte_count,
-            return_address,
-        );
-        self.active_allocations = active_allocations;
-        self.active_bytes = active_bytes;
-        self.peak_active_bytes = @max(
-            self.peak_active_bytes,
-            self.active_bytes,
-        );
-        self.total_allocated_bytes = total_allocated_bytes;
-        self.records[record_index] = .{
-            .pointer = pointer_value,
-            .byte_count = byte_count,
-            .return_address = return_address,
-        };
-    }
-
-    fn resizeLocked(
-        self: *TrackedSmpAllocatorV4,
-        memory: []u8,
-        alignment: std.mem.Alignment,
-        new_count: usize,
-        return_address: usize,
-    ) bool {
-        const pointer_value = @intFromPtr(memory.ptr);
-        const record_index = self.requireLiveLocked(
-            "resize",
-            pointer_value,
-            memory.len,
-            new_count,
-            return_address,
-        );
-        const updated = self.updatedByteCountersLocked(
-            "resize",
-            pointer_value,
-            memory.len,
-            new_count,
-            return_address,
-        );
-        if (!std.heap.smp_allocator.rawResize(
-            memory,
-            alignment,
-            new_count,
-            return_address,
-        )) return false;
-        self.applyResizeLocked(
-            record_index,
-            pointer_value,
-            new_count,
-            updated,
-        );
-        return true;
-    }
-
-    fn remapLocked(
-        self: *TrackedSmpAllocatorV4,
-        memory: []u8,
-        alignment: std.mem.Alignment,
-        new_count: usize,
-        return_address: usize,
-    ) ?[*]u8 {
-        const old_pointer = @intFromPtr(memory.ptr);
-        const record_index = self.requireLiveLocked(
-            "remap",
-            old_pointer,
-            memory.len,
-            new_count,
-            return_address,
-        );
-        const updated = self.updatedByteCountersLocked(
-            "remap",
-            old_pointer,
-            memory.len,
-            new_count,
-            return_address,
-        );
-        const result = std.heap.smp_allocator.rawRemap(
-            memory,
-            alignment,
-            new_count,
-            return_address,
-        ) orelse return null;
-        const new_pointer = @intFromPtr(result);
-        if (new_pointer != old_pointer and
-            self.findRecordLocked(new_pointer) != null)
-        {
-            self.failLocked(
-                "remap-pointer-collision",
-                new_pointer,
-                memory.len,
-                new_count,
-                return_address,
-            );
-        }
-        self.applyResizeLocked(
-            record_index,
-            new_pointer,
-            new_count,
-            updated,
-        );
-        return result;
-    }
-
-    const UpdatedByteCountersV4 = struct {
-        active_bytes: usize,
-        total_allocated_bytes: u128,
-        total_freed_bytes: u128,
-    };
-
-    fn updatedByteCountersLocked(
-        self: *TrackedSmpAllocatorV4,
-        comptime operation: []const u8,
-        pointer: usize,
-        old_count: usize,
-        new_count: usize,
-        return_address: usize,
-    ) UpdatedByteCountersV4 {
-        var result = UpdatedByteCountersV4{
-            .active_bytes = self.active_bytes,
-            .total_allocated_bytes = self.total_allocated_bytes,
-            .total_freed_bytes = self.total_freed_bytes,
-        };
-        if (new_count >= old_count) {
-            const delta = new_count - old_count;
-            result.active_bytes = std.math.add(
-                usize,
-                result.active_bytes,
-                delta,
-            ) catch self.failLocked(
-                operation ++ "-active-bytes-overflow",
-                pointer,
-                old_count,
-                new_count,
-                return_address,
-            );
-            result.total_allocated_bytes = std.math.add(
-                u128,
-                result.total_allocated_bytes,
-                @as(u128, delta),
-            ) catch self.failLocked(
-                operation ++ "-total-allocated-overflow",
-                pointer,
-                old_count,
-                new_count,
-                return_address,
-            );
-        } else {
-            const delta = old_count - new_count;
-            result.active_bytes = std.math.sub(
-                usize,
-                result.active_bytes,
-                delta,
-            ) catch self.failLocked(
-                operation ++ "-active-bytes-underflow",
-                pointer,
-                old_count,
-                new_count,
-                return_address,
-            );
-            result.total_freed_bytes = std.math.add(
-                u128,
-                result.total_freed_bytes,
-                @as(u128, delta),
-            ) catch self.failLocked(
-                operation ++ "-total-freed-overflow",
-                pointer,
-                old_count,
-                new_count,
-                return_address,
-            );
-        }
-        return result;
-    }
-
-    fn applyResizeLocked(
-        self: *TrackedSmpAllocatorV4,
-        record_index: usize,
-        new_pointer: usize,
-        new_count: usize,
-        updated: UpdatedByteCountersV4,
-    ) void {
-        self.active_bytes = updated.active_bytes;
-        self.total_allocated_bytes = updated.total_allocated_bytes;
-        self.total_freed_bytes = updated.total_freed_bytes;
-        self.peak_active_bytes = @max(
-            self.peak_active_bytes,
-            self.active_bytes,
-        );
-        self.records[record_index].pointer = new_pointer;
-        self.records[record_index].byte_count = new_count;
-    }
-
-    fn freeLocked(
-        self: *TrackedSmpAllocatorV4,
-        memory: []u8,
-        return_address: usize,
-    ) void {
-        const pointer = @intFromPtr(memory.ptr);
-        const record_index = self.requireLiveLocked(
-            "free",
-            pointer,
-            memory.len,
-            0,
-            return_address,
-        );
-        const active_allocations = std.math.sub(
-            usize,
-            self.active_allocations,
-            1,
-        ) catch self.failLocked(
-            "free-allocation-count-underflow",
-            pointer,
-            memory.len,
-            0,
-            return_address,
-        );
-        const active_bytes = std.math.sub(
-            usize,
-            self.active_bytes,
-            memory.len,
-        ) catch self.failLocked(
-            "free-active-bytes-underflow",
-            pointer,
-            memory.len,
-            0,
-            return_address,
-        );
-        const total_freed_bytes = std.math.add(
-            u128,
-            self.total_freed_bytes,
-            @as(u128, memory.len),
-        ) catch self.failLocked(
-            "free-total-bytes-overflow",
-            pointer,
-            memory.len,
-            0,
-            return_address,
-        );
-        self.records[record_index] = .{};
-        self.active_allocations = active_allocations;
-        self.active_bytes = active_bytes;
-        self.total_freed_bytes = total_freed_bytes;
-    }
-
-    fn requireLiveLocked(
-        self: *TrackedSmpAllocatorV4,
-        comptime operation: []const u8,
-        pointer: usize,
-        old_count: usize,
-        new_count: usize,
-        return_address: usize,
-    ) usize {
-        if (self.findRecordLocked(pointer)) |index| {
-            if (self.records[index].byte_count != old_count)
-                self.failLocked(
-                    operation ++ "-size-mismatch",
-                    pointer,
-                    old_count,
-                    new_count,
-                    return_address,
-                );
-            return index;
-        }
-        self.failLocked(
-            operation ++ "-unknown-pointer",
-            pointer,
-            old_count,
-            new_count,
-            return_address,
-        );
-    }
-
-    fn findRecordLocked(
-        self: *TrackedSmpAllocatorV4,
-        pointer: usize,
-    ) ?usize {
-        for (self.records, 0..) |record, index|
-            if (record.pointer == pointer) return index;
-        return null;
-    }
-
-    fn findEmptyRecordLocked(self: *TrackedSmpAllocatorV4) ?usize {
-        for (self.records, 0..) |record, index|
-            if (record.pointer == 0) return index;
-        return null;
-    }
-
-    fn failLocked(
-        self: *TrackedSmpAllocatorV4,
-        comptime operation: []const u8,
-        pointer: usize,
-        old_count: usize,
-        new_count: usize,
-        return_address: usize,
-    ) noreturn {
-        // Failure reporting uses stderr directly and never the tracked
-        // allocator. In particular, an unknown free fails before rawFree can
-        // release/reuse the address and create an ABA bookkeeping race.
-        std.debug.print(
-            "ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_INVALID " ++
-                "operation={s} ptr=0x{x} old_bytes={d} new_bytes={d} " ++
-                "caller=0x{x} active={d} active_bytes={d} " ++
-                "untracked={d}\n",
-            .{
-                operation,
-                pointer,
-                old_count,
-                new_count,
-                return_address,
-                self.active_allocations,
-                self.active_bytes,
-                self.untracked_active_allocations,
-            },
-        );
-        for (self.records) |record| {
-            if (record.pointer != 0) std.debug.print(
-                "ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE " ++
-                    "ptr=0x{x} bytes={d} caller=0x{x}\n",
-                .{
-                    record.pointer,
-                    record.byte_count,
-                    record.return_address,
-                },
-            );
-        }
+    fn failLocked(self: *TrackedSmpAllocatorV4, operation: []const u8, pointer: usize, expected: usize, actual: usize) noreturn {
+        std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_INVALID operation={s} ptr=0x{x} expected_bytes={d} actual_bytes={d} active={d} active_bytes={d}\n", .{ operation, pointer, expected, actual, self.records.count(), self.active_bytes });
+        self.dumpLocked();
         @panic("role0 genuine tracked allocator ownership mismatch");
     }
 
-    const vtable: std.mem.Allocator.VTable = .{
-        .alloc = alloc,
-        .resize = resize,
-        .remap = remap,
-        .free = free,
-    };
+    fn requireLive(self: *TrackedSmpAllocatorV4, memory: []u8) Record {
+        const pointer = @intFromPtr(memory.ptr);
+        const record = self.records.get(pointer) orelse self.failLocked("unknown-pointer", pointer, 0, memory.len);
+        if (record.byte_count != memory.len) self.failLocked("size-mismatch", pointer, record.byte_count, memory.len);
+        return record;
+    }
 
-    fn alloc(
-        context: *anyopaque,
-        len: usize,
-        alignment: std.mem.Alignment,
-        return_address: usize,
-    ) ?[*]u8 {
-        const result = std.heap.smp_allocator.rawAlloc(
-            len,
-            alignment,
-            return_address,
-        ) orelse return null;
+    fn updateBytes(self: *TrackedSmpAllocatorV4, old: usize, new: usize) void {
+        if (new >= old) {
+            const delta = new - old;
+            self.active_bytes = std.math.add(usize, self.active_bytes, delta) catch @panic("tracked allocation bytes overflow");
+            self.total_allocated_bytes = std.math.add(u128, self.total_allocated_bytes, delta) catch @panic("tracked allocation total overflow");
+            self.peak_active_bytes = @max(self.peak_active_bytes, self.active_bytes);
+        } else {
+            const delta = old - new;
+            self.active_bytes = std.math.sub(usize, self.active_bytes, delta) catch @panic("tracked allocation bytes underflow");
+            self.total_freed_bytes = std.math.add(u128, self.total_freed_bytes, delta) catch @panic("tracked freed total overflow");
+        }
+    }
+
+    // Metadata uses the backing allocator, never this wrapper. Release it at
+    // zero live allocations so existing owner cleanup also releases the map.
+    fn releaseEmptyRecords(self: *TrackedSmpAllocatorV4) void {
+        if (self.records.count() == 0) {
+            self.records.deinit(backing);
+            self.records = .empty;
+        }
+    }
+
+    const vtable: std.mem.Allocator.VTable = .{ .alloc = alloc, .resize = resize, .remap = remap, .free = free };
+
+    fn alloc(context: *anyopaque, len: usize, alignment: std.mem.Alignment, return_address: usize) ?[*]u8 {
         const self: *TrackedSmpAllocatorV4 = @ptrCast(@alignCast(context));
-        self.recordAlloc(result, len, return_address);
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.records.ensureUnusedCapacity(backing, 1) catch return null;
+        const result = backing.rawAlloc(len, alignment, return_address) orelse {
+            self.releaseEmptyRecords();
+            return null;
+        };
+        const pointer = @intFromPtr(result);
+        if (self.records.contains(pointer)) self.failLocked("duplicate-allocation", pointer, 0, len);
+        self.records.putAssumeCapacity(pointer, .{ .byte_count = len, .return_address = return_address });
+        self.updateBytes(0, len);
         return result;
     }
 
-    fn resize(
-        context: *anyopaque,
-        memory: []u8,
-        alignment: std.mem.Alignment,
-        new_len: usize,
-        return_address: usize,
-    ) bool {
+    fn resize(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, return_address: usize) bool {
         const self: *TrackedSmpAllocatorV4 = @ptrCast(@alignCast(context));
         self.mutex.lock();
         defer self.mutex.unlock();
-        return self.resizeLocked(
-            memory,
-            alignment,
-            new_len,
-            return_address,
-        );
+        _ = self.requireLive(memory);
+        if (!backing.rawResize(memory, alignment, new_len, return_address)) return false;
+        self.records.getPtr(@intFromPtr(memory.ptr)).?.byte_count = new_len;
+        self.updateBytes(memory.len, new_len);
+        return true;
     }
 
-    fn remap(
-        context: *anyopaque,
-        memory: []u8,
-        alignment: std.mem.Alignment,
-        new_len: usize,
-        return_address: usize,
-    ) ?[*]u8 {
+    fn remap(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, return_address: usize) ?[*]u8 {
         const self: *TrackedSmpAllocatorV4 = @ptrCast(@alignCast(context));
         self.mutex.lock();
         defer self.mutex.unlock();
-        return self.remapLocked(
-            memory,
-            alignment,
-            new_len,
-            return_address,
-        );
+        const record = self.requireLive(memory);
+        // Reserve before moving: bookkeeping failure must leave memory owned
+        // by the caller at its original address and size.
+        self.records.ensureUnusedCapacity(backing, 1) catch return null;
+        const result = backing.rawRemap(memory, alignment, new_len, return_address) orelse return null;
+        const old_pointer = @intFromPtr(memory.ptr);
+        const new_pointer = @intFromPtr(result);
+        if (new_pointer != old_pointer and self.records.contains(new_pointer))
+            self.failLocked("remap-pointer-collision", new_pointer, 0, new_len);
+        std.debug.assert(self.records.remove(old_pointer));
+        self.records.putAssumeCapacity(new_pointer, .{ .byte_count = new_len, .return_address = record.return_address });
+        self.updateBytes(memory.len, new_len);
+        return result;
     }
 
-    fn free(
-        context: *anyopaque,
-        memory: []u8,
-        alignment: std.mem.Alignment,
-        return_address: usize,
-    ) void {
+    fn free(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, return_address: usize) void {
         const self: *TrackedSmpAllocatorV4 = @ptrCast(@alignCast(context));
         self.mutex.lock();
         defer self.mutex.unlock();
-        self.freeLocked(memory, return_address);
-        std.heap.smp_allocator.rawFree(memory, alignment, return_address);
+        _ = self.requireLive(memory);
+        std.debug.assert(self.records.remove(@intFromPtr(memory.ptr)));
+        self.updateBytes(memory.len, 0);
+        backing.rawFree(memory, alignment, return_address);
+        self.releaseEmptyRecords();
     }
 };
 

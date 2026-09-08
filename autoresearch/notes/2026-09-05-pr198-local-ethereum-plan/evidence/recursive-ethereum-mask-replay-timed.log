@@ -1,0 +1,18 @@
+info(web_server): web interface listening at http://[::1]:56654/
+info(web_server): hint: pass '--webui=[::1]:56654' to use the same port next time
+test-ethereum-incremental-leaf-materialize-v4-replay
++- saved Ethereum leaf composition replay guard
+   +- run test stderr
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38207625 public_ns=289535792 transcript_ns=135657875 profile_ns=26083 program_ns=67099708 prepare_ns=56623834 fri_ns=3997109291 seal_ns=38165875 total_ns=4622428375 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-incremental-leaf-materialize-v4-replay success
++- saved Ethereum leaf composition replay guard success
+   +- run test 1 passed 28s MaxRSS:1G
+      +- compile test ReleaseSafe native success 3m MaxRSS:5G
+
+error(web_server): failed to serve websocket: WriteFailed
+error: the following build command crashed:
+.zig-cache/o/74abb4ba6b84857e680910289d3bf926/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb5914149 -Zea26d8fa1d041cca --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-materialize-v4-replay -Doptimize=ReleaseSafe --time-report --summary all

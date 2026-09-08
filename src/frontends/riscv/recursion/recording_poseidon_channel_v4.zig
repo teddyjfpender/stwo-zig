@@ -6,6 +6,28 @@
 //! the verifier circuit, but does not mutate the live transcript state.
 
 const std = @import("std");
+const builtin = @import("builtin");
+
+// Test telemetry only. Inventory counts describe attempted audits, including
+// rejected records; completions count only fully accepted execution audits.
+var audit_attempts = std.atomic.Value(u64).init(0);
+var audit_completions = std.atomic.Value(u64).init(0);
+var audited_operations = std.atomic.Value(u64).init(0);
+var audited_poseidon_calls = std.atomic.Value(u64).init(0);
+var audited_frames = std.atomic.Value(u64).init(0);
+var audited_words = std.atomic.Value(u64).init(0);
+pub const testing = if (builtin.is_test) struct {
+    pub fn snapshot() struct { attempts: u64, completions: u64, operations: u64, poseidon_calls: u64, frames: u64, words: u64 } {
+        return .{
+            .attempts = audit_attempts.load(.monotonic),
+            .completions = audit_completions.load(.monotonic),
+            .operations = audited_operations.load(.monotonic),
+            .poseidon_calls = audited_poseidon_calls.load(.monotonic),
+            .frames = audited_frames.load(.monotonic),
+            .words = audited_words.load(.monotonic),
+        };
+    }
+} else struct {};
 const stwo_core = @import("stwo_core");
 
 const M31 = stwo_core.fields.m31.M31;
@@ -115,6 +137,13 @@ pub const ExecutionV4 = struct {
     }
 
     pub fn validate(self: *const ExecutionV4) Error!void {
+        if (builtin.is_test) {
+            _ = audit_attempts.fetchAdd(1, .monotonic);
+            _ = audited_operations.fetchAdd(self.operations.len, .monotonic);
+            _ = audited_poseidon_calls.fetchAdd(self.poseidon_calls.len, .monotonic);
+            _ = audited_frames.fetchAdd(self.hash_frames.len, .monotonic);
+            _ = audited_words.fetchAdd(self.word_storage.len, .monotonic);
+        }
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or
             self.operations.len == 0 or
@@ -131,6 +160,7 @@ pub const ExecutionV4 = struct {
             &self.identity_sha256,
             &executionIdentity(self),
         )) return error.InvalidRecording;
+        if (builtin.is_test) _ = audit_completions.fetchAdd(1, .monotonic);
     }
 };
 

@@ -15,6 +15,7 @@ const artifact_v4 = @import("ethereum_incremental_boundary_artifact_v4.zig");
 const authority_v1 = @import("ethereum_incremental_boundary_authority_v1.zig");
 const boundary_capture = @import("ethereum_incremental_boundary_capture_v2.zig");
 const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
+const fixed_program_mod = @import("ethereum_fixed_program_admission_v1.zig");
 const full_leaf = @import("ethereum_incremental_full_leaf_proof_v4.zig");
 const proof_artifact =
     @import("ethereum_incremental_full_leaf_proof_artifact_v4.zig");
@@ -31,6 +32,7 @@ const segment_v2 = frontend.recursion.segment_statement_v2;
 const global_v3 = frontend.recursion.segment_leaf_local_authority_v3;
 const projection_v3 = frontend.recursion.segment_leaf_local_projection_v3;
 const span = frontend.recursion.span_statement;
+const vm_claim = frontend.recursion.vm_public_claim;
 pub const Stage101ExecutionOptions = frontend.testing
     .incremental_ethereum_orchestration_v4_internal.ExecutionOptions;
 const ExecutionOptions = Stage101ExecutionOptions;
@@ -51,6 +53,7 @@ pub fn OwnedArtifactsV4(comptime Engine: type) type {
     return struct {
         allocator: std.mem.Allocator,
         bytes: [LEAF_COUNT][]u8,
+        global_metadata: [LEAF_COUNT]global_v3.MetadataV3,
         execution_receipt: ?runtime_mod.Stage101ExecutionReceiptV4,
 
         pub fn deinit(self: *@This()) void {
@@ -82,7 +85,43 @@ pub fn buildArtifacts(
     comptime Engine: type,
     allocator: std.mem.Allocator,
 ) !OwnedArtifactsV4(Engine) {
-    return buildArtifactsInternal(Engine, allocator, .{}, null);
+    return buildArtifactsInternal(Engine, allocator, .{}, null, .legacy_aggregate_v2);
+}
+
+/// Explicit schema-3 producer for the new recursive admission. Legacy fixture
+/// constructors retain their transcript and content hashes.
+pub fn buildArtifactsWithDetailedBaseClaims(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+) !OwnedArtifactsV4(Engine) {
+    return buildArtifactsInternal(Engine, allocator, .{}, null, .selected_detailed_v3);
+}
+
+pub fn buildArtifactsWithExecutionAndDetailedBaseClaims(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    proof_execution: ExecutionOptions,
+) !OwnedArtifactsV4(Engine) {
+    const receipt = try runtime_mod.Stage101ExecutionReceiptV4.mint(
+        proof_execution.cpu orelse return error.InvalidRole0GenuineExecutionReceipt,
+        LEAF_COUNT,
+    );
+    return buildArtifactsInternal(Engine, allocator, proof_execution, receipt, .selected_detailed_v3);
+}
+
+/// Explicit transcript admission for retained proof-development cases.
+/// The legacy fixture entrypoints keep their protocol identities.
+pub fn buildArtifactsWithExecutionAndClaimAdmission(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    proof_execution: ExecutionOptions,
+    admission: full_leaf.ClaimAdmissionV4,
+) !OwnedArtifactsV4(Engine) {
+    const receipt = try runtime_mod.Stage101ExecutionReceiptV4.mint(
+        proof_execution.cpu orelse return error.InvalidRole0GenuineExecutionReceipt,
+        LEAF_COUNT,
+    );
+    return buildArtifactsInternal(Engine, allocator, proof_execution, receipt, admission);
 }
 
 pub fn buildArtifactsWithExecution(
@@ -100,6 +139,7 @@ pub fn buildArtifactsWithExecution(
         allocator,
         proof_execution,
         receipt,
+        .legacy_aggregate_v2,
     );
 }
 
@@ -132,14 +172,102 @@ pub fn buildThreeArtifactsWithExecution(
     );
 }
 
+/// Four genuine segments of the unchanged ELF: LUI, ADDI, recovery, then
+/// ADDI/Keccak/terminal. Siblings zero and one are both nonfinal. This opt-in
+/// source does not assert equal wrapper geometry or admit a parent proof.
+pub const FOUR_LEAF_COUNT: usize = 4;
+pub fn OwnedFourArtifactsV4(comptime Engine: type) type {
+    _ = Engine;
+    return struct {
+        allocator: std.mem.Allocator,
+        bytes: [FOUR_LEAF_COUNT][]u8,
+        global_metadata: [FOUR_LEAF_COUNT]global_v3.MetadataV3,
+        execution_receipt: runtime_mod.Stage101ExecutionReceiptV4,
+        pub fn deinit(self: *@This()) void {
+            for (self.bytes) |bytes| self.allocator.free(bytes);
+            self.* = undefined;
+        }
+    };
+}
+
+pub fn buildFourFieldArtifactsWithExecution(comptime Engine: type, allocator: std.mem.Allocator, execution: ExecutionOptions) !OwnedFourArtifactsV4(Engine) {
+    comptime requireEngine(Engine);
+    const receipt = try runtime_mod.Stage101ExecutionReceiptV4.mint(execution.cpu orelse return error.InvalidRole0GenuineExecutionReceipt, FOUR_LEAF_COUNT);
+    var elf = programElf();
+    var session = try runner.EthereumExecutionSession.init(allocator, &elf, .{ .input = &input_bytes, .trace_retention = .segment_owned, .clock_frame = .leaf_local });
+    defer session.deinit();
+    var segments: [FOUR_LEAF_COUNT]runner.EthereumSegmentResult = undefined;
+    var initialized: usize = 0;
+    defer for (segments[0..initialized]) |*segment| segment.deinit();
+    segments[0] = try session.startSegment(1);
+    initialized = 1;
+    for (1..FOUR_LEAF_COUNT) |index| {
+        segments[index] = try session.resumeSegment(segments[index - 1].base.continuation orelse return error.InvalidRole0GenuineFixture, if (index == FOUR_LEAF_COUNT - 1) FINAL_SEGMENT_STEP_BUDGET else 1);
+        initialized += 1;
+    }
+    for (&segments, 0..) |*segment, index| {
+        if (segment.base.segment_index != index or segment.base.clock_frame != .leaf_local or
+            segment.base.segment_role.is_first != (index == 0) or
+            segment.base.segment_role.is_last != (index == FOUR_LEAF_COUNT - 1) or
+            segment.base.isComplete() != (index == FOUR_LEAF_COUNT - 1) or
+            segment.signer_recovery_calls.len() != @as(usize, if (index == 2) 1 else 0) or
+            segment.keccakf_calls.len() != @as(usize, if (index == 3) 1 else 0)) return error.InvalidRole0GenuineFixture;
+        if (index < 3 and segment.base.execution_trace.rows.items.len != 1) return error.InvalidRole0GenuineFixture;
+        if (index > 0 and !std.meta.eql(segments[index - 1].base.exit_cpu, segment.base.entry_cpu)) return error.InvalidRole0GenuineFixture;
+    }
+    var program = try frontend.air.program.commitment.buildDeclaredForProfileSources(allocator, .rv32im_zkvm_ethereum_v1, .{
+        segments[0].base.execution_trace.rows.items,       segments[1].base.execution_trace.rows.items,
+        segments[2].base.execution_trace.rows.items,       segments[3].base.execution_trace.rows.items,
+        segments[0].keccakf_execution_rows.rows(),         segments[1].keccakf_execution_rows.rows(),
+        segments[2].keccakf_execution_rows.rows(),         segments[3].keccakf_execution_rows.rows(),
+        segments[0].signer_recovery_execution_rows.rows(), segments[1].signer_recovery_execution_rows.rows(),
+        segments[2].signer_recovery_execution_rows.rows(), segments[3].signer_recovery_execution_rows.rows(),
+    }, segments[0].base.rw_memory.program_words, null);
+    defer program.deinit(allocator);
+    var roots: [FOUR_LEAF_COUNT]RootPair = undefined;
+    var states: [FOUR_LEAF_COUNT + 1]span.MachineState = undefined;
+    var total_cycles: u64 = 0;
+    for (&segments, &roots, 0..) |*segment, *root, index| {
+        root.* = try rootsForSegment(allocator, &segment.base);
+        if (index > 0 and roots[index - 1].exit != root.entry) return error.InvalidRole0GenuineFixture;
+        if (index == 0) states[0] = try machineState(segment.base.entry_cpu, scalarDigest(root.entry), digest("role0-genuine-four-io-entry"));
+        var boundary_label: [64]u8 = undefined;
+        const label = try std.fmt.bufPrint(&boundary_label, "role0-genuine-four-io-boundary-{d}", .{index + 1});
+        states[index + 1] = try machineState(segment.base.exit_cpu, scalarDigest(root.exit), digest(label));
+        total_cycles = try std.math.add(u64, total_cycles, @intCast(segment.base.cycle_count));
+    }
+    const io = try campaignIoDigests(allocator, &segments[0].base, &segments[3].base);
+    const job = try span.JobContext.init(try span.CompleteExecution.init(protocol.PROTOCOL_ID_WORDS, scalarDigest(program.tree.root), states[0], states[4], io[0], io[1], total_cycles), FOUR_LEAF_COUNT);
+    var capture = try boundary_capture.SessionCaptureV2.init(allocator, digestBytes("role0-genuine-four-boundary-session"), 0, &segments[0].base.rw_memory, roots[0].entry);
+    defer capture.deinit();
+    var result: OwnedFourArtifactsV4(Engine) = .{ .allocator = allocator, .bytes = undefined, .global_metadata = undefined, .execution_receipt = receipt };
+    var proved: usize = 0;
+    errdefer for (result.bytes[0..proved]) |bytes| allocator.free(bytes);
+    for (&segments, 0..) |*segment, index| {
+        result.bytes[index] = try proveSegment(Engine, allocator, segment, job, states[index], states[index + 1], if (index == 0) try span.EdgeClaim.present(io[0]) else span.EdgeClaim.absent(), if (index == FOUR_LEAF_COUNT - 1) try span.EdgeClaim.present(io[1]) else span.EdgeClaim.absent(), &capture, roots[index], execution, .field_authority_v4, &result.global_metadata[index]);
+        proved += 1;
+    }
+    if (capture.nextSegmentIndex() != FOUR_LEAF_COUNT) return error.InvalidRole0GenuineFixture;
+    return result;
+}
+
 fn buildArtifactsInternal(
     comptime Engine: type,
     allocator: std.mem.Allocator,
     proof_execution: ExecutionOptions,
     execution_receipt: ?runtime_mod.Stage101ExecutionReceiptV4,
+    admission: full_leaf.ClaimAdmissionV4,
 ) !OwnedArtifactsV4(Engine) {
+    return buildArtifactsWithProgramInternal(Engine, allocator, proof_execution, execution_receipt, admission, null);
+}
+
+pub fn buildArtifactsWithFixedProgramV1(comptime Engine: type, allocator: std.mem.Allocator, program: *const fixed_program_mod.OwnedV1) !OwnedArtifactsV4(Engine) {
+    return buildArtifactsWithProgramInternal(Engine, allocator, .{}, null, .fixed_program_narrow_v5, program);
+}
+
+fn buildArtifactsWithProgramInternal(comptime Engine: type, allocator: std.mem.Allocator, proof_execution: ExecutionOptions, execution_receipt: ?runtime_mod.Stage101ExecutionReceiptV4, admission: full_leaf.ClaimAdmissionV4, fixed_program: ?*const fixed_program_mod.OwnedV1) !OwnedArtifactsV4(Engine) {
     comptime requireEngine(Engine);
-    var elf = ethereumWithUntouchedInput();
+    var elf = programElf();
     var session = try runner.EthereumExecutionSession.init(
         allocator,
         &elf,
@@ -184,8 +312,9 @@ fn buildArtifactsInternal(
     };
     if (roots[0].exit != roots[1].entry)
         return error.InvalidRole0GenuineFixture;
-    const input_digest = digest("role0-genuine-campaign-input");
-    const output_digest = digest("role0-genuine-campaign-output");
+    const io_digests = try campaignIoDigests(allocator, &first.base, &second.base);
+    const input_digest = io_digests[0];
+    const output_digest = io_digests[1];
     const states = [LEAF_COUNT + 1]span.MachineState{
         try machineState(
             first.base.entry_cpu,
@@ -230,7 +359,8 @@ fn buildArtifactsInternal(
     );
     defer capture.deinit();
 
-    const first_bytes = try proveSegment(
+    var global_metadata: [LEAF_COUNT]global_v3.MetadataV3 = undefined;
+    const first_bytes = try proveSegmentWithProgram(
         Engine,
         allocator,
         &first,
@@ -242,9 +372,12 @@ fn buildArtifactsInternal(
         &capture,
         roots[0],
         proof_execution,
+        admission,
+        &global_metadata[0],
+        fixed_program,
     );
     errdefer allocator.free(first_bytes);
-    const second_bytes = try proveSegment(
+    const second_bytes = try proveSegmentWithProgram(
         Engine,
         allocator,
         &second,
@@ -256,6 +389,9 @@ fn buildArtifactsInternal(
         &capture,
         roots[1],
         proof_execution,
+        admission,
+        &global_metadata[1],
+        fixed_program,
     );
     errdefer allocator.free(second_bytes);
     if (capture.nextSegmentIndex() != LEAF_COUNT)
@@ -263,6 +399,7 @@ fn buildArtifactsInternal(
     return .{
         .allocator = allocator,
         .bytes = .{ first_bytes, second_bytes },
+        .global_metadata = global_metadata,
         .execution_receipt = execution_receipt,
     };
 }
@@ -274,7 +411,7 @@ fn buildThreeArtifactsInternal(
     execution_receipt: ?runtime_mod.Stage101ExecutionReceiptV4,
 ) !OwnedThreeArtifactsV4(Engine) {
     comptime requireEngine(Engine);
-    var elf = ethereumWithUntouchedInput();
+    var elf = programElf();
     var session = try runner.EthereumExecutionSession.init(
         allocator,
         &elf,
@@ -333,8 +470,9 @@ fn buildThreeArtifactsInternal(
     {
         return error.InvalidRole0GenuineFixture;
     }
-    const input_digest = digest("role0-genuine-three-campaign-input");
-    const output_digest = digest("role0-genuine-three-campaign-output");
+    const io_digests = try campaignIoDigests(allocator, &first.base, &final.base);
+    const input_digest = io_digests[0];
+    const output_digest = io_digests[1];
     const states = [THREE_LEAF_COUNT + 1]span.MachineState{
         try machineState(
             first.base.entry_cpu,
@@ -401,6 +539,8 @@ fn buildThreeArtifactsInternal(
         &capture,
         roots[0],
         proof_execution,
+        .legacy_aggregate_v2,
+        null,
     );
     errdefer allocator.free(first_bytes);
     const middle_bytes = try proveSegment(
@@ -415,6 +555,8 @@ fn buildThreeArtifactsInternal(
         &capture,
         roots[1],
         proof_execution,
+        .legacy_aggregate_v2,
+        null,
     );
     errdefer allocator.free(middle_bytes);
     const final_bytes = try proveSegment(
@@ -429,6 +571,8 @@ fn buildThreeArtifactsInternal(
         &capture,
         roots[2],
         proof_execution,
+        .legacy_aggregate_v2,
+        null,
     );
     errdefer allocator.free(final_bytes);
     if (capture.nextSegmentIndex() != THREE_LEAF_COUNT)
@@ -452,6 +596,27 @@ fn proveSegment(
     capture: *boundary_capture.SessionCaptureV2,
     roots: RootPair,
     proof_execution: ExecutionOptions,
+    admission: full_leaf.ClaimAdmissionV4,
+    global_metadata_out: ?*global_v3.MetadataV3,
+) ![]u8 {
+    return proveSegmentWithProgram(Engine, allocator, configured, job, entry_state, exit_state, input_edge, output_edge, capture, roots, proof_execution, admission, global_metadata_out, null);
+}
+
+fn proveSegmentWithProgram(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    configured: *const runner.EthereumSegmentResult,
+    job: span.JobContext,
+    entry_state: span.MachineState,
+    exit_state: span.MachineState,
+    input_edge: span.EdgeClaim,
+    output_edge: span.EdgeClaim,
+    capture: *boundary_capture.SessionCaptureV2,
+    roots: RootPair,
+    proof_execution: ExecutionOptions,
+    admission: full_leaf.ClaimAdmissionV4,
+    global_metadata_out: ?*global_v3.MetadataV3,
+    program: ?*const fixed_program_mod.OwnedV1,
 ) ![]u8 {
     const global_leaf = try leafStatement(
         job,
@@ -465,6 +630,7 @@ fn proveSegment(
         global_leaf,
         &configured.base,
     );
+    if (global_metadata_out) |out| out.* = try global_source.metadata();
     var projection = try projection_v3.ProjectionV3.init(&global_source);
     const source = try projection.sourceV2(
         &global_source,
@@ -516,7 +682,8 @@ fn proveSegment(
     defer boundary_artifact.deinit();
     const completion = role_public.value.completion orelse
         return error.InvalidRole0GenuineFixture;
-    var prepared = try full_leaf.prepareFullWitnessFromColdArtifact(
+    const sources = .{ execution.execution_trace.rows.items, local.keccakf_execution_rows.rows(), local.signer_recovery_execution_rows.rows() };
+    var prepared = if (program) |owner| try full_leaf.prepareFullWitnessFromColdArtifactFixedProgramV1(allocator, sources, &execution.rw_memory, completion, owner, &boundary_artifact, &public_wire, public_authority, artifact_v4.default_limits) else try full_leaf.prepareFullWitnessFromColdArtifact(
         allocator,
         .{
             execution.execution_trace.rows.items,
@@ -531,6 +698,17 @@ fn proveSegment(
         artifact_v4.default_limits,
     );
     defer prepared.deinit(allocator);
+    if (program != null) {
+        var legacy = try full_leaf.prepareFullWitnessFromColdArtifact(allocator, sources, &execution.rw_memory, completion, &boundary_artifact, &public_wire, public_authority, artifact_v4.default_limits);
+        defer legacy.deinit(allocator);
+        if (!std.meta.eql(legacy.full.base.program.rows, prepared.full.base.program.rows)) {
+            if (legacy.full.base.program.rows.len != prepared.full.base.program.rows.len) return error.FixedProgramWitnessParityMismatch;
+            for (legacy.full.base.program.rows, prepared.full.base.program.rows) |before, after| if (!std.meta.eql(before, after)) return error.FixedProgramWitnessParityMismatch;
+        }
+        const removed = legacy.full.base.program.tree.node_count;
+        if (legacy.full.base.poseidonCalls().len != prepared.full.base.poseidonCalls().len + removed or legacy.full.base.merkleRows().len != prepared.full.base.merkleRows().len + removed) return error.FixedProgramWitnessGeometryMismatch;
+        std.debug.print("ETHEREUM_FIXED_PROGRAM_GEOMETRY segment={d} fixed_rows={d} removed_program_hashes={d} removed_program_nodes={d} poseidon_calls_before={d} poseidon_calls_after={d} fixed_pp_columns=6 main_width_before=445 main_width_after=287\n", .{ metadata.segment_index, prepared.full.base.program.rows.len, removed, removed, legacy.full.base.poseidonCalls().len, prepared.full.base.poseidonCalls().len });
+    }
 
     const external_count = std.math.add(
         usize,
@@ -564,13 +742,14 @@ fn proveSegment(
         @intCast(local.signer_recovery_calls.len()),
         ethereum_witness.shapes(),
     );
-    const profile = try prepared.mintProfile(
+    const profile = try prepared.mintProfileWithAdmission(
         &boundary_artifact,
         public_authority,
         &native,
         &extension,
+        admission,
     );
-    try profile.validateAgainstInputs(
+    if (program) |owner| try profile.validateAgainstInputsWithProgramV1(allocator, &boundary_artifact, &public_wire, public_authority, &native, &extension, artifact_v4.default_limits, owner) else try profile.validateAgainstInputs(
         allocator,
         &boundary_artifact,
         &public_wire,
@@ -658,6 +837,26 @@ fn rejectOutOfRangeRegisterClock(
         if (err != error.BoundaryClockOutOfRange) return err;
     }
     try projection.validateAgainst(global_source);
+}
+
+// Use the same clock-free projection hashes as native job construction and
+// recursive claim semantics. Label hashes are not application commitments.
+fn campaignIoDigests(
+    allocator: std.mem.Allocator,
+    first: *const runner.SegmentResult,
+    last: *const runner.SegmentResult,
+) ![2]span.Digest {
+    const input = first.input orelse return error.InvalidRole0GenuineFixture;
+    const words = try public_data.packInputWords(allocator, input);
+    defer allocator.free(words);
+    const output = try allocator.alloc(vm_claim.PublicOutputValue, last.output_words.len);
+    defer allocator.free(output);
+    for (output, last.output_words) |*destination, source| destination.* = .{ .addr = source.addr, .value = source.value };
+    const shape = try vm_claim.defaultShape();
+    return .{
+        try vm_claim.publicInputDigestFromProjection(.{ .start = first.input_start, .len = @intCast(input.len), .words = words }, shape),
+        try vm_claim.publicOutputDigestFromProjection(.{ .len_addr = last.output_len_addr, .data_addr = last.output_data_addr, .len = last.output_len, .words = output }, shape),
+    };
 }
 
 const OwnedRolePublic = struct {
@@ -981,7 +1180,8 @@ fn encodeSegment(
     return words;
 }
 
-fn ethereumWithUntouchedInput() [frontend.testing.guest_precompile_test_elf.ethereum_elf_size]u8 {
+/// Exact whole ELF used by both native producers and independent wrapper admission.
+pub fn programElf() [frontend.testing.guest_precompile_test_elf.ethereum_elf_size]u8 {
     var elf = frontend.testing.guest_precompile_test_elf.buildEthereum();
     const strings_offset: usize = 480;
     const symbols_offset: usize = 560;

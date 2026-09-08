@@ -1,0 +1,27 @@
+{
+  "utc": "2026-09-08T10:29:27.970620+00:00",
+  "test_pid": 58861,
+  "phase_sample": "pcs.fri_lazy_commit.commitLazy -> pcs.quotient_tile_executor.executeBatched",
+  "sample_file": ".git/local-ethereum/real-wrapper-segment2-devex-v4/quotient-sample-45m.txt",
+  "iostat_command": [
+    "iostat",
+    "-d",
+    "-w",
+    "1",
+    "-c",
+    "3"
+  ],
+  "disk0_one_second_MB_per_s": [
+    505.2,
+    683.14
+  ],
+  "scope": "whole-host disk throughput, not per-prover attribution; first since-boot iostat row excluded",
+  "prover_ps_observation": {
+    "elapsed": "47:42",
+    "cpu_percent": 8.2,
+    "rss_KiB": 8136288
+  },
+  "disk_available": "219 GiB",
+  "interpretation": "Low observed CPU with increasing process pageins and active host disk throughput is consistent with memory-driven I/O cost in lazy FRI, distinct from the earlier CPU quotient evaluation. This short sample does not quantify the entire phase or prove all disk traffic belongs to the prover.",
+  "proof_accepted": false
+}

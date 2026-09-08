@@ -436,7 +436,10 @@ fn describeHashTables(
         .kind = .poseidon2,
         .log_size = geometry.poseidon_log_size,
         .n_rows = @intCast(total_hashes),
-        .n_columns = poseidon2_air.N_MAIN_COLUMNS,
+        .n_columns = switch (witness.circuit_profile.poseidonLayout()) {
+            .legacy_v1 => poseidon2_air.N_MAIN_COLUMNS,
+            .narrow_degree3_v1 => @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS,
+        },
     };
     statement.n_infra += 1;
 }

@@ -90,6 +90,7 @@ pub fn Types(comptime Engine: type) type {
         pub const CoreV4 = Core;
         pub const OwnedColdProofV4 = Core.OwnedColdProofV4;
         pub const ProveResultV4 = Core.ProveResultV4;
+        pub const EncodedProofV4 = Core.EncodedProofV4;
         pub const Ingress = Core.Ingress;
         pub const Graph = Core.Graph;
         pub const EvidenceV4 = Evidence;
@@ -99,10 +100,14 @@ pub fn Types(comptime Engine: type) type {
         pub const FreshFoldChildV4 =
             freshFoldChildType(Evidence);
 
+        pub const proveCanonical = Core.proveCanonical;
+        pub const proveCanonicalWithPreparationEngine = Core.proveCanonicalWithPreparationEngine;
         pub const proveAndColdVerify = Core.proveAndColdVerify;
         pub const proveAndColdVerifyPreFinal =
             Core.proveAndColdVerifyPreFinal;
         pub const coldOpen = Core.coldOpen;
+        pub const coldOpenWithWorkers = Core.coldOpenWithWorkers;
+        pub const coldOpenWithPreparationEngine = Core.coldOpenWithPreparationEngine;
         pub const coldOpenPreFinal = Core.coldOpenPreFinal;
     };
 }
@@ -149,20 +154,19 @@ pub fn FreshFoldChildV4(comptime ColdOwner: type) type {
                 .final_transcript_draw_count = cold.ingress.final_transcript_draw_count,
                 .query_words_identity_sha256 = cold.ingress.query_words_identity_sha256,
             };
-            try result.validateBorrowed();
+            try result.validateProjection();
             return result;
         }
 
         pub fn validateBorrowed(self: Self) !void {
             try self.cold.validateBorrowed();
-            if (self.wrapper.artifact != self.cold.wrapper.artifact or
-                self.wrapper.geometry != self.cold.wrapper.geometry or
-                self.wrapper.capture != self.cold.wrapper.capture or
-                self.ingress.node_public != self.cold.ingress.node_public or
-                self.ingress.claims != self.cold.ingress.claims or
-                self.ingress.capture != self.cold.ingress.capture or
-                self.graph.capture_identity_sha256 !=
-                    self.cold.graph.capture_identity_sha256 or
+            try self.validateProjection();
+        }
+
+        fn validateProjection(self: Self) !void {
+            if (!std.meta.eql(self.wrapper, self.cold.wrapper) or
+                !std.meta.eql(self.ingress, self.cold.ingress) or
+                !std.meta.eql(self.graph, self.cold.graph) or
                 self.query_words != self.ingress.query_words or
                 self.query_words != self.graph.query_words or
                 self.query_log_size != self.ingress.query_log_size or

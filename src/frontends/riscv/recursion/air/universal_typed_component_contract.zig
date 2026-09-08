@@ -131,8 +131,16 @@ pub fn sourceNeedsExtension(
 ) !bool {
     try poly.validate();
     if (poly.log_size == eval_log_size) return false;
-    const coefficients = poly.coefficients orelse return error.InvalidProofShape;
-    if (coefficients.logSize() != trace_log_size)
+    if (poly.coefficients) |coefficients| {
+        if (coefficients.logSize() != trace_log_size)
+            return error.InvalidProofShape;
+        return true;
+    }
+    // Missing coefficients can be recovered from the entire committed LDE in
+    // the already-required quotient buffer. Larger source domains deliberately
+    // remain unsupported: they would require an additional scratch owner.
+    if (trace_log_size == 0 or trace_log_size > poly.log_size or
+        poly.log_size > eval_log_size or eval_log_size >= circle.M31_CIRCLE_LOG_ORDER)
         return error.InvalidProofShape;
     return true;
 }
@@ -140,20 +148,48 @@ pub fn sourceNeedsExtension(
 pub fn evaluationValues(
     allocator: std.mem.Allocator,
     poly: prover_component.Poly,
+    trace_log_size: u32,
     eval_log_size: u32,
     eval_size: usize,
+    twiddles: ?prover_twiddles.TwiddleTree([]const M31),
     owned_buffers: [][]M31,
     owned_initialized: *usize,
 ) ![]const M31 {
     if (poly.log_size == eval_log_size) return poly.values;
     if (owned_initialized.* >= owned_buffers.len)
         return error.InvalidProofShape;
-    const source = poly.coefficients.?.coefficients();
-    if (source.len > eval_size) return error.InvalidProofShape;
-    const values = try allocator.alloc(M31, eval_size);
-    errdefer allocator.free(values);
-    @memcpy(values[0..source.len], source);
-    @memset(values[source.len..], M31.zero());
+    const values = if (poly.coefficients) |coefficients| blk: {
+        const source = coefficients.coefficients();
+        if (source.len > eval_size) return error.InvalidProofShape;
+        const result = try allocator.alloc(M31, eval_size);
+        @memcpy(result[0..source.len], source);
+        @memset(result[source.len..], M31.zero());
+        break :blk result;
+    } else blk: {
+        _ = try sourceNeedsExtension(poly, trace_log_size, eval_log_size);
+        const source_domain = canonic.CanonicCoset.new(poly.log_size).circleDomain();
+        const transform = twiddles orelse return error.InvalidProofShape;
+        if (!source_domain.half_coset.isDoublingOf(transform.root_coset) or
+            eval_size != @as(usize, 1) << @intCast(eval_log_size))
+            return error.InvalidProofShape;
+        const result = try allocator.alloc(M31, eval_size);
+        errdefer allocator.free(result);
+        @memcpy(result[0..poly.values.len], poly.values);
+        try prover_circle.poly.interpolateBuffersWithTwiddles(
+            &.{result[0..poly.values.len]},
+            source_domain,
+            transform,
+        );
+        const native_size = @as(usize, 1) << @intCast(trace_log_size);
+        // Truncation is sound only after validating the full recovered degree.
+        // Never silently discard high coefficients or interpolate an LDE prefix
+        // as though it were the native canonical evaluation domain.
+        for (result[native_size..poly.values.len]) |coefficient| {
+            if (!coefficient.isZero()) return error.InvalidProofShape;
+        }
+        @memset(result[native_size..], M31.zero());
+        break :blk result;
+    };
     owned_buffers[owned_initialized.*] = values;
     owned_initialized.* += 1;
     return values;

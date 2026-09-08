@@ -12,6 +12,13 @@ const commitment = @import("commitment.zig");
 pub const N_SUMS: usize = 4;
 pub const N_COLUMNS: usize = N_SUMS * 4;
 pub const N_CONSTRAINTS: usize = N_SUMS + 3;
+/// Selected only by an independently admitted Ethereum circuit profile.
+/// Fixed rows are exact ELF-derived Tree0 columns; no witness-authored root
+/// or Boolean grants this policy.
+pub const Policy = enum(u8) { sparse_merkle_v1 = 0, fixed_decoded_table_v1 = 1 };
+pub const FIXED_COLUMN_COUNT: usize = 6;
+pub const N_FIXED_CONSTRAINTS: usize = N_CONSTRAINTS + FIXED_COLUMN_COUNT;
+pub const FIXED_MAIN_INDICES = [_]usize{ 1, 2, 3, 4, 5, 7 };
 
 pub const Claims = struct {
     sums: [N_SUMS]QM31,
@@ -39,12 +46,16 @@ pub fn generate(
     log_size: u32,
     relations: *const relations_mod.Relations,
 ) !Result {
+    return generateWithPolicy(.sparse_merkle_v1, allocator, rows, log_size, relations);
+}
+
+pub fn generateWithPolicy(comptime policy: Policy, allocator: std.mem.Allocator, rows: []const commitment.Row, log_size: u32, relations: *const relations_mod.Relations) !Result {
     const size = @as(usize, 1) << @intCast(log_size);
     if (rows.len > size) return error.InvalidTraceShape;
     const pairs = try allocator.alloc([N_SUMS]logup.RowPair, size);
     defer allocator.free(pairs);
     for (0..size) |index| pairs[index] = if (index < rows.len)
-        rowPairsFromRow(rows[index], relations)
+        rowPairsFromRowWithPolicy(policy, rows[index], relations)
     else
         paddingPairs();
     var cumulative: [N_SUMS]logup.CumulativeColumn = undefined;
@@ -103,7 +114,11 @@ pub fn evaluateGeneric(
     claims: [N_SUMS]S,
     relations: anytype,
 ) [N_CONSTRAINTS]S {
-    const pairs = rowPairsGeneric(S, main, relations);
+    return evaluateWithPolicyGeneric(.sparse_merkle_v1, S, main, is_active, is_first, sums, previous, claims, relations);
+}
+
+fn evaluateWithPolicyGeneric(comptime policy: Policy, comptime S: type, main: [commitment.N_MAIN_COLUMNS]S, is_active: S, is_first: S, sums: [N_SUMS]S, previous: [N_SUMS]S, claims: [N_SUMS]S, relations: anytype) [N_CONSTRAINTS]S {
+    const pairs = rowPairsGenericWithPolicy(policy, S, main, relations);
     var result: [N_CONSTRAINTS]S = undefined;
     for (0..N_SUMS) |index| {
         result[index] = logup.pairConstraintGeneric(
@@ -124,7 +139,20 @@ pub fn evaluateGeneric(
     return result;
 }
 
+/// Native and recursive evaluators share these exact fixed-table constraints.
+/// The public verifier independently admits all six columns through Tree0.
+pub fn evaluateFixedGeneric(comptime S: type, main: [commitment.N_MAIN_COLUMNS]S, fixed: [FIXED_COLUMN_COUNT]S, is_active: S, is_first: S, sums: [N_SUMS]S, previous: [N_SUMS]S, claims: [N_SUMS]S, relations: anytype) [N_FIXED_CONSTRAINTS]S {
+    var result: [N_FIXED_CONSTRAINTS]S = undefined;
+    result[0..N_CONSTRAINTS].* = evaluateWithPolicyGeneric(.fixed_decoded_table_v1, S, main, is_active, is_first, sums, previous, claims, relations);
+    for (FIXED_MAIN_INDICES, fixed, 0..) |index, expected, column| result[N_CONSTRAINTS + column] = is_active.mul(main[index].sub(expected));
+    return result;
+}
+
 pub fn rowPairsFromRow(row: commitment.Row, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
+    return rowPairsFromRowWithPolicy(.sparse_merkle_v1, row, relations);
+}
+
+pub fn rowPairsFromRowWithPolicy(comptime policy: Policy, row: commitment.Row, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
     const main = [commitment.N_MAIN_COLUMNS]QM31{
         QM31.one(),
         base(row.addr),
@@ -137,7 +165,7 @@ pub fn rowPairsFromRow(row: commitment.Row, relations: *const relations_mod.Rela
         base((row.addr >> 2) & ((@as(u32, 1) << 20) - 1)),
         base(row.addr >> 22),
     };
-    return rowPairs(main, relations);
+    return rowPairsGenericWithPolicy(policy, QM31, main, relations);
 }
 
 pub fn rowPairs(main: [commitment.N_MAIN_COLUMNS]QM31, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
@@ -145,7 +173,17 @@ pub fn rowPairs(main: [commitment.N_MAIN_COLUMNS]QM31, relations: *const relatio
 }
 
 pub fn rowPairsGeneric(comptime S: type, main: [commitment.N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
-    const list = entriesGeneric(S, main);
+    return rowPairsGenericWithPolicy(.sparse_merkle_v1, S, main, relations);
+}
+
+pub fn rowPairsGenericWithPolicy(comptime policy: Policy, comptime S: type, main: [commitment.N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
+    const list = entriesGenericWithPolicy(policy, S, main);
+    if (policy == .fixed_decoded_table_v1) return .{
+        list.pairWith(0, relations) catch unreachable,
+        list.pairWith(1, relations) catch unreachable,
+        logup.RowPairFor(S).single(S.zero(), S.one()),
+        logup.RowPairFor(S).single(S.zero(), S.one()),
+    };
     return .{
         list.pairWith(0, relations) catch unreachable,
         list.pairWith(1, relations) catch unreachable,
@@ -159,6 +197,10 @@ pub fn entries(main: [commitment.N_MAIN_COLUMNS]QM31) lookup_entry.List {
 }
 
 pub fn entriesGeneric(comptime S: type, main: [commitment.N_MAIN_COLUMNS]S) lookup_entry.Builder(S).List {
+    return entriesGenericWithPolicy(.sparse_merkle_v1, S, main);
+}
+
+pub fn entriesGenericWithPolicy(comptime policy: Policy, comptime S: type, main: [commitment.N_MAIN_COLUMNS]S) lookup_entry.Builder(S).List {
     const EntryBuilder = lookup_entry.Builder(S);
     const enabler = main[0];
     const addr = main[1];
@@ -167,10 +209,12 @@ pub fn entriesGeneric(comptime S: type, main: [commitment.N_MAIN_COLUMNS]S) look
     const depth = baseGeneric(S, 30);
     var list = EntryBuilder.List{};
     appendGeneric(S, &list, .program_access, main[6], .{ addr, values[0], values[1], values[2], values[3] });
-    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });
-    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 1)), depth, values[1], root });
-    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 2)), depth, values[2], root });
-    appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 3)), depth, values[3], root });
+    if (policy == .sparse_merkle_v1) {
+        appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr, depth, values[0], root });
+        appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 1)), depth, values[1], root });
+        appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 2)), depth, values[2], root });
+        appendGeneric(S, &list, .merkle, enabler.neg(), .{ addr.add(baseGeneric(S, 3)), depth, values[3], root });
+    }
     appendGeneric(S, &list, .range_check_20, enabler.neg(), .{main[8]});
     appendGeneric(S, &list, .range_check_8_8, enabler.neg(), .{ main[9], S.zero() });
     return list;
@@ -355,4 +399,60 @@ test "program interaction: address limbs are range-table consumers" {
     try std.testing.expectEqual(lookup_entry.Domain.range_check_8_8, list.entries[6].domain);
     try std.testing.expect(list.entries[5].numerator.eql(QM31.one().neg()));
     try std.testing.expect(list.entries[6].numerator.eql(QM31.one().neg()));
+}
+
+test "Ethereum fixed program table binds every admitted field and rejects selector bypass" {
+    const relations = relations_mod.Relations.dummy();
+    const main = [_]QM31{ base(1), base(0x1000), base(10), base(1), base(0), base(1), base(3), base(99), base(0x400), base(0) };
+    var fixed: [FIXED_COLUMN_COUNT]QM31 = undefined;
+    for (FIXED_MAIN_INDICES, &fixed) |index, *word| word.* = main[index];
+    const pairs = rowPairsGenericWithPolicy(.fixed_decoded_table_v1, QM31, main, &relations);
+    var claims: [N_SUMS]QM31 = undefined;
+    for (pairs, &claims) |pair, *claim| claim.* = pair.n1.mul(try pair.d1.inv()).add(pair.n2.mul(try pair.d2.inv()));
+    const accepted = evaluateFixedGeneric(QM31, main, fixed, QM31.one(), QM31.one(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, claims, &relations);
+    for (accepted) |constraint| try std.testing.expect(constraint.isZero());
+    for (FIXED_MAIN_INDICES, 0..) |index, column| {
+        var changed = main;
+        changed[index] = changed[index].add(QM31.one());
+        const rejected = evaluateFixedGeneric(QM31, changed, fixed, QM31.one(), QM31.one(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, claims, &relations);
+        try std.testing.expect(!rejected[N_CONSTRAINTS + column].isZero());
+    }
+    var changed = main;
+    changed[0] = QM31.zero();
+    const bypass = evaluateFixedGeneric(QM31, changed, fixed, QM31.one(), QM31.one(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, claims, &relations);
+    try std.testing.expect(!bypass[N_SUMS].isZero());
+    changed = main;
+    changed[6] = changed[6].add(QM31.one());
+    const multiplicity = evaluateFixedGeneric(QM31, changed, fixed, QM31.one(), QM31.one(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, claims, &relations);
+    try std.testing.expect(!multiplicity[0].isZero());
+}
+
+test "Ethereum fixed program table removes only Merkle claims and preserves program ranges" {
+    const main = [_]QM31{ base(1), base(0x1000), base(10), base(1), base(0), base(1), base(3), base(99), base(0x400), base(0) };
+    const legacy = entriesGeneric(QM31, main);
+    const fixed = entriesGenericWithPolicy(.fixed_decoded_table_v1, QM31, main);
+    try std.testing.expectEqual(@as(usize, 7), legacy.len);
+    try std.testing.expectEqual(@as(usize, 3), fixed.len);
+    for ([_]usize{ 0, 5, 6 }, 0..) |index, destination| {
+        const before = legacy.entries[index];
+        const after = fixed.entries[destination];
+        try std.testing.expectEqual(before.domain, after.domain);
+        try std.testing.expectEqualDeep(before.numerator, after.numerator);
+        try std.testing.expectEqual(before.arity, after.arity);
+        try std.testing.expectEqualDeep(before.values[0..before.arity], after.values[0..after.arity]);
+    }
+    const relations = relations_mod.Relations.dummy();
+    const pairs = rowPairsGenericWithPolicy(.fixed_decoded_table_v1, QM31, main, &relations);
+    for (pairs[2..]) |pair| try std.testing.expectEqualDeep(logup.RowPair.single(QM31.zero(), QM31.one()), pair);
+}
+
+test "Ethereum fixed program table padding cannot emit fetches" {
+    const relations = relations_mod.Relations.dummy();
+    var main = [_]QM31{QM31.zero()} ** commitment.N_MAIN_COLUMNS;
+    const fixed = [_]QM31{QM31.zero()} ** FIXED_COLUMN_COUNT;
+    const accepted = evaluateFixedGeneric(QM31, main, fixed, QM31.zero(), QM31.zero(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, &relations);
+    for (accepted) |constraint| try std.testing.expect(constraint.isZero());
+    main[6] = QM31.one();
+    const rejected = evaluateFixedGeneric(QM31, main, fixed, QM31.zero(), QM31.zero(), .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, .{QM31.zero()} ** N_SUMS, &relations);
+    try std.testing.expect(!rejected[N_SUMS + 1].isZero());
 }

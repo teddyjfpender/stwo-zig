@@ -35,7 +35,7 @@ pub const Error = std.mem.Allocator.Error || error{
 pub const SampleLayoutV2 = struct {
     allocator: std.mem.Allocator,
     base: *const base_geometry.GeometryV2,
-    extension: *const extension_geometry.GeometryV2,
+    extension: ?*const extension_geometry.GeometryV2,
     values: []const Scalar,
     tree_offsets: [TREE_COUNT + 1]u32,
     base_offsets: [TREE_COUNT][]u32,
@@ -44,16 +44,15 @@ pub const SampleLayoutV2 = struct {
     pub fn init(
         allocator: std.mem.Allocator,
         base: *const base_geometry.GeometryV2,
-        extension: *const extension_geometry.GeometryV2,
+        extension: ?*const extension_geometry.GeometryV2,
         values: []const Scalar,
     ) !SampleLayoutV2 {
         try base.validate();
-        try extension.validate();
-        if (!std.mem.eql(
-            u8,
-            &base.profile_identity,
-            &extension.base_profile_identity,
-        )) return error.InvalidSampleGeometry;
+        if (extension) |extra| {
+            try extra.validate();
+            if (!std.mem.eql(u8, &base.profile_identity, &extra.base_profile_identity))
+                return error.InvalidSampleGeometry;
+        }
 
         var base_offsets: [TREE_COUNT][]u32 = undefined;
         var base_initialized: usize = 0;
@@ -68,7 +67,8 @@ pub const SampleLayoutV2 = struct {
         var extension_initialized: usize = 0;
         errdefer for (extension_offsets[0..extension_initialized]) |offsets|
             allocator.free(offsets);
-        for (&extension_offsets, extension.columns) |*offsets, columns| {
+        const extension_columns = if (extension) |extra| extra.columns else [_][]extension_geometry.ColumnV2{&.{}} ** EXTENSION_TREE_COUNT;
+        for (&extension_offsets, extension_columns) |*offsets, columns| {
             offsets.* = try columnOffsets(allocator, columns);
             extension_initialized += 1;
         }
@@ -83,7 +83,7 @@ pub const SampleLayoutV2 = struct {
         }
         tree_offsets[TREE_COUNT] = cursor;
         if (@as(usize, cursor) != values.len or
-            cursor != base.sampled_value_count + extension.sampled_value_count)
+            cursor != base.sampled_value_count + (if (extension) |extra| extra.sampled_value_count else @as(u32, 0)))
         {
             return error.InvalidSampleGeometry;
         }
@@ -125,12 +125,13 @@ pub const SampleLayoutV2 = struct {
         column: usize,
         row_offset: i8,
     ) Error!Scalar {
+        const extension = self.extension orelse return error.InvalidSampleGeometry;
         if (tree >= EXTENSION_TREE_COUNT or
-            column >= self.extension.columns[tree].len)
+            column >= extension.columns[tree].len)
         {
             return error.InvalidSampleGeometry;
         }
-        const geometry = self.extension.columns[tree][column];
+        const geometry = extension.columns[tree][column];
         var sample: ?usize = null;
         for (geometry.row_offsets[0..geometry.sample_count], 0..) |value, at| {
             if (value == row_offset) {
@@ -232,6 +233,21 @@ pub fn pointFromSeed(seed: Scalar) circle.CirclePoint(Scalar) {
         .x = Scalar.one().sub(square).mul(inverse),
         .y = seed.add(seed).mul(inverse),
     };
+}
+
+/// Opt-in failure attribution only; never changes the recorded graph or admission.
+pub fn compositionDiagnosticsEnabled() bool {
+    const value = std.process.getEnvVarOwned(std.heap.page_allocator, "STWO_ETHEREUM_COMPOSITION_DIAGNOSTICS") catch return false;
+    defer std.heap.page_allocator.free(value);
+    return std.mem.eql(u8, value, "1");
+}
+
+pub fn diagnosticCheckpoint(section: []const u8, ordinal: usize, count: u32, value: Scalar) void {
+    if (!compositionDiagnosticsEnabled()) return;
+    switch (value.handle) {
+        .node => |node| std.debug.print("VM_COMPOSITION_CHECKPOINT section={s} index={d} constraints={d} node={d}\n", .{ section, ordinal, count, node }),
+        .constant => |constant| std.debug.print("VM_COMPOSITION_CHECKPOINT section={s} index={d} constraints={d} constant={any}\n", .{ section, ordinal, count, constant }),
+    }
 }
 
 pub fn quotientDenominator(

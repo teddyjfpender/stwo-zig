@@ -1,0 +1,58 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_PUBLIC_BOUNDARY_KEY child_indices=211,212 graph_identity_equal=true native_boundary_literals=false
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3312 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+FIELD_SESSION_KEY_AIR kind=canonical_empty limbs=48 changed_value_rejected=true native_session_seal=false
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+SECURE_TRANSCRIPT_AIR_ROWS control=176 sponge=1656 binding=1656 state=178 word=11824 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=71749875 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=176 frames=178 permutations=1656 words=12384 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes' failed: SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3312 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+CANONICAL_CHILD_WIRE_BOUNDARY limbs=8 transcript_join=true changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70107 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=1 unmatched_control=0
+COMMON_FOLD_ZERO_VERIFIER_INPUTS limbs=24 air_join=true changed_consumer_or_missing_producer_rejected=true
+COMMON_FOLD_FIXED_WIRES rows=34007 graph_join=true missing_or_changed_anchor_rejected=true
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=0 canonical_words=900
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=2 canonical_words=900
+COMPOSITION_STATEMENT_BINDING words=824 literal_graph_checks=false changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+COMMON_FOLD_CLOSURE_FINAL_RESIDUAL domain=25 value=1652146105,1883808650,1266156494,2110349400
+COMMON_FOLD_CLOSURE_ROW_TERM row=5 domain=25 value=1795011866,1921660519,1488618617,1268922616
+COMMON_FOLD_CLOSURE_ROW_TERM row=10 domain=25 value=1046880918,391363127,1637012047,2005402490
+COMMON_FOLD_CLOSURE_ROW_TERM row=13 domain=25 value=104508484,1137622398,118423299,476110951
+COMMON_FOLD_CLOSURE_ROW_TERM row=14 domain=25 value=2064225199,764964653,618337781,230606212
+COMMON_FOLD_CLOSURE_ROW_TERM row=15 domain=25 value=411465086,950393357,453968280,533870538
+COMMON_FOLD_CLOSURE_ROW_TERM row=16 domain=25 value=338763344,1062690922,1854568229,917588454
+COMMON_FOLD_CLOSURE_ROW_TERM row=17 domain=25 value=1376005181,379295964,1249669705,2136791139
+COMMON_FOLD_CLOSURE_ROW_TERM row=18 domain=25 value=1399446412,953147638,46592815,606000089
+COMMON_FOLD_CLOSURE_ROW_TERM row=22 domain=25 value=1511811809,1354058509,1584507177,2008298910
+COMMON_FOLD_CLOSURE_ROW_TERM row=24 domain=25 value=1772243771,106355897,1815976875,1732231867
+COMMON_FOLD_CLOSURE_ROW_TERM row=29 domain=25 value=1064539812,1715865251,2017227057,969078616
+COMMON_FOLD_CLOSURE_SUFFIX_INPUT_BOUNDARY domain=25 value=1652146105,1883808650,1266156494,2110349400
+COMMON_FOLD_CLOSURE_FRAMEWORK_RESIDUAL domain=0 value=1652146105,1883808650,1266156494,2110349400
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes', the following test command failed:
+./.zig-cache/o/42da489e58737d68ae10f399882f600e/test --cache-dir=./.zig-cache --seed=0x32860fb --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursive-common-fold-transcript-source-v1 transitive failure
++- Common-fold parent transcript source guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:95M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/843d5e9ed195118664d20eb1051fc395/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x32860fb -Zccb6759c7f002d02 --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-source-v1 test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=ReleaseSafe --summary all

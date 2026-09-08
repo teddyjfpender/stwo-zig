@@ -25,7 +25,7 @@ const statement_relation = air.statement_input_relation;
 const framework = air.framework_interaction;
 const universal = air.universal_challenges;
 const shared_provider = air.universal_shared_provider;
-const relation = @import("../../frontends/riscv/air/lang/relation.zig");
+const relation = frontend.air.relation;
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;

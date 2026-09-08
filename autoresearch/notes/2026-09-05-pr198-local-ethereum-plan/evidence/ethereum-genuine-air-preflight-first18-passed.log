@@ -1,0 +1,36 @@
+test-ethereum-air-preflight
++- Ethereum genuine AIR preflight guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46925016500 process_cpu_ns=49473965625 parallelism_milli=1054 peak_footprint_bytes=288342832 energy_nj=228222296965 instructions=1099360429985 cycles=196235136802 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1279021792 process_cpu_ns=1278847334 parallelism_milli=999 peak_footprint_bytes=288342832 energy_nj=6467102152 instructions=27906723948 cycles=5076163841 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=5153328917 process_cpu_ns=5152595750 parallelism_milli=999 peak_footprint_bytes=1957021952 energy_nj=25519504764 instructions=86644165392 cycles=20455940571 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=39990958 public_ns=298702417 transcript_ns=137974666 profile_ns=29500 program_ns=69370875 prepare_ns=70783834 fri_ns=3796481000 seal_ns=39855458 total_ns=4453191041 nodes=540192 node_bytes=10803840 output_bytes=176 binding_bytes=2468976 schedule_bytes=8051316 evaluation_bytes=8643072 input_bytes=617244 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=74 bytes=856174946 peak=1893502489 allocated=3177384412 freed=2321209466 untracked=0
+ETHEREUM_AIR_DEGREE component=control direct_bound=0 logup_bound=2 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_air direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_binding direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_state direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_word direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_payload direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_check direct_bound=2 logup_bound=2 declared=2 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_frame direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=relation_challenge direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=verifier_randomness direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_input direct_bound=2 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_semantics_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_io_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_semantics_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_control direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_PREFLIGHT checked_components=18 direct_roots=true adapter_parameters=true padding=true full_cohort=false wrapper_verified=false
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=93695878083 process_cpu_ns=96220615916 parallelism_milli=1026 peak_footprint_bytes=17835849240 energy_nj=448663902967 instructions=1873343781979 cycles=381796530355 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-air-preflight success
++- Ethereum genuine AIR preflight guard success
+   +- run test 1 passed 1m MaxRSS:17G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

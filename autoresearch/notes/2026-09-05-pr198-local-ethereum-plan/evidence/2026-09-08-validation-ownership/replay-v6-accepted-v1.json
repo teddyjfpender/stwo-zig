@@ -1,0 +1,140 @@
+{
+  "status": "accepted_development_closure_not_stark_proof",
+  "source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "request_sha256": "0905cd4d9221279cf9c02ffa59d3b24e14217e7726140d8a66cb26c7bd842836",
+  "execution": {
+    "status": "passed",
+    "pid": 50656,
+    "started_at": "2026-09-08T07:15:12.012563+00:00",
+    "source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+    "request_sha256": "0905cd4d9221279cf9c02ffa59d3b24e14217e7726140d8a66cb26c7bd842836",
+    "validated_source_files": 5774,
+    "child_pid": 50657,
+    "exit_code": 0,
+    "wall_seconds": 4357.108485125005,
+    "finished_at": "2026-09-08T08:27:49.216340+00:00"
+  },
+  "phases": [
+    {
+      "phase": "prepare",
+      "components": 36,
+      "ns": 1623176270334,
+      "process_cpu_ns": 1562339613416,
+      "current_footprint_bytes": 31860662008,
+      "lifetime_peak_footprint_bytes": 56225833760,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "tree2_generate",
+      "components": 36,
+      "ns": 217860487625,
+      "process_cpu_ns": 214857021917,
+      "current_footprint_bytes": 31860825944,
+      "lifetime_peak_footprint_bytes": 56225833760,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "producer_closure",
+      "components": 36,
+      "ns": 25583,
+      "process_cpu_ns": 24709,
+      "current_footprint_bytes": 31860825944,
+      "lifetime_peak_footprint_bytes": 56225833760,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "serialize",
+      "components": 36,
+      "ns": 610375,
+      "process_cpu_ns": 433500,
+      "current_footprint_bytes": 31860940656,
+      "lifetime_peak_footprint_bytes": 56225833760,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "producer_destroy",
+      "components": 36,
+      "ns": 31153664291,
+      "process_cpu_ns": 6638297708,
+      "current_footprint_bytes": 1974700816,
+      "lifetime_peak_footprint_bytes": 56225833760,
+      "allocator_live_bytes": 0,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "cold_prepare",
+      "components": 36,
+      "ns": 1642701859625,
+      "process_cpu_ns": 1578556725167,
+      "current_footprint_bytes": 31863103512,
+      "lifetime_peak_footprint_bytes": 56226325544,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "cold_tree2",
+      "components": 36,
+      "ns": 216933840583,
+      "process_cpu_ns": 214173683917,
+      "current_footprint_bytes": 31863185456,
+      "lifetime_peak_footprint_bytes": 56226325544,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "cold_closure",
+      "components": 36,
+      "ns": 120658442500,
+      "process_cpu_ns": 119818567833,
+      "current_footprint_bytes": 31863201840,
+      "lifetime_peak_footprint_bytes": 56226325544,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    {
+      "phase": "verifier_destroy",
+      "components": 36,
+      "ns": 25745217375,
+      "process_cpu_ns": 5815130625,
+      "current_footprint_bytes": 1975077744,
+      "lifetime_peak_footprint_bytes": 56226325544,
+      "allocator_live_bytes": 0,
+      "allocator_peak_bytes": 74801485871
+    }
+  ],
+  "named_tests_passed": 2,
+  "serialized_bytes": 87326,
+  "contributions": 166400671,
+  "producer_destroyed": true,
+  "fresh_tree2_exact_generated_equality": true,
+  "independent_cold_closure": true,
+  "verifier_destroyed": true,
+  "wrapper_proof": false,
+  "new_preparation_revision_validated": false,
+  "artifacts": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/replay-v6-accepted-execution.json",
+      "sha256": "b8d77c7bffcf54a51a49f45d8cc3cf8d6382532932d60bcb41174c63c8dbfab4",
+      "bytes": 441
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/replay-v6-accepted-progress.log",
+      "sha256": "e7283cce05c4f46f848b02436c1c939dce0470d120e869c6673a6f35c8559868",
+      "bytes": 13514
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/replay-v6-accepted-replay.log",
+      "sha256": "8c14b49535dd7ea3fa23be5d410e5428cb15880197ace334b6264bfef7188106",
+      "bytes": 15458
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/replay-v6-accepted-request.json",
+      "sha256": "0905cd4d9221279cf9c02ffa59d3b24e14217e7726140d8a66cb26c7bd842836",
+      "bytes": 3026
+    }
+  ]
+}

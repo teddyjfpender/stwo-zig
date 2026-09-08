@@ -132,6 +132,7 @@ pub const WitnessV3 = struct {
     parent_binary_selector: bool,
     proof_kind: ProofKind,
     statement_words: *const [STATEMENT_WORD_COUNT]M31,
+    field_public_extra_words: []const M31 = &.{},
     sampled_values: []const QM31,
     claim_inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
     public_wire_boundary: QM31,

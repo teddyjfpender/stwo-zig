@@ -1,0 +1,51 @@
+{
+  "base_commit": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "dirty_tree": true,
+  "benchmark_promotion": false,
+  "scope": "ContextV2 publication provider and laptop build scheduling; no complete Ethereum leaf proof",
+  "tests": {
+    "laptop_build_wrapper_and_nested_limits": {
+      "passed": 4
+    },
+    "publication_provider_focused_ReleaseSafe": {
+      "passed": 10
+    },
+    "noncore_audits_focused_ReleaseSafe": {
+      "passed": 5
+    },
+    "vm_context_ReleaseSafe": {
+      "passed": 4
+    },
+    "vm_profile_ReleaseSafe": {
+      "passed": 344,
+      "skipped": 1
+    },
+    "outer_manifest_ReleaseSafe": {
+      "passed": 312,
+      "skipped": 1
+    },
+    "outer_cohort_compile_ReleaseSafe": {
+      "status": "pass"
+    }
+  },
+  "retained_geometry_test": {
+    "synthetic_fixture": true,
+    "real_proof": false,
+    "detailed_claims": 88,
+    "logical_provider_rows": 407,
+    "padded_provider_rows": 512
+  },
+  "remaining_compile_failure": "recursive_segment_v2_leaf_outer Prepared.init still calls old vm_air_composition_circuit.Prepared.init with ContextV2",
+  "logs": [
+    "laptop-build-tests.log",
+    "context-profile-tests.log",
+    "provider-custody-tests.log",
+    "provider-manifest-tests.log",
+    "outer-cohort-compile.log"
+  ],
+  "source_conformance": {
+    "size_failures": 89,
+    "authority_failures": 6,
+    "total_failures": 95
+  }
+}

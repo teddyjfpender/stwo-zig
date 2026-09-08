@@ -1,0 +1,42 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 675s
+test-recursive-common-fold-child-capability-v2
++- run test
+   +- compile test ReleaseSafe native 1 errors
+recursive_common_fold_universal_cohort_v2.zig:116:53: error: expected type '*const recursive_circuit_registry_v1.RecursiveCircuitRegistryV1', found '*const *const recursive_circuit_registry_v1.RecursiveCircuitRegistryV1'
+            const projection = try child.projection(&self.geometry.registry);
+                                                    ^~~~~~~~~~~~~~~~~~~~~~~
+recursive_common_fold_universal_cohort_v2.zig:116:53: note: pointer type child '*const recursive_circuit_registry_v1.RecursiveCircuitRegistryV1' cannot cast into pointer type child 'recursive_circuit_registry_v1.RecursiveCircuitRegistryV1'
+recursive_circuit_registry_v1.zig:342:40: note: struct declared here
+pub const RecursiveCircuitRegistryV1 = struct {
+                                       ^~~~~~
+recursive_common_fold_child_capability_v2.zig:225:23: note: parameter type declared here
+            registry: *const registry_mod.RecursiveCircuitRegistryV1,
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    proveAndColdVerify: recursive_common_fold_secure_proof_v2.zig:279:30
+    test.schema4 child capability is typed role-neutral and production closed: recursive_common_fold_child_capability_v2_test.zig:22:39
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_api --dep stwo_artifact_store --dep stwo_prover_engine --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_fold_child_capability_v2_test.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "schema4 child capability is typed role-neutral and production closed" --test-filter "unavailable real branch cannot mint a fold child" --test-filter "projection carries no serializable freshness or nominal child" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_EMPTY_REUSE_AB proof_sha=23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468 capture_sha=1251c5325be690bcb807d1590a66b303ec984fd02452453288965b4eb6606cc9 preprocessed_root={ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 } prove_ns=1361653084 prove_fresh_verify_ns=555553042 cold_open_total_ns=631042375 baseline_ns=1580526625 optimized_ns=5852625 reduction_bps=9962 q193_ns=416951292 replay_ns=87930083 graph_ns=77331208 cache_hits=3 cache_misses=1 cache_lookup_ns=131663083 cache_rebuild_ns=131659667
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=70552375 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 6/9 steps succeeded; 1 failed; 1/1 tests passed
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 10s MaxRSS:87M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+test-recursive-common-fold-child-capability-v2 transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+check-recursive-common-fold-q193-bootstrap-v2 success
++- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2528aa8476a58cfcd8e472af72ac10a4/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xf447d182 -Z70337977050da100 --maxrss 25769803776 -j1 test-recursive-common-canonical-empty-universal-v2-proof test-recursive-common-fold-child-capability-v2 check-recursive-common-fold-q193-bootstrap-v2 -Doptimize=ReleaseSafe --summary all

@@ -5,6 +5,10 @@ const std = @import("std");
 pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
     const build_optimize = b.fmt("-Doptimize={s}", .{@tagName(optimize)});
     const zig_optimize = b.fmt("-O{s}", .{@tagName(optimize)});
+    const deep_command: []const []const u8 = if (b.graph.env_map.get("STWO_ZIG_BUILD_HELD_LOCK") != null)
+        &.{ "python3", "scripts/zig_protocol_test.py", "--no-lock", "src/stwo_deep.zig", zig_optimize }
+    else
+        &.{ "python3", "scripts/zig_protocol_test.py", "src/stwo_deep.zig", zig_optimize };
     const normal = [_][]const []const u8{
         &.{ "zig", "fmt", "--check", "build.zig", "build_support", "src", "tools" },
         &.{ "python3", "scripts/check_upstream_pins.py" },
@@ -16,7 +20,7 @@ pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
         &.{ "zig", "build", "test-riscv-prover", build_optimize },
         &.{ "python3", "scripts/riscv_trace_vectors.py" },
         &.{ "python3", "scripts/check_api_parity.py" },
-        &.{ "python3", "scripts/zig_protocol_test.py", "src/stwo_deep.zig", zig_optimize },
+        deep_command,
         &.{ "python3", "scripts/parity_fields.py", "--skip-zig" },
         &.{ "python3", "scripts/parity_constraint_expr.py", "--skip-zig" },
         &.{ "python3", "scripts/parity_air_derive.py", "--skip-zig" },
@@ -42,7 +46,7 @@ pub fn addGates(b: *std.Build, optimize: std.builtin.OptimizeMode) void {
         &.{ "zig", "build", "test-riscv-prover", build_optimize },
         &.{ "python3", "scripts/riscv_trace_vectors.py" },
         &.{ "python3", "scripts/check_api_parity.py" },
-        &.{ "python3", "scripts/zig_protocol_test.py", "src/stwo_deep.zig", zig_optimize },
+        deep_command,
         &.{ "python3", "scripts/parity_fields.py", "--skip-zig" },
         &.{ "python3", "scripts/parity_constraint_expr.py", "--skip-zig" },
         &.{ "python3", "scripts/parity_air_derive.py", "--skip-zig" },

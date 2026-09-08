@@ -7,6 +7,7 @@
 //! placement and claim seals before recursive witness construction.
 
 const std = @import("std");
+const CircuitProfileV1 = @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 
 const base_relations = @import("../air/relation_challenges.zig");
@@ -88,6 +89,7 @@ pub const ContextV1 = struct {
             assembly,
             base_component_count,
             native.core.nInteractionColumns(),
+            .legacy_v4,
         );
     }
 
@@ -103,6 +105,20 @@ pub const ContextV1 = struct {
         manifest: *const lookup_physical_v2.Manifest,
         authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     ) !ContextV1 {
+        return initVerifiedAuthenticatedLookupV2WithCircuitProfileV1(native, extension, claim, transcript_relations, assembly, base_component_count, manifest, authenticated, .legacy_v4);
+    }
+
+    pub fn initVerifiedAuthenticatedLookupV2WithCircuitProfileV1(
+        native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        claim: *const ethereum_types.ExtensionClaim,
+        transcript_relations: *const ethereum_transcript.Relations,
+        assembly: *const ethereum_assembly.Assembly(.verifier),
+        base_component_count: usize,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+        circuit_profile: CircuitProfileV1,
+    ) !ContextV1 {
         const base_interaction_columns = try authenticated.totalInteractionColumns(
             &native.core,
             manifest,
@@ -115,6 +131,7 @@ pub const ContextV1 = struct {
             assembly,
             base_component_count,
             base_interaction_columns,
+            circuit_profile,
         );
     }
 
@@ -136,6 +153,7 @@ pub const ContextV1 = struct {
             assembly,
             @intCast(base.profile.physical_component_count),
             @intCast(base.profile.interaction_column_count),
+            base.profile.circuit_profile,
         );
     }
 
@@ -147,8 +165,9 @@ pub const ContextV1 = struct {
         assembly: *const ethereum_assembly.Assembly(.verifier),
         base_component_count: usize,
         base_interaction_columns: usize,
+        circuit_profile: CircuitProfileV1,
     ) !ContextV1 {
-        try extension.validateV2(native);
+        try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
         try claim.validate(extension);
         const core = &native.core;
         const expected_base_count = try physicalBaseComponentCount(core);
@@ -181,6 +200,7 @@ pub const ContextV1 = struct {
             extension,
             claim,
             base_interaction_columns,
+            circuit_profile,
         );
         result.identity_digest = result.computeIdentityDigest();
         return result;
@@ -239,6 +259,19 @@ pub const ContextV1 = struct {
         manifest: *const lookup_physical_v2.Manifest,
         authenticated: *const lookup_physical_v2.AuthenticatedStatement,
     ) !void {
+        return self.validateAgainstAuthenticatedLookupV2AuthorityWithCircuitProfileV1(native, extension, claim, transcript_relations, manifest, authenticated, .legacy_v4);
+    }
+
+    pub fn validateAgainstAuthenticatedLookupV2AuthorityWithCircuitProfileV1(
+        self: *const ContextV1,
+        native: *const statement_v2.RiscVStatementV2,
+        extension: *const ethereum_statement.Statement,
+        claim: *const ethereum_types.ExtensionClaim,
+        transcript_relations: *const ethereum_transcript.Relations,
+        manifest: *const lookup_physical_v2.Manifest,
+        authenticated: *const lookup_physical_v2.AuthenticatedStatement,
+        circuit_profile: CircuitProfileV1,
+    ) !void {
         try authenticated.validateAgainst(&native.core, manifest);
         const base_interaction_columns = try authenticated.totalInteractionColumns(
             &native.core,
@@ -249,6 +282,7 @@ pub const ContextV1 = struct {
             extension,
             claim,
             base_interaction_columns,
+            circuit_profile,
         );
         var expected_draws: [RELATION_DRAW_COUNT]QM31 = undefined;
         try writeRelationDraws(transcript_relations, &expected_draws);
@@ -274,6 +308,7 @@ pub const ContextV1 = struct {
             extension,
             claim,
             @intCast(base.profile.interaction_column_count),
+            base.profile.circuit_profile,
         );
         const expected_identity = self.computeIdentityDigest();
         if (base.profile.physical_component_count != self.base_component_count or
@@ -301,6 +336,7 @@ pub const ContextV1 = struct {
             extension,
             claim,
             base_interaction_columns,
+            .legacy_v4,
         );
         const expected_identity = self.computeIdentityDigest();
         if (base.profile.component_count != self.base_component_count or
@@ -361,6 +397,7 @@ pub const ContextV1 = struct {
         extension: *const ethereum_statement.Statement,
         claim: *const ethereum_types.ExtensionClaim,
         base_interaction_columns: usize,
+        circuit_profile: CircuitProfileV1,
     ) !void {
         const core = &native.core;
         const expected_base_count = try castOffset(
@@ -381,7 +418,7 @@ pub const ContextV1 = struct {
         {
             return error.EthereumContextMismatch;
         }
-        try extension.validateV2(native);
+        try extension.validateV2WithCircuitProfileV1(native, circuit_profile);
         try claim.validate(extension);
         const placements = try canonicalPlacements(
             core,
@@ -847,6 +884,7 @@ test "Ethereum leaf context preserves legacy placement and authenticates V2" {
             &extension,
             &claim,
             selected,
+            .legacy_v4,
         ),
     );
     authenticated.opcode_interaction_columns += 4;
@@ -881,4 +919,49 @@ test "Ethereum leaf context preserves legacy placement and authenticates V2" {
             &authenticated,
         ),
     );
+}
+
+test "Ethereum leaf context log18 admission remains explicit through retained validation" {
+    const allocator = std.testing.allocator;
+    const public_data_v2 = @import("../air/public_data_v2.zig");
+    const public_support = @import("../air/public_data_v2_test_support.zig");
+    const context_support = @import("ethereum_leaf_context_v1_test_support.zig");
+    var fixture = try public_support.Fixture.init();
+    var source = fixture.leftSource();
+    // Admission still requires every external call to fit the authenticated
+    // segment clock. The shared two-cycle fixture is too small for log18.
+    source.cycle_count = 10_000;
+    source.base_statement.job.complete.total_cycles = 20_000;
+    source.base_statement.body.executed.cycle_count = source.cycle_count;
+    const words = try public_support.encode(allocator, &source);
+    defer allocator.free(words);
+    const public_data = try public_data_v2.PublicDataV2.authenticate(words);
+    const projected = try statement_v2.canonicalCorePublicData(&public_data);
+    var core = context_support.retainedSegmentZeroCore();
+    core.initial_pc = projected.initial_pc;
+    core.final_pc = projected.final_pc;
+    core.total_steps = projected.clock;
+    core.public_data = projected;
+    const native = try statement_v2.RiscVStatementV2.init(core, public_data);
+    const circuit_profile: CircuitProfileV1 = .fixed_program_narrow_v1;
+    const extension = try ethereum_statement.Statement.canonicalV2WithCircuitProfileV1(&native, 9828, 0, context_support.emptySecpShapes(), circuit_profile);
+    try std.testing.expectEqual(@as(u32, 18), extension.components[0].log_size);
+    var claim = context_support.zeroExtensionClaim(&extension);
+    claim.keccak_shard.call_count = extension.counts.keccak_calls;
+    const relations = std.mem.zeroes(ethereum_transcript.Relations);
+    const base_count = try physicalBaseComponentCount(&native.core);
+    const base = try allocator.alloc(@import("stwo_core").air.components.Component, base_count);
+    defer allocator.free(base);
+    const manifest = lookup_physical_v2.Manifest.native();
+    const authenticated = try lookup_physical_v2.AuthenticatedStatement.init(&native.core, &manifest);
+    const assembly = try ethereum_assembly.Assembly(.verifier).createAuthenticatedLookupV2WithCircuitProfileV1(allocator, &native, &extension, &relations, base, &claim, &manifest, &authenticated, circuit_profile);
+    defer assembly.destroy(allocator);
+    try std.testing.expectError(error.InvalidComponentGeometry, ContextV1.initVerifiedAuthenticatedLookupV2(&native, &extension, &claim, &relations, assembly, base_count, &manifest, &authenticated));
+    const context = try ContextV1.initVerifiedAuthenticatedLookupV2WithCircuitProfileV1(&native, &extension, &claim, &relations, assembly, base_count, &manifest, &authenticated, circuit_profile);
+    try context.validateAgainstAuthenticatedLookupV2AuthorityWithCircuitProfileV1(&native, &extension, &claim, &relations, &manifest, &authenticated, circuit_profile);
+    try std.testing.expectError(error.InvalidComponentGeometry, context.validateAgainstAuthenticatedLookupV2Authority(&native, &extension, &claim, &relations, &manifest, &authenticated));
+    var changed = context;
+    changed.components[0].log_size -= 1;
+    try std.testing.expectError(error.EthereumContextMismatch, changed.validateAgainstAuthenticatedLookupV2AuthorityWithCircuitProfileV1(&native, &extension, &claim, &relations, &manifest, &authenticated, circuit_profile));
+    // Geometry-only fixture: zero claims do not establish a native proof.
 }

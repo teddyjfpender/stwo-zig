@@ -218,6 +218,12 @@ pub const PreparedProgramCommitmentV1 = struct {
 
     const Self = @This();
 
+    /// Parsed from this owner's exact ELF at construction. This is immutable
+    /// preparation metadata, not an independently transferable proof authority.
+    pub fn declaredHaltFlagAddress(self: *const Self) u32 {
+        return self.storage.program.halt_flag;
+    }
+
     /// Copies `source_bytes`; no caller-owned byte or parsed-program pointer
     /// survives construction.  The declared commitment deliberately has zero
     /// fetch multiplicities: execution and completion multiplicities belong

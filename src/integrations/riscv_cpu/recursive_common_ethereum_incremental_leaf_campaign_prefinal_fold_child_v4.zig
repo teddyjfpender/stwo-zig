@@ -82,7 +82,7 @@ pub fn TypesForColdProof(comptime ColdProof: type) type {
                 // layout do not equal the common target.
                 try target.validateRemintedGeometry(
                     OwnedPreFinalLeaseV4.ROLE,
-                    &self.cold.geometry_value,
+                    self.cold.geometryForPaddingTarget(),
                 );
                 try validateCampaignCustody(&self.cold, target);
                 const projection = try projectionFromCold(
@@ -101,7 +101,7 @@ pub fn TypesForColdProof(comptime ColdProof: type) type {
             pub fn geometryForPaddingTarget(
                 self: *const OwnedPreFinalLeaseV4,
             ) *const registry_mod.AuthenticatedGeometryV1 {
-                return &self.cold.geometry_value;
+                return self.cold.geometryForPaddingTarget();
             }
 
             pub fn preFinalFoldProjection(
@@ -124,10 +124,10 @@ fn projectionFromCold(
     return .{
         .role = ROLE,
         .padding_target = target,
-        .geometry = &cold.geometry_value,
+        .geometry = cold.geometryForPaddingTarget(),
         .node_public = ingress.node_public,
-        .claimed_sums = &cold.claims.values,
-        .claims_seal = &cold.claims.seal,
+        .claimed_sums = &cold.claimsView().values,
+        .claims_seal = &cold.claimsView().seal,
         .session = ingress.session,
         .statement = ingress.statement,
         .capture = ingress.capture,
@@ -154,13 +154,13 @@ fn validateCampaignCustody(
     cold: anytype,
     target: *const target_mod.CampaignPaddingTargetV2,
 ) !void {
-    try campaign_public.validate(&target.shape, &cold.node_public);
-    if (cold.materialized.campaign_authority.leaf_count !=
+    try campaign_public.validate(&target.shape, cold.nodePublic());
+    if (cold.materializedOwner().campaign_authority.view().leaf_count !=
         target.shape.real_leaf_count or
-        cold.cohort.padding_target != target or
+        cold.paddingTarget() != target or
         !std.mem.eql(
             u8,
-            &cold.materialized.campaign_authority.campaign_inventory
+            &cold.materializedOwner().campaign_authority.view().campaign_inventory
                 .table_identity_sha256,
             &target.shape.inventory_identity_sha256,
         ))
@@ -169,9 +169,9 @@ fn validateCampaignCustody(
     }
     const ingress = try cold.ingressView();
     try ingress.validate();
-    if (ingress.geometry != &cold.geometry_value or
-        ingress.node_public != &cold.node_public or
-        ingress.claims != &cold.claims)
+    if (ingress.geometry != cold.geometryForPaddingTarget() or
+        ingress.node_public != cold.nodePublic() or
+        ingress.claims != cold.claimsView())
     {
         return error.EthereumIncrementalPreFinalChildMismatchV4;
     }
@@ -189,12 +189,12 @@ fn assertColdProofContract(comptime ColdProof: type) void {
     }) |name| if (!@hasDecl(ColdProof, name))
         @compileError("role-0 pre-final cold proof missing " ++ name);
     inline for (.{
-        "materialized",
-        "claims",
-        "geometry_value",
-        "node_public",
-    }) |name| if (!@hasField(ColdProof, name))
-        @compileError("role-0 pre-final cold proof missing field " ++ name);
+        "materializedOwner",
+        "claimsView",
+        "geometryForPaddingTarget",
+        "nodePublic",
+    }) |name| if (!@hasDecl(ColdProof, name))
+        @compileError("role-0 pre-final cold proof missing getter " ++ name);
 }
 
 comptime {

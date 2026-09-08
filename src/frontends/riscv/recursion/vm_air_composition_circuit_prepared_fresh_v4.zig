@@ -122,7 +122,7 @@ pub fn init(
         circuit.input_profile,
         circuit.bindings,
     );
-    errdefer circuit.deinit();
+    // Individual graph allocations above own error cleanup until return.
     if (owns_storage) try circuit.validate();
 
     const values = try allocator.alloc(QM31, circuit.nodes.len);
@@ -152,13 +152,27 @@ pub fn init(
             .inverse => |operand| try values[operand].inv(),
         };
     }
-    var evaluation = Evaluation{
+    const evaluation = Evaluation{
         .allocator = allocator,
         .values = values,
         .circuit_identity = circuit.identity_digest,
     };
-    errdefer evaluation.deinit();
-    try circuit.validateEvaluation(&evaluation);
+    // `values` already has one error-cleanup owner.
+    circuit.validateEvaluation(&evaluation) catch |err| {
+        if (err == error.UnsatisfiedCircuit) {
+            for (circuit.outputs, 0..) |node, output_index| {
+                if (values[node].isZero()) continue;
+                std.debug.print(
+                    "VM_COMPOSITION_UNSAT output={d}/{d} node={d} value={any}\n",
+                    .{ output_index, circuit.outputs.len, node, values[node] },
+                );
+                if (@import("ethereum_vm_composition_graph_support_v2.zig").compositionDiagnosticsEnabled())
+                    printCompositionHorner(circuit.nodes, node, values);
+                break;
+            }
+        }
+        return err;
+    };
 
     schedule_owned = false;
     var preprocessing = try row18_witness.Preprocessed.initTakingCompiled(
@@ -184,4 +198,97 @@ pub fn init(
     };
     if (owns_storage) try result.validate();
     return result;
+}
+
+// Reads only the rejected graph's already evaluated values. The last V4 output
+// is selector * (composition - accumulated constraints). Stop on any other
+// shape; this diagnostic cannot affect acceptance or graph construction.
+fn printCompositionHorner(nodes: []const graph_mod.Node, output: u32, values: []const QM31) void {
+    const product = switch (nodes[output].op) {
+        .mul => |v| v,
+        else => return,
+    };
+    const difference = switch (nodes[product.rhs].op) {
+        .sub => |v| v,
+        else => return,
+    };
+    std.debug.print("VM_COMPOSITION_EXPECTED node={d} value={any}\n", .{ difference.lhs, values[difference.lhs] });
+    var node = difference.rhs;
+    while (true) {
+        std.debug.print("VM_COMPOSITION_HORNER node={d} value={any}\n", .{ node, values[node] });
+        const weighted = switch (nodes[node].op) {
+            .add => |v| v.lhs,
+            .mul => node,
+            else => return,
+        };
+        const operands = switch (nodes[weighted].op) {
+            .mul => |v| v,
+            else => return,
+        };
+        if (operands.lhs >= node) return;
+        node = operands.lhs;
+    }
+}
+
+test "fresh prepared circuit releases allocations once on rejection and allocation failure" {
+    const Prepared = @import("vm_air_composition_circuit.zig").Prepared;
+    const profile = graph_mod.InputProfile{
+        .sampled_value_count = 0,
+        .claimed_sum_count = 0,
+        .relation_challenge_count = 0,
+    };
+    var nodes: [10]graph_mod.Node = undefined;
+    var bindings: [9]graph_mod.VmInputBinding = undefined;
+    for (&bindings, 0..) |*binding, index| {
+        nodes[index] = .{ .op = .input };
+        binding.* = .{ .node_id = @intCast(index), .source = graph_mod.expectedVmSource(profile, index).? };
+    }
+    nodes[9] = .{ .op = .{ .sub = .{ .lhs = 0, .rhs = 1 } } };
+    const outputs = [_]u32{9};
+    const lane = graph_mod.VmLane{
+        .circuit_id = CIRCUIT_ID,
+        .graph = .{
+            .nodes = &nodes,
+            .outputs = &outputs,
+            .identity_digest = graph_mod.computeGraphDigest(&nodes, &outputs),
+        },
+        .profile = profile,
+        .bindings = &bindings,
+    };
+    const Check = struct {
+        fn run(allocator: std.mem.Allocator, value: graph_mod.VmLane) !void {
+            var prepared = try Prepared.initFromAuthenticatedLaneV2(allocator, value, .{1} ** 32, &([_]M31{M31.zero()} ** 9));
+            defer prepared.deinit();
+            try prepared.validate();
+        }
+    };
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, Check.run, .{lane});
+    var prepared = try Prepared.initFromAuthenticatedLaneV2(std.testing.allocator, lane, .{1} ** 32, &([_]M31{M31.zero()} ** 9));
+    defer prepared.deinit();
+    // A complete prepared-boundary check must still reject independently
+    // corrupted graph, binding, identity, derived value and input schedule.
+    const original_node = prepared.circuit.nodes[9];
+    prepared.circuit.nodes[9] = .{ .op = .{ .sub = .{ .lhs = 1, .rhs = 0 } } };
+    try std.testing.expectError(error.GraphSealMismatch, prepared.validate());
+    prepared.circuit.nodes[9] = original_node;
+    prepared.circuit.bindings[0].node_id = 1;
+    try std.testing.expectError(error.InputBindingNodeMismatch, prepared.validate());
+    prepared.circuit.bindings[0].node_id = 0;
+    prepared.circuit.reference_digest[0] ^= 1;
+    try std.testing.expectError(error.CircuitIdentityMismatch, prepared.validate());
+    prepared.circuit.reference_digest[0] ^= 1;
+    prepared.circuit.identity_digest[0] ^= 1;
+    try std.testing.expectError(error.CircuitIdentityMismatch, prepared.validate());
+    prepared.circuit.identity_digest[0] ^= 1;
+    prepared.evaluation.values[9] = QM31.one();
+    try std.testing.expectError(error.CircuitIdentityMismatch, prepared.validate());
+    prepared.evaluation.values[9] = QM31.zero();
+    const original_schedule_value = prepared.schedule_values[0];
+    prepared.schedule_values[0] = original_schedule_value.add(M31.one());
+    try std.testing.expectError(error.CircuitIdentityMismatch, prepared.validate());
+    prepared.schedule_values[0] = original_schedule_value;
+    try prepared.validate();
+    var bad_inputs = [_]M31{M31.zero()} ** 9;
+    bad_inputs[0] = M31.one();
+    try std.testing.expectError(error.UnsatisfiedCircuit, Prepared.initFromAuthenticatedLaneV2(std.testing.allocator, lane, .{1} ** 32, &bad_inputs));
 }

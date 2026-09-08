@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v1/bin/ethereum-full-leaf-bundle-verify-v1",
+    "verify-leaf-fixed-program-v5",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.stwief04",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.metadata.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "--workers",
+    "1"
+  ],
+  "input_sha256": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v1/bin/ethereum-full-leaf-bundle-verify-v1": "a63bec79ffafd2ed489b90317357039f38b03ce05e6e0ddd40bbbd84a29245d2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.stwief04": "730fee53e827a72a3d6a65ef45b9fa2a82e47a1451a20acb78fbc8e7653f550e",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.metadata.json": "e4f1dbac90e319219a96913b5bffe70e9f458560e581b3db320038c8c30d8d13",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+  },
+  "endpoint": "verified_native_selected_leaf_fixed_program_v5",
+  "producer_process_destroyed": true,
+  "full_block_coverage": false
+}

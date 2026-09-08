@@ -642,6 +642,7 @@ pub fn makeState(comptime Owner: type) type {
                 storage,
                 placement,
                 ProgramRows{
+                    .circuit_profile = self.inputs.witness.circuit_profile,
                     .rows = self.inputs.witness.program.rows,
                     .relations = self.inputs.relations,
                 },

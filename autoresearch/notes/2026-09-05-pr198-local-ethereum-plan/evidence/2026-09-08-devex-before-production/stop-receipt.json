@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-09-08T07:08:30.047846+00:00",
+  "pid": 48195,
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "producer_destroyed_marker_observed": true,
+  "serialized_bytes": 87326,
+  "complete_replay_pass": false,
+  "proof_pass": false,
+  "signal_sent": true,
+  "process_ancestry": [
+    [
+      "48195",
+      "48075",
+      "./.zig-cache/o/87cb08a32281a12657ac8658ac6b39d5/test --cache-dir=./.zig-cache --seed=0xf7eb47ed --listen=-"
+    ],
+    [
+      "48075",
+      "48072",
+      ".zig-cache/o/377cf40a52db6225a8b4979be8f51052/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xf7eb47ed -Za5b4224f9db37473 --maxrss 25769803776 -j1 test-ethereum-statement-root-cohort-replay -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all"
+    ],
+    [
+      "48072",
+      "48071",
+      "zig build --maxrss 25769803776 -j1 test-ethereum-statement-root-cohort-replay -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all"
+    ],
+    [
+      "48071",
+      "48069",
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/scripts/zig_serial_build.py --cwd /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu test-ethereum-statement-root-cohort-replay -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all"
+    ],
+    [
+      "48069",
+      "6674",
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -"
+    ]
+  ],
+  "lsof": "p48195\nfcwd\nn/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu\nftxt\nn/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu/.zig-cache/o/87cb08a32281a12657ac8658ac6b39d5/test\nftxt\nn/usr/lib/dyld\n",
+  "test_binary_sha256": "245cb5ac5baf90db8769955450653eb0f917f4af974e5e8813758f1af7015cae",
+  "stop_reason": "Deliberately stop superseded source-v3 after before-production serialization and producer-destruction measurement; latest source-v5 performs complete cold reconstruction once",
+  "status": "deliberately_stopped_after_before_production_measurement",
+  "signal": "SIGTERM"
+}

@@ -18,7 +18,7 @@ pub fn coreInputs(
 ) core_mod.NativeSegmentCoreAuthorityInputsV2 {
     return .{
         .captured = &prepared.captured_fri,
-        .vm_air = &prepared.vm_air,
+        .vm_air = .{ .borrowed = &prepared.vm_air },
         .transcript_prepared = transcript_prepared,
         .transcript_program = &prepared.transcript_program,
         .transcript_execution = &prepared.transcript_execution,

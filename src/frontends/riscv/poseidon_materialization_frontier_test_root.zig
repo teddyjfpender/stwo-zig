@@ -4,6 +4,7 @@
 //! layout experiments retain a short correctness loop.
 
 test {
+    _ = @import("air/memory_commitment/poseidon2_narrow_degree3_v1_test.zig");
     _ = @import("air/lang/materialization_cost_test.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_candidate_test.zig");
     _ = @import("air/lang/typed_poseidon2_degree_bounded_component_test.zig");

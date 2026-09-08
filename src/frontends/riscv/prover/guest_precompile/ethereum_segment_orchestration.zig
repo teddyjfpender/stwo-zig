@@ -60,6 +60,7 @@ pub const LegacyPoseidonSpan = ethereum_segment_geometry.LegacyPoseidonSpan;
 pub const CandidateEstimate = ethereum_segment_geometry.CandidateEstimate;
 pub const RemovedPoseidonColumns = ethereum_segment_geometry.RemovedPoseidonColumns;
 pub const requireTree1Residency = ethereum_segment_geometry.requireTree1Residency;
+pub const requireTree1ResidencyWithPolicy = ethereum_segment_geometry.requireTree1ResidencyWithPolicy;
 pub const inspectPreEngineGeometry = ethereum_segment_geometry.inspectPreEngineGeometry;
 pub const inspectPreEngineGeometryFromCountedInventoryV1 =
     ethereum_segment_geometry.inspectPreEngineGeometryFromCountedInventoryV1;

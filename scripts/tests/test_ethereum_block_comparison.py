@@ -70,6 +70,13 @@ class EthereumBlockComparisonTests(unittest.TestCase):
         with self.assertRaises(subject.ContractError):
             subject.validate_manifest(regressed)
 
+    def test_projection_uses_the_original_alloy_bpo2_field(self) -> None:
+        fork = self.manifest["stwo"]["semantic_projection"]["fork"]
+        self.assertEqual(fork["legacy_activation_field"], "bpo2_time")
+        fork["legacy_activation_field"] = "bpo1_time"
+        with self.assertRaises(subject.ContractError):
+            subject.validate_manifest(self.manifest)
+
     def test_stwo_provider_abi_and_product_boundaries_fail_closed(self) -> None:
         mutations = (
             ("revm precompile", lambda value: value["stwo"]["provider"]["scope"].update(

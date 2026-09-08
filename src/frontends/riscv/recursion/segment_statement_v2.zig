@@ -20,6 +20,7 @@ const shard_2 = @import("segment_statement_v2_source_v2.zig");
 const shard_3 = @import("segment_statement_v2_authenticate_canonical_wire.zig");
 const parallel_root = @import("segment_statement_v2_parallel_root.zig");
 
+pub const identity_preimage = @import("segment_statement_v2_identity_preimage.zig");
 pub const Digest = shard_0.Digest;
 pub const BaseStatementWords = shard_0.BaseStatementWords;
 pub const FORMAT_VERSION = shard_0.FORMAT_VERSION;

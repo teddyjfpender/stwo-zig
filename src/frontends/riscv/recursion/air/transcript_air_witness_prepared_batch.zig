@@ -262,6 +262,26 @@ pub fn logicalRow(row: Row) Error![component.LOGICAL_INPUT_COUNT]M31 {
     return row.values();
 }
 
+/// Raw row-1 witness for an ordinary native-channel recording. The caller
+/// must supply the separately constrained transcript program and rows 2--9;
+/// this does not mint the schedule-authenticated PreparedBatch capability.
+pub fn rowsFromTraceAlloc(
+    allocator: std.mem.Allocator,
+    verifier_id: u32,
+    trace: *const dependency_0.TranscriptTrace,
+) Error![]Row {
+    if (verifier_id > RIGHT_RECURSION_VERIFIER_ID)
+        return error.InvalidWitnessRow;
+    try trace.validate();
+    const rows = try allocator.alloc(Row, trace.poseidon_calls.len);
+    errdefer allocator.free(rows);
+    var at: usize = 0;
+    fillLane(rows, &at, verifier_id, trace);
+    if (at != rows.len) return error.InvalidTranscriptSource;
+    try validateLaneRows(rows, verifier_id);
+    return rows;
+}
+
 pub fn validatePreparedShape(
     proof_kind: ProofKind,
     rows: []const Row,

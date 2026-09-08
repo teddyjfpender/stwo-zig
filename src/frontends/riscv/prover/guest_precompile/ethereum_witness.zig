@@ -34,17 +34,30 @@ pub const Witness = struct {
         recovery_rows: []const recovery_rows_mod.ExecutionRow,
         total_steps: u32,
     ) !Witness {
+        return initWithCircuitProfileV1(allocator, keccak_calls, keccak_rows, recovery_calls, recovery_rows, total_steps, .legacy_v4);
+    }
+
+    pub fn initWithCircuitProfileV1(
+        allocator: std.mem.Allocator,
+        keccak_calls: []const keccak_calls_mod.Record,
+        keccak_rows: []const keccak_rows_mod.ExecutionRow,
+        recovery_calls: []const recovery_calls_mod.Record,
+        recovery_rows: []const recovery_rows_mod.ExecutionRow,
+        total_steps: u32,
+        circuit_profile: @import("../ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+    ) !Witness {
         try keccak_caller.preflight(keccak_calls, keccak_rows, total_steps);
         try recovery_caller.preflight(recovery_calls, recovery_rows, total_steps);
         try validateClockUnion(keccak_calls, recovery_calls);
 
         var counters = try keccak_counters.Counters.init(allocator);
         errdefer counters.deinit();
-        var shard = try keccak_trace.generateShard(
+        var shard = try keccak_trace.generateShardWithMaximumLogSize(
             allocator,
             keccak_calls,
             0,
             &counters,
+            circuit_profile.keccakMaximumLogSize(),
         );
         errdefer shard.deinit();
         try counters.validateTotals();

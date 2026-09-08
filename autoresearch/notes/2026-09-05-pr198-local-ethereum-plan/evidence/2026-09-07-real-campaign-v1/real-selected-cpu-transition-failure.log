@@ -1,0 +1,29 @@
+SELECTED_ETHEREUM_LEAF_ADMISSION_V1 segment=9 campaign_segments=121 full_campaign_sealed=false
+thread 36053002 panic: reached unreachable code
+???:?:?: 0x10438d12f in _air.memory_commitment.incremental_transition_v2.build (???)
+???:?:?: 0x10438eca7 in _ethereum_incremental_full_leaf_profile_v4.deriveBoundaryWitness (???)
+???:?:?: 0x1043b8ba3 in _ethereum_incremental_full_leaf_prepared_proof_transaction_v4.PreparedProofTransactionV4.initOwnedInternal__anon_22541 (???)
+???:?:?: 0x1043d53df in _ethereum_incremental_full_leaf_prepared_replay_producer_v4.produceAllocWithRecorderAndTiming__anon_13885 (???)
+???:?:?: 0x104423f47 in _ethereum_incremental_full_leaf_replay_command_v4.runWithEnginesInternal__anon_7346 (???)
+???:?:?: 0x10442978f in _main (???)
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xbf297fffffffffff in ??? (???)
+time: command terminated abnormally
+       79.67 real        77.94 user         0.82 sys
+           693796864  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              171971  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 156  voluntary context switches
+               37103  involuntary context switches
+       1718957323276  instructions retired
+        308890366268  cycles elapsed
+           692814904  peak memory footprint

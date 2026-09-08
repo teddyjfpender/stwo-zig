@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "commands": [
+    [
+      "zig",
+      "test",
+      "--dep",
+      "shader_manifest",
+      "-OReleaseSafe",
+      "-fstrip",
+      "-Mroot=src/tools/metal_core_aot/main.zig",
+      "-OReleaseSafe",
+      "-fstrip",
+      "-Mshader_manifest=src/backends/metal/shader_manifest.zig",
+      "--test-filter",
+      "AOT"
+    ],
+    [
+      "zig",
+      "build-exe",
+      "--dep",
+      "shader_manifest",
+      "-OReleaseSafe",
+      "-fstrip",
+      "-Mroot=src/tools/metal_core_aot/main.zig",
+      "-OReleaseSafe",
+      "-fstrip",
+      "-Mshader_manifest=src/backends/metal/shader_manifest.zig",
+      "-femit-bin=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/metal-core-aot"
+    ],
+    [
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/metal-core-aot",
+      "build",
+      "--output-dir",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle",
+      "--profile",
+      "ethereum-fixed-program-narrow-v1"
+    ]
+  ],
+  "elapsed_ns": 13625406041,
+  "tool_sha256": "92ddfada15d74c1b6b1da003e3a605ea1f378ed8dad2ef1bde1abfc9c7092df0",
+  "manifest_sha256": "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+  "profile": "ethereum_fixed_program_narrow_v1",
+  "source": {
+    "path": "stwo_zig_core.metal",
+    "sha256": "1c722c8e8541664962469e3277d21b98837b9e8c88c0141c887d0b6163b8b372",
+    "bytes": 1621173
+  },
+  "exports": 171,
+  "metallib": {
+    "path": "stwo_zig_core.metallib",
+    "sha256": "9a32b36496d66eb0d0889949ec7f6d06f95a25d9aa6bd16695ca4d9e2d1f171d",
+    "bytes": 2885498
+  },
+  "status": "compiled; independent runtime admission pending"
+}

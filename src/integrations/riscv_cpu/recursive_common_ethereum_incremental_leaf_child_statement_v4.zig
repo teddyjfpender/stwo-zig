@@ -40,6 +40,7 @@ pub const Error = error{
 };
 
 pub const LogSizesV4 = [ROW_COUNT]u32;
+const RawStatementWords = [@typeInfo(recursion.span_statement.StatementWords).array.len]u32;
 
 pub fn OwnerV4(comptime Engine: type) type {
     const Materialized =
@@ -57,9 +58,21 @@ pub fn OwnerV4(comptime Engine: type) type {
             try materialized.validate();
             try child.validate();
             const child_binding = try child.binding();
-            const statement_identity = statementWordsIdentity(
-                materialized.base.input.statement_words,
-            );
+            return initPrepared(allocator, materialized, child, materialized.identity_sha256, materialized.base.input.statement_words, child_binding);
+        }
+
+        // Only input admission above and module-local test fixtures construct
+        // this state. All subsequent local checks consume copied source values.
+        fn initPrepared(
+            allocator: std.mem.Allocator,
+            materialized: *const Materialized,
+            child: *const ChildPublic,
+            materialized_identity: [32]u8,
+            raw_statement_words: RawStatementWords,
+            child_binding: child_public.ChildPublicBindingV4,
+        ) !*Self {
+            try child_binding.validate();
+            const statement_identity = statementWordsIdentity(raw_statement_words);
             if (!std.mem.eql(
                 u8,
                 &child_binding.statement_words_identity_sha256,
@@ -67,12 +80,13 @@ pub fn OwnerV4(comptime Engine: type) type {
             )) return error.EthereumIncrementalChildStatementMismatchV4;
 
             const backing = try allocator.create(Storage);
-            errdefer allocator.destroy(backing);
+            var backing_owned = true;
+            errdefer if (backing_owned) allocator.destroy(backing);
             var statement_words: recursion.span_statement.StatementWords =
                 undefined;
             for (
                 &statement_words,
-                materialized.base.input.statement_words,
+                raw_statement_words,
             ) |*destination, word| destination.* = M31.fromCanonical(word);
 
             var row10_preprocessing = try statement_input.Preprocessed.init(
@@ -100,7 +114,8 @@ pub fn OwnerV4(comptime Engine: type) type {
                 M31,
                 evaluation.inputs().len,
             );
-            errdefer allocator.free(row11_values);
+            var row11_values_owned = true;
+            errdefer if (row11_values_owned) allocator.free(row11_values);
             try baseInputs(evaluation.inputs(), row11_values);
 
             backing.* = .{
@@ -108,6 +123,8 @@ pub fn OwnerV4(comptime Engine: type) type {
                 .materialized = materialized,
                 .child = child,
                 .child_binding = child_binding,
+                .materialized_identity_sha256 = materialized_identity,
+                .raw_statement_words = raw_statement_words,
                 .statement_words = statement_words,
                 .row10_preprocessing = row10_preprocessing,
                 .circuit = circuit,
@@ -121,9 +138,11 @@ pub fn OwnerV4(comptime Engine: type) type {
             circuit_owned = false;
             row11_owned = false;
             evaluation_owned = false;
+            row11_values_owned = false;
+            backing_owned = false;
             errdefer backing.destroy();
             backing.identity_sha256 = backing.computeIdentity();
-            try backing.validate();
+            try backing.validatePrepared();
             return handle(backing);
         }
 
@@ -136,58 +155,59 @@ pub fn OwnerV4(comptime Engine: type) type {
         }
 
         pub fn logSizes(self: *const Self) !LogSizesV4 {
-            try self.validate();
+            return self.logSizesWithAdditionalStatementRows(0);
+        }
+
+        pub fn logSizesWithAdditionalStatementRows(self: *const Self, additional_rows: usize) !LogSizesV4 {
             const value = storageConst(self);
+            const count = try std.math.add(usize, value.row11_preprocessing.rows.len, additional_rows);
             return .{
                 value.row10_preprocessing.log_size,
-                value.row11_preprocessing.log_size,
+                @max(value.row11_preprocessing.log_size, @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(1, count))))),
             };
         }
 
         pub fn statementWords(
             self: *const Self,
         ) !*const recursion.span_statement.StatementWords {
-            try self.validate();
             return &storageConst(self).statement_words;
         }
 
         pub fn statementInputPreprocessing(
             self: *const Self,
         ) !*const statement_input.Preprocessed {
-            try self.validate();
+            try storageConst(self).validatePrepared();
             return &storageConst(self).row10_preprocessing;
         }
 
         pub fn statementSemanticsPreprocessing(
             self: *const Self,
         ) !*const statement_semantics.Preprocessed {
-            try self.validate();
+            try storageConst(self).validatePrepared();
             return &storageConst(self).row11_preprocessing;
         }
 
         pub fn statementSemanticsValues(
             self: *const Self,
         ) ![]const M31 {
-            try self.validate();
             return storageConst(self).row11_values;
         }
 
         pub fn loweringCircuit(
             self: *const Self,
         ) !*const statement_circuit.Circuit {
-            try self.validate();
+            try storageConst(self).validatePrepared();
             return &storageConst(self).circuit;
         }
 
         pub fn loweringEvaluation(
             self: *const Self,
         ) !*const statement_circuit.Evaluation {
-            try self.validate();
+            try storageConst(self).validatePrepared();
             return &storageConst(self).evaluation;
         }
 
         pub fn identity(self: *const Self) ![32]u8 {
-            try self.validate();
             return storageConst(self).identity_sha256;
         }
 
@@ -196,6 +216,8 @@ pub fn OwnerV4(comptime Engine: type) type {
             materialized: *const Materialized,
             child: *const ChildPublic,
             child_binding: child_public.ChildPublicBindingV4,
+            materialized_identity_sha256: [32]u8,
+            raw_statement_words: RawStatementWords,
             statement_words: recursion.span_statement.StatementWords,
             row10_preprocessing: statement_input.Preprocessed,
             circuit: statement_circuit.Circuit,
@@ -208,7 +230,18 @@ pub fn OwnerV4(comptime Engine: type) type {
             fn validate(self: *const Storage) !void {
                 try self.materialized.validate();
                 try self.child.validate();
-                const expected_child_binding = try self.child.binding();
+                try self.validateSource(self.materialized.identity_sha256, self.materialized.base.input.statement_words, try self.child.binding());
+                try self.validatePrepared();
+            }
+
+            fn validateSource(self: *const Storage, materialized_identity: [32]u8, words: RawStatementWords, binding: child_public.ChildPublicBindingV4) !void {
+                if (!std.mem.eql(u8, &self.materialized_identity_sha256, &materialized_identity) or
+                    !std.mem.eql(u32, &self.raw_statement_words, &words) or
+                    !std.meta.eql(self.child_binding, binding)) return error.EthereumIncrementalChildStatementMismatchV4;
+            }
+
+            fn validatePrepared(self: *const Storage) !void {
+                try self.child_binding.validate();
                 try self.row10_preprocessing.validate();
                 try self.circuit.validate();
                 try self.row11_preprocessing.validate();
@@ -230,18 +263,17 @@ pub fn OwnerV4(comptime Engine: type) type {
                 }
                 for (
                     self.statement_words,
-                    self.materialized.base.input.statement_words,
+                    self.raw_statement_words,
                 ) |felt, word| if (felt.toU32() != word)
                     return error.EthereumIncrementalChildStatementMismatchV4;
                 const expected_statement_identity = statementWordsIdentity(
-                    self.materialized.base.input.statement_words,
+                    self.raw_statement_words,
                 );
-                if (!std.meta.eql(self.child_binding, expected_child_binding) or
-                    !std.mem.eql(
-                        u8,
-                        &self.statement_words_identity_sha256,
-                        &expected_statement_identity,
-                    ) or !std.mem.eql(
+                if (!std.mem.eql(
+                    u8,
+                    &self.statement_words_identity_sha256,
+                    &expected_statement_identity,
+                ) or !std.mem.eql(
                     u8,
                     &self.child_binding.statement_words_identity_sha256,
                     &expected_statement_identity,
@@ -261,7 +293,7 @@ pub fn OwnerV4(comptime Engine: type) type {
                 hash.update(IDENTITY_DOMAIN);
                 hashInt(&hash, u16, FORMAT_VERSION);
                 hashInt(&hash, u16, SCHEMA_VERSION);
-                hash.update(&self.materialized.identity_sha256);
+                hash.update(&self.materialized_identity_sha256);
                 hash.update(&self.child_binding.identity_sha256);
                 hash.update(&self.statement_words_identity_sha256);
                 hash.update(&self.row10_preprocessing.authority_digest);
@@ -297,6 +329,66 @@ pub fn OwnerV4(comptime Engine: type) type {
         }
     };
 }
+
+/// Local real row/circuit fixtures; this does not admit a native proof or source.
+pub const testing = if (@import("builtin").is_test) struct {
+    pub fn construct(comptime Engine: type, allocator: std.mem.Allocator, words: RawStatementWords, binding: child_public.ChildPublicBindingV4) !void {
+        const Owner = OwnerV4(Engine);
+        // Deliberately no upstream hierarchy: local construction and destruction
+        // must touch only admitted value copies and their owned allocations.
+        const owner = try Owner.initPrepared(allocator, undefined, undefined, [_]u8{19} ** 32, words, binding);
+        defer owner.deinit();
+        try Owner.storageConst(owner).validatePrepared();
+    }
+
+    pub fn exercise(comptime Engine: type, allocator: std.mem.Allocator, words: RawStatementWords, binding: child_public.ChildPublicBindingV4) !void {
+        const Owner = OwnerV4(Engine);
+        const materialized_identity = [_]u8{19} ** 32;
+        const owner = try Owner.initPrepared(allocator, undefined, undefined, materialized_identity, words, binding);
+        defer owner.deinit();
+        const value = Owner.storageConst(owner);
+        const identity = try owner.identity();
+        try value.validateSource(materialized_identity, words, binding);
+        _ = try owner.logSizes();
+        _ = try owner.statementWords();
+        _ = try owner.statementSemanticsValues();
+        _ = try owner.statementInputPreprocessing();
+        _ = try owner.statementSemanticsPreprocessing();
+        _ = try owner.loweringCircuit();
+        const evaluation = try owner.loweringEvaluation();
+        var changed_words = words;
+        changed_words[0] ^= 1;
+        var changed_identity = materialized_identity;
+        changed_identity[0] ^= 1;
+        var changed_binding = binding;
+        changed_binding.stage101_capability_identity_sha256[0] ^= 1;
+        changed_binding = child_public.testing.resealBinding(changed_binding);
+        try std.testing.expectError(error.EthereumIncrementalChildStatementMismatchV4, value.validateSource(materialized_identity, changed_words, binding));
+        try std.testing.expectError(error.EthereumIncrementalChildStatementMismatchV4, value.validateSource(changed_identity, words, binding));
+        try std.testing.expectError(error.EthereumIncrementalChildStatementMismatchV4, value.validateSource(materialized_identity, words, changed_binding));
+        try std.testing.expectEqual(identity, try owner.identity());
+        // A shallow const evaluation exposes mutable backing words. Such views
+        // must still check prepared state before returning another nested view.
+        const original = evaluation.storage[0];
+        evaluation.storage[0] = original.add(QM31.one());
+        try std.testing.expectError(error.EthereumIncrementalChildStatementMismatchV4, owner.loweringEvaluation());
+        evaluation.storage[0] = original;
+        try value.validatePrepared();
+
+        // Invalid statement semantics fail during circuit evaluation. All
+        // preparation allocated before that rejection must be released.
+        var invalid_words = words;
+        invalid_words[0] += 1;
+        var invalid_binding = binding;
+        invalid_binding.statement_words_identity_sha256 = statementWordsIdentity(invalid_words);
+        invalid_binding = child_public.testing.resealBinding(invalid_binding);
+        try std.testing.expectError(error.UnsatisfiedCircuit, Owner.initPrepared(allocator, undefined, undefined, materialized_identity, invalid_words, invalid_binding));
+    }
+
+    pub fn statementIdentity(words: RawStatementWords) [32]u8 {
+        return statementWordsIdentity(words);
+    }
+} else struct {};
 
 fn baseInputs(source: []const QM31, destination: []M31) Error!void {
     if (source.len != destination.len)

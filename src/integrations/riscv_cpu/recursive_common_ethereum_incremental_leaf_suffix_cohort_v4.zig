@@ -36,7 +36,80 @@ pub const Error = support.Error || error{
     EthereumIncrementalSuffixCohortMismatchV4,
 };
 
+/// Owns the admitted logical rows, component plans and manifest snapshot.
+/// No mutable row/plan/manifest alias escapes this owner. Construction and
+/// explicit validate are admission boundaries; operational reads are cheap.
 pub fn PreparedV4(comptime Engine: type) type {
+    const Storage = StorageV4(Engine);
+    return opaque {
+        const Self = @This();
+        pub const Generated = interactions.Generated;
+
+        pub fn init(allocator: std.mem.Allocator, source: *const rows_10_34.OwnerV4(Engine), manifest: *const manifest_mod.Manifest) !*Self {
+            const value = try allocator.create(Storage);
+            errdefer allocator.destroy(value);
+            value.* = try Storage.init(allocator, source, manifest);
+            return @ptrCast(value);
+        }
+        fn storage(self: *const Self) *const Storage {
+            return @ptrCast(@alignCast(self));
+        }
+        pub fn deinit(self: *Self) void {
+            const value: *Storage = @ptrCast(@alignCast(self));
+            const allocator = value.allocator;
+            value.deinit();
+            allocator.destroy(value);
+        }
+        pub fn validate(self: *const Self) !void {
+            try self.storage().validate();
+        }
+        pub fn identity(self: *const Self) [32]u8 {
+            const value = self.storage();
+            return value.rows.seal;
+        }
+        pub fn initComponents(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, claims: components_mod.ClaimsV4) !components_mod.ComponentsV4 {
+            const value = self.storage();
+            return value.components.initComponentsFromPrepared(relations, claims);
+        }
+        /// Const diagnostic projection; no definition arenas or mutable rows
+        /// are exposed. The observer cannot mint preparation/proof authority.
+        pub fn auditTypedAirRows(self: *const Self, observer: anytype) !void {
+            const value = self.storage();
+            inline for (.{ "statement_input", "statement_semantics", "claim_input", "claim_hash", "io_hash", "claim_semantics", "public_logup", "public_logup_control" }, 10..) |name, index| {
+                const entry = manifest_mod.StatementRootProfile.StatementRoutingOuterCatalog.LOGICAL_ROWS[index];
+                const owner: *const @TypeOf(@field(value.components.owners, name)) = &@field(value.components.owners, name);
+                const logical: []const [entry.Air.LOGICAL_INPUT_COUNT]M31 = @field(value.rows, name);
+                const parameters: []const M31 = &@field(value.components.parameters, name);
+                try observer.check(entry.Air, @tagName(entry.row), logical, parameters, &owner.direct, &owner.relation);
+            }
+        }
+        pub fn tupleContributionUpperBound(self: *const Self) !usize {
+            return self.storage().tupleContributionUpperBound();
+        }
+        pub fn appendTupleContributions(self: *const Self, ledger: *relation_interaction.TupleLedger) !void {
+            try self.storage().appendTupleContributions(ledger);
+        }
+        pub fn fillPreprocessedInto(self: *const Self, destination: []const []M31) !void {
+            try self.storage().fillPreprocessedInto(destination);
+        }
+        pub fn fillMainInto(self: *const Self, destination: []const []M31) !void {
+            try self.storage().fillMainInto(destination);
+        }
+        pub fn fillInteractionInto(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, destination: []const []M31) !components_mod.ClaimsV4 {
+            return (try self.fillInteractionWithAudit(relations, destination)).claims;
+        }
+        pub fn fillInteractionWithAudit(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, destination: []const []M31) !Generated {
+            return self.storage().fillInteractionInto(relations, destination);
+        }
+        /// Explicit cold check. Returned sums are diagnostic data, never an
+        /// externally supplied capability accepted in place of verification.
+        pub fn auditClaims(self: *const Self, relations: *const air.universal_challenges.UniversalRelations, claims: components_mod.ClaimsV4) ![ROW_COUNT]relation_interaction.DomainAudit {
+            return self.storage().auditClaims(relations, claims);
+        }
+    };
+}
+
+fn StorageV4(comptime Engine: type) type {
     const Source = rows_10_34.OwnerV4(Engine);
     const Rows = rows_mod.PreparedV4(Engine);
     const Components = components_mod.OwnerV4(Engine);
@@ -53,10 +126,12 @@ pub fn PreparedV4(comptime Engine: type) type {
         pub fn init(
             allocator: std.mem.Allocator,
             source: *const Source,
-            manifest: *const manifest_mod.Manifest,
+            supplied_manifest: *const manifest_mod.Manifest,
         ) !Self {
-            try source.validate();
-            try manifest.validate();
+            try supplied_manifest.validate();
+            const manifest = try allocator.create(manifest_mod.Manifest);
+            errdefer allocator.destroy(manifest);
+            manifest.* = supplied_manifest.*;
             const rows = try allocator.create(Rows);
             errdefer allocator.destroy(rows);
             rows.* = try Rows.init(allocator, source);
@@ -70,7 +145,10 @@ pub fn PreparedV4(comptime Engine: type) type {
                 .components = components,
                 .manifest = manifest,
             };
-            try result.validate();
+            // Rows/components are owned construction results. Check the
+            // final typed equations once; do not reconstruct their upstream
+            // source again while publishing this private transaction.
+            try result.validateDirectConstraints();
             return result;
         }
 
@@ -78,27 +156,42 @@ pub fn PreparedV4(comptime Engine: type) type {
             self.components.deinit();
             self.rows.deinit();
             self.allocator.destroy(self.rows);
+            self.allocator.destroy(self.manifest);
             self.* = undefined;
         }
 
         pub fn validate(self: *const Self) !void {
-            try self.source.validate();
-            try self.rows.validate();
-            try self.components.validate();
             if (self.rows.source != self.source or
                 self.components.rows != self.rows or
                 self.components.manifest != self.manifest)
             {
                 return mismatch();
             }
+            // Components validate their rows, which validate the source.
+            // Check their ownership links first; do not repeat that traversal.
+            try self.components.validate();
             try self.validateDirectConstraints();
+        }
+
+        /// Resource-only upper bound over the already admitted logical rows.
+        /// Unused event weights can reduce actual contributions, never add them.
+        pub fn tupleContributionUpperBound(self: *const Self) !usize {
+            var count: usize = 0;
+            inline for (.{
+                "statement_input", "statement_semantics", "claim_input",  "claim_hash",
+                "io_hash",         "claim_semantics",     "public_logup", "public_logup_control",
+            }) |name| {
+                const rows = @field(self.rows, name);
+                const plan = &@field(self.components.owners, name).relation;
+                count = try std.math.add(usize, count, try std.math.mul(usize, rows.len, plan.events.len));
+            }
+            return count;
         }
 
         pub fn appendTupleContributions(
             self: *const Self,
             ledger: *relation_interaction.TupleLedger,
         ) !void {
-            try self.validate();
             const owners = &self.components.owners;
             try support.appendTuples(
                 &owners.statement_input.relation,
@@ -171,8 +264,7 @@ pub fn PreparedV4(comptime Engine: type) type {
             self: *const Self,
             relations: *const air.universal_challenges.UniversalRelations,
             destination: []const []M31,
-        ) !components_mod.ClaimsV4 {
-            try self.validate();
+        ) !interactions.Generated {
             try relations.validate();
             const protected = try self.protectedRanges();
             try support.preflightTree(
@@ -247,22 +339,22 @@ pub fn PreparedV4(comptime Engine: type) type {
         fn validateDirectConstraints(self: *const Self) !void {
             const owners = &self.components.owners;
             try support.validateDirect(
-                air.statement_input,
+                manifest_mod.StatementInputAir,
                 &owners.statement_input.direct,
                 self.rows.statement_input,
             );
             try support.validateDirect(
-                air.statement_semantics_input,
+                manifest_mod.StatementSemanticsAir,
                 &owners.statement_semantics.direct,
                 self.rows.statement_semantics,
             );
             try support.validateDirect(
-                air.vm_public_claim_input,
+                manifest_mod.ClaimInputAir,
                 &owners.claim_input.direct,
                 self.rows.claim_input,
             );
             try support.validateDirect(
-                air.vm_public_claim_hash,
+                manifest_mod.ClaimHashAir,
                 &owners.claim_hash.direct,
                 self.rows.claim_hash,
             );
@@ -277,7 +369,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 self.rows.claim_semantics,
             );
             try support.validateDirect(
-                air.vm_public_logup_input,
+                rows_mod.PublicLogupAir,
                 &owners.public_logup.direct,
                 self.rows.public_logup,
             );
@@ -293,7 +385,6 @@ pub fn PreparedV4(comptime Engine: type) type {
             tree: usize,
             destination: []const []M31,
         ) !void {
-            try self.validate();
             if (tree != manifest_mod.PREPROCESSED_TREE_INDEX and
                 tree != manifest_mod.MAIN_TREE_INDEX)
             {
@@ -307,28 +398,28 @@ pub fn PreparedV4(comptime Engine: type) type {
                 &protected,
             );
             support.writePhysical(
-                air.statement_input,
+                manifest_mod.StatementInputAir,
                 self.rows.statement_input,
                 try self.manifest.placement(.statement_input),
                 tree,
                 destination,
             );
             support.writePhysical(
-                air.statement_semantics_input,
+                manifest_mod.StatementSemanticsAir,
                 self.rows.statement_semantics,
                 try self.manifest.placement(.statement_semantics_input),
                 tree,
                 destination,
             );
             support.writePhysical(
-                air.vm_public_claim_input,
+                manifest_mod.ClaimInputAir,
                 self.rows.claim_input,
                 try self.manifest.placement(.vm_public_claim_input),
                 tree,
                 destination,
             );
             support.writePhysical(
-                air.vm_public_claim_hash,
+                manifest_mod.ClaimHashAir,
                 self.rows.claim_hash,
                 try self.manifest.placement(.vm_public_claim_hash),
                 tree,
@@ -349,7 +440,7 @@ pub fn PreparedV4(comptime Engine: type) type {
                 destination,
             );
             support.writePhysical(
-                air.vm_public_logup_input,
+                rows_mod.PublicLogupAir,
                 self.rows.public_logup,
                 try self.manifest.placement(.vm_public_logup_input),
                 tree,

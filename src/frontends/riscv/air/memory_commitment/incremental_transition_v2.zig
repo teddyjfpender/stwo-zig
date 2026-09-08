@@ -320,7 +320,9 @@ pub fn build(
     while (depth > 0 and current_len > 0) : (depth -= 1) {
         var next: std.ArrayList(ExitValue) = .empty;
         errdefer next.deinit(allocator);
-        try next.ensureTotalCapacity(allocator, (current_len + 1) / 2);
+        // Sparse children need not share parents. At most one parent is
+        // emitted per current child; halving only bounds dense sibling pairs.
+        try next.ensureTotalCapacity(allocator, current_len);
         var at: usize = 0;
         while (at < current_len) {
             const parent_index = current[at].index / 2;
@@ -627,4 +629,23 @@ test "read-only touched words reuse the authenticated root" {
     try std.testing.expectEqual(@as(u64, 33), witness.work.bridge_rows);
     const relations = relations_mod.Relations.dummy();
     try witness.verifyMerkleAndPoseidonCancellation(&relations);
+}
+
+test "sparse changed bytes reserve one parent per unpaired child" {
+    var words: [64]v1.TouchedWord = undefined;
+    for (&words, 0..) |*word, index| word.* = .{
+        .address = @intCast(index * 4),
+        .old_word = 0,
+        .new_word = 1,
+        .final_clock = 9,
+    };
+    var full = try v1.build(std.testing.allocator, &words, &.{});
+    defer full.deinit();
+    var changed = try build(std.testing.allocator, &words, &.{});
+    defer changed.deinit();
+    try std.testing.expectEqual(full.entry_root, changed.entry_root);
+    try std.testing.expectEqual(full.exit_root, changed.exit_root);
+    try std.testing.expectEqual(full.work.entry_calls, changed.work.entry_calls);
+    try std.testing.expect(changed.work.exit_calls < full.work.exit_calls);
+    try changed.verifyMerkleAndPoseidonCancellation(&relations_mod.Relations.dummy());
 }

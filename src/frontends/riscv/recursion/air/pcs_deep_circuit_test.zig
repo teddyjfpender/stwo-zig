@@ -68,6 +68,46 @@ test "R-012 PCS-DEEP circuit seals exact profile and row-24 input order" {
     try built.validate();
 }
 
+test "R-012 PCS-DEEP prepared graph owns its profile and rejects changed evaluations" {
+    var logs = TREE_0_LOGS;
+    var trees = TREES;
+    trees[0].column_log_sizes = &logs;
+    var layouts = SAMPLE_LAYOUTS;
+    var profile = PROFILE;
+    profile.trees = &trees;
+    profile.sample_layouts = &layouts;
+    var prepared = try circuit.Prepared.init(std.testing.allocator, profile);
+    defer prepared.deinit();
+    logs[0] = 1;
+    layouts[0] = .none;
+    try prepared.validate();
+    try std.testing.expectEqualSlices(u8, &LEGACY_PROFILE_DIGEST, &prepared.view().profile_digest);
+    try std.testing.expectEqualSlices(u8, &LEGACY_CIRCUIT_DIGEST, &prepared.view().identity_digest);
+    try std.testing.expectEqual(@as(u32, 4), prepared.profile().trees[0].column_log_sizes[0]);
+    try std.testing.expect(@typeInfo(@TypeOf(prepared.graph().nodes)).pointer.is_const);
+    try std.testing.expect(@typeInfo(@TypeOf(prepared.graph().outputs)).pointer.is_const);
+    try std.testing.expect(@typeInfo(@TypeOf(prepared.view().bindings)).pointer.is_const);
+    try std.testing.expect(@typeInfo(@TypeOf(prepared.profile().trees)).pointer.is_const);
+    try std.testing.expect(@typeInfo(@TypeOf(prepared.profile().trees[0].column_log_sizes)).pointer.is_const);
+
+    var mutable = try circuit.build(std.testing.allocator, PROFILE);
+    defer mutable.deinit();
+    var expected = try mutable.evaluateInactive(std.testing.allocator);
+    defer expected.deinit();
+    var actual = try prepared.evaluateInactive(std.testing.allocator);
+    defer actual.deinit();
+    try std.testing.expectEqualSlices(QM31, expected.values, actual.values);
+    try actual.validateAgainst(&prepared);
+    const output = prepared.graph().outputs[0];
+    actual.values[output] = actual.values[output].add(QM31.one());
+    try std.testing.expectError(error.InvalidWitness, actual.validateAgainst(&prepared));
+    actual.values[output] = expected.values[output];
+    actual.circuit_identity[0] ^= 1;
+    try std.testing.expectError(error.CircuitIdentityMismatch, actual.validateAgainst(&prepared));
+    actual.circuit_identity[0] ^= 1;
+    try actual.validateAgainst(&prepared);
+}
+
 test "R-012 PCS-DEEP circuit is differential with native friAnswers" {
     const sampled_values = [_]QM31{ secure(101), secure(107), secure(109) };
     const queried_values = [_]M31{
@@ -109,13 +149,71 @@ test "R-012 PCS-DEEP circuit is differential with native friAnswers" {
     defer evaluation.deinit();
     try evaluation.validateAgainst(&built);
 
+    var prepared = try circuit.Prepared.init(std.testing.allocator, PROFILE);
+    defer prepared.deinit();
+    var prepared_evaluation = try prepared.evaluate(std.testing.allocator, .{
+        .active = true,
+        .sampled_values = &sampled_values,
+        .queried_values = &queried_values,
+        .oods_seed = oods_seed,
+        .deep_randomness = deep_randomness,
+        .raw_queries = &raw_queries,
+        .answers = native_answers,
+    });
+    defer prepared_evaluation.deinit();
+    try prepared_evaluation.validateAgainst(&prepared);
+    try std.testing.expectEqualSlices(QM31, evaluation.values, prepared_evaluation.values);
+
+    var frozen = try prepared.evaluateFrozen(std.testing.allocator, .{
+        .active = true,
+        .sampled_values = &sampled_values,
+        .queried_values = &queried_values,
+        .oods_seed = oods_seed,
+        .deep_randomness = deep_randomness,
+        .raw_queries = &raw_queries,
+        .answers = native_answers,
+    });
+    defer frozen.deinit();
+    try frozen.validateAgainst(&prepared);
+    try frozen.auditAgainst(&prepared);
+    try std.testing.expectEqualSlices(QM31, evaluation.values, frozen.view().values);
+    try std.testing.expect(@typeInfo(@TypeOf(frozen.view().values)).pointer.is_const);
+
     const input_values = try std.testing.allocator.alloc(M31, built.bindings.len);
     defer std.testing.allocator.free(input_values);
     try built.inputValuesInto(&evaluation, input_values);
     try std.testing.expect(input_values[0].isOne());
     try std.testing.expect(input_values[1].eql(sampled_values[0].toM31Array()[0]));
 
+    const frozen_inputs = try std.testing.allocator.alloc(M31, input_values.len);
+    defer std.testing.allocator.free(frozen_inputs);
+    try prepared.inputValuesInto(&frozen, frozen_inputs);
+    try std.testing.expectEqualSlices(M31, input_values, frozen_inputs);
+
     native_answers[0] = native_answers[0].add(QM31.one());
+    // The accepted evaluation owns its values even when its source witness or
+    // a separate mutable evaluation is changed afterwards.
+    prepared_evaluation.values[0] = QM31.zero();
+    try frozen.auditAgainst(&prepared);
+    try std.testing.expectEqualSlices(QM31, evaluation.values, frozen.view().values);
+    try std.testing.expectError(error.UnsatisfiedCircuit, prepared.evaluateFrozen(std.testing.allocator, .{
+        .active = true,
+        .sampled_values = &sampled_values,
+        .queried_values = &queried_values,
+        .oods_seed = oods_seed,
+        .deep_randomness = deep_randomness,
+        .raw_queries = &raw_queries,
+        .answers = native_answers,
+    }));
+    try std.testing.expectError(error.UnsatisfiedCircuit, prepared.evaluate(std.testing.allocator, .{
+        .active = true,
+        .sampled_values = &sampled_values,
+        .queried_values = &queried_values,
+        .oods_seed = oods_seed,
+        .deep_randomness = deep_randomness,
+        .raw_queries = &raw_queries,
+        .answers = native_answers,
+    }));
     try std.testing.expectError(
         error.UnsatisfiedCircuit,
         built.evaluate(std.testing.allocator, .{
@@ -128,6 +226,56 @@ test "R-012 PCS-DEEP circuit is differential with native friAnswers" {
             .answers = native_answers,
         }),
     );
+}
+
+test "R-012 PCS-DEEP prepared admission releases every allocation failure" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, struct {
+        fn run(allocator: std.mem.Allocator) !void {
+            var prepared = try circuit.Prepared.init(allocator, PROFILE);
+            defer prepared.deinit();
+            try prepared.validate();
+        }
+    }.run, .{});
+}
+
+test "R-012 PCS-DEEP frozen evaluation outlives its graph and rejects another profile" {
+    var prepared = try circuit.Prepared.init(std.testing.allocator, PROFILE);
+    var prepared_live = true;
+    defer if (prepared_live) prepared.deinit();
+    var frozen = try evaluateFrozenZero(std.testing.allocator, &prepared);
+    defer frozen.deinit();
+    prepared.deinit();
+    prepared_live = false;
+
+    var replacement = try circuit.Prepared.init(std.testing.allocator, PROFILE);
+    defer replacement.deinit();
+    try frozen.validateAgainst(&replacement);
+    try frozen.auditAgainst(&replacement);
+    var different_profile = PROFILE;
+    different_profile.log_blowup_factor = 2;
+    var different = try circuit.Prepared.init(std.testing.allocator, different_profile);
+    defer different.deinit();
+    try std.testing.expectError(error.CircuitIdentityMismatch, frozen.validateAgainst(&different));
+
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, struct {
+        fn run(allocator: std.mem.Allocator, graph: *const circuit.Prepared) !void {
+            var owned = try evaluateFrozenZero(allocator, graph);
+            defer owned.deinit();
+            try owned.auditAgainst(graph);
+        }
+    }.run, .{&replacement});
+}
+
+fn evaluateFrozenZero(allocator: std.mem.Allocator, prepared: *const circuit.Prepared) !circuit.FrozenEvaluation {
+    return prepared.evaluateFrozen(allocator, .{
+        .active = false,
+        .sampled_values = &([_]QM31{QM31.zero()} ** 3),
+        .queried_values = &([_]M31{M31.zero()} ** 6),
+        .oods_seed = QM31.zero(),
+        .deep_randomness = QM31.zero(),
+        .raw_queries = &([_]M31{M31.zero()} ** 2),
+        .answers = &([_]QM31{QM31.zero()} ** 2),
+    });
 }
 
 test "R-012 PCS-DEEP binds both native two-point orders exactly" {
@@ -167,7 +315,7 @@ test "R-012 PCS-DEEP binds both native two-point orders exactly" {
             // an accidental normalization observable.
             .current_previous => [_]QM31{ secure(101), secure(103), secure(107) },
             .previous_current => [_]QM31{ secure(103), secure(101), secure(107) },
-            .none, .current => unreachable,
+            .none, .current, .secp256k1_main, .keccak_state => unreachable,
         };
         try expectNativeBatchOracle(
             pair_layout,
@@ -329,6 +477,93 @@ test "R-012 PCS-DEEP inactive lane has defined inverses and zero public inputs" 
     try std.testing.expectError(error.InvalidWitness, built.validateEvaluationHot(&evaluation));
 }
 
+test "R-012 PCS-DEEP Ethereum windows match native answers and reject mutations" {
+    const layout_mod = @import("../sample_point_layout.zig");
+    const seed = secure(37);
+    const randomness = secure(41);
+    const current = stwo_core.circle.secureFieldPointFromRandomSeed(seed);
+    const step_base = stwo_core.poly.circle.CanonicCoset.new(6).step();
+    const step = CirclePointQM31{
+        .x = QM31.fromBase(step_base.x),
+        .y = QM31.fromBase(step_base.y),
+    };
+    const previous = current.sub(step);
+    var logs = [_]u32{6};
+    var log_trees = [_][]u32{&logs};
+    const trees = [_]circuit.TreeProfile{.{ .column_log_sizes = &logs }};
+    var queries = [_]M31{ M31.fromCanonical(11), M31.fromCanonical(13) };
+    var query_columns = [_][]M31{&queries};
+    var query_trees = [_][][]M31{&query_columns};
+    const positions = [_]usize{ 3, 97 };
+    const raw = [_]M31{ M31.fromCanonical(3), M31.fromCanonical(97) };
+
+    inline for (.{
+        .{ circuit.SamplePointLayout.secp256k1_main, [_]isize{ 0, -1, 1 } },
+        .{ circuit.SamplePointLayout.keccak_state, [_]isize{ 0, -2, -1, 1, 2, 27 } },
+    }) |case| {
+        const layout = case[0];
+        const offsets = case[1];
+        try std.testing.expectEqualSlices(isize, &offsets, layout.offsets());
+        var points: [offsets.len]CirclePointQM31 = undefined;
+        var samples: [offsets.len]QM31 = undefined;
+        for (&points, &samples, offsets, 0..) |*point, *sample, offset, i| {
+            point.* = current.add(step.mulSigned(offset));
+            sample.* = secure(@intCast(101 + 2 * i));
+        }
+        try std.testing.expectEqual(layout, try layout_mod.classifyColumn(&points, current, previous));
+        for (0..points.len) |i| {
+            var wrong = points;
+            wrong[i].x = wrong[i].x.add(QM31.one());
+            try std.testing.expectError(error.SamplePointLayoutMismatch, layout_mod.classifyColumn(&wrong, current, previous));
+        }
+        var swapped = points;
+        std.mem.swap(CirclePointQM31, &swapped[0], &swapped[1]);
+        try std.testing.expectError(error.SamplePointLayoutMismatch, layout_mod.classifyColumn(&swapped, current, previous));
+
+        var point_columns = [_][]CirclePointQM31{&points};
+        var point_trees = [_][][]CirclePointQM31{&point_columns};
+        var sample_columns = [_][]QM31{&samples};
+        var sample_trees = [_][][]QM31{&sample_columns};
+        const answers = try stwo_core.pcs.quotients.friAnswers(
+            std.testing.allocator,
+            TreeVec([]u32).initOwned(&log_trees),
+            TreeVec([][]CirclePointQM31).initOwned(&point_trees),
+            TreeVec([][]QM31).initOwned(&sample_trees),
+            randomness,
+            &positions,
+            TreeVec([][]M31).initOwned(&query_trees),
+            7,
+        );
+        defer std.testing.allocator.free(answers);
+        var built = try circuit.build(std.testing.allocator, .{
+            .trees = &trees,
+            .sample_layouts = &.{layout},
+            .lifting_log_size = 7,
+            .log_blowup_factor = 1,
+            .query_count = 2,
+        });
+        defer built.deinit();
+        const witness = circuit.Witness{
+            .active = true,
+            .sampled_values = &samples,
+            .queried_values = &queries,
+            .oods_seed = seed,
+            .deep_randomness = randomness,
+            .raw_queries = &raw,
+            .answers = answers,
+        };
+        var evaluation = try built.evaluate(std.testing.allocator, witness);
+        defer evaluation.deinit();
+        try evaluation.validateAgainst(&built);
+        for (&samples) |*sample| {
+            const original = sample.*;
+            sample.* = sample.add(QM31.one());
+            try std.testing.expectError(error.UnsatisfiedCircuit, built.evaluate(std.testing.allocator, witness));
+            sample.* = original;
+        }
+    }
+}
+
 fn nativeAnswers(
     pair_layout: circuit.SamplePointLayout,
     sampled_values: [3]QM31,
@@ -351,7 +586,7 @@ fn nativeAnswers(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -406,7 +641,7 @@ fn expectNativeBatchOracle(
     var points_0_0 = switch (pair_layout) {
         .current_previous => [_]CirclePointQM31{ oods, previous },
         .previous_current => [_]CirclePointQM31{ previous, oods },
-        .none, .current => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state => unreachable,
     };
     var points_0_1 = [_]CirclePointQM31{};
     var points_1_0 = [_]CirclePointQM31{oods};
@@ -472,7 +707,7 @@ fn expectNativeBatchOracle(
     const current_batch_index: usize = switch (pair_layout) {
         .current_previous => 1,
         .previous_current => 2,
-        .none, .current => unreachable,
+        .none, .current, .secp256k1_main, .keccak_state => unreachable,
     };
     const other_batch_index: usize = if (current_batch_index == 1) 2 else 1;
     try std.testing.expectEqual(@as(usize, 1), batches[0].cols_vals_randpows.len);

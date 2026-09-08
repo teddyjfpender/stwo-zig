@@ -315,7 +315,7 @@ test "metal: AOT source matches every production RISC-V polynomial DAG" {
         return;
     }
     const embedded_source = riscv_metal.riscv_polynomial_codegen.source;
-    const runtime_bootstrap = @embedFile("../../backends/metal/runtime.m");
+    const runtime_bootstrap = metal_backend.source_contract.runtime;
     const shader_manifest = metal_backend.shaders.manifest;
     const manifest_testing = shader_manifest.testing;
     try std.testing.expectEqualStrings(embedded_source, source);

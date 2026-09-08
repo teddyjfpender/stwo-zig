@@ -13,6 +13,7 @@ const frontend = @import("stwo_riscv_frontend");
 const artifact_v4 = @import("ethereum_incremental_boundary_artifact_v4.zig");
 const boundary_v4 = @import("ethereum_incremental_boundary_authority_v4.zig");
 const base_profile = @import("ethereum_incremental_native_leaf_profile_v3.zig");
+pub const field_transcript = @import("ethereum_incremental_field_transcript_v4.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
@@ -28,8 +29,17 @@ const witness_v3 = frontend.prover_mod.incremental_commitment_witness_v3;
 const ethereum_wire = frontend.prover_mod.guest_precompile
     .ethereum_proof_artifact_wire;
 
+pub const FixedProgramDescriptorV1 = frontend.air.program.fixed_table_v1.DescriptorV1;
+pub const CircuitProfileV1 = frontend.prover_mod.ethereum_circuit_profile_v1.CircuitProfileV1;
+
 pub const FORMAT_VERSION: u16 = 4;
 pub const SCHEMA_VERSION: u16 = 2;
+pub const ClaimAdmissionV4 = enum(u16) {
+    legacy_aggregate_v2 = SCHEMA_VERSION,
+    selected_detailed_v3 = 3,
+    field_authority_v4 = field_transcript.SCHEMA_VERSION,
+    fixed_program_narrow_v5 = 5,
+};
 pub const PRODUCTION_ACTIVE = false;
 pub const PROOF_ADMISSIBLE = false;
 pub const FRESH_VERIFICATION_AVAILABLE = false;
@@ -37,17 +47,15 @@ pub const SCHEMA = "stwo.ethereum.incremental-full-leaf-profile.v4";
 
 const IDENTITY_DOMAIN =
     "stwo.ethereum.incremental-full-leaf-profile.v4\x00";
-const PRE_TREE0_DOMAIN_WORDS = [4]u32{
+const PRE_TREE0_DOMAIN_WORDS = [3]u32{
     0x5749_5453, // STIW
     0x3446_4c45, // ELF4
     FORMAT_VERSION,
-    SCHEMA_VERSION,
 };
-const POST_TREE1_DOMAIN_WORDS = [4]u32{
+const POST_TREE1_DOMAIN_WORDS = [3]u32{
     0x5749_5453, // STIW
     0x3446_5242, // BRF4
     FORMAT_VERSION,
-    SCHEMA_VERSION,
 };
 
 pub const AuthorityV4 = struct {
@@ -71,6 +79,59 @@ pub const AuthorityV4 = struct {
     bridge_geometry: bridge.GeometryV3,
     protocol: base_profile.ProtocolAuthorityV3,
     identity_sha256: [32]u8,
+    fixed_program: ?FixedProgramDescriptorV1 = null,
+
+    pub fn circuitProfile(self: *const AuthorityV4) CircuitProfileV1 {
+        return if (self.schema_version == 5) .fixed_program_narrow_v1 else .legacy_v4;
+    }
+
+    pub fn usesFieldTranscript(self: *const AuthorityV4) bool {
+        return self.schema_version == 4 or self.schema_version == 5;
+    }
+
+    pub fn claimAdmission(self: *const AuthorityV4) !ClaimAdmissionV4 {
+        return std.meta.intToEnum(ClaimAdmissionV4, self.schema_version) catch
+            return error.InvalidIncrementalEthereumLeafAuthorityV4;
+    }
+
+    /// Schema 2 remains a legacy aggregate-only transcript. Schema 3 adds the
+    /// selected physical base claims at one shared, pre-Tree-2 position.
+    /// Schema 4 retains those claims and uses field-level profile frames.
+    pub fn mixSelectedBaseClaims(
+        self: *const AuthorityV4,
+        allocator: std.mem.Allocator,
+        channel: anytype,
+        core: *const frontend.air.statement.RiscVStatement,
+        manifest: *const frontend.air.lookup_physical_manifest_v2.Manifest,
+        authenticated: *const frontend.air.lookup_physical_manifest_v2.AuthenticatedStatement,
+        claim: *const frontend.air.statement.RiscVInteractionClaim,
+    ) !void {
+        switch (try self.claimAdmission()) {
+            .legacy_aggregate_v2 => {},
+            .selected_detailed_v3, .field_authority_v4, .fixed_program_narrow_v5 => {
+                const selected = try frontend.prover_mod.guest_precompile
+                    .ethereum_transcript.SelectedBaseClaimsV3.init(core, manifest, authenticated, claim);
+                try selected.mix(allocator, channel);
+            },
+        }
+    }
+
+    /// The extension claim sequence must precede this single final-claims
+    /// operation. Prover hooks, native verification and recursive replay share
+    /// this boundary so detailed-base admission cannot drift from the bridge.
+    pub fn mixFinalClaims(
+        self: *const AuthorityV4,
+        allocator: std.mem.Allocator,
+        channel: anytype,
+        core_statement: *const frontend.air.statement.RiscVStatement,
+        manifest: *const frontend.air.lookup_physical_manifest_v2.Manifest,
+        authenticated: *const frontend.air.lookup_physical_manifest_v2.AuthenticatedStatement,
+        base_claim: *const frontend.air.statement.RiscVInteractionClaim,
+        bridge_claim: stwo_core.fields.qm31.QM31,
+    ) !void {
+        try self.mixSelectedBaseClaims(allocator, channel, core_statement, manifest, authenticated, base_claim);
+        bridge.mixClaim(channel, bridge_claim);
+    }
 
     pub fn validateAgainstStatement(
         self: *const AuthorityV4,
@@ -78,8 +139,15 @@ pub const AuthorityV4 = struct {
         ethereum: *const ethereum_statement.Statement,
         role_aware_public: *const public_data.PublicData,
     ) !void {
+        _ = try self.claimAdmission();
+        if (self.circuitProfile() == .fixed_program_narrow_v1) {
+            if (native.core.n_infra == 0) return error.InvalidIncrementalEthereumLeafAuthorityV4;
+            const fixed = self.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired;
+            try fixed.validate();
+            const metadata = try native.public_data.metadata();
+            if (fixed.row_count != native.core.infra_descs[0].n_rows or metadata.program[0] != fixed.compatibility_root or !std.mem.allEqual(u32, metadata.program[1..], 0)) return error.EthereumFixedProgramAdmissionMismatch;
+        } else if (self.fixed_program != null) return error.EthereumFixedProgramProfileMismatch;
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
             self.production_active or self.proof_admissible or
             self.fresh_verification_available or self.reserved != 0 or
             self.statement_family != .segment_full_state_v4 or
@@ -94,17 +162,18 @@ pub const AuthorityV4 = struct {
         }
         try requireFieldDigest(self.segment_public_wire_id);
         try native.validate();
-        try ethereum.validateV2(native);
+        try ethereum.validateV2WithCircuitProfileV1(native, self.circuitProfile());
         try incremental_public.validateSharedAuthority(
             &native.public_data,
             role_aware_public,
         );
         try self.protocol.validate();
-        try self.base_geometry.validateAgainstWithRetirementSupplementV2(
-            native,
-            self.protocol.pcs,
-            retirementSupplement(ethereum),
-        );
+        if (self.circuitProfile() == .legacy_v4) {
+            try self.base_geometry.validateAgainstWithRetirementSupplementV2(native, self.protocol.pcs, retirementSupplement(ethereum));
+        } else {
+            const expected = try base_profile.BaseGeometryV3.deriveWithCircuitProfileV1(native, self.protocol.pcs, retirementSupplement(ethereum), self.circuitProfile());
+            if (!std.meta.eql(expected, self.base_geometry)) return error.IncrementalNativeLeafBaseGeometryMismatch;
+        }
         if (!std.meta.eql(native.public_data.wireId(), self.segment_public_wire_id) or
             !std.meta.eql(self.ethereum, ethereum.*) or
             !std.mem.eql(
@@ -121,7 +190,8 @@ pub const AuthorityV4 = struct {
         )) {
             return error.IncrementalEthereumLeafStatementMismatchV4;
         }
-        const prefix = try prefixColumns(native, ethereum, &self.base_geometry);
+        var prefix = try prefixColumns(native, ethereum, &self.base_geometry, self.circuitProfile());
+        if (self.fixed_program != null) prefix.preprocessed = try add(prefix.preprocessed, frontend.air.program.fixed_table_v1.COLUMN_COUNT);
         try self.bridge_geometry.validateAfterPrefix(prefix);
         if (!std.mem.eql(u8, &self.identity_sha256, &identity(self)))
             return error.InvalidIncrementalEthereumLeafAuthorityV4;
@@ -137,7 +207,7 @@ pub const AuthorityV4 = struct {
         ethereum: *const ethereum_statement.Statement,
         limits: artifact_v4.Limits,
     ) !void {
-        const expected = try mint(
+        var expected = try mint(
             allocator,
             artifact,
             segment_public_wire,
@@ -146,8 +216,20 @@ pub const AuthorityV4 = struct {
             ethereum,
             limits,
         );
+        selectClaimAdmission(&expected, try self.claimAdmission());
         if (!std.meta.eql(self.*, expected))
             return error.IncrementalEthereumLeafInputMismatchV4;
+    }
+
+    pub fn validateAgainstInputsWithProgramV1(self: *const AuthorityV4, allocator: std.mem.Allocator, artifact: *const artifact_v4.OwnedArtifactV4, segment_public_wire: *const public_data_v2.PublicDataV2, public_authority: boundary_v4.SegmentPublicAuthorityV4, native: *const statement_v2.RiscVStatementV2, ethereum: *const ethereum_statement.Statement, limits: artifact_v4.Limits, program: *const @import("ethereum_fixed_program_admission_v1.zig").OwnedV1) !void {
+        try program.validateDescriptor(self.fixed_program orelse return error.EthereumFixedProgramAdmissionRequired);
+        var cold = try artifact_v4.coldReconstruct(allocator, artifact, segment_public_wire, public_authority, limits);
+        defer cold.deinit();
+        try requireSamePublicWire(segment_public_wire, &native.public_data);
+        var boundary = try deriveBoundaryWitness(allocator, artifact, public_authority, &cold);
+        defer boundary.deinit();
+        const expected = try mintFromColdReconstructionWithFixedProgramV1(native, ethereum, public_authority, artifact, &cold, &boundary, program);
+        if (!std.meta.eql(self.*, expected)) return error.IncrementalEthereumLeafInputMismatchV4;
     }
 
     pub fn pcsConfig(self: *const AuthorityV4) !stwo_core.pcs.PcsConfig {
@@ -169,10 +251,12 @@ pub const AuthorityV4 = struct {
             &self.ethereum,
             role_aware_public,
         );
+        if (self.usesFieldTranscript())
+            return field_transcript.mixPreTree0(self, native, role_aware_public, channel);
         (try self.protocol.pcs.config()).mixInto(channel);
         try statement_v2.mixIntoNativeTranscript(&native.public_data, channel);
         self.base_geometry.lookup_activation.mixInto(channel);
-        channel.mixU32s(&PRE_TREE0_DOMAIN_WORDS);
+        channel.mixU32s(&.{ PRE_TREE0_DOMAIN_WORDS[0], PRE_TREE0_DOMAIN_WORDS[1], FORMAT_VERSION, self.schema_version });
         channel.mixU32s(&.{
             self.format_version,
             self.schema_version,
@@ -206,7 +290,7 @@ pub const AuthorityV4 = struct {
         });
         mixSha256(channel, self.protocol.pcs.identity_sha256);
         mixSha256(channel, self.protocol.identity_sha256);
-        try self.ethereum.mixIntoV2(native, channel);
+        try self.ethereum.mixIntoV2WithCircuitProfileV1(native, channel, self.circuitProfile());
         mixSha256(channel, self.ethereum_identity_sha256);
         mixSha256(channel, self.public_boundary_identity_sha256);
         const completion = role_aware_public.completion orelse
@@ -234,11 +318,13 @@ pub const AuthorityV4 = struct {
             &self.ethereum,
             role_aware_public,
         );
+        if (self.usesFieldTranscript())
+            return field_transcript.mixPostTree1(self, native, channel);
         const main_claim = native.core.canonicalMainClaim();
         main_claim.mixInto(channel);
         native.core.mixShardManifest(channel);
-        try self.ethereum.mixIntoV2(native, channel);
-        channel.mixU32s(&POST_TREE1_DOMAIN_WORDS);
+        try self.ethereum.mixIntoV2WithCircuitProfileV1(native, channel, self.circuitProfile());
+        channel.mixU32s(&.{ POST_TREE1_DOMAIN_WORDS[0], POST_TREE1_DOMAIN_WORDS[1], FORMAT_VERSION, self.schema_version });
         self.bridge_geometry.mixFieldAuthority(channel);
         mixSha256(channel, self.identity_sha256);
     }
@@ -295,6 +381,31 @@ pub fn mintFromColdReconstruction(
     cold: *const artifact_v4.ColdReconstructionV4,
     boundary: *const witness_v3.BoundaryWitnessV3,
 ) !AuthorityV4 {
+    return mintFromColdReconstructionWithFixedDescriptor(native, ethereum, public_authority, artifact, cold, boundary, null);
+}
+
+pub fn mintFromColdReconstructionWithFixedProgramV1(
+    native: *const statement_v2.RiscVStatementV2,
+    ethereum: *const ethereum_statement.Statement,
+    public_authority: boundary_v4.SegmentPublicAuthorityV4,
+    artifact: *const artifact_v4.OwnedArtifactV4,
+    cold: *const artifact_v4.ColdReconstructionV4,
+    boundary: *const witness_v3.BoundaryWitnessV3,
+    program: *const @import("ethereum_fixed_program_admission_v1.zig").OwnedV1,
+) !AuthorityV4 {
+    try program.validateDescriptor(program.descriptor());
+    return mintFromColdReconstructionWithFixedDescriptor(native, ethereum, public_authority, artifact, cold, boundary, program.descriptor());
+}
+
+fn mintFromColdReconstructionWithFixedDescriptor(
+    native: *const statement_v2.RiscVStatementV2,
+    ethereum: *const ethereum_statement.Statement,
+    public_authority: boundary_v4.SegmentPublicAuthorityV4,
+    artifact: *const artifact_v4.OwnedArtifactV4,
+    cold: *const artifact_v4.ColdReconstructionV4,
+    boundary: *const witness_v3.BoundaryWitnessV3,
+    fixed_program: ?FixedProgramDescriptorV1,
+) !AuthorityV4 {
     try native.public_data.validate();
     try incremental_public.validateSharedAuthority(
         &native.public_data,
@@ -319,22 +430,24 @@ pub fn mintFromColdReconstruction(
     {
         return error.IncrementalEthereumLeafInventoryMismatchV4;
     }
-    try ethereum.validateV2(native);
+    const circuit_profile: CircuitProfileV1 = if (fixed_program != null) .fixed_program_narrow_v1 else .legacy_v4;
+    try ethereum.validateV2WithCircuitProfileV1(native, circuit_profile);
     const protocol = base_profile.ProtocolAuthorityV3.canonical();
-    const base_geometry = try base_profile.BaseGeometryV3
-        .deriveWithRetirementSupplementV2(
-        native,
-        protocol.pcs,
-        retirementSupplement(ethereum),
-    );
+    const base_geometry = if (fixed_program != null)
+        try base_profile.BaseGeometryV3.deriveWithCircuitProfileV1(native, protocol.pcs, retirementSupplement(ethereum), .fixed_program_narrow_v1)
+    else
+        try base_profile.BaseGeometryV3.deriveWithRetirementSupplementV2(native, protocol.pcs, retirementSupplement(ethereum));
     const n_rows = std.math.cast(u32, boundary.bridgeRows().len) orelse
         return error.IncrementalEthereumLeafGeometryOverflowV4;
-    const prefix = try prefixColumns(native, ethereum, &base_geometry);
+    var prefix = try prefixColumns(native, ethereum, &base_geometry, circuit_profile);
+    if (fixed_program != null) prefix.preprocessed = try add(prefix.preprocessed, frontend.air.program.fixed_table_v1.COLUMN_COUNT);
     const bridge_geometry = try bridge.GeometryV3.canonicalAfterPrefix(
         n_rows,
         prefix,
     );
     var result = AuthorityV4{
+        .schema_version = if (fixed_program != null) 5 else SCHEMA_VERSION,
+        .fixed_program = fixed_program,
         .coordinate = cold.coordinate,
         .segment_public_wire_id = cold.segment_public_wire_id,
         .continuation_roots = artifact.continuation_roots,
@@ -358,6 +471,29 @@ pub fn mintFromColdReconstruction(
         public_authority.public_data,
     );
     return result;
+}
+
+/// Explicit new-producer admission. Existing constructors retain schema 2;
+/// decoding old bytes can never opt a legacy proof into the new transcript.
+pub fn mintFromColdReconstructionWithAdmission(
+    native: *const statement_v2.RiscVStatementV2,
+    ethereum: *const ethereum_statement.Statement,
+    public_authority: boundary_v4.SegmentPublicAuthorityV4,
+    artifact: *const artifact_v4.OwnedArtifactV4,
+    cold: *const artifact_v4.ColdReconstructionV4,
+    boundary: *const witness_v3.BoundaryWitnessV3,
+    admission: ClaimAdmissionV4,
+) !AuthorityV4 {
+    if (admission == .fixed_program_narrow_v5) return error.EthereumFixedProgramAdmissionRequired;
+    var result = try mintFromColdReconstruction(native, ethereum, public_authority, artifact, cold, boundary);
+    selectClaimAdmission(&result, admission);
+    try result.validateAgainstStatement(native, ethereum, public_authority.public_data);
+    return result;
+}
+
+fn selectClaimAdmission(value: *AuthorityV4, admission: ClaimAdmissionV4) void {
+    value.schema_version = @intFromEnum(admission);
+    value.identity_sha256 = identity(value);
 }
 
 pub fn deriveBoundaryWitness(
@@ -416,8 +552,9 @@ fn prefixColumns(
     native: *const statement_v2.RiscVStatementV2,
     ethereum: *const ethereum_statement.Statement,
     base: *const base_profile.BaseGeometryV3,
+    circuit_profile: CircuitProfileV1,
 ) !bridge.PrefixColumnsV3 {
-    try ethereum.validateV2(native);
+    try ethereum.validateV2WithCircuitProfileV1(native, circuit_profile);
     var result = bridge.PrefixColumnsV3{
         .preprocessed = base.physical_tree_columns[0],
         .main = base.physical_tree_columns[1],
@@ -471,6 +608,10 @@ fn identity(value: *const AuthorityV4) [32]u8 {
     hash.update(&value.public_boundary_identity_sha256);
     hash.update(&value.bridge_geometry.identity_sha256);
     hash.update(&value.protocol.identity_sha256);
+    if (value.fixed_program) |fixed| {
+        const words = fixed.canonicalWords() catch unreachable;
+        for (words) |word| hashInt(&hash, u32, word);
+    }
     return hash.finalResult();
 }
 
@@ -554,6 +695,49 @@ pub const testing = struct {
         return identity(value);
     }
 };
+
+test "Ethereum full leaf claim admission versions have fixed identities" {
+    // Identity-only fixture: no capability is minted from these placeholder
+    // fields. The full proof test exercises validated profile admission.
+    var value: AuthorityV4 = undefined;
+    value.fixed_program = null;
+    value.format_version = FORMAT_VERSION;
+    value.schema_version = SCHEMA_VERSION;
+    value.production_active = false;
+    value.proof_admissible = false;
+    value.fresh_verification_available = false;
+    value.reserved = 0;
+    value.statement_family = .segment_full_state_v4;
+    value.boundary_policy = .full_state_split_public_input_exit;
+    value.coordinate = .{ .segment_index = 0, .segment_count = 1 };
+    value.segment_public_wire_id = .{0} ** 8;
+    value.continuation_roots = .{ .entry = 0, .exit = 0 };
+    value.boundary_artifact_content_sha256 = .{0} ** 32;
+    value.base_geometry.identity_sha256 = .{0} ** 32;
+    value.ethereum_identity_sha256 = .{0} ** 32;
+    value.public_boundary_identity_sha256 = .{0} ** 32;
+    value.bridge_geometry.identity_sha256 = .{0} ** 32;
+    value.protocol.identity_sha256 = .{0} ** 32;
+    try std.testing.expectEqual(ClaimAdmissionV4.legacy_aggregate_v2, try value.claimAdmission());
+    try std.testing.expectEqualStrings(
+        "48c887984963c589308ad73cf0b0672881808dd52d9a5ec6805cc194be63ea8c",
+        &std.fmt.bytesToHex(identity(&value), .lower),
+    );
+    selectClaimAdmission(&value, .selected_detailed_v3);
+    try std.testing.expectEqual(ClaimAdmissionV4.selected_detailed_v3, try value.claimAdmission());
+    try std.testing.expectEqualStrings(
+        "e5c3d73d05e840b48e5048a56af98cadbfcb3215ab344448c0bda208de0869ba",
+        &std.fmt.bytesToHex(value.identity_sha256, .lower),
+    );
+    selectClaimAdmission(&value, .field_authority_v4);
+    try std.testing.expectEqual(ClaimAdmissionV4.field_authority_v4, try value.claimAdmission());
+    try std.testing.expectEqualStrings(
+        "597f90f420ff5b1e3abc5ddafb6a24747a62315943dd7431e60072a582f2e839",
+        &std.fmt.bytesToHex(value.identity_sha256, .lower),
+    );
+    value.schema_version = 6;
+    try std.testing.expectError(error.InvalidIncrementalEthereumLeafAuthorityV4, value.claimAdmission());
+}
 
 comptime {
     if (PRODUCTION_ACTIVE or PROOF_ADMISSIBLE or

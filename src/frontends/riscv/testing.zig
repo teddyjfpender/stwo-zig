@@ -113,6 +113,7 @@ pub const bulk_memcpy_relations_v1 =
     @import("air/guest_precompile/bulk_memcpy_relations_v1.zig");
 pub const stack_swap_proof_harness_v1 =
     @import("air/guest_precompile/stack_swap_proof_harness_v1.zig");
+pub const ethereum_node_proof_v1 = @import("air/memory_commitment/ethereum_node_proof_v1.zig");
 pub const stack_swap_proof_component_v1 =
     @import("air/guest_precompile/stack_swap_component_v1.zig");
 pub const stack_swap_proof_stark_component_v1 =

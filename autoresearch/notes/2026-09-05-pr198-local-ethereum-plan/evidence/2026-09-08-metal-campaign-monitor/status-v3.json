@@ -1,0 +1,24 @@
+{
+  "observed_at": "2026-09-07T20:47:31.335797+00:00",
+  "accepted": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    120
+  ],
+  "children": [
+    "27705 24546       00:35 /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v3/bin/ethereum-prepared-leaf-metal-v1 --retained-materialization-result /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json --publication-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4 --campaign-geometry authenticated-v1 --claim-admission fixed_program_narrow_v5 --segment-index 11 --output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/attempts/leaf-000011-0000/proof.bin --global-metadata-output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/attempts/leaf-000011-0000/leaf.json --workers 1 --host-byte-budget 17179869184 --host-byte-limit 34359738368 --aot-bundle /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle --aot-manifest-sha256 320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 --pcs-retained-byte-budget 25769803776 --selected-leaf-admission-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1/leaf-000011"
+  ],
+  "failed_execution_receipts": [],
+  "bundle": false,
+  "full_block_verified": false,
+  "scope": "Read-only monitoring checkpoint; controller remains live and unchanged"
+}

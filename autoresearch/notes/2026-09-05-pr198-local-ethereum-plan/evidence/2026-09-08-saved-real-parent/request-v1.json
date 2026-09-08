@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "status": "prepared_not_launched_requires_accepted_wrappers2_and3",
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-source-v1/manifest.json",
+  "source_manifest_sha256": "a2912e320765a948de4abaf989cdbd3ef50f71ed1a6d552441198f8bef2afdf5",
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-source-v1/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu",
+    "test-ethereum-saved-real-parent",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_PARENT_OUTPUT_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/bundle",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/progress.log"
+  },
+  "required_env": {
+    "STWO_ETHEREUM_PARENT_LEFT_DIR": null,
+    "STWO_ETHEREUM_PARENT_RIGHT_DIR": null,
+    "STWO_ETHEREUM_PARENT_LEFT_KEY_SHA256": null,
+    "STWO_ETHEREUM_PARENT_RIGHT_KEY_SHA256": null,
+    "STWO_ETHEREUM_PARENT_LEFT_PROOF_SHA256": null,
+    "STWO_ETHEREUM_PARENT_RIGHT_PROOF_SHA256": null
+  },
+  "required_independent_child_receipts": null,
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/complete-proof.log",
+  "acceptance": [
+    "Both actual wrapper2 and wrapper3 independent receipts passed with compatible ten-field geometry; pin their exact keys, proofs and expected nodes",
+    "Guarded complete-proof test terminal exit0; serialize, destroy producer and both children, fresh disk verification, precise sibling rejections and well-formed changed-public rejection",
+    "Separate verifier process under --ethereum-v1 with parent key SHA from pre-proof admission.json; verify receipt against expected coordinate1/1 and public statement"
+  ],
+  "separate_verifier_command_template": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-source-v1/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu",
+    "run-recursive-common-fold-verifier-v2",
+    "-Doptimize=ReleaseSafe",
+    "--",
+    "--ethereum-v1",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/bundle/key.json",
+    "<PRE_PROOF_ADMITTED_PARENT_KEY_SHA256>",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/bundle/inputs.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/saved-real-parent-v1/bundle/proof.bin"
+  ],
+  "semantic_compile_passed": false,
+  "proof_verified": false,
+  "resource_scope": "Default common-fold heap route. Existing estimate before full PCS excludes prior Tree0 key admission; leaf scratch mapping is not active. No resource repair made."
+}

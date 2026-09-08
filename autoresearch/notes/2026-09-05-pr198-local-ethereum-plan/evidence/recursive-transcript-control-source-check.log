@@ -1,0 +1,29 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 374s
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=10 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+test-recursive-common-fold-field-public-v2
++- run test 1/2 passed, 1 failed
+error: 'recursive_common_fold_field_public_v2_test.test.common fold schedule rejects call child order and coordinate drift' failed
+error: while executing test 'recursive_common_fold_field_public_v2_test.test.common fold schedule rejects call child order and coordinate drift', the following test command failed:
+./.zig-cache/o/e74dde095e165050046fa49c0b5547a4/test --cache-dir=./.zig-cache --seed=0x3e29a925 --listen=-
+
+Build Summary: 7/9 steps succeeded; 1 failed; 2/3 tests passed; 1 failed
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 17s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+check-recursive-common-fold-q193-bootstrap-v2 success
++- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 1/2 passed, 1 failed
+   +- compile test ReleaseSafe native success 5s MaxRSS:547M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/27ec954b18524e554d2d4cc9175b0c01/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x3e29a925 -Zae44f3f5fe1bb2af --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-source-v1 check-recursive-common-fold-q193-bootstrap-v2 test-recursive-common-fold-field-public-v2 -Doptimize=ReleaseSafe --summary all

@@ -8,6 +8,7 @@ const program_mod =
     @import("recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig");
 
 const M31 = stwo_core.fields.m31.M31;
+const frame_rows = @import("recursive_transcript_frame_rows_v1.zig");
 const recursion = frontend.recursion;
 const air = recursion.air;
 const recording = recursion.recording_poseidon_channel_v4;
@@ -15,17 +16,27 @@ const schedule = air.verifier_schedule;
 const source_rows = recursion.segment_transcript_outer_source_v2;
 
 pub const Error = program_mod.Error || recording.Error ||
+    air.transcript_air_witness.Error ||
     air.transcript_binding_witness.Error ||
     air.transcript_state_witness.Error ||
     air.transcript_word_witness.Error ||
     air.transcript_payload_witness.Error || error{
     EthereumIncrementalTranscriptRowsMismatchV4,
+    InvalidTranscriptClockRoutingDefinition,
 };
 
 pub const TranscriptPayloadRowV4 = struct {
     preprocessing: air.transcript_payload_witness.Row,
     value: M31,
+    field_frame: bool = false,
+    raw_native: bool = false,
 };
+
+pub fn payloadLogicalRow(row: TranscriptPayloadRowV4) !air.ethereum_transcript_payload_raw_v1.Relation.Row {
+    const original = if (row.field_frame) try air.transcript_payload_clocks_v2.logicalRowForFieldFrame(row.preprocessing, row.value) else try air.transcript_payload_clocks_v2.logicalRow(row.preprocessing, row.value);
+    if (row.raw_native and !row.field_frame) return error.EthereumIncrementalTranscriptRowsMismatchV4;
+    return air.ethereum_transcript_payload_raw_v1.logicalRow(original, row.raw_native);
+}
 
 pub const CanonicalSuffixesV4 = struct {
     binding: *const air.transcript_binding_witness.Preprocessed,
@@ -88,6 +99,7 @@ pub fn populateOrValidate(
         }
         const verifier_sequence: usize = instruction.verifier_sequence;
         const encoded_step = vm_plan.steps[verifier_sequence].encode();
+        const step = frame_rows.Step{ .verifier_id = 0, .sequence = instruction.verifier_sequence, .tag = encoded_step.tag, .args = encoded_step.args };
         const operation_first = instruction_index == 0 or
             program.operations[instruction_index - 1].verifier_sequence !=
                 instruction.verifier_sequence;
@@ -105,49 +117,11 @@ pub fn populateOrValidate(
             const is_mix = frame.purpose == .mix;
             const pow_draw = instruction.effect == .pow and
                 local_frame + 1 == frame_count;
-            const state_key = mix_ordinal + @intFromBool(is_mix);
             try emit(
                 source_rows.TranscriptStateRowV2,
                 buffers.transcript_state,
                 &state_at,
-                .{
-                    .preprocessing = .{
-                        .row_mask = 1,
-                        .segment_mask = 1,
-                        .binary_mask = 0,
-                        .verifier_id = 0,
-                        .sequence = instruction.verifier_sequence,
-                        .tag = encoded_step.tag,
-                        .args = encoded_step.args,
-                        .hash_id = frame.hash_id,
-                        .input_state_key = if (is_mix)
-                            mix_ordinal
-                        else
-                            state_key,
-                        .output_state_key = state_key,
-                        .initial_mask = @intFromBool(
-                            is_mix and mix_ordinal == 0,
-                        ),
-                        .state_consume_mask = @intFromBool(
-                            !is_mix or mix_ordinal > 0,
-                        ),
-                        .state_produce_multiplicity = if (is_mix)
-                            stateConsumerCount(
-                                execution.hash_frames,
-                                first_frame + local_frame,
-                            )
-                        else
-                            0,
-                        .draw_output_mask = @intFromBool(
-                            !is_mix and !pow_draw,
-                        ),
-                    },
-                    .main = .{
-                        .enabler = 1,
-                        .inputs = frame.words[0..recording.RATE].*,
-                        .outputs = frame.output[0..recording.RATE].*,
-                    },
-                },
+                frame_rows.state(step, execution.hash_frames, first_frame + local_frame, mix_ordinal, pow_draw),
                 validate_only,
             );
             mix_ordinal += @intFromBool(is_mix);
@@ -159,11 +133,7 @@ pub fn populateOrValidate(
             if (call_end > execution.poseidon_calls.len) return mismatch();
             for (first_call..call_end) |call_index| {
                 const call = execution.poseidon_calls[call_index];
-                const call_row = try transcriptCallRow(
-                    execution,
-                    call_index,
-                    frame,
-                );
+                const call_row = try frame_rows.callRow(execution, call_index, frame, 0);
                 try emit(
                     source_rows.TranscriptAirRowV2,
                     buffers.transcript_air,
@@ -175,38 +145,7 @@ pub fn populateOrValidate(
                     source_rows.TranscriptBindingRowV2,
                     buffers.transcript_binding,
                     &binding_at,
-                    .{
-                        .preprocessing = .{
-                            .row_mask = 1,
-                            .segment_mask = 1,
-                            .binary_mask = 0,
-                            .verifier_id = 0,
-                            .sequence = instruction.verifier_sequence,
-                            .tag = encoded_step.tag,
-                            .args = encoded_step.args,
-                            .call_id = @intCast(call_index),
-                            .hash_id = frame.hash_id,
-                            .hash_step = call.id.step,
-                            .is_first = call_row.is_first,
-                            .is_last = call_row.is_last,
-                            .is_draw = call_row.is_draw,
-                            .is_operation_first = @intFromBool(
-                                operation_first and local_frame == 0 and
-                                    call.id.step == 0,
-                            ),
-                            .pow_final_mask = @intFromBool(
-                                pow_draw and call_row.is_last == 1,
-                            ),
-                        },
-                        .main = .{
-                            .enabler = 1,
-                            .chunks = call_row.chunk,
-                            .outputs = if (call_row.is_last == 1)
-                                call.output[0..recording.RATE].*
-                            else
-                                [_]M31{M31.zero()} ** recording.RATE,
-                        },
-                    },
+                    frame_rows.binding(step, @intCast(call_index), frame, call, call_row, operation_first and local_frame == 0, pow_draw),
                     validate_only,
                 );
             }
@@ -218,14 +157,6 @@ pub fn populateOrValidate(
             ) catch return mismatch();
             for (recording.RATE..padded_words) |frame_word_index| {
                 const is_payload = is_mix and frame_word_index < frame.words.len;
-                const constant_value: u32 = if (is_payload)
-                    0
-                else if (frame_word_index < frame.words.len)
-                    frame.words[frame_word_index].toU32()
-                else if (frame_word_index == frame.words.len)
-                    1
-                else
-                    0;
                 const value = if (is_payload)
                     frame.words[frame_word_index]
                 else
@@ -234,26 +165,7 @@ pub fn populateOrValidate(
                     source_rows.TranscriptWordRowV2,
                     buffers.transcript_word,
                     &word_at,
-                    .{
-                        .preprocessing = .{
-                            .row_mask = 1,
-                            .segment_mask = 1,
-                            .binary_mask = 0,
-                            .verifier_id = 0,
-                            .sequence = @intCast(instruction_index),
-                            .tag = instruction.tag,
-                            .args = instruction.args,
-                            .hash_id = frame.hash_id,
-                            .word_index = @intCast(frame_word_index),
-                            .is_payload = @intFromBool(is_payload),
-                            .payload_index = if (is_payload)
-                                @intCast(frame_word_index - recording.RATE)
-                            else
-                                0,
-                            .constant_value = constant_value,
-                        },
-                        .value = value,
-                    },
+                    frame_rows.word(.{ .verifier_id = 0, .sequence = @intCast(instruction_index), .tag = instruction.tag, .args = instruction.args }, frame, @intCast(frame_word_index)),
                     validate_only,
                 );
                 if (is_payload) {
@@ -264,6 +176,9 @@ pub fn populateOrValidate(
                         instruction_index,
                         payload_index,
                     );
+                    if (metadata.expected_constant) |expected| {
+                        if (metadata.constant_mask != 1 or value.toU32() != expected) return mismatch();
+                    }
                     try emit(
                         TranscriptPayloadRowV4,
                         buffers.transcript_payload,
@@ -285,11 +200,13 @@ pub fn populateOrValidate(
                                 .limb_index = metadata.limb_index,
                                 .constant_mask = metadata.constant_mask,
                                 .input_use_count = metadata.input_use_count,
-                                .constant_value = if (metadata.constant_mask == 1) value.toU32() else 0,
+                                .constant_value = if (metadata.constant_mask == 1) metadata.expected_constant orelse value.toU32() else 0,
                                 .source_hash_id = frame.hash_id,
                                 .source_word_index = @intCast(frame_word_index),
                             },
                             .value = value,
+                            .field_frame = instruction.payload == .field_frame,
+                            .raw_native = metadata.raw_native,
                         },
                         validate_only,
                     );
@@ -379,23 +296,11 @@ pub fn populateOrValidate(
     }
     if (validate_only) {
         for (buffers.provider_calls, execution.poseidon_calls) |actual, expected|
-            if (!std.meta.eql(actual, providerCall(expected))) return mismatch();
+            if (!std.meta.eql(actual, frame_rows.providerCall(expected))) return mismatch();
     } else {
         for (buffers.provider_calls, execution.poseidon_calls) |*actual, expected|
-            actual.* = providerCall(expected);
+            actual.* = frame_rows.providerCall(expected);
     }
-}
-
-fn providerCall(source: recording.PoseidonCall) source_rows.ProviderCall {
-    var input: [recording.WIDTH]u32 = undefined;
-    for (&input, source.input) |*destination, value|
-        destination.* = value.toU32();
-    return .{
-        .input = input,
-        .wide = false,
-        .io = true,
-        .narrow_output = null,
-    };
 }
 
 fn appendCanonicalSuffixes(
@@ -462,28 +367,21 @@ fn appendCanonicalSuffixes(
 pub fn relationDrawsAlloc(
     allocator: std.mem.Allocator,
     execution: *const recording.ExecutionV4,
-    program: *const program_mod.ProgramAuthorityV4,
+    operations: []const program_mod.OperationV4,
 ) Error![]air.relation_challenge_witness.Draw {
-    const count: usize = @intCast(program_mod.RELATION_DRAW_COUNT / 2);
+    const count = program_mod.RELATION_CHALLENGE_COUNT;
     const result = try allocator.alloc(air.relation_challenge_witness.Draw, count);
     errdefer allocator.free(result);
-    var seen = [_][2]bool{.{ false, false }} ** count;
-    for (program.operations, 0..) |operation, index| switch (operation.draw) {
-        .relation_limb => |binding| {
-            if (@as(usize, binding.challenge) >= result.len or
-                binding.half >= 2 or
-                seen[binding.challenge][binding.half])
-            {
-                return mismatch();
-            }
-            const draw = try operationDraw(execution, index);
-            const offset: usize = 4 * binding.half;
-            @memcpy(result[binding.challenge][offset..][0..4], draw[0..4]);
-            seen[binding.challenge][binding.half] = true;
+    var seen = [_]bool{false} ** count;
+    for (operations, 0..) |operation, index| switch (operation.draw) {
+        .relation_challenge => |challenge| {
+            if (challenge >= result.len or seen[challenge]) return mismatch();
+            result[challenge] = try operationDraw(execution, index);
+            seen[challenge] = true;
         },
         else => {},
     };
-    for (seen) |complete| if (!complete[0] or !complete[1]) return mismatch();
+    for (seen) |complete| if (!complete) return mismatch();
     return result;
 }
 
@@ -508,54 +406,6 @@ pub fn randomnessDrawsAlloc(
         else => {},
     };
     if (at != result.len) return mismatch();
-    return result;
-}
-
-fn transcriptCallRow(
-    execution: *const recording.ExecutionV4,
-    call_index: usize,
-    frame: recording.HashFrame,
-) Error!source_rows.TranscriptAirRowV2 {
-    if (call_index >= execution.poseidon_calls.len) return mismatch();
-    const call = execution.poseidon_calls[call_index];
-    const previous = if (call.id.step == 0)
-        [_]M31{M31.zero()} ** recording.WIDTH
-    else blk: {
-        if (call_index == 0) return mismatch();
-        break :blk execution.poseidon_calls[call_index - 1].output;
-    };
-    var chunk: [recording.RATE]M31 = undefined;
-    for (&chunk, call.input[0..recording.RATE], previous[0..recording.RATE]) |
-        *target,
-        input,
-        prior,
-    | target.* = input.sub(prior);
-    return .{
-        .enabler = 1,
-        .verifier_id = 0,
-        .call_id = @intCast(call_index),
-        .hash_id = frame.hash_id,
-        .step = call.id.step,
-        .is_first = @intFromBool(call.id.step == 0),
-        .is_last = @intFromBool(call.id.step + 1 == frame.call_count),
-        .is_draw = @intFromBool(frame.purpose == .draw),
-        .previous = previous,
-        .chunk = chunk,
-        .output = call.output,
-    };
-}
-
-fn stateConsumerCount(
-    frames: []const recording.HashFrame,
-    mix_index: usize,
-) u32 {
-    std.debug.assert(mix_index < frames.len);
-    std.debug.assert(frames[mix_index].purpose == .mix);
-    var result: u32 = 0;
-    for (frames[mix_index + 1 ..]) |frame| {
-        result += 1;
-        if (frame.purpose == .mix) break;
-    }
     return result;
 }
 
@@ -600,6 +450,16 @@ fn emit(
     comptime validate_only: bool,
 ) Error!void {
     if (cursor.* >= destination.len) return mismatch();
+    // Admit the typed AIR row before retaining it. The cohort uses these same
+    // logical writers; malformed source metadata must fail before native rows.
+    errdefer std.debug.print("ETHEREUM_TRANSCRIPT_ROW type={s} index={d} row={any}\n", .{ @typeName(T), cursor.*, value });
+    if (T == source_rows.TranscriptAirRowV2) {
+        _ = try air.transcript_air_witness.logicalRow(value);
+    } else if (T == source_rows.TranscriptWordRowV2) {
+        _ = try air.transcript_word_witness.logicalRow(value.preprocessing, value.value, .segment_leaf);
+    } else if (T == TranscriptPayloadRowV4) {
+        _ = try payloadLogicalRow(value);
+    }
     if (validate_only) {
         if (!std.meta.eql(destination[cursor.*], value)) return mismatch();
     } else destination[cursor.*] = value;

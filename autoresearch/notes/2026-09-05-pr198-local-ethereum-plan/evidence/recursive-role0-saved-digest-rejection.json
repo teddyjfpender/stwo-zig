@@ -1,0 +1,8 @@
+{
+  "status": "passed",
+  "binary": "src/integrations/riscv_cpu/.zig-cache/o/0fafc9543ed043425df32c7c9213e65a/test",
+  "exit_code": 1,
+  "elapsed_s": 0.007627291022799909,
+  "scope": "baseline replay binary rejects mismatched expected child hash before cold verification and materialization",
+  "output": "1/1 recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition...slices differ. first difference occurs at index 0 (0x0)\n\n============ expected this output: =============  len: 32 (0x20)\n\n00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................\n00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................\n\n============= instead found this: ==============  len: 32 (0x20)\n\nC8 6F 6A CD E3 D4 AB 6B  14 8F 5A 02 AB E3 7F E0  .oj....k..Z.....\nD7 AF 7D 1D 96 F0 FF FC  A2 6C 42 C2 50 25 38 CF  ..}......lB.P%8.\n\n================================================\n\nFAIL (TestExpectedEqual)\n0 passed; 0 skipped; 1 failed.\n"
+}

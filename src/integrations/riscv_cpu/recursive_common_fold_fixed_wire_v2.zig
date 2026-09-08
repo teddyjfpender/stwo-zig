@@ -11,6 +11,9 @@ const frontend = @import("stwo_riscv_frontend");
 
 const live_mod = @import("recursive_common_fold_universal_cohort_v2.zig");
 const manifest_mod = @import("recursive_common_fold_universal_manifest_v2.zig");
+const public_hash = @import("recursive_common_fold_public_hash_v3.zig");
+const statement_mod = @import("recursive_common_fold_statement_v3.zig");
+const transcript_rows = @import("recursive_secure_transcript_rows_v1.zig");
 const schedule_mod = @import("recursive_common_fold_poseidon_schedule_v2.zig");
 const wire_boundary =
     @import("recursive_common_fold_wire_boundary_authority_v2.zig");
@@ -26,7 +29,7 @@ const schedule = recursion.air.verifier_schedule;
 const transcript_shape = recursion.transcript_shape;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 3;
 pub const CHILD_COUNT: usize = 2;
 pub const ROW_COUNT: usize = rows_source.ROW_COUNT;
 pub const SOURCE_DOMAIN =
@@ -164,8 +167,8 @@ pub fn TypesForLive(
                 var recursion_plan_owned = true;
                 errdefer if (recursion_plan_owned) recursion_plan.deinit();
 
+                const root_pin = try Policy.initRootPin(live);
                 const storage = try allocator.create(Storage);
-                errdefer allocator.destroy(storage);
                 storage.* = .{
                     .allocator = allocator,
                     .live = live,
@@ -173,11 +176,15 @@ pub fn TypesForLive(
                     .wires = undefined,
                     .vm_plan = vm_plan,
                     .recursion_plan = recursion_plan,
-                    .root_pin = try Policy.initRootPin(live),
+                    .root_pin = root_pin,
                     .pair = undefined,
                     .children = undefined,
                     .boundary_layout = undefined,
+                    .boundary_calls = &.{},
                     .source = undefined,
+                    .source_initialized = false,
+                    .transcript = null,
+                    .statement = null,
                     .authority_sha256 = undefined,
                 };
                 captures_owned = false;
@@ -187,8 +194,12 @@ pub fn TypesForLive(
 
                 for (&storage.wires, live.children) |*wire, child|
                     try populateWire(dimensions, wire, child, live, Policy);
+                const left_projection = try Policy.projectChild(live.children[0], live);
+                const right_projection = try Policy.projectChild(live.children[1], live);
+                storage.statement = try statement_mod.Prepared.init(allocator, left_projection.node_public, right_projection.node_public, live.input.outputNodePublic());
                 storage.pair = .{
                     .live = live,
+                    .statement = &storage.statement.?,
                     .identity_sha256 = try pairIdentity(storage),
                 };
                 const composition = try live.authenticatedCompositionLanes();
@@ -206,9 +217,20 @@ pub fn TypesForLive(
                         &storage.captures.children[index],
                     ),
                 };
-                storage.boundary_layout = try schedule_mod.Layout.initBoundary(
-                    live.public_schedule.callsSlice(),
-                );
+                var transcript_views: [CHILD_COUNT]transcript_rows.View = undefined;
+                for (live.children, &transcript_views) |child, *view| view.* = try Policy.transcriptView(child, live);
+                storage.transcript = try transcript_rows.Prepared.init(allocator, transcript_views);
+                try storage.transcript.?.appendVerifierControl(&storage.recursion_plan);
+                try storage.transcript.?.appendStatement(&storage.statement.?);
+                var hashes = try public_hash.Prepared.init(allocator, left_projection.node_public, right_projection.node_public, &live.public_schedule);
+                defer hashes.deinit();
+                try storage.transcript.?.appendPublicHashes(&hashes);
+                const transcript_calls = storage.transcript.?.provider;
+                const statement_calls = live.public_schedule.callsSlice();
+                storage.boundary_calls = try allocator.alloc(schedule_mod.Call, try std.math.add(usize, transcript_calls.len, statement_calls.len));
+                @memcpy(storage.boundary_calls[0..transcript_calls.len], transcript_calls);
+                @memcpy(storage.boundary_calls[transcript_calls.len..], statement_calls);
+                storage.boundary_layout = try schedule_mod.Layout.initTranscriptBoundary(transcript_calls.len, storage.boundary_calls);
                 storage.source = try Source.initAuthenticated(
                     allocator,
                     &storage.pair,
@@ -216,8 +238,10 @@ pub fn TypesForLive(
                     &storage.vm_plan,
                     .{ &storage.recursion_plan, &storage.recursion_plan },
                     storage.children,
-                    null,
+                    try storage.statement.?.sharedInput(),
                 );
+                storage.source_initialized = true;
+                try storage.transcript.?.appendFixedWires(&storage.source.arithmetic_rows.?.plan, storage.source.arithmetic_rows.?.reference);
                 storage.authority_sha256 = ownerIdentity(storage);
                 try storage.validate();
                 return ownerHandle(storage);
@@ -231,12 +255,17 @@ pub fn TypesForLive(
                 return &ownerStorageConst(self).source;
             }
 
+            /// Owned transcript rows sharing the complete boundary's calls.
+            pub fn transcriptRows(self: *const OwnerV2) *const transcript_rows.Prepared {
+                return &ownerStorageConst(self).transcript.?;
+            }
+
             pub fn boundaryLayout(self: *const OwnerV2) schedule_mod.Layout {
                 return ownerStorageConst(self).boundary_layout;
             }
 
             pub fn boundaryCalls(self: *const OwnerV2) []const schedule_mod.Call {
-                return ownerStorageConst(self).live.public_schedule.callsSlice();
+                return ownerStorageConst(self).boundary_calls;
             }
 
             pub fn authorityIdentity(self: *const OwnerV2) [32]u8 {
@@ -269,16 +298,26 @@ pub fn TypesForLive(
             pair: Boundary.PairPrepared,
             children: [CHILD_COUNT]Boundary.Child,
             boundary_layout: schedule_mod.Layout,
+            boundary_calls: []schedule_mod.Call,
             source: Source,
+            source_initialized: bool,
+            transcript: ?transcript_rows.Prepared,
+            statement: ?statement_mod.Prepared,
             authority_sha256: [32]u8,
 
             fn validate(self: *const Storage) !void {
                 try self.live.validate();
+                try self.transcript.?.validate();
+                try self.statement.?.validate();
+                if (self.pair.statement != &self.statement.?) return error.CommonFoldSourceAuthorityMismatch;
                 try self.root_pin.validateAgainst(self.live);
-                try self.boundary_layout.validate(
-                    self.live.public_schedule.callsSlice(),
-                );
+                try self.boundary_layout.validate(self.boundary_calls);
+                const transcript_end = self.boundary_layout.transcript.end;
+                if (transcript_end != self.transcript.?.provider.len) return error.CommonFoldSourceAuthorityMismatch;
+                for (self.boundary_calls[0..transcript_end], self.transcript.?.provider) |actual, expected| if (!std.meta.eql(actual, expected)) return error.CommonFoldSourceAuthorityMismatch;
+                for (self.boundary_calls[transcript_end..], self.live.public_schedule.callsSlice()) |actual, expected| if (!std.meta.eql(actual, expected)) return error.CommonFoldSourceAuthorityMismatch;
                 try self.source.validateAgainstAuthority();
+                try self.transcript.?.validateFixedWires(&self.source.arithmetic_rows.?.plan, self.source.arithmetic_rows.?.reference);
                 try Boundary.validateAuthenticatedChildOnlyWireBoundary(
                     &self.source,
                 );
@@ -291,7 +330,10 @@ pub fn TypesForLive(
 
             fn destroyInitialized(self: *Storage) void {
                 const allocator = self.allocator;
-                self.source.deinit();
+                if (self.source_initialized) self.source.deinit();
+                if (self.transcript) |*rows| rows.deinit();
+                if (self.statement) |*value| value.deinit();
+                allocator.free(self.boundary_calls);
                 self.recursion_plan.deinit();
                 self.vm_plan.deinit();
                 self.captures.deinit();
@@ -316,6 +358,7 @@ pub fn TypesForLive(
             var hash = std.crypto.hash.sha2.Sha256.init(.{});
             hash.update("stwo-zig/recursive-common-fold-pair/v2\x00");
             hash.update(&value.live.identity_sha256);
+            hash.update(&value.statement.?.identity);
             hash.update(&value.root_pin.identity_sha256);
             for (value.live.children) |child| {
                 const projection = try Policy.projectChild(
@@ -337,6 +380,7 @@ pub fn TypesForLive(
             hash.update(&value.pair.identity_sha256);
             hash.update(&value.source.source_authority_digest);
             hash.update(&value.boundary_layout.identity);
+            hash.update(&value.transcript.?.identity);
             return hash.finalResult();
         }
     };
@@ -394,6 +438,7 @@ pub fn CommonFoldBoundaryForLiveV2(
 
         pub const PairPrepared = struct {
             live: *const Live,
+            statement: *const statement_mod.Prepared,
             identity_sha256: [32]u8,
         };
 
@@ -415,11 +460,12 @@ pub fn CommonFoldBoundaryForLiveV2(
             shared: ?rows_source.SharedArithmeticInput,
         ) !void {
             if (!std.meta.eql(expected, dimensions) or
-                recursion_plans[0] != recursion_plans[1] or shared != null)
+                recursion_plans[0] != recursion_plans[1])
             {
                 return error.CommonFoldProfileMismatch;
             }
             try pair.live.validate();
+            if (!std.meta.eql(shared orelse return error.CommonFoldProfileMismatch, try pair.statement.sharedInput())) return error.CommonFoldProfileMismatch;
             try Policy.validateRootPin(root_pin, pair.live);
             try vm_plan.validate();
             try recursion_plans[0].validate();
@@ -431,7 +477,7 @@ pub fn CommonFoldBoundaryForLiveV2(
         pub fn validateAuthenticatedChildOnlyWireBoundary(
             source: anytype,
         ) !void {
-            try wire_boundary.validateAuthenticatedChildOnly(source);
+            try wire_boundary.validateAuthenticated(source);
         }
 
         pub fn fillQueryWords(
@@ -887,6 +933,10 @@ const ProductionPolicyV2 = struct {
         return child.projection(live.registry());
     }
 
+    pub fn transcriptView(child: live_mod.FreshFoldChildV2, _: *const live_mod.CohortV2) !transcript_rows.View {
+        return taggedTranscriptView(child);
+    }
+
     pub fn validateChildCustody(
         actual: @import("recursive_common_fold_child_capability_v2.zig").ProjectionV2,
         expected: @import("recursive_common_fold_child_capability_v2.zig").ProjectionV2,
@@ -902,11 +952,19 @@ const ProductionPolicyV2 = struct {
     }
 };
 
+pub fn taggedTranscriptView(child: live_mod.FreshFoldChildV2) !transcript_rows.View {
+    return switch (child.payload) {
+        .canonical_empty_field_v2 => |empty| .{ .program = &empty.ingress.transcript.program, .execution = &empty.ingress.transcript.execution },
+        .common_fold_field_v2 => |fold| fold.ingress.transcript,
+        .ethereum_incremental_leaf_wrapper_v4 => error.CommonFoldRealLeafCapabilityUnavailable,
+    };
+}
+
 fn captureIdentity(value: *const captured_fri.Owned) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update("stwo-zig/recursive-common-fold-captured-fri/v2\x00");
     hash.update(&value.circuit.identity_digest);
-    hash.update(&value.pcs_circuit.identity_digest);
+    hash.update(&value.pcs_circuit.view().identity_digest);
     hashInt(&hash, u32, value.sampled_value_count);
     hashInt(&hash, u32, value.queried_values_per_query);
     hashInt(&hash, u32, value.claimed_sum_count);
@@ -947,7 +1005,7 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or CHILD_COUNT != 2 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 3 or CHILD_COUNT != 2 or
         ROW_COUNT != 17 or PRODUCTION_ACTIVATION or PROOF_BYTE_REPARSES != 0 or
         CAPTURED_FRI_OWNERS_PER_CHILD != 1 or
         !ROWS_18_THROUGH_34_AVAILABLE)

@@ -1,0 +1,32 @@
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold q193 transcript program matches the cold verifier' failed: SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_Q193_STAGE=prove.components error=ParameterMismatch
+SECURE_Q193_STAGE=engine.prove error=ParameterMismatch
+COMMON_FOLD_Q193_BOOTSTRAP_STAGE=fold.prove-cold-verify error=ParameterMismatch
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold q193 transcript program matches the cold verifier', the following test command failed:
+./.zig-cache/o/798f0ebef62efeebae75b99e009c99ca/test --cache-dir=./.zig-cache --seed=0xa82550b8 --listen=-
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_EMPTY_REUSE_AB proof_sha=23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468 capture_sha=1251c5325be690bcb807d1590a66b303ec984fd02452453288965b4eb6606cc9 preprocessed_root={ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 } prove_ns=1373407375 prove_fresh_verify_ns=558758250 cold_open_total_ns=627041833 baseline_ns=1566188958 optimized_ns=5304667 reduction_bps=9966 q193_ns=415376833 replay_ns=86884334 graph_ns=75785083 cache_hits=3 cache_misses=1 cache_lookup_ns=132979124 cache_rebuild_ns=132976250
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=69919375 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 5/8 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursive-common-fold-transcript-program-v1 transitive failure
++- Common-fold transcript program proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:87M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bda74839e0255df849331a477c60552/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xa82550b8 -Z59ac6945a7e295ba --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-program-v1 test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=ReleaseSafe --summary all

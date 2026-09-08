@@ -23,23 +23,27 @@ pub fn commit(
         active.workCaptureRecorder()
     else
         null;
-    if (try commit_dispatch.tryPrecommittedPolys(
-        B,
-        H,
-        allocator,
-        polys,
-        blowup,
-        self.coefficient_retention_policy,
-        &self.twiddle_source,
-        work_recorder,
-    )) |committed| {
-        var tree = committed;
-        errdefer tree.deinit(allocator);
-        return self.appendCommittedTree(allocator, tree, channel);
+    if (self.retained_column_allocator != null and self.coefficient_retention_policy != .never)
+        return error.UnsupportedRetainedColumnStorage;
+    if (self.retained_column_allocator == null) {
+        if (try commit_dispatch.tryPrecommittedPolys(
+            B,
+            H,
+            allocator,
+            polys,
+            blowup,
+            self.coefficient_retention_policy,
+            &self.twiddle_source,
+            work_recorder,
+        )) |committed| {
+            var tree = committed;
+            errdefer tree.deinit(allocator);
+            return self.appendCommittedTree(allocator, tree, channel);
+        }
     }
     if (work_recorder) |work| try work.expectProducer(.polynomial_commit_forward_fft);
     // work-profile-plan:polynomial-commit-forward-fft
-    const columns = try circle_transforms.extendCoefficientColumnsByGroupForBackend(
+    var columns = try circle_transforms.extendCoefficientColumnsByGroupForBackend(
         B,
         allocator,
         polys,
@@ -48,7 +52,10 @@ pub fn commit(
         work_recorder,
         .polynomial_commit_forward_fft,
     );
-    errdefer column_storage.freeOwnedColumnEvaluations(allocator, columns);
+    if (self.retained_column_allocator) |retained_allocator|
+        columns = try @import("commitment_tree.zig").relocateOwnedColumns(allocator, retained_allocator, columns);
+    var columns_owned = true;
+    errdefer if (columns_owned) @import("commitment_tree.zig").freeRetainedColumns(allocator, self.retained_column_allocator orelse allocator, columns);
     // work-profile-complete:polynomial-commit-forward-fft
 
     var stored_coefficients: ?[]prover_circle.CircleCoefficients = null;
@@ -79,6 +86,8 @@ pub fn commit(
         null,
         work_recorder,
     );
+    columns_owned = false;
+    tree.retained_column_allocator = self.retained_column_allocator;
     errdefer tree.deinit(allocator);
     try self.appendCommittedTree(allocator, tree, channel);
 }

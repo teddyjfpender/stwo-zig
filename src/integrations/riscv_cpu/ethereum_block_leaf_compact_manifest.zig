@@ -278,7 +278,13 @@ pub fn encode(allocator: std.mem.Allocator, input: Input) ![]u8 {
     defer allocator.free(storage);
     const artifacts = try allocator.alloc(Artifact, input.artifacts.len);
     defer allocator.free(artifacts);
-    for (input.artifacts, storage, artifacts) |source, *hexes, *destination| {
+    for (input.artifacts, storage, artifacts, 0..) |source, *hexes, *destination, artifact_index| {
+        for (source.artifact.path, 0..) |byte, byte_index| {
+            if (byte < 0x20 or byte > 0x7e or byte == '"' or byte == '\\') {
+                std.debug.print("COMPACT_MANIFEST_INPUT_ERROR field=artifact.path artifact_index={} byte_index={} byte=0x{x:0>2}\n", .{ artifact_index, byte_index, byte });
+                return error.NonCanonicalAscii;
+            }
+        }
         hexes.* = .{
             .artifact_sha = hex(source.artifact.sha256),
             .entry_boundary = hex(source.entry_boundary),
@@ -564,4 +570,33 @@ fn add(left: u64, right: anytype) !u64 {
 comptime {
     if (!std.mem.eql(u8, artifact_magic, "STWEMT01"))
         @compileError("compact Ethereum artifact magic drifted");
+}
+
+// Manifest sealing occurs after observe returns; retain paths independently
+// of the callback's temporary allocation, just like artifact scalar metadata.
+pub fn appendOwnedArtifact(allocator: std.mem.Allocator, artifacts: *std.ArrayList(ArtifactInput), input: ArtifactInput) !void {
+    var owned = input;
+    owned.artifact.path = try allocator.dupe(u8, input.artifact.path);
+    errdefer allocator.free(owned.artifact.path);
+    try artifacts.append(allocator, owned);
+}
+
+pub fn deinitOwnedArtifacts(allocator: std.mem.Allocator, artifacts: *std.ArrayList(ArtifactInput)) void {
+    for (artifacts.items) |artifact| allocator.free(artifact.artifact.path);
+    artifacts.deinit(allocator);
+}
+
+test "capture manifest owns paths after observer callback storage is destroyed" {
+    const allocator = std.testing.allocator;
+    var artifacts: std.ArrayList(ArtifactInput) = .empty;
+    defer deinitOwnedArtifacts(allocator, &artifacts);
+    const expected = "/retained/segment-000009.stwemt01";
+    const temporary = try allocator.dupe(u8, expected);
+    var input: ArtifactInput = std.mem.zeroes(ArtifactInput);
+    input.artifact = evidence.identity(temporary, "retained compact bytes");
+    try appendOwnedArtifact(allocator, &artifacts, input);
+    @memset(temporary, 0xff);
+    allocator.free(temporary);
+    try std.testing.expectEqualStrings(expected, artifacts.items[0].artifact.path);
+    try std.testing.expectEqual(evidence.identity(expected, "retained compact bytes").sha256, artifacts.items[0].artifact.sha256);
 }

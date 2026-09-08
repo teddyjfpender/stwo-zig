@@ -62,7 +62,6 @@ pub fn Decoded(comptime Engine: type) type {
         extension_claim: ethereum_types.ExtensionClaim,
         bridge_claim: QM31,
         proof: prover.ProofForEngine(Engine),
-        canonical_words: ?[]M31,
         statement_lease: ?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2,
 
         const Self = @This();
@@ -82,10 +81,7 @@ pub fn Decoded(comptime Engine: type) type {
         fn releaseMetadata(self: *Self, allocator: std.mem.Allocator) void {
             allocator.destroy(self.base_claim);
             self.role_aware_public.deinit();
-            if (self.statement_lease) |*lease|
-                lease.deinit()
-            else if (self.canonical_words) |words|
-                allocator.free(words);
+            if (self.statement_lease) |*lease| lease.deinit();
             self.* = undefined;
         }
     };
@@ -99,7 +95,7 @@ pub fn encodeAlloc(
 ) ![]u8 {
     try limits.validate();
     try input.statement.validate();
-    try input.extension.validateV2(input.statement);
+    try input.extension.validateV2WithCircuitProfileV1(input.statement, input.profile.circuitProfile());
     try input.extension_claim.validate(input.extension);
     try input.profile.validateAgainstStatement(
         input.statement,
@@ -286,34 +282,24 @@ fn decodeAllocWithRetained(
     if (!std.mem.eql(u8, retained_seal, &expected_seal))
         return error.IncrementalFullLeafProofArtifactContentMismatchV4;
 
-    var owned_statement: ?statement_wire.Owned = null;
-    var retained_statement: ?statement_wire.RetainedOwned = null;
-    if (retained) |snapshots| {
-        retained_statement = try statement_wire.decodeWithRetainedLease(
+    var admitted_statement = if (retained) |snapshots|
+        try statement_wire.decodeWithRetainedLease(
             allocator,
             statement_bytes,
             limits.max_artifact_bytes,
             snapshots,
             counters,
-        );
-    } else {
-        owned_statement = try statement_wire.decode(
+        )
+    else
+        try statement_wire.decodeWithColdLease(
             allocator,
             statement_bytes,
             limits.max_artifact_bytes,
+            counters,
         );
-    }
     var statement_owned = true;
-    errdefer if (statement_owned) {
-        if (retained_statement) |*value|
-            value.deinit()
-        else
-            owned_statement.?.deinit(allocator);
-    };
-    const statement_value = if (retained_statement) |*value|
-        &value.value
-    else
-        &owned_statement.?.value;
+    errdefer if (statement_owned) admitted_statement.deinit();
+    const statement_value = &admitted_statement.value;
     var role_public = try support.decodeRolePublic(
         allocator,
         public_bytes,
@@ -323,7 +309,8 @@ fn decodeAllocWithRetained(
     var role_owned = true;
     errdefer if (role_owned) role_public.deinit();
     const extension = try ethereum_wire.decodeExtension(extension_bytes);
-    try extension.validateV2(statement_value);
+    // Profile decoding validates the extension with the explicitly admitted
+    // circuit limit before claims/proof allocation; legacy profiles keep16.
     const profile = try support.decodeProfile(
         profile_bytes,
         statement_value,
@@ -371,14 +358,7 @@ fn decodeAllocWithRetained(
         .extension_claim = claims.extension,
         .bridge_claim = bridge_claim,
         .proof = proof,
-        .canonical_words = if (owned_statement) |value|
-            value.canonical_words
-        else
-            null,
-        .statement_lease = if (retained_statement) |value|
-            value.lease
-        else
-            null,
+        .statement_lease = admitted_statement.lease,
     };
     statement_owned = false;
     role_owned = false;

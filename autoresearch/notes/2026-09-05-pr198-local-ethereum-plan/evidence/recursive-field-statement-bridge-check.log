@@ -1,0 +1,15 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 88s
+test-recursive-common-fold-field-public-v2
++- run test 3/4 passed, 1 failed
+error: 'recursive_field_statement_word_v3_test.test.field statement bridge rejects noncanonical limb aliases' failed
+error: while executing test 'recursive_common_fold_suffix_input_boundary_v2.test.suffix input producer is tuple-derived and policy rejects wrong role', the following test command failed:
+./.zig-cache/o/9a6a93b6ff0b95faa8acfcd5c861473f/test --cache-dir=./.zig-cache --seed=0xe27b4f14 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 3/4 tests passed; 1 failed
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 3/4 passed, 1 failed
+   +- compile test ReleaseSafe native success 7s MaxRSS:653M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bda74839e0255df849331a477c60552/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xe27b4f14 -Z9adef1ccf37b4293 --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 -Doptimize=ReleaseSafe --summary all

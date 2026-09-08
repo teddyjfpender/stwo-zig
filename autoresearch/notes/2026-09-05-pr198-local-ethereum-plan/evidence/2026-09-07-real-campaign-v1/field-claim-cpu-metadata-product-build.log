@@ -1,0 +1,7 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 387s
+
+Build Summary: 2/2 steps succeeded
+stwo-ethereum-block-proof success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 5m MaxRSS:8G
+

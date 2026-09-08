@@ -49,12 +49,19 @@ pub fn Types(comptime Engine: type) type {
             cold: *ColdProof,
             node_artifact: artifact_mod.RecursiveNodeArtifactV2,
             registry_value: registry_mod.RecursiveCircuitRegistryV1,
-            cached_graph: GraphView,
+            // Legacy wrapper interface; mutable nested capture slices remain
+            // protected by explicit validateFresh/validateBorrowed admission.
+            cached_capture: *const common_authority.ProofCapture,
 
             pub const ROLE = registry_mod.CircuitRoleV4
                 .ethereum_incremental_leaf_wrapper_v4;
             pub const Ingress = Core.Ingress;
             pub const Graph = Core.Graph;
+            pub const BorrowedViews = struct {
+                wrapper: common_authority.FreshWrapperViewV2,
+                ingress: Ingress,
+                graph: Graph,
+            };
 
             pub fn initOwned(
                 cold_value: ColdProof,
@@ -65,10 +72,10 @@ pub fn Types(comptime Engine: type) type {
                 var owned_live = true;
                 errdefer if (owned_live) owned.deinit();
                 try registry.validate();
-                try owned.validateBorrowed();
+                const cold_views = try owned.borrowedViews();
                 if (std.mem.allEqual(u8, &campaign_namespace_sha256, 0))
                     return error.EthereumIncrementalUniversalEvidenceMismatchV4;
-                const allocator = owned.allocator;
+                const allocator = owned.backingAllocator();
                 const cold = try allocator.create(ColdProof);
                 cold.* = owned;
                 owned = undefined;
@@ -82,15 +89,14 @@ pub fn Types(comptime Engine: type) type {
                     &registry,
                     campaign_namespace_sha256,
                 );
-                const cached_graph = try cold.foldGraphView();
                 var result = EvidenceV4{
                     .allocator = allocator,
                     .cold = cold,
                     .node_artifact = node_artifact,
                     .registry_value = registry,
-                    .cached_graph = cached_graph,
+                    .cached_capture = cold_views.ingress.capture,
                 };
-                try result.validateBorrowed();
+                _ = try result.projectBorrowedViews(cold_views);
                 return result;
             }
 
@@ -101,24 +107,48 @@ pub fn Types(comptime Engine: type) type {
             }
 
             pub fn validateBorrowed(self: *const EvidenceV4) !void {
+                _ = try self.borrowedViews();
+            }
+
+            /// Every acquisition rechecks the current cold proof and external
+            /// sources. Only private synchronous callers can reuse that local
+            /// result to assemble the wrapper projection.
+            pub fn borrowedViews(self: *const EvidenceV4) !BorrowedViews {
+                const cold_views = try self.cold.borrowedViews();
+                return self.projectBorrowedViews(cold_views);
+            }
+
+            fn projectBorrowedViews(
+                self: *const EvidenceV4,
+                cold_views: ColdProof.BorrowedViews,
+            ) !BorrowedViews {
                 try self.registry_value.validate();
-                try self.cold.validateBorrowed();
+                try self.cold.validateCaptureAlias(self.cached_capture);
                 try self.node_artifact.validate();
                 try self.registry_value.admitV2(
                     &self.node_artifact,
-                    &self.cold.geometry_value,
+                    self.cold.geometryForPaddingTarget(),
                 );
                 const expected = try buildNodeArtifact(
                     self.cold,
                     &self.registry_value,
                     self.node_artifact.campaign_namespace_sha256,
                 );
-                const live_graph = try self.cold.foldGraphView();
-                if (!std.meta.eql(expected, self.node_artifact) or
-                    !graphAliases(self.cached_graph, live_graph))
-                {
+                if (!std.meta.eql(expected, self.node_artifact)) {
                     return error.EthereumIncrementalUniversalEvidenceMismatchV4;
                 }
+                var ingress = cold_views.ingress;
+                if (!std.meta.eql(ingress.node_public.*, self.node_artifact.node_public))
+                    return error.EthereumIncrementalUniversalEvidenceMismatchV4;
+                ingress.node_public = &self.node_artifact.node_public;
+                try ingress.validate();
+                const wrapper = common_authority.FreshWrapperViewV2{
+                    .artifact = &self.node_artifact,
+                    .geometry = ingress.geometry,
+                    .capture = self.cached_capture,
+                };
+                try wrapper.validateAgainst(&self.registry_value);
+                return .{ .wrapper = wrapper, .ingress = ingress, .graph = cold_views.graph };
             }
 
             pub fn validateFresh(
@@ -137,7 +167,7 @@ pub fn Types(comptime Engine: type) type {
             pub fn geometryForPaddingTarget(
                 self: *const EvidenceV4,
             ) *const registry_mod.AuthenticatedGeometryV1 {
-                return &self.cold.geometry_value;
+                return self.cold.geometryForPaddingTarget();
             }
 
             pub fn artifact(
@@ -149,43 +179,27 @@ pub fn Types(comptime Engine: type) type {
             pub fn geometry(
                 self: *const EvidenceV4,
             ) *const registry_mod.AuthenticatedGeometryV1 {
-                return &self.cold.geometry_value;
+                return self.cold.geometryForPaddingTarget();
             }
 
             pub fn proofCapture(
                 self: *const EvidenceV4,
             ) *const common_authority.ProofCapture {
-                return &self.cold.cold.fresh.capture;
+                return self.cached_capture;
             }
 
             pub fn wrapperView(
                 self: *const EvidenceV4,
             ) !common_authority.FreshWrapperViewV2 {
-                try self.validateBorrowed();
-                const result = common_authority.FreshWrapperViewV2{
-                    .artifact = &self.node_artifact,
-                    .geometry = &self.cold.geometry_value,
-                    .capture = &self.cold.cold.fresh.capture,
-                };
-                try result.validateAgainst(&self.registry_value);
-                return result;
+                return (try self.borrowedViews()).wrapper;
             }
 
             pub fn ingressView(self: *const EvidenceV4) !IngressView {
-                try self.validateBorrowed();
-                var result = try self.cold.ingressView();
-                if (!std.meta.eql(
-                    result.node_public.*,
-                    self.node_artifact.node_public,
-                )) return error.EthereumIncrementalUniversalEvidenceMismatchV4;
-                result.node_public = &self.node_artifact.node_public;
-                try result.validate();
-                return result;
+                return (try self.borrowedViews()).ingress;
             }
 
             pub fn foldGraphView(self: *const EvidenceV4) !GraphView {
-                try self.validateBorrowed();
-                return self.cached_graph;
+                return (try self.borrowedViews()).graph;
             }
         };
 
@@ -201,23 +215,23 @@ fn buildNodeArtifact(
     registry: *const registry_mod.RecursiveCircuitRegistryV1,
     campaign_namespace_sha256: [32]u8,
 ) !artifact_mod.RecursiveNodeArtifactV2 {
-    try cold.validateBorrowed();
-    try registry.validate();
-    const geometry = &cold.geometry_value;
+    // Both callers just validated cold and registry at their acceptance
+    // boundary. This private projection only reads admitted metadata.
+    const geometry = cold.geometryForPaddingTarget();
     const entry = try registry.entry(ROLE);
     const expected_entry = try registry_mod.RegistryEntryV1.fromGeometry(
         geometry,
     );
     if (!std.meta.eql(entry.*, expected_entry))
         return error.CircuitNotRegistered;
-    const source = stage101ArtifactRef(cold.materialized);
+    const source = stage101ArtifactRef(cold.materializedOwner());
     try source.validate();
     const result = try artifact_mod.RecursiveNodeArtifactV2.seal(.{
         .stage_kind = .leaf_wrapper,
         .node_kind = .real,
         .child_count = 1,
-        .coordinate = cold.materialized.base.input.coordinate,
-        .node_public = cold.node_public,
+        .coordinate = cold.materializedOwner().base.input.coordinate,
+        .node_public = cold.nodePublic().*,
         .campaign_namespace_sha256 = campaign_namespace_sha256,
         .circuit_identity_sha256 = entry.circuit_identity_sha256,
         .program_identity_sha256 = entry.program_identity_sha256,
@@ -247,23 +261,6 @@ fn stage101ArtifactRef(materialized: anytype) artifact_mod.ArtifactRefV1 {
         .byte_count = source.artifact_byte_count,
         .sha256 = source.artifact_sha256,
     };
-}
-
-fn graphAliases(left: anytype, right: @TypeOf(left)) bool {
-    return left.capture_identity_sha256 == right.capture_identity_sha256 and
-        left.layout_identity_sha256 == right.layout_identity_sha256 and
-        left.query_words == right.query_words and
-        left.query_log_size == right.query_log_size and
-        left.final_transcript_digest == right.final_transcript_digest and
-        left.final_transcript_draw_count == right.final_transcript_draw_count and
-        left.query_words_identity_sha256 ==
-            right.query_words_identity_sha256 and
-        left.lane.graph.nodes.ptr == right.lane.graph.nodes.ptr and
-        left.lane.graph.nodes.len == right.lane.graph.nodes.len and
-        left.lane.bindings.ptr == right.lane.bindings.ptr and
-        left.lane.bindings.len == right.lane.bindings.len and
-        left.evaluation.values.ptr == right.evaluation.values.ptr and
-        left.evaluation.values.len == right.evaluation.values.len;
 }
 
 comptime {

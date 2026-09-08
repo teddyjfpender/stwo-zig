@@ -23,7 +23,7 @@ const roster = air.universal_roster;
 const range_bridge = air.range_check_8_8_bridge;
 
 pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const SCHEMA_VERSION: u16 = 2;
 pub const PRODUCTION_ACTIVATION = false;
 pub const COMPONENT_COUNT: usize = roster.COMPONENT_COUNT;
 pub const LOGICAL_LOG_SIZE: u32 = 4;
@@ -35,6 +35,10 @@ pub const PREPROCESSED_COLUMN_COUNT: u32 = 570;
 pub const MAIN_COLUMN_COUNT: u32 = 1044;
 pub const INTERACTION_COLUMN_COUNT: u32 = 560;
 pub const CONSTRAINT_COUNT: u32 = 1312;
+
+/// Commitment to this frozen manifest's provider-only preprocessing. The
+/// native proof gate recomputes it; recursive transcripts pin the same key.
+pub const PREPROCESSED_ROOT: channel.Digest = .{ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 };
 
 pub const TREE_COUNT = base.TREE_COUNT;
 pub const PREPROCESSED_TREE_INDEX = base.PREPROCESSED_TREE_INDEX;
@@ -173,7 +177,7 @@ fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
 }
 
 comptime {
-    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 1 or
+    if (FORMAT_VERSION != 2 or SCHEMA_VERSION != 2 or
         COMPONENT_COUNT != 36 or LOGICAL_LOG_SIZE != 4 or
         POSEIDON_LOG_SIZE != 7 or RANGE_LOG_SIZE != 16 or
         PROVIDER_ACTIVE_ROW_COUNT != 113 or

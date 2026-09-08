@@ -1,0 +1,10 @@
+{
+  "status": "failed",
+  "pid": 48069,
+  "started_at": "2026-09-08T06:27:31.200621+00:00",
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "child_pid": 48071,
+  "exit_code": 1,
+  "wall_seconds": 2459.027904875111,
+  "finished_at": "2026-09-08T07:08:30.142281+00:00"
+}

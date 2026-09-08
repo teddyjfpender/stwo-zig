@@ -1,0 +1,9 @@
+Public Ethereum program image: elf_sha256=f3657d077b88da313369ff002aafbe8b6bf4912e8fd1ef1d1b76a6dc0f1d40a7, address=0x400
+Verified diagnostic Ethereum path: kind=program, depth=30, index=256, leaf={ 151, 1, 0, 2, 0, 0, 0, 0, 0 }, root={ 493559964, 125596291, 1624313321, 527663798, 74640504, 1835381338, 730266804, 277637075, 1201265619 }
+Artifact request: 2046820791ns (includes image preparation and file IO; runtime initialization excluded)
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1 success 2s MaxRSS:53M
+   +- compile exe ethereum-node-proof-v1 ReleaseSafe native cached 49ms MaxRSS:35M
+
