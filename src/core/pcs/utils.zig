@@ -98,7 +98,9 @@ fn cloneValue(comptime T: type, allocator: std.mem.Allocator, value: T) !T {
     if (ti == .pointer and ti.pointer.size == .slice) {
         const Child = ti.pointer.child;
         const out = try allocator.alloc(Child, value.len);
+        errdefer allocator.free(out);
         var i: usize = 0;
+        errdefer for (out[0..i]) |item| freeValue(Child, allocator, item);
         while (i < value.len) : (i += 1) {
             out[i] = try cloneValue(Child, allocator, value[i]);
         }
@@ -134,15 +136,20 @@ pub fn concatCols(comptime T: type, allocator: std.mem.Allocator, trees: []const
     for (trees) |tree| {
         for (tree.items, 0..) |cols, tree_index| {
             for (cols) |col| {
-                try builders[tree_index].append(allocator, try cloneValue(T, allocator, col));
+                const cloned = try cloneValue(T, allocator, col);
+                errdefer freeValue(T, allocator, cloned);
+                try builders[tree_index].append(allocator, cloned);
             }
         }
     }
 
     const out = try allocator.alloc([]T, n_trees);
     errdefer allocator.free(out);
+    var moved: usize = 0;
+    errdefer for (out[0..moved]) |cols| deepFree(T, allocator, cols);
     for (builders, 0..) |*b, i| {
         out[i] = try b.toOwnedSlice(allocator);
+        moved += 1;
     }
     return TreeVec([]T).initOwned(out);
 }
@@ -356,6 +363,33 @@ test "pcs utils: concat cols" {
     try std.testing.expectEqualSlices(u32, &[_]u32{ 1, 2, 4 }, out.items[0]);
     try std.testing.expectEqualSlices(u32, &[_]u32{ 3, 5, 6 }, out.items[1]);
     try std.testing.expectEqualSlices(u32, &[_]u32{7}, out.items[2]);
+
+    const AllocationChecks = struct {
+        fn scalar(allocator: std.mem.Allocator, inputs: []const TreeVec([]u32)) !void {
+            var result = try concatCols(u32, allocator, inputs);
+            defer result.deinitDeep(allocator);
+            try std.testing.expectEqual(@as(usize, 3), result.items.len);
+            try std.testing.expectEqualSlices(u32, &.{ 1, 2, 4 }, result.items[0]);
+            try std.testing.expectEqualSlices(u32, &.{ 3, 5, 6 }, result.items[1]);
+            try std.testing.expectEqualSlices(u32, &.{7}, result.items[2]);
+        }
+
+        fn nested(allocator: std.mem.Allocator) !void {
+            // Two nested levels exercise rollback inside cloning, while two
+            // trees exercise rollback after an earlier output was transferred.
+            const Column = []const []const u32;
+            var first = [_]Column{&.{ &.{ 1, 2 }, &.{3} }};
+            var second = [_]Column{&.{&.{ 4, 5 }}};
+            var trees = [_][]Column{ &first, &second };
+            const input = TreeVec([]Column).initOwned(&trees);
+            var result = try concatCols(Column, allocator, &.{input});
+            defer result.deinitDeep(allocator);
+            try std.testing.expectEqualDeep(input.items, result.items);
+            try std.testing.expect(result.items[0][0][0].ptr != first[0][0].ptr);
+        }
+    };
+    try std.testing.checkAllAllocationFailures(alloc, AllocationChecks.scalar, .{&[_]TreeVec([]u32){ t0, t1 }});
+    try std.testing.checkAllAllocationFailures(alloc, AllocationChecks.nested, .{});
 }
 
 test "pcs utils: prepare preprocessed query positions" {

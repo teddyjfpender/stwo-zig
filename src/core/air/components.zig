@@ -203,6 +203,7 @@ pub const Components = struct {
     ) !MaskPoints {
         var all_masks = std.ArrayList(MaskPoints).empty;
         defer all_masks.deinit(allocator);
+        defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
         for (self.components, 0..) |component, ordinal| {
             var component_mask = try component.maskPoints(
                 allocator,
@@ -215,8 +216,6 @@ pub const Components = struct {
             };
             if (comptime observe) try observer.afterComponent(ordinal);
         }
-        defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
-
         var mask_points = try pcs_utils.concatCols([]Point, allocator, all_masks.items);
         errdefer mask_points.deinitDeep(allocator);
 
@@ -245,9 +244,10 @@ pub const Components = struct {
                 const pre = try component.preprocessedColumnIndices(allocator);
                 defer allocator.free(pre);
                 for (pre) |idx| {
+                    const replacement = try allocator.alloc(Point, 1);
+                    replacement[0] = point;
                     allocator.free(new_preprocessed[idx]);
-                    new_preprocessed[idx] = try allocator.alloc(Point, 1);
-                    new_preprocessed[idx][0] = point;
+                    new_preprocessed[idx] = replacement;
                 }
             }
         }
@@ -327,12 +327,16 @@ pub const Components = struct {
         defer allocator.free(visited);
         @memset(visited, false);
 
-        var all_sizes = std.ArrayList(TraceLogDegreeBounds).empty;
+        var all_sizes = try std.ArrayList(TraceLogDegreeBounds).initCapacity(allocator, self.components.len);
         defer all_sizes.deinit(allocator);
-        for (self.components) |component| {
-            try all_sizes.append(allocator, try component.traceLogDegreeBounds(allocator));
-        }
         defer for (all_sizes.items) |*tv| tv.deinitDeep(allocator);
+        for (self.components) |component| {
+            // Capacity is already owned, so a successfully constructed nested
+            // tree moves directly into the cleanup prefix without another
+            // fallible allocation. Earlier trees remain owned if a later
+            // component cannot produce its geometry.
+            all_sizes.appendAssumeCapacity(try component.traceLogDegreeBounds(allocator));
+        }
 
         for (self.components, all_sizes.items) |component, trace_sizes| {
             if (verifier_types.PREPROCESSED_TRACE_IDX >= trace_sizes.items.len) return Error.MissingPreprocessedTree;
@@ -438,18 +442,46 @@ test "air components: orchestration" {
         fn traceLogDegreeBounds(ctx: *const anyopaque, allocator: std.mem.Allocator) !TraceLogDegreeBounds {
             const self = cast(ctx);
             const pp = try allocator.dupe(u32, self.preprocessed_sizes);
+            errdefer allocator.free(pp);
             const main = try allocator.dupe(u32, &[_]u32{self.max_bound});
+            errdefer allocator.free(main);
             const outer = try allocator.dupe([]u32, &[_][]u32{ pp, main });
             return TraceLogDegreeBounds.initOwned(outer);
         }
 
+        fn checkColumnLogSizeAllocations(allocator: std.mem.Allocator, components: Components) !void {
+            var sizes = try components.columnLogSizes(allocator);
+            defer sizes.deinitDeep(allocator);
+            try std.testing.expectEqual(@as(usize, 2), sizes.items.len);
+            try std.testing.expectEqualSlices(u32, &.{5}, sizes.items[0]);
+            try std.testing.expectEqualSlices(u32, &.{ 7, 9 }, sizes.items[1]);
+        }
+
         fn maskPoints(_: *const anyopaque, allocator: std.mem.Allocator, point: Point, _: u32) !MaskPoints {
             const pp_cols = try allocator.alloc([]Point, 0);
+            errdefer allocator.free(pp_cols);
             const main_col_points = try allocator.alloc(Point, 1);
+            errdefer allocator.free(main_col_points);
             main_col_points[0] = point;
             const main_cols = try allocator.dupe([]Point, &[_][]Point{main_col_points});
+            errdefer allocator.free(main_cols);
             const outer = try allocator.dupe([][]Point, &[_][][]Point{ pp_cols, main_cols });
             return MaskPoints.initOwned(outer);
+        }
+
+        fn checkMaskPointAllocations(allocator: std.mem.Allocator, components: Components) !void {
+            const point = circle.SECURE_FIELD_CIRCLE_GEN;
+            for ([_]bool{ false, true }) |include_all| {
+                var mask = try components.maskPoints(allocator, point, 10, include_all);
+                defer mask.deinitDeep(allocator);
+                try std.testing.expectEqual(@as(usize, 2), mask.items.len);
+                try std.testing.expectEqual(@as(usize, 1), mask.items[0].len);
+                try std.testing.expectEqual(@as(usize, 2), mask.items[1].len);
+                for (mask.items) |tree| for (tree) |column| {
+                    try std.testing.expectEqual(@as(usize, 1), column.len);
+                    try std.testing.expect(column[0].eql(point));
+                };
+            }
         }
 
         fn preprocessedColumnIndices(ctx: *const anyopaque, allocator: std.mem.Allocator) ![]usize {
@@ -523,6 +555,14 @@ test "air components: orchestration" {
     try std.testing.expectEqual(@as(usize, 2), column_sizes.items.len);
     try std.testing.expectEqual(@as(usize, 1), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX].len);
     try std.testing.expectEqual(@as(u32, 5), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX][0]);
+
+    // The second component has three nested allocations. Failing each one
+    // must also release the complete first component and aggregate buffers.
+    // Success still deduplicates shared preprocessing and retains main order.
+    try std.testing.checkAllAllocationFailures(alloc, Mock.checkColumnLogSizeAllocations, .{components});
+    // Both components share preprocessing index zero. The false mode must
+    // retain its earlier allocation if replacement for the second fails.
+    try std.testing.checkAllAllocationFailures(alloc, Mock.checkMaskPointAllocations, .{components});
 
     var mask = try components.maskPoints(alloc, point, 10, true);
     defer mask.deinitDeep(alloc);
