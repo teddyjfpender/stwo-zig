@@ -1,0 +1,8 @@
+1/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger matches canonical records and range provider exactly...OK
+2/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger preserves cancellation counts without retained records...OK
+3/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger rejects malformed range requests before cancellation...OK
+4/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger checks initial histogram and source phase exactly...OK
+5/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger cleans up every allocation failure...OK
+6/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger cleans up provider failures after source sealing...OK
+7/7 ethereum_compact_tuple_ledger_v1.test.Ethereum compact tuple ledger keeps map allocation failure sticky through cancellation...OK
+All 7 tests passed.

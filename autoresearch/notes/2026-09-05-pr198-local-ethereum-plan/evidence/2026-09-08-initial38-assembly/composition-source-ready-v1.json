@@ -1,0 +1,62 @@
+{
+  "status": "source_ready_ast_checked_semantic_gate_pending",
+  "scope": "Selected Initial38 detached composition admission and recording only; no fold or heterogeneous parent admission",
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_canonical_empty_program_v3.zig",
+      "sha256": "b78508e9aa6933ee59f01037d1769be389171cce12b153dabb872df091ecd08a"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig",
+      "sha256": "1f5fa0692301c0ada569e2980c9ef6c9899c04ba1f83cd31ba3ebf70d2ff5858"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig",
+      "sha256": "d03ec7938d7b54342839b9b63009a37ac47dd1de90dc352d99553041604655d3"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_detached_composition_v1.zig",
+      "sha256": "0d29b7176cff0a3c6facf164fcabdfd8ae2eea9a6a0025bf083f70a42ac11fb9"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig",
+      "sha256": "bbb8ec0f49640ab0ea02561a2b526e0cc96a52bed7642033d24c87777d22d64f"
+    }
+  ],
+  "source_checks": [
+    "zig fmt all five files",
+    "zig ast-check each of five files: exit 0",
+    "git diff --check scoped to five files: exit 0"
+  ],
+  "unchanged_contracts": [
+    "Existing enum values; new Initial38 family6 and policy8 appended",
+    "41 claim slots; Initial38 physical0..37, fixed zero38, ordered provider partial39/40",
+    "Ordinary module and recorder aliases select the original 36-physical policy",
+    "Public wire-boundary claim remains item41",
+    "FOLD_ADMISSION_AVAILABLE remains false"
+  ],
+  "focused_tests": [
+    "Initial38 composition claims retain both initial lanes and reject malformed admission before writes",
+    "Initial38 composition graph constrains only slot 38 padding and ordered provider closure",
+    "Initial38 composition descriptor authenticates exact capacity and rejects stale shape or policy"
+  ],
+  "next_command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/recursion_air_composition_v3_test_root.zig --test-filter 'V3 shared recursion composition declarations compile' --test-filter 'Initial38 composition' -O ReleaseSafe",
+  "retained_proof_gate": {
+    "test": "Ethereum initial detached transcript replays independently pinned field9 proof after input destruction",
+    "required_env": [
+      "STWO_ETHEREUM_INITIAL_ROOT_REPLAY_DIR",
+      "STWO_ETHEREUM_INITIAL_ROOT_KEY_SHA256"
+    ],
+    "composition_checks": [
+      "Native OODS parity after independent keyed verification and input destruction",
+      "Public word, wire boundary, ordinary claim and composition sample mutations",
+      "Initial physical claims36/37, padding38 and ordered provider partials39/40 mutations",
+      "Exact item41 transcript payload to composition input relation closure"
+    ]
+  },
+  "dependencies": [
+    "Initial transcript Types(Manifest) and authenticated physical-claim count fixed-zero routing owned by initial_rows_gate",
+    "Actual Initial38 root artifact with independent key pin still required"
+  ],
+  "execution_policy": "No semantic or heavy job queued while ordinary real wrapper2/3 and first saved parent remain the priority"
+}

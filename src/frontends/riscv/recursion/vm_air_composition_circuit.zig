@@ -24,3 +24,11 @@ pub const Evaluation = shard_2.Evaluation;
 /// retained, and every owned layer revalidates its independent seal.
 pub const Prepared = shard_1.Prepared;
 pub const build = shard_1.build;
+/// Recording primitives shared by append-only verifier-program compilers.
+/// They preserve the canonical graph node and constant encoding used by V1.
+pub const Builder = shard_1.Builder;
+pub const Scalar = shard_1.Scalar;
+pub const GraphRelation = shard_1.GraphRelation;
+pub const GraphRelations = shard_1.GraphRelations;
+pub const installBuilder = shard_1.installBuilder;
+pub const uninstallBuilder = shard_1.uninstallBuilder;

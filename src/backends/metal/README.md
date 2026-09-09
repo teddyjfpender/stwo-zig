@@ -65,6 +65,11 @@ Prefer the typed engine or an integration package over reaching into runtime
 submodules. Low-level runtime APIs require explicit lifecycle, ownership, and
 telemetry handling.
 
+
+Additional exported surfaces:
+
+- `hash_domain`
+
 ## Dependencies
 
 - `stwo_core`

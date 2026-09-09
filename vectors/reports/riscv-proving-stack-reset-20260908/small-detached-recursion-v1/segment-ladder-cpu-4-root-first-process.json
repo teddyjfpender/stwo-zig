@@ -1,0 +1,21 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-prove",
+    "--profile",
+    "tiny-parent-root-v2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-4-root-first",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-4-pair-0-first",
+    "029bc4b1f934a8055a6ac90e76edffbbdd0c4a941afddbd2427ba6b6bfed310a",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-admission/pair-0-expected-span.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-4-pair-1-first",
+    "4957dcd80a73201bc86aedc7d7b9572ed76c0d3372576e227115d634489507a3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-admission/pair-1-expected-span.json"
+  ],
+  "producer_sha256": "dfcf808ec2d484957801a6918a5eef9fdec5d6eb1a5c1456cb7daf0dc7c60110",
+  "verifier": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+  "verifier_sha256": "05afe6591ff664064d0d73666486ac9e2cf884d082b6ebf42b9b6b04b5d7e3fd",
+  "expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-4-admission/root-expected-span.json",
+  "expected_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+  "exit_code": 0,
+  "process_ns": 4175656875
+}

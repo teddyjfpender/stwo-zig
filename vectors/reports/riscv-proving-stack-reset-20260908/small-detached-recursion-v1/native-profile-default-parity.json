@@ -1,0 +1,86 @@
+{
+  "fresh_cases": 32,
+  "artifact_byte_parity": [
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-0/key.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/key.json",
+      "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-0/claims.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/claims.json",
+      "sha256": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-0/proof.bin",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/proof.bin",
+      "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-0/expected-wire.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/expected-wire.json",
+      "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-1/key.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/key.json",
+      "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-1/claims.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/claims.json",
+      "sha256": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-1/proof.bin",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/proof.bin",
+      "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-cpu-parity/child-1/expected-wire.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/expected-wire.json",
+      "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-0/key.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/key.json",
+      "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-0/claims.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/claims.json",
+      "sha256": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-0/proof.bin",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/proof.bin",
+      "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-0/expected-wire.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-0/expected-wire.json",
+      "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-1/key.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/key.json",
+      "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-1/claims.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/claims.json",
+      "sha256": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-1/proof.bin",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/proof.bin",
+      "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a"
+    },
+    {
+      "candidate": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/native-profile-default-metal-parity/child-1/expected-wire.json",
+      "baseline": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first/child-1/expected-wire.json",
+      "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+    }
+  ],
+  "csp_promotion": false
+}

@@ -14,12 +14,12 @@ test "AIR static profile registry: all native family definitions have exact auth
             .native_definition,
     );
     try std.testing.expectEqualDeep(registry.Totals{
-        .physical_main_columns = 644,
+        .physical_main_columns = 646,
         .logical_input_nodes = 677,
         .constraint_roots = 545,
-        .effects = 242,
-        .lookup_events = 242,
-        .lookup_batches = 155,
+        .effects = 243,
+        .lookup_events = 243,
+        .lookup_batches = 156,
         .interaction_columns = 620,
         .expression_dag_nodes = 3079,
         .expression_dag_edges = 4370,

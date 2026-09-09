@@ -1,0 +1,15 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test 32/33 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 default claim shape builds its complete semantics graph' failed
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_cohort_v4_test.test.role0 native core publishes into the nominal universal manifest', the following test command failed:
+./.zig-cache/o/b14a16a313987ec50e120961a9081d3c/test --cache-dir=./.zig-cache --seed=0x3b9c0f6 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 32/33 tests passed; 1 failed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 transitive failure
++- recursive common Ethereum incremental leaf V4 structural guard transitive failure
+   +- run test 32/33 passed, 1 failed
+      +- compile test ReleaseSafe native success 30s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/cae73acacae6569eb3cb11ba499d1795/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x3b9c0f6 -Z27c34bd88bee879f --maxrss 25769803776 -j1 test-recursive-common-ethereum-incremental-leaf-field-public-v4 -Doptimize=ReleaseSafe --summary all

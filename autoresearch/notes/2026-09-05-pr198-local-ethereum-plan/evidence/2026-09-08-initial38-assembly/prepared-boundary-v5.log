@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 132s
+
+Build Summary: 4/4 steps succeeded; 8/8 tests passed
+test-ethereum-prepared-wrapper-boundary success
++- Ethereum prepared wrapper boundary guard success
+   +- run test 8 passed 266ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:798M
+

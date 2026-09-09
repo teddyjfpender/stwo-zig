@@ -1,0 +1,41 @@
+{
+  "recorded_at": "2026-09-08T07:12:19.250484+00:00",
+  "source_manifest_sha256": "dd88e4828e9ad646b29829bf461fcf2823e197751f364360d3560c9f4f3d7409",
+  "exit_code": 0,
+  "steps_passed": 18,
+  "tests_passed": 25,
+  "log": "consolidated-boundary-gates-v2.log",
+  "log_sha256": "9db8051e6c57e941922c67dd503478e1725ff54158e6d1c05f2dd7f92ca6fd34",
+  "gates": {
+    "validation_ownership": {
+      "passed": 5,
+      "run_ms": 265,
+      "compile_s": 16
+    },
+    "small_composition_proof": {
+      "passed": 3,
+      "run_ms": 741,
+      "compile_s": 19
+    },
+    "prepared_wrapper_boundary": {
+      "passed": 8,
+      "run_ms": 265,
+      "compile_s": 6
+    },
+    "symbolic_public_boundary": {
+      "passed": 9,
+      "run_ms": 274,
+      "compile_s": 9
+    },
+    "complete_proof_compile": {
+      "passed": true,
+      "reported_compile": "2m",
+      "reported_maxrss": "5G"
+    }
+  },
+  "limitations": [
+    "Real geometry replay not passed",
+    "Replay codec void-field bug found separately; correction pending",
+    "No wrapper STARK or block acceptance claimed"
+  ]
+}

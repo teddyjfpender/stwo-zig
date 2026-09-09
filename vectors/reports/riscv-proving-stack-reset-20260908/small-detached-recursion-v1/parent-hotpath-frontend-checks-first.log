@@ -1,0 +1,45 @@
+test-recursion-structural-hashes
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 2 errors
+recursion/air/relation_interaction_tuple_ledger.zig:281:9: error: local variable shadows declaration of 'digest'
+    var digest: [32]u8 = undefined;
+        ^~~~~~
+recursion/air/relation_interaction_tuple_ledger.zig:10:5: note: declared here
+pub const digest = @import("../../air/lang/digest.zig");
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursion/air/fri_merkle_node_witness.zig:350:33: error: expected type '[42]fields.m31.M31', found '[43]fields.m31.M31'
+    return main ++ preprocessed ++ kind.selectors();
+           ~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~
+recursion/air/fri_merkle_node_witness.zig:350:33: note: destination has length 42
+recursion/air/fri_merkle_node_witness.zig:350:33: note: source has length 43
+referenced by:
+    test.R-012 FRI Merkle node writers are allocation-free padded and atomic: recursion/air/fri_merkle_node_test.zig:227:48
+    test_0: recursion_air_core_test_root.zig:20:17
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion_air_core_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "R-012 canonical tuple hash" --test-filter "structural SHA256" --test-filter "R-012 FRI Merkle node writers" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-recursion-direct-execution
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursion/air/relation_interaction_tuple_ledger.zig:281:9: error: local variable shadows declaration of 'digest'
+    var digest: [32]u8 = undefined;
+        ^~~~~~
+recursion/air/relation_interaction_tuple_ledger.zig:10:5: note: declared here
+pub const digest = @import("../../air/lang/digest.zig");
+~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion_air_core_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "R-012 direct" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/8 steps succeeded; 2 failed
+test-recursion-direct-execution transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+test-recursion-structural-hashes transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 2 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5af88443c8f9847d7caef944cf333f9e/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x2fd7dd8c -Z398614169da33944 --maxrss 25769803776 -j1 test-recursion-direct-execution test-recursion-structural-hashes -Doptimize=ReleaseSafe --summary all

@@ -491,18 +491,35 @@ pub fn disjointM31Ranges(lhs: [*]const M31, rhs: [*]const M31, width: usize) boo
     return lhs_end <= rhs_start or rhs_end <= lhs_start;
 }
 
+/// Appends one already-computed `2^tail_bits - 1` exponent block.
+///
+/// If `prefix = a^(2^m - 1)` and `tail = a^(2^tail_bits - 1)`, the result is
+/// `a^(2^(m + tail_bits) - 1)`. Keeping the block lengths comptime-known makes
+/// the squaring schedule branch-free.
+inline fn appendMersenneExponentBlock(
+    prefix: M31,
+    tail: M31,
+    comptime tail_bits: usize,
+) M31 {
+    var shifted = prefix;
+    inline for (0..tail_bits) |_| shifted = shifted.square();
+    return shifted.mul(tail);
+}
+
 /// Fixed-exponent inversion for `p = 2^31 - 1`, computing `a^(p-2)`.
-/// Exponent bits: `111...1101` (31 bits).
+///
+/// A bit-at-a-time chain needs 30 squarings and 29 general multiplies. Building
+/// reusable `2^k - 1` blocks for k=2/4/8/16/24/28/29 keeps the 30 required
+/// squarings but reduces the general multiplies to eight.
 fn powPMinus2(a: M31) M31 {
-    var acc = a;
-    inline for (0..30) |step| {
-        acc = acc.square();
-        const bit = 29 - step;
-        if (bit >= 2 or bit == 0) {
-            acc = acc.mul(a);
-        }
-    }
-    return acc;
+    const x2 = appendMersenneExponentBlock(a, a, 1);
+    const x4 = appendMersenneExponentBlock(x2, x2, 2);
+    const x8 = appendMersenneExponentBlock(x4, x4, 4);
+    const x16 = appendMersenneExponentBlock(x8, x8, 8);
+    const x24 = appendMersenneExponentBlock(x16, x8, 8);
+    const x28 = appendMersenneExponentBlock(x24, x4, 4);
+    const x29 = appendMersenneExponentBlock(x28, a, 1);
+    return x29.square().square().mul(a);
 }
 
 test "m31: bounded product reduction matches generic reduction" {

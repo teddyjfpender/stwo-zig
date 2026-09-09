@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded
+metal-core-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 4s MaxRSS:423M
+test-metal-core-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 9s MaxRSS:869M
+

@@ -1,0 +1,42 @@
+{
+  "binary_sha256": "95fdcef2a1b6b6241ae75bb906dfca990b3a262855ee79a90c04d232af8ffbc4",
+  "key_sha256": "d851a6465f6edb02cbeb8a3bc8173b40b86ad6642e07b791478e8b08975a9b37",
+  "independent_key_admission": false,
+  "nested_parent_verified": false,
+  "fresh_process_verified": true,
+  "original_store_read_denied": true,
+  "process_wall_seconds": 0.7720175420399755,
+  "receipt": {
+    "verified": true,
+    "common_fold_schema": 15,
+    "proof_bytes": 2886425,
+    "verify_ns": 127465959,
+    "request_ns": 130866375,
+    "output_digest": [
+      191977022,
+      1332532490,
+      1515503021,
+      958278996,
+      1002485327,
+      1557774877,
+      661358290,
+      425269435
+    ],
+    "transcript_digest": [
+      1683090875,
+      80441706,
+      758757693,
+      648652550,
+      201710776,
+      719341375,
+      1254491271,
+      1389032208
+    ],
+    "captured_shape": true
+  },
+  "plain_transcript_matches": true,
+  "altered_proof_with_updated_transport_hash_rejected": true,
+  "no_shape_on_verification_failure": true,
+  "invalid_proof_error": "error: ProofOfWork",
+  "maximum_resident_set_size_bytes": 20332544
+}

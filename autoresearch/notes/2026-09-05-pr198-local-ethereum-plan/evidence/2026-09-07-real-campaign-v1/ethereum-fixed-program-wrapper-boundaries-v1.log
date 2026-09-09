@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 15/15 tests passed
+test-ethereum-symbolic-public-boundary success
++- Ethereum symbolic public boundary guard success
+   +- run test 9 passed 275ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 9s MaxRSS:789M
+test-ethereum-prepared-wrapper-boundary success
++- Ethereum prepared wrapper boundary guard success
+   +- run test 6 passed 266ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:614M
+

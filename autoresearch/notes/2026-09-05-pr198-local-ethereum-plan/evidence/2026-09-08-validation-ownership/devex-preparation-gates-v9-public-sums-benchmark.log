@@ -1,0 +1,6 @@
+src/frontends/riscv/air/incremental_public_logup_v4_bench_test.zig:55:11: error: unable to resolve comptime value
+    for (.{ view.entry_snapshot, view.exit_snapshot }) |section| {
+         ~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/incremental_public_logup_v4_bench_test.zig:55:11: note: tuple field index must be comptime-known
+referenced by:
+    comptime: src/frontends/riscv/ethereum_public_sums_v4_test_root.zig:5:17

@@ -22,10 +22,11 @@ const statement_v1 = @import("statement.zig");
 const channel = @import("../recursion/poseidon2_channel.zig");
 const segment_v2 = @import("../recursion/segment_statement_v2.zig");
 const runner_result = @import("../runner/result.zig");
+pub const authority_preimage = @import("statement_v2_authority_preimage.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
-pub const AUTHORITY_ID_DOMAIN: u32 = 0x5253_5632; // "RSV2"
+pub const FORMAT_VERSION: u16 = authority_preimage.FORMAT_VERSION;
+pub const SCHEMA_VERSION: u16 = authority_preimage.SCHEMA_VERSION;
+pub const AUTHORITY_ID_DOMAIN: u32 = authority_preimage.DOMAIN; // "RSV2"
 pub const RECEIPT_ID_DOMAIN: u32 = 0x5253_5250; // "RSRP"
 pub const NATIVE_SUMS_ID_DOMAIN: u32 = 0x5253_4c32; // "RSL2"
 pub const RELATION_CONTEXT_ID_DOMAIN: u32 = 0x5253_5243; // "RSRC"
@@ -101,8 +102,9 @@ pub const VerifiedReceipt = struct {
 /// bytes or retaining a pointer into caller-owned statement storage.
 pub const OwnedPublicDataV2 = struct {
     allocator: std.mem.Allocator,
-    canonical_words: []M31,
+    canonical_words: []const M31,
     data: public_data_v2.PublicDataV2,
+    validated_lease: ?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2 = null,
 
     pub fn initVerified(
         allocator: std.mem.Allocator,
@@ -121,8 +123,39 @@ pub const OwnedPublicDataV2 = struct {
         };
     }
 
+    /// Move a verifier-input lease into the successful fresh capture.  The
+    /// optional is cleared exactly when ownership transfers, so every error
+    /// path retains one unambiguous deinitializer.
+    pub fn initVerifiedTakingLease(
+        allocator: std.mem.Allocator,
+        source: *const public_data_v2.PublicDataV2,
+        lease_inout: *?public_data_v2.PublicDataV2.OwnedValidatedLeaseV2,
+    ) !OwnedPublicDataV2 {
+        try source.validate();
+        const lease = lease_inout.* orelse
+            return error.MissingValidatedPublicDataLeaseV2;
+        const lease_data = lease.data();
+        if (source.words().ptr != lease_data.words().ptr or
+            source.words().len != lease_data.words().len or
+            !std.meta.eql(source.wireId(), lease_data.wireId()))
+        {
+            return error.SourceMutation;
+        }
+        const result = OwnedPublicDataV2{
+            .allocator = allocator,
+            .canonical_words = lease.ownedWords(),
+            .data = lease_data.*,
+            .validated_lease = lease,
+        };
+        lease_inout.* = null;
+        return result;
+    }
+
     pub fn deinit(self: *OwnedPublicDataV2) void {
-        self.allocator.free(self.canonical_words);
+        if (self.validated_lease) |*lease|
+            lease.deinit()
+        else
+            self.allocator.free(self.canonical_words);
         self.* = undefined;
     }
 
@@ -301,21 +334,48 @@ pub const RiscVStatementV2 = struct {
         )) return error.SegmentResultMismatch;
 
         const rows = result.execution_trace.rows.items;
-        const first_clock = std.math.cast(u32, result.global_first_cycle) orelse
+        // The canonical statement already authenticated this executed span,
+        // and the reconstructed source above matched it exactly. V2 resumes
+        // retain absolute clocks; an explicitly projected V3 leaf starts at 0.
+        const executed = switch (base_statement.body) {
+            .executed => |value| value,
+            .empty => return error.SegmentResultMismatch,
+        };
+        const clock_start = std.math.cast(u32, executed.first_cycle) orelse
             return error.SegmentResultMismatch;
-        const last_clock = std.math.add(
-            u32,
-            first_clock,
-            std.math.cast(u32, result.cycle_count -| 1) orelse
-                return error.SegmentResultMismatch,
+        const clock_end = std.math.cast(u32, std.math.add(
+            u64,
+            executed.first_cycle,
+            executed.cycle_count,
+        ) catch return error.SegmentResultMismatch) orelse
+            return error.SegmentResultMismatch;
+        const external = result.execution_trace.recordedExternalSteps();
+        const represented = std.math.add(usize, rows.len, external) catch
+            return error.SegmentResultMismatch;
+        result.execution_trace.validateClockRange(
+            clock_start,
+            clock_end,
+            external,
         ) catch return error.SegmentResultMismatch;
-        if (result.execution_trace.step_count != result.cycle_count or
-            rows.len != result.cycle_count or rows.len == 0 or
+        if (result.execution_trace.step_count != rows.len or
+            represented != result.cycle_count or rows.len == 0 or
             result.execution_trace.initial_pc != result.entry_cpu.pc or
-            result.execution_trace.final_pc != result.exit_cpu.pc or
-            rows[0].pc != result.entry_cpu.pc or
-            rows[rows.len - 1].next_pc != result.exit_cpu.pc or
-            rows[0].clk != first_clock or rows[rows.len - 1].clk != last_clock)
+            result.execution_trace.final_pc != result.exit_cpu.pc)
+        {
+            return error.SegmentResultMismatch;
+        }
+        if (external == 0) {
+            const first_clock = std.math.add(u32, clock_start, 1) catch
+                return error.SegmentResultMismatch;
+            if (rows[0].pc != result.entry_cpu.pc or
+                rows[rows.len - 1].next_pc != result.exit_cpu.pc or
+                rows[0].clk != first_clock or
+                rows[rows.len - 1].clk != clock_end)
+            {
+                return error.SegmentResultMismatch;
+            }
+        } else if (rows[0].clk <= clock_start or
+            rows[rows.len - 1].clk > clock_end)
         {
             return error.SegmentResultMismatch;
         }
@@ -351,23 +411,53 @@ pub fn nativeRelationSums(
     data: *const public_data_v2.PublicDataV2,
     relations: *const relation_challenges.Relations,
 ) Error!public_logup_v2.Sums {
-    const view = try authenticatedView(data);
     var sums = try public_logup_v2.relationSums(data, relations);
+    sums.merkle = sums.merkle.add(try sparseContinuationTreeCompensation(
+        data,
+        relations,
+    ));
+    return sums;
+}
+
+/// Exact V2-only Merkle compensation for the sparse continuation leaves (or
+/// the empty-tree root). Full-state incremental witnesses commit those leaves
+/// through their boundary and bridge, so their versioned public adapter must
+/// remove this member while retaining the three public root anchors.
+pub fn sparseContinuationTreeCompensation(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    const view = try authenticatedView(data);
+    var result = QM31.zero();
     try addContinuationTreeCompensation(
-        &sums.merkle,
+        true,
+        &result,
         &view,
         view.entry_snapshot,
         view.statement.entry_continuation_root,
         &relations.merkle,
     );
     try addContinuationTreeCompensation(
-        &sums.merkle,
+        true,
+        &result,
         &view,
         view.exit_snapshot,
         view.statement.exit_continuation_root,
         &relations.merkle,
     );
-    return sums;
+    return result;
+}
+
+/// V4 removes these sparse-tree fractions algebraically. Their original zero
+/// denominator checks remain part of admission even though no inverse survives.
+pub fn validateSparseContinuationTreeDenominatorsV4(
+    data: *const public_data_v2.PublicDataV2,
+    relations: *const relation_challenges.Relations,
+) Error!void {
+    const view = try authenticatedView(data);
+    var unused_sum = QM31.zero();
+    try addContinuationTreeCompensation(false, &unused_sum, &view, view.entry_snapshot, view.statement.entry_continuation_root, &relations.merkle);
+    try addContinuationTreeCompensation(false, &unused_sum, &view, view.exit_snapshot, view.statement.exit_continuation_root, &relations.merkle);
 }
 
 pub fn nativeRelationSum(
@@ -478,9 +568,7 @@ fn scalarProgramRoot(program: public_data_v2.Digest) Error!u32 {
 fn authenticatedView(
     data: *const public_data_v2.PublicDataV2,
 ) Error!segment_v2.CanonicalWireViewV2 {
-    const view = try segment_v2.authenticateCanonicalWire(data.words());
-    if (!std.meta.eql(view.wire_id, data.wireId())) return error.SourceMutation;
-    return view;
+    return data.authenticatedView();
 }
 
 const SnapshotSide = enum { initial_word, final_word };
@@ -517,6 +605,7 @@ fn clockSectionMatches(
 }
 
 fn addContinuationTreeCompensation(
+    comptime compute_sum: bool,
     sum: *QM31,
     view: *const segment_v2.CanonicalWireViewV2,
     section: segment_v2.RetainedSectionV2,
@@ -524,7 +613,7 @@ fn addContinuationTreeCompensation(
     relation: *const relation_challenges.RelationElements(4),
 ) Error!void {
     if (section.count == 0) {
-        try subtractMerkleInverse(sum, relation, .{ 0, 0, root, root });
+        try subtractMerkleInverse(compute_sum, sum, relation, .{ 0, 0, root, root });
         return;
     }
     for (0..section.count) |index| {
@@ -533,7 +622,7 @@ fn addContinuationTreeCompensation(
             const shift: u5 = @intCast(limb * 8);
             const value: u8 = @truncate(entry.value >> shift);
             if (value == 0) continue;
-            try subtractMerkleInverse(sum, relation, .{
+            try subtractMerkleInverse(compute_sum, sum, relation, .{
                 entry.address + @as(u32, @intCast(limb)),
                 sparse_merkle.LEAF_DEPTH,
                 value,
@@ -544,6 +633,7 @@ fn addContinuationTreeCompensation(
 }
 
 fn subtractMerkleInverse(
+    comptime compute_sum: bool,
     sum: *QM31,
     relation: *const relation_challenges.RelationElements(4),
     tuple: [4]u32,
@@ -554,8 +644,10 @@ fn subtractMerkleInverse(
         base(tuple[2]),
         base(tuple[3]),
     });
-    const inverse = denominator.inv() catch return error.ZeroDenominator;
-    sum.* = sum.sub(inverse);
+    if (compute_sum) {
+        const inverse = denominator.inv() catch return error.ZeroDenominator;
+        sum.* = sum.sub(inverse);
+    } else if (denominator.isZero()) return error.ZeroDenominator;
 }
 
 fn nonzeroByteCount(
@@ -616,34 +708,14 @@ pub fn authorityIdentityFromGeometry(
         return error.InvalidComponentGeometry;
     }
     const core_public = try canonicalCorePublicData(data);
-    var hash = channel.CanonicalWordHasher.init(AUTHORITY_ID_DOMAIN);
-    updateScalars(&hash, &.{
-        FORMAT_VERSION,
-        SCHEMA_VERSION,
-        @as(u32, @intCast(component_descs.len)),
-        @as(u32, @intCast(infra_descs.len)),
-        core_public.initial_pc,
-        core_public.final_pc,
-        core_public.clock,
+    return authority_preimage.hash(.{
+        .initial_pc = core_public.initial_pc,
+        .final_pc = core_public.final_pc,
+        .cycle_count = core_public.clock,
+        .wire_id = data.wireId(),
+        .component_descs = component_descs,
+        .infra_descs = infra_descs,
     });
-    updateDigest(&hash, data.wireId());
-    for (component_descs) |desc| {
-        updateScalars(&hash, &.{
-            @intFromEnum(desc.family),
-            desc.log_size,
-            desc.n_rows,
-            desc.n_columns,
-        });
-    }
-    for (infra_descs) |desc| {
-        updateScalars(&hash, &.{
-            @intFromEnum(desc.kind),
-            desc.log_size,
-            desc.n_rows,
-            desc.n_columns,
-        });
-    }
-    return hash.finalize();
 }
 
 fn relationContextIdentity(

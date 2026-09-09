@@ -1,0 +1,18 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 32s
+test-ethereum-incremental-leaf-materialize-v4-replay
++- saved Ethereum leaf composition replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition' failed: ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38789292 public_ns=291718542 transcript_ns=135788166 profile_ns=26750 program_ns=67254917 prepare_ns=57038875 fri_ns=0 seal_ns=0 total_ns=593208000 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_ROLE0_REPLAY_ERROR=SamplePointLayoutMismatch
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition', the following test command failed:
+./.zig-cache/o/ad94cf54e8eaeefd19f8f990027d6643/test --cache-dir=./.zig-cache --seed=0x2b248756 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-materialize-v4-replay transitive failure
++- saved Ethereum leaf composition replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 3m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ab892ebb9e994c107455653e7e477f79/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x2b248756 -Z1b7947255379785a --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-materialize-v4-replay -Doptimize=ReleaseSafe --summary all

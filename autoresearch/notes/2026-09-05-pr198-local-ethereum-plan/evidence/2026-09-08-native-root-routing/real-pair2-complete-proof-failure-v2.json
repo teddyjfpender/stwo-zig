@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "scope": "actual segment2 complete proof failure, not accepted wrapper",
+  "status": "failed",
+  "signal": 9,
+  "cause": "undetermined; measured memory pressure and PCS storage floor require a bounded resource fix before retry",
+  "source_manifest_sha256": "cafe4e94959879fd3b8d4afcd48804842885d69bce06188748251e05f2f5d417",
+  "command_wall_seconds": 4292.864492666908,
+  "lifetime_peak_footprint_bytes": 57180776232,
+  "pcs_three_tree_storage_estimate_bytes": 47559075456,
+  "exact_tuple_contributions": 166400671,
+  "tuple_ledger_released_before_tree0": true,
+  "last_reported_phase": "preprocessed",
+  "accepted_wrapper": false,
+  "logs": {
+    "real-pair2-complete-proof-terminal-v2.json": "86615886881aa947ed6a6d10d385b45cb5f944c84f7503e219bef2b895677018",
+    "real-pair2-complete-proof-v2.log": "61b6a887717bfb4e6916344f7227fc7fed998fb29e179e7b360b56ba19c8d76b",
+    "real-pair2-complete-proof-progress-v2.log": "cdb4f3410d3a83f36ac5b4c27a3c79fdd494093b3b36d96440e7d949168d1e8c"
+  }
+}

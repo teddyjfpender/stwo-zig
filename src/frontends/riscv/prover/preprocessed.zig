@@ -139,6 +139,11 @@ pub fn generate(
     }
     for (0..statement.n_infra) |index| {
         const desc = statement.infra_descs[index];
+        var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+            std.time.Timer.start() catch null
+        else
+            null;
+        const column_start = initialized;
         if (statement_mod.tableKind(desc.kind)) |kind| {
             columns[initialized] = .{
                 .log_size = desc.log_size,
@@ -153,6 +158,14 @@ pub fn generate(
             tuples.n_columns = 0;
         } else {
             try appendSelectors(allocator, columns, &initialized, desc.log_size, desc.n_rows);
+        }
+        if (timer) |*active| {
+            var bytes: usize = 0;
+            for (columns[column_start..initialized]) |column|
+                bytes += column.values.len * @sizeOf(@TypeOf(column.values[0]));
+            std.debug.print("riscv_preprocessed_component kind={s} log_size={d} columns={d} generation_ns={d} owned_value_bytes={d}\n", .{
+                @tagName(desc.kind), desc.log_size, initialized - column_start, active.read(), bytes,
+            });
         }
     }
     std.debug.assert(initialized == columns.len);

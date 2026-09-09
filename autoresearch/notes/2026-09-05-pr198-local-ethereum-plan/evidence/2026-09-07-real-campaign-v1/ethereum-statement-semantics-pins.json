@@ -1,0 +1,128 @@
+{
+  "schema": "stwo.ethereum.semantic-source-audit.v1",
+  "observed_unix_ns": 1788805952165161000,
+  "scope": "Read-only source and retained-custody audit; no independent whole-block or Zisk guest acceptance claimed",
+  "stateless_commit": "a134a621bad7229ff7f980e42dfca8e22d101491",
+  "sources_and_artifacts": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs",
+      "bytes": 5877,
+      "sha256": "3415b808a7a170c2f281d0a40986b89be511ffad7b359e0c614d8a7121644353"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock",
+      "bytes": 83749,
+      "sha256": "3afbab5243efb960409192f6b2bcb628d13165ed48f23b06415b60ba6f538a1b"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/ethereum_block_benchmark_statement.py",
+      "bytes": 5930,
+      "sha256": "b0718165eddffa7d4de0d75b130f3012e7cc82f8ddd4ce068de20957f36f95ec"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/ethereum_block_mainnet_24628607.json",
+      "bytes": 26917,
+      "sha256": "5f987562c954f910fea25a0bc0b9953d06b31614eb9e7bfbf458766b67e6c96b"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/ethereum_full_leaf_bundle_verifier_v1.zig",
+      "bytes": 29130,
+      "sha256": "1d792f1f112c9378b15b76fc17362fdf493423674081a1e98bfaa36eee33711f"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/incremental_public_logup_v4.zig",
+      "bytes": 17220,
+      "sha256": "6865b901a127fcaaf42ef648a3cfbc580ea9ef19f82c96197349fff4ca5c1120"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/air/public_logup.zig",
+      "bytes": 14792,
+      "sha256": "0a8f4bcad68367ec545c250471bec42bce4f6e2db9d7e16db0a85a978481494f"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/segment_leaf_local_authority_v3.zig",
+      "bytes": 25872,
+      "sha256": "aad37722c8a042a310a51657fd2282d26ad68e2c0798ee684558752c6f126d63"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/span_statement_span_statement.zig",
+      "bytes": 11204,
+      "sha256": "0d26568a9dd285f3c48e86496680110ac4acd79bfc3cdb247602477b79170243"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/projected-input-recheck/host-output.bin",
+      "bytes": 43,
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/projected-input-recheck/stwo-runner-input.bin",
+      "bytes": 2700692,
+      "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+      "bytes": 70206,
+      "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/source-request-v2.json",
+      "bytes": 2302,
+      "sha256": "bcd8a5568b6cdfd59a3eb6105528ede2f71825615c0106a44ce4f10ce76978c2"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/execution.ndjson",
+      "bytes": 270916,
+      "sha256": "9d68bc6a61374ee8f80151544dba91fe8a56b1ccdf788ef6e7dc6d79cd24a329"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/rebuilt-guest-rw-heap-v2/f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16/receipt.json",
+      "bytes": 2813,
+      "sha256": "0cc4d31593a19195f6220242e966fb6ae278fa4b66f80c6b5e103691b3b99e95"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/rebuilt-guest-rw-heap-v2/f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16/stwo-ethereum-guest.elf",
+      "bytes": 3412588,
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stateless-07fa4f1381ec450d/a134a62/crates/stateless-validator-reth/src/guest.rs",
+      "bytes": 2652,
+      "sha256": "82c42788621a6429f1ff271aa0f28cb61e61823e6e8c855fa3d6fb677af3bc34"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stateless-07fa4f1381ec450d/a134a62/crates/stateless-validator-reth/src/guest/convert.rs",
+      "bytes": 17650,
+      "sha256": "e14535e7f7e3fa79c59a40257dc7600748d2748da531f3e03ace149a6df2848a"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stateless-07fa4f1381ec450d/a134a62/crates/stateless-validator-common/src/guest/output.rs",
+      "bytes": 2065,
+      "sha256": "65069965d828f8373851e1083e19a1e5a3de823666e899cac561dd76aecc89de"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stateless-07fa4f1381ec450d/a134a62/crates/stateless/src/validation.rs",
+      "bytes": 14559,
+      "sha256": "dbd0a524f683537623450003f10db031936206ad17e79662406766261679e79d"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/stateless-07fa4f1381ec450d/a134a62/crates/tries/src/zeth.rs",
+      "bytes": 8855,
+      "sha256": "f65dc63b8a038ef7e6e6ea0f9359099223bd2655492fd92068cc88c82bc17987"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/reth-e231042ee7db3fb7/3d270d9/crates/ethereum/payload/src/validator.rs",
+      "bytes": 4147,
+      "sha256": "a6f62013240a8875fa631c869afb82f7f8b7d2f4d94072929d305d9143aa3b24"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/reth-e231042ee7db3fb7/3d270d9/crates/ethereum/consensus/src/validation.rs",
+      "bytes": 9981,
+      "sha256": "362d49d24e800fe61f1c70e4b88d22a09f45633a691fbfc7b9ffc69976c1b0c4"
+    },
+    {
+      "path": "/Users/theodorepender/.cargo/git/checkouts/reth-e231042ee7db3fb7/3d270d9/crates/consensus/common/src/validation.rs",
+      "bytes": 22132,
+      "sha256": "384953d6301906f81a7f1391b4d50af8f307426e670e5b2cc45b698a79af17ad"
+    }
+  ]
+}

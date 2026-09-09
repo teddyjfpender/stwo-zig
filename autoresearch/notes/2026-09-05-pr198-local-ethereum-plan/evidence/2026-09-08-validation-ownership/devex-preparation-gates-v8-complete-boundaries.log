@@ -1,0 +1,29 @@
+test-ethereum-validation-ownership
++- Ethereum validation ownership guard
+   +- run test 16/17 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_child_statement_v4_test.test.Ethereum child statement owns source snapshots and rejects changed prepared rows' failed: expected error.EthereumIncrementalChildStatementMismatchV4, found error.UnsatisfiedCircuit
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_cohort_v4_test.test.schema3 role0 cohort exposes exact 36-row closure without proof escalation', the following test command failed:
+./.zig-cache/o/fd194569668704c96afd4b7b73dc6128/test --cache-dir=./.zig-cache --seed=0x290f7646 --listen=-
+
+Build Summary: 15/18 steps succeeded; 1 failed; 36/37 tests passed; 1 failed
+test-ethereum-validation-ownership transitive failure
++- Ethereum validation ownership guard transitive failure
+   +- run test 16/17 passed, 1 failed
+      +- compile test ReleaseSafe native success 20s MaxRSS:2G
+test-ethereum-small-composition-proof success
++- Ethereum small composition proof guard success
+   +- run test 3 passed 723ms MaxRSS:6M
+      +- compile test ReleaseSafe native success 20s MaxRSS:1G
+test-ethereum-prepared-wrapper-boundary success
++- Ethereum prepared wrapper boundary guard success
+   +- run test 8 passed 265ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:583M
+test-ethereum-symbolic-public-boundary success
++- Ethereum symbolic public boundary guard success
+   +- run test 9 passed 289ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 9s MaxRSS:960M
+check-ethereum-complete-proof success
++- compile test ReleaseSafe native success 2m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/72eae1d7331b3725e90ec5628a87a69c/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v8/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x290f7646 -Zb2ab11d3e54f706e --maxrss 25769803776 -j1 test-ethereum-validation-ownership test-ethereum-small-composition-proof test-ethereum-prepared-wrapper-boundary test-ethereum-symbolic-public-boundary check-ethereum-complete-proof -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all

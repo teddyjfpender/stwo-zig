@@ -95,6 +95,8 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
     def commit(self, repository: Path, message: str, *, allow_empty: bool = False) -> None:
         arguments = [
             "-c",
+            "commit.gpgsign=false",
+            "-c",
             "user.name=Identity Cache Test",
             "-c",
             "user.email=identity-cache@example.invalid",
@@ -130,6 +132,8 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
         environment.pop("STWO_CI_CACHE_DIR", None)
         environment.pop("ZIG_LOCAL_CACHE_DIR", None)
         environment.pop("ZIG_GLOBAL_CACHE_DIR", None)
+        environment["STWO_ZIG_BUILD_MAXRSS"] = "1073741824"
+        environment["STWO_ZIG_BUILD_JOBS"] = "1"
         result = subprocess.run(
             command,
             cwd=repository,
@@ -174,6 +178,7 @@ class DelegatedIdentityCacheTest(unittest.TestCase):
                 f"--cache-dir {caller_cache / 'products' / 'probe'}",
                 baseline_build,
             )
+            self.assertIn("--maxrss 1073741824 -j1", baseline_build)
             self.assertIn(
                 f"-Dimplementation-commit={baseline['commit']}", baseline_build
             )

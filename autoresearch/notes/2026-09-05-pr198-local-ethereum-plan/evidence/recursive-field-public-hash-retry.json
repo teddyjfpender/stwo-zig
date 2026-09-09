@@ -1,0 +1,25 @@
+{
+  "status": "passed",
+  "pending_sessions": [],
+  "log": "recursive-field-public-hash-proof-2.log",
+  "change": "Retain zero parameters for reserved inactive row 10 and reject nonempty rows there; preserve parameter extraction for active rows.",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "1307da6f391bfed9946a11ba9f91049124c1c75734871613edd0e70302b4e4b3"
+  },
+  "full_public_hash_proof_verified": true,
+  "independent_root_verified": false,
+  "verified": {
+    "build_steps": "4/4",
+    "tests": "1/1",
+    "test_duration": "12m",
+    "test_max_rss": "10G",
+    "compile_duration": "1m",
+    "compile_max_rss": "4G",
+    "operations": 182,
+    "frames": 184,
+    "permutations": 1765,
+    "queries": 193,
+    "producer_destroyed_before_fresh_verification": true
+  },
+  "scope": "Common-fold schema 5 with public hash binding and inactive-row component parameter correction; predates provider subclaim schema 6."
+}

@@ -1,0 +1,73 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-producer",
+    "--memory-addresses",
+    "1",
+    "--initial-memory-word",
+    "269",
+    "--two-segment-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed269",
+    "--native-backend",
+    "cpu",
+    "--child-0-key",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0/key.json",
+    "--child-0-key-sha256",
+    "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+    "--child-1-key",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1/key.json",
+    "--child-1-key-sha256",
+    "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+  ],
+  "binary_sha256": "7f015e847e96273f0fedd97295f3f03e1aa829694547bde79a025433a88f59f0",
+  "exit_code": 0,
+  "process_ns": 7880920750,
+  "independent_baseline_acceptance": "dynamic-memory-v3-seed13-accepted.json",
+  "children": [
+    {
+      "index": 0,
+      "files": {
+        "claims.json": {
+          "bytes": 4118,
+          "sha256": "7c1da3bcd09eff0f7c2e16897e3d4a5a0ebafb27109b98fca03c669902a66133"
+        },
+        "expected-wire.json": {
+          "bytes": 3018,
+          "sha256": "c2306a56966d37481fbdb3d3ddf5915e8c801fd50d4aaef12fce956e6ef1b4ee"
+        },
+        "key.json": {
+          "bytes": 120578,
+          "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+        },
+        "proof.bin": {
+          "bytes": 93693,
+          "sha256": "8c6a942be5394a665f38102702c2074f71556bf9f415f5e4d1133b62114f1b6a"
+        }
+      },
+      "exact_admitted_key_bytes": true,
+      "status": "candidate_pending_fresh_independent_verification"
+    },
+    {
+      "index": 1,
+      "files": {
+        "claims.json": {
+          "bytes": 4116,
+          "sha256": "a34534ebfa6f4aa10164315ecc347f586dea5c0fd6f8cccf070394c3daeab3f3"
+        },
+        "expected-wire.json": {
+          "bytes": 3055,
+          "sha256": "4011da2dab33d6ca83b947a2ffc614638def320b50741ad7d4317182c45cba59"
+        },
+        "key.json": {
+          "bytes": 119280,
+          "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+        },
+        "proof.bin": {
+          "bytes": 92238,
+          "sha256": "6c2c5f15a6a607b06abd53792587974762687d3f5dbec7351f8c8d89cf212c3c"
+        }
+      },
+      "exact_admitted_key_bytes": true,
+      "status": "candidate_pending_fresh_independent_verification"
+    }
+  ]
+}

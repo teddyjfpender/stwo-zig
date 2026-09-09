@@ -1,0 +1,44 @@
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=171333 transcript_ns=153000 pcs_ns=1447820542 boundary_ns=9373375 composition_ns=6660666
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1464245333
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=144667 transcript_ns=74208 pcs_ns=1429493750 boundary_ns=12589625 composition_ns=7161334
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2913754291
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=378 multiply_add_rows=9142
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=109377 multiply_add_rows=33400
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5790 multiply_add_rows=110031
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=378 multiply_add_rows=9142
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=2616 multiply_add_rows=3495
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=109377 multiply_add_rows=33400
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5790 multiply_add_rows=110031
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2592 multiply_add_rows=2612
+DETACHED_PARENT_ROW row=0 rows=7154 logical_bytes=343392
+DETACHED_PARENT_ROW row=1 rows=2852 logical_bytes=547584
+DETACHED_PARENT_ROW row=2 rows=2852 logical_bytes=422096
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21136 logical_bytes=1606336
+DETACHED_PARENT_ROW row=5 rows=19500 logical_bytes=1638000
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=68 logical_bytes=8704
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=62261 logical_bytes=5728012
+DETACHED_PARENT_ROW row=12 rows=0 logical_bytes=0
+DETACHED_PARENT_ROW row=13 rows=81313 logical_bytes=3252520
+DETACHED_PARENT_ROW row=14 rows=238914 logical_bytes=51605424
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6948 logical_bytes=2918160
+DETACHED_PARENT_ROW row=22 rows=20 logical_bytes=1520
+DETACHED_PARENT_ROW row=23 rows=98816 logical_bytes=34387968
+DETACHED_PARENT_ROW row=24 rows=812756 logical_bytes=84526624
+DETACHED_PARENT_ROW row=25 rows=23932 logical_bytes=8998432
+DETACHED_PARENT_ROW row=26 rows=6176 logical_bytes=1037568
+DETACHED_PARENT_ROW row=27 rows=2316 logical_bytes=259392
+DETACHED_PARENT_ROW row=28 rows=3088 logical_bytes=271744
+DETACHED_PARENT_ROW row=29 rows=145194 logical_bytes=17423280
+DETACHED_PARENT_ROW row=30 rows=708693 logical_bytes=76538844
+DETACHED_PARENT_ROW row=31 rows=36806 logical_bytes=4711168
+DETACHED_PARENT_ROW row=32 rows=222970 logical_bytes=45485880
+DETACHED_PARENT_ROW row=33 rows=53654 logical_bytes=9872336
+DETACHED_PARENT_PREPARATION rows_bytes=351740944 providers=185430 graph_ns=3352004125 snapshot_pending=true
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-parent-root-v2","publication_mode":"root","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[186,208,101,185,192,163,71,168,241,240,113,43,172,225,70,188,138,211,148,202,73,233,15,176,249,156,183,232,57,15,223,139],[124,237,90,217,212,234,43,8,213,60,165,46,83,120,119,202,161,159,103,102,53,32,56,48,202,81,249,219,101,203,3,250]],"artifacts":{"key_sha256":[169,255,14,17,87,167,161,116,6,73,28,49,155,73,11,15,49,60,159,199,0,226,237,141,114,103,108,169,34,234,218,230],"claims_sha256":[143,100,68,248,39,167,127,1,51,109,2,22,236,211,183,189,170,246,118,55,221,255,60,96,115,107,5,12,21,212,86,133],"proof_sha256":[67,102,150,72,240,42,209,199,206,8,254,58,22,123,22,248,21,92,169,188,109,129,166,247,120,89,24,97,134,45,5,198],"proof_bytes":2298756},"candidate_root_words_sha256":[178,123,13,42,208,24,172,29,17,139,247,236,92,174,136,216,170,1,74,23,70,42,6,213,159,238,199,204,117,214,124,63],"circuit_identity":[97,201,16,230,205,199,95,190,230,116,233,24,121,177,58,240,143,238,139,162,181,38,106,149,66,144,188,112,241,117,93,2],"preparation_ns":3574057791,"key_preparation_ns":1259496250,"proof_ns":8168138125,"request_ns":13207519542}

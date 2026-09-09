@@ -25,7 +25,7 @@ const cohort_contract = @import("recursive_temporal_parent_cohort_contract.zig")
 const cohort_support = @import("recursive_temporal_parent_cohort_support.zig");
 const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
 const verified_artifact_mod = @import("recursive_temporal_parent_verified_artifact_v1.zig");
-
+const child_transcript = @import("recursive_temporal_child_transcript_authority_v1.zig");
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const m31 = stwo_core.fields.m31;
@@ -54,7 +54,8 @@ pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
 pub const PREFIX_ROW_COUNT: usize = manifest_mod.PREFIX_ROW_COUNT;
 pub const SUFFIX_ROW_COUNT: usize = suffix_mod.ROW_COUNT;
 pub const PROVIDER_ROW: usize = row35_mod.ROW;
-pub const AUTHORITY_TRANSCRIPT_DOMAIN: u32 = 0x5450_4333; // "TPC3"
+const COHORT_CHILD_TRANSCRIPT_AUTHORITY = child_transcript.DescriptorV1.temporalParentV3();
+pub const AUTHORITY_TRANSCRIPT_DOMAIN = COHORT_CHILD_TRANSCRIPT_AUTHORITY.domain;
 pub const PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS: usize =
     pair_authority.HOT_AUTHENTICATION_SCALAR_POSEIDON_PERMUTATIONS;
 
@@ -83,6 +84,7 @@ pub const Error = error{
 
 pub const Cohort = struct {
     const Self = @This();
+    pub const CHILD_TRANSCRIPT_AUTHORITY = COHORT_CHILD_TRANSCRIPT_AUTHORITY;
 
     pub const PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS =
         pair_authority.HOT_AUTHENTICATION_SCALAR_POSEIDON_PERMUTATIONS;
@@ -206,6 +208,16 @@ pub const Cohort = struct {
 
     pub fn manifest(self: *const Self) *const manifest_mod.Manifest {
         return &self.manifest_value;
+    }
+
+    pub fn publicationContext(self: *const Self) !suffix_mod.ContextReceiptV3 {
+        return self.suffix.contextReceipt();
+    }
+
+    pub fn recursiveStatementWords(
+        self: *const Self,
+    ) !*const recursion.span_statement.StatementWords {
+        return &self.prefix.statement_rows.parent_words;
     }
 
     pub fn mixAuthority(self: *Self, transcript: anytype) !void {
@@ -805,6 +817,8 @@ pub const Cohort = struct {
             .canonical_proof_sha_id = verified.canonical_proof_sha_id,
             .capture_id = verified.capture_id,
             .transcript_id = verified.transcript_id,
+            .transcript_authority = Self.CHILD_TRANSCRIPT_AUTHORITY,
+            .transcript_context_sha_id = audited.context.identity,
             .statement_words = self.prefix.statement_rows.parent_words,
             .pair_authority_id = self.inputs.runtime.artifacts.pair.authority_id,
             .context = audited.context,

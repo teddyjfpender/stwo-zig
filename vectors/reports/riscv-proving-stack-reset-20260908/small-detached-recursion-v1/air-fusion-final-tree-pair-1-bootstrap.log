@@ -1,0 +1,62 @@
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=4920041 transcript_ns=181875 pcs_ns=1438175584 boundary_ns=27802250 composition_ns=13029583
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1484173791
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=4797250 transcript_ns=82250 pcs_ns=1442689750 boundary_ns=27099000 composition_ns=12869000
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2971744000
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=4660 multiply_add_rows=24737
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=4659 multiply_add_rows=24737
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2746 multiply_add_rows=3708
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=2946 logical_bytes=565632
+DETACHED_PARENT_ROW row=2 rows=2946 logical_bytes=436008
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21888 logical_bytes=1663488
+DETACHED_PARENT_ROW row=5 rows=20268 logical_bytes=1702512
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=42769 logical_bytes=3934748
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=104844 logical_bytes=4193760
+DETACHED_PARENT_ROW row=14 rows=258847 logical_bytes=55910952
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=653393 logical_bytes=70566444
+DETACHED_PARENT_ROW row=31 rows=66530 logical_bytes=8515840
+DETACHED_PARENT_ROW row=32 rows=250984 logical_bytes=51200736
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=360086624 providers=179992 graph_ns=3441833916 snapshot_pending=true
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-memory-continuation-span-v2","publication_mode":"intermediate","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":false,"child_key_sha256":[[191,92,183,224,16,42,54,5,62,83,226,0,151,238,18,220,47,53,205,207,35,238,81,5,241,167,19,69,148,235,45,210],[69,174,199,232,228,117,127,144,10,114,162,187,173,64,191,182,130,105,240,156,104,153,193,99,175,177,36,14,141,244,223,211]],"artifacts":{"key_sha256":[39,79,215,178,184,217,245,95,237,242,114,209,115,137,221,134,243,51,251,20,135,95,250,125,192,88,211,250,41,166,93,84],"claims_sha256":[100,208,78,118,235,6,162,176,53,154,179,106,236,37,47,134,171,29,60,247,161,170,241,48,56,213,79,157,138,183,183,126],"proof_sha256":[123,7,21,153,97,234,76,160,10,63,193,3,31,179,170,112,103,23,190,218,52,171,94,144,22,174,128,41,101,51,217,206],"proof_bytes":2413903},"candidate_root_words_sha256":[148,85,103,172,51,142,38,108,25,209,55,211,229,221,22,227,220,3,25,85,114,119,55,215,158,17,124,131,50,240,156,217],"circuit_identity":[159,205,192,133,166,202,136,47,148,164,169,88,246,22,49,122,140,78,114,4,40,58,22,74,53,130,37,72,139,68,194,130],"preparation_ns":3675173833,"key_preparation_ns":1235230541,"proof_ns":8490087375,"request_ns":13652077250}
+       13.65 real        57.47 user         0.99 sys
+          3881156608  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              576678  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   9  voluntary context switches
+               57130  involuntary context switches
+        830185642540  instructions retired
+        214291082538  cycles elapsed
+          3877080592  peak memory footprint

@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "result": "PASS",
+  "tests_passed": 8,
+  "command": "python3 scripts/zig_protocol_test.py src/frontends/riscv/ethereum_narrow_poseidon_proof_test_root.zig -O ReleaseSafe -fstrip --test-filter 'Ethereum narrow degree3 Poseidon'",
+  "log": {
+    "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/narrow-poseidon-backend-v1.log",
+    "sha256": "168f35137fe968e3fcfe55f07e4325ff54bfae689539f442fac3190c6cfed648"
+  },
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_backend_v1.zig",
+      "sha256": "b351361b3d7bd6f88ac5a066a1797dafa54675440b13239daac1655d6446ef12"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_backend_v1_test.zig",
+      "sha256": "ca9b3c7850db00b5d489e2ea42e7fe5005db1ef81c36b6928f4bf3fbc8a60074"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_degree3_v1.zig",
+      "sha256": "d947a017e3fede19f5d5dc5ddd4c7556627c6d3c3052d05cc6ef2e9f607ad8e9"
+    }
+  ],
+  "verified": [
+    "Four direct partitions cover286 native constraints in order",
+    "Lookup DAG reproduces exact native relation fractions and interaction constraints on extension-field inputs",
+    "Complete component proof serializes, destroys producer, and freshly verifies"
+  ],
+  "limitations": [
+    "GPU capability is not activated",
+    "Ethereum AOT profile and actual GPU parity remain pending",
+    "This gate is an isolated provider, not a full Ethereum leaf or CSP promotion"
+  ]
+}

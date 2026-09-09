@@ -1,0 +1,32 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=cpu memory_addresses=1 initial_register7=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 450 exact sparse-node calls, poseidon_log_size=9, merkle_log_size=9
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=459816616 producer_live_bytes_after_destroy=0 canonical_proof_bytes=29064 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/two-child-cpu-1/child-0 native_backend=cpu proof_bytes=93479 native_ingress_ns=2594019458 outer_prepare_ns=371983334 outer_prove_ns=961787375 transaction_ns=3931976000 producer_peak_bytes=130657643 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 480 exact sparse-node calls, poseidon_log_size=9, merkle_log_size=9
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=459768108 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28027 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=1 first_cycle=64 retired_cycles=34 completed=true directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/two-child-cpu-1/child-1 native_backend=cpu proof_bytes=92901 native_ingress_ns=2506756917 outer_prepare_ns=366803083 outer_prove_ns=832838042 transaction_ns=3719232375 producer_peak_bytes=130653371 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=cpu owners_destroyed=true parent_proof_created=false
+        7.91 real        44.65 user         0.64 sys
+          1070563328  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              312632  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   4  voluntary context switches
+               38433  involuntary context switches
+        604017650455  instructions retired
+        164523388295  cycles elapsed
+          1063094144  peak memory footprint

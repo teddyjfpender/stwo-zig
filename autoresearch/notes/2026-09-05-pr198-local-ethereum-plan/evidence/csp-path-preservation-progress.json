@@ -1,0 +1,33 @@
+{
+  "schema": "stwo.local-csp-path-preservation.v1",
+  "baseline_head": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+  "current_snapshot_head": "39b798168af607c0da2e108d94b96a4d7fba8126",
+  "current_source_sha256": "f46d36dcea1a55200f4df4da588aeaed597aba5b4741ba386039399af27d7f9f",
+  "backends": [
+    "cpu",
+    "metal"
+  ],
+  "cases_per_backend": 16,
+  "rounds": 2,
+  "samples_per_launch": 5,
+  "warmups_per_launch": 1,
+  "workers": 16,
+  "serial_launches": 128,
+  "measured_samples": 640,
+  "all_proofs_statements_inputs_outputs_identical": true,
+  "repeat_increase_over_5pct": [],
+  "promotion_ready": false,
+  "reason": "diagnostic under captured power/host interference; threshold is triage, not statistical proof of non-regression",
+  "per_case_delta_range_percent": {
+    "proof_duration_ns": {
+      "min": -1.7281149376121057,
+      "max": 1.4706403862011241
+    },
+    "peak_rss_bytes": {
+      "min": -0.6725953566417976,
+      "max": 0.336178193748176
+    }
+  },
+  "raw_reports_directory": ".git/local-ethereum/csp-path-paired-v2",
+  "report_sha256": "4a14dd997b392fcf7e3f8e40fdf7eb606caf8f759aede9d9bf8fbabd17d81c3d"
+}

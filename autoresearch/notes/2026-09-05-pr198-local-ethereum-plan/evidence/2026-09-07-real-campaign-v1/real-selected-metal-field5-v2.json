@@ -1,0 +1,167 @@
+{
+  "status": "verified_and_published",
+  "claim_admission": "fixed_program_narrow_v5",
+  "segment_index": 9,
+  "segment_count": 121,
+  "full_block_coverage": false,
+  "observation_count_per_backend": 1,
+  "artifact": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.stwief04",
+    "bytes": 62271644,
+    "sha256": "5c102cc46a993393409a9a0a9074f1c21817fb235402af6b94d38985aec3ce27"
+  },
+  "global_metadata": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment9-selected-v2/segment-000009.metadata.json",
+    "bytes": 16651,
+    "sha256": "6cebda9ec0ff43805c1f411a28b1dd6df280f2bb92b1b414f1c136d7cce09ffa"
+  },
+  "complete_request_seconds": 145.78,
+  "producer_ns": 70291244667,
+  "prove_ns": 63516979292,
+  "fresh_verify_ns": 33718498792,
+  "peak_footprint_bytes": 9873351080,
+  "cpu_reference_complete_request_seconds": 373.36,
+  "cpu_over_metal_complete_request_ratio": 2.5611194951296476,
+  "exact_cpu_proof_bytes": true,
+  "exact_cpu_metadata_bytes": true,
+  "exclusive_depth2_phases": {
+    "source_column_pack": {
+      "seconds": 0.448492,
+      "count": 3
+    },
+    "merkle_commit": {
+      "seconds": 7.950468000000001,
+      "count": 3
+    },
+    "riscv_opcode_trace_generation": {
+      "seconds": 1.835663,
+      "count": 1
+    },
+    "riscv_interaction_opcode": {
+      "seconds": 2.475438,
+      "count": 1
+    },
+    "riscv_interaction_program": {
+      "seconds": 0.729283,
+      "count": 1
+    },
+    "riscv_interaction_memory": {
+      "seconds": 0.161989,
+      "count": 1
+    },
+    "riscv_interaction_merkle": {
+      "seconds": 0.235657,
+      "count": 1
+    },
+    "riscv_interaction_poseidon": {
+      "seconds": 0.117205,
+      "count": 1
+    },
+    "riscv_interaction_clock": {
+      "seconds": 0.376671,
+      "count": 1
+    },
+    "riscv_interaction_tables": {
+      "seconds": 0.119465,
+      "count": 1
+    },
+    "draw_random_coeff": {
+      "seconds": 3e-06,
+      "count": 1
+    },
+    "composition_trace_extract": {
+      "seconds": 9.6e-05,
+      "count": 1
+    },
+    "composition_evaluation": {
+      "seconds": 35.399126,
+      "count": 1
+    },
+    "composition_interpolate_and_split": {
+      "seconds": 0.002499,
+      "count": 1
+    },
+    "composition_commit": {
+      "seconds": 0.029078,
+      "count": 1
+    },
+    "oods_point_and_mask_points": {
+      "seconds": 0.001822,
+      "count": 1
+    },
+    "sampled_value_evaluation": {
+      "seconds": 0.19671,
+      "count": 1
+    },
+    "sampled_value_channel_mix": {
+      "seconds": 0.014198,
+      "count": 1
+    },
+    "fri_quotient_build_and_commit": {
+      "seconds": 0.374443,
+      "count": 1
+    },
+    "proof_of_work": {
+      "seconds": 0.00514,
+      "count": 1
+    },
+    "fri_decommit": {
+      "seconds": 0.004227,
+      "count": 1
+    },
+    "trace_decommit": {
+      "seconds": 0.135956,
+      "count": 1
+    },
+    "constraint_check_and_assembly": {
+      "seconds": 0.003962,
+      "count": 1
+    }
+  },
+  "phase_scope": "Only depth2 entries are aggregated. Parent and nested timing scopes are not added together.",
+  "fresh_separate_process_status": "passed",
+  "limitations": "One paired observation. No whole-block, final-root, Zisk comparison, or CSP16 promotion claim. Request excludes guest build/execution/capture, compilation and AOT generation; includes runtime startup, proof serialization, producer destruction and fresh native verification.",
+  "files": {
+    "plan.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-plan.json",
+      "sha256": "e4ef483afbefc309ac5322bdcd77846d1126e57e6b59b8075e564975cbc1bb60",
+      "bytes": 3289
+    },
+    "receipt.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-receipt.json",
+      "sha256": "7b9f21783987fe4173d5e26e68ebcbde2a6b13eb373e1747f347cc4492d2c3ab",
+      "bytes": 2490
+    },
+    "environment.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-environment.json",
+      "sha256": "0d2ed7cc6156303dcd2cc5fa5ba01dea82c0e93119ac4200a52a13f6dda914c6",
+      "bytes": 904
+    },
+    "benchmark-admission-v2.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-benchmark-admission-v2.json",
+      "sha256": "7d4c90da4b0fcf8fac0529edef5e2df9738baad60a4818ed0650ef431bf44620",
+      "bytes": 410
+    },
+    "stderr-and-time.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-stderr-and-time.log",
+      "sha256": "920bff4925458fd0f3d9e060fa8b475bf74fd85ea26f9394ffb99dd38f0259b9",
+      "bytes": 7230
+    },
+    "stdout.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "run.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-run.py",
+      "sha256": "40065fa1060544a3b2cea473e7ff548136e056b42635165ff5a1f14cbfd2d61f",
+      "bytes": 7924
+    },
+    "process-samples.ndjson": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-v2-process-samples.ndjson",
+      "sha256": "87b2bb2c94211c795f0bc311cf49bf6271a9119a1e34fe42f8bda6eabec6e97a",
+      "bytes": 10022
+    }
+  },
+  "fresh_separate_process_receipt": "real-selected-metal-field5-fresh-v1.json"
+}

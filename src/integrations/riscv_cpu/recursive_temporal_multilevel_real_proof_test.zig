@@ -11,66 +11,19 @@ const integration = @import("stwo_riscv_cpu_integration");
 
 const quad_fixture = @import("recursive_segment_v2_temporal_quad_fixture.zig");
 const parent_gate = @import("recursive_temporal_parent_real_proof_test.zig");
+const parent_capture = integration.recursive_temporal_verified_parent_capture_v1;
 
 const leaf_outer = integration.recursive_segment_v2_leaf_outer;
-const parent_publication =
-    integration.recursive_temporal_parent_cohort_v3.Cohort.VerifiedPublicationV1;
-const parent_artifact = integration.recursive_temporal_parent_verified_artifact_v1;
 const level2 = integration.recursive_temporal_parent_pair_authority_v1;
-const level2_composition = integration.recursive_temporal_level2_composition_v1;
 const level2_suffix = integration.recursive_temporal_level2_suffix_v1;
-const level2_cohort = integration.recursive_temporal_level2_cohort_v1;
-const binary_driver = integration.recursive_binary_outer;
+const verified_node = integration.recursive_temporal_verified_node_v1;
 const recursion = frontend.recursion;
 
 pub fn runGate(allocator: std.mem.Allocator) !void {
     return quad_fixture.runTemporalQuadGateWithHook(allocator, QuadHook);
 }
 
-const CapturedParent = struct {
-    allocator: std.mem.Allocator,
-    publication: ?parent_publication = null,
-    artifact: ?parent_artifact.VerifiedTemporalParentArtifactV1 = null,
-    capture: ?binary_driver.OuterProofCapture = null,
-    composition: ?level2_composition.CaptureV1 = null,
-    receipt: ?binary_driver.Receipt = null,
-
-    fn init(allocator: std.mem.Allocator) CapturedParent {
-        return .{ .allocator = allocator };
-    }
-
-    fn deinit(self: *CapturedParent) void {
-        if (self.composition) |*capture| capture.deinit();
-        if (self.capture) |*capture| capture.deinit(self.allocator);
-        self.* = undefined;
-    }
-
-    pub fn consume(
-        self: *CapturedParent,
-        publication: *const parent_publication,
-        artifact: *const parent_artifact.VerifiedTemporalParentArtifactV1,
-        capture: *binary_driver.OuterProofCapture,
-        composition: *level2_composition.CaptureV1,
-        receipt: binary_driver.Receipt,
-    ) !bool {
-        if (self.publication != null or self.artifact != null or
-            self.capture != null or self.composition != null or
-            self.receipt != null)
-        {
-            return error.DuplicateParentPublication;
-        }
-        try publication.validate();
-        try artifact.validateAgainst(publication);
-        try artifact.recursive_admission.validateAgainst(capture);
-        try composition.validateRetained();
-        self.publication = publication.*;
-        self.artifact = artifact.*;
-        self.capture = capture.*;
-        self.composition = composition.*;
-        self.receipt = receipt;
-        return true;
-    }
-};
+const CapturedParent = parent_capture.VerifiedParentCaptureV1;
 
 const QuadHook = struct {
     pub fn run(
@@ -143,17 +96,15 @@ const QuadHook = struct {
                 .composition = &right_parent.composition.?,
             },
         };
-        const RootKernel = binary_driver.NativeCoreEngineKernelForManifest(
-            level2_cohort.Cohort,
-            integration.recursive_temporal_parent_manifest_v3,
-        );
-        const root_receipt = RootKernel.proveAndVerify(
+        var verified_root = verified_node.proveAndVerify(
             allocator,
-            .{
-                .pair = &root,
-                .children = child_inputs,
-            },
+            &root,
+            child_inputs,
+            .{},
         ) catch |err| return stageFailure("root_prove_verify", err);
+        defer verified_root.deinit();
+        try verified_root.validate();
+        const root_receipt = verified_root.receipt;
         try std.testing.expect(root_receipt.canonical_proof_bytes > 0);
         try std.testing.expect(root_receipt.prove_ns > 0);
         try std.testing.expect(root_receipt.verify_ns > 0);

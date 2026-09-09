@@ -398,19 +398,26 @@ pub const Definition = struct {
 };
 
 pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     errdefer result.deinit();
     try result.validate();
     return result;
 }
 
 pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     defer result.deinit();
     return digest.computeIdentity(&result.arena);
 }
 
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+/// Ethereum publication phases use verifier-owned per-row domains and source
+/// scopes. The legacy physical ordering and sealed graph remain unchanged.
+pub fn buildPublicationRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const definition = try buildDefinition(allocator, true);
+    return definition.arena;
+}
+
+fn buildDefinition(allocator: std.mem.Allocator, comptime publication_routing: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -444,7 +451,19 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .last = pp_values[3],
         .chunks = chunks,
     };
-    const parameters = Parameters{
+    const parameters = if (publication_routing) blk: {
+        const hash_domain = try arena.input(PARAMETER_NAMES[1], .felt, span);
+        const hash_scope = try arena.input(PARAMETER_NAMES[2], .felt, span);
+        const verifier_id = try arena.input(PARAMETER_NAMES[3], .felt, span);
+        const verifier_input_kind = try arena.input(PARAMETER_NAMES[4], .felt, span);
+        break :blk Parameters{
+            .hash_domain = hash_domain,
+            .hash_scope = hash_scope,
+            .verifier_id = verifier_id,
+            .verifier_input_kind = verifier_input_kind,
+            .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
+        };
+    } else Parameters{
         .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
         .hash_domain = try arena.input(PARAMETER_NAMES[1], .felt, span),
         .hash_scope = try arena.input(PARAMETER_NAMES[2], .felt, span),

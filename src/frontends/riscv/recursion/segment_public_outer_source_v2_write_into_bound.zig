@@ -54,6 +54,7 @@ const relation_challenge_witness = dependency_0.relation_challenge_witness;
 const roster = dependency_0.roster;
 const source_v2 = dependency_0.source_v2;
 const std = dependency_0.std;
+const register_bytes = dependency_0.register_bytes;
 const universal = dependency_0.universal;
 const validateDestinationGeometry = dependency_1.validateDestinationGeometry;
 const wireTuple = dependency_1.wireTuple;
@@ -209,6 +210,31 @@ pub fn writeAssumeValid(
         );
     }
 
+    // Row 11 emitted these exact bytes after its existing u16 decomposition
+    // and range checks. Reuse the ordinary relay with distinct coordinates;
+    // no new value is accepted solely from the native-sum graph producer.
+    for (0..prepared.memory_layout.totalBridgeWords()) |byte_index| {
+        const index = wire.len + byte_index;
+        const node = wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + byte_index;
+        const value = if (byte_index < register_bytes.BYTE_COUNT)
+            register_bytes.value(wire, byte_index)
+        else if (byte_index < prepared.memory_layout.byteCount())
+            prepared.memory_layout.value(wire, byte_index)
+        else
+            M31.fromCanonical(@intFromBool(prepared.memory_layout.value(wire, byte_index - prepared.memory_layout.memoryByteCount()).toU32() != 0));
+        const row = RelayRowV2{
+            .source_kind = .boundary_bridge,
+            .source_fields = .{ BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
+            .value = value,
+            .arithmetic_mask = 1,
+            .arithmetic_node_id = @intCast(node),
+            .arithmetic_use_count = inputUseCount(arithmetic_use_counts, node),
+        };
+        destinations.boundary_bridge[index] = row;
+        const source_tuple = wireTuple(BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), value);
+        writeRelayEvents(&sink, .vm_public_claim_semantics_input, index, row, .recursion_wire, &source_tuple);
+    }
+
     for (challenges, 0..) |challenge, index| {
         const node = wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + index;
         const row = RelayRowV2{
@@ -244,7 +270,6 @@ pub fn writeAssumeValid(
     }
 
     std.debug.assert(sink.at == destinations.relation_events.len);
-    _ = prepared;
 }
 
 pub fn rejectArithmeticBindingAliases(

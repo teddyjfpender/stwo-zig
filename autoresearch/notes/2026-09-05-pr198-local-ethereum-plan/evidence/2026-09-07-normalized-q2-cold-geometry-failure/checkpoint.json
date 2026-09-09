@@ -1,0 +1,82 @@
+{
+  "build_steps_passed": 1,
+  "build_steps_total": 4,
+  "cold_open": {
+    "complete_independent_wrapper_lifecycle_passed": false,
+    "error": "InvalidEthereumIncrementalColdGeometryV4",
+    "evidence": "In the frozen source, coldOpenAtTarget completes Kernel.verifyColdWithReplay and composition capture before geometryFromCold. The latter still derives composition columns using global COMPOSITION_LOG_SPLIT=1: eight columns, while admitted wrapper split2 has sixteen. Failure is after native verification, before an OwnedColdProofV4 is returned.",
+    "final_producer_destruction_gate_reached": false,
+    "native_stark_verification_passed": true,
+    "retained_canonical_wrapper_candidate_available": false,
+    "retention_limitation": "The candidate retention hook ran only after coldOpen succeeded; this failure prevented persistence. Logs and source snapshot are retained, but no wrapper proof artifact from this run is available for replay."
+  },
+  "earlier_run_comparison": {
+    "current_peak_footprint_bytes": 52615273088,
+    "descriptive_change_bytes": -7219745448,
+    "earlier_outcome": "ConstraintsNotSatisfied during OODS finalization",
+    "earlier_peak_footprint_bytes": 59835018536,
+    "scope": "Different run outcomes and phase coverage; current run proceeds through STARK generation and native verification. These process-lifetime peak observations are not a matched A/B memory or latency claim."
+  },
+  "exit_code": 1,
+  "logs": {
+    "ethereum-complete-proof-normalized-q2-progress.log": {
+      "bytes": 12044,
+      "path": "2026-09-07-normalized-q2-cold-geometry-failure/ethereum-complete-proof-normalized-q2-progress.log",
+      "sha256": "6358668e4b18df68419e1f54408d127279c104d7339faa7e7403d9719a17fe02"
+    },
+    "ethereum-complete-proof-normalized-q2.log": {
+      "bytes": 15222,
+      "path": "2026-09-07-normalized-q2-cold-geometry-failure/ethereum-complete-proof-normalized-q2.log",
+      "sha256": "40bd1abb4aff7529581e42bf753c03e054aa86a988fc786aae55dad4ffc861a1"
+    },
+    "ethereum-normalized-q2-cold-verify.sample.txt": {
+      "bytes": 1467270,
+      "path": "2026-09-07-normalized-q2-cold-geometry-failure/ethereum-normalized-q2-cold-verify.sample.txt",
+      "sha256": "bb577b6049e1af677a50823f3f383f491fe87756bfae4b85f3b0c1572d9ece37"
+    },
+    "run_source": {
+      "bytes": 1152,
+      "path": "2026-09-07-normalized-q2-cold-geometry-failure/run-source-snapshot.json",
+      "sha256": "e9f19d50d35bca6cb11fc5cd46969e5c4f34b90b6e9c0595385ff433dcd7de71"
+    }
+  },
+  "next_steps": [
+    "Fix cold geometry to consume the shared split2 wrapper admission.",
+    "Move bounded proof retention before cold admission so failures remain replayable.",
+    "Run focused checks for validation boundary changes, then complete serialization/producer-destruction/fresh-verification gate.",
+    "Refresh CSP source snapshot after code stabilizes; prepared comparison has not run."
+  ],
+  "request": {
+    "budget_is_not_an_os_memory_cap": true,
+    "declared_host_byte_budget": 8589934592,
+    "outcome": "failed",
+    "peak_footprint_bytes": 52615273088,
+    "wall_ns": 1348869591958,
+    "workers": 1
+  },
+  "run_source": {
+    "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+    "scope": "Frozen clean source snapshot captured before later validation and cold-geometry fixes; not current active tree.",
+    "snapshot_commit": "237f9cdea71e6ee2db29808e4d8f0c73f5bc6ffe",
+    "source_content_sha256": "fa69c65fba207556e7f88c151d28d47d1bf74ada4e5b07e35f4c5e1be2522ddd"
+  },
+  "scope_limits": {
+    "csp_latest_source_performance_measured": false,
+    "csp_promoted": false,
+    "independently_verified_wrapper": false,
+    "root_only_verification": false,
+    "whole_ethereum_block_proven": false
+  },
+  "stark_generation": {
+    "coefficient_retention": "never",
+    "composition_log_split": 2,
+    "pcs_blowup_log": 1,
+    "peak_footprint_bytes": 52615273088,
+    "succeeded": true,
+    "wall_ns": 433091515875
+  },
+  "status": "STARK generation and native verification passed; later cold geometry admission failed. Complete independent wrapper lifecycle not established.",
+  "target": "test-ethereum-complete-proof",
+  "tests_passed": 2,
+  "tests_total": 3
+}

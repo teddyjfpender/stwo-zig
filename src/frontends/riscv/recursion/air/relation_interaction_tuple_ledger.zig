@@ -115,6 +115,20 @@ pub const TupleClosureReport = struct {
 pub const TupleLedger = struct {
     allocator: std.mem.Allocator,
     contributions: std.ArrayList(TupleContribution) = .empty,
+    sink: ?Sink = null,
+
+    /// Explicit alternative storage for integration-owned diagnostics. Ordinary
+    /// ledgers retain their existing records, sorting and failure provenance.
+    pub const Sink = struct {
+        context: *anyopaque,
+        append_fn: *const fn (*anyopaque, relation.Domain, u8, u8, relation.Role, QM31, []const QM31) std.mem.Allocator.Error!void,
+        classify_fn: *const fn (*anyopaque) TupleClosureReport,
+        print_unmatched_fn: *const fn (*anyopaque, usize) void,
+    };
+
+    pub fn canonicalHash(domain: relation.Domain, values: []const QM31) [32]u8 {
+        return canonicalTupleHash(domain, values);
+    }
 
     pub fn init(allocator: std.mem.Allocator) TupleLedger {
         return .{ .allocator = allocator };
@@ -135,6 +149,7 @@ pub const TupleLedger = struct {
         values: []const QM31,
     ) std.mem.Allocator.Error!void {
         if (signed_weight.isZero()) return;
+        if (self.sink) |sink| return sink.append_fn(sink.context, domain, component, event, role, signed_weight, values);
         var tuple_prefix =
             [_]QM31{QM31.zero()} ** TUPLE_DIAGNOSTIC_PREFIX_ARITY;
         const prefix_len = @min(values.len, tuple_prefix.len);
@@ -156,6 +171,7 @@ pub const TupleLedger = struct {
     /// hash and their signed multiplicities must cancel in M31/QM31 before a
     /// prover is allowed to spend time on denominator inversion or PCS.
     pub fn classify(self: *TupleLedger) TupleClosureReport {
+        if (self.sink) |sink| return sink.classify_fn(sink.context);
         std.mem.sort(
             TupleContribution,
             self.contributions.items,
@@ -192,6 +208,38 @@ pub const TupleLedger = struct {
         }
         return report;
     }
+
+    /// Bounded, allocation-free failure evidence after `classify` has sorted
+    /// the ledger. This reads actual contributions; it never balances them.
+    pub fn printUnmatched(self: *const TupleLedger, limit_per_domain: usize) void {
+        if (self.sink) |sink| return sink.print_unmatched_fn(sink.context, limit_per_domain);
+        const items = self.contributions.items;
+        var cursor: usize = 0;
+        var printed = [_]usize{0} ** universal.RELATION_COUNT;
+        while (cursor < items.len) {
+            const first = items[cursor];
+            var end = cursor + 1;
+            var residual = first.signed_weight;
+            while (end < items.len and items[end].domain == first.domain and
+                std.mem.eql(u8, &items[end].tuple_hash, &first.tuple_hash)) : (end += 1)
+                residual = residual.add(items[end].signed_weight);
+            const domain_index = @intFromEnum(first.domain);
+            if (!residual.isZero() and printed[domain_index] < limit_per_domain) {
+                std.debug.print("TUPLE_UNMATCHED domain={s} hash={s} residual={any} prefix=", .{
+                    @tagName(first.domain), std.fmt.bytesToHex(first.tuple_hash, .lower), residual.toM31Array(),
+                });
+                for (first.tuple_prefix[0..@min(first.arity, TUPLE_DIAGNOSTIC_PREFIX_ARITY)]) |coordinate|
+                    std.debug.print("{any},", .{coordinate.toM31Array()});
+                std.debug.print(" contributions={d}\n", .{end - cursor});
+                for (items[cursor..@min(end, cursor + 8)]) |entry|
+                    std.debug.print("  component={d} event={d} role={s} weight={any}\n", .{
+                        entry.component, entry.event, @tagName(entry.role), entry.signed_weight.toM31Array(),
+                    });
+                printed[domain_index] += 1;
+            }
+            cursor = end;
+        }
+    }
 };
 
 pub fn tupleContributionLessThan(
@@ -218,14 +266,25 @@ pub fn canonicalTupleHash(
     domain: relation.Domain,
     values: []const QM31,
 ) [32]u8 {
+    // Emit the existing little-endian stream in complete SHA blocks. A buffer
+    // sized for maximum u8 arity would be poisoned on every ReleaseSafe call,
+    // even for the small tuples that dominate exact closure.
+    const arity: u8 = @intCast(values.len);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hashInt(&hash, u16, FORMAT_VERSION);
-    hashInt(&hash, u8, @intFromEnum(domain));
-    hashInt(&hash, u8, values.len);
-    for (values) |value| {
-        for (value.toM31Array()) |coordinate|
-            hashInt(&hash, u32, coordinate.toU32());
-    }
+    var encoded: [64]u8 = undefined;
+    std.mem.writeInt(u16, encoded[0..2], FORMAT_VERSION, .little);
+    encoded[2] = @intFromEnum(domain);
+    encoded[3] = arity;
+    var cursor: usize = 4;
+    for (values) |value| for (value.toM31Array()) |coordinate| {
+        std.mem.writeInt(u32, encoded[cursor..][0..4], coordinate.toU32(), .little);
+        cursor += 4;
+        if (cursor == encoded.len) {
+            hash.update(&encoded);
+            cursor = 0;
+        }
+    };
+    hash.update(encoded[0..cursor]);
     return hash.finalResult();
 }
 
@@ -334,4 +393,19 @@ pub fn pairSum(pair: logup.RowPair) QM31.Error!QM31 {
 pub fn traceSize(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return error.InvalidTraceShape;
     return @as(usize, 1) << @intCast(log_size);
+}
+
+test "R-012 canonical tuple hash batches exactly the existing byte stream" {
+    var values: [255]QM31 = undefined;
+    for (&values, 0..) |*value, i| value.* = QM31.fromU32Unchecked(@intCast(i), 2147483646, @intCast(i * 17), @intCast(255 - i));
+    for (std.enums.values(relation.Domain)) |domain| {
+        for ([_]usize{ 0, 1, 2, 3, 4, 15, 16, 17, 63, 64, 65, 255 }) |length| {
+            var reference = std.crypto.hash.sha2.Sha256.init(.{});
+            hashInt(&reference, u16, FORMAT_VERSION);
+            hashInt(&reference, u8, @intFromEnum(domain));
+            hashInt(&reference, u8, length);
+            for (values[0..length]) |value| for (value.toM31Array()) |coordinate| hashInt(&reference, u32, coordinate.toU32());
+            try std.testing.expectEqual(reference.finalResult(), canonicalTupleHash(domain, values[0..length]));
+        }
+    }
 }

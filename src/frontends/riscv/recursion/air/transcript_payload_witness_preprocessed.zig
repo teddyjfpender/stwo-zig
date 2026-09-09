@@ -471,6 +471,32 @@ pub fn logicalRow(
     };
 }
 
+/// Ordinary recorded Poseidon frames have one digest prefix; legacy scheduled
+/// frames retain their separate two-digest layout through `logicalRow`.
+pub fn logicalRowForRecordedFrame(row: Row, value: M31, kind: ProofKind) Error![component.LOGICAL_INPUT_COUNT]M31 {
+    try dependency_0.validateRecordedRow(row);
+    const main = try mainRow(value);
+    const selectors = kind.selectors();
+    return main ++ row.values() ++ .{ selectors[0], selectors[1] };
+}
+
+/// Explicit Ethereum profile: native detailed batch frames emit their
+/// kind-12 input relation. The legacy and common-fold entrypoints still reject
+/// that source. The versioned Ethereum transcript program owns coordinates.
+pub fn logicalRowForEthereumRecordedFrame(row: Row, value: M31, kind: ProofKind) Error![component.LOGICAL_INPUT_COUNT]M31 {
+    try dependency_0.validateEthereumRecordedRow(row);
+    const main = try mainRow(value);
+    const selectors = kind.selectors();
+    return main ++ row.values() ++ .{ selectors[0], selectors[1] };
+}
+
+pub fn logicalRowForEthereumFieldFrame(row: Row, value: M31, kind: ProofKind) Error![component.LOGICAL_INPUT_COUNT]M31 {
+    try dependency_0.validateEthereumFieldRow(row);
+    const main = try mainRow(value);
+    const selectors = kind.selectors();
+    return main ++ row.values() ++ .{ selectors[0], selectors[1] };
+}
+
 pub fn protectPreprocessedHeaders(
     columns: *const [PREPROCESSED_COLUMN_COUNT][]M31,
     preprocessing: *const Preprocessed,

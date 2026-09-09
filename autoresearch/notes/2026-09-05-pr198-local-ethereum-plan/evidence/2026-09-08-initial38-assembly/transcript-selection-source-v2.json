@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T04:22:16.387515+00:00",
+  "status": "source_and_ast_checked_semantic_gates_not_started",
+  "scope": "Initial38 selected transcript and admitted physical-claim-count propagation into fixed-zero rows; selected composition test consumes parallel owner; no actual proof or fold activation",
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_detached_transcript_v1.zig",
+      "sha256": "26aaeb1dfe76cd7ef17b30174daa2a494f573a0532cff7adb0ce8f9efbffa059"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig",
+      "sha256": "3ef2e6bc68b6c9fefe5f9bed70ec0cec86b715e219f260eb355c51c8ce56d381"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig",
+      "sha256": "7a7ec25608cbfa382afb450323ad58ab62d51ab633faffc5579fd3e289856f4a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_initial_transcript_v1_test_root.zig",
+      "sha256": "786f036acd2cabfea89d9a45637e1d2505561e4890e922c194fcaadc33e5a029"
+    }
+  ],
+  "ast_commands": [
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/ethereum_wrapper_detached_transcript_v1.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/ethereum_initial_transcript_v1_test_root.zig"
+    ]
+  ],
+  "ast_exit_codes": [
+    0,
+    0,
+    0,
+    0
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_initial_transcript_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum detached field admission preserves session projection without custody",
+    "--test-filter",
+    "Ethereum detached transcript dynamic frames match public wire and provider emitters",
+    "--test-filter",
+    "Ethereum initial detached transcript admits38 claims with native frame parity",
+    "--test-filter",
+    "Ethereum field transcript native emitters match explicit program frames",
+    "--test-filter",
+    "Ethereum field transcript requires explicit admission and preserves legacy kind tags",
+    "--test-filter",
+    "Ethereum initial transcript zero slots follow admitted physical claims"
+  ],
+  "artifact_compile_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_initial_transcript_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "-fno-emit-bin",
+    "--test-no-exec",
+    "--test-filter",
+    "Ethereum detached transcript replays independently pinned field9 proof after input destruction",
+    "--test-filter",
+    "Ethereum initial detached transcript replays independently pinned field9 proof after input destruction"
+  ],
+  "artifact_runtime_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/ethereum_initial_transcript_v1_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum initial detached transcript replays independently pinned field9 proof after input destruction"
+  ],
+  "required_initial_artifact_environment": [
+    "STWO_ETHEREUM_INITIAL_ROOT_REPLAY_DIR",
+    "STWO_ETHEREUM_INITIAL_ROOT_KEY_SHA256"
+  ],
+  "queue": "Not queued: ordinary real wrapper2, sibling3 and parent priority per parent instruction.",
+  "supersedes_source_receipt": "transcript-selection-source-v1.json",
+  "ordinary_preservation": "Default owner alias, transcript operation ordering/ABI, fixed-zero slots36..38 and Prepared custody identity bytes retained; hash extension applies only when selected physical count differs from36."
+}

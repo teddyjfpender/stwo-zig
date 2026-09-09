@@ -19,14 +19,14 @@ pub const PreparedCommitmentColumns = struct {
     columns: []ColumnEvaluation,
     coefficients: ?[]prover_circle.CircleCoefficients,
     column_backing_buffers: ?[][]M31 = null,
+    column_backing_alignment: std.mem.Alignment = .of(M31),
     /// Contiguous buffers borrowed by coefficient entries.
     coefficient_backing_buffers: ?[][]M31 = null,
 
     pub fn deinit(self: *PreparedCommitmentColumns, allocator: std.mem.Allocator) void {
         if (self.column_backing_buffers) |buffers| {
             allocator.free(self.columns);
-            for (buffers) |buffer| allocator.free(buffer);
-            allocator.free(buffers);
+            @import("../backed_columns.zig").freeBuffers(allocator, buffers, self.column_backing_alignment);
         } else {
             freeOwnedColumnEvaluations(allocator, self.columns);
         }

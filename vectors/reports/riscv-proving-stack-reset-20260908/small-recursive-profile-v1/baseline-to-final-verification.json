@@ -1,0 +1,23 @@
+{
+  "baseline_head": "73f6c12045218320fe3633fa6453c2a74706f74a",
+  "baseline_engine_pin_matched": true,
+  "reverse_apply_to_final_matches_baseline": true,
+  "forward_apply_to_baseline_matches_final": true,
+  "source_files_unchanged": true,
+  "patch_sha256": "edc246d84223b73fb85ce3509cb8644de0ffb675ed9d261feea690df840ecf76",
+  "patch_bytes": 14239,
+  "files": {
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig": {
+      "baseline_sha256": "e3764e7ff81887d693275f4c882b24db5989c4c4dea01659232278c87a98457d",
+      "final_sha256": "393671f58f00baa596086d91a460b68bd0f07b767028aad5c31a80988bfe03a5"
+    },
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig": {
+      "baseline_sha256": "7513eb2eacc8167b4470083a494eb3c12aecf3f590aa4dd0a7e593618bc8211c",
+      "final_sha256": "f4b14aa54271acdc51faf29be5f73e571c28396b0cd879ebc50164813e572336"
+    },
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": {
+      "baseline_sha256": "83602d52a08782dc5828886fe0ab90ef2a01f94db83148e58b76b8c5a134be05",
+      "final_sha256": "c7938c3f43e7d6be9613330c7468014decbed8479deacba73a66f2b0e73b6b96"
+    }
+  }
+}

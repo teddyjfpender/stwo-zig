@@ -1,0 +1,3 @@
+[1/1] sha256/2048: execute, prove, verify
+  prove=0.808s verify=0.119s proof=836.4KiB rss=1.41GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/041-baseline-cpu.json

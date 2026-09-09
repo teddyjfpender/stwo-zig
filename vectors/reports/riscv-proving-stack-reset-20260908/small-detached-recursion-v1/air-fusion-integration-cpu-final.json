@@ -1,0 +1,27 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "build-recursive-segment-v2-detached-parent-verifier",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 159242302167,
+  "log_sha256": "741d2236afe191f3d2df63e91c05712118f8be03453f59226e395d7ed297ca2f",
+  "changed_source_during_build": [],
+  "binaries": {
+    "prove": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/air-fusion-final-cpu-prove",
+      "sha256": "54934a68624af972f81645726eb68d2328255ee129ed5f5c09a7c5638d542dbc"
+    },
+    "verify": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/air-fusion-final-cpu-verify",
+      "sha256": "9e0b05c7709133f75419a581c15ebcef3a49334c3c2a08f0b44f3a0c754b1223"
+    }
+  }
+}

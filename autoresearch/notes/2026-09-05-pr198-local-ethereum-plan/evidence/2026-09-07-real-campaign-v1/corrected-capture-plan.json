@@ -1,0 +1,48 @@
+{
+  "schema": "stwo.ethereum.retained-campaign-execution-measurement.v1",
+  "claim": "proof-free compact/public-wire capture and cold publication; not a proof benchmark",
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/zig-out/bin/stwo-ethereum-block-proof",
+    "ethereum-incremental-capture-fast-v4",
+    "--retained-materialization-result",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root-parent",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent",
+    "--cold-workers",
+    "1",
+    "--campaign-geometry",
+    "authenticated-v1"
+  ],
+  "source_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "started_unix_ns": 1788780611675351000,
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/zig-out/bin/stwo-ethereum-block-proof",
+    "bytes": 11767384,
+    "sha256": "c3b43d5ddbab01bf984351ba9d0ccd54b5471c3bfefaf1b6838376e140bb8156"
+  },
+  "elf": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/rebuilt-guest-rw-heap-v2/f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16/stwo-ethereum-guest.elf",
+    "bytes": 3412588,
+    "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16"
+  },
+  "input": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/projected-input-recheck/stwo-runner-input.bin",
+    "bytes": 2700692,
+    "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+  },
+  "expected_output": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/projected-input-recheck/host-output.bin",
+    "bytes": 43,
+    "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "expected_cycles": 253646998,
+  "segment_count": 121,
+  "segment_step_budget": 2097152,
+  "cold_workers": 1,
+  "retained_materialization": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "bytes": 70206,
+    "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+  },
+  "binary_scope": "campaign V1 built before explicit claim selector; capture implementation unchanged"
+}

@@ -1,0 +1,2568 @@
+{
+  "default_install_artifacts": [
+    "stwo-zig"
+  ],
+  "dependency_only_public_modules": [
+    "stwo_core",
+    "stwo_prover",
+    "stwo"
+  ],
+  "install_manifests": [
+    {
+      "files": [
+        "bin/stwo-zig"
+      ],
+      "linkage_sha256": "90726bef6c6e82cf51e8f7a91974ba0e7548a8a29d2b1422e9a7158037cd54cd",
+      "metal_enabled": false,
+      "registry_sha256": "ba9f46fa2f07fc8f192dd159d4a2ab5256e141efdd9ee489d01dd0796c5164e3"
+    },
+    {
+      "files": [
+        "bin/stwo-zig"
+      ],
+      "linkage_sha256": "e6db896737420967113a8717e5a0a778b13b231e697355aceb434f20bf78dbae",
+      "metal_enabled": true,
+      "registry_sha256": "7df19e5970eab5849f5fb09fb18d71a04e196862578f49d286991f7e346e29c5"
+    }
+  ],
+  "negative_checks": [
+    "unknown-scope-fails",
+    "exact-catalog-step-set",
+    "actual-constructor-and-product-match",
+    "focused-install-mutation-rejected",
+    "internal-cache-placement"
+  ],
+  "product_catalog_receipt_sha256": "c5538c736cda7e14a57ab47ca15e109cddbd4b6bd314879a3aab58308f7cd530",
+  "result": "pass",
+  "schema": "stwo-build-configure-closure-v2",
+  "scopes": [
+    {
+      "configure_seconds": 0.284939,
+      "help_sha256": "835fe388a2c8e796d334f2c5768a8e5c42b5d2804b3d46b1802e7ee31c3fb0c8",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.addIdentity",
+            "products/matrix.construct.aggregate"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover:native/resource_admission.zig",
+            "dependency:../src/prover:native/runner.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "build_support/graph/identity/emitter.zig",
+            "src/integrations/native/product_identity.zig",
+            "src/integrations/native/transaction.zig",
+            "src/interop/output_transaction.zig",
+            "src/interop/postcard.zig",
+            "src/interop/riscv_artifact.zig",
+            "src/products/native_cpu/capabilities.zig",
+            "src/products/riscv_cpu/capabilities.zig",
+            "src/stwo_aggregate_cpu.zig",
+            "src/tools/prove/app.zig",
+            "src/tools/prove/cli.zig",
+            "src/tools/prove/cli_resource_test.zig",
+            "src/tools/prove/main.zig",
+            "src/tools/prove/native_dispatch.zig",
+            "src/tools/prove/registry.zig"
+          ],
+          "products": [
+            {
+              "backend": "cpu",
+              "frontend": "aggregate",
+              "product_id": "stwo-zig",
+              "protocol_manifest": "aggregate-compat-v1+cpu",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/tools/prove/main.zig",
+          "src/stwo_aggregate_cpu.zig",
+          "src/prover/native/runner.zig",
+          "src/stwo_aggregate_cpu.zig",
+          "src/products/native_cpu/capabilities.zig",
+          "src/products/riscv_cpu/capabilities.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/examples_artifact.zig",
+          "src/interop/examples_artifact_verifier.zig",
+          "src/interop/output_transaction.zig",
+          "src/interop/postcard.zig",
+          "src/interop/proof_wire/mod.zig",
+          "src/interop/riscv_artifact.zig",
+          "src/integrations/native/product_identity.zig",
+          "src/integrations/native/transaction.zig",
+          "build_support/graph/identity/emitter.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/core",
+          "src/examples",
+          "src/frontends/riscv",
+          "src/integrations/riscv_cpu",
+          "src/interop/postcard",
+          "src/interop/riscv_artifact",
+          "src/prover",
+          "src/prover_api",
+          "src/std_shims",
+          "src/tools/prove",
+          "src/tracing"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cpu",
+            "frontend": "aggregate",
+            "product_id": "stwo-zig",
+            "protocol_manifest": "aggregate-compat-v1+cpu",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.aggregate",
+          "products/matrix.addIdentity"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/prover:native/resource_admission.zig",
+          "dependency:../src/prover:native/runner.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/tools/prove/main.zig",
+          "src/stwo_aggregate_cpu.zig",
+          "src/prover/native/runner.zig"
+        ],
+        "product_ids": [
+          "stwo-zig"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "aggregate",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "c9a05f4ebe50719961de8d0ffe49243d1748dee95187f3345ca7928d6bc1a66f",
+      "scope": "aggregate",
+      "steps": [
+        "configure-manifest",
+        "identity-stwo-zig",
+        "install",
+        "product-matrix-identity",
+        "stwo-zig",
+        "test",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.41292,
+      "help_sha256": "2e97bcf7c590d1bdd5f8406b1dff7a7e333e7e92518b8e74734a5daab3c5ffc0",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "gates/architecture_receipts.addGates",
+            "gates/baseline.addGate"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [],
+        "allowed_module_prefixes": [],
+        "constructed_products": [],
+        "constructors": [
+          "gates/architecture_receipts.addGates",
+          "gates/baseline.addGate"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [],
+        "product_ids": [],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "architecture",
+        "scope_role": "gates"
+      },
+      "manifest_sha256": "e597aa7a8342f0352f47b543e44f747fee19a63a7fa12cb488590442d91f7880",
+      "scope": "architecture",
+      "steps": [
+        "architecture-gate",
+        "architecture-verify",
+        "build-monorepo-baseline",
+        "configure-manifest",
+        "install",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.622805,
+      "help_sha256": "35879519b7b6daaa86ea153a656c8c5c237f11bcffdbd3e109d408d03b1df0b5",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.cairo_cpu"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "cargo",
+            "cmp",
+            "python3",
+            "stwo-cairo-official-verifier",
+            "stwo-cairo-vm-adapter"
+          ],
+          "generated_module_roots": [
+            "generated:cairo-witness-cpu-aot:",
+            "generated:options:"
+          ],
+          "module_roots": [
+            "src/products/cairo/shared/mod.zig",
+            "src/products/cairo_cpu/main.zig",
+            "src/stwo_cairo_cpu.zig",
+            "third_party/bzip2/blocksort.c",
+            "third_party/bzip2/bzlib.c",
+            "third_party/bzip2/compress.c",
+            "third_party/bzip2/crctable.c",
+            "third_party/bzip2/decompress.c",
+            "third_party/bzip2/huffman.c",
+            "third_party/bzip2/randtable.c"
+          ],
+          "products": [
+            {
+              "backend": "cpu",
+              "frontend": "cairo",
+              "product_id": "stwo-cairo-cpu",
+              "protocol_manifest": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+authenticated-witness-cpu-aot-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/cairo_cpu/main.zig",
+          "src/stwo_cairo_cpu.zig",
+          "src/stwo_cairo_cpu.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/bzip2.zig",
+          "src/interop/output_transaction.zig",
+          "build_support/products/cairo_witness_cpu_aot.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/core",
+          "src/frontends/cairo",
+          "src/integrations/cairo_cpu",
+          "src/products/cairo",
+          "src/products/cairo_cpu",
+          "src/prover",
+          "src/prover_api",
+          "src/tools/cairo_witness_cpu_codegen",
+          "third_party/bzip2"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cpu",
+            "frontend": "cairo",
+            "product_id": "stwo-cairo-cpu",
+            "protocol_manifest": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+authenticated-witness-cpu-aot-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.cairo_cpu"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "cargo",
+          "cmp",
+          "python3",
+          "stwo-cairo-official-verifier",
+          "stwo-cairo-vm-adapter"
+        ],
+        "generated_module_roots": [
+          "generated:options:",
+          "generated:cairo-witness-cpu-aot:"
+        ],
+        "module_roots": [
+          "src/products/cairo_cpu/main.zig",
+          "src/stwo_cairo_cpu.zig"
+        ],
+        "product_ids": [
+          "stwo-cairo-cpu"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "cairo_cpu",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "51bc1d606bd58a01f965f4b19e15e0713f3d0906be260b6789194433e16b0f48",
+      "scope": "cairo_cpu",
+      "steps": [
+        "cairo-csp-fixtures",
+        "cairo-csp-runnable",
+        "cairo-zkvm-fixtures",
+        "configure-manifest",
+        "install",
+        "stwo-cairo-cpu",
+        "test-cairo-cpu-oracle",
+        "test-cairo-cpu-product",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.650461,
+      "help_sha256": "116ace64940db75d93d139d341d19e19e4b4eb1910e9757610935fc395185f3c",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.cairo_cuda"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [
+            {
+              "backend": "cuda",
+              "frontend": "cairo",
+              "product_id": "stwo-cairo-cuda",
+              "protocol_manifest": "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/cairo_cuda/main.zig",
+          "src/cairo_cuda.zig",
+          "src/cairo_cuda.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/backends/cuda",
+          "src/core",
+          "src/examples",
+          "src/frontends/cairo",
+          "src/integrations/cairo_cuda",
+          "src/integrations/native_cuda",
+          "src/interop",
+          "src/products/cairo_cuda",
+          "src/prover",
+          "src/prover_api",
+          "src/tools/cuda_native_ec_composite_oracle"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cuda",
+            "frontend": "cairo",
+            "product_id": "stwo-cairo-cuda",
+            "protocol_manifest": "cairo-stwo-v1+cuda-resident-proof-v1+strict-aot-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.cairo_cuda"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/integrations/cairo_cuda:mod.zig",
+          "dependency:../src/integrations/native_cuda:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/cairo_cuda/main.zig",
+          "src/cairo_cuda.zig"
+        ],
+        "product_ids": [
+          "stwo-cairo-cuda"
+        ],
+        "runtime_probes": [
+          "cuda",
+          "cudart",
+          "stwo_cuda_kernels"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "cairo_cuda",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "6f49bde83a144df2ee2e40871e6900ce4d3307b07a0f576599b982d2f8be5cd7",
+      "scope": "cairo_cuda",
+      "steps": [
+        "benchmark-cairo-cuda-sn2",
+        "configure-manifest",
+        "install",
+        "stwo-cairo-cuda",
+        "test-cairo-cuda-product",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.663857,
+      "help_sha256": "d67b5110403d203d808172554dec2f064552e05c20f80e3468df1cfd2ef24f57",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.cairo_metal"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [
+            {
+              "backend": "metal",
+              "frontend": "cairo",
+              "product_id": "stwo-cairo-metal",
+              "protocol_manifest": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2+authenticated-witness-cpu-aot-v1+authenticated-cairo-composition-eval-domain-aot-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/cairo_metal/main.zig",
+          "src/stwo_cairo_metal.zig",
+          "src/stwo_cairo_metal.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/bzip2.zig",
+          "src/interop/output_transaction.zig",
+          "build_support/products/cairo_witness_cpu_aot.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/artifact_store",
+          "src/backend",
+          "src/backends/metal",
+          "src/core",
+          "src/frontends/cairo",
+          "src/integrations/cairo_metal",
+          "src/products/cairo",
+          "src/products/cairo_metal",
+          "src/prover",
+          "src/prover_api",
+          "src/tools/metal_session",
+          "src/tools/cairo_witness_cpu_codegen",
+          "third_party/bzip2"
+        ],
+        "constructed_products": [
+          {
+            "backend": "metal",
+            "frontend": "cairo",
+            "product_id": "stwo-cairo-metal",
+            "protocol_manifest": "stwo-cairo-v1.2.2+cairo-executable-v1+cairo-lang-2.20.0+cairo-vm-3.2.0+official-vm-adapter-v2+official-json-v1+cairo-serde-v1+bincode-v1+bzip2-1.0.8+live-geometry-v1+air-template-library-v1+lifted-pcs-v2+blake2s+metal-runtime-v2+plain-blake2s+authenticated-core-aot-v2+authenticated-witness-cpu-aot-v1+authenticated-cairo-composition-eval-domain-aot-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.cairo_metal"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/artifact_store:mod.zig",
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/integrations/cairo_metal:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/tools/metal_session:mod.zig"
+        ],
+        "external_tools": [
+          "cargo",
+          "cmp",
+          "python3",
+          "stwo-cairo-official-verifier",
+          "xcrun"
+        ],
+        "generated_module_roots": [
+          "generated:options:",
+          "generated:cairo-witness-cpu-aot:"
+        ],
+        "module_roots": [
+          "src/products/cairo_metal/main.zig",
+          "src/stwo_cairo_metal.zig"
+        ],
+        "product_ids": [
+          "stwo-cairo-metal"
+        ],
+        "runtime_probes": [
+          "Metal.framework",
+          "Foundation.framework",
+          "libobjc"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "cairo_metal",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "2abc0e1312c42e014b2211f0c9cb07ec759e2a46c3ec68fe6bf4c9a4947b4986",
+      "scope": "cairo_metal",
+      "steps": [
+        "configure-manifest",
+        "install",
+        "stwo-cairo-metal",
+        "test-cairo-metal-oracle",
+        "test-cairo-metal-product",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.400686,
+      "help_sha256": "9024ca09294ca9da78ef50a6aceb4d47c7ec50e6d146e2b0622d2f853a52ab1d",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/compatibility_tools.addProducts"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/artifact_store:mod.zig",
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/cairo:tests/mod.zig",
+            "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover:native/resource_admission.zig",
+            "dependency:../src/prover:native/runner.zig",
+            "dependency:../src/prover_api:mod.zig",
+            "dependency:../src/tools/metal_session:mod.zig"
+          ],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [
+            "src/interop/postcard.zig",
+            "src/riscv_bench_cli.zig",
+            "src/stwo.zig",
+            "src/tests/cairo/cpu_air_test.zig",
+            "src/tests/cairo/cpu_proof_test.zig",
+            "src/tools/cairo/air_bundle_inspector.zig",
+            "src/tools/cairo/input_inspector.zig",
+            "src/tools/interop/main.zig",
+            "src/tools/native_proof_bench/cpu.zig",
+            "src/tools/riscv_opcode_manifest/main.zig"
+          ],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/stwo.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/frontends/cairo",
+          "src/frontends/riscv",
+          "src/integrations/riscv_cpu",
+          "src/integrations/cairo_cpu",
+          "src/interop",
+          "src/products/native_cpu",
+          "src/tests/cairo",
+          "src/tools"
+        ],
+        "constructed_products": [],
+        "constructors": [
+          "products/compatibility_tools.addProducts"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/artifact_store:mod.zig",
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/frontends/cairo:tests/mod.zig",
+          "dependency:../src/frontends/cairo:witness/composition_bundle.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/integrations/cairo_cuda:mod.zig",
+          "dependency:../src/integrations/cairo_metal:mod.zig",
+          "dependency:../src/integrations/native_cuda:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/prover:native/resource_admission.zig",
+          "dependency:../src/prover:native/runner.zig",
+          "dependency:../src/tools/metal_session:mod.zig"
+        ],
+        "external_tools": [],
+        "generated_module_roots": [],
+        "module_roots": [
+          "src/tools/interop/main.zig",
+          "src/tools/cairo/input_inspector.zig",
+          "src/tools/cairo/air_bundle_inspector.zig",
+          "src/frontends/cairo/witness/composition_bundle.zig",
+          "src/frontends/cairo/tests/mod.zig",
+          "src/tests/cairo/cpu_air_test.zig",
+          "src/tools/riscv_opcode_manifest/main.zig",
+          "src/riscv_bench_cli.zig",
+          "src/tools/native_proof_bench/cpu.zig"
+        ],
+        "product_ids": [
+          "stwo-compatibility-tools"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "compatibility_tools",
+        "scope_role": "compatibility_tools"
+      },
+      "manifest_sha256": "adb2c351e1299bbf9b1a705f031c4c61a529aeec4092267a11c9c152d0137942",
+      "scope": "compatibility_tools",
+      "steps": [
+        "cairo-air-bundle-inspector",
+        "cairo-input",
+        "configure-manifest",
+        "install",
+        "interop-cli",
+        "native-proof-bench-cpu",
+        "riscv-bench",
+        "riscv-opcode-manifest",
+        "riscv-opcode-manifest-check",
+        "test-cairo-cpu-air",
+        "test-cairo-cpu-proof",
+        "test-cairo-frontend",
+        "test-riscv-bench",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.662343,
+      "help_sha256": "26fe0f32af225331922ea98ea469f1d6463c7941d61b91c7d0068fe0a063a9ef",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.core"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/core:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "build_support/graph/identity/emitter.zig",
+            "src/products/core/surface.zig"
+          ],
+          "products": [
+            {
+              "backend": "none",
+              "frontend": "none",
+              "product_id": "stwo-core",
+              "protocol_manifest": "stwo-core-v1",
+              "role": "library"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/core/mod.zig",
+          "src/products/core/surface.zig",
+          "build_support/graph/identity/emitter.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/products/core"
+        ],
+        "constructed_products": [
+          {
+            "backend": "none",
+            "frontend": "none",
+            "product_id": "stwo-core",
+            "protocol_manifest": "stwo-core-v1",
+            "role": "library"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.core"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/core:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/core/mod.zig",
+          "src/products/core/surface.zig"
+        ],
+        "product_ids": [
+          "stwo-core"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "core",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "7dd2ef0314900362d7e5bba3ba5104ad6f346b9e123d8c1957fd820f003e7add",
+      "scope": "core",
+      "steps": [
+        "configure-manifest",
+        "identity-stwo-core",
+        "install",
+        "stwo-core",
+        "test-stwo-core",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.386139,
+      "help_sha256": "46b6041089a9ab0aa8b8d35c95501674a7715ab43344c0393c6b3a7c355c6d91",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "backends/cuda_tools.addProducts"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/artifact_store:mod.zig",
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig",
+            "dependency:../src/tools/metal_session:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [],
+          "module_roots": [
+            "src/backends/cuda/runtime/stages/test_stubs.c",
+            "src/interop/postcard.zig",
+            "src/products/native_cuda/blake_route.zig",
+            "src/stwo.zig",
+            "src/tools/cairo_cuda_eval_aot/main.zig",
+            "src/tools/cairo_cuda_witness_aot/main.zig",
+            "src/tools/cairo_witness_cpu_codegen/model.zig",
+            "src/tools/cuda_native_ec_composite_oracle/main.zig",
+            "tests/native_cuda_blake_exact_structure.zig",
+            "tests/native_cuda_plonk_logup.zig",
+            "tests/native_cuda_poseidon_arena.zig",
+            "tests/native_cuda_state_machine.zig",
+            "tests/native_cuda_xor_logup.zig"
+          ],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "tests/cuda/cumetal/native_frontend_execution.zig",
+          "src/interop/postcard.zig",
+          "src/products/native_cuda/blake_route.zig",
+          "src/stwo.zig",
+          "src/tools/cuda_native_ec_composite_oracle/main.zig",
+          "tests/native_cuda_blake_exact_structure.zig",
+          "tests/native_cuda_plonk_logup.zig",
+          "tests/native_cuda_poseidon_arena.zig",
+          "tests/native_cuda_state_machine.zig",
+          "tests/native_cuda_xor_logup.zig"
+        ],
+        "allowed_module_prefixes": [
+          "build_support/backends",
+          "src/backends/cuda",
+          "src/tools/cairo_cuda_eval_aot",
+          "src/tools/cairo_cuda_witness_aot",
+          "src/tools/cairo_witness_cpu_codegen"
+        ],
+        "constructed_products": [],
+        "constructors": [
+          "backends/cuda_tools.addProducts"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/artifact_store:mod.zig",
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/integrations/cairo_cuda:mod.zig",
+          "dependency:../src/integrations/cairo_metal:mod.zig",
+          "dependency:../src/integrations/native_cuda:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/tools/metal_session:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [
+          "build_support/backends/cuda.zig",
+          "src/tools/cairo_cuda_eval_aot/main.zig",
+          "src/tools/cairo_cuda_witness_aot/main.zig",
+          "src/tools/cairo_witness_cpu_codegen/model.zig"
+        ],
+        "product_ids": [
+          "stwo-native-cuda-tools"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "cuda_tools",
+        "scope_role": "backend_tools"
+      },
+      "manifest_sha256": "694108bc4fcd73ef6abd4bed96d07ad9ff5931338327432f4533e3b055af3f71",
+      "scope": "cuda_tools",
+      "steps": [
+        "configure-manifest",
+        "cuda-authority-materialize",
+        "cuda-build-plan",
+        "cuda-cairo-eval-aot",
+        "cuda-cumetal-audit",
+        "cuda-cumetal-ledger",
+        "cuda-cumetal-native-archive",
+        "cuda-cumetal-portability",
+        "cuda-native-adapter",
+        "cuda-native-aot",
+        "cuda-native-archive",
+        "cuda-native-ec-composite-oracle",
+        "cuda-source-closure",
+        "install",
+        "run-native-cumetal-smoke",
+        "test-cuda-adapter",
+        "test-cuda-blake-exact-structure",
+        "test-cuda-build-plan",
+        "test-cuda-plonk-logup-contract",
+        "test-cuda-poseidon-arena-contract",
+        "test-cuda-runtime-contract",
+        "test-cuda-state-machine-contract",
+        "test-cuda-xor-logup-contract",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.365616,
+      "help_sha256": "f1164e985bbc8ee1da123994543053af7fd933e15c8933b3d49906e20b544990",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.addDeferredProducts"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [],
+        "allowed_module_prefixes": [],
+        "constructed_products": [],
+        "constructors": [
+          "products/matrix.addDeferredProducts"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/riscv_cuda:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [],
+        "generated_module_roots": [],
+        "module_roots": [],
+        "product_ids": [
+          "stwo-riscv-cuda"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "deferred",
+        "scope_role": "unavailable"
+      },
+      "manifest_sha256": "10340deb8ed0927e017bc30ab183474b0bf649ba9edaf1233d86961828b47d0b",
+      "scope": "deferred",
+      "steps": [
+        "configure-manifest",
+        "cuda-test",
+        "install",
+        "stwo-riscv-cuda",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.467174,
+      "help_sha256": "2f70189be7052576c0029e02218f28254d8c97aaab378822a21abeeaf965451a",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "backends/metal_aot.addProducts",
+            "benchmarks/metal.addProducts"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/artifact_store:mod.zig",
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/cuda:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/backends/metal:shader_manifest.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/frontends/cairo:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/integrations/cairo_cpu:mod.zig",
+            "dependency:../src/integrations/cairo_cuda:mod.zig",
+            "dependency:../src/integrations/cairo_metal:mod.zig",
+            "dependency:../src/integrations/native_cuda:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig",
+            "dependency:../src/tools/metal_session:mod.zig"
+          ],
+          "external_tools": [],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "src/backends/metal/polynomial_runtime_test_root.zig",
+            "src/backends/metal/runtime.m",
+            "src/bench/cairo_metal/streaming_commitment.zig",
+            "src/bench/metal/circle_lde.zig",
+            "src/bench/metal/commitment.zig",
+            "src/bench/metal/compaction.zig",
+            "src/bench/metal/ec_op.zig",
+            "src/bench/metal/recovery.zig",
+            "src/interop/postcard.zig",
+            "src/metal_arena_plan_cli.zig",
+            "src/stwo.zig",
+            "src/tests.zig",
+            "src/tools/cairo_metal_codegen/eval_prepare.zig",
+            "src/tools/cairo_metal_codegen/eval_source.zig",
+            "src/tools/cairo_metal_codegen/witness_source.zig",
+            "src/tools/metal_core_aot/host_transcript.zig",
+            "src/tools/metal_core_aot/main.zig",
+            "src/tools/metal_core_aot/probe.m",
+            "src/tools/metal_core_aot/probe.zig",
+            "src/tools/metal_prover_session/main.zig"
+          ],
+          "products": [],
+          "runtime_probes": [
+            "Foundation.framework",
+            "Metal.framework",
+            "libobjc"
+          ]
+        },
+        "allowed_module_files": [
+          "src/stwo.zig",
+          "src/tests.zig",
+          "src/metal_arena_plan_cli.zig",
+          "src/riscv_metal_bench_cli.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/backends",
+          "src/bench",
+          "src/examples",
+          "src/frontends",
+          "src/integrations",
+          "src/interop",
+          "src/std_shims",
+          "src/tools",
+          "src/tracing"
+        ],
+        "constructed_products": [],
+        "constructors": [
+          "backends/metal_aot.addProducts",
+          "benchmarks/metal.addProducts"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/artifact_store:mod.zig",
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/backends/metal:shader_manifest.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/integrations/cairo_cuda:mod.zig",
+          "dependency:../src/integrations/cairo_metal:mod.zig",
+          "dependency:../src/integrations/native_cuda:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/tools/metal_session:mod.zig"
+        ],
+        "external_tools": [],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/stwo.zig",
+          "src/backends/metal/shader_manifest.zig"
+        ],
+        "product_ids": [
+          "stwo-native-metal-tools"
+        ],
+        "runtime_probes": [
+          "Metal.framework",
+          "Foundation.framework",
+          "libobjc"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "metal_tools",
+        "scope_role": "backend_tools"
+      },
+      "manifest_sha256": "b53068435112a94801bc4b8907127fc3526c067061d2421b44a07e39ea728c95",
+      "scope": "metal_tools",
+      "steps": [
+        "cairo-streaming-commitment-bench",
+        "cairo-streaming-commitment-test",
+        "configure-manifest",
+        "install",
+        "metal-arena-plan",
+        "metal-arena-session",
+        "metal-bench",
+        "metal-check",
+        "metal-circle-lde-bench",
+        "metal-compact-bench",
+        "metal-core-aot",
+        "metal-core-aot-acceptance",
+        "metal-core-aot-probe",
+        "metal-ec-op-bench",
+        "metal-eval-prepare",
+        "metal-eval-source",
+        "metal-prover-session-test",
+        "metal-recovery-bench",
+        "metal-test",
+        "metal-witness-source",
+        "test-metal-core-aot",
+        "test-metal-core-aot-probe",
+        "test-metal-polynomial-runtime",
+        "test-metal-resident-decommit",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.634081,
+      "help_sha256": "7ada77794bbfeed099bbbe1be7ef33e881bb0aa62fb0cda5987d0902edf6bddc",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.native_cpu"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover:native/resource_admission.zig",
+            "dependency:../src/prover:native/runner.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "src/integrations/native/product_identity.zig",
+            "src/integrations/native/transaction.zig",
+            "src/interop/output_transaction.zig",
+            "src/products/native_cpu/benchmark.zig",
+            "src/products/native_cpu/main.zig",
+            "src/stwo_native_cpu.zig"
+          ],
+          "products": [
+            {
+              "backend": "cpu",
+              "frontend": "native",
+              "product_id": "stwo-native-cpu",
+              "protocol_manifest": "native-examples-v1+lifted-pcs-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/native_cpu/main.zig",
+          "src/stwo_native_cpu.zig",
+          "src/prover/native/runner.zig",
+          "src/products/native_cpu/benchmark.zig",
+          "src/products/native_cpu/main.zig",
+          "src/stwo_native_cpu.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/output_transaction.zig",
+          "src/interop/examples_artifact.zig",
+          "src/interop/examples_artifact_verifier.zig",
+          "src/interop/postcard.zig",
+          "src/interop/proof_wire/mod.zig",
+          "src/integrations/native/transaction.zig",
+          "src/integrations/native/product_identity.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/prover",
+          "src/prover_api",
+          "src/examples",
+          "src/products/native_cpu",
+          "src/interop/postcard"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cpu",
+            "frontend": "native",
+            "product_id": "stwo-native-cpu",
+            "protocol_manifest": "native-examples-v1+lifted-pcs-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.native_cpu"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/prover:native/resource_admission.zig",
+          "dependency:../src/prover:native/runner.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/native_cpu/main.zig",
+          "src/stwo_native_cpu.zig",
+          "src/prover/native/runner.zig",
+          "src/products/native_cpu/benchmark.zig"
+        ],
+        "product_ids": [
+          "stwo-native-cpu"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "native_cpu",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "3b271a5d753d9e738807bf3e7ac82c0249bbf7411ceab3c4689692048e526a0a",
+      "scope": "native_cpu",
+      "steps": [
+        "benchmark-native-cpu",
+        "configure-manifest",
+        "install",
+        "stwo-native-cpu",
+        "test-native-cpu-product",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.690552,
+      "help_sha256": "4520262a0c9091aae547d059e59352a72fd9abfaf83712019e5b1673719ad490",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.native_cuda"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [
+            {
+              "backend": "cuda",
+              "frontend": "native",
+              "product_id": "stwo-native-cuda",
+              "protocol_manifest": "native-examples-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/native_cuda/main.zig",
+          "src/stwo.zig",
+          "src/stwo.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/artifact_store",
+          "src/backend",
+          "src/backends/cuda",
+          "src/backends/cpu_scalar",
+          "src/backends/metal",
+          "src/core",
+          "src/examples",
+          "src/frontends/cairo",
+          "src/frontends/riscv",
+          "src/integrations/native_cuda",
+          "src/integrations/cairo_metal",
+          "src/interop",
+          "src/products/native_cuda",
+          "src/prover",
+          "src/prover_api",
+          "src/tools/metal_session"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cuda",
+            "frontend": "native",
+            "product_id": "stwo-native-cuda",
+            "protocol_manifest": "native-examples-v1+cuda-resident-proof-v1+explicit-toolchain-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.native_cuda"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/artifact_store:mod.zig",
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/cuda:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/frontends/cairo:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/cairo_cpu:mod.zig",
+          "dependency:../src/integrations/cairo_cuda:mod.zig",
+          "dependency:../src/integrations/cairo_metal:mod.zig",
+          "dependency:../src/integrations/native_cuda:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/tools/metal_session:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [
+          "src/products/native_cuda/main.zig",
+          "src/stwo.zig"
+        ],
+        "product_ids": [
+          "stwo-native-cuda"
+        ],
+        "runtime_probes": [
+          "cuda",
+          "cudart",
+          "stwo_cuda_kernels"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "native_cuda",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "b7bfd8a8545d3add37939c9941d32e0f45699f3904b36c2695c027c0c53c1f23",
+      "scope": "native_cuda",
+      "steps": [
+        "benchmark-native-cuda",
+        "configure-manifest",
+        "install",
+        "run-native-cuda-smoke",
+        "stwo-native-cuda",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.778219,
+      "help_sha256": "1eeff3970f7071226a7df8c92b0d3817d81cc325a23a89f2a156e8a6839f0d4f",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.native_metal"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/backends/metal:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/examples:mod.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover:native/resource_admission.zig",
+            "dependency:../src/prover:native/runner.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "python3",
+            "xcrun"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "build_support/product_policy_test.zig",
+            "src/backends/metal/runtime.m",
+            "src/integrations/native/product_identity.zig",
+            "src/integrations/native/transaction.zig",
+            "src/interop/output_transaction.zig",
+            "src/products/native_cpu/capabilities.zig",
+            "src/products/native_metal/main.zig",
+            "src/stwo_native_metal.zig"
+          ],
+          "products": [
+            {
+              "backend": "metal",
+              "frontend": "native",
+              "product_id": "stwo-native-metal",
+              "protocol_manifest": "native-examples-v1+lifted-pcs-v1+metal-runtime-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": [
+            "Foundation.framework",
+            "Metal.framework",
+            "libobjc"
+          ]
+        },
+        "allowed_module_files": [
+          "src/products/native_metal/main.zig",
+          "src/stwo_native_metal.zig",
+          "src/prover/native/runner.zig",
+          "src/stwo_native_metal.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/output_transaction.zig",
+          "src/interop/examples_artifact.zig",
+          "src/interop/examples_artifact_verifier.zig",
+          "src/interop/postcard.zig",
+          "src/interop/proof_wire/mod.zig",
+          "src/integrations/native/transaction.zig",
+          "src/integrations/native/product_identity.zig",
+          "src/products/native_cpu/capabilities.zig",
+          "build_support/product_policy_test.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/backends/metal",
+          "src/prover",
+          "src/prover_api",
+          "src/examples",
+          "src/products/native_metal",
+          "src/interop/postcard"
+        ],
+        "constructed_products": [
+          {
+            "backend": "metal",
+            "frontend": "native",
+            "product_id": "stwo-native-metal",
+            "protocol_manifest": "native-examples-v1+lifted-pcs-v1+metal-runtime-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.native_metal"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/examples:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig",
+          "dependency:../src/prover:native/resource_admission.zig",
+          "dependency:../src/prover:native/runner.zig"
+        ],
+        "external_tools": [
+          "python3",
+          "xcrun"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/native_metal/main.zig",
+          "src/stwo_native_metal.zig",
+          "src/prover/native/runner.zig"
+        ],
+        "product_ids": [
+          "stwo-native-metal"
+        ],
+        "runtime_probes": [
+          "Metal.framework",
+          "Foundation.framework",
+          "libobjc"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "native_metal",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "ed9cbd29ec9569e6c21a87eaa6be35986992bafd92e7a82b98a3c030769e66b7",
+      "scope": "native_metal",
+      "steps": [
+        "configure-manifest",
+        "install",
+        "native-proof-bench-metal",
+        "stwo-native-metal",
+        "test-native-metal",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.692656,
+      "help_sha256": "375e0033c12b0e6db00e3c2ff60a732debc7934341325ef90a5a86ff22d48bb8",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/libraries.addProducts"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "build_support/graph/identity/emitter.zig",
+            "src/products/core/surface.zig",
+            "src/products/prover/root.zig",
+            "src/products/prover/surface.zig"
+          ],
+          "products": [
+            {
+              "backend": "contracts",
+              "frontend": "aggregate",
+              "product_id": "stwo",
+              "protocol_manifest": "aggregate-sdk-v1",
+              "role": "library"
+            },
+            {
+              "backend": "none",
+              "frontend": "none",
+              "product_id": "stwo-core",
+              "protocol_manifest": "stwo-core-v1",
+              "role": "library"
+            },
+            {
+              "backend": "contracts",
+              "frontend": "none",
+              "product_id": "stwo-prover",
+              "protocol_manifest": "generic-prover+backend-contracts-v1",
+              "role": "library"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/stwo.zig",
+          "build_support/graph/identity/emitter.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/products/core",
+          "src/products/prover"
+        ],
+        "constructed_products": [
+          {
+            "backend": "none",
+            "frontend": "none",
+            "product_id": "stwo-core",
+            "protocol_manifest": "stwo-core-v1",
+            "role": "library"
+          },
+          {
+            "backend": "contracts",
+            "frontend": "none",
+            "product_id": "stwo-prover",
+            "protocol_manifest": "generic-prover+backend-contracts-v1",
+            "role": "library"
+          },
+          {
+            "backend": "contracts",
+            "frontend": "aggregate",
+            "product_id": "stwo",
+            "protocol_manifest": "aggregate-sdk-v1",
+            "role": "library"
+          }
+        ],
+        "constructors": [
+          "products/libraries.addProducts"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/prover/root.zig",
+          "src/stwo.zig"
+        ],
+        "product_ids": [
+          "stwo-core",
+          "stwo-prover",
+          "stwo"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "package",
+        "scope_role": "package_exports"
+      },
+      "manifest_sha256": "6f4e4ea06435410ac35999d4a36d12268d8fe585391ef70d6d53ddec297a80d9",
+      "scope": "package",
+      "steps": [
+        "configure-manifest",
+        "identity-stwo-core",
+        "identity-stwo-prover",
+        "install",
+        "stwo-core",
+        "stwo-prover",
+        "test-downstream-modules",
+        "test-stwo-core",
+        "test-stwo-prover",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.455322,
+      "help_sha256": "9e130a09738158a175a83ca1468726fb7349e2b4873669375458f69490ac5c89",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "internal_build.addPolicyGates"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [
+            "python3",
+            "zig"
+          ],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [],
+        "allowed_module_prefixes": [],
+        "constructed_products": [],
+        "constructors": [
+          "internal_build.addPolicyGates"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [],
+        "external_tools": [
+          "python3",
+          "zig"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [],
+        "product_ids": [],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "policy",
+        "scope_role": "gates"
+      },
+      "manifest_sha256": "74a3ea94b4e9a229486c69a7816ef402177ff9b6cf9ee24cd19e05e183a0166e",
+      "scope": "policy",
+      "steps": [
+        "api-parity",
+        "build-configure-closure",
+        "configure-manifest",
+        "fmt",
+        "install",
+        "package-workspace",
+        "registry-parity",
+        "source-conformance",
+        "uninstall",
+        "upstream-pins",
+        "upstream-surface"
+      ]
+    },
+    {
+      "configure_seconds": 4.65742,
+      "help_sha256": "bb1777ab13bb840ed80bf5547ba54bb1f274e9cacd35cfa582f85867ba2846e9",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.prover"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "build_support/graph/identity/emitter.zig",
+            "src/products/core/surface.zig",
+            "src/products/prover/root.zig",
+            "src/products/prover/surface.zig"
+          ],
+          "products": [
+            {
+              "backend": "contracts",
+              "frontend": "none",
+              "product_id": "stwo-prover",
+              "protocol_manifest": "generic-prover+backend-contracts-v1",
+              "role": "library"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/products/prover/root.zig",
+          "src/products/prover/surface.zig",
+          "build_support/graph/identity/emitter.zig",
+          "src/products/core/surface.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/backend",
+          "src/prover",
+          "src/prover_api",
+          "src/products/prover"
+        ],
+        "constructed_products": [
+          {
+            "backend": "contracts",
+            "frontend": "none",
+            "product_id": "stwo-prover",
+            "protocol_manifest": "generic-prover+backend-contracts-v1",
+            "role": "library"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.prover"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/prover/root.zig",
+          "src/products/prover/surface.zig"
+        ],
+        "product_ids": [
+          "stwo-prover"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "prover",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "bcca5e549153eb6603f4f8996637d930782eb3e412845193ad74f9649cfc6bcf",
+      "scope": "prover",
+      "steps": [
+        "configure-manifest",
+        "identity-stwo-core",
+        "identity-stwo-prover",
+        "install",
+        "stwo-core",
+        "stwo-prover",
+        "test-stwo-core",
+        "test-stwo-prover",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.435287,
+      "help_sha256": "af4a38f3ddb7967b6eafd5e9a573728597f61036944ee035c3051678a99f495c",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "gates/release.addGates"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [
+            "python3",
+            "zig"
+          ],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [],
+        "allowed_module_prefixes": [],
+        "constructed_products": [],
+        "constructors": [
+          "gates/release.addGates"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [],
+        "external_tools": [
+          "python3",
+          "zig"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [],
+        "product_ids": [
+          "stwo-zig-release"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "release",
+        "scope_role": "gates"
+      },
+      "manifest_sha256": "a0b69e0d8e6cfc00a1aa10abd6726a3f3523976d9f52ea3d27922b1d4e6be58f",
+      "scope": "release",
+      "steps": [
+        "configure-manifest",
+        "install",
+        "release-gate",
+        "release-gate-strict",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.671414,
+      "help_sha256": "0cde742f59c5d06c5aae0655fab80c653c75bcd93e0c161acd565adfd776f6b1",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.riscv_cpu"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
+            "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
+            "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
+            "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
+            "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
+            "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "cargo",
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "design/typed-air/artifacts/embedded.zig",
+            "design/typed-air/artifacts/h009_embedded.zig",
+            "design/typed-air/artifacts/h010_embedded.zig",
+            "src/interop/atomic_file.zig",
+            "src/interop/output_transaction.zig",
+            "src/interop/postcard.zig",
+            "src/products/riscv_cpu/capabilities.zig",
+            "src/products/riscv_cpu/ethereum_block_proof_main.zig",
+            "src/products/riscv_cpu/main.zig",
+            "src/products/riscv_shared/app.zig",
+            "src/products/riscv_shared/cli.zig",
+            "src/products/riscv_shared/registry.zig",
+            "src/riscv_trace_cli.zig",
+            "src/stwo_riscv_cpu.zig",
+            "src/tests.zig",
+            "src/tests/riscv/main_trace_planned_proof_test.zig",
+            "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+            "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+            "src/tools/riscv/analyze_legacy_semantics/main.zig",
+            "src/tools/riscv/function_value/main.zig",
+            "src/tools/riscv/memcpy_admission/main.zig",
+            "src/tools/riscv/memcpy_hotspot/main.zig",
+            "src/tools/riscv/pc_hotspot/main.zig",
+            "src/tools/riscv/poseidon2_pair/calibration_child.zig",
+            "src/tools/riscv/poseidon2_pair/corpus_manifest.zig",
+            "src/tools/riscv/poseidon2_pair/main.zig",
+            "src/tools/riscv/poseidon2_pair/proof_child.zig",
+            "src/tools/riscv/poseidon2_pair/proof_main.zig",
+            "src/tools/riscv/poseidon2_pair/test_root.zig",
+            "src/tools/riscv/recursive_csp_producer/main.zig",
+            "src/tools/riscv/recursive_csp_producer/profile_registry.zig",
+            "src/tools/riscv/recursive_csp_shape_inspector/main.zig"
+          ],
+          "products": [
+            {
+              "backend": "cpu",
+              "frontend": "riscv",
+              "product_id": "stwo-riscv-cpu",
+              "protocol_manifest": "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1+rv32im-zkvm-poseidon2-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/tools/riscv/analyze_legacy_semantics/main.zig",
+          "src/tools/riscv/function_value/main.zig",
+          "src/tools/riscv/memcpy_admission/main.zig",
+          "src/tools/riscv/memcpy_hotspot/main.zig",
+          "src/tools/riscv/pc_hotspot/main.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/tools/riscv/poseidon2_pair/main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_child.zig",
+          "src/tools/riscv/recursive_csp_producer/main.zig",
+          "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+          "src/riscv_trace_cli.zig",
+          "src/frontends/riscv/refinement_ir_export_test.zig",
+          "src/frontends/riscv/refinement_program_export_test.zig",
+          "src/frontends/riscv/sail_oracle_test_root.zig",
+          "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
+          "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/riscv_trace_cli.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/output_transaction.zig",
+          "src/interop/postcard.zig",
+          "src/interop/proof_wire/mod.zig",
+          "src/interop/riscv_artifact.zig",
+          "src/products/riscv_cpu/capabilities.zig",
+          "design/typed-air/artifacts/embedded.zig",
+          "design/typed-air/artifacts/h009_embedded.zig",
+          "design/typed-air/artifacts/h010_embedded.zig",
+          "src/tests.zig",
+          "src/tests/riscv/main_trace_planned_proof_test.zig",
+          "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+          "src/tests/riscv/recursion_poseidon_leaf_test.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/prover",
+          "src/prover_api",
+          "src/frontends/riscv",
+          "src/integrations/riscv_cpu",
+          "src/products/riscv_cpu",
+          "src/products/riscv_shared",
+          "src/interop/postcard",
+          "src/interop/riscv_artifact",
+          "src/tools/riscv/trace",
+          "src/tools/riscv/analyze_legacy_semantics",
+          "src/tools/riscv/function_value",
+          "src/tools/riscv/memcpy_admission",
+          "src/tools/riscv/memcpy_hotspot",
+          "src/tools/riscv/pc_hotspot",
+          "src/tools/riscv/poseidon2_pair",
+          "src/tools/riscv/recursive_csp_producer",
+          "src/tools/riscv/recursive_csp_shape_inspector"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cpu",
+            "frontend": "riscv",
+            "product_id": "stwo-riscv-cpu",
+            "protocol_manifest": "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1+rv32im-zkvm-poseidon2-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.riscv_cpu"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
+          "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
+          "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
+          "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
+          "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
+          "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "cargo",
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/tools/riscv/analyze_legacy_semantics/main.zig",
+          "src/tools/riscv/function_value/main.zig",
+          "src/tools/riscv/memcpy_admission/main.zig",
+          "src/tools/riscv/memcpy_hotspot/main.zig",
+          "src/tools/riscv/pc_hotspot/main.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/tools/riscv/poseidon2_pair/main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_child.zig",
+          "src/tools/riscv/recursive_csp_producer/main.zig",
+          "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+          "src/riscv_trace_cli.zig",
+          "src/frontends/riscv/refinement_ir_export_test.zig",
+          "src/frontends/riscv/refinement_program_export_test.zig",
+          "src/frontends/riscv/sail_oracle_test_root.zig",
+          "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
+          "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig"
+        ],
+        "product_ids": [
+          "stwo-riscv-cpu"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "riscv_cpu",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "162e191f17e616cff1f58a8d56cb9bf9fe1e041cca7d2d999a643f7e7d421416",
+      "scope": "riscv_cpu",
+      "steps": [
+        "benchmark-riscv-degree-bounded-poseidon",
+        "benchmark-riscv-degree5-poseidon",
+        "check-c013-aa-proof-child",
+        "check-c013-corpus-manifest",
+        "check-c013-poseidon2-cpu-proof",
+        "check-c013-poseidon2-pair",
+        "check-c013-poseidon2-proof-child",
+        "configure-manifest",
+        "install",
+        "riscv-analyze-legacy-semantic-observer",
+        "riscv-c013-aa-proof-child",
+        "riscv-c013-corpus-manifest",
+        "riscv-csp-bench",
+        "riscv-function-value-observer",
+        "riscv-memcpy-admission-observer",
+        "riscv-memcpy-hotspot-observer",
+        "riscv-memory-provider-shard-log18",
+        "riscv-pc-hotspot-observer",
+        "riscv-poseidon2-pair-check",
+        "riscv-poseidon2-pair-proof",
+        "riscv-poseidon2-proof-child",
+        "riscv-recursion-csp-producer",
+        "riscv-recursion-shape-inspector",
+        "riscv-refinement-ir",
+        "riscv-refinement-pilot",
+        "riscv-trace-dump",
+        "stwo-ethereum-block-proof",
+        "stwo-zig-riscv-cpu",
+        "stwo-zig-riscv-cpu-static",
+        "test-riscv-air-satisfaction",
+        "test-riscv-air-satisfaction-export",
+        "test-riscv-cpu-product",
+        "test-riscv-degree-bounded-poseidon-proof",
+        "test-riscv-degree5-poseidon-proof",
+        "test-riscv-degree5-provider-proof",
+        "test-riscv-memory-provider-shard",
+        "test-riscv-planned-tree1",
+        "test-riscv-profile-partition",
+        "test-riscv-proof-pool-parity",
+        "test-riscv-prover-core",
+        "test-riscv-recursion-ingress",
+        "test-riscv-recursion-poseidon-leaf",
+        "test-riscv-recursion-typed-control",
+        "test-riscv-release-exhaustive",
+        "test-riscv-rigidity",
+        "test-riscv-sail-oracle",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.723981,
+      "help_sha256": "af8ec7696502eae6c80b56989a1ae031681b148639e7ecf7ad7ffc70a7ff19f0",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "compatibility aliases",
+            "products/matrix.construct.riscv_cpu"
+          ],
+          "dependency_module_roots": [
+            "dependency:../src/backend:mod.zig",
+            "dependency:../src/backends/cpu_scalar:mod.zig",
+            "dependency:../src/core:mod.zig",
+            "dependency:../src/frontends/riscv:mod.zig",
+            "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
+            "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
+            "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
+            "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
+            "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
+            "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
+            "dependency:../src/integrations/riscv_cpu:mod.zig",
+            "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+            "dependency:../src/interop/proof_wire:mod.zig",
+            "dependency:../src/prover:mod.zig",
+            "dependency:../src/prover_api:mod.zig"
+          ],
+          "external_tools": [
+            "cargo",
+            "python3"
+          ],
+          "generated_module_roots": [
+            "generated:options:"
+          ],
+          "module_roots": [
+            "design/typed-air/artifacts/embedded.zig",
+            "design/typed-air/artifacts/h009_embedded.zig",
+            "design/typed-air/artifacts/h010_embedded.zig",
+            "src/interop/atomic_file.zig",
+            "src/interop/output_transaction.zig",
+            "src/interop/postcard.zig",
+            "src/products/riscv_cpu/capabilities.zig",
+            "src/products/riscv_cpu/ethereum_block_proof_main.zig",
+            "src/products/riscv_cpu/main.zig",
+            "src/products/riscv_shared/app.zig",
+            "src/products/riscv_shared/cli.zig",
+            "src/products/riscv_shared/registry.zig",
+            "src/riscv_trace_cli.zig",
+            "src/stwo_riscv_cpu.zig",
+            "src/tests.zig",
+            "src/tests/riscv/main_trace_planned_proof_test.zig",
+            "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+            "src/tests/riscv/recursion_poseidon_leaf_test.zig",
+            "src/tools/riscv/analyze_legacy_semantics/main.zig",
+            "src/tools/riscv/function_value/main.zig",
+            "src/tools/riscv/memcpy_admission/main.zig",
+            "src/tools/riscv/memcpy_hotspot/main.zig",
+            "src/tools/riscv/pc_hotspot/main.zig",
+            "src/tools/riscv/poseidon2_pair/calibration_child.zig",
+            "src/tools/riscv/poseidon2_pair/corpus_manifest.zig",
+            "src/tools/riscv/poseidon2_pair/main.zig",
+            "src/tools/riscv/poseidon2_pair/proof_child.zig",
+            "src/tools/riscv/poseidon2_pair/proof_main.zig",
+            "src/tools/riscv/poseidon2_pair/test_root.zig",
+            "src/tools/riscv/recursive_csp_producer/main.zig",
+            "src/tools/riscv/recursive_csp_producer/profile_registry.zig",
+            "src/tools/riscv/recursive_csp_shape_inspector/main.zig"
+          ],
+          "products": [
+            {
+              "backend": "cpu",
+              "frontend": "riscv",
+              "product_id": "stwo-riscv-cpu",
+              "protocol_manifest": "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1+rv32im-zkvm-poseidon2-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/tools/riscv/analyze_legacy_semantics/main.zig",
+          "src/tools/riscv/function_value/main.zig",
+          "src/tools/riscv/memcpy_admission/main.zig",
+          "src/tools/riscv/memcpy_hotspot/main.zig",
+          "src/tools/riscv/pc_hotspot/main.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/tools/riscv/poseidon2_pair/main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_child.zig",
+          "src/tools/riscv/recursive_csp_producer/main.zig",
+          "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+          "src/riscv_trace_cli.zig",
+          "src/frontends/riscv/refinement_ir_export_test.zig",
+          "src/frontends/riscv/refinement_program_export_test.zig",
+          "src/frontends/riscv/sail_oracle_test_root.zig",
+          "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
+          "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/riscv_trace_cli.zig",
+          "src/interop/atomic_file.zig",
+          "src/interop/output_transaction.zig",
+          "src/interop/postcard.zig",
+          "src/interop/proof_wire/mod.zig",
+          "src/interop/riscv_artifact.zig",
+          "src/products/riscv_cpu/capabilities.zig",
+          "design/typed-air/artifacts/embedded.zig",
+          "design/typed-air/artifacts/h009_embedded.zig",
+          "design/typed-air/artifacts/h010_embedded.zig",
+          "src/tests.zig",
+          "src/tests/riscv/main_trace_planned_proof_test.zig",
+          "src/tests/riscv/recursion_ingress_real_guest_test.zig",
+          "src/tests/riscv/recursion_poseidon_leaf_test.zig"
+        ],
+        "allowed_module_prefixes": [
+          "src/core",
+          "src/backend",
+          "src/backends/cpu_scalar",
+          "src/prover",
+          "src/prover_api",
+          "src/frontends/riscv",
+          "src/integrations/riscv_cpu",
+          "src/products/riscv_cpu",
+          "src/products/riscv_shared",
+          "src/interop/postcard",
+          "src/interop/riscv_artifact",
+          "src/tools/riscv/trace",
+          "src/tools/riscv/analyze_legacy_semantics",
+          "src/tools/riscv/function_value",
+          "src/tools/riscv/memcpy_admission",
+          "src/tools/riscv/memcpy_hotspot",
+          "src/tools/riscv/pc_hotspot",
+          "src/tools/riscv/poseidon2_pair",
+          "src/tools/riscv/recursive_csp_producer",
+          "src/tools/riscv/recursive_csp_shape_inspector"
+        ],
+        "constructed_products": [
+          {
+            "backend": "cpu",
+            "frontend": "riscv",
+            "product_id": "stwo-riscv-cpu",
+            "protocol_manifest": "rv32im-zkvm-v1+sail-authoritative+lifted-pcs-v1+rv32im-zkvm-poseidon2-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.riscv_cpu",
+          "compatibility aliases"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/cpu_scalar:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
+          "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
+          "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
+          "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
+          "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
+          "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
+          "dependency:../src/integrations/riscv_cpu:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "cargo",
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/tools/riscv/analyze_legacy_semantics/main.zig",
+          "src/tools/riscv/function_value/main.zig",
+          "src/tools/riscv/memcpy_admission/main.zig",
+          "src/tools/riscv/memcpy_hotspot/main.zig",
+          "src/tools/riscv/pc_hotspot/main.zig",
+          "src/products/riscv_cpu/main.zig",
+          "src/stwo_riscv_cpu.zig",
+          "src/tools/riscv/poseidon2_pair/main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_main.zig",
+          "src/tools/riscv/poseidon2_pair/proof_child.zig",
+          "src/tools/riscv/recursive_csp_producer/main.zig",
+          "src/tools/riscv/recursive_csp_shape_inspector/main.zig",
+          "src/riscv_trace_cli.zig",
+          "src/frontends/riscv/refinement_ir_export_test.zig",
+          "src/frontends/riscv/refinement_program_export_test.zig",
+          "src/frontends/riscv/sail_oracle_test_root.zig",
+          "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
+          "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
+          "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig"
+        ],
+        "product_ids": [
+          "stwo-riscv-cpu"
+        ],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "riscv_cpu_compat",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "da0cc83916babecf85f810f0622cec7f717e0d963567a7105fb424cec88cb3ef",
+      "scope": "riscv_cpu_compat",
+      "steps": [
+        "benchmark-riscv-degree-bounded-poseidon",
+        "benchmark-riscv-degree5-poseidon",
+        "check-c013-aa-proof-child",
+        "check-c013-corpus-manifest",
+        "check-c013-poseidon2-cpu-proof",
+        "check-c013-poseidon2-pair",
+        "check-c013-poseidon2-proof-child",
+        "configure-manifest",
+        "install",
+        "riscv-analyze-legacy-semantic-observer",
+        "riscv-c013-aa-proof-child",
+        "riscv-c013-corpus-manifest",
+        "riscv-csp-bench",
+        "riscv-function-value-observer",
+        "riscv-memcpy-admission-observer",
+        "riscv-memcpy-hotspot-observer",
+        "riscv-memory-provider-shard-log18",
+        "riscv-pc-hotspot-observer",
+        "riscv-poseidon2-pair-check",
+        "riscv-poseidon2-pair-proof",
+        "riscv-poseidon2-proof-child",
+        "riscv-recursion-csp-producer",
+        "riscv-recursion-shape-inspector",
+        "riscv-refinement-ir",
+        "riscv-refinement-pilot",
+        "riscv-trace-dump",
+        "stwo-ethereum-block-proof",
+        "stwo-zig-riscv-cpu",
+        "stwo-zig-riscv-cpu-static",
+        "test-riscv",
+        "test-riscv-air-satisfaction",
+        "test-riscv-air-satisfaction-export",
+        "test-riscv-cpu-product",
+        "test-riscv-degree-bounded-poseidon-proof",
+        "test-riscv-degree5-poseidon-proof",
+        "test-riscv-degree5-provider-proof",
+        "test-riscv-memory-provider-shard",
+        "test-riscv-planned-tree1",
+        "test-riscv-profile-partition",
+        "test-riscv-proof-pool-parity",
+        "test-riscv-prover",
+        "test-riscv-prover-core",
+        "test-riscv-recursion-ingress",
+        "test-riscv-recursion-poseidon-leaf",
+        "test-riscv-recursion-typed-control",
+        "test-riscv-release-exhaustive",
+        "test-riscv-rigidity",
+        "test-riscv-sail-oracle",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 0.287915,
+      "help_sha256": "30b00dda2d76aa7cafe24daf2afd4b6968686d46de211e261d191dc43e78b894",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "products/matrix.construct.riscv_metal"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [
+            {
+              "backend": "metal",
+              "frontend": "riscv",
+              "product_id": "stwo-riscv-metal",
+              "protocol_manifest": "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2+rv32im-zkvm-poseidon2-v1",
+              "role": "cli"
+            }
+          ],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [
+          "src/backends/metal/runtime.m",
+          "src/interop/output_transaction.zig",
+          "src/interop/postcard.zig",
+          "src/interop/riscv_artifact.zig",
+          "src/products/riscv_metal/app.zig",
+          "src/products/riscv_metal/capabilities.zig",
+          "src/products/riscv_metal/cli.zig",
+          "src/products/riscv_metal/guest_poseidon2_app.zig",
+          "src/products/riscv_metal/registry.zig",
+          "src/products/riscv_metal/runtime_admission.zig",
+          "src/products/riscv_shared/app.zig",
+          "src/products/riscv_shared/cli.zig",
+          "src/products/riscv_shared/registry.zig"
+        ],
+        "allowed_module_prefixes": [],
+        "constructed_products": [
+          {
+            "backend": "metal",
+            "frontend": "riscv",
+            "product_id": "stwo-riscv-metal",
+            "protocol_manifest": "rv32im-zkvm-v1+lifted-pcs-v1+metal-runtime-v2+authenticated-core-aot-v2+rv32im-zkvm-poseidon2-v1",
+            "role": "cli"
+          }
+        ],
+        "constructors": [
+          "products/matrix.construct.riscv_metal"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [
+          "dependency:../src/backend:mod.zig",
+          "dependency:../src/backends/metal:mod.zig",
+          "dependency:../src/core:mod.zig",
+          "dependency:../src/frontends/riscv:mod.zig",
+          "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
+          "dependency:../src/integrations/riscv_metal:mod.zig",
+          "dependency:../src/interop/proof_wire:mod.zig",
+          "dependency:../src/prover:mod.zig",
+          "dependency:../src/prover_api:mod.zig"
+        ],
+        "external_tools": [
+          "python3"
+        ],
+        "generated_module_roots": [
+          "generated:options:"
+        ],
+        "module_roots": [
+          "src/products/riscv_metal/main.zig",
+          "src/riscv_metal_bench_cli.zig",
+          "src/products/riscv_metal/root.zig",
+          "src/integrations/riscv_metal/mod.zig",
+          "src/tests/riscv/metal_backend_test.zig",
+          "src/tests/riscv/recursive_framework_aot_test.zig",
+          "src/tests/riscv/recursive_framework_resident_test.zig",
+          "src/frontends/riscv/mod.zig"
+        ],
+        "product_ids": [
+          "stwo-riscv-metal"
+        ],
+        "runtime_probes": [
+          "Metal.framework",
+          "Foundation.framework",
+          "libobjc"
+        ],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "riscv_metal",
+        "scope_role": "product"
+      },
+      "manifest_sha256": "57c154aeea3065f85b3596ff732a0083d7365c8d070dcbd349e63e7754e2c9f7",
+      "scope": "riscv_metal",
+      "steps": [
+        "configure-manifest",
+        "install",
+        "riscv-csp-bench-metal",
+        "riscv-metal-bench",
+        "stwo-riscv-metal",
+        "test-riscv-metal",
+        "test-riscv-metal-guest-poseidon2-aot",
+        "test-riscv-metal-recursive-aot",
+        "test-riscv-metal-recursive-resident",
+        "uninstall"
+      ]
+    },
+    {
+      "configure_seconds": 4.380334,
+      "help_sha256": "55d243d30b0f9d46517fa140636646a5ccebfb239fdd41ae521daef30b445b96",
+      "manifest": {
+        "actual": {
+          "constructors": [
+            "benchmarks/native.addProducts",
+            "gates/native.addGates",
+            "gates/release_evidence.addGates",
+            "gates/riscv.addGates"
+          ],
+          "dependency_module_roots": [],
+          "external_tools": [
+            "python3",
+            "zig"
+          ],
+          "generated_module_roots": [],
+          "module_roots": [],
+          "products": [],
+          "runtime_probes": []
+        },
+        "allowed_module_files": [],
+        "allowed_module_prefixes": [],
+        "constructed_products": [],
+        "constructors": [
+          "gates/riscv.addGates",
+          "gates/native.addGates",
+          "benchmarks/native.addProducts",
+          "gates/release_evidence.addGates"
+        ],
+        "declarative_exports_only": false,
+        "dependency_module_roots": [],
+        "external_tools": [
+          "python3",
+          "zig"
+        ],
+        "generated_module_roots": [],
+        "module_roots": [],
+        "product_ids": [],
+        "runtime_probes": [],
+        "schema": "stwo-configure-manifest-v3",
+        "scope": "verification",
+        "scope_role": "gates"
+      },
+      "manifest_sha256": "3f07ae888ac1a08d679389fb38e36fcfcea4bf75137151211f8752c3ac7a0ea4",
+      "scope": "verification",
+      "steps": [
+        "bench-contrast",
+        "bench-contrast-long",
+        "bench-full",
+        "bench-kernels",
+        "bench-native-holistic-smoke",
+        "bench-opt",
+        "bench-opt-binary-codec",
+        "bench-pages",
+        "bench-pages-validate",
+        "bench-smoke",
+        "bench-strict",
+        "bench-targeted-families",
+        "configure-manifest",
+        "deep-gate",
+        "install",
+        "interop",
+        "merkle-worker-stress",
+        "opt-gate",
+        "profile-contrast",
+        "profile-contrast-long",
+        "profile-opt",
+        "profile-smoke",
+        "prove-checkpoints",
+        "release-evidence",
+        "riscv-release-gate",
+        "std-shims-behavior",
+        "std-shims-smoke",
+        "uninstall",
+        "vectors"
+      ]
+    }
+  ]
+}

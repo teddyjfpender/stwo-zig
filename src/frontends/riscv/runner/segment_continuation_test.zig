@@ -202,14 +202,15 @@ test "runner: mutated continuation rejects before session mutation" {
     const steps_before = session.global_steps;
     const segment_before = session.next_segment_index;
     const clock_count_before = session.memory_clocks.count();
-    var mutations = [_]ContinuationToken{expected} ** 7;
+    var mutations = [_]ContinuationToken{expected} ** 8;
     mutations[0].schema_version +%= 1;
-    mutations[1].session_tag ^= 1;
-    mutations[2].next_segment_index +%= 1;
-    mutations[3].next_cycle +%= 1;
-    mutations[4].cpu.pc +%= 4;
-    mutations[5].rw_memory.fingerprint ^= 1;
-    mutations[6].access_clocks ^= 1;
+    mutations[1].clock_frame = .leaf_local;
+    mutations[2].session_tag ^= 1;
+    mutations[3].next_segment_index +%= 1;
+    mutations[4].next_cycle +%= 1;
+    mutations[5].cpu.pc +%= 4;
+    mutations[6].rw_memory.fingerprint ^= 1;
+    mutations[7].access_clocks ^= 1;
     for (mutations) |mutated| {
         try std.testing.expectError(
             error.ContinuationMismatch,
@@ -248,6 +249,93 @@ test "runner: only a complete first-and-last segment has V1 shape" {
     try complete.requireV1SingleExecution();
 }
 
+test "runner: leaf-local segments reset proof clocks while preserving global state order" {
+    const instructions = [_]u32{
+        0x0010_0137, // LUI  x2, 0x100: default halt-flag address.
+        0x0550_0093, // ADDI x1, x0, 0x55.
+        0x0011_2023, // SW   x1, 0(x2).
+        0x0001_2183, // LW   x3, 0(x2), from the preceding leaf's state.
+        0x0010_8193, // ADDI x3, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+
+    try std.testing.expectError(
+        error.LeafLocalClockRequiresSegmentOwnedContinuation,
+        BaseExecutionSession.init(std.testing.allocator, &elf, .{
+            .clock_frame = .leaf_local,
+        }),
+    );
+    try std.testing.expectError(
+        error.LeafLocalClockRequiresSegmentOwnedContinuation,
+        BaseExecutionSession.initLegacy(std.testing.allocator, &elf, .{
+            .trace_retention = .segment_owned,
+            .clock_frame = .leaf_local,
+        }),
+    );
+
+    var session = try BaseExecutionSession.init(std.testing.allocator, &elf, .{
+        .trace_retention = .segment_owned,
+        .clock_frame = .leaf_local,
+    });
+    defer session.deinit();
+    var first = try session.startSegment(3);
+    defer first.deinit();
+    var second = try session.resumeSegment(first.continuation.?, 32);
+    defer second.deinit();
+
+    try std.testing.expectEqual(result_mod.SegmentClockFrame.leaf_local, first.clock_frame);
+    try std.testing.expectEqual(result_mod.SegmentClockFrame.leaf_local, second.clock_frame);
+    try std.testing.expectEqual(@as(u64, 1), first.global_first_cycle);
+    try std.testing.expectEqual(@as(u64, 4), second.global_first_cycle);
+    try std.testing.expectEqual(@as(u32, 1), first.execution_trace.rows.items[0].clk);
+    try std.testing.expectEqual(@as(u32, 3), first.execution_trace.rows.items[2].clk);
+    try std.testing.expectEqual(@as(u32, 1), second.execution_trace.rows.items[0].clk);
+    try std.testing.expectEqual(@as(u32, 3), second.execution_trace.rows.items[2].clk);
+    try std.testing.expectEqual(@as(u32, 0), second.execution_trace.rows.items[0].mem_prev_clk);
+    try std.testing.expectEqual(@as(u32, 0), second.execution_trace.clock_origin);
+    try std.testing.expectEqual(@as(u32, 3), second.execution_trace.last_retirement_clock);
+    for (second.entry_access_clocks.register_clocks) |clock|
+        try std.testing.expectEqual(@as(u32, 0), clock);
+    try std.testing.expectEqual(@as(usize, 0), second.entry_access_clocks.memory_clocks.len);
+    try std.testing.expect(std.meta.eql(first.exit_cpu, second.entry_cpu));
+    try first.rw_memory.requireContinuationTo(second.rw_memory);
+    try std.testing.expectEqual(@as(u32, 0x55), second.exit_cpu.readReg(1));
+    try std.testing.expectEqual(@as(u32, 0x56), second.exit_cpu.readReg(3));
+}
+
+test "runner: continuation capability binds the clock frame" {
+    const instructions = [_]u32{
+        0x0010_0093, // ADDI x1, x0, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    var global = try BaseExecutionSession.init(std.testing.allocator, &elf, .{
+        .trace_retention = .segment_owned,
+    });
+    defer global.deinit();
+    var local = try BaseExecutionSession.init(std.testing.allocator, &elf, .{
+        .trace_retention = .segment_owned,
+        .clock_frame = .leaf_local,
+    });
+    defer local.deinit();
+    var global_first = try global.startSegment(1);
+    defer global_first.deinit();
+    var local_first = try local.startSegment(1);
+    defer local_first.deinit();
+
+    try std.testing.expect(global_first.continuation.?.session_tag !=
+        local_first.continuation.?.session_tag);
+    try std.testing.expectError(
+        error.ContinuationMismatch,
+        local.resumeSegment(global_first.continuation.?, 16),
+    );
+    var local_last = try local.resumeSegment(local_first.continuation.?, 16);
+    defer local_last.deinit();
+    try std.testing.expectEqual(CompletionReason.ecall, local_last.completion_reason.?);
+}
+
 test "runner: Poseidon2 extension logs remain segment-owned across resume" {
     const test_elf = @import("guest_precompile/test_elf.zig");
     const elf = test_elf.build(true, .ecall);
@@ -282,4 +370,42 @@ test "runner: Poseidon2 extension logs remain segment-owned across resume" {
         one_shot.base.execution_trace.rows.items.len,
         first.base.execution_trace.rows.items.len + second.base.execution_trace.rows.items.len,
     );
+}
+
+test "runner: segment-owned retention releases every yielded trace range" {
+    const instructions = [_]u32{
+        0x0010_0093, // ADDI x1, x0, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0010_8093, // ADDI x1, x1, 1.
+        0x0000_0073, // ECALL.
+    };
+    const elf = makeTestElf(&instructions);
+    var session = try BaseExecutionSession.init(std.testing.allocator, &elf, .{
+        .trace_retention = .segment_owned,
+    });
+    defer session.deinit();
+
+    var first = try session.startSegment(2);
+    defer first.deinit();
+    try std.testing.expectEqual(@as(usize, 2), first.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(2, 2, 0);
+
+    var second = try session.resumeSegment(first.continuation.?, 2);
+    defer second.deinit();
+    try std.testing.expectEqual(@as(usize, 2), second.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(4, 4, 0);
+    try std.testing.expect(std.meta.eql(first.exit_cpu, second.entry_cpu));
+    try first.rw_memory.requireContinuationTo(second.rw_memory);
+
+    var third = try session.resumeSegment(second.continuation.?, 2);
+    defer third.deinit();
+    try std.testing.expect(third.isComplete());
+    try std.testing.expectEqual(@as(usize, 1), third.execution_trace.rows.items.len);
+    try std.testing.expectEqual(@as(usize, 0), session.execution_trace.rows.items.len);
+    try session.execution_trace.validateClockRange(5, 5, 0);
+    try std.testing.expect(std.meta.eql(second.exit_cpu, third.entry_cpu));
+    try second.rw_memory.requireContinuationTo(third.rw_memory);
 }

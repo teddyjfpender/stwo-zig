@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "timestamp": "2026-09-08T04:53:41.717718+00:00",
+  "parent_source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "frozen_source_manifest_sha256": "a2912e320765a948de4abaf989cdbd3ef50f71ed1a6d552441198f8bef2afdf5",
+  "parent_files_verified": 5756,
+  "frozen_files": 5758,
+  "changes": [
+    "src/integrations/riscv_cpu/build_segment_steps.zig",
+    "src/integrations/riscv_cpu/ethereum_wrapper_saved_child_parent_v1_test.zig",
+    "src/integrations/riscv_cpu/ethereum_wrapper_saved_real_parent_v1_test_root.zig"
+  ],
+  "change_pins": [
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "bytes": 129901,
+      "sha256": "32d0e580690496061f1ddf309cbeec09e8b50f90b05f657c4bd6f256a0310807"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_saved_child_parent_v1_test.zig",
+      "bytes": 11707,
+      "sha256": "739b747f39c2d7fead3025d5cb488aea3fd365d4febdc21a3510d33d17a33119"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_saved_real_parent_v1_test_root.zig",
+      "bytes": 666,
+      "sha256": "533e4efcc3b9a76d3cc02055e38fd0b5f74e99d01bbe7d370566313c30f4ed12"
+    }
+  ],
+  "request_sha256": "28e67c18ddf9e5ad1c04fb2351d24acd49d0b47b59f1cacca700c2214fa2a984",
+  "syntax_passed": true,
+  "semantic_compile_passed": false,
+  "proof_verified": false,
+  "no_jobs_queued": true
+}

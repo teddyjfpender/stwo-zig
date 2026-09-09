@@ -1,0 +1,2019 @@
+{
+  "stages": {
+    "schema_version": 1,
+    "runtime": "zig",
+    "example": "small_recursive_native",
+    "stages": [
+      {
+        "id": "riscv_preprocessed_commit",
+        "label": "RISC-V preprocessed trace commit",
+        "seconds": 0.028231,
+        "children": null
+      },
+      {
+        "id": "riscv_opcode_trace_generation",
+        "label": "RISC-V opcode trace generation (overlapped)",
+        "seconds": 0.00146,
+        "children": [
+          {
+            "id": "riscv_infrastructure_trace_generation",
+            "label": "RISC-V infrastructure trace generation",
+            "seconds": 0.00053,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "riscv_lookup_source_ingest",
+        "label": "RISC-V lookup-source ingestion",
+        "seconds": 8e-06,
+        "children": null
+      },
+      {
+        "id": "riscv_main_trace_commit",
+        "label": "RISC-V main trace commit",
+        "seconds": 0.577743,
+        "children": [
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.009882,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5.8e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 4.4e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 6.5e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 2.5e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5.2e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 2.8e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 2.2e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5.1e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 2.7e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5.4e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 3.9e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5.5e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 2.5e-05,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 5e-05,
+            "children": null
+          },
+          {
+            "id": "interpolate_columns",
+            "label": "Interpolate columns",
+            "seconds": 0.002314,
+            "children": null
+          },
+          {
+            "id": "evaluate_extended_domain",
+            "label": "Evaluate extended domain",
+            "seconds": 0.009314,
+            "children": null
+          },
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 0.55493,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "riscv_interaction_commit",
+        "label": "RISC-V interaction trace generation and commit",
+        "seconds": 0.984356,
+        "children": [
+          {
+            "id": "riscv_interaction_opcode",
+            "label": "RISC-V opcode interactions",
+            "seconds": 0.000142,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_program",
+            "label": "RISC-V program interactions",
+            "seconds": 7.6e-05,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_memory",
+            "label": "RISC-V memory interactions",
+            "seconds": 0,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_merkle",
+            "label": "RISC-V Merkle interactions",
+            "seconds": 0.000212,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_poseidon",
+            "label": "RISC-V Poseidon interactions",
+            "seconds": 0.00011,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_clock",
+            "label": "RISC-V clock interactions",
+            "seconds": 2.3e-05,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_tables",
+            "label": "RISC-V lookup-table interactions",
+            "seconds": 0.057423,
+            "children": null
+          },
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 0.903883,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "draw_random_coeff",
+        "label": "Draw random coefficient",
+        "seconds": 1e-06,
+        "children": null
+      },
+      {
+        "id": "composition_trace_extract",
+        "label": "Composition trace extract",
+        "seconds": 4e-06,
+        "children": null
+      },
+      {
+        "id": "composition_evaluation",
+        "label": "Composition evaluation",
+        "seconds": 0.161109,
+        "children": null
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "label": "Composition interpolate and split",
+        "seconds": 0.005538,
+        "children": null
+      },
+      {
+        "id": "composition_commit",
+        "label": "Composition commit",
+        "seconds": 0.196092,
+        "children": null
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "label": "OODS point and mask points",
+        "seconds": 0.000222,
+        "children": null
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "label": "Sampled-value evaluation",
+        "seconds": 0.042166,
+        "children": null
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "label": "Sampled-value channel mix",
+        "seconds": 0.00029,
+        "children": null
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 0.301726,
+        "children": null
+      },
+      {
+        "id": "proof_of_work",
+        "label": "Proof of work",
+        "seconds": 1e-06,
+        "children": null
+      },
+      {
+        "id": "fri_decommit",
+        "label": "FRI decommit",
+        "seconds": 0.037581,
+        "children": null
+      },
+      {
+        "id": "trace_decommit",
+        "label": "Trace decommit",
+        "seconds": 0.00025,
+        "children": null
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "label": "Constraint check and assembly",
+        "seconds": 0.000202,
+        "children": null
+      }
+    ]
+  },
+  "tasks": {
+    "schema_version": 2,
+    "runtime": "zig",
+    "example": "small_recursive_native",
+    "graphs": [
+      {
+        "graph_id": "cpu_composition_generic",
+        "events": [
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 0,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 0,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65018292,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65175500,
+            "configured_workers": 14,
+            "worker_slot": 2,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 17083,
+            "run_ns": 157208,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 2048,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 720,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 2816,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 1,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 1,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65016834,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65333584,
+            "configured_workers": 14,
+            "worker_slot": 4,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 15625,
+            "run_ns": 316750,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 2048,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 4400,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 1024,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 2,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 2,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65017500,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65104500,
+            "configured_workers": 14,
+            "worker_slot": 3,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 16291,
+            "run_ns": 87000,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 1024,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 640,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 1152,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 3,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 3,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65015959,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65236459,
+            "configured_workers": 14,
+            "worker_slot": 5,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 14750,
+            "run_ns": 220500,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 1024,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 4400,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 320,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 4,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 4,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65015459,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65084042,
+            "configured_workers": 14,
+            "worker_slot": 7,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 14250,
+            "run_ns": 68583,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 256,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 632,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 5,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 5,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65043167,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65582125,
+            "configured_workers": 14,
+            "worker_slot": 1,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 41958,
+            "run_ns": 538958,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8192,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 2064,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 1048576
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 6,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 6,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65013959,
+            "cancellation_requested_ns": null,
+            "finish_ns": 68100292,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 12750,
+            "run_ns": 3086333,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8192,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 8960,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 1048576
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 7,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 7,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65001209,
+            "ready_ns": 417,
+            "start_ns": 65015375,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65102625,
+            "configured_workers": 14,
+            "worker_slot": 6,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65000792,
+            "queue_wait_ns": 14166,
+            "run_ns": 87250,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 512,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 488,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 8,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 8,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 61697667,
+            "ready_ns": 417,
+            "start_ns": 61697750,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65000292,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 61697250,
+            "queue_wait_ns": 83,
+            "run_ns": 3302542,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8388608,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 9,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 9,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 14625,
+            "ready_ns": 417,
+            "start_ns": 14875,
+            "cancellation_requested_ns": null,
+            "finish_ns": 29497042,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 14208,
+            "queue_wait_ns": 250,
+            "run_ns": 29482167,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 33554432,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 10,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 10,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 41639209,
+            "ready_ns": 417,
+            "start_ns": 41639417,
+            "cancellation_requested_ns": null,
+            "finish_ns": 61696750,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 41638792,
+            "queue_wait_ns": 208,
+            "run_ns": 20057333,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 16777216,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 11,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 11,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 29498459,
+            "ready_ns": 417,
+            "start_ns": 29498500,
+            "cancellation_requested_ns": null,
+            "finish_ns": 41637875,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 29498042,
+            "queue_wait_ns": 41,
+            "run_ns": 12139375,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 33554432,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 12,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 12,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 68100834,
+            "ready_ns": 417,
+            "start_ns": 68101000,
+            "cancellation_requested_ns": null,
+            "finish_ns": 70900125,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 68100417,
+            "queue_wait_ns": 166,
+            "run_ns": 2799125,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 2097152,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 13,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "generic_air_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 13,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 70900334,
+            "ready_ns": 417,
+            "start_ns": 70900417,
+            "cancellation_requested_ns": null,
+            "finish_ns": 71405292,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 70899917,
+            "queue_wait_ns": 83,
+            "run_ns": 504875,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 1048576,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "contributions": [
+          {
+            "component_registry_index": 0,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 2816,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 1,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 1024,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 2,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 1152,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 3,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 320,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 4,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 5,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 6,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 7,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 8,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 9,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 10,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 11,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 12,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 13,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "component_work": [
+          {
+            "component_registry_index": 0,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 2816,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 1,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 1024,
+            "planned_rows": 128,
+            "planned_tiles": 0,
+            "completed_rows": 128,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 2,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 1152,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 3,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 320,
+            "planned_rows": 64,
+            "planned_tiles": 0,
+            "completed_rows": 64,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 4,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 5,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 6,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 7,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 8,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 9,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 10,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 11,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 12,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 13,
+            "component_kind": "generic_air_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "summary": {
+          "requested_workers": 14,
+          "admitted_workers": 14,
+          "pool_capacity": 14,
+          "worker_stack_bytes": 218103808,
+          "peak_active_tasks": 8,
+          "peak_active_workers": 14,
+          "planned_tasks": 14,
+          "submitted_tasks": 14,
+          "completed_tasks": 14,
+          "failed_tasks": 0,
+          "cancelled_tasks": 0,
+          "unsubmitted_cancelled_tasks": 0,
+          "started_tasks": 14,
+          "finished_tasks": 14,
+          "duplicate_starts": 0,
+          "duplicate_finishes": 0,
+          "useful_task_work_ns": 72847999,
+          "critical_path_ns": 29482167,
+          "admission_wait_ns": 791854962,
+          "queue_wait_ns": 147704,
+          "resource_wait_ns": 0,
+          "task_run_ns": 72847999,
+          "worker_busy_ns": 671838872,
+          "worker_capacity_ns": 999678176,
+          "graph_elapsed_ns": 71405584,
+          "parallel_eligible_ns": 72847999,
+          "cancellation_latency_ns": null,
+          "peak_reserved_bytes": 313584640,
+          "total_work_estimate": 6197200,
+          "completed_rows": 5965232,
+          "completed_tiles": 0,
+          "scheduler": "central_queue_no_steal",
+          "steal_count": 0
+        }
+      }
+    ]
+  }
+}

@@ -22,6 +22,10 @@ pub const N_MAIN_COLUMNS: usize = 10;
 pub const N_SUMS: usize = 3;
 pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
 pub const N_CONSTRAINTS: usize = N_SUMS + 7;
+/// A split base caller must not smuggle an unclosed Merkle term into the
+/// exported Poseidon residual.  Its three multiplicities are therefore
+/// constrained to zero in addition to the ordinary node AIR.
+pub const N_EXTERNAL_PROVIDER_CONSTRAINTS: usize = N_CONSTRAINTS + 3;
 const INV2: QM31 = QM31.fromBase(M31.fromU64(1073741824));
 
 pub const NodeRow = struct {
@@ -231,6 +235,59 @@ pub fn evaluateGeneric(
     result[N_SUMS + 4] = main[6].mul(is_padding);
     result[N_SUMS + 5] = main[7].mul(is_padding);
     result[N_SUMS + 6] = main[8].mul(is_padding);
+    return result;
+}
+
+/// Base Merkle caller with its physical Poseidon provider removed.  The
+/// ordinary AIR still binds the input/output tuple to the committed row; the
+/// final three constraints prove that every Merkle-bus numerator is zero, so
+/// the remaining LogUp claim is exclusively a Poseidon2 residual.
+pub fn evaluateExternalProviderCaller(
+    main: [N_MAIN_COLUMNS]QM31,
+    is_active: QM31,
+    is_first: QM31,
+    sums: [N_SUMS]QM31,
+    previous: [N_SUMS]QM31,
+    claims: [N_SUMS]QM31,
+    relations: *const relations_mod.Relations,
+) [N_EXTERNAL_PROVIDER_CONSTRAINTS]QM31 {
+    return evaluateExternalProviderCallerGeneric(
+        QM31,
+        main,
+        is_active,
+        is_first,
+        sums,
+        previous,
+        claims,
+        relations,
+    );
+}
+
+pub fn evaluateExternalProviderCallerGeneric(
+    comptime S: type,
+    main: [N_MAIN_COLUMNS]S,
+    is_active: S,
+    is_first: S,
+    sums: [N_SUMS]S,
+    previous: [N_SUMS]S,
+    claims: [N_SUMS]S,
+    relations: anytype,
+) [N_EXTERNAL_PROVIDER_CONSTRAINTS]S {
+    const ordinary = evaluateGeneric(
+        S,
+        main,
+        is_active,
+        is_first,
+        sums,
+        previous,
+        claims,
+        relations,
+    );
+    var result: [N_EXTERNAL_PROVIDER_CONSTRAINTS]S = undefined;
+    @memcpy(result[0..N_CONSTRAINTS], &ordinary);
+    result[N_CONSTRAINTS] = main[6];
+    result[N_CONSTRAINTS + 1] = main[7];
+    result[N_CONSTRAINTS + 2] = main[8];
     return result;
 }
 

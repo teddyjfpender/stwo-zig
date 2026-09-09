@@ -1,0 +1,560 @@
+diff --git a/scripts/riscv_segment_v2_detached_gate.py b/scripts/riscv_segment_v2_detached_gate.py
+index aea0b136..b208918e 100644
+--- a/scripts/riscv_segment_v2_detached_gate.py
++++ b/scripts/riscv_segment_v2_detached_gate.py
+@@ -77,6 +77,8 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
+     directory = args.bundle.resolve().parent
+     argv = [str(producer), "--memory-addresses", "1", "--two-segment-output", str(directory),
+             "--native-backend", args.native_backend]
++    if args.proof_profile != "development_q3_v1":
++        argv += ["--proof-profile", args.proof_profile]
+     if args.initial_memory_word:
+         argv += ["--initial-memory-word", str(args.initial_memory_word)]
+     if args.native_backend == "metal":
+@@ -116,6 +118,7 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
+ 
+ def main() -> None:
+     parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--proof-profile", choices=("development_q3_v1", "recursive_q193_v1"), default="development_q3_v1")
+     parser.add_argument("--verifier", type=Path, required=True)
+     parser.add_argument("--bundle", type=Path, required=True)
+     parser.add_argument("--key-sha256", required=True)
+@@ -202,7 +205,7 @@ def main() -> None:
+               "verifier_sha256": hashlib.sha256(verifier.read_bytes()).hexdigest(),
+               "key_sha256": args.key_sha256,
+               "expected_wire_sha256": sha256(expected),
+-              "development_only": True, "cases": results, "passed": False}
++              "development_only": True, "proof_profile": args.proof_profile, "cases": results, "passed": False}
+     trusted_paths = [verifier, expected]
+     if args.adjacent_expected_wire:
+         trusted_paths.append(args.adjacent_expected_wire.resolve())
+@@ -225,6 +228,8 @@ def main() -> None:
+         claims = json.loads(claims_bytes)
+         if hashlib.sha256(key).hexdigest() != args.key_sha256:
+             raise RuntimeError("the supplied independent key pin does not match key.json")
++        if json.loads(key).get("profile") != args.proof_profile:
++            raise RuntimeError("admitted key does not match the selected proof profile")
+         report["proof_sha256"] = hashlib.sha256(proof).hexdigest()
+         for artifact_bundle in (bundle, args.adjacent_bundle):
+             if artifact_bundle:
+@@ -237,14 +242,17 @@ def main() -> None:
+         with tempfile.TemporaryDirectory(prefix="segment-v2-replay-") as temporary:
+             work = Path(temporary)
+             run("genuine", bundle, args.key_sha256, expected, True)
+-            # This is an exact admitted q3 fixture, not an arbitrary postcard
+-            # editor: refuse to mutate offsets under a different wire profile.
+-            if proof[:7] != bytes([0, 1, 3, 0, 1, 0, 4]):
+-                raise RuntimeError("unsupported genuine proof prefix for this development replay")
++            # Exact admitted encodings, not offsets inferred from untrusted
++            # proof bytes. Query193 uses a two-byte canonical varint.
++            prefix = {"development_q3_v1": bytes([0, 1, 3, 0, 1, 0, 4]),
++                      "recursive_q193_v1": bytes([16, 1, 193, 1, 0, 4, 0, 4])}[args.proof_profile]
++            if not proof.startswith(prefix):
++                raise RuntimeError("unsupported genuine proof prefix for the selected profile")
++            count_at = len(prefix) - 1
+             mutations = {
+-                "changed_pcs_config": bytes([1]) + proof[1:],
+-                "noncanonical_varint": bytes([0x80, 0]) + proof[1:],
+-                "forged_commitment_length": proof[:6] + bytes([0xff] * 9 + [1]) + proof[7:],
++                "changed_pcs_config": bytes([proof[0] ^ 1]) + proof[1:],
++                "noncanonical_varint": bytes([proof[0] | 0x80, 0]) + proof[1:],
++                "forged_commitment_length": proof[:count_at] + bytes([0xff] * 9 + [1]) + proof[count_at + 1:],
+                 "truncated": proof[:-1],
+                 "trailing": proof + b"\x00",
+                 "altered_proof_tail": proof[:-1] + bytes([proof[-1] ^ 1]),
+@@ -259,12 +267,23 @@ def main() -> None:
+                 (directory / "claims.json").write_text(json.dumps(changed_claims))
+                 (directory / "proof.bin").write_bytes(changed_proof)
+                 run(name, directory, args.key_sha256, expected, False)
+-            for name in ("changed_claim", "balanced_claims", "balanced_poseidon_partials"):
++            claim_cases = ["changed_claim", "balanced_claims", "balanced_poseidon_partials"]
++            if args.proof_profile == "recursive_q193_v1":
++                claim_cases += ["missing_interaction_pow", "changed_interaction_pow"]
++            else:
++                claim_cases += ["unexpected_interaction_pow"]
++            for name in claim_cases:
+                 directory = work / name
+                 directory.mkdir()
+                 changed_claims = copy.deepcopy(claims)
+                 values = changed_claims["claims"]
+-                if name == "balanced_poseidon_partials":
++                if name == "missing_interaction_pow":
++                    del values["interaction_pow"]
++                elif name == "changed_interaction_pow":
++                    values["interaction_pow"] ^= 1
++                elif name == "unexpected_interaction_pow":
++                    values["interaction_pow"] = 0
++                elif name == "balanced_poseidon_partials":
+                     shifted(values["poseidon_partials"][0], 1)
+                     shifted(values["poseidon_partials"][1], -1)
+                 else:
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index 51407e6a..8e15a4d3 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -99,6 +99,7 @@ pub fn add(ctx: anytype) void {
+         "SegmentV2 detached fixed projection excludes source seals and pins circuit facts",
+         "SegmentV2 detached transcript binds dynamic expected wire without specializing the key",
+         "SegmentV2 detached claims share fixed lowering and expected row36 closure",
++        "SegmentV2 detached profiles bind security and interaction work",
+     };
+     const segment_v2_detached_transcript_compile = b.addTest(.{
+         .root_module = segment_v2_verifier_components_root,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index 37da8dbc..53116c24 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -8,6 +8,7 @@ const std = @import("std");
+ const gate = @import("recursive_segment_v2_concrete_outer_proof_test.zig");
+ 
+ const NativeBackend = enum { cpu, metal };
++const ProofProfile = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_proof.Profile;
+ 
+ pub fn main() !void {
+     try run(void);
+@@ -49,6 +50,7 @@ fn run(comptime Metal: type) !void {
+         return;
+     }
+     var native_ingress_profile: ?@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile = null;
++    var proof_profile: ?ProofProfile = null;
+     var steps: ?usize = null;
+     var memory_addresses: ?usize = null;
+     var segment_count: ?usize = null;
+@@ -69,6 +71,9 @@ fn run(comptime Metal: type) !void {
+         if (std.mem.eql(u8, key, "--native-ingress-profile")) {
+             if (native_ingress_profile != null) return error.DuplicateArgument;
+             native_ingress_profile = std.meta.stringToEnum(@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile, value) orelse return error.InvalidNativeProfile;
++        } else if (std.mem.eql(u8, key, "--proof-profile")) {
++            if (proof_profile != null) return error.DuplicateArgument;
++            proof_profile = std.meta.stringToEnum(ProofProfile, value) orelse return error.InvalidProofProfile;
+         } else if (std.mem.eql(u8, key, "--native-steps")) {
+             if (steps != null) return error.DuplicateArgument;
+             steps = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNativeStepCount;
+@@ -117,12 +122,13 @@ fn run(comptime Metal: type) !void {
+             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
+             aot_manifest = digest;
+         } else {
+-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--proof-profile development_q3_v1|recursive_q193_v1 (segment output only)] [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+             return error.InvalidArguments;
+         }
+     }
+     if (native_ingress_profile != null and (memory_addresses == null or two_segment_output != null or initial_register7 != null or steps != null))
+         return error.ConflictingNativeProfileArguments;
++    if (proof_profile != null and (two_segment_output == null or native_ingress_profile != null)) return error.ProofProfileRequiresSegmentOutput;
+     const selected_segments = segment_count orelse 2;
+     if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
+     for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
+@@ -152,7 +158,7 @@ fn run(comptime Metal: type) !void {
+             if (native_ingress_profile) |profile|
+                 try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, profile)
+             else if (two_segment_output) |directory|
+-                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
++                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1)
+             else if (memory_addresses) |count|
+                 try gate.runMemoryProof(allocator, count)
+             else
+@@ -196,7 +202,7 @@ fn run(comptime Metal: type) !void {
+                     try delta.requireMetalDispatch();
+                     try Backend.shutdown();
+                 } else if (two_segment_output) |directory| {
+-                    try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
++                    try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1);
+                     try Backend.shutdown();
+                 } else if (memory_addresses) |count|
+                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
+@@ -219,7 +225,7 @@ fn run(comptime Metal: type) !void {
+     std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
+ }
+ 
+-fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8) !void {
++fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8, proof_profile: ProofProfile) !void {
+     const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
+     const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
+     const recursion = @import("stwo_riscv_frontend").recursion;
+@@ -253,6 +259,7 @@ fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator
+         .child_directories = directories,
+         .initial_memory_word = initial_memory_word,
+         .admitted_outer_keys = keys,
++        .proof_profile = proof_profile,
+     });
+     const bytes = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
+     defer allocator.free(bytes);
+@@ -263,9 +270,9 @@ fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator
+     try file.writeAll(bytes);
+ }
+ 
+-fn produceSelectedSegments(count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8) !void {
++fn produceSelectedSegments(count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8, profile: ProofProfile) !void {
+     switch (count) {
+-        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, allocator, address_count, seed, directory, paths, pins),
++        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, allocator, address_count, seed, directory, paths, pins, profile),
+         else => return error.InvalidSegmentCount,
+     }
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+index 0d1b8e61..0f1df4de 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+@@ -210,7 +210,7 @@ pub fn OwnedFor(comptime family: Family) type {
+             return recursion.captured_fri.Owned.init(allocator, .{
+                 .log_blowup_factor = pcs.fri_config.log_blowup_factor,
+                 .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
+-                .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
++                .interaction_pow_bits = if (family == .segment) self.key().profile.interactionPowBits() else 0,
+                 .pcs_pow_bits = pcs.pow_bits,
+                 .claimed_sum_count = @intCast(self.claims().values.len),
+             }, &self.storage().capture);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig
+index aa33c531..b367f88a 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig
+@@ -158,7 +158,10 @@ pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, inde
+     var timer = try std.time.Timer.start();
+     const terminal = try verifier.verify(allocator, key.key(), &expected.data, input.claims, proof);
+     const verify_ns = timer.read();
+-    return .{ .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
++    return .{ .endpoint = switch (key.key().profile) {
++        .development_q3_v1 => "verified_segment_v2_detached_development_q3",
++        .recursive_q193_v1 => "verified_segment_v2_detached_q193",
++    }, .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
+ }
+ 
+ pub const ArgumentsV1 = struct { directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8 };
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig
+index 4f1af80c..7ea01afd 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig
+@@ -13,6 +13,7 @@ const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
+ const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
+ const Engine = engine.Engine;
+ const TreeStorage = storage.TreeStorageFor(Engine);
++pub const Profile = transcript.ProfileV1;
+ 
+ pub const Candidate = struct {
+     allocator: std.mem.Allocator,
+@@ -88,11 +89,27 @@ pub fn produce(
+     prepared: *const leaf.PreparedNativeV2LeafOuter,
+     admitted_key: ?*const verifier.KeyV1,
+ ) !Candidate {
++    return produceWithProfile(allocator, prepared, admitted_key, .development_q3_v1);
++}
++
++pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
++    // A stronger outer proof cannot repair a weak native child. This check is
++    // before cohort allocation, and the resulting fixed AIR is independently
++    // admitted through the same pinned-key transaction as development.
++    if (profile == .recursive_q193_v1 and
++        (!std.meta.eql(prepared.pcs_config, recursion.protocol.PCS_CONFIG) or
++            prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS))
++        return error.DetachedNativeSecurityProfileMismatch;
++    if (admitted_key) |key| if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
+     var timer = try std.time.Timer.start();
+     var cohort = try cohort_mod.Cohort.init(allocator, prepared);
+     defer cohort.deinit();
+     const manifest = cohort.manifest();
+-    var scheme = try Engine.init(allocator, transcript.PCS_CONFIG);
++    std.debug.print("SEGMENT_V2_DETACHED_GEOMETRY profile={s} cohort_ns={d} poseidon_calls={d} tree0_evaluation_bytes={d} tree1_evaluation_bytes={d} tree2_evaluation_bytes={d} excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true\n", .{
++        @tagName(profile),                            timer.read(),                                 cohort.core.poseidonCallCount(),
++        try TreeStorage.evaluationBytes(manifest, 0), try TreeStorage.evaluationBytes(manifest, 1), try TreeStorage.evaluationBytes(manifest, 2),
++    });
++    var scheme = try Engine.init(allocator, profile.pcsConfig());
+     scheme.setCoefficientRetentionPolicy(.never);
+     var scheme_moved = false;
+     defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
+@@ -110,6 +127,8 @@ pub fn produce(
+     for (cohort.core.authority.lowering_plan.public_terms) |term|
+         if (term.active_in == .segment) try wire_terms.append(allocator, term);
+     const candidate_key = verifier.KeyV1{
++        .profile = profile,
++        .pcs_config = profile.pcsConfig(),
+         .manifest = manifest.*,
+         .preprocessed_root = roots.items[0],
+         .parameters = .{
+@@ -135,6 +154,8 @@ pub fn produce(
+     try Engine.flushPendingCommit(&scheme, allocator, &channel);
+     const expected = &prepared.capture.public_data.data;
+     try transcript.mixAdmission(&channel, key, expected);
++    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
++    try transcript.mixInteractionPow(&channel, key, interaction_pow);
+     const relations = try recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
+     const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
+     var interaction = try TreeStorage.init(allocator, manifest, 2);
+@@ -142,7 +163,7 @@ pub fn produce(
+     const generated = try cohort.fillInteractionInto(manifest, &relations, &providers, interaction.columns);
+     var claim_vector = try cohort.claimVector(&generated);
+     _ = try cohort.auditGlobalClosure(&generated, &claim_vector, &relations, &providers);
+-    const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials };
++    const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials, .interaction_pow = interaction_pow };
+     try transcript.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
+     try interaction.commit(&scheme, &channel);
+     var components = try cohort.initComponents(&generated, &relations, &providers);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+index 960f042b..81b49cdd 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+@@ -1,4 +1,4 @@
+-//! Explicit development transcript for detached SegmentV2 verification.
++//! Explicit versioned transcript for detached SegmentV2 verification.
+ //! Structural validation and a caller-supplied independent pin do not establish
+ //! that a compiler emitted a fixed circuit. Admission policy must additionally
+ //! establish that Tree0 and all constant/output anchors are statement-independent.
+@@ -25,7 +25,24 @@ pub const INTERACTION_POW_BITS = recursion.outer_parent_child_admission.INTERACT
+ /// are template bookkeeping: only canonical program geometry enters this key
+ /// identity. No capture, source receipt, observed claim, or call-buffer digest
+ /// belongs here. Constant terms must come from independently admitted lowering.
+-pub const ProfileV1 = enum(u8) { development_q3_v1 = 1 };
++pub const ProfileV1 = enum(u8) {
++    development_q3_v1 = 1,
++    recursive_q193_v1 = 2,
++
++    pub fn pcsConfig(self: ProfileV1) core.pcs.PcsConfig {
++        return switch (self) {
++            .development_q3_v1 => PCS_CONFIG,
++            .recursive_q193_v1 => recursion.protocol.PCS_CONFIG,
++        };
++    }
++
++    pub fn interactionPowBits(self: ProfileV1) u32 {
++        return switch (self) {
++            .development_q3_v1 => INTERACTION_POW_BITS,
++            .recursive_q193_v1 => recursion.protocol.INTERACTION_POW_BITS,
++        };
++    }
++};
+ 
+ pub const KeyV1 = struct {
+     profile: ProfileV1 = .development_q3_v1,
+@@ -40,8 +57,18 @@ pub const KeyV1 = struct {
+     wire_terms: []const lowering.PublicWireTerm,
+ 
+     pub fn identity(self: *const KeyV1) ![32]u8 {
+-        if (self.version != VERSION or self.profile != .development_q3_v1) return error.InvalidSegmentDetachedVersion;
+-        if (!std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.InvalidSegmentDetachedProfile;
++        if (self.version != VERSION) return error.InvalidSegmentDetachedVersion;
++        if (!std.meta.eql(self.pcs_config, self.profile.pcsConfig())) return error.InvalidSegmentDetachedProfile;
++        if (self.profile == .recursive_q193_v1) {
++            for ([_]air.query_bits_witness.LaneProfile{ self.parameters.query_reference.vm, self.parameters.query_reference.recursion }) |lane| {
++                if (lane.query_count != recursion.protocol.FRI_QUERY_COUNT or
++                    lane.trace_tree_count != recursion.protocol.COMMITMENT_TREE_COUNT or
++                    lane.lifting_log_size <= recursion.protocol.FRI_LOG_BLOWUP_FACTOR)
++                    return error.DetachedNativeSecurityProfileMismatch;
++                const fri = try recursion.fixed_profile.FriSchedule.init(lane.lifting_log_size - recursion.protocol.FRI_LOG_BLOWUP_FACTOR, recursion.protocol.PCS_CONFIG.fri_config);
++                if (lane.fri_layer_count != fri.count) return error.DetachedNativeSecurityProfileMismatch;
++            }
++        }
+         _ = try self.parameters.validate(&self.manifest);
+         if (try self.native_descriptors.callCount() > (@as(u64, 1) << @intCast(self.manifest.placements[13].?.geometry.log_size)))
+             return error.InvalidSegmentDetachedCircuit;
+@@ -54,8 +81,11 @@ pub const KeyV1 = struct {
+         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus)
+             return error.InvalidSegmentDetachedCircuit;
+         var hash = std.crypto.hash.sha2.Sha256.init(.{});
+-        hash.update("stwo-zig/segment-v2-detached-development-circuit/v2\x00");
+-        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, manifest_mod.TRANSCRIPT_FORMAT_VERSION, INTERACTION_POW_BITS, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
++        hash.update(switch (self.profile) {
++            .development_q3_v1 => "stwo-zig/segment-v2-detached-development-circuit/v2\x00",
++            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-q193-circuit/v1\x00",
++        });
++        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, manifest_mod.TRANSCRIPT_FORMAT_VERSION, self.profile.interactionPowBits(), self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step }) |word| hashWord(&hash, word);
+         hash.update(&manifest_mod.programGeometryShaId(&self.manifest));
+         hash.update(&air.universal_challenges.registryOrderDigest());
+         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
+@@ -130,6 +160,19 @@ pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const
+     try expected.mixInto(channel);
+ }
+ 
++/// The profile owns the work threshold and its transcript position. A missing
++/// nonce must never silently select the development transcript.
++pub fn mixInteractionPow(channel: anytype, key: *const KeyV1, nonce: ?u64) !void {
++    const bits = key.profile.interactionPowBits();
++    if (bits == 0) {
++        if (nonce != null) return error.UnexpectedDetachedInteractionPow;
++        return;
++    }
++    const value = nonce orelse return error.MissingDetachedInteractionPow;
++    if (!channel.verifyPowNonce(bits, value)) return error.InvalidDetachedInteractionPow;
++    channel.mixU64(value);
++}
++
+ /// Claims remain untrusted until STARK verification. The two independent
+ /// checks bind row36 to expected public input and all39 rows to fixed lowering
+ /// anchors. Neither public boundary is accepted as a supplied scalar.
+@@ -290,3 +333,42 @@ test "SegmentV2 detached claims share fixed lowering and expected row36 closure"
+     try std.testing.expectError(error.SegmentDetachedClaimClosureMismatch, mixClaimsAndBoundary(&channel, &key, &data, claims, &relations));
+     try std.testing.expectEqualDeep(before, channel);
+ }
++
++test "SegmentV2 detached profiles bind security and interaction work" {
++    const allocator = std.testing.allocator;
++    const legacy = try testKey(1000, 1);
++    var strong = legacy;
++    strong.profile = .recursive_q193_v1;
++    try std.testing.expectError(error.InvalidSegmentDetachedProfile, strong.validate());
++    strong.pcs_config = strong.profile.pcsConfig();
++    try std.testing.expectError(error.DetachedNativeSecurityProfileMismatch, strong.validate());
++    var channel = recursion.poseidon2_channel.Channel{};
++    channel.mixU32s(&.{ 71, 93 });
++    const before = channel;
++    try mixInteractionPow(&channel, &legacy, null);
++    try std.testing.expectEqualDeep(before, channel);
++    try std.testing.expectError(error.UnexpectedDetachedInteractionPow, mixInteractionPow(&channel, &legacy, 0));
++    try std.testing.expectError(error.MissingDetachedInteractionPow, mixInteractionPow(&channel, &strong, null));
++    var invalid: u64 = 0;
++    while (channel.verifyPowNonce(strong.profile.interactionPowBits(), invalid)) invalid += 1;
++    try std.testing.expectError(error.InvalidDetachedInteractionPow, mixInteractionPow(&channel, &strong, invalid));
++    try std.testing.expectEqualDeep(before, channel);
++    const valid = channel.grind(strong.profile.interactionPowBits());
++    var expected = before;
++    expected.mixU64(valid);
++    try mixInteractionPow(&channel, &strong, valid);
++    try std.testing.expectEqualDeep(expected, channel);
++
++    var claims = components.ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
++    const old_json = try std.json.Stringify.valueAlloc(allocator, .{ .values = claims.values, .poseidon_partials = claims.poseidon_partials }, .{});
++    defer allocator.free(old_json);
++    const compatible_json = try std.json.Stringify.valueAlloc(allocator, claims, .{});
++    defer allocator.free(compatible_json);
++    try std.testing.expectEqualStrings(old_json, compatible_json);
++    claims.interaction_pow = 0;
++    const nonce_json = try std.json.Stringify.valueAlloc(allocator, claims, .{});
++    defer allocator.free(nonce_json);
++    var decoded = try std.json.parseFromSlice(components.ClaimsV1, allocator, nonce_json, .{});
++    defer decoded.deinit();
++    try std.testing.expectEqual(@as(?u64, 0), decoded.value.interaction_pow);
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig
+index e9d50c4e..05695356 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig
+@@ -110,6 +110,7 @@ fn verifyImpl(
+     defer scheme.deinit(allocator);
+     for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], channel);
+     try transcript.mixAdmission(channel, key, expected);
++    try transcript.mixInteractionPow(channel, key, claims.interaction_pow);
+     const relations = try components.Relations.draw(allocator, channel);
+     try transcript.mixClaimsAndBoundary(channel, key, expected, claims, &relations);
+     try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], channel);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig
+index be65ca32..fddc92fa 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig
+@@ -80,11 +80,24 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
+         storage: []M31,
+         backing: [][]M31,
+ 
++        /// Exact evaluation payload, excluding column metadata and the PCS's
++        /// later expansion/commitment buffers. Reads admitted geometry only.
++        pub fn evaluationBytes(manifest: *const Manifest.Manifest, tree: usize) !usize {
++            var cells: usize = 0;
++            for (manifest.roster_rows[0..manifest.roster_count]) |row| {
++                const geometry = manifest.placements[row].?.geometry;
++                const count = treeGeometryColumns(Manifest, geometry, tree);
++                cells = try std.math.add(usize, cells, try std.math.mul(usize, count, @as(usize, 1) << @intCast(geometry.log_size)));
++            }
++            return std.math.mul(usize, cells, @sizeOf(M31));
++        }
++
+         pub fn init(
+             allocator: std.mem.Allocator,
+             manifest: *const Manifest.Manifest,
+             tree: usize,
+         ) !@This() {
++            const cells = try evaluationBytes(manifest, tree) / @sizeOf(M31);
+             const count = treeColumnCount(Manifest, manifest, tree);
+             const evaluations = try allocator.alloc(prover_pcs.ColumnEvaluation, count);
+             errdefer allocator.free(evaluations);
+@@ -95,13 +108,6 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
+                 for (evaluations[offset..][0..local_count]) |*evaluation|
+                     evaluation.log_size = placement.geometry.log_size;
+             }
+-            var cells: usize = 0;
+-            for (evaluations) |evaluation|
+-                cells = std.math.add(
+-                    usize,
+-                    cells,
+-                    @as(usize, 1) << @intCast(evaluation.log_size),
+-                ) catch return error.ArithmeticOverflow;
+             const storage = try allocator.alloc(M31, cells);
+             errdefer allocator.free(storage);
+             @memset(storage, M31.zero());
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+index 8d894771..6c242659 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+@@ -21,6 +21,7 @@ pub const Options = OptionsFor(2);
+ pub fn OptionsFor(comptime count: usize) type {
+     return struct {
+         initial_memory_word: u32 = 0,
++        proof_profile: detached.Profile = .development_q3_v1,
+         native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+         /// Each directory must be new. Neither child may overwrite prior evidence.
+         child_directories: [count][]const u8,
+@@ -92,7 +93,7 @@ pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, alloc
+     const admission = try workload.admitSegments(count, results, ingress.digest("recursive-v2-session"), statements);
+     var children: [count]ChildCandidate = undefined;
+     for (results, statements, admission.sources, 0..) |result, statement, source, index| {
+-        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index]);
++        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index], options.proof_profile);
+     }
+     for (&segments) |*segment| segment.deinit();
+     owned = false;
+@@ -114,6 +115,7 @@ fn produceChild(
+     native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+     directory_path: []const u8,
+     admitted_key: ?*const verifier.KeyV1,
++    proof_profile: detached.Profile,
+ ) !ChildCandidate {
+     var timer = try std.time.Timer.start();
+     // Expected public input comes from independently checked execution/source
+@@ -132,12 +134,13 @@ fn produceChild(
+         const lifecycle_before = if (comptime NativeEngine != leaf.Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
+         const telemetry_before = if (comptime NativeEngine != leaf.Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
+         var native_timer = try std.time.Timer.start();
+-        var prepared = try ingress.prepareTemporalNativeLeafWithEngine(
++        var prepared = try ingress.prepareTemporalNativeLeafWithProfile(
+             NativeEngine,
+             producer_allocator,
+             result,
+             statement,
+             native_keys,
++            if (proof_profile == .recursive_q193_v1) .protocol_v1 else .development_q1,
+         );
+         defer prepared.deinit();
+         const native_ingress_ns = native_timer.read();
+@@ -160,7 +163,7 @@ fn produceChild(
+             return error.TwoSegmentExpectedStatementMismatch;
+         for (captured_words, expected.words()) |actual, wanted|
+             if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
+-        var candidate = try detached.produce(producer_allocator, &prepared, admitted_key);
++        var candidate = try detached.produceWithProfile(producer_allocator, &prepared, admitted_key, proof_profile);
+         defer candidate.deinit();
+         const hashes = try command.retainCandidate(
+             allocator,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+index ce8de6e5..77aa958c 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+@@ -62,6 +62,22 @@ pub const AdmissionParametersV1 = struct {
+ pub const ClaimsV1 = struct {
+     values: [manifest_mod.COMPONENT_COUNT]QM31,
+     poseidon_partials: [2]QM31,
++    /// Required by the separately admitted q193 transcript. Absence preserves
++    /// the original development wire; nonce zero is still a present nonce.
++    interaction_pow: ?u64 = null,
++
++    pub fn jsonStringify(self: ClaimsV1, writer: anytype) !void {
++        try writer.beginObject();
++        try writer.objectField("values");
++        try writer.write(self.values);
++        try writer.objectField("poseidon_partials");
++        try writer.write(self.poseidon_partials);
++        if (self.interaction_pow) |nonce| {
++            try writer.objectField("interaction_pow");
++            try writer.write(nonce);
++        }
++        try writer.endObject();
++    }
+ 
+     pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
+         var result = try manifest_mod.ClaimVector.init(manifest);

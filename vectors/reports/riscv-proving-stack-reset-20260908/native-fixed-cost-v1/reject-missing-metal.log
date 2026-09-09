@@ -1,0 +1,2 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=1 native_backend=metal memory_addresses=0
+error: MetalBackendUnavailable

@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "source_patch_sha256": "88ecf31d4e9a223fdd0691172b4033aada9cf4101b173fa5fc0f3b7ad0193dd0",
+  "exit_code": 0,
+  "elapsed_seconds": 173.07470779214054
+}

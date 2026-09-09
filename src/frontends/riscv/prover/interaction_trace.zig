@@ -840,3 +840,10 @@ const generateBase = generation.generateBase;
 const sequentialBaseWorkCounts = generation.sequentialBaseWorkCounts;
 const guestInteractionWorkCounts = generation.guestInteractionWorkCounts;
 const Columns = generation.Columns;
+const external = @import("interaction_trace_external.zig").Ops(generation);
+pub const ExternalColumns = external.Columns;
+pub const generateExternalBase = external.generateBase;
+pub const generateExternalBaseAuthenticatedLookupV2 =
+    external.generateBaseAuthenticatedLookupV2;
+pub const generateExternalBaseWithoutNativePoseidonAuthenticatedLookupV2 =
+    external.generateBaseWithoutNativePoseidonAuthenticatedLookupV2;

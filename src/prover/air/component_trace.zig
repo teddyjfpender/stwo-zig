@@ -49,6 +49,10 @@ pub const Poly = struct {
 
 pub const Trace = struct {
     polys: TreeVec([]const Poly),
+    /// Optional execution storage for owned quotient-domain M31 values. The
+    /// owner outlives this borrowed trace and every prepared evaluator. Source
+    /// columns remain immutable; evaluator metadata keeps its caller allocator.
+    quotient_values_allocator: ?std.mem.Allocator = null,
 };
 
 fn checkedPow2(log_size: u32) Error!usize {

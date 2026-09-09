@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/frontends/riscv",
+    "test-recursion-direct-execution",
+    "test-recursion-structural-hashes",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 17684198416,
+  "log_sha256": "e427fd3b33c507e61281e2378639a3e3d97ff5f368fa68e722d16200e3ff31d8"
+}

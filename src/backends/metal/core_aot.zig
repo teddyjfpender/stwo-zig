@@ -5,6 +5,8 @@ const abi_contract = @import("shaders/abi_contract.zig");
 const build_contract = @import("shaders/build_contract.zig");
 const shader_manifest = @import("shaders/manifest.zig");
 
+pub const Profile = @import("shaders/aot_profile.zig").Profile;
+
 pub const format = "stwo-zig-metal-core-aot-v2";
 pub const source_filename = "stwo_zig_core.metal";
 pub const manifest_filename = "stwo_zig_core.manifest.json";
@@ -58,6 +60,7 @@ pub const Manifest = struct {
 };
 
 pub const Admission = struct {
+    profile: Profile = .core_v2,
     allocator: std.mem.Allocator,
     metallib_bytes: []u8,
     metallib: Measurement,
@@ -90,7 +93,11 @@ pub fn renderManifestTrustAnchor(allocator: std.mem.Allocator, encoded: []const 
 }
 
 pub fn renderManifest(allocator: std.mem.Allocator, evidence: ?BuildEvidence) ![]u8 {
-    const source_hex = std.fmt.bytesToHex(sourceDigest(), .lower);
+    return renderManifestForProfile(allocator, evidence, .core_v2);
+}
+
+pub fn renderManifestForProfile(allocator: std.mem.Allocator, evidence: ?BuildEvidence, profile: Profile) ![]u8 {
+    const source_hex = std.fmt.bytesToHex(profile.sourceDigest(), .lower);
     const air_hex = if (evidence) |value|
         std.fmt.bytesToHex(value.measurements.air.sha256, .lower)
     else
@@ -105,7 +112,7 @@ pub fn renderManifest(allocator: std.mem.Allocator, evidence: ?BuildEvidence) ![
         .source = .{
             .path = source_filename,
             .sha256 = source_hex[0..],
-            .bytes = source().len,
+            .bytes = profile.source().len,
         },
         .compile_profile = shader_manifest.compile_profile,
         .target_policy = build_contract.target_policy,
@@ -122,8 +129,8 @@ pub fn renderManifest(allocator: std.mem.Allocator, evidence: ?BuildEvidence) ![
                 .bytes = if (evidence) |value| value.measurements.metallib.bytes else null,
             },
         },
-        .exports = authorityExports(),
-        .kernel_abi = abi_contract.native_kernel_abi[0..],
+        .exports = profile.exports(),
+        .kernel_abi = profile.kernelAbi(),
     }, .{ .whitespace = .indent_2 });
     defer allocator.free(body);
     return std.fmt.allocPrint(allocator, "{s}\n", .{body});
@@ -134,6 +141,10 @@ pub fn admit(
     bundle_path: []const u8,
     expected_manifest_sha256: [32]u8,
 ) !Admission {
+    return admitForProfile(allocator, bundle_path, expected_manifest_sha256, .core_v2);
+}
+
+pub fn admitForProfile(allocator: std.mem.Allocator, bundle_path: []const u8, expected_manifest_sha256: [32]u8, profile: Profile) !Admission {
     if (bundle_path.len == 0) return error.InvalidBundlePath;
     var directory = try std.fs.cwd().openDir(bundle_path, .{});
     defer directory.close();
@@ -146,7 +157,7 @@ pub fn admit(
         .ignore_unknown_fields = false,
     }) catch return error.InvalidAotManifest;
     defer parsed.deinit();
-    try validateManifest(parsed.value);
+    try validateManifestForProfile(parsed.value, profile);
 
     const actual_source = try measure(directory, source_filename);
     const expected_source = Measurement{
@@ -176,6 +187,7 @@ pub fn admit(
         .allocator = allocator,
         .metallib_bytes = metallib_bytes,
         .metallib = expected_metallib,
+        .profile = profile,
     };
 }
 
@@ -208,6 +220,10 @@ pub fn measure(directory: std.fs.Dir, filename: []const u8) !Measurement {
 }
 
 fn validateManifest(manifest: Manifest) !void {
+    return validateManifestForProfile(manifest, .core_v2);
+}
+
+fn validateManifestForProfile(manifest: Manifest, profile: Profile) !void {
     if (!std.mem.eql(u8, manifest.format, format)) return error.UnsupportedAotFormat;
     if (manifest.core_shader_abi != shader_manifest.core_shader_abi)
         return error.CoreShaderAbiMismatch;
@@ -220,7 +236,7 @@ fn validateManifest(manifest: Manifest) !void {
         return error.InvalidToolchainIdentity;
     if (!std.mem.eql(u8, manifest.source.path, source_filename))
         return error.InvalidSourcePath;
-    const expected_source = Measurement{ .sha256 = sourceDigest(), .bytes = source().len };
+    const expected_source = Measurement{ .sha256 = profile.sourceDigest(), .bytes = profile.source().len };
     const declared_source = Measurement{
         .sha256 = try parseDigest(manifest.source.sha256),
         .bytes = manifest.source.bytes,
@@ -232,9 +248,9 @@ fn validateManifest(manifest: Manifest) !void {
         return error.InvalidArtifactPath;
     _ = try requiredMeasurement(manifest.artifacts.air);
     _ = try requiredMeasurement(manifest.artifacts.metallib);
-    if (!exportsEql(manifest.exports, authorityExports()))
+    if (!exportsEql(manifest.exports, profile.exports()))
         return error.CoreExportInventoryMismatch;
-    if (!kernelAbiEql(manifest.kernel_abi, abi_contract.native_kernel_abi[0..]))
+    if (!kernelAbiEql(manifest.kernel_abi, profile.kernelAbi()))
         return error.CoreKernelAbiMismatch;
 }
 
@@ -457,7 +473,7 @@ test "Native AOT admission rejects authority drift" {
     );
 
     @memcpy(candidate, valid);
-    try replaceManifestOnce(temporary.dir, candidate, "\"core_shader_abi\": 12", "\"core_shader_abi\": 13");
+    try replaceManifestOnce(temporary.dir, candidate, "\"core_shader_abi\": 22", "\"core_shader_abi\": 23");
     try std.testing.expectError(
         error.CoreShaderAbiMismatch,
         admit(std.testing.allocator, bundle_path, manifestDigest(candidate)),
@@ -566,4 +582,37 @@ test "Native AOT admission rejects corrupted artifacts and incomplete manifests"
         error.MissingToolchainIdentity,
         admit(std.testing.allocator, bundle_path, manifestDigest(emitted)),
     );
+}
+
+test "Ethereum AOT admission keeps legacy encoding and rejects cross profile source authority" {
+    const allocator = std.testing.allocator;
+    const evidence = BuildEvidence{ .measurements = .{ .air = measurementOf(test_air), .metallib = measurementOf(test_metallib) }, .toolchain = test_toolchain };
+    const legacy = try renderManifest(allocator, evidence);
+    defer allocator.free(legacy);
+    const explicit_core = try renderManifestForProfile(allocator, evidence, .core_v2);
+    defer allocator.free(explicit_core);
+    try std.testing.expectEqualStrings(legacy, explicit_core);
+    const ethereum = try renderManifestForProfile(allocator, evidence, .ethereum_fixed_program_narrow_v1);
+    defer allocator.free(ethereum);
+    const parsed = try std.json.parseFromSlice(Manifest, allocator, ethereum, .{});
+    defer parsed.deinit();
+    try validateManifestForProfile(parsed.value, .ethereum_fixed_program_narrow_v1);
+    try std.testing.expectError(error.CoreSourceIdentityMismatch, validateManifest(parsed.value));
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const path = try temporary.dir.realpathAlloc(allocator, ".");
+    defer allocator.free(path);
+    try temporary.dir.writeFile(.{ .sub_path = source_filename, .data = Profile.ethereum_fixed_program_narrow_v1.source() });
+    try temporary.dir.writeFile(.{ .sub_path = air_filename, .data = test_air });
+    try temporary.dir.writeFile(.{ .sub_path = metallib_filename, .data = test_metallib });
+    try temporary.dir.writeFile(.{ .sub_path = manifest_filename, .data = ethereum });
+    var admitted = try admitForProfile(allocator, path, manifestDigest(ethereum), .ethereum_fixed_program_narrow_v1);
+    defer admitted.deinit();
+    try std.testing.expectEqualStrings(test_metallib, admitted.metallib_bytes);
+    try std.testing.expectError(error.CoreSourceIdentityMismatch, admit(allocator, path, manifestDigest(ethereum)));
+    var wrong_roster = parsed.value;
+    wrong_roster.exports = Profile.core_v2.exports();
+    try std.testing.expectError(error.CoreExportInventoryMismatch, validateManifestForProfile(wrong_roster, .ethereum_fixed_program_narrow_v1));
+    try temporary.dir.writeFile(.{ .sub_path = source_filename, .data = source() });
+    try std.testing.expectError(error.CoreSourceIdentityMismatch, admitForProfile(allocator, path, manifestDigest(ethereum), .ethereum_fixed_program_narrow_v1));
 }

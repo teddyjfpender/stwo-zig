@@ -1,0 +1,15 @@
+{
+  "compiled_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/464a6cf7666947394866aa24b339ed8d/test",
+  "retained_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/tree0-cpu-metal-v2/probe.bin",
+  "sha256": "ef98a995a64af7bf24d0ad4d3d96320c876c8c99840951ed0ea59f0f037f6aaf",
+  "bytes": 10943368,
+  "compile_log": "/tmp/ethereum-wrapper-tree0-compile-v3.log",
+  "source_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_files_sha256": {
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "7b538effc880e28fc0317a96cd8fe580727892485e3bd980febf4ac094dc1890",
+    "src/integrations/riscv_cpu/ethereum_wrapper_tree0_probe_v1.zig": "666a9eab347a3c884c1321cfe3188356d9db18e6b0924ef8b9ec7a717be5105f",
+    "src/integrations/riscv_cpu/recursive_binary_outer_support.zig": "89e778acdfe5fc3f8a009c1a03a06ea84d7a1636960d93a3209eae5187c49a8c",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig": "198ebb1f81ca115340064fe25bfefade668ae9230b8fff8e00252e0172f4a157"
+  },
+  "all_tracked_diff_sha256": "17911b41657666ac86e6102a9b78b4f5c29662ed3502ce1615affdea323533d4"
+}

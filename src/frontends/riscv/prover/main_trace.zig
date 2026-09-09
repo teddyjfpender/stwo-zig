@@ -403,12 +403,12 @@ fn generateAndCommitPlanned(
         pool.stackSize()
     else
         work_pool.WORKER_STACK_SIZE;
-    const plan = try main_trace_plan.build(statement, .{
+    const plan = try main_trace_plan.buildWithCircuitProfileV1(statement, .{
         .execution = execution_request,
         .pool_capacity = pool_capacity,
         .worker_stack_bytes = worker_stack_bytes,
         .enable_opcode_audit = false,
-    });
+    }, witness.circuit_profile);
 
     var prepared = try production.Prepared.prepareForEngine(
         Engine,

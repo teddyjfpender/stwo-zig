@@ -1,0 +1,95 @@
+{
+  "scope": "Cold process requests, alternating order; same retained children and independently pinned verifier/key. Candidate Metal also has equivalent regenerated AOT names and unused native-table kernels.",
+  "records": [
+    {
+      "pair": 1,
+      "arm": "baseline",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-1-baseline.json",
+      "receipt_sha256": "3beab3357b08a679526ef2d50f67c219303038af64f47fde5b62751266057a9b",
+      "request_ns": 13497346083,
+      "preparation_ns": 3618745833,
+      "proof_ns": 8330317250,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    },
+    {
+      "pair": 1,
+      "arm": "candidate",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-1-candidate.json",
+      "receipt_sha256": "d2b68be6086ea0fa31a4ddc7f6c41d7539c9128a4af51b20cc9909013a4cfa1a",
+      "request_ns": 13496750000,
+      "preparation_ns": 3623771000,
+      "proof_ns": 8324159875,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    },
+    {
+      "pair": 2,
+      "arm": "candidate",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-2-candidate.json",
+      "receipt_sha256": "0838631ec3d522c2dbe3d7438c81de4329519f93fdcb35c71b6103325a165bda",
+      "request_ns": 13439676000,
+      "preparation_ns": 3641346000,
+      "proof_ns": 8291146375,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    },
+    {
+      "pair": 2,
+      "arm": "baseline",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-2-baseline.json",
+      "receipt_sha256": "8589cd1a1847d8a54c615656fbc799c8541a45287050017f8853bb137ed804bc",
+      "request_ns": 13551693167,
+      "preparation_ns": 3656634750,
+      "proof_ns": 8371324292,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    },
+    {
+      "pair": 3,
+      "arm": "baseline",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-3-baseline.json",
+      "receipt_sha256": "1cc27bc74a7db1fee8f97a2d9651f684f41ebfb32e226f3804a84ca1f612d13b",
+      "request_ns": 13759559208,
+      "preparation_ns": 3662701000,
+      "proof_ns": 8530379667,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    },
+    {
+      "pair": 3,
+      "arm": "candidate",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-v2-3-candidate.json",
+      "receipt_sha256": "9ab6aebce5ce7270043f566b3a039c915cb8a6156135aaca66deaaa4749f59e8",
+      "request_ns": 13483110792,
+      "preparation_ns": 3661182208,
+      "proof_ns": 8252373792,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    }
+  ]
+}

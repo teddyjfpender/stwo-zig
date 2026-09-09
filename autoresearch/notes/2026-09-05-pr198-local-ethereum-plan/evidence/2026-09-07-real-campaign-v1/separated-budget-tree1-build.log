@@ -1,0 +1,15 @@
+test-ethereum-retained-campaign-geometry-v1
++- retained campaign geometry identity guard failure
+error: the native recursion proof root compiled 8 tests; expected exactly 9
+
+Build Summary: 5/7 steps succeeded; 1 failed; 8/8 tests passed
+test-ethereum-retained-campaign-geometry-v1 transitive failure
++- retained campaign geometry identity guard failure
+   +- run test 8 passed 643ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 4s MaxRSS:436M
+build-ethereum-prepared-leaf-cpu-v1 success
++- install ethereum-prepared-leaf-cpu-v1 success
+   +- compile exe ethereum-prepared-leaf-cpu-v1 ReleaseSafe native success 1m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4a6bca49052a8da0a09ae20a28bfedef/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xa3c7af67 -Z73d13f18692a8cfe --maxrss 25769803776 -j1 test-ethereum-retained-campaign-geometry-v1 build-ethereum-prepared-leaf-cpu-v1 -Doptimize=ReleaseSafe --prefix /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v7 --summary all

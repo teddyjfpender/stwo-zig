@@ -1,0 +1,48 @@
+{
+  "status": "passed",
+  "command": "python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu run-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe --summary all",
+  "source_base": "73f6c12045218320fe3633fa6453c2a74706f74a",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": "7a1a3b951fbe4739cdf04eb186f6ccba7d86349c6fe1b2c9d53f81faec76c8c5",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig": "d81e64e8bfc399948aa336efef9f2e44a1f29033fd7b9d67ac0267d407ec36fd",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": "55c79ccdec64eaed6b8e4e4b9e5c7345a6f2ca85beb41af270a868b2a14582d5"
+  },
+  "request_seconds": 181.75,
+  "runtime_seconds_rounded": 13,
+  "outer": {
+    "status": "verified",
+    "rows": "39",
+    "domains": "47",
+    "proof_size_estimate_bytes": "77244",
+    "canonical_proof_bytes": "90173",
+    "canonicalize_ms": "4.277",
+    "prove_ms": "1749.419",
+    "verify_ms": "1289.446",
+    "publication_ms": "4.381",
+    "producer_prepare_ms": "406.931",
+    "producer_destroy_ms": "1.341",
+    "verifier_prepare_ms": "417.804",
+    "decode_ms": "0.310",
+    "stark_verify_ms": "6.475",
+    "transaction_ms": "3871.500",
+    "artifact_rejections_ms": "0.686",
+    "producer_peak_bytes": "90592036",
+    "producer_live_bytes_after_destroy": "0",
+    "serialization_passes": "1",
+    "retained_canonical_bytes": "90173",
+    "verification": "native_assisted_fresh_decode",
+    "draws": "1",
+    "cols": "595/974/508",
+    "workers": "1"
+  },
+  "native_child_cycles": 1,
+  "native_pcs_queries": 1,
+  "outer_pcs_queries": 3,
+  "pow_bits": 0,
+  "scope": "Native-assisted complete recursive AIR proof lifecycle: serialized outer artifact, zero tracked outer producer live bytes, fresh decode and rebuilt verifier. Native PreparedNativeV2LeafOuter remains verifier admission input. Not a detached key-only root or production security profile.",
+  "artifact_rejections": {
+    "truncated": true,
+    "trailing_bytes": true
+  },
+  "log_sha256": "8648c5b018df3051c0c9acd65b6d9442a3b9d5de963fb08256d0a42293a08b91"
+}

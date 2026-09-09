@@ -1,0 +1,25 @@
+{
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/aac01bae33e0f3a215bfa678bac76522/test"
+  ],
+  "input_sha256": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/aac01bae33e0f3a215bfa678bac76522/test": "148a33fad19b75195fbd7d421bc1805a9c8f31fdf40bcc14c0b0a6f279462a68",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-aot-v1-20260907/stwo_zig_core.manifest.json": "d51ffc6f4de6307c47604c67a352f724f3763d798f188ab86ab71c226013acba",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-aot-v1-20260907/stwo_zig_core.metallib": "9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/native-inputs-v1.json": "91edcdbd8a19cc21518380d7a2818ccf721b75276b357eb13382221ec6b79396",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/global-metadata-v1.json": "fa7846f8ba0bcb763af75567fa4fea36c57f4a50fa2a5bd4b07900f69b7ecfd1",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/program.elf": "ecfd324f8088f9c985210b728d91851fb1144254f0bb6d52aa3d7ed0e3625f55"
+  },
+  "policy": {
+    "workers": 1,
+    "graph_host_byte_budget": 8589934592,
+    "sampled_process_footprint_stop_bytes": 34359738368,
+    "timeout_seconds": 3600,
+    "sample_interval_seconds": 2,
+    "limits_scope": "sampled process monitor is not an allocation guarantee",
+    "cpu_reuse_bounded_tail": true,
+    "metal_reuse_bounded_tail": false
+  },
+  "endpoint": "tree0_admission_comparison_no_wrapper_proof",
+  "started_unix_ns": 1788789758708514000
+}

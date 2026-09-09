@@ -1,0 +1,7 @@
+{
+  "timestamp": "2026-09-08T07:01:33.635601+00:00",
+  "pid_status": "48195 48075 Tue Sep  8 10:29:14 2026     ./.zig-cache/o/87cb08a32281a12657ac8658ac6b39d5/test --cache-dir=./.zig-cache --seed=0xf7eb47ed --listen=-",
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "expected_cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu",
+  "signal_only_after": "ETHEREUM_ROOT_COHORT producer_destroyed=true serialized_bytes="
+}

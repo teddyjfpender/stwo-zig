@@ -1,0 +1,32 @@
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 339)         const external = result.execution_trace.recordedExternalSteps();
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 340)         const represented = std.math.add(usize, rows.len, external) catch
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 341)             return error.SegmentResultMismatch;
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 342)         result.execution_trace.validateClockRange(
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 343)             0,
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 344)             local_cycles,
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 345)             external,
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 346)         ) catch return error.SegmentResultMismatch;
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 347)         if (result.execution_trace.step_count != rows.len or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 348)             represented != result.cycle_count or rows.len == 0 or
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 349)             result.execution_trace.initial_pc != result.entry_cpu.pc or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 350)             result.execution_trace.final_pc != result.exit_cpu.pc)
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 351)         {
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 352)             return error.SegmentResultMismatch;
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 353)         }
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 354)         if (external == 0) {
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 355)             const first_clock = std.math.cast(
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 356)                 u32,
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 357)                 result.global_first_cycle,
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 358)             ) orelse return error.SegmentResultMismatch;
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 359)             if (rows[0].pc != result.entry_cpu.pc or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 360)                 rows[rows.len - 1].next_pc != result.exit_cpu.pc or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 361)                 rows[0].clk != first_clock or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 362)                 rows[rows.len - 1].clk != local_cycles)
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 363)             {
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 364)                 return error.SegmentResultMismatch;
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 365)             }
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 366)         } else if (rows[0].clk == 0 or
+6084a9792 (Teddy Pender 2026-09-03 16:12:02 +0400 367)             rows[rows.len - 1].clk > local_cycles)
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 368)         {
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 369)             return error.SegmentResultMismatch;
+c11cf4b30 (Teddy Pender 2026-08-20 23:19:39 +0400 370)         }

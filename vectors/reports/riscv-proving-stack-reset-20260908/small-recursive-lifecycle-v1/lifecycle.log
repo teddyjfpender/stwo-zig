@@ -1,0 +1,43 @@
+info: Columns: opcode=18 infra=481 total tree1=499 interaction=84
+info: Poseidon2 Merkle: 179 exact sparse-node calls, poseidon_log_size=8, merkle_log_size=8
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=105.951
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=28.743
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=36.122
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=157.460
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=116.452 publish_01_ms=0.534 interaction_ms=66.836 publish_2_ms=0.267 cached_validate_ns=98937625 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=77244 canonical_proof_bytes=90173 canonicalize_ms=4.277 prove_ms=1749.419 verify_ms=1289.446 publication_ms=4.381 producer_prepare_ms=406.931 producer_destroy_ms=1.341 verifier_prepare_ms=417.804 decode_ms=0.310 stark_verify_ms=6.475 transaction_ms=3871.500 artifact_rejections_ms=0.686 producer_peak_bytes=90592036 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=90173 verification=native_assisted_fresh_decode draws=1 cols=595/974/508 workers=1
+
+SEGMENT_V2_OUTER_DIMENSIONS commitments=4 claims=39 samples=2245 queried_values=6255 trace_paths=12 fri_layers=16 queries=3 max_fold=2 last_layer_coefficients=1 max_merkle_depth=17
+
+V3_ROW18_DIFFERENTIAL sum39={ .{ .v = 393862946 }, .{ .v = 515546977 }, .{ .v = 479976075 }, .{ .v = 1394125232 } } statement_public={ .{ .v = 992661794 }, .{ .v = 798641778 }, .{ .v = 342368279 }, .{ .v = 1885531433 } } wire_boundary={ .{ .v = 1753620701 }, .{ .v = 1631936670 }, .{ .v = 1667507572 }, .{ .v = 753358415 } } legacy_residual={ .{ .v = 1386524740 }, .{ .v = 1314188755 }, .{ .v = 822344354 }, .{ .v = 1132173018 } } segment_residual={ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+
+V2_POSEIDON_RECURSIVE_INGRESS cycles=1 prove_ms=4379.535 verify_ms=852.281 transcript_calls=900 authority_calls=14 core_calls=294 proof_bytes=24255 core_cols=338/760/276 core_constraints=862 complete_provider_calls=1208 complete_provider_log=11 core_init_ms=105.951 provider_ms=28.743 interaction_ms=36.122 independent_ms=157.460
+
+Build Summary: 3/3 steps succeeded
+run-recursive-segment-v2-concrete-outer-proof success
++- run exe recursive-segment-v2-concrete-outer-proof success 13s MaxRSS:1G
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native success 2m MaxRSS:7G
+
+      181.75 real       223.76 user         5.17 sys
+          7605420032  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              891958  page reclaims
+                3491  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                9928  voluntary context switches
+               98712  involuntary context switches
+           226460480  instructions retired
+            90470459  cycles elapsed
+             8946096  peak memory footprint

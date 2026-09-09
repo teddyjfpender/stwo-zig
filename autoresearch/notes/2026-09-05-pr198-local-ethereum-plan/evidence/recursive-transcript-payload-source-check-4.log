@@ -1,0 +1,16 @@
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=10 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=59164 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=59164 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=59164 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0
+
+Build Summary: 6/6 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 16s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+check-recursive-common-fold-q193-bootstrap-v2 success
++- compile test ReleaseSafe native success 1m MaxRSS:4G
+

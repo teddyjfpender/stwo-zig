@@ -93,10 +93,13 @@ static void *create_runtime_from_metallib_data_on_device(
     id<MTLDevice> device,
     const uint8_t *bytes,
     size_t byte_len,
+    const char *const *extra_names,
+    const size_t *extra_name_lengths,
+    size_t extra_count,
     char *error_message,
     size_t error_message_len
 ) {
-    if (bytes == NULL || byte_len == 0u) {
+    if (bytes == NULL || byte_len == 0u || (extra_count != 0u && (extra_names == NULL || extra_name_lengths == NULL))) {
         write_error(error_message, error_message_len, @"Metal library data is empty");
         return NULL;
     }
@@ -132,7 +135,31 @@ static void *create_runtime_from_metallib_data_on_device(
         StwoZigMetalRuntime *runtime = create_runtime_from_library(
             device, library, false, error_message, error_message_len
         );
-        return runtime == nil ? NULL : (__bridge_retained void *)runtime;
+        if (runtime == nil) return NULL;
+        // Only the admitted profile supplies these names. Resolve before
+        // publishing the runtime; no source compilation or fallback occurs.
+        for (size_t index = 0; index < extra_count; ++index) {
+            if (extra_names[index] == NULL || extra_name_lengths[index] == 0u) return NULL;
+            NSString *name = [[NSString alloc] initWithBytes:extra_names[index]
+                                                    length:extra_name_lengths[index]
+                                                  encoding:NSUTF8StringEncoding];
+            if (name == nil || !([name hasPrefix:@"stwo_zig_base_poly_"] ||
+                                [name hasPrefix:@"stwo_zig_lookup_poly_"] ||
+                                [name hasPrefix:@"stwo_zig_framework_poly_v1_"] ||
+                                [name hasPrefix:@"stwo_zig_framework_interaction_v1_"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_block_scan_v1"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_scan_blocks_v1"] ||
+                                [name isEqualToString:@"stwo_zig_framework_interaction_finalize_v1"]) ||
+                runtime.riscvPolynomialPipelines[name] != nil) {
+                write_error(error_message, error_message_len, @"Invalid additional admitted polynomial export");
+                return NULL;
+            }
+            id<MTLComputePipelineState> pipeline = make_pipeline(
+                device, library, name, error_message, error_message_len);
+            if (pipeline == nil) return NULL;
+            runtime.riscvPolynomialPipelines[name] = pipeline;
+        }
+        return (__bridge_retained void *)runtime;
     }
 }
 
@@ -146,6 +173,7 @@ void *stwo_zig_metal_runtime_create_from_metallib_data(
         MTLCreateSystemDefaultDevice(),
         bytes,
         byte_len,
+        NULL, NULL, 0u,
         error_message,
         error_message_len
     );
@@ -165,7 +193,18 @@ void *stwo_zig_metal_runtime_create_from_metallib_data_on_device(
         device,
         bytes,
         byte_len,
+        NULL, NULL, 0u,
         error_message,
         error_message_len
     );
+}
+
+void *stwo_zig_metal_runtime_create_from_metallib_data_with_polynomial_exports(
+    const uint8_t *bytes, size_t byte_len,
+    const char *const *names, const size_t *name_lengths, size_t count,
+    char *error_message, size_t error_message_len
+) {
+    return create_runtime_from_metallib_data_on_device(
+        MTLCreateSystemDefaultDevice(), bytes, byte_len,
+        names, name_lengths, count, error_message, error_message_len);
 }

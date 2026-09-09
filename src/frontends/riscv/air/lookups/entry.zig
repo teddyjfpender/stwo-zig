@@ -6,6 +6,7 @@
 //! `denominator`/`pair` are QM31-bound, because only they touch the challenge
 //! tower; they are analysed lazily and never reached from a symbolic replay.
 
+const std = @import("std");
 const QM31 = @import("stwo_core").fields.qm31.QM31;
 const logup = @import("../logup.zig");
 const relations_mod = @import("../relation_challenges.zig");
@@ -59,6 +60,41 @@ pub fn expectedArity(domain: Domain) u8 {
         .range_check_20 => 1,
         .range_check_8_8_4 => 3,
     };
+}
+
+/// Appends the canonical `(z, alpha^0, ..., alpha^(arity-1))` parameters for
+/// one production relation domain. Runtime polynomial exporters share this
+/// authority so a new resident component cannot silently reorder transcript
+/// challenges while duplicating the domain switch.
+pub fn appendRelationParameters(
+    parameters: *std.ArrayList(QM31),
+    allocator: std.mem.Allocator,
+    relations: *const relations_mod.Relations,
+    domain: Domain,
+) !void {
+    switch (domain) {
+        .registers_state => try appendRelation(parameters, allocator, relations.registers_state),
+        .memory_access => try appendRelation(parameters, allocator, relations.memory_access),
+        .program_access => try appendRelation(parameters, allocator, relations.program_access),
+        .merkle => try appendRelation(parameters, allocator, relations.merkle),
+        .poseidon2 => try appendRelation(parameters, allocator, relations.poseidon2),
+        .poseidon2_io => try appendRelation(parameters, allocator, relations.poseidon2_io),
+        .bitwise => try appendRelation(parameters, allocator, relations.bitwise),
+        .range_check_20 => try appendRelation(parameters, allocator, relations.range_check_20),
+        .range_check_8_11 => try appendRelation(parameters, allocator, relations.range_check_8_11),
+        .range_check_8_8_4 => try appendRelation(parameters, allocator, relations.range_check_8_8_4),
+        .range_check_8_8 => try appendRelation(parameters, allocator, relations.range_check_8_8),
+        .range_check_m31 => try appendRelation(parameters, allocator, relations.range_check_m31),
+    }
+}
+
+fn appendRelation(
+    parameters: *std.ArrayList(QM31),
+    allocator: std.mem.Allocator,
+    relation: anytype,
+) !void {
+    try parameters.append(allocator, relation.z);
+    try parameters.appendSlice(allocator, &relation.alpha_powers);
 }
 
 pub fn Builder(comptime S: type) type {
@@ -308,8 +344,6 @@ pub fn Builder(comptime S: type) type {
         }
     };
 }
-
-const std = @import("std");
 
 const shipped = Builder(QM31);
 

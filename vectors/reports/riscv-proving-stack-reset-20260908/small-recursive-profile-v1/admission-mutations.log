@@ -1,0 +1,29 @@
+test-recursion-segment-outer-cohort-v2
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+Build Summary: 3/3 steps succeeded; 357/358 tests passed; 1 skipped
+test-recursion-segment-outer-cohort-v2 success
++- run test 357 passed 1 skipped 4s MaxRSS:21M
+   +- compile test Debug native success 9s MaxRSS:1G
+
+       13.90 real        12.31 user         0.59 sys
+          1807007744  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              126751  page reclaims
+                 394  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                5804  voluntary context switches
+                4455  involuntary context switches
+           213251236  instructions retired
+            84311296  cycles elapsed
+             9617912  peak memory footprint

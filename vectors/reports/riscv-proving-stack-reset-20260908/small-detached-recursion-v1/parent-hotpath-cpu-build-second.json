@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "test-recursive-compact-tuple-ledger",
+    "test-recursive-segment-v2-detached-parent-prepare",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 192245126167,
+  "log_sha256": "887463bc75467b901a26851c33294df91532ce6fea1baa306ab533334cfe61de",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-hotpath-second-cpu-prove",
+  "binary_sha256": "5d0c4bfef06caf840c94a7ff9f46f964245e8162b1a45f0769a50618f1a00c89"
+}

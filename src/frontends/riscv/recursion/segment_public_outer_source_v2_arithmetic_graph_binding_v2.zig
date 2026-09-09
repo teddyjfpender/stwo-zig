@@ -48,6 +48,7 @@ const source_v2 = dependency_0.source_v2;
 const statement_v1 = dependency_0.statement_v1;
 const statement_v2 = dependency_0.statement_v2;
 const std = dependency_0.std;
+const register_bytes = dependency_0.register_bytes;
 const sumsEql = dependency_0.sumsEql;
 const traceLogSize = dependency_0.traceLogSize;
 const universal = dependency_0.universal;
@@ -112,6 +113,7 @@ pub const PreparedV2 = struct {
     publication_id: Digest,
     native_public_sums_id: Digest,
     relation_context_id: Digest,
+    memory_layout: register_bytes.MemoryLayout,
     public_sums: public_logup_v2.Sums,
     public_total: QM31,
     lowering_obligation: LoweringObligationV2,
@@ -140,8 +142,9 @@ pub const PreparedV2 = struct {
         return .{
             .source36_statement_word_emits = wire_count,
             .row11_statement_word_consumes = wire_count,
-            .row11_boundary_bridge_emits = wire_count,
-            .row15_boundary_bridge_consumes = wire_count,
+            .memory_byte_count = self.manifest.memory_byte_count,
+            .row11_boundary_bridge_emits = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+            .row15_boundary_bridge_consumes = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
             .rows13_16_arithmetic_wire_emits = self.lowering_obligation.input_count,
         };
     }
@@ -269,15 +272,19 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
         inputs.infra_descs,
     );
     const authority_call_count = try authority_hash_plan.poseidonCallCount();
-    const counts = try deriveCounts(data.words().len, authority_call_count);
+    const view = try data.authenticatedView();
+    const memory_layout = try register_bytes.MemoryLayout.init(&view);
+    const memory_byte_count = std.math.cast(u32, memory_layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
+    const counts = try deriveCounts(data.words().len, authority_call_count, memory_byte_count);
     var obligation = LoweringObligationV2{
+        .memory_byte_count = memory_byte_count,
         .boundary_word_count = std.math.cast(u32, data.words().len) orelse
             return error.ArithmeticOverflow,
         .input_count = std.math.cast(
             u32,
             try checkedAdd(
                 data.words().len,
-                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
+                try checkedAdd(ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT, memory_layout.totalBridgeWords()),
             ),
         ) orelse return error.ArithmeticOverflow,
         .identity = undefined,
@@ -309,6 +316,7 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
         .publication_id = inputs.publication.identity,
         .native_public_sums_id = inputs.native_public_sums.identity,
         .relation_context_id = inputs.native_public_sums.relation_context_id,
+        .memory_layout = memory_layout,
         .public_sums = inputs.native_public_sums.sums,
         .public_total = inputs.native_public_sums.total,
         .lowering_obligation = obligation,
@@ -352,6 +360,7 @@ pub fn manifestFor(
             u32,
             inputs.owned_public_data.data.words().len,
         ) orelse return error.ArithmeticOverflow,
+        .memory_byte_count = obligation.memory_byte_count,
         .statement_source_id = inputs.statement_source.source_id,
         .publication_id = inputs.publication.identity,
         .native_public_sums_id = inputs.native_public_sums.identity,
@@ -613,6 +622,10 @@ pub fn sourceId(prepared: *const PreparedV2) Digest {
     hash.digest(prepared.publication_id);
     hash.digest(prepared.native_public_sums_id);
     hash.digest(prepared.relation_context_id);
+    inline for (.{ prepared.memory_layout.entry, prepared.memory_layout.exit }) |section| {
+        hash.scalar(@as(u64, @intCast(section.payload_start)));
+        hash.scalar(section.count);
+    }
     hash.qm31(prepared.public_sums.registers_state);
     hash.qm31(prepared.public_sums.memory_access);
     hash.qm31(prepared.public_sums.program_access);
@@ -646,6 +659,7 @@ pub fn preparedEql(left: *const PreparedV2, right: *const PreparedV2) bool {
         std.meta.eql(left.publication_id, right.publication_id) and
         std.meta.eql(left.native_public_sums_id, right.native_public_sums_id) and
         std.meta.eql(left.relation_context_id, right.relation_context_id) and
+        std.meta.eql(left.memory_layout, right.memory_layout) and
         sumsEql(left.public_sums, right.public_sums) and
         left.public_total.eql(right.public_total) and
         std.meta.eql(left.lowering_obligation, right.lowering_obligation) and

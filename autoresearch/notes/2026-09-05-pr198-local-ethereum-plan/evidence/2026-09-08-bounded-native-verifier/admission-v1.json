@@ -1,0 +1,57 @@
+{
+  "timestamp": "2026-09-08T06:00:53.003566+00:00",
+  "policy": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/bounded-native-verifier-admission-v1/policy.json",
+    "bytes": 5166,
+    "sha256": "870e2b8689f5b417764d28e499197a7ca34421e7b2db03ddbb18856054b1a65b"
+  },
+  "baselines": [
+    {
+      "segment_index": 0,
+      "proof_bytes": 41293029,
+      "request_ns": 85364524500,
+      "verify_ns": 81950623083,
+      "peak_footprint_bytes": 2390608152
+    },
+    {
+      "segment_index": 11,
+      "proof_bytes": 60940314,
+      "request_ns": 48344707542,
+      "verify_ns": 44906376750,
+      "peak_footprint_bytes": 1034011968
+    },
+    {
+      "segment_index": 18,
+      "proof_bytes": 61514273,
+      "request_ns": 52282872250,
+      "verify_ns": 48861140167,
+      "peak_footprint_bytes": 953992416
+    }
+  ],
+  "baseline_max_peak_bytes": 2390608152,
+  "host": {
+    "source": "darwin.memory_pressure.Q",
+    "physical_bytes": 38654705664,
+    "available_bytes": 15848429322
+  },
+  "required_available_bytes": 9663676416,
+  "headroom_admits_now": true,
+  "native19_original_request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/verify-leaf-000019-1788840994863553000/request.json",
+    "bytes": 956,
+    "sha256": "136147161a360e5edff8b17d23dd924a3262f54789fdea3708c16a7d91b0163d"
+  },
+  "candidate19_proof": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/0db6f28766333703ed2f55d6f16757c28e0843c61db870d728455dce960046a6.bin",
+    "bytes": 72328554,
+    "sha256": "0db6f28766333703ed2f55d6f16757c28e0843c61db870d728455dce960046a6"
+  },
+  "controller_plan": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/plan.json",
+    "bytes": 2195,
+    "sha256": "52b2d612ea35293567a0057807d360844b64c8cb8d7cbf484406c98d7a7ea56a"
+  },
+  "monitored_envelope_not_os_memory_limit": true,
+  "real_child_launched": false,
+  "controller_restarted": false
+}

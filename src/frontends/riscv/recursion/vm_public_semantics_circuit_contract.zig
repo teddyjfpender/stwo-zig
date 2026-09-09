@@ -61,6 +61,7 @@ pub const ClaimWitness = struct {
     statement_words: *const span_statement.StatementWords,
     input_digest: vm_claim.Digest,
     output_digest: vm_claim.Digest,
+    native_continuation_roots: ?[2]M31 = null,
 };
 
 pub const ClaimPrivateSource = union(enum) {
@@ -77,6 +78,7 @@ pub const ClaimInputSource = union(enum) {
     statement_word: u32,
     io_digest_word: struct { io_kind: u1, limb: u3 },
     private: ClaimPrivateSource,
+    native_continuation_root: u1,
 };
 
 pub const ClaimInputBinding = struct {
@@ -147,6 +149,7 @@ pub const ClaimGraphBuilder = struct {
 pub const ClaimBoundWords = struct {
     allocator: std.mem.Allocator,
     values: []arithmetic.Value,
+    omitted: ?struct { start: usize, end: usize } = null,
 
     pub fn init(
         allocator: std.mem.Allocator,
@@ -174,17 +177,40 @@ pub const ClaimBoundWords = struct {
         return .{ .allocator = allocator, .values = values };
     }
 
+    /// The initial input lane authenticates every omitted slot through row12.
+    /// Keep canonical source indices for the bounded header and output suffix.
+    pub fn initForInitialInputs(allocator: std.mem.Allocator, builder: *ClaimGraphBuilder, shape: vm_claim.Shape) Error!ClaimBoundWords {
+        if (shape.max_input_words == 0) return error.InputLayoutMismatch;
+        const start = vm_claim.canonical_layout.input_slots_start;
+        const end = vm_claim.canonical_layout.outputWordsTag(shape);
+        const count = try shape.wordCount();
+        const values = try allocator.alloc(arithmetic.Value, count - (end - start));
+        errdefer allocator.free(values);
+        for (values, 0..) |*destination, packed_index| {
+            const index = if (packed_index < start) packed_index else packed_index + end - start;
+            destination.* = try builder.input(.{ .claim_word = @intCast(index) });
+        }
+        return .{ .allocator = allocator, .values = values, .omitted = .{ .start = start, .end = end } };
+    }
+
     pub fn deinit(self: *ClaimBoundWords) void {
         self.allocator.free(self.values);
         self.* = undefined;
     }
 
     pub fn value(self: *const ClaimBoundWords, index: usize) arithmetic.Value {
+        if (self.omitted) |gap| {
+            std.debug.assert(index < gap.start or index >= gap.end);
+            return self.values[if (index < gap.start) index else index - (gap.end - gap.start)];
+        }
         return self.values[index];
     }
 };
 
+pub const MachineIoPolicy = enum { legacy_zero, segment_v2_statement, ethereum_native_roots, ethereum_initial_inputs };
+
 pub fn constrainRootsAndMachineState(
+    comptime io_policy: MachineIoPolicy,
     builder: *ClaimGraphBuilder,
     gate: arithmetic.Value,
     claim: *const ClaimBoundWords,
@@ -206,6 +232,7 @@ pub fn constrainRootsAndMachineState(
         8,
     );
     try constrainMachineBoundary(
+        io_policy,
         builder,
         gate,
         claim,
@@ -216,6 +243,7 @@ pub fn constrainRootsAndMachineState(
         span_statement.canonical_layout.entry_state_start,
     );
     try constrainMachineBoundary(
+        io_policy,
         builder,
         gate,
         claim,
@@ -245,6 +273,7 @@ pub fn constrainRootsAndMachineState(
 }
 
 pub fn constrainMachineBoundary(
+    comptime io_policy: MachineIoPolicy,
     builder: *ClaimGraphBuilder,
     gate: arithmetic.Value,
     claim: *const ClaimBoundWords,
@@ -272,16 +301,26 @@ pub fn constrainMachineBoundary(
         state_start + span_statement.canonical_layout.machine_state_registers_start_offset,
         64,
     );
-    try copyRange(
-        builder,
-        gate,
-        claim,
-        root_start,
-        statement,
-        state_start + span_statement.canonical_layout.machine_state_rw_digest_start_offset,
-        8,
-    );
-    for (0..8) |offset| try builder.constrain(
+    if (io_policy == .ethereum_native_roots or io_policy == .ethereum_initial_inputs) {
+        const side: u1 = if (state_start == span_statement.canonical_layout.entry_state_start) 0 else 1;
+        const native_root = try builder.input(.{ .native_continuation_root = side });
+        try constrainEqual(builder, gate, claim.value(root_start), native_root);
+        for (1..8) |limb| try builder.constrain(gate, claim.value(root_start + limb));
+    } else {
+        try copyRange(
+            builder,
+            gate,
+            claim,
+            root_start,
+            statement,
+            state_start + span_statement.canonical_layout.machine_state_rw_digest_start_offset,
+            8,
+        );
+    }
+    // SegmentV2 authenticates these continuation commitments in the native
+    // statement transcript. Row 10 routes every word to row 11 (continuation)
+    // and row 15 (claim semantics); they are not VM public-vector digests.
+    if (io_policy == .legacy_zero) for (0..8) |offset| try builder.constrain(
         gate,
         statement.value(
             state_start + span_statement.canonical_layout.machine_state_io_digest_start_offset + offset,

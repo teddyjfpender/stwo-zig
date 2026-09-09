@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 147s
+
+Build Summary: 3/3 steps succeeded; 8/8 tests passed
+test-pcs-retained-columns success
++- run test 8 passed 280ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 12s MaxRSS:810M
+

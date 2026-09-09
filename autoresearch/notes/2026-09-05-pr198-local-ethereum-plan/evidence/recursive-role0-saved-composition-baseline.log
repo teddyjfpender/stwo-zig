@@ -1,0 +1,18 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 204s
+test-ethereum-incremental-leaf-materialize-v4-replay
++- saved Ethereum leaf composition replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition' failed: VM_COMPOSITION_UNSAT output=43/44 node=540231 value=.{ .c0 = .{ .a = .{ .v = 1408490146 }, .b = .{ .v = 258693226 } }, .c1 = .{ .a = .{ .v = 868354397 }, .b = .{ .v = 655990633 } } }
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38224458 public_ns=291563292 transcript_ns=135550416 profile_ns=26667 program_ns=66983917 prepare_ns=0 fri_ns=0 seal_ns=0 total_ns=582171750 nodes=540232 node_bytes=10804640 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643712 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition', the following test command failed:
+./.zig-cache/o/0fafc9543ed043425df32c7c9213e65a/test --cache-dir=./.zig-cache --seed=0xfaa9d4ec --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-materialize-v4-replay transitive failure
++- saved Ethereum leaf composition replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native cached 52ms MaxRSS:35M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0378ae1cbcc2dcb8b88d6d0fcd0941d1/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xfaa9d4ec -Z086afe7d61324487 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-materialize-v4-replay -Doptimize=ReleaseSafe --summary all

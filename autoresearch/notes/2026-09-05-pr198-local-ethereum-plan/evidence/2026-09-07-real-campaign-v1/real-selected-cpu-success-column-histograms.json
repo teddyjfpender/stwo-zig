@@ -1,0 +1,985 @@
+{
+  "scope": "Diagnostic extraction from independently fresh-verified native artifact; not a verifier/admission constructor. Geometry is cross-checked against retained preflight descriptors and exact live Tree1/alltrees totals.",
+  "proof_sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8",
+  "blowup_log": 1,
+  "sources": [
+    {
+      "group": "core",
+      "index": 0,
+      "kind": "auipc",
+      "rows": 12445,
+      "log_size": 14,
+      "columns": [
+        2,
+        29,
+        24
+      ]
+    },
+    {
+      "group": "core",
+      "index": 1,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 2,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 3,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 4,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 5,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 6,
+      "kind": "base_alu_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 7,
+      "kind": "base_alu_imm",
+      "rows": 50272,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 8,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 9,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 10,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 11,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 12,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 13,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 14,
+      "kind": "base_alu_reg",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 15,
+      "kind": "base_alu_reg",
+      "rows": 42214,
+      "log_size": 16,
+      "columns": [
+        2,
+        35,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 16,
+      "kind": "branch_eq",
+      "rows": 61115,
+      "log_size": 16,
+      "columns": [
+        2,
+        30,
+        20
+      ]
+    },
+    {
+      "group": "core",
+      "index": 17,
+      "kind": "branch_lt",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        37,
+        24
+      ]
+    },
+    {
+      "group": "core",
+      "index": 18,
+      "kind": "branch_lt",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        37,
+        24
+      ]
+    },
+    {
+      "group": "core",
+      "index": 19,
+      "kind": "branch_lt",
+      "rows": 10311,
+      "log_size": 14,
+      "columns": [
+        2,
+        37,
+        24
+      ]
+    },
+    {
+      "group": "core",
+      "index": 20,
+      "kind": "div",
+      "rows": 28,
+      "log_size": 5,
+      "columns": [
+        2,
+        67,
+        72
+      ]
+    },
+    {
+      "group": "core",
+      "index": 21,
+      "kind": "jal",
+      "rows": 12725,
+      "log_size": 14,
+      "columns": [
+        2,
+        20,
+        16
+      ]
+    },
+    {
+      "group": "core",
+      "index": 22,
+      "kind": "jalr",
+      "rows": 20863,
+      "log_size": 15,
+      "columns": [
+        2,
+        41,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 23,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 24,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 25,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 26,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 27,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 28,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 29,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 30,
+      "kind": "load_store",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 31,
+      "kind": "load_store",
+      "rows": 37116,
+      "log_size": 16,
+      "columns": [
+        2,
+        50,
+        36
+      ]
+    },
+    {
+      "group": "core",
+      "index": 32,
+      "kind": "lt_imm",
+      "rows": 3729,
+      "log_size": 12,
+      "columns": [
+        2,
+        37,
+        24
+      ]
+    },
+    {
+      "group": "core",
+      "index": 33,
+      "kind": "lt_reg",
+      "rows": 9445,
+      "log_size": 14,
+      "columns": [
+        2,
+        44,
+        28
+      ]
+    },
+    {
+      "group": "core",
+      "index": 34,
+      "kind": "lui",
+      "rows": 24618,
+      "log_size": 15,
+      "columns": [
+        2,
+        18,
+        16
+      ]
+    },
+    {
+      "group": "core",
+      "index": 35,
+      "kind": "mul",
+      "rows": 6753,
+      "log_size": 13,
+      "columns": [
+        2,
+        39,
+        44
+      ]
+    },
+    {
+      "group": "core",
+      "index": 36,
+      "kind": "mulh",
+      "rows": 2976,
+      "log_size": 12,
+      "columns": [
+        2,
+        47,
+        64
+      ]
+    },
+    {
+      "group": "core",
+      "index": 37,
+      "kind": "shifts_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        51,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 38,
+      "kind": "shifts_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        51,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 39,
+      "kind": "shifts_imm",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        51,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 40,
+      "kind": "shifts_imm",
+      "rows": 57060,
+      "log_size": 16,
+      "columns": [
+        2,
+        51,
+        32
+      ]
+    },
+    {
+      "group": "core",
+      "index": 41,
+      "kind": "shifts_reg",
+      "rows": 40729,
+      "log_size": 16,
+      "columns": [
+        2,
+        60,
+        40
+      ]
+    },
+    {
+      "group": "core",
+      "index": 42,
+      "kind": "fence",
+      "rows": 69,
+      "log_size": 7,
+      "columns": [
+        2,
+        6,
+        8
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 0,
+      "kind": "program",
+      "rows": 729419,
+      "log_size": 20,
+      "columns": [
+        2,
+        10,
+        16
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 1,
+      "kind": "memory",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        8,
+        16
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 2,
+      "kind": "memory",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        2,
+        8,
+        16
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 3,
+      "kind": "memory",
+      "rows": 28874,
+      "log_size": 15,
+      "columns": [
+        2,
+        8,
+        16
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 4,
+      "kind": "merkle",
+      "rows": 3396146,
+      "log_size": 22,
+      "columns": [
+        2,
+        10,
+        12
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 5,
+      "kind": "poseidon2",
+      "rows": 3396146,
+      "log_size": 22,
+      "columns": [
+        2,
+        445,
+        8
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 6,
+      "kind": "clock_update",
+      "rows": 382632,
+      "log_size": 19,
+      "columns": [
+        2,
+        10,
+        8
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 7,
+      "kind": "bitwise",
+      "rows": 262144,
+      "log_size": 18,
+      "columns": [
+        5,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 8,
+      "kind": "range_check_20",
+      "rows": 1048576,
+      "log_size": 20,
+      "columns": [
+        2,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 9,
+      "kind": "range_check_8_11",
+      "rows": 524288,
+      "log_size": 19,
+      "columns": [
+        3,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 10,
+      "kind": "range_check_8_8_4",
+      "rows": 1048576,
+      "log_size": 20,
+      "columns": [
+        4,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 11,
+      "kind": "range_check_8_8",
+      "rows": 65536,
+      "log_size": 16,
+      "columns": [
+        3,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "infra",
+      "index": 12,
+      "kind": "range_check_m31",
+      "rows": 32768,
+      "log_size": 15,
+      "columns": [
+        3,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 0,
+      "kind": "keccak_shard_v1",
+      "rows": 9889,
+      "log_size": 14,
+      "columns": [
+        31,
+        2204,
+        4164
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 1,
+      "kind": "keccak_chi_table_v2",
+      "rows": 8192,
+      "log_size": 13,
+      "columns": [
+        7,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 2,
+      "kind": "keccak_xor5_table_v2",
+      "rows": 1024,
+      "log_size": 10,
+      "columns": [
+        7,
+        1,
+        4
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 3,
+      "kind": "secp_product_base_v1",
+      "rows": 68991,
+      "log_size": 17,
+      "columns": [
+        3,
+        318,
+        572
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 4,
+      "kind": "secp_product_scalar_v1",
+      "rows": 396,
+      "log_size": 9,
+      "columns": [
+        3,
+        318,
+        572
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 5,
+      "kind": "secp_linear_base_v1",
+      "rows": 99973,
+      "log_size": 17,
+      "columns": [
+        3,
+        199,
+        260
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 6,
+      "kind": "secp_linear_scalar_v1",
+      "rows": 391,
+      "log_size": 9,
+      "columns": [
+        3,
+        199,
+        260
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 7,
+      "kind": "secp_point_v1",
+      "rows": 15194,
+      "log_size": 14,
+      "columns": [
+        3,
+        523,
+        48
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 8,
+      "kind": "secp_split_v1",
+      "rows": 132,
+      "log_size": 8,
+      "columns": [
+        3,
+        227,
+        12
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 9,
+      "kind": "secp_scalar_program_v1",
+      "rows": 8413,
+      "log_size": 14,
+      "columns": [
+        3,
+        1124,
+        156
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 10,
+      "kind": "secp_signed_table_v1",
+      "rows": 4488,
+      "log_size": 13,
+      "columns": [
+        3,
+        284,
+        12
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 11,
+      "kind": "secp_recovery_v1",
+      "rows": 66,
+      "log_size": 7,
+      "columns": [
+        3,
+        517,
+        348
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 12,
+      "kind": "secp_byte_table_v1",
+      "rows": 256,
+      "log_size": 8,
+      "columns": [
+        3,
+        11,
+        4
+      ]
+    },
+    {
+      "group": "ethereum",
+      "index": 13,
+      "kind": "secp_recovery_caller_v1",
+      "rows": 66,
+      "log_size": 7,
+      "columns": [
+        3,
+        292,
+        272
+      ]
+    },
+    {
+      "group": "bridge",
+      "index": 0,
+      "kind": "incremental",
+      "rows": 198181,
+      "log_size": 18,
+      "columns": [
+        2,
+        7,
+        4
+      ]
+    }
+  ],
+  "trees": [
+    {
+      "tree": 0,
+      "columns": 200,
+      "source_log_histogram": {
+        "5": 2,
+        "7": 8,
+        "8": 6,
+        "9": 6,
+        "10": 7,
+        "12": 4,
+        "13": 12,
+        "14": 45,
+        "15": 9,
+        "16": 71,
+        "17": 6,
+        "18": 7,
+        "19": 5,
+        "20": 8,
+        "22": 4
+      },
+      "lde_log_histogram": {
+        "6": 2,
+        "8": 8,
+        "9": 6,
+        "10": 6,
+        "11": 7,
+        "13": 4,
+        "14": 12,
+        "15": 45,
+        "16": 9,
+        "17": 71,
+        "18": 6,
+        "19": 7,
+        "20": 5,
+        "21": 8,
+        "23": 4
+      },
+      "retained_lde_bytes": 289772032
+    },
+    {
+      "tree": 1,
+      "columns": 8458,
+      "source_log_histogram": {
+        "5": 67,
+        "7": 815,
+        "8": 238,
+        "9": 517,
+        "10": 1,
+        "12": 84,
+        "13": 324,
+        "14": 3981,
+        "15": 68,
+        "16": 1360,
+        "17": 517,
+        "18": 8,
+        "19": 11,
+        "20": 12,
+        "22": 455
+      },
+      "lde_log_histogram": {
+        "6": 67,
+        "8": 815,
+        "9": 238,
+        "10": 517,
+        "11": 1,
+        "13": 84,
+        "14": 324,
+        "15": 3981,
+        "16": 68,
+        "17": 1360,
+        "18": 517,
+        "19": 8,
+        "20": 11,
+        "21": 12,
+        "23": 455
+      },
+      "retained_lde_bytes": 17253064448
+    },
+    {
+      "tree": 2,
+      "columns": 8236,
+      "source_log_histogram": {
+        "5": 72,
+        "7": 628,
+        "8": 16,
+        "9": 832,
+        "10": 4,
+        "12": 88,
+        "13": 60,
+        "14": 4460,
+        "15": 72,
+        "16": 1108,
+        "17": 832,
+        "18": 8,
+        "19": 12,
+        "20": 24,
+        "22": 20
+      },
+      "lde_log_histogram": {
+        "6": 72,
+        "8": 628,
+        "9": 16,
+        "10": 832,
+        "11": 4,
+        "13": 88,
+        "14": 60,
+        "15": 4460,
+        "16": 72,
+        "17": 1108,
+        "18": 832,
+        "19": 8,
+        "20": 12,
+        "21": 24,
+        "23": 20
+      },
+      "retained_lde_bytes": 3007256576
+    }
+  ],
+  "source_contracts": [
+    "src/frontends/riscv/prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig",
+    "src/frontends/riscv/prover/guest_precompile/ethereum_proof_artifact_wire.zig",
+    "src/frontends/riscv/air/statement.zig:nPreprocessedColumnsForInfra",
+    "src/frontends/riscv/air/lookups/tables/schema.zig:arity",
+    "retained component geometry supplies exact authenticated physical interaction widths; bridge uses shared2/7/4columns"
+  ]
+}

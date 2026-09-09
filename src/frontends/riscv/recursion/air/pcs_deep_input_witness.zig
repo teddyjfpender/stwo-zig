@@ -52,4 +52,5 @@ pub const logicalRow = shard_1.logicalRow;
 /// validation loop while interaction rows are prepared.
 pub const logicalInputs = shard_1.logicalInputs;
 pub const expectedSource = shard_0.expectedSource;
+pub const profileMatchesTrace = shard_0.profileMatchesTrace;
 pub const computeReferenceDigest = shard_1.computeReferenceDigest;

@@ -511,10 +511,14 @@ pub const OpcodeRows = struct {
 pub const ProgramRows = struct {
     rows: []const program_commitment.Row,
     relations: *const relation_challenges.Relations,
+    circuit_profile: @import("ethereum_circuit_profile_v1.zig").CircuitProfileV1 = .legacy_v4,
 
     pub fn rowPairsAt(self: @This(), logical_row: usize, _: usize) ![program_interaction.N_SUMS]logup.RowPair {
         return if (logical_row < self.rows.len)
-            program_interaction.rowPairsFromRow(self.rows[logical_row], self.relations)
+            switch (self.circuit_profile.programPolicy()) {
+                .sparse_merkle_v1 => program_interaction.rowPairsFromRow(self.rows[logical_row], self.relations),
+                .fixed_decoded_table_v1 => program_interaction.rowPairsFromRowWithPolicy(.fixed_decoded_table_v1, self.rows[logical_row], self.relations),
+            }
         else
             program_interaction.paddingPairs();
     }
@@ -710,10 +714,11 @@ pub fn retainedInputBytes(
         result,
         try checkedMul(inputs.witness.program.rows.len, @sizeOf(program_commitment.Row)),
     );
-    if (inputs.witness.boundary) |boundary| {
+    const boundary_rows = inputs.witness.memoryBoundaryRows();
+    if (boundary_rows.len != 0) {
         result = try checkedAdd(
             result,
-            try checkedMul(boundary.rows.len, @sizeOf(memory_boundary.Row)),
+            try checkedMul(boundary_rows.len, @sizeOf(memory_boundary.Row)),
         );
     }
     result = try checkedAdd(

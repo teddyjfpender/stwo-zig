@@ -1,0 +1,232 @@
+Analysis of sampling q193-child-first-prove (pid 24039) every 1 millisecond
+Process:         q193-child-first-prove [24039]
+Path:            /Users/USER/*/q193-child-first-prove
+Load Address:    0x10253c000
+Identifier:      q193-child-first-prove
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  Python [24038]
+
+Date/Time:       2026-09-09 11:25:02.265 +0400
+Launch Time:     2026-09-09 11:24:32.809 +0400
+OS Version:      macOS 15.3.1 (24D70)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         2.2G
+Physical footprint (peak):  2.4G
+Idle exit:                  untracked
+----
+
+Call graph:
+    842 Thread_45077500   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 842 start  (in dyld) + 2840  [0x19bcdc274]
+    +   842 main  (in q193-child-first-prove) + 288  [0x102918c44]
+    +     842 recursive_segment_v2_concrete_outer_proof_runner.run__anon_2396  (in q193-child-first-prove) + 9064  [0x1029171e8]
+    +       842 recursive_segment_v2_concrete_outer_proof_runner.produceSelectedSegments__anon_142103  (in q193-child-first-prove) + 4504  [0x10290d5e4]
+    +         842 recursive_segment_v2_two_segment_proof_test_support.produceChild__anon_142595  (in q193-child-first-prove) + 1164  [0x102908b3c]
+    +           842 recursive_segment_v2_detached_proof.produceWithProfile  (in q193-child-first-prove) + 11064  [0x102906b70]
+    +             842 prove.proveExComponentsWithRecorder__anon_29314  (in q193-child-first-prove) + 21180  [0x10261d778]
+    +               842 pcs.scheme.CommitmentSchemeProver(mod.CpuBackend,recursion.poseidon2_channel.MerkleHasher,recursion.poseidon2_channel.MerkleChannel).proveValuesWithRecorderAndPhase__anon_30423  (in q193-child-first-prove) + 740  [0x1026125bc]
+    +                 587 pcs.sampled_values.evaluateAndReleaseWithWorkRecorder__anon_30489  (in q193-child-first-prove) + 5436  [0x1025ea584]
+    +                 ! 587 constraints.cosetVanishing__anon_166323  (in q193-child-first-prove) + 1684,1672,...  [0x1029d31b8,0x1029d31ac,...]
+    +                 203 pcs.sampled_values.evaluateAndReleaseWithWorkRecorder__anon_30489  (in q193-child-first-prove) + 5556,4904,...  [0x1025ea5fc,0x1025ea370,...]
+    +                 51 pcs.sampled_values.evaluateAndReleaseWithWorkRecorder__anon_30489  (in q193-child-first-prove) + 4328  [0x1025ea130]
+    +                 ! 51 circle.CirclePointIndex.toPoint  (in q193-child-first-prove) + 136,148,...  [0x1029d2a90,0x1029d2a9c,...]
+    +                 1 pcs.sampled_values.evaluateAndReleaseWithWorkRecorder__anon_30489  (in q193-child-first-prove) + 3884  [0x1025e9f74]
+    +                   1 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+    842 Thread_45077519
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077520
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077521
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077522
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077523
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077524
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077525
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077526
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077527
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077528
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077529
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077530
+    + 842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+    +   842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+    +     842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+    +       842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+    +         842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+    +           842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+    +             842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+    +               842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+    +                 842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+    842 Thread_45077531
+      842 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+        842 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+          842 Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+            842 Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+              842 Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+                842 Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+                  842 Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+                    842 Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+                      842 __ulock_wait2  (in libsystem_kernel.dylib) + 8  [0x19c028d9c]
+
+Total number in stack (recursive counted multiple, when >=5):
+        13       Thread.Condition.FutexImpl.wait  (in q193-child-first-prove) + 116  [0x102e2a404]
+        13       Thread.Condition.wait  (in q193-child-first-prove) + 12  [0x102d5de78]
+        13       Thread.Futex.DarwinImpl.wait  (in q193-child-first-prove) + 68  [0x102d5c3a8]
+        13       Thread.Futex.Deadline.wait  (in q193-child-first-prove) + 272  [0x102d5e9ac]
+        13       Thread.Futex.wait  (in q193-child-first-prove) + 16  [0x102c4f9bc]
+        13       Thread.PosixThreadImpl.spawn__anon_145366.Instance.entryFn  (in q193-child-first-prove) + 224  [0x10292395c]
+        13       __ulock_wait2  (in libsystem_kernel.dylib) + 0  [0x19c028d94]
+        13       _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+        13       thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait2  (in libsystem_kernel.dylib)        10946
+        constraints.cosetVanishing__anon_166323  (in q193-child-first-prove)        587
+        pcs.sampled_values.evaluateAndReleaseWithWorkRecorder__anon_30489  (in q193-child-first-prove)        203
+        circle.CirclePointIndex.toPoint  (in q193-child-first-prove)        51
+
+Binary Images:
+       0x10253c000 -        0x103273e6f +q193-child-first-prove (0) <185437A5-6A8D-372E-92C9-57F9AEDB4994> /Users/*/q193-child-first-prove
+       0x19bc84000 -        0x19bcd5ca3  libobjc.A.dylib (928.3) <B2882096-462B-3878-BE2A-410F7B1A27FD> /usr/lib/libobjc.A.dylib
+       0x19bcd6000 -        0x19bd57f3f  dyld (1.0.0 - 1245.1) <398A133C-9BCB-317F-A064-A40D3CEA3C0F> /usr/lib/dyld
+       0x19bd58000 -        0x19bd5bff8  libsystem_blocks.dylib (95) <A33D811C-BD2D-3833-9C38-9BF3960A1F8C> /usr/lib/system/libsystem_blocks.dylib
+       0x19bd5c000 -        0x19bda6fff  libxpc.dylib (2866.81.1) <564B7785-E7C4-3231-8BF1-3FBB266B6599> /usr/lib/system/libxpc.dylib
+       0x19bda7000 -        0x19bdc2fff  libsystem_trace.dylib (1612.80.7) <7F5EC174-AB45-37E7-B783-83A04B6154A1> /usr/lib/system/libsystem_trace.dylib
+       0x19bdc3000 -        0x19be62fdf  libcorecrypto.dylib (1736.80.2) <8A08F4FE-C92E-35AA-BBB8-45A9D7A00AAD> /usr/lib/system/libcorecrypto.dylib
+       0x19be63000 -        0x19bea4fff  libsystem_malloc.dylib (657.80.3) <1480B446-99F7-3757-9D4E-5BA3014A2726> /usr/lib/system/libsystem_malloc.dylib
+       0x19bea5000 -        0x19beebfff  libdispatch.dylib (1504.60.7) <5576E4FD-AAD2-3608-8C8F-4EEC421236F9> /usr/lib/system/libdispatch.dylib
+       0x19beec000 -        0x19beeeffb  libsystem_featureflags.dylib (94) <64FD190D-C0D7-3B9A-837B-E63EA386BE14> /usr/lib/system/libsystem_featureflags.dylib
+       0x19beef000 -        0x19bf70ffb  libsystem_c.dylib (1669.60.4) <92699527-645F-3D8D-AED8-1CFB0C034E15> /usr/lib/system/libsystem_c.dylib
+       0x19bf71000 -        0x19bffeffb  libc++.1.dylib (1800.105) <BBAB286C-2E51-3D64-9AE3-A4102935FE32> /usr/lib/libc++.1.dylib
+       0x19bfff000 -        0x19c019fff  libc++abi.dylib (1800.105) <E7DBA219-4E97-307D-8E80-E0D97BE8517B> /usr/lib/libc++abi.dylib
+       0x19c01a000 -        0x19c054ff7  libsystem_kernel.dylib (11215.81.4) <EEE9D0D3-DFFC-37CB-9CED-B27CD0286D8C> /usr/lib/system/libsystem_kernel.dylib
+       0x19c055000 -        0x19c061fff  libsystem_pthread.dylib (535) <642FAF7A-874E-37E6-8ABA-2B0CC09A3025> /usr/lib/system/libsystem_pthread.dylib
+       0x19c062000 -        0x19c08effb  libdyld.dylib (1245.1) <C0C53058-94D2-3D9E-9E92-56BA8B43C327> /usr/lib/system/libdyld.dylib
+       0x19c08f000 -        0x19c096feb  libsystem_platform.dylib (340.60.2) <984D08B8-F85C-36F5-9E17-5BFF7FC779A3> /usr/lib/system/libsystem_platform.dylib
+       0x19c097000 -        0x19c0c6ffb  libsystem_info.dylib (592) <8C7C4902-FEC1-3776-87FF-2373BA19B1CE> /usr/lib/system/libsystem_info.dylib
+       0x19f7ad000 -        0x19f7b7ff7  libsystem_darwin.dylib (1669.60.4) <F23DCA7C-AF18-3BB9-9D2F-FFBC4645DDC1> /usr/lib/system/libsystem_darwin.dylib
+       0x19fc10000 -        0x19fc22fff  libsystem_notify.dylib (327.60.1) <A3EE7CB1-6FCC-37AB-A8BC-256B9642B47D> /usr/lib/system/libsystem_notify.dylib
+       0x1a1bbe000 -        0x1a1bd8ff7  libsystem_networkextension.dylib (2063.80.10) <CD0C82E0-9B1B-3CAA-8CA7-466D1C439C3B> /usr/lib/system/libsystem_networkextension.dylib
+       0x1a1c54000 -        0x1a1c6cffb  libsystem_asl.dylib (402) <26693E85-AFDC-38E2-B939-D6EC865FA506> /usr/lib/system/libsystem_asl.dylib
+       0x1a375d000 -        0x1a3765fff  libsystem_symptoms.dylib (2001.80.5) <695D143C-5D59-37B0-8784-4AE727AFEEF5> /usr/lib/system/libsystem_symptoms.dylib
+       0x1a6eba000 -        0x1a6ee8ff7  libsystem_containermanager.dylib (689) <A72C2FD5-969A-342F-B8A4-4216D7C7957E> /usr/lib/system/libsystem_containermanager.dylib
+       0x1a80f7000 -        0x1a80fbfff  libsystem_configuration.dylib (1351.80.2) <C218F939-9E60-37A3-B2EC-93837054946D> /usr/lib/system/libsystem_configuration.dylib
+       0x1a80fc000 -        0x1a8102fff  libsystem_sandbox.dylib (2401.81.2) <BF38E17B-6A57-3EE2-A805-8E9B35542182> /usr/lib/system/libsystem_sandbox.dylib
+       0x1a9014000 -        0x1a9016ffb  libquarantine.dylib (181.80.2) <90D46A44-087C-3900-8509-EA90C6CFAD58> /usr/lib/system/libquarantine.dylib
+       0x1a9723000 -        0x1a9729ffb  libsystem_coreservices.dylib (171.1) <579E4601-365D-346F-9CD9-37851FB2874C> /usr/lib/system/libsystem_coreservices.dylib
+       0x1a9b90000 -        0x1a9bcdfff  libsystem_m.dylib (3289) <1B9E3C19-420A-38C5-96CE-6C2CE6EB56BA> /usr/lib/system/libsystem_m.dylib
+       0x1a9bcf000 -        0x1a9bd2ff7  libmacho.dylib (1022.1) <9E0F73E3-1865-3F72-9ED1-465C68D23BA6> /usr/lib/system/libmacho.dylib
+       0x1a9bf0000 -        0x1a9bfdfff  libcommonCrypto.dylib (600033.60.1) <1C8E15A6-869F-3AAD-AAE8-5825C7C4F902> /usr/lib/system/libcommonCrypto.dylib
+       0x1a9bfe000 -        0x1a9c09fff  libunwind.dylib (1800.85) <BEFBB85F-B46E-3C52-9A92-2F8EE957E3D9> /usr/lib/system/libunwind.dylib
+       0x1a9c0a000 -        0x1a9c11fff  liboah.dylib (342) <D8407F3E-5522-3C66-8A60-C29567136FD5> /usr/lib/liboah.dylib
+       0x1a9c12000 -        0x1a9c1cff7  libcopyfile.dylib (213.40.2) <0D18978A-4446-31EE-8228-25FABB44DB94> /usr/lib/system/libcopyfile.dylib
+       0x1a9c1d000 -        0x1a9c20fff  libcompiler_rt.dylib (103.3) <F22CE10B-B1DF-3A58-9B8B-7F0ED73962DF> /usr/lib/system/libcompiler_rt.dylib
+       0x1a9c21000 -        0x1a9c25ffb  libsystem_collections.dylib (1669.60.4) <74DC56B7-7BE5-3392-835A-7C6863986FF2> /usr/lib/system/libsystem_collections.dylib
+       0x1a9c26000 -        0x1a9c29ffb  libsystem_secinit.dylib (153.60.1) <9BFA7CCC-E31E-3D39-832D-CA425269A795> /usr/lib/system/libsystem_secinit.dylib
+       0x1a9c2a000 -        0x1a9c2cfff  libremovefile.dylib (75.80.1) <D242539B-BA45-363C-8B08-83FBCE4EC1C2> /usr/lib/system/libremovefile.dylib
+       0x1a9c2d000 -        0x1a9c2dfff  libkeymgr.dylib (31) <95E4D67C-51BF-36C9-99B5-35F5E2D6E2CA> /usr/lib/system/libkeymgr.dylib
+       0x1a9c2e000 -        0x1a9c36fff  libsystem_dnssd.dylib (2559.80.8) <35DE5A07-AF58-33F0-A950-1F7CCAE85F3E> /usr/lib/system/libsystem_dnssd.dylib
+       0x1a9c37000 -        0x1a9c3cffb  libcache.dylib (95) <46788F12-8B07-3253-BF23-C49BC753A327> /usr/lib/system/libcache.dylib
+       0x1a9c3d000 -        0x1a9c3effb  libSystem.B.dylib (1351) <E7A14776-89AB-310A-9FCF-F47CAE8043B6> /usr/lib/libSystem.B.dylib
+       0x27cc36000 -        0x27cc39fff  libsystem_darwindirectory.dylib (122) <E3036CCB-95CF-3BD6-AA4F-58543B923EA5> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x27cc3a000 -        0x27cc40fff  libsystem_eligibility.dylib (160.60.1) <4C8AC363-F171-3A08-85F8-7542B9C79A87> /usr/lib/system/libsystem_eligibility.dylib
+       0x27cc41000 -        0x27cc46fff  libsystem_sanitizers.dylib (17.1) <F0A7379E-6861-3B3F-BB56-1B08B1BEE98A> /usr/lib/system/libsystem_sanitizers.dylib

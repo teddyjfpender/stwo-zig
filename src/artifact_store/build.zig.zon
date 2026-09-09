@@ -1,0 +1,6 @@
+.{
+    .fingerprint = 0x386cc0ca743079b8,
+    .name = .stwo_artifact_store,
+    .version = "0.1.0",
+    .paths = .{"."},
+}

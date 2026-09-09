@@ -1,0 +1,16 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "source_patch_sha256": "71db40360df30da2499d960078c7f8b4114dbb601478cee0e5774c21281ebbaf",
+  "runner_sha256": "221f06908c96e97845d2547bf64a80b0a39a4ad9e54495b3db9500f82405b8db",
+  "exit_code": 0,
+  "elapsed_seconds": 100.44011308299378
+}

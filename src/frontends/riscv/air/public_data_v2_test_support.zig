@@ -24,9 +24,46 @@ pub const Fixture = struct {
     right_exit_register_clocks: [32]u32,
 
     pub fn init() !Fixture {
-        const state0 = try machineState(0x1000, 0, "rw-0");
-        const state1 = try machineState(0x1008, 1, "rw-1");
-        const state2 = try machineState(0x1010, 2, "rw-2");
+        return initWithRegister7(0);
+    }
+
+    /// Same program, clocks and sparse-memory topology; x7 is unchanged by
+    /// this execution. Build every statement identity from the selected state.
+    pub fn initWithRegister7(value: u32) !Fixture {
+        const left_words: [2]memory_state.WordState = .{
+            .{
+                .addr = 0x2000,
+                .initial_word = 11,
+                .final_word = 12,
+                .final_clock = 3,
+            },
+            .{
+                .addr = 0x2004,
+                .initial_word = 0,
+                .final_word = 0,
+                .final_clock = 0,
+            },
+        };
+        const right_words: [2]memory_state.WordState = .{
+            .{
+                .addr = 0x2000,
+                .initial_word = 12,
+                .final_word = 13,
+                .final_clock = 7,
+            },
+            .{
+                .addr = 0x2004,
+                .initial_word = 0,
+                .final_word = 9,
+                .final_clock = 6,
+            },
+        };
+        var state0 = try machineState(0x1000, 0, segment_v2.snapshotDigest(&left_words, .initial_word).id);
+        var state1 = try machineState(0x1008, 1, segment_v2.snapshotDigest(&left_words, .final_word).id);
+        var state2 = try machineState(0x1010, 2, segment_v2.snapshotDigest(&right_words, .final_word).id);
+        state0.registers[7] = value;
+        state1.registers[7] = value;
+        state2.registers[7] = value;
         const job = try span.JobContext.init(
             try span.CompleteExecution.init(
                 protocol.PROTOCOL_ID_WORDS,
@@ -76,34 +113,8 @@ pub const Fixture = struct {
                     ),
                 ),
             },
-            .left_words = .{
-                .{
-                    .addr = 0x2000,
-                    .initial_word = 11,
-                    .final_word = 12,
-                    .final_clock = 3,
-                },
-                .{
-                    .addr = 0x2004,
-                    .initial_word = 0,
-                    .final_word = 0,
-                    .final_clock = 0,
-                },
-            },
-            .right_words = .{
-                .{
-                    .addr = 0x2000,
-                    .initial_word = 12,
-                    .final_word = 13,
-                    .final_clock = 7,
-                },
-                .{
-                    .addr = 0x2004,
-                    .initial_word = 0,
-                    .final_word = 9,
-                    .final_clock = 6,
-                },
-            },
+            .left_words = left_words,
+            .right_words = right_words,
             .left_exit_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
             .right_entry_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
             .right_exit_memory_clocks = .{
@@ -191,12 +202,48 @@ pub fn writeU32(words: *[2]M31, value: u32) void {
     words[1] = M31.fromCanonical(value >> 16);
 }
 
-fn machineState(pc: u32, value: u32, rw_label: []const u8) !span.MachineState {
+fn machineState(pc: u32, value: u32, rw_digest: channel.Digest) !span.MachineState {
     var registers = [_]u32{0} ** 32;
     registers[1] = value;
-    return span.MachineState.init(pc, registers, id(rw_label), .{0} ** 8);
+    return span.MachineState.init(pc, registers, rw_digest, .{0} ** 8);
 }
 
 fn cpuFromMachine(machine: span.MachineState) Cpu {
     return .{ .pc = machine.pc, .regs = machine.registers };
+}
+
+/// Rebuild the complete job and terminal Span after changing actual sparse
+/// memory. This uses canonical admission, never a forged wire or native receipt.
+pub fn sparseValueCanonicalWords(allocator: std.mem.Allocator, value: u32) ![]M31 {
+    var fixture = try Fixture.init();
+    fixture.right_words[0].final_word = value;
+    const old = fixture.job.complete;
+    var final_state = old.final_state;
+    final_state.rw_memory = segment_v2.snapshotDigest(&fixture.right_words, .final_word).id;
+    fixture.job = try span.JobContext.init(try span.CompleteExecution.init(
+        old.protocol_id,
+        old.program,
+        old.initial_state,
+        final_state,
+        old.public_input,
+        old.public_output,
+        old.total_cycles,
+    ), fixture.job.segment_count);
+    const executed = fixture.statements[1].body.executed;
+    fixture.statements[1] = try span.SpanStatement.segmentLeaf(fixture.job, 1, try span.ExecutedSpan.init(
+        executed.first_segment,
+        executed.segment_count,
+        executed.first_cycle,
+        executed.cycle_count,
+        executed.entry,
+        final_state,
+        executed.input,
+        executed.output,
+    ));
+    const source = fixture.rightSource();
+    try source.validate();
+    const words = try encode(allocator, &source);
+    errdefer allocator.free(words);
+    _ = try segment_v2.authenticateCanonicalWire(words);
+    return words;
 }

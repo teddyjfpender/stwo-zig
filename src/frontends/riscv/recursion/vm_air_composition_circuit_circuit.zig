@@ -30,6 +30,10 @@ const indexU32 = dependency_2.indexU32;
 const countInputNodes = dependency_2.countInputNodes;
 const circuitDigest = dependency_2.circuitDigest;
 const transcriptComponentForInfra = dependency_2.transcriptComponentForInfra;
+const fresh_prepared_v4 =
+    @import("vm_air_composition_circuit_prepared_fresh_v4.zig");
+
+pub const CircuitStorageV3 = fresh_prepared_v4.CircuitStorageV3;
 
 pub const Circuit = struct {
     allocator: std.mem.Allocator,
@@ -42,12 +46,20 @@ pub const Circuit = struct {
     reference_digest: [Sha256.digest_length]u8,
     schedule_digest: [Sha256.digest_length]u8,
     identity_digest: [Sha256.digest_length]u8,
+    /// Process-local ownership only; excluded from every circuit identity.
+    storage: CircuitStorageV3 = .owned,
 
     pub fn deinit(self: *Circuit) void {
-        self.allocator.free(self.bindings);
-        self.allocator.free(self.outputs);
-        self.allocator.free(self.nodes);
+        if (self.storage == .owned) {
+            self.allocator.free(self.bindings);
+            self.allocator.free(self.outputs);
+            self.allocator.free(self.nodes);
+        }
         self.* = undefined;
+    }
+
+    pub fn borrowsFreshProgramStorage(self: *const Circuit) bool {
+        return self.storage == .borrowed_fresh_program;
     }
 
     pub fn graph(self: *const Circuit) graph_mod.CircuitGraph {
@@ -78,12 +90,12 @@ pub const Circuit = struct {
     }
 
     pub fn validate(self: *const Circuit) Error!void {
-        try self.graph().validate();
-        const lane_value = self.lane();
-        const reference_digest = graph_mod.computeReferenceDigest(lane_value, &.{}, &.{});
-        if (!std.mem.eql(u8, &reference_digest, &self.reference_digest))
-            return error.CircuitIdentityMismatch;
-        _ = try self.reference();
+        // Reference admission already checks the graph, canonical input
+        // bindings and reference digest. Keep one authority for those checks.
+        _ = self.reference() catch |err| switch (err) {
+            error.ReferenceSealMismatch => return error.CircuitIdentityMismatch,
+            else => return err,
+        };
         const expected = circuitDigest(
             self.air_profile_digest,
             self.graph_digest,
@@ -305,6 +317,87 @@ pub const Prepared = struct {
         return result;
     }
 
+    /// Constructs the identical row-18 authority from an independently
+    /// authenticated VM lane and its verifier-derived base-field inputs.
+    /// This sibling is used by versioned composition programs whose input
+    /// profile is not representable by the frozen `vm_leaf_context.Context`.
+    /// It never accepts intermediate graph values or output claims: every
+    /// non-input node is replayed here and every designated output must be
+    /// zero before the prepared authority is published.
+    pub fn initFromAuthenticatedLaneV2(
+        allocator: std.mem.Allocator,
+        lane: graph_mod.VmLane,
+        air_profile_digest: [Sha256.digest_length]u8,
+        input_values: []const M31,
+    ) Error!Prepared {
+        return fresh_prepared_v4.init(
+            Prepared,
+            Circuit,
+            Evaluation,
+            allocator,
+            lane,
+            air_profile_digest,
+            input_values,
+            .owned,
+            null,
+            1,
+        );
+    }
+
+    /// Process-local fresh-construction path. The circuit borrows the exact
+    /// program storage and takes ownership of the already compiled schedule.
+    /// The program owner must outlive the returned value. This is deliberately
+    /// not a cold admission API; independent boundaries use V2/deep validation.
+    pub fn initFromAuthenticatedLaneBorrowedV3(
+        allocator: std.mem.Allocator,
+        lane: graph_mod.VmLane,
+        air_profile_digest: [Sha256.digest_length]u8,
+        input_values: []const M31,
+        retained_schedule: *graph_mod.CompiledSchedule,
+    ) Error!Prepared {
+        return fresh_prepared_v4.init(
+            Prepared,
+            Circuit,
+            Evaluation,
+            allocator,
+            lane,
+            air_profile_digest,
+            input_values,
+            .borrowed_fresh_program,
+            retained_schedule,
+            1,
+        );
+    }
+
+    /// Fresh-construction sibling which shards only the independent schedule
+    /// value projection after dependency-ordered graph evaluation completes.
+    pub fn initFromAuthenticatedLaneBorrowedParallelV4(
+        allocator: std.mem.Allocator,
+        lane: graph_mod.VmLane,
+        air_profile_digest: [Sha256.digest_length]u8,
+        input_values: []const M31,
+        retained_schedule: *graph_mod.CompiledSchedule,
+        worker_count: usize,
+    ) (Error || error{InvalidWorkerCount})!Prepared {
+        if (worker_count == 0 or
+            worker_count > fresh_prepared_v4.MAX_WORKER_COUNT)
+        {
+            return error.InvalidWorkerCount;
+        }
+        return fresh_prepared_v4.init(
+            Prepared,
+            Circuit,
+            Evaluation,
+            allocator,
+            lane,
+            air_profile_digest,
+            input_values,
+            .borrowed_fresh_program,
+            retained_schedule,
+            worker_count,
+        );
+    }
+
     pub fn deinit(self: *Prepared) void {
         self.allocator.free(self.schedule_values);
         self.preprocessing.deinit();
@@ -314,9 +407,10 @@ pub const Prepared = struct {
     }
 
     pub fn validate(self: *const Prepared) Error!void {
-        try self.circuit.validate();
-        try self.preprocessing.validate();
+        // validateEvaluation admits the circuit before replaying its nodes.
+        // No mutable graph or evaluation is accepted without that full check.
         try self.circuit.validateEvaluation(&self.evaluation);
+        try self.preprocessing.validate();
         if (self.schedule_values.len != self.preprocessing.rows.len or
             self.evaluation.values.len != self.circuit.nodes.len or
             !std.mem.eql(
@@ -580,7 +674,7 @@ pub const GraphRelation = struct {
     alpha_powers: [32]Scalar,
     arity: usize,
 
-    fn init(z: Scalar, alpha: Scalar, arity: usize) GraphRelation {
+    pub fn init(z: Scalar, alpha: Scalar, arity: usize) GraphRelation {
         var result = GraphRelation{ .z = z, .alpha_powers = undefined, .arity = arity };
         var power = Scalar.one();
         for (&result.alpha_powers) |*slot| {
@@ -593,10 +687,16 @@ pub const GraphRelation = struct {
     pub fn combine(self: GraphRelation, values: anytype) Scalar {
         std.debug.assert(values.len == self.arity);
         var result = Scalar.zero();
-        for (values, self.alpha_powers[0..values.len]) |value, power| {
-            result = result.add(power.mul(value));
+        inline for (values, 0..) |value, index| {
+            result = result.add(self.alpha_powers[index].mul(value));
         }
         return result.sub(self.z);
+    }
+
+    /// Exposes the verifier-drawn batching scalar to typed component
+    /// compilers without exposing or reconstructing the retained power table.
+    pub fn alphaValue(self: GraphRelation) Scalar {
+        return self.alpha_powers[1];
     }
 };
 

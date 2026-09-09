@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "build-recursive-segment-v2-detached-parent-verifier",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 134826771167
+}

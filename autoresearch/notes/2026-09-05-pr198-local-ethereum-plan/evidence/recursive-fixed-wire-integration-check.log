@@ -1,0 +1,40 @@
+test-recursive-common-fold-field-public-v2
++- run test stderr
+FIXED_WIRE_AIR_DIGEST=11b0d7b65536f89433d74389908ac737f77a43ec0bb67ff07f4d5baac6a63485
+FIXED_WIRE_AIR anchors=2 signed_multiplicity=true missing_or_changed_anchor_rejected=true
+COMMON_FOLD_CLAIM_TRANSCRIPT bound_claims=36 legacy_suffix_preserved=true invalid_claims_rejected_before_mix=true
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+FIELD_PUBLIC_WORD_DIGEST=c02179e9ba469114f19ddc0ff8e1670ba61bd4dd5d0a1b14445e6799feef3017
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=0
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=4
+FIELD_STATEMENT_BRIDGE_DIGEST=b2befb25386395106050de88684f519c637477304505732a4a25900121253ac6
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursive_secure_transcript_rows_v1.zig:386:17: error: no field or member function named 'validate' in 'recursion.air.verifier_arithmetic_lowering_plan.Plan'
+        try plan.validate();
+            ~~~~^~~~~~~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_plan.zig:46:18: note: struct declared here
+pub const Plan = struct {
+                 ^~~~~~
+recursive_secure_transcript_rows_v1.zig:386:17: note: method invocation only supports up to one level of implicit pointer dereferencing
+recursive_secure_transcript_rows_v1.zig:386:17: note: use '.*' to dereference pointer
+referenced by:
+    init: recursive_common_fold_fixed_wire_v2.zig:248:58
+    exerciseBootstrap__anon_154: recursive_common_fold_q193_bootstrap_v2_test.zig:247:57
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_artifact_store --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "common-fold parent owns both child transcript lanes" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 3/7 steps succeeded; 1 failed; 4/4 tests passed
+test-recursive-common-fold-field-public-v2 success
++- run test 4 passed 654ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 9s MaxRSS:752M
+test-recursive-common-fold-transcript-source-v1 transitive failure
++- Common-fold parent transcript source guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/843d5e9ed195118664d20eb1051fc395/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x6bde66f -Zb67f0665e93640c8 --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 test-recursive-common-fold-transcript-source-v1 -Doptimize=ReleaseSafe --summary all

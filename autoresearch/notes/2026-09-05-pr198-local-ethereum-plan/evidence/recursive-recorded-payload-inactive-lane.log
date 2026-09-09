@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 39/39 tests passed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 success
++- recursive common Ethereum incremental leaf V4 structural guard success
+   +- run test 39 passed 828ms MaxRSS:64M
+      +- compile test ReleaseSafe native success 33s MaxRSS:3G
+

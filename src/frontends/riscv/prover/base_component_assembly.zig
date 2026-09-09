@@ -28,6 +28,9 @@ const statement_mod = @import("../air/statement.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const types = @import("types.zig");
 
+const circuit_mod = @import("ethereum_circuit_profile_v1.zig");
+const narrow_poseidon = @import("../air/memory_commitment/poseidon2_narrow_component_v1.zig");
+
 pub const Direction = enum { prover, verifier };
 
 pub const INFRASTRUCTURE_KIND_COUNT: usize =
@@ -141,6 +144,14 @@ pub fn infrastructureDescriptor(
     };
 }
 
+/// Explicit profile-selected geometry. Legacy entrypoints retain their fixed widths.
+pub fn infrastructureDescriptorForCircuit(kind: statement_mod.InfraKind, profile: circuit_mod.CircuitProfileV1) InfrastructureDescriptor {
+    var descriptor = infrastructureDescriptor(kind);
+    if (kind == .poseidon2 and profile.poseidonLayout() == .narrow_degree3_v1)
+        descriptor.main_columns = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig").N_MAIN_COLUMNS;
+    return descriptor;
+}
+
 /// O(1), fail-atomic infrastructure placement after the opcode prefix. The
 /// monotonically increasing rank admits omitted test-fixture components and
 /// repeated memory shards, while rejecting reordering or singleton aliasing.
@@ -192,7 +203,11 @@ pub const InfrastructureCursor = struct {
         kind: statement_mod.InfraKind,
         declared_main_columns: usize,
     ) Error!Placement {
-        const item = infrastructureDescriptor(kind);
+        return self.appendWithCircuit(kind, declared_main_columns, .legacy_v4);
+    }
+
+    pub fn appendWithCircuit(self: *InfrastructureCursor, kind: statement_mod.InfraKind, declared_main_columns: usize, profile: circuit_mod.CircuitProfileV1) Error!Placement {
+        const item = infrastructureDescriptorForCircuit(kind, profile);
         if (declared_main_columns != item.main_columns)
             return error.MainColumnCountMismatch;
         if (self.last_order_rank) |last| {
@@ -295,6 +310,8 @@ pub fn assembleInto(
         n_main,
         n_interaction,
         null,
+        .legacy_role_filtered_v1,
+        .legacy_v4,
     );
 }
 
@@ -325,7 +342,59 @@ pub fn assembleIntoAuthenticatedLookupV2(
             .manifest = manifest,
             .statement = authenticated_statement,
         },
+        .legacy_role_filtered_v1,
+        .legacy_v4,
     );
+}
+
+/// Version-separated selected-lookup assembly for the full-state incremental
+/// boundary. The core geometry and column placement remain byte-identical;
+/// only memory infrastructure components select the split V3 evaluator.
+pub fn assembleIntoAuthenticatedLookupV2WithIncrementalBoundaryV3(
+    comptime direction: Direction,
+    workspace: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    claim: *const statement_mod.RiscVInteractionClaim,
+    relations: *const relation_challenges.Relations,
+    n_main: usize,
+    n_interaction: usize,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+) !void {
+    try authenticated_statement.validateAgainst(statement, manifest);
+    return assembleIntoInternal(
+        direction,
+        workspace,
+        statement,
+        claim,
+        relations,
+        n_main,
+        n_interaction,
+        .{
+            .manifest = manifest,
+            .statement = authenticated_statement,
+        },
+        .full_state_split_multiplicity_v3,
+        .legacy_v4,
+    );
+}
+
+/// Explicit Ethereum circuit admission; native proving and verification share
+/// this exact construction, while old entrypoints retain legacy constraints.
+pub fn assembleIntoAuthenticatedLookupV2WithCircuitProfile(
+    comptime direction: Direction,
+    workspace: anytype,
+    statement: *const statement_mod.RiscVStatement,
+    claim: *const statement_mod.RiscVInteractionClaim,
+    relations: *const relation_challenges.Relations,
+    n_main: usize,
+    n_interaction: usize,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+    profile: circuit_mod.CircuitProfileV1,
+) !void {
+    try authenticated_statement.validateAgainst(statement, manifest);
+    return assembleIntoInternal(direction, workspace, statement, claim, relations, n_main, n_interaction, .{ .manifest = manifest, .statement = authenticated_statement }, .full_state_split_multiplicity_v3, profile);
 }
 
 const LookupV2Admission = struct {
@@ -342,6 +411,8 @@ fn assembleIntoInternal(
     n_main: usize,
     n_interaction: usize,
     lookup_v2: ?LookupV2Admission,
+    memory_boundary_policy: riscv_component.MemoryBoundaryPolicy,
+    circuit_profile: circuit_mod.CircuitProfileV1,
 ) !void {
     const components = &workspace.components;
     const component_count: usize = @intCast(statement.n_components);
@@ -458,9 +529,10 @@ fn assembleIntoInternal(
     var infrastructure_cursor = InfrastructureCursor.init(opcode_cursor);
     for (0..statement.n_infra) |index| {
         const desc = statement.infra_descs[index];
-        const placement = infrastructure_cursor.append(
+        const placement = infrastructure_cursor.appendWithCircuit(
             desc.kind,
             @intCast(desc.n_columns),
+            circuit_profile,
         ) catch return types.ProverError.InvalidStatement;
         if (placement.infrastructure_index != index or
             components.active().len != placement.adapter_index)
@@ -472,6 +544,24 @@ fn assembleIntoInternal(
             .hash => {
                 const expected_hash_index = placement.hash_index orelse
                     return types.ProverError.InvalidStatement;
+                if (desc.kind == .poseidon2 and circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+                    if (components.n_hash != expected_hash_index) return types.ProverError.InvalidStatement;
+                    components.n_hash += 1;
+                    const hash = &components.narrow_poseidon;
+                    hash.* = narrow_poseidon.Component{
+                        .log_size = desc.log_size,
+                        .n_rows = desc.n_rows,
+                        .is_first_col_idx = placement.preprocessed_column_offset,
+                        .is_active_col_idx = placement.preprocessed_column_offset + 1,
+                        .main_col_offset = placement.main_column_offset,
+                        .interaction_col_offset = placement.interaction_column_offset,
+                        .relations = relations,
+                        .claims = claim.poseidon_claims[index],
+                    };
+                    try hash.validate();
+                    push(direction, components, hash);
+                    continue;
+                }
                 const hash = components.nextHash();
                 if (hash != &components.hash[expected_hash_index])
                     return types.ProverError.InvalidStatement;
@@ -562,6 +652,10 @@ fn assembleIntoInternal(
                     .is_active_col_idx = placement.preprocessed_column_offset + 1,
                     .main_col_offset = placement.main_column_offset,
                     .kind = kind,
+                    .memory_boundary_policy = if (kind == .memory)
+                        memory_boundary_policy
+                    else
+                        .legacy_role_filtered_v1,
                     .relations = relations,
                     .interaction_col_offset = placement.interaction_column_offset,
                     .program_claims = claim.program_claims[index],

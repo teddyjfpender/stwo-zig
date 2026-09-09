@@ -1,0 +1,10 @@
+{
+  "STWO_ZIG_STAGE101_STAGE_PROFILE": "1",
+  "STWO_ZIG_STAGE101_BENCHMARK_ADMISSION_V2": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/benchmark-admission-v2.json",
+  "STWO_RISCV_METAL_AOT_BUNDLE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-leaf-metal-aot-v1-20260907",
+  "STWO_ZIG_STAGE101_REFERENCE_ARTIFACT": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.stwief04",
+  "STWO_ZIG_STAGE101_WORKER_COUNT": "1",
+  "STWO_ZIG_STAGE101_HOST_BYTE_BUDGET": "17179869184",
+  "STWO_ZIG_STAGE101_HOST_BYTE_LIMIT": "34359738368",
+  "STWO_ZIG_STAGE101_BUDGET_MS": "600000,600000,3600000,600000"
+}

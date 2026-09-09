@@ -1,0 +1,13 @@
+test-ethereum-incremental-leaf-materialize-v4-replay
++- saved Ethereum leaf composition replay guard
+   +- run test stderr
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=39499208 public_ns=295680959 transcript_ns=138527166 profile_ns=24959 program_ns=68366916 prepare_ns=57380750 fri_ns=4111600875 seal_ns=39748000 total_ns=4750831417 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-incremental-leaf-materialize-v4-replay success
++- saved Ethereum leaf composition replay guard success
+   +- run test 1 passed 28s MaxRSS:1G
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+

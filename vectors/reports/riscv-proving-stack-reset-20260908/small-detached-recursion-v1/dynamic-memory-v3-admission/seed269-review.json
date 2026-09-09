@@ -1,0 +1,65 @@
+{
+  "scope": "independently reviewed development fixture admission; not general circuit admission",
+  "seed": 269,
+  "expected_total_cycles": 98,
+  "expected_address": 1048832,
+  "children": [
+    {
+      "key_sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+      "expected_sha256": "c2306a56966d37481fbdb3d3ddf5915e8c801fd50d4aaef12fce956e6ef1b4ee",
+      "reviewed_wire": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed269-child-0-expected-wire.json",
+      "sections": [
+        [
+          [
+            1048832,
+            269
+          ]
+        ],
+        [
+          [
+            1048832,
+            289
+          ]
+        ],
+        [],
+        [
+          [
+            1048832,
+            251
+          ]
+        ]
+      ]
+    },
+    {
+      "key_sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+      "expected_sha256": "4011da2dab33d6ca83b947a2ffc614638def320b50741ad7d4317182c45cba59",
+      "reviewed_wire": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed269-child-1-expected-wire.json",
+      "sections": [
+        [
+          [
+            1048832,
+            289
+          ]
+        ],
+        [
+          [
+            1048832,
+            301
+          ]
+        ],
+        [
+          [
+            1048832,
+            251
+          ]
+        ],
+        [
+          [
+            1048832,
+            391
+          ]
+        ]
+      ]
+    }
+  ]
+}

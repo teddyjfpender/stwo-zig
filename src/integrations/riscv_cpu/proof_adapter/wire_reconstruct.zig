@@ -20,6 +20,7 @@ pub const Reconstruction = struct {
 
         var result: Reconstruction = undefined;
         result.statement = undefined;
+        result.statement.initializeDescriptorStorage();
         result.statement.n_components = @intCast(wire_statement.components.len);
         result.statement.n_infra = @intCast(wire_statement.infrastructure.len);
         result.statement.initial_pc = wire_statement.initial_pc;

@@ -278,11 +278,23 @@ pub const Poseidon2Adapter = Poseidon2AdapterForManifest(manifest_mod);
 /// alias above preserves the frozen V1 API; V2 obtains a distinct adapter
 /// type without copying a provider equation or challenge binding.
 pub fn Poseidon2AdapterForManifest(comptime manifest_contract: type) type {
+    return Poseidon2AdapterForLayout(manifest_contract, false);
+}
+
+/// Explicitly versioned compact universal provider; legacy keys keep their AIR.
+pub fn Poseidon2Degree3AdapterForManifest(comptime manifest_contract: type) type {
+    return Poseidon2AdapterForLayout(manifest_contract, true);
+}
+
+fn Poseidon2AdapterForLayout(comptime manifest_contract: type, comptime compact: bool) type {
+    const selected_air = if (compact) @import("../../air/memory_commitment/poseidon2_universal_degree3_v1.zig") else poseidon_air;
+    const Component = if (compact) @import("../../air/memory_commitment/poseidon2_universal_component_v1.zig").Component else poseidon_component.HashComponent;
     return struct {
         const Self = @This();
+        pub const Air = selected_air;
 
         placement: manifest_contract.Placement,
-        component: poseidon_component.HashComponent,
+        component: Component,
         provider_relations: *const SharedProviderRelations,
         challenge_binding_digest: [32]u8,
         admitted_claims: [poseidon_air.N_SUMS]QM31,
@@ -292,13 +304,13 @@ pub fn Poseidon2AdapterForManifest(comptime manifest_contract: type) type {
                 .roster_row = @intFromEnum(roster.Component.poseidon2),
                 .log_size = log_size,
                 .preprocessed_columns = POSEIDON_PREPROCESSED_COLUMN_COUNT,
-                .main_columns = POSEIDON_MAIN_COLUMN_COUNT,
+                .main_columns = selected_air.N_MAIN_COLUMNS,
                 .interaction_columns = POSEIDON_INTERACTION_COLUMN_COUNT,
-                .direct_constraints = POSEIDON_DIRECT_CONSTRAINT_COUNT,
+                .direct_constraints = selected_air.N_CONSTRAINTS,
                 .interaction_batches = POSEIDON_INTERACTION_BATCH_COUNT,
                 .protocol_constraint_degree = POSEIDON_PROTOCOL_CONSTRAINT_DEGREE,
                 .profiled_constraint_degree = POSEIDON_PROTOCOL_CONSTRAINT_DEGREE,
-                .semantic_digest = POSEIDON_SOURCE_AUTHORITY_DIGEST,
+                .semantic_digest = if (compact) selected_air.IDENTITY_DIGEST else POSEIDON_SOURCE_AUTHORITY_DIGEST,
             };
         }
 
@@ -330,7 +342,16 @@ pub fn Poseidon2AdapterForManifest(comptime manifest_contract: type) type {
                 .provider_relations = provider_relations,
                 .challenge_binding_digest = try provider_relations.identityDigest(),
                 .admitted_claims = claims,
-                .component = .{
+                .component = if (compact) .{
+                    .log_size = log_size,
+                    .n_rows = n_rows,
+                    .is_first_col_idx = preprocessed_offset,
+                    .is_active_col_idx = preprocessed_offset,
+                    .main_col_offset = main_offset,
+                    .interaction_col_offset = interaction_offset,
+                    .relations = &provider_relations.native,
+                    .claims = claims,
+                } else .{
                     .kind = .poseidon2,
                     .log_size = log_size,
                     .n_rows = n_rows,
@@ -365,13 +386,13 @@ pub fn Poseidon2AdapterForManifest(comptime manifest_contract: type) type {
                 return error.ChallengeBindingMismatch;
             }
             for (0..poseidon_air.N_SUMS) |index| {
-                const actual = &self.component.poseidon_claims[index];
+                const actual = if (compact) &self.component.claims[index] else &self.component.poseidon_claims[index];
                 const expected = &self.admitted_claims[index];
                 if (!secureIsCanonical(actual) or !secureEql(actual, expected))
                     return error.ChallengeBindingMismatch;
             }
-            if (self.component.kind != .poseidon2 or
-                self.component.poseidon_shell != .universal or
+            if ((!compact and (self.component.kind != .poseidon2 or
+                self.component.poseidon_shell != .universal)) or
                 self.component.log_size != self.placement.geometry.log_size or
                 self.component.log_size == 0 or
                 self.component.log_size >= POSEIDON_LOG_SIZE_EXCLUSIVE_LIMIT)
@@ -386,16 +407,14 @@ pub fn Poseidon2AdapterForManifest(comptime manifest_contract: type) type {
                 self.component.interaction_col_offset != self.placement.interaction_offset or
                 self.component.nPreprocessedColumns() != POSEIDON_PREPROCESSED_COLUMN_COUNT or
                 self.component.nConstraints() !=
-                    POSEIDON_DIRECT_CONSTRAINT_COUNT + POSEIDON_INTERACTION_BATCH_COUNT)
+                    selected_air.N_CONSTRAINTS + POSEIDON_INTERACTION_BATCH_COUNT)
             {
                 return error.ProviderAuthorityMismatch;
             }
             return .{
                 .manifest_seal = manifest.seal,
                 .placement = self.placement,
-                .claimed_sum = self.component.poseidon_claims[0].add(
-                    self.component.poseidon_claims[1],
-                ),
+                .claimed_sum = if (compact) self.component.claims[0].add(self.component.claims[1]) else self.component.poseidon_claims[0].add(self.component.poseidon_claims[1]),
                 .verifier = self.component.asVerifierComponent(),
                 .prover = self.component.asProverComponent(),
             };
@@ -519,12 +538,14 @@ pub fn RangeCheck8x8AdapterForManifest(comptime manifest_contract: type) type {
             for (self.component.tuple_col_indices[range_bridge.TUPLE_ARITY..]) |index| {
                 if (index != 0) return error.ProviderAuthorityMismatch;
             }
+            var prover = self.component.asProverComponent();
+            prover.backend_composition_capability = .{ .framework_polynomial_v1 = range_bridge.frameworkCapability() };
             return .{
                 .manifest_seal = manifest.seal,
                 .placement = self.placement,
                 .claimed_sum = self.component.claim,
                 .verifier = self.component.asVerifierComponent(),
-                .prover = self.component.asProverComponent(),
+                .prover = prover,
             };
         }
     };

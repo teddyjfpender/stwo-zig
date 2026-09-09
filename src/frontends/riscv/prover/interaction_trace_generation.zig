@@ -38,6 +38,7 @@ const statement_mod = @import("../air/statement.zig");
 const test_witness_hook = @import("test_witness_hook.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
+const native_provider_omit = @import("memory_provider_shards/native_provider_omit_v1.zig");
 
 const M31 = m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
@@ -147,6 +148,120 @@ pub fn Ops(comptime Owner: type) type {
             }
             {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_tables", "RISC-V lookup-table interactions");
+                defer sub.end();
+                try generateLookupTables(
+                    allocator,
+                    workspace,
+                    columns,
+                    main_source,
+                    relations,
+                    claim,
+                    execution_pool,
+                );
+            }
+        }
+
+        /// Generates the authenticated V2 base prefix without the native
+        /// narrow-memory Poseidon provider. The omission-aware geometry cannot
+        /// name that provider; every retained component stays in declaration
+        /// order and writes claims at its projected infrastructure index.
+        pub fn generateBaseWithoutNativePoseidonAuthenticatedLookupV2(
+            allocator: std.mem.Allocator,
+            workspace: *ProofWorkspace,
+            columns: *Columns,
+            recorder: ?*stage_profile.Recorder,
+            witness: *const CommitmentWitness,
+            geometry: native_provider_omit.ProjectedGeometryV1,
+            main_source: *const tree2_main_source.Source,
+            relations: *const Relations,
+            claim: *RiscVInteractionClaim,
+            manifest: *const lookup_physical_v2.Manifest,
+            execution_policy: BaseExecutionPolicy,
+        ) !void {
+            const execution_pool = execution_policy.selectedPool();
+            const projected = projectedLegacyGeometry(geometry);
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_opcode",
+                    "RISC-V opcode interactions",
+                );
+                defer sub.end();
+                try generateOpcodeAuthenticatedLookupV2(
+                    allocator,
+                    workspace,
+                    main_source,
+                    columns,
+                    relations,
+                    claim,
+                    manifest,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_program",
+                    "RISC-V program interactions",
+                );
+                defer sub.end();
+                try generateProgram(
+                    allocator,
+                    columns,
+                    witness,
+                    projected,
+                    relations,
+                    claim,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_memory",
+                    "RISC-V memory interactions",
+                );
+                defer sub.end();
+                try generateMemory(allocator, workspace, columns, witness, relations, claim);
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_merkle",
+                    "RISC-V Merkle interactions",
+                );
+                defer sub.end();
+                try generateMerkle(
+                    allocator,
+                    columns,
+                    witness,
+                    projected,
+                    relations,
+                    claim,
+                    execution_pool,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_clock",
+                    "RISC-V clock interactions",
+                );
+                defer sub.end();
+                try generateClock(
+                    allocator,
+                    workspace,
+                    main_source,
+                    columns,
+                    projected,
+                    relations,
+                    claim,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_tables",
+                    "RISC-V lookup-table interactions",
+                );
                 defer sub.end();
                 try generateLookupTables(
                     allocator,
@@ -319,12 +434,10 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const generated = try program_interaction.generate(
-                allocator,
-                witness.program.rows,
-                geometry.program_log_size,
-                relations,
-            );
+            const generated = switch (witness.circuit_profile.programPolicy()) {
+                .sparse_merkle_v1 => try program_interaction.generate(allocator, witness.program.rows, geometry.program_log_size, relations),
+                .fixed_decoded_table_v1 => try program_interaction.generateWithPolicy(.fixed_decoded_table_v1, allocator, witness.program.rows, geometry.program_log_size, relations),
+            };
             claim.program_claims[0] = generated.claims.sums;
             for (generated.columns) |values| columns.append(geometry.program_log_size, values);
         }
@@ -343,7 +456,8 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const boundary = witness.boundary orelse return;
+            const boundary_rows = witness.memoryBoundaryRows();
+            if (boundary_rows.len == 0) return;
             const statement = &workspace.statement;
             var row_start: usize = 0;
             for (0..statement.n_infra) |infra_index| {
@@ -352,7 +466,7 @@ pub fn Ops(comptime Owner: type) type {
                 const row_end = row_start + desc.n_rows;
                 const generated = try memory_interaction.generate(
                     allocator,
-                    boundary.rows[row_start..row_end],
+                    boundary_rows[row_start..row_end],
                     desc.log_size,
                     relations,
                 );
@@ -360,7 +474,7 @@ pub fn Ops(comptime Owner: type) type {
                 for (generated.columns) |values| columns.append(desc.log_size, values);
                 row_start = row_end;
             }
-            std.debug.assert(row_start == boundary.rows.len);
+            std.debug.assert(row_start == boundary_rows.len);
         }
 
         fn generateMerkle(
@@ -467,6 +581,10 @@ pub fn Ops(comptime Owner: type) type {
             }
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
                 var generated = try lookup_table_interaction.generate(
                     allocator,
                     try main_source.lookupCounter(kind),
@@ -475,6 +593,13 @@ pub fn Ops(comptime Owner: type) type {
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
+                }
             }
         }
 
@@ -492,6 +617,10 @@ pub fn Ops(comptime Owner: type) type {
         ) !void {
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
                 var generated = try lookup_table_interaction.generateParallel(
                     allocator,
                     try main_source.lookupCounter(kind),
@@ -501,7 +630,28 @@ pub fn Ops(comptime Owner: type) type {
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
+                }
             }
+        }
+
+        fn projectedLegacyGeometry(
+            geometry: native_provider_omit.ProjectedGeometryV1,
+        ) Geometry {
+            return .{
+                .program_log_size = geometry.program_log_size,
+                .merkle_log_size = geometry.merkle_log_size,
+                .poseidon_log_size = 0,
+                .clock_update_log = geometry.clock_update_log,
+                .merkle_infra_index = geometry.merkle_infra_index,
+                .poseidon_infra_index = std.math.maxInt(usize),
+                .clock_infra_index = geometry.clock_infra_index,
+            };
         }
 
         /// Exact work of the allocation-safe sequential base generator selected by
@@ -761,9 +911,25 @@ pub fn Ops(comptime Owner: type) type {
                 };
             }
 
-            fn append(self: *Columns, log_size: u32, values: []M31) void {
+            pub fn append(self: *Columns, log_size: u32, values: []M31) void {
                 self.values[self.filled] = .{ .log_size = log_size, .values = values };
                 self.filled += 1;
+            }
+
+            /// Transfers one complete generated interaction block into the
+            /// declaration-ordered commitment. The caller retains ownership
+            /// only when validation fails before the first append.
+            pub fn appendGenerated(
+                self: *Columns,
+                log_size: u32,
+                generated: []const []M31,
+            ) !void {
+                if (self.filled > self.values.len or
+                    generated.len > self.values.len - self.filled)
+                {
+                    return error.InvalidTraceShape;
+                }
+                for (generated) |values| self.append(log_size, values);
             }
 
             pub fn reserveGuest(

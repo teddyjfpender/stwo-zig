@@ -1,0 +1,19 @@
+test-recursion-segment-statement-source-v2
++- run test
+   +- compile test ReleaseSafe native 1 errors
+recursion/segment_register_byte_layout_v1.zig:13:33: error: type 'u1' cannot represent integer value '128'
+    return @intFromEnum(side) * 128 + register * 4 + byte;
+                                ^~~
+referenced by:
+    test.V2 row-11 register byte bridge reuses constrained decomposition: recursion/segment_statement_outer_source_v2_test.zig:521:77
+    test_0: segment_statement_outer_source_v2_test_root.zig:11:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/segment_statement_outer_source_v2_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-recursion-segment-statement-source-v2 transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5efaf111d40b5d953deba87d0e177ced/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x8df677d2 -Zd2ad06691be8ae68 --maxrss 25769803776 -j1 test-recursion-segment-statement-source-v2 -Doptimize=ReleaseSafe --summary all

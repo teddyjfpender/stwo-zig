@@ -1,0 +1,21 @@
+{
+  "scope": "Explicit tiny-memory-v1 development circuit only; bootstrap key from source-reviewed prepared circuit, fixed independently for subsequent runs. No production security claim.",
+  "key_sha256": "269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84",
+  "verifier_sha256": "a73e03ff757818775c81ecfc47a3212b96bde7a158321669470b6ad5e0597021",
+  "source_sha256": "a54498ddfc1c165e925a9a420d22bb61a269b2074d04463c77559ba8dd4d45e9",
+  "child_key_sha256": [
+    "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+    "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+  ],
+  "profile": "detached_two_segment_development_q3_v1",
+  "pcs_config": {
+    "pow_bits": 0,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  }
+}

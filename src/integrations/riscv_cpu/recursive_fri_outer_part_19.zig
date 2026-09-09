@@ -68,10 +68,9 @@ pub fn Namespace(comptime context: type) type {
                     authority.log_sizes[LogIndex.vm_input],
                 );
                 defer columns.deinit();
-                try vm_air.executor.generateMainInto(
-                    &vm_air.prepared.preprocessing,
+                try vm_air.prepared.generateMainInto(
+                    &vm_air.executor,
                     &columns.views,
-                    vm_air.prepared.schedule_values,
                     .segment_leaf,
                 );
                 columns.scatter(

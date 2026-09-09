@@ -12,6 +12,28 @@ pub fn Runtime(comptime context: anytype) type {
         const FIRST_FULL_ROUND_WIDTH = context.FIRST_FULL_ROUND_WIDTH;
         const MATERIALIZED_FULL_ROUND_WIDTH = context.MATERIALIZED_FULL_ROUND_WIDTH;
         const PARTIAL_ROUND_WIDTH = context.PARTIAL_ROUND_WIDTH;
+        const constants = @import("poseidon2_constants.zig");
+
+        /// Symbolic permutation for verifier arithmetic. Reuses this AIR's matrix
+        /// operations and round constants; the native memory-hashing path is unchanged.
+        pub fn permuteGeneric(comptime S: type, state: *[WIDTH]S) void {
+            externalMatrixSecure(S, state);
+            for (constants.EXTERNAL_ROUND[0..4]) |round| fullRoundGeneric(S, state, round);
+            for (constants.INTERNAL_ROUND) |round_constant| {
+                const value = state[0].add(S.fromBase(M31.fromCanonical(round_constant)));
+                state[0] = value.square().square().mul(value);
+                internalMatrixSecure(S, state, constants.INTERNAL_MATRIX);
+            }
+            for (constants.EXTERNAL_ROUND[4..8]) |round| fullRoundGeneric(S, state, round);
+        }
+
+        fn fullRoundGeneric(comptime S: type, state: *[WIDTH]S, round: [WIDTH]u32) void {
+            for (state, round) |*value, constant| {
+                const shifted = value.add(S.fromBase(M31.fromCanonical(constant)));
+                value.* = shifted.square().square().mul(shifted);
+            }
+            externalMatrixSecure(S, state);
+        }
 
         pub fn fillFirstFullRound(
             row: *[N_MAIN_COLUMNS]M31,

@@ -1,0 +1,27 @@
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes' failed: SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+CANONICAL_CHILD_WIRE_BOUNDARY limbs=8 transcript_join=true changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70107 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=1 unmatched_control=0
+COMMON_FOLD_ZERO_VERIFIER_INPUTS limbs=24 air_join=true changed_consumer_or_missing_producer_rejected=true
+COMMON_FOLD_FIXED_WIRES rows=33401 graph_join=true missing_or_changed_anchor_rejected=true
+expected 1, found 0
+Field v incorrect. expected 1, found 0
+index 22 incorrect. expected .{ .v = 1 }, found .{ .v = 0 }
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes', the following test command failed:
+./.zig-cache/o/c0836c2e5b7291786d3808b423c865c0/test --cache-dir=./.zig-cache --seed=0x8eb3dd25 --listen=-
+
+Build Summary: 3/6 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-common-fold-transcript-source-v1 transitive failure
++- Common-fold parent transcript source guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+check-recursive-common-fold-transcript-replay-v1 success
++- compile test ReleaseSafe native success 1m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/843d5e9ed195118664d20eb1051fc395/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x8eb3dd25 -Za8ef4c143315285b --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-source-v1 check-recursive-common-fold-transcript-replay-v1 -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,53 @@
+{
+  "real-selected-metal-success-v3-plan.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/plan.json",
+    "bytes": 2573,
+    "sha256": "99c42f7c4e8d4ee76a98e1d8d890acf410cc48721bfedf84ef03c42c3570367f"
+  },
+  "real-selected-metal-success-v3-receipt.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/receipt.json",
+    "bytes": 1497,
+    "sha256": "fe61e9b335b482ff3fdb283ee243d79f2c1314aa54df6ea6dfb4d22f82e6a0ba"
+  },
+  "real-selected-metal-success-v3-environment.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/environment.json",
+    "bytes": 892,
+    "sha256": "99e9b5e8842851b464d9d93e0933d2407a503ac49e8075a7734b94798a1f041c"
+  },
+  "real-selected-metal-success-v3-benchmark-admission-v2.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/benchmark-admission-v2.json",
+    "bytes": 410,
+    "sha256": "fbf93c0353423d30f809aa3c334895b39d0cd910b7e9352c19c0dad4a72227e9"
+  },
+  "real-selected-metal-success-v3-run.py": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/run.py",
+    "bytes": 7000,
+    "sha256": "67cb0059a419d48f7224f5393ec0fb0791c3821a92036351960515d076dc707a"
+  },
+  "real-selected-metal-success-v3-stderr-and-time.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/stderr-and-time.log",
+    "bytes": 6715,
+    "sha256": "0ca84139d0660148b16abc3e9acf6d13efcbceb3fb989ef72dabf4297288e615"
+  },
+  "real-selected-metal-success-v3-stdout.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/stdout.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "real-selected-metal-success-v3-process-samples.ndjson": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/process-samples.ndjson",
+    "bytes": 17194,
+    "sha256": "dc1aee7b3b502482a8611139f70adbcc22579df7ce9384a5d9c3373aba490efb"
+  },
+  "real-selected-metal-success-v3-phase-comparison.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v3/phase-comparison.json",
+    "bytes": 14462,
+    "sha256": "4dde9042485e714ace832697e0bbe78f375f1927686fba9af023356ef9966900",
+    "checkpoint_note": "Original runtime analysis augmented with subsequent independent verification receipt."
+  },
+  "real-selected-metal-v5-build-receipt.json": {
+    "source": ".git/local-ethereum/real-leaf-metal-product-v5/build-receipt.json",
+    "bytes": 1073,
+    "sha256": "aad198ab4a35a2388c3a6fc427d9b803b58bf2ec484305f0be649f7268213b59"
+  }
+}

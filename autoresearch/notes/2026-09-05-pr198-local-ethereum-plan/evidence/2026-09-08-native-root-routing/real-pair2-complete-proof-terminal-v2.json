@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "scope": "real segment2 complete proof lifecycle plus retained failing case",
+  "status": "failed",
+  "queued_at": "2026-09-07T21:33:29.696499+00:00",
+  "source_manifest_sha256": "cafe4e94959879fd3b8d4afcd48804842885d69bce06188748251e05f2f5d417",
+  "source_files_verified": 5754,
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/source/src/integrations/riscv_cpu",
+    "test-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1",
+    "STWO_ETHEREUM_PROOF_CORPUS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-native-root-v2/corpus",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-native-root-v2/progress.log"
+  },
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-native-root-v2/complete-proof.log",
+  "parent_pid": 29631,
+  "child_pid": 29632,
+  "exit_code": 1,
+  "wall_seconds": 4292.864492666908,
+  "finished_at": "2026-09-07T22:45:02.318501+00:00",
+  "log_sha256": "61b6a887717bfb4e6916344f7227fc7fed998fb29e179e7b360b56ba19c8d76b"
+}

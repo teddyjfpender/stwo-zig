@@ -302,3 +302,144 @@ test "Poseidon bounded prefix ReleaseFast representative no-regression gate" {
     try std.testing.expect(bounded_median <= old_median + old_median / 10);
     try std.testing.expect(bounded_median < generic_median);
 }
+
+fn reusedCommit(
+    allocator: std.mem.Allocator,
+    sorted: []const ColumnRef,
+    state_budget_bytes: usize,
+    stats: *Prover.BoundedPrefixStats,
+) !Prover {
+    var streaming = Prover.StreamingCommitter.init(allocator);
+    errdefer streaming.deinit();
+    return streaming.commitColumnsWithReusedBoundedPrefix(sorted, state_budget_bytes, stats);
+}
+
+test "Poseidon bounded tail reuse preserves every Merkle layer across caps and uneven worker ranges" {
+    const allocator = std.testing.allocator;
+    const groups = [_]HeightGroup{
+        .{ .log_size = 1, .column_count = 3 },
+        .{ .log_size = 5, .column_count = 11 },
+        .{ .log_size = 8, .column_count = 7 },
+        .{ .log_size = 10, .column_count = 3 },
+        .{ .log_size = 12, .column_count = 2 },
+    };
+    var fixture = try Fixture.init(allocator, &groups);
+    defer fixture.deinit();
+    const sorted = try Prover.sortColumnsByLogSizeAsc(allocator, fixture.references);
+    defer allocator.free(sorted);
+    var reference = try oldStreamingCommit(allocator, sorted);
+    defer reference.deinit(allocator);
+
+    for ([_]usize{ 1, 2, 3 }) |workers| {
+        if (@import("builtin").single_threaded and workers > 1) continue;
+        var pool: prover_engine.work_pool.WorkPool = undefined;
+        try pool.initInPlaceWithOptions(.{ .worker_count = workers });
+        defer pool.deinit();
+        var binding = try prover_engine.work_pool.ScopedPoolBinding.init(&pool);
+        defer binding.deinit();
+        for ([_]usize{ 2 * @sizeOf(Hasher), 32 * @sizeOf(Hasher), 256 * @sizeOf(Hasher), 4096 * @sizeOf(Hasher) }) |budget| {
+            var stats: Prover.BoundedPrefixStats = .{};
+            var reused = try reusedCommit(allocator, sorted, budget, &stats);
+            defer reused.deinit(allocator);
+            try std.testing.expectEqual(reference.layers.len, reused.layers.len);
+            for (reference.layers, reused.layers) |expected, actual| {
+                try std.testing.expectEqualSlices(Hasher.Hash, expected, actual);
+            }
+            var native_absorptions: usize = 0;
+            for (sorted[stats.prefix_column_count..]) |column| native_absorptions += column.values.len;
+            try std.testing.expectEqual(native_absorptions + stats.repeated_tail_absorptions, stats.tail_absorptions);
+            if (workers == 1 or budget >= 4096 * @sizeOf(Hasher)) {
+                try std.testing.expectEqual(@as(usize, 0), stats.repeated_tail_absorptions);
+            }
+            try std.testing.expect(stats.tail_absorptions <= stats.tail_column_count * 4096);
+            try std.testing.expect(stats.prefix_state_bytes <= @max(budget, 2 * @sizeOf(Hasher)));
+            try std.testing.expect(stats.tail_cache_bytes < workers * 16 * 1024);
+        }
+    }
+}
+
+test "Poseidon bounded tail reuse handles empty and uniform height trees" {
+    const allocator = std.testing.allocator;
+    const cases = [_][]const HeightGroup{
+        &.{},
+        &.{.{ .log_size = 1, .column_count = 9 }},
+        &.{.{ .log_size = 5, .column_count = 9 }},
+    };
+    for (cases) |groups| {
+        var fixture = try Fixture.init(allocator, groups);
+        defer fixture.deinit();
+        const sorted = try Prover.sortColumnsByLogSizeAsc(allocator, fixture.references);
+        defer allocator.free(sorted);
+        var old_stats: Prover.BoundedPrefixStats = .{};
+        var new_stats: Prover.BoundedPrefixStats = .{};
+        var reference = try boundedCommit(allocator, sorted, 2 * @sizeOf(Hasher), &old_stats);
+        defer reference.deinit(allocator);
+        var reused = try reusedCommit(allocator, sorted, 2 * @sizeOf(Hasher), &new_stats);
+        defer reused.deinit(allocator);
+        try std.testing.expectEqual(reference.root(), reused.root());
+        try std.testing.expectEqual(old_stats.tail_absorptions, new_stats.tail_absorptions);
+        try std.testing.expectEqual(@as(usize, 0), new_stats.repeated_tail_absorptions);
+    }
+}
+
+test "Poseidon bounded tail reuse measured heterogeneous commitment comparison" {
+    if (!std.process.hasEnvVarConstant("STWO_ZIG_RUN_POSEIDON_TAIL_REUSE_BENCH")) return error.SkipZigTest;
+    if (@import("builtin").mode != .ReleaseFast) return error.ReleaseFastRequired;
+    const allocator = std.testing.allocator;
+    var pool: prover_engine.work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 1 });
+    defer pool.deinit();
+    var binding = try prover_engine.work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    // Native Tree0's measured tail has 41 columns at log 21 and 63 at log 25.
+    // Shift those heights down 11 and force the prefix below both. This prices
+    // the identical absorption ratio on a small input, not full-block latency.
+    const groups = [_]HeightGroup{
+        .{ .log_size = 8, .column_count = 39 },
+        .{ .log_size = 10, .column_count = 41 },
+        .{ .log_size = 14, .column_count = 63 },
+    };
+    const budget = 256 * @sizeOf(Hasher);
+    var fixture = try Fixture.init(allocator, &groups);
+    defer fixture.deinit();
+    const sorted = try Prover.sortColumnsByLogSizeAsc(allocator, fixture.references);
+    defer allocator.free(sorted);
+    var baseline: [3]u64 = undefined;
+    var optimized: [3]u64 = undefined;
+    var baseline_stats: Prover.BoundedPrefixStats = .{};
+    var optimized_stats: Prover.BoundedPrefixStats = .{};
+    var expected_root: ?Hasher.Hash = null;
+    // Exclude a warmup pair; alternate measured arm ordering.
+    for (0..4) |round| {
+        for (0..2) |arm| {
+            const reuse = (arm ^ (round & 1)) == 1;
+            var timer = try std.time.Timer.start();
+            var tree = if (reuse)
+                try reusedCommit(allocator, sorted, budget, &optimized_stats)
+            else
+                try boundedCommit(allocator, sorted, budget, &baseline_stats);
+            const elapsed = timer.read();
+            defer tree.deinit(allocator);
+            if (expected_root) |expected| try std.testing.expectEqual(expected, tree.root()) else expected_root = tree.root();
+            if (round > 0) {
+                if (reuse) optimized[round - 1] = elapsed else baseline[round - 1] = elapsed;
+            }
+        }
+    }
+    std.debug.print("poseidon_tail_reuse_bench synthetic=true workers=1 baseline_ns={any} reused_ns={any} baseline_median_ns={d} reused_median_ns={d} baseline_absorptions={d} reused_absorptions={d} prefix_heap_bytes={d} leaf_heap_bytes={d} tail_cache_stack_bytes={d}\n", .{
+        baseline,                         optimized,                          median3(baseline),                median3(optimized),               baseline_stats.tail_absorptions,
+        optimized_stats.tail_absorptions, optimized_stats.prefix_state_bytes, optimized_stats.leaf_layer_bytes, optimized_stats.tail_cache_bytes,
+    });
+    try std.testing.expectEqual(@as(usize, 0), optimized_stats.repeated_tail_absorptions);
+    try std.testing.expect(optimized_stats.tail_absorptions < baseline_stats.tail_absorptions);
+}
+
+test "Poseidon bounded tail reuse rejects mismatched column geometry before allocation" {
+    const allocator = std.testing.allocator;
+    const values = [_]M31{ M31.one(), M31.zero(), M31.one(), M31.zero() };
+    const columns = [_]ColumnRef{.{ .values = &values, .log_size = 3, .original_index = 0 }};
+    var streaming = Prover.StreamingCommitter.init(allocator);
+    defer streaming.deinit();
+    try std.testing.expectError(error.InvalidColumnSize, streaming.commitColumnsWithReusedBoundedPrefix(&columns, 2 * @sizeOf(Hasher), null));
+    try std.testing.expectEqual(@as(usize, 0), streaming.leaf_hashers.len);
+}

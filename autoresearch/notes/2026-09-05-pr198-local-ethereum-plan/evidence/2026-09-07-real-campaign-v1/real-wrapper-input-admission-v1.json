@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "source": "Read exact role-public sections from hash-pinned independently verified native proof artifacts; wire inspection itself is not proof admission",
+  "leaf0": {
+    "proof_sha256": "d52e9577b23b79b16afc9da1c6c55b324d8872c3f447deab18e0b3a439a2d532",
+    "input_words": 675173,
+    "output_words": 0,
+    "completion_kind": 3,
+    "required_role_capacity": 1048576
+  },
+  "existing_limits": {
+    "role_capacity": 32,
+    "claim_max_input_words": 1024
+  },
+  "status": "segment0 remains an explicit whole-block recursive admission blocker; no cap widened",
+  "next_real_nonfinal_pair": {
+    "schema": "untrusted-wire-inspection-v1",
+    "counts": [
+      {
+        "segment_index": 1,
+        "input_words": 0,
+        "output_words": 0,
+        "completion_kind": 3,
+        "proof_sha256": "1b397d9acde09d4e35db11bd3923fd004e59571fe1c804321f1a36016f639666"
+      },
+      {
+        "segment_index": 2,
+        "input_words": 0,
+        "output_words": 0,
+        "completion_kind": 3,
+        "proof_sha256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5"
+      }
+    ],
+    "authority": "proof hashes match independently verified receipt; this parser mints no admission"
+  },
+  "pair_receipt_sha256": "89005e546f7034daea4a9f05563014ac3101e21ee19da89b3886acc0f3d93622",
+  "full_program_elf_sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+  "opening_rows": 729419,
+  "recursive_wrapper_verified": false
+}

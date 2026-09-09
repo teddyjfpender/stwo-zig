@@ -1,0 +1,34 @@
+{
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/manifest.json",
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu",
+    "test-ethereum-statement-root-cohort-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/progress.log"
+  },
+  "unset_env": [
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1",
+    "STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE",
+    "STWO_ETHEREUM_WRAPPER_PAIR_SLOT"
+  ],
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/replay.log",
+  "acceptance": "terminal exit0, full Tree2 regenerated after producer destruction, exact Generated equality and independent closure; no wrapper proof claim"
+}

@@ -11,7 +11,8 @@ typedef struct {
     uint32_t parameter_word_offset;
     uint32_t parameter_word_count;
     uint32_t output_index;
-    uint32_t denominator_inverses[2];
+    uint32_t denominator_count;
+    uint32_t denominator_inverses[8];
 } StwoZigLookupPolynomialDispatch;
 
 void *stwo_zig_metal_lookup_polynomial_prepare_aot(
@@ -80,6 +81,9 @@ void stwo_zig_metal_lookup_polynomial_plan_destroy(void *plan_ptr) {
 
 static bool stwo_zig_lookup_resident_columns(
     NSArray<StwoZigMetalTree *> *trees,
+    void *composition_domain_buffer,
+    const uint32_t *composition_domain_host_begin,
+    size_t composition_domain_word_count,
     const uint32_t *const *columns,
     uint32_t first,
     uint32_t count,
@@ -88,7 +92,11 @@ static bool stwo_zig_lookup_resident_columns(
 ) {
     for (uint32_t column = 0u; column < count; ++column) {
         StwoZigResidentColumnBinding current = {0};
-        if (!stwo_zig_tree_resident_column(trees, columns[first + column], rows, &current))
+        if (!stwo_zig_polynomial_input_column(
+                trees, composition_domain_buffer,
+                composition_domain_host_begin,
+                composition_domain_word_count,
+                columns[first + column], rows, &current))
             return false;
         if (column == 0u) {
             *binding = current;
@@ -104,6 +112,9 @@ bool stwo_zig_metal_lookup_polynomial_batch(
     void *runtime_ptr,
     void *const *tree_ptrs,
     uint32_t tree_count,
+    void *composition_domain_buffer,
+    const uint32_t *composition_domain_host_begin,
+    size_t composition_domain_word_count,
     const uint32_t *const *main_columns,
     uint32_t total_main_columns,
     const uint32_t *const *interaction_columns,
@@ -207,7 +218,11 @@ bool stwo_zig_metal_lookup_polynomial_batch(
                 item->parameter_word_offset <= total_parameter_words &&
                 item->parameter_word_count <= total_parameter_words - item->parameter_word_offset &&
                 item->output_index < output_count &&
-                outputs[item->output_index].row_count == item->row_count;
+                outputs[item->output_index].row_count == item->row_count &&
+                (item->denominator_count == 2u ||
+                 item->denominator_count == 4u ||
+                 item->denominator_count == 8u) &&
+                item->denominator_count <= item->row_count;
             if (!valid) {
                 [encoder endEncoding];
                 write_error(error_message, error_message_len,
@@ -218,13 +233,22 @@ bool stwo_zig_metal_lookup_polynomial_batch(
             StwoZigResidentColumnBinding interactionBinding = {0};
             StwoZigResidentColumnBinding selectorBinding = {0};
             if (!stwo_zig_lookup_resident_columns(
-                    trees, main_columns, item->main_column_offset,
+                    trees, composition_domain_buffer,
+                    composition_domain_host_begin,
+                    composition_domain_word_count,
+                    main_columns, item->main_column_offset,
                     item->main_column_count, item->row_count, &mainBinding) ||
                 !stwo_zig_lookup_resident_columns(
-                    trees, interaction_columns, item->interaction_column_offset,
+                    trees, composition_domain_buffer,
+                    composition_domain_host_begin,
+                    composition_domain_word_count,
+                    interaction_columns, item->interaction_column_offset,
                     item->interaction_column_count, item->row_count, &interactionBinding) ||
-                !stwo_zig_tree_resident_column(
-                    trees, item->selector, item->row_count, &selectorBinding)) {
+                !stwo_zig_polynomial_input_column(
+                    trees, composition_domain_buffer,
+                    composition_domain_host_begin,
+                    composition_domain_word_count,
+                    item->selector, item->row_count, &selectorBinding)) {
                 [encoder endEncoding];
                 write_error(error_message, error_message_len,
                             @"Lookup-polynomial input is not proof-resident");
@@ -254,12 +278,19 @@ bool stwo_zig_metal_lookup_polynomial_batch(
             [encoder setBytes:&item->row_count length:sizeof(item->row_count) atIndex:6];
             [encoder setBytes:&item->denominator_inverses
                        length:sizeof(item->denominator_inverses) atIndex:7];
+            [encoder setBytes:&item->denominator_count
+                       length:sizeof(item->denominator_count) atIndex:8];
             NSUInteger width = MIN(
                 plan.pipeline.maxTotalThreadsPerThreadgroup,
                 plan.pipeline.threadExecutionWidth * 8u
             );
             [encoder dispatchThreads:MTLSizeMake(item->row_count, 1u, 1u)
                 threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
+            // Multiple authenticated lookup programs accumulate into one
+            // per-log buffer. Order alone is not a device memory dependency;
+            // make every preceding read/add/write visible to the next job.
+            if (index + 1u < dispatch_count)
+                [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
         }
         [encoder endEncoding];
         [command commit];

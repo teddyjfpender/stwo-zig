@@ -1,0 +1,20 @@
+test-recursive-common-fold-field-public-v2
++- run test stderr
+FIXED_WIRE_AIR_DIGEST=a897d5fa47cc47281b89f753c1c5b5af50c9f3dc6575b4a8472d2c83e1b27aef
+FIXED_WIRE_AIR anchors=2 signed_multiplicity=true missing_or_changed_anchor_rejected=true
+COMMON_FOLD_CLAIM_TRANSCRIPT bound_claims=36 legacy_suffix_preserved=true invalid_claims_rejected_before_mix=true
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+CANONICAL_PUBLIC_BOUNDARY_GRAPH calls=113 nodes=232753 checked_mutations=16 zero_denominator_rejected=true native_permutations_match=true
+COMMON_FOLD_SESSION_KEYS words=24 manifest_literals=true key_mutations_rejected=true stale_session_rejected_before_mix=true legacy_encoding_preserved=true
+COMMON_FOLD_PUBLIC_BOUNDARY_GRAPH words=450 word_challenge_claim_mutations=453 zero_denominator_rejected=true
+FIELD_PUBLIC_WORD_DIGEST=c02179e9ba469114f19ddc0ff8e1670ba61bd4dd5d0a1b14445e6799feef3017
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=0
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=4
+FIELD_STATEMENT_BRIDGE_DIGEST=b2befb25386395106050de88684f519c637477304505732a4a25900121253ac6
+COMMON_FOLD_EMPTY_BOUNDARY zero_tuples=true global_contract_unchanged=true unmatched_input_rejected=true row_preflight_preserved=true
+
+Build Summary: 3/3 steps succeeded; 4/4 tests passed
+test-recursive-common-fold-field-public-v2 success
++- run test 4 passed 815ms MaxRSS:28M
+   +- compile test ReleaseSafe native success 11s MaxRSS:835M
+

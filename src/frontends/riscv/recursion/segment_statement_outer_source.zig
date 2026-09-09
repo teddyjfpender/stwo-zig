@@ -50,6 +50,8 @@ pub const Error = shard_0.Error;
 /// Production admission compares the same digest without retaining a second
 /// circuit instance.
 pub const computeLoweringGraphDigest = shard_0.computeLoweringGraphDigest;
+/// Reuse the pinned arithmetic vocabulary for other statement-owning profiles.
+pub const convertGraphNodes = shard_0.convertGraphNodes;
 /// Final, committed-order Tree-0 destinations. Row 35 includes the native
 /// table framework's leading `is_first` column before its two tuple columns.
 pub const PreprocessedColumns = shard_0.PreprocessedColumns;

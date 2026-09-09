@@ -30,6 +30,7 @@ pub const Result = struct {
     shift_id: types.ValueId,
     signed_mask: types.ValueId,
     aligned_addr_quarter: types.ValueId,
+    aligned_addr_quarter_source: types.ValueId,
     opcode_id: types.ValueId,
     constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId,
     roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId,
@@ -142,7 +143,7 @@ pub fn author(
         shift_id = try a.add(shift_id, try a.mul(marker, try a.q(@intCast(index))));
     }
     const signed_mask = try a.mul(try a.mul(is_signed, columns.src_msb), c255);
-    const aligned_addr_quarter = try a.mul(
+    const aligned_addr_quarter_source = try a.mul(
         try a.sub(
             try a.add(columns.src_addr_selector, columns.dst_addr_selector),
             columns.r2_idx,
@@ -313,7 +314,14 @@ pub fn author(
         roots[n] = try a.mul(try a.sub(one, is_load), limb);
         n += 1;
     }
-    roots[n] = try a.mul(active, columns.rs1.value[3]);
+    // Bind the committed 28-bit word index to the exact selector-derived
+    // aligned address. Its low 20 bits and derived high byte are fixed-table
+    // checked by the ordered relation events; the separate base lookup bounds
+    // `rs1` below 2^30 so `base + imm` cannot wrap the M31 field.
+    roots[n] = try a.mul(
+        active,
+        try a.sub(columns.aligned_addr_quarter, aligned_addr_quarter_source),
+    );
     n += 1;
     roots[n] = try a.sub(active, is_active);
     n += 1;
@@ -337,7 +345,8 @@ pub fn author(
         .marker_sum = marker_sum,
         .shift_id = shift_id,
         .signed_mask = signed_mask,
-        .aligned_addr_quarter = aligned_addr_quarter,
+        .aligned_addr_quarter = columns.aligned_addr_quarter,
+        .aligned_addr_quarter_source = aligned_addr_quarter_source,
         .opcode_id = opcode_id,
         .constraints = constraints,
         .roots = roots,

@@ -1,0 +1,16 @@
+{
+  "command": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-recursive-segment-v2-detached-boundary",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_s": 7.107283115386963,
+  "log": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-expected-boundary-second.log",
+  "log_sha256": "c2a86ada1007159485e2e23692c240efec82ca0029d382c71a61a3663c218ecf"
+}

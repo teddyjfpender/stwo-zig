@@ -1,6 +1,7 @@
 const std = @import("std");
 const cost = @import("materialization_cost.zig");
 const ir = @import("ir.zig");
+const protocol_degree = @import("protocol_degree.zig");
 const source = @import("source.zig");
 const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
 const types = @import("types.zig");
@@ -296,6 +297,88 @@ test "canonical Poseidon baseline reports the frozen component geometry" {
         @as(u64, (445 + 8) * 1024 * 4),
         report.scenarios[0].committed_bytes,
     );
+}
+
+test "Poseidon degree frontier pins the column versus quotient tradeoff" {
+    const materializer = @import("degree3_materializer.zig");
+    const poseidon = @import("typed_poseidon2.zig");
+    const Case = struct {
+        degree: u64,
+        materializations: u64,
+        main_columns: u64,
+        direct_roots: u64,
+        direct_nodes: u64,
+        multiplications: u64,
+        peak_live_nodes: u64,
+        committed_bytes_log24: u64,
+        quotient_expansion_bits: u8,
+        direct_constraint_domain_rows_per_trace_row: u64,
+    };
+    const cases = [_]Case{
+        .{ .degree = 3, .materializations = 426, .main_columns = 445, .direct_roots = 430, .direct_nodes = 3_460, .multiplications = 1_080, .peak_live_nodes = 39, .committed_bytes_log24 = 30_400_315_392, .quotient_expansion_bits = 1, .direct_constraint_domain_rows_per_trace_row = 860 },
+        .{ .degree = 4, .materializations = 284, .main_columns = 303, .direct_roots = 288, .direct_nodes = 3_034, .multiplications = 938, .peak_live_nodes = 39, .committed_bytes_log24 = 20_870_856_704, .quotient_expansion_bits = 2, .direct_constraint_domain_rows_per_trace_row = 1_152 },
+        .{ .degree = 5, .materializations = 220, .main_columns = 239, .direct_roots = 224, .direct_nodes = 2_842, .multiplications = 874, .peak_live_nodes = 39, .committed_bytes_log24 = 16_575_889_408, .quotient_expansion_bits = 2, .direct_constraint_domain_rows_per_trace_row = 896 },
+        .{ .degree = 6, .materializations = 142, .main_columns = 161, .direct_roots = 146, .direct_nodes = 2_608, .multiplications = 796, .peak_live_nodes = 38, .committed_bytes_log24 = 11_341_398_016, .quotient_expansion_bits = 3, .direct_constraint_domain_rows_per_trace_row = 1_168 },
+    };
+
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const generated = source.SourceSpan.generated();
+    const gate = try arena.input(
+        "riscv.poseidon2_m31.enabled",
+        .selector,
+        generated,
+    );
+    const definition = try poseidon.define(
+        &arena,
+        poseidon.DefinitionSpans.uniform(generated),
+    );
+    const roots = poseidon.values(definition.outputs);
+
+    for (cases) |expected| {
+        var plan = try materializer.plan(std.testing.allocator, &arena, .{
+            .roots = &roots,
+            .gate = gate,
+            .policy = .{ .maximum_constraint_degree = expected.degree },
+        });
+        defer plan.deinit();
+        const selected = try std.testing.allocator.alloc(
+            types.ValueId,
+            plan.materializations.len,
+        );
+        defer std.testing.allocator.free(selected);
+        for (plan.materializations, selected) |item, *value| {
+            value.* = item.source_value;
+        }
+        std.mem.sort(types.ValueId, selected, {}, valueLessThan);
+
+        var report = try cost.analyze(std.testing.allocator, &arena, .{
+            .roots = &roots,
+            .gate = gate,
+            .policy = .{ .maximum_constraint_degree = expected.degree },
+            .selected = selected,
+            .geometry = .{ .fixed_direct_roots = poseidon_fixed.fixed_root_count },
+            .fixed_direct_program = poseidon_fixed.program,
+            .log_sizes = &.{24},
+        });
+        defer report.deinit();
+
+        try std.testing.expectEqual(expected.materializations, report.vector.materialization_count);
+        try std.testing.expectEqual(expected.main_columns, report.vector.candidate_main_columns);
+        try std.testing.expectEqual(expected.direct_roots, report.vector.direct_roots);
+        try std.testing.expectEqual(expected.direct_nodes, report.vector.canonical_direct_nodes);
+        try std.testing.expectEqual(expected.multiplications, report.vector.canonical_direct_multiplications);
+        try std.testing.expectEqual(expected.peak_live_nodes, report.vector.canonical_streaming_peak_live_nodes);
+        try std.testing.expectEqual(expected.committed_bytes_log24, report.scenarios[0].committed_bytes);
+        const expansion = protocol_degree.quotientExpansionBits(
+            @intCast(expected.degree),
+        );
+        try std.testing.expectEqual(expected.quotient_expansion_bits, expansion);
+        try std.testing.expectEqual(
+            expected.direct_constraint_domain_rows_per_trace_row,
+            report.vector.direct_roots * (@as(u64, 1) << @intCast(expansion)),
+        );
+    }
 }
 
 test "materialization cost construction releases every partial allocation" {

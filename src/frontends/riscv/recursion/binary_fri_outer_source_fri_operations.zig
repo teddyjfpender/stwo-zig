@@ -2,6 +2,7 @@
 
 pub fn Operations(comptime Context: type) type {
     const Self = Context.Source;
+    const Boundary = Context.BoundaryType;
     const PreparedAuthority = Self.PreparedAuthority;
     const Workspace = Self.Workspace;
 
@@ -219,40 +220,70 @@ pub fn Operations(comptime Context: type) type {
             self: *const Self,
             columns: *[MAIN_COLUMN_COUNT][]M31,
         ) !void {
-            const left = self.children[LEFT_CHILD].capture;
-            const right = self.children[RIGHT_CHILD].capture;
-            const query_witness = query_bits_witness.QueryWitness{ .binary_node = .{
-                .left = self.query_words[LEFT_CHILD],
-                .right = self.query_words[RIGHT_CHILD],
-            } };
-            const root_witness = merkle_root_witness.RootWitness{ .binary_node = .{
-                .left = .{ .trace = left.trace_roots, .fri = left.fri_roots },
-                .right = .{ .trace = right.trace_roots, .fri = right.fri_roots },
-            } };
-            const trace_witness = trace_merkle_witness.OpeningWitness{ .binary_node = .{
-                .left = .{
-                    .queried_values = left.queried_values,
-                    .raw_queries = left.raw_queries,
-                },
-                .right = .{
-                    .queried_values = right.queried_values,
-                    .raw_queries = right.raw_queries,
-                },
-            } };
-            const fri_witness = fri_leaf_witness.OpeningWitness{ .binary_node = .{
-                .left = .{
-                    .raw_queries = left.raw_queries,
-                    .layers = left.fri_layer_openings,
-                },
-                .right = .{
-                    .raw_queries = right.raw_queries,
-                    .layers = right.fri_layer_openings,
-                },
-            } };
+            const proof_kind: query_bits_witness.ProofKind = if (comptime @hasDecl(Boundary, "FRI_PROOF_KIND"))
+                Boundary.FRI_PROOF_KIND
+            else
+                .binary_node;
+            const query_witness = if (comptime proof_kind == .empty_leaf)
+                query_bits_witness.QueryWitness{ .empty_leaf = {} }
+            else blk: {
+                break :blk query_bits_witness.QueryWitness{ .binary_node = .{
+                    .left = self.query_words[LEFT_CHILD],
+                    .right = self.query_words[RIGHT_CHILD],
+                } };
+            };
+            const root_witness = if (comptime proof_kind == .empty_leaf)
+                merkle_root_witness.RootWitness{ .empty_leaf = {} }
+            else blk: {
+                const left = self.children[LEFT_CHILD].capture;
+                const right = self.children[RIGHT_CHILD].capture;
+                break :blk merkle_root_witness.RootWitness{ .binary_node = .{
+                    .left = .{ .trace = left.trace_roots, .fri = left.fri_roots },
+                    .right = .{ .trace = right.trace_roots, .fri = right.fri_roots },
+                } };
+            };
+            const trace_witness = if (comptime proof_kind == .empty_leaf)
+                trace_merkle_witness.OpeningWitness{ .empty_leaf = {} }
+            else blk: {
+                const left = self.children[LEFT_CHILD].capture;
+                const right = self.children[RIGHT_CHILD].capture;
+                break :blk trace_merkle_witness.OpeningWitness{ .binary_node = .{
+                    .left = .{
+                        .queried_values = left.queried_values,
+                        .raw_queries = left.raw_queries,
+                    },
+                    .right = .{
+                        .queried_values = right.queried_values,
+                        .raw_queries = right.raw_queries,
+                    },
+                } };
+            };
+            const fri_witness = if (comptime proof_kind == .empty_leaf)
+                fri_leaf_witness.OpeningWitness{ .empty_leaf = {} }
+            else blk: {
+                const left = self.children[LEFT_CHILD].capture;
+                const right = self.children[RIGHT_CHILD].capture;
+                break :blk fri_leaf_witness.OpeningWitness{ .binary_node = .{
+                    .left = .{
+                        .raw_queries = left.raw_queries,
+                        .layers = left.fri_layer_openings,
+                    },
+                    .right = .{
+                        .raw_queries = right.raw_queries,
+                        .layers = right.fri_layer_openings,
+                    },
+                } };
+            };
             const evaluations = fri_input_witness.Evaluations{
                 .segment = &self.fri_rows.inactive_fri_evaluation,
-                .left = &left.evaluation,
-                .right = &right.evaluation,
+                .left = if (comptime proof_kind == .empty_leaf)
+                    &self.fri_rows.inactive_fri_evaluation
+                else
+                    &self.children[LEFT_CHILD].capture.evaluation,
+                .right = if (comptime proof_kind == .empty_leaf)
+                    &self.fri_rows.inactive_fri_evaluation
+                else
+                    &self.children[RIGHT_CHILD].capture.evaluation,
             };
 
             try self.fri_rows.query_bits_executor.generateMainInto(
@@ -304,7 +335,7 @@ pub fn Operations(comptime Context: type) type {
                     ColumnOffset.pcs_deep_main,
                 ),
                 self.fri_rows.pcs_inputs,
-                .binary_node,
+                proof_kind,
             );
             try self.fri_rows.fri_leaf_executor.generateMainInto(
                 &self.fri_rows.fri_leaf_preprocessing,
@@ -357,7 +388,7 @@ pub fn Operations(comptime Context: type) type {
                     ColumnOffset.fri_input_main,
                 ),
                 evaluations,
-                .binary_node,
+                proof_kind,
             );
         }
     };

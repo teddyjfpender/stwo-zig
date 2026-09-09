@@ -1,0 +1,19 @@
+{
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v14/manifest.json",
+  "source_manifest_sha256": "67b81a1cef1d88e2360863d61d072429654c668ecc784f785dc0990d6f4e488d",
+  "gate": "pcs-retained",
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v14/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v14/source/src/prover",
+    "test-pcs-retained-columns",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v14/source",
+  "minimum_passed_tests": 12,
+  "require_exit_code": 0,
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v14/pcs-retained.log"
+}

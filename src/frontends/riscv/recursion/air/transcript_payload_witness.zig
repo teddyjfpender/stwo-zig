@@ -47,3 +47,7 @@ pub const Source = shard_1.Source;
 pub const PreparedBatch = shard_2.PreparedBatch;
 pub const mainRow = shard_2.mainRow;
 pub const logicalRow = shard_2.logicalRow;
+pub const logicalRowForRecordedFrame = shard_2.logicalRowForRecordedFrame;
+
+pub const logicalRowForEthereumRecordedFrame = shard_2.logicalRowForEthereumRecordedFrame;
+pub const logicalRowForEthereumFieldFrame = shard_2.logicalRowForEthereumFieldFrame;

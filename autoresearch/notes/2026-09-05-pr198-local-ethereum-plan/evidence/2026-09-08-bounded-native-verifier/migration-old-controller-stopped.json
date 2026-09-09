@@ -1,0 +1,8 @@
+{
+  "old_controller_pid": 35106,
+  "signal": "SIGTERM",
+  "childless_before_signal": true,
+  "old_controller_reaped": true,
+  "controller_lock_available": true,
+  "wrapper_pid_untouched": 40352
+}

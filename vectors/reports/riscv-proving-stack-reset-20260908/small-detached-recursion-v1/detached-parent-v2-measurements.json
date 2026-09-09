@@ -1,0 +1,77 @@
+{
+  "scope": "Individual development q3 parent observations; child proving excluded; root publication436 words",
+  "rows": [
+    {
+      "child_backend": "cpu",
+      "parent_backend": "cpu",
+      "seed": 13,
+      "request_ms": 3925.306,
+      "prepare_ms": 390.437042,
+      "key_commit_ms": 239.926416,
+      "remaining_proof_ms": 3245.966834,
+      "verify_ms": 11.201916,
+      "proof_bytes": 96300,
+      "cases": 25
+    },
+    {
+      "child_backend": "cpu",
+      "parent_backend": "cpu",
+      "seed": 14,
+      "request_ms": 3939.183792,
+      "prepare_ms": 390.294917,
+      "key_commit_ms": 238.794292,
+      "remaining_proof_ms": 3263.930583,
+      "verify_ms": 10.298041,
+      "proof_bytes": 95491,
+      "cases": 25
+    },
+    {
+      "child_backend": "cpu",
+      "parent_backend": "cpu",
+      "seed": 269,
+      "request_ms": 3885.528791,
+      "prepare_ms": 390.415209,
+      "key_commit_ms": 237.015792,
+      "remaining_proof_ms": 3211.226375,
+      "verify_ms": 10.160625,
+      "proof_bytes": 94297,
+      "cases": 25
+    },
+    {
+      "child_backend": "metal",
+      "parent_backend": "cpu",
+      "seed": 13,
+      "request_ms": 3907.729041,
+      "prepare_ms": 386.657459,
+      "key_commit_ms": 234.883417,
+      "remaining_proof_ms": 3240.5105,
+      "verify_ms": 10.259042,
+      "proof_bytes": 96300,
+      "cases": 25
+    },
+    {
+      "child_backend": "metal",
+      "parent_backend": "cpu",
+      "seed": 14,
+      "request_ms": 3951.359542,
+      "prepare_ms": 388.9115,
+      "key_commit_ms": 240.40125,
+      "remaining_proof_ms": 3275.198583,
+      "verify_ms": 10.173542,
+      "proof_bytes": 95491,
+      "cases": 25
+    },
+    {
+      "child_backend": "metal",
+      "parent_backend": "cpu",
+      "seed": 269,
+      "request_ms": 3911.21625,
+      "prepare_ms": 395.831833,
+      "key_commit_ms": 237.29175,
+      "remaining_proof_ms": 3232.032125,
+      "verify_ms": 10.188833,
+      "proof_bytes": 94297,
+      "cases": 25
+    }
+  ]
+}

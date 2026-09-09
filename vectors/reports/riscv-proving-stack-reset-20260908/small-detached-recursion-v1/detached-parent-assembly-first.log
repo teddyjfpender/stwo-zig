@@ -1,0 +1,65 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test
+      +- compile test ReleaseSafe native 3 errors
+recursive_segment_v2_detached_parent_arithmetic.zig:151:36: error: unable to resolve comptime value
+        logical[cohort.logicalIndex(11)] = try input_rows.toOwnedSlice(a);
+                ~~~~~~~~~~~~~~~~~~~^~~~
+recursive_segment_v2_detached_parent_arithmetic.zig:151:36: note: tuple field index must be comptime-known
+referenced by:
+    prepare: recursive_segment_v2_detached_parent_prepare.zig:52:55
+    test.detached parent prepares two genuine children with one exact routing plan: recursive_segment_v2_detached_parent_prepare.zig:109:31
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+recursive_segment_v2_detached_parent_cohort.zig:183:10: error: values of type '[28]recursion.air.universal_catalog.Entry' must be comptime-known, but index value is runtime-known
+    for (LOGICAL_ROWS, 0..) |entry, index| if (@intFromEnum(entry.row) == row) return index;
+         ^~~~~~~~~~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/universal_catalog.zig:10:10: note: struct requires comptime because of this field
+    Air: type,
+         ^~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/universal_catalog.zig:10:10: note: types are not available at runtime
+recursive_segment_v2_detached_parent_cohort.zig:457:20: error: variable of type '[28]type' must be const or comptime
+        var types: [LOGICAL_ROWS.len]type = undefined;
+                   ^~~~~~~~~~~~~~~~~~~~~~
+recursive_segment_v2_detached_parent_cohort.zig:457:20: note: types are not available at runtime
+error: the following command failed with 3 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "detached parent prepares two genuine children with one exact routing plan" --test-filter "detached parent snapshots typed rows and rejects mutable ingress and inactive claims" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-recursive-segment-v2-detached-parent-statement
++- SegmentV2 detached parent statement guard
+   +- run test stderr
+detached-parent-clock-continuity raw_word_mutations=156 unequal_word_swap=true decrement=true host_admission_bypassed=true
+detached-parent-statement child_words=412/412 published_words=412 nodes=80657 outputs=22216 arithmetic_mutations=21 boundary_producers_destroyed=true proof_verified=false
+test-recursive-segment-v2-detached-routing
++- SegmentV2 detached routing guard
+   +- run test stderr
+detached routing input=c73a0e906b7cc3c4bc01d0211ed1dbafffee16a548276c5e543b327aa61f5d27 poseidon=7ea0b8e40c8b757e94023b2e407a2baf303d10cf133b1cfdc0b1c667ef24f46e
+detached routing source_kinds=7 changed_value_rejected=true scalar_extension_rejected=true exact_exports=true poseidon_words=32 changed_provider_output_rejected=true changed_fanout_rejected=true
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+
+Build Summary: 12/16 steps succeeded; 1 failed; 3/3 tests passed
+test-recursive-segment-v2-detached-parent-prepare transitive failure
++- SegmentV2 detached parent preparation guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 3 errors
+test-recursive-segment-v2-detached-routing success
++- SegmentV2 detached routing guard success
+   +- run test 1 passed 297ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:599M
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 698ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 6s MaxRSS:632M
+test-recursive-segment-v2-detached-parent-statement success
++- SegmentV2 detached parent statement guard success
+   +- run test 1 passed 536ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 7s MaxRSS:658M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2ac9ec45904e591a2c2c18454a6c6f68/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x7f0b0566 -Z812625a93d47d4e5 --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-parent-prepare test-recursive-segment-v2-detached-routing test-recursive-segment-v2-detached-boundary test-recursive-segment-v2-detached-parent-statement -Doptimize=ReleaseSafe --summary all

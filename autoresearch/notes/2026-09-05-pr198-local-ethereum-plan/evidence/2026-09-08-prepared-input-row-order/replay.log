@@ -1,0 +1,33 @@
+test-ethereum-statement-root-cohort-replay
++- saved Ethereum complete root cohort guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=2 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_COMPLETION_OPENING admitted_version=1 whole_elf_pinned=true
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=59023047791 process_cpu_ns=58977060792 parallelism_milli=999 peak_footprint_bytes=1706608344 energy_nj=274142507009 instructions=1281808278340 cycles=234655068613 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=67597307042 process_cpu_ns=67451363791 parallelism_milli=997 peak_footprint_bytes=1706608344 energy_nj=249565753236 instructions=487446089496 cycles=268424136915 workers=1 host_byte_budget=17179869184
+ETHEREUM_WRAPPER_SELECTED pair_slot=0 global_segment=2
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=60342135959 process_cpu_ns=60308385000 parallelism_milli=999 peak_footprint_bytes=3001994360 energy_nj=235734545315 instructions=559316811823 cycles=239993230075 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=289625416 public_ns=14540940125 transcript_ns=5282074750 profile_ns=67875 program_ns=80348834 prepare_ns=76072708 fri_ns=4056407333 seal_ns=289344709 total_ns=24614884416 nodes=618754 node_bytes=12375080 output_bytes=176 binding_bytes=2815408 schedule_bytes=9177376 evaluation_bytes=9900064 input_bytes=703852 claim_bytes=33712 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=61 bytes=1247365590 peak=2275994661 allocated=3630785880 freed=2383420290 untracked=0
+ETHEREUM_ROOT_COHORT phase=prepare components=36 begin=true
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+ETHEREUM_GEOMETRY_PREPARATION phase=materialized-admission ns=3914300584
+ETHEREUM_GEOMETRY_PREPARATION phase=plans-prefix ns=2579210125
+ETHEREUM_GEOMETRY_PREPARATION phase=program ns=31968416041
+ETHEREUM_GEOMETRY_PREPARATION phase=transcript-rows ns=11659852625
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=330105528208 process_cpu_ns=325095828709 parallelism_milli=984 peak_footprint_bytes=30505622208 energy_nj=1355605539825 instructions=4191104693286 cycles=1293437206517 workers=1 host_byte_budget=17179869184
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=cohort error=V2CoreCohortMismatch
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort', the following test command failed:
+./.zig-cache/o/3cebeca00218468a950b858182ec81d3/test --cache-dir=./.zig-cache --seed=0x2d1acb0d --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-ethereum-statement-root-cohort-replay transitive failure
++- saved Ethereum complete root cohort guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e5b509b636926261c9f0e856e04989f6/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v18/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x2d1acb0d -Z97705aa43ac8a2d5 --maxrss 25769803776 -j1 test-ethereum-statement-root-cohort-replay -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all

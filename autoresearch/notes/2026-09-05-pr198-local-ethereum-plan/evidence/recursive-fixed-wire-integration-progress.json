@@ -1,0 +1,82 @@
+{
+  "status": "schema9 full proof, producer destruction, fresh verification and canonical identity guard passed",
+  "session": 46434,
+  "log": "recursive-fixed-wire-integration-check-2.log",
+  "common_fold_schema": 9,
+  "composition_capture_schema": 3,
+  "suffix_closure_schema": 3,
+  "change": "AIR row 10 supplies authenticated binary graph constants and signed output anchors; native wire evidence retained for cross-check but removed from closure addition and transcript. Composition external wire input constrained to zero. Default universal catalog unchanged.",
+  "field_gate": "4/4 tests passed before plan API correction; source gate not yet verified",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_catalog_v3.zig": "08332725940cfbfeb57968f99c60db8e7fc390f257002a03fff2514f0a5ee553",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "98ee9791bfbf4116ea4cfcdab4a822ba618c461a3e9b58e4c5be3612dfc8c0db",
+    "src/integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig": "79c1840d65357c7dc9c346bb41227bcd8761c6fa20b007c4ae2b05f9e5dd0174",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "24d3582fdc543df246601052dc5b21f41fb025f643cd3d1e863e378ac29cc890",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_closure_v2.zig": "55d20f64562c26c171ffb6c280cde512985e9ab3dca58dd2a012b38d764415c6",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "ac518bc1e4ed777379332e1d44962855b41cff46fa16eb0fcfa842fc111c466e",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "20c69e1347557c0305d28c0207122332213bc1068ab9b93a7ce413a48cc07fe7",
+    "src/integrations/riscv_cpu/recursive_fixed_wire_v3_test.zig": "45f66c83244ed3e1a784f14f693286130862df9df71a4f2550807e07350bd33d",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "dbefa18adbe82a615272af1116139ca776c0d5b708dcaf6cde628f061406995c",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "71c013ab19dfd0e2577b3a0e349f2e3cd52ef4e5fd1dcc48cf5cfb45668418c5"
+  },
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "csp_promotion": false,
+  "source_gate": {
+    "steps": "4/4",
+    "tests": "1/1",
+    "time": "47s",
+    "max_rss": "5G",
+    "compile_time": "1m",
+    "compile_max_rss": "4G",
+    "fixed_wire_rows": 33377,
+    "missing_or_changed_anchor_rejected": true,
+    "global_closure_verified": true
+  },
+  "full_proof_attempt_1": {
+    "session": 10942,
+    "status": "compile failed: shared audit identity still accessed old wire_boundary field; canonical proof guard passed",
+    "log": "recursive-fixed-wire-integration-proof.log"
+  },
+  "full_proof_log": "recursive-fixed-wire-integration-proof-2.log",
+  "full_proof_source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_catalog_v3.zig": "08332725940cfbfeb57968f99c60db8e7fc390f257002a03fff2514f0a5ee553",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "98ee9791bfbf4116ea4cfcdab4a822ba618c461a3e9b58e4c5be3612dfc8c0db",
+    "src/integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig": "79c1840d65357c7dc9c346bb41227bcd8761c6fa20b007c4ae2b05f9e5dd0174",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "24d3582fdc543df246601052dc5b21f41fb025f643cd3d1e863e378ac29cc890",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_closure_v2.zig": "55d20f64562c26c171ffb6c280cde512985e9ab3dca58dd2a012b38d764415c6",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "ac518bc1e4ed777379332e1d44962855b41cff46fa16eb0fcfa842fc111c466e",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "20c69e1347557c0305d28c0207122332213bc1068ab9b93a7ce413a48cc07fe7",
+    "src/integrations/riscv_cpu/recursive_fixed_wire_v3_test.zig": "45f66c83244ed3e1a784f14f693286130862df9df71a4f2550807e07350bd33d",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "dbefa18adbe82a615272af1116139ca776c0d5b708dcaf6cde628f061406995c",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "71c013ab19dfd0e2577b3a0e349f2e3cd52ef4e5fd1dcc48cf5cfb45668418c5",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "da16ed5b2c07018397f655f58d004451b6d20a71bf4ac76a3db76c621c5da368"
+  },
+  "full_proof_session": 70019,
+  "conformance": {
+    "status": "existing failures remain",
+    "log": "recursive-fixed-wire-integration-conformance-2.log",
+    "findings": 94,
+    "files": 93,
+    "new_failing_files": []
+  },
+  "checkpoint_node_sha256": "b49bb17032b1531c9ed4b85598c46742f7d1f1df064487c4658ef2fd04f47a45",
+  "full_proof_result": {
+    "steps": "8/8",
+    "tests": "2/2",
+    "fold_time": "8m",
+    "fold_max_rss": "10G",
+    "fold_compile_time": "1m",
+    "fold_compile_max_rss": "5G",
+    "canonical_time": "11s",
+    "canonical_max_rss": "87M",
+    "producer_destroyed": true,
+    "fresh_verified": true,
+    "operations": 182,
+    "frames": 184,
+    "permutations": 1761,
+    "queries": 193,
+    "performance_comparison": false,
+    "measurement_caveat": "Small field compilation overlapped this verification run; no regression or speedup conclusion."
+  }
+}

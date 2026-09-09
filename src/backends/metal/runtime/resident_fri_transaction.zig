@@ -1,5 +1,6 @@
 const std = @import("std");
 const commit_policy = @import("../commit_policy.zig");
+const hash_domain = @import("../hash_domain.zig");
 const shared_runtime = @import("../shared_runtime.zig");
 const telemetry = @import("../telemetry.zig");
 const work_profile = @import("stwo_prover_api").work_profile;
@@ -79,6 +80,9 @@ pub fn Ops(comptime B: type) type {
             const channel_blake2s = @import("stwo_core").channel.blake2s;
             const line = @import("stwo_core").poly.line;
             const circle = @import("stwo_core").circle;
+            const maybe_domain = comptime hash_domain.blake2sParameters(H);
+            if (comptime maybe_domain == null) return null;
+            const domain = maybe_domain.?;
             if (comptime @TypeOf(channel.*) != channel_blake2s.Blake2sChannel) return null;
             if (config.fold_step != 1 or
                 provider.domain_size != circle_domain.size() or
@@ -162,9 +166,9 @@ pub fn Ops(comptime B: type) type {
                     @intCast(initial_coset.initial_index.v),
                     @intCast(initial_coset.step_size.v),
                     &channel_state,
-                    H.leafSeed(),
-                    H.nodeSeed(),
-                    H.domainPrefixBytes(),
+                    domain.leaf_seed,
+                    domain.node_seed,
+                    domain.domain_prefix_bytes,
                 );
                 try provider.completeMetalRowExecution(profiled.execution);
                 break :blk .{
@@ -182,9 +186,9 @@ pub fn Ops(comptime B: type) type {
                 @intCast(initial_coset.initial_index.v),
                 @intCast(initial_coset.step_size.v),
                 &channel_state,
-                H.leafSeed(),
-                H.nodeSeed(),
-                H.domainPrefixBytes(),
+                domain.leaf_seed,
+                domain.node_seed,
+                domain.domain_prefix_bytes,
             );
             defer allocator.free(runtime_result.fri.trees);
 

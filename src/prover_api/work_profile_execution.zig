@@ -201,6 +201,133 @@ pub const SampledCoefficientExecution = struct {
     }
 };
 
+pub const SAMPLED_BARYCENTRIC_EXECUTION_SCHEMA_VERSION: u16 = 1;
+
+/// Exact execution geometry for one backend-owned evaluation-form sampled
+/// value epoch.  The receipt separates point/domain reuse from column work so
+/// a backend cannot report an idealized batch inverse or hide repeated domain
+/// construction.  `domain_circle_multiplications` counts calls to the circle
+/// group multiplication primitive; `exactWork` expands each call to its four
+/// field multiplications and two field additions.
+pub const SampledBarycentricExecution = struct {
+    schema_version: u16 = SAMPLED_BARYCENTRIC_EXECUTION_SCHEMA_VERSION,
+    point_plan_count: u64,
+    domain_plan_count: u64,
+    evaluation_task_count: u64,
+    weight_value_count: u64,
+    dot_product_terms: u64,
+    domain_circle_multiplications: u64,
+    scale_double_count: u64,
+    inverse_tree_block_count: u64,
+    direct_inversion_count: u64,
+    reduction_addition_count: u64,
+    constant_addition_count: u64,
+    constant_multiplication_count: u64,
+    constant_inversion_count: u64,
+
+    pub fn validate(self: SampledBarycentricExecution) Error!void {
+        if (self.schema_version != SAMPLED_BARYCENTRIC_EXECUTION_SCHEMA_VERSION)
+            return error.InvalidCounterGroup;
+        if (self.evaluation_task_count == 0) {
+            if (self.point_plan_count != 0 or self.domain_plan_count != 0 or
+                self.weight_value_count != 0 or self.dot_product_terms != 0 or
+                self.domain_circle_multiplications != 0 or
+                self.scale_double_count != 0 or
+                self.inverse_tree_block_count != 0 or
+                self.direct_inversion_count != 0 or
+                self.reduction_addition_count != 0 or
+                self.constant_addition_count != 0 or
+                self.constant_multiplication_count != 0 or
+                self.constant_inversion_count != 0)
+            {
+                return error.InvalidCounterGroup;
+            }
+            return;
+        }
+        if (self.point_plan_count == 0 or self.domain_plan_count == 0 or
+            self.domain_plan_count > self.point_plan_count or
+            self.evaluation_task_count > self.dot_product_terms or
+            self.weight_value_count < try multiplyCounter(self.point_plan_count, 2) or
+            self.domain_circle_multiplications == 0 or
+            self.reduction_addition_count < self.evaluation_task_count or
+            self.constant_multiplication_count == 0 or
+            self.constant_inversion_count != self.domain_plan_count)
+        {
+            return error.InvalidCounterGroup;
+        }
+        const inverse_tree_values = try multiplyCounter(
+            self.inverse_tree_block_count,
+            1_024,
+        );
+        if (self.weight_value_count != try addCounter(
+            inverse_tree_values,
+            self.direct_inversion_count,
+        )) return error.InvalidCounterGroup;
+    }
+
+    pub fn exactWork(self: SampledBarycentricExecution) Error!Counters {
+        try self.validate();
+        if (self.evaluation_task_count == 0) return .{};
+
+        // Per point: rotate the sampled point (A=1,M=2), execute every
+        // double-X (A=2,M=1), then multiply by si0 (M=1).
+        const scale_additions = try addCounter(
+            self.point_plan_count,
+            try multiplyCounter(self.scale_double_count, 2),
+        );
+        const scale_multiplications = try addCounter(
+            try multiplyCounter(self.point_plan_count, 3),
+            self.scale_double_count,
+        );
+
+        // Per weight: parts (A=3,M=4) and finish (M=2).  Each 1024-value
+        // inverse tree executes 2,976 multiplications and 32 inversions; the
+        // short-domain path performs one direct inversion per value.
+        const weight_additions = try multiplyCounter(self.weight_value_count, 3);
+        const weight_multiplications = try addCounter(
+            try multiplyCounter(self.weight_value_count, 6),
+            try multiplyCounter(self.inverse_tree_block_count, 2_976),
+        );
+        const inversion_count = try addCounter(
+            self.constant_inversion_count,
+            try addCounter(
+                self.direct_inversion_count,
+                try multiplyCounter(self.inverse_tree_block_count, 32),
+            ),
+        );
+
+        return .{
+            .field_additions = try addCounter(
+                self.constant_addition_count,
+                try addCounter(
+                    try multiplyCounter(self.domain_circle_multiplications, 2),
+                    try addCounter(
+                        scale_additions,
+                        try addCounter(
+                            weight_additions,
+                            try addCounter(
+                                self.dot_product_terms,
+                                self.reduction_addition_count,
+                            ),
+                        ),
+                    ),
+                ),
+            ),
+            .field_multiplications = try addCounter(
+                self.constant_multiplication_count,
+                try addCounter(
+                    try multiplyCounter(self.domain_circle_multiplications, 4),
+                    try addCounter(
+                        scale_multiplications,
+                        try addCounter(weight_multiplications, self.dot_product_terms),
+                    ),
+                ),
+            ),
+            .field_inversions = inversion_count,
+        };
+    }
+};
+
 pub const QUOTIENT_PREPARATION_EXECUTION_SCHEMA_VERSION: u16 = 1;
 pub const QUOTIENT_ROW_EXECUTION_SCHEMA_VERSION: u16 = 1;
 

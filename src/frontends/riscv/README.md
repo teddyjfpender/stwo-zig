@@ -17,6 +17,12 @@ that satisfies the stable prover transaction contract.
 The [package contract](package.contract.json) is the API/dependency authority;
 [mod.zig](mod.zig) is the public facade.
 
+The [composition preparation boundary](recursion/COMPOSITION_PREPARATION.md)
+documents immutable recursive preparation, explicit admission and audit checks,
+and its focused development commands.
+The [proving-stack development plan](../../../design/riscv-proving-stack/plan.md)
+tracks small complete proofs, shared protocol ownership and measured scaling.
+
 ## Architecture and semantic authority
 
 ```mermaid
@@ -37,6 +43,14 @@ or release authority.
 The frontend covers all 46 admitted proof opcodes and owns access-clock,
 witness-layout, opcode-manifest, statement, and infrastructure-trace rules. It
 does not select CPU or Metal; integration packages make that decision.
+
+Each protocol decision must have one owning definition: instruction admission,
+AIR expressions and layouts, lookup ordering, claims, transcript order and
+continuation. Native, recursive and backend adapters consume those definitions;
+an optimized evaluator must not introduce a second constraint specification.
+Independent reference checks remain separate. Remove superseded implementations
+and their exports/build targets together once the surviving route passes its
+proof gate; retain versioned readers required by supported proof artifacts.
 
 ## Public API
 
@@ -71,6 +85,13 @@ const Claim = riscv.RiscVClaim;
 The execution result and proof objects contain owned allocations; follow the
 deinitialization methods on the returned concrete types. Host callbacks are
 part of the public statement boundary and must be deterministic.
+
+
+Additional exported surfaces:
+
+- `proveEthereumWithEngine`
+- `proveEthereumWithEngineUsingExecution`
+- `verifyEthereumWithEngine`
 
 ## Dependencies
 
@@ -125,6 +146,146 @@ manifest digest into the executable identity, and admits it before any prover
 warmup. Proving and benchmarking fail closed if the bundle is missing, altered,
 or cannot supply the resident RISC-V AIR kernels; help, registry, and retained
 proof verification remain device-free.
+
+For ContextV2 and composition development, run from the repository root:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-vm-air-profile-v2 test-vm-leaf-context-v2 -Doptimize=Debug
+```
+
+These targets enforce test-count floors. Debug keeps compiler work smaller;
+use `-Doptimize=ReleaseSafe` for optimized validation. The real native capture
+handoff has a separate lean executable:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-poseidon-ingress -Doptimize=ReleaseSafe
+```
+
+That executable proves a tiny segment with test PCS settings and exercises
+recursive preparation; it is not an Ethereum block benchmark or a recursive proof.
+
+For an actual recursive AIR proof of a one-step RISC-V child:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe --summary all
+```
+
+This existing lean executable proves all 39 outer components and checks closure
+across 47 relation domains. It serializes the outer proof, destroys tracked
+outer producer allocations, freshly decodes and rebuilds the verifier, and
+rejects truncated or trailing artifact bytes. Shutdown fails on allocator leaks.
+It still consumes the admitted native prepared leaf as verifier input; it is
+not the detached Ethereum key-and-proof root. The development profiles use one
+native query, three outer queries and no proof of work. Reports separate both
+cohort preparations, proving, decoding, STARK verification and publication.
+
+The same executable has a small execution and proof ladder. First check the
+finite counter-loop fixture's exact cycles, PCs, registers and continuations:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe \
+  --summary all -- --check-workload
+```
+
+Then replace `--check-workload` with `--native-steps 1`, `4`, `16`, or `64`.
+Every size uses the same finite ADDI/BNE program and complete proof acceptance;
+only unrelated component and recorder diagnostics are omitted. The default
+command retains the broad regression gate. This separates native execution size
+from the derived recursive AIR geometry, which can have substantial fixed costs.
+
+For local Keccak changes, start with the scalar and recursive compiler checks:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-keccakf-row -Doptimize=Debug --summary all
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-ethereum-vm-composition-program -Doptimize=Debug --summary all
+```
+
+These consume the shared row evaluator and check scalar parity, lazy error
+ordering, recursive recording, production masks and mutated compiler programs.
+Keep the full `test-keccakf-precompile` suite as the broader regression check.
+
+For a small complete VM proof using the Ethereum Keccak AIR:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-one-proof -Doptimize=ReleaseSafe --summary all
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-riscv-keccak-scaling-proof -Doptimize=ReleaseSafe --summary all
+```
+
+The second target runs 1, 4 and 16 calls. Both use the canonical guest builder,
+Ethereum proof codec and verifier, serialize the proof, require zero live
+producer allocations, then decode and verify in a fresh allocation owner.
+They report phase timings and tracked allocation peaks. These are development
+proofs (three queries, no PoW, one worker), not production security or large-block
+performance evidence. Compilation time is reported separately from execution.
+
+The independent Ethereum commitment-node caller constraints have a small loop:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-ethereum-commitment-v1 -Doptimize=Debug
+```
+
+This checks the nine-lane node digest, sponge linkage, full-I/O provider bus,
+padding, path position and public leaf/root binding. A lean executable proves
+a 30-level path and all 120 permutations, destroys producer state, then freshly
+verifies the serialized proof and rejects forged witnesses:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-ethereum-node-proof-v1 -Doptimize=Debug
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \
+  run-ethereum-node-proof-v1 -Doptimize=Debug -- \
+  /absolute/path/to/core-aot-bundle MANIFEST_SHA256
+```
+
+Both report the proof digest and production/fresh-verification durations.
+Metal requires an authenticated bundle and observed device dispatches. These
+are small development proofs with diagnostic PCS settings, not Ethereum leaf
+benchmarks. VM leaf encoding and memory/program execution linkage remain open.
+The deliberately corrupted proof produces an expected Merkle error line.
+
+To verify in a separate CPU process after the Metal producer exits, use an
+absolute artifact path whose parent already exists:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \
+  run-ethereum-node-proof-v1 -Doptimize=ReleaseSafe -- \
+  /absolute/path/to/core-aot-bundle MANIFEST_SHA256 \
+  produce /absolute/path/to/path-proof.bin
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-ethereum-node-proof-v1 -Doptimize=ReleaseSafe -- \
+  verify /absolute/path/to/path-proof.bin
+```
+
+Production refuses to overwrite an existing artifact. Verification prints the
+authenticated public path claim; a VM consumer must compare it with its expected
+state. The fixed development fixture is not a proof of an Ethereum memory access.
+
+The same command can use an actual admitted Ethereum guest ELF. `produce-program`
+and `verify-program` take `ELF ADDRESS ARTIFACT`; addresses are aligned byte
+addresses and may be hexadecimal. For example, append this after the CPU build
+command's `--` (or after the Metal bundle and manifest arguments):
+
+```sh
+produce-program /absolute/ethereum-guest.elf 0x400 /absolute/program-path.bin
+verify-program /absolute/ethereum-guest.elf 0x400 /absolute/program-path.bin
+```
+
+The verifier independently reloads the supplied ELF, rebuilds the word-addressed
+program root and checks the proved word, position, domain and root. Preparation
+retains one sorted frontier and one path. Four little-endian word bytes occupy
+four digest lanes; the other five are zero, and absent words mean zero. This is
+a program-image membership diagnostic, not a proof of instruction execution.
+Request timings include image preparation and file IO; runtime initialization
+is excluded. The diagnostic format may change before profile admission.
 
 ## EthProofs CSP benchmark
 

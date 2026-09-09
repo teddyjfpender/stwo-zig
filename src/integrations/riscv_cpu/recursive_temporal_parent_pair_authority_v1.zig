@@ -1,10 +1,10 @@
-//! Authenticated level-2 temporal authority over two verified parent proofs.
+//! Authenticated temporal authority over two verified parent proofs.
 //!
 //! Each input must be the verifier-minted sidecar paired with the exact V3
 //! publication that created it.  The module then uses the canonical temporal
-//! pair node to fold two adjacent height-1 spans into one height-2 root.  It
-//! deliberately publishes an authenticated aggregation receipt, not a claim
-//! that the height-2 computation has itself been compressed into a STARK.
+//! pair node to fold two adjacent equal-height spans into their next-height
+//! root. Schema 2 remains byte-for-byte pinned for the original height-2
+//! authority; schema 3 is selected only for height 3 and above.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
@@ -21,6 +21,7 @@ const temporal = recursion.temporal_pair_node;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 2;
+pub const GENERIC_SCHEMA_VERSION: u16 = 3;
 pub const CHILD_COUNT: usize = 2;
 pub const FIRST_MULTI_LEVEL_HEIGHT: u8 = 2;
 pub const ROOT_PROOF_AVAILABLE = false;
@@ -58,7 +59,8 @@ pub const PreparedParentChildV1 = struct {
 
     pub fn validate(self: *const PreparedParentChildV1) !void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
+            (self.schema_version != SCHEMA_VERSION and
+                self.schema_version != GENERIC_SCHEMA_VERSION) or
             !std.mem.allEqual(u8, &self.padding, 0) or
             std.mem.allEqual(u8, &self.publication_sha_id, 0))
         {
@@ -71,8 +73,8 @@ pub const PreparedParentChildV1 = struct {
             self.admission_id,
         }) |value| try requireDigest(value);
         const statement = try self.child.statement();
-        if (self.child.kind != .binary_node or
-            statement.slots.height != FIRST_MULTI_LEVEL_HEIGHT - 1 or
+        if (self.child.kind != .binary_node or statement.slots.height == 0 or
+            self.schema_version != childSchema(statement.slots.height) or
             !std.meta.eql(self.child_id, try self.child.id()) or
             !std.meta.eql(self.admission_id, childAdmissionIdentity(self)))
         {
@@ -116,7 +118,8 @@ pub const PreparedLevel2PairV1 = struct {
 
     pub fn validate(self: *const PreparedLevel2PairV1) !void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
+            (self.schema_version != SCHEMA_VERSION and
+                self.schema_version != GENERIC_SCHEMA_VERSION) or
             self.child_count != CHILD_COUNT or self.root_proof_available or
             self.production_activation or !std.mem.allEqual(u8, &self.padding, 0))
         {
@@ -131,7 +134,10 @@ pub const PreparedLevel2PairV1 = struct {
             &self.prepared_root.pin_snapshot,
         );
         if (!std.meta.eql(reconstructed, self.prepared_root) or
-            reconstructed.result.pair.parent_height != FIRST_MULTI_LEVEL_HEIGHT or
+            reconstructed.result.pair.parent_height < FIRST_MULTI_LEVEL_HEIGHT or
+            self.schema_version != pairSchema(
+                reconstructed.result.pair.parent_height,
+            ) or
             !std.meta.eql(self.adjacency_id, adjacencyIdentity(self)) or
             !std.meta.eql(self.authority_id, pairAuthorityIdentity(self)))
         {
@@ -147,6 +153,10 @@ pub const PreparedLevel2PairV1 = struct {
     }
 };
 
+/// Generic name for new callers. The original exported type remains an alias
+/// so every height-2 layout, encoding, and identity stays unchanged.
+pub const PreparedTemporalNodePairV1 = PreparedLevel2PairV1;
+
 pub fn admitInto(
     destination: *PreparedParentChildV1,
     publication: *const Publication,
@@ -159,9 +169,10 @@ pub fn admitInto(
     }
     try artifact.validateAgainst(publication);
     const statement = try artifact.child.statement();
-    if (statement.slots.height != FIRST_MULTI_LEVEL_HEIGHT - 1)
+    if (statement.slots.height == 0)
         return error.ParentGeometryMismatch;
     var result = PreparedParentChildV1{
+        .schema_version = childSchema(statement.slots.height),
         .publication_sha_id = publication.publication_sha_id,
         .publication_id = artifact.publication_id,
         .artifact_id = artifact.artifact_id,
@@ -211,7 +222,7 @@ pub fn prepareInto(
         error.SlotsNotAdjacent => return error.ChildOrderMismatch,
         else => return err,
     };
-    if (parent_statement.slots.height != FIRST_MULTI_LEVEL_HEIGHT)
+    if (parent_statement.slots.height < FIRST_MULTI_LEVEL_HEIGHT)
         return error.ParentGeometryMismatch;
     const parent_words = try parent_statement.canonicalWords();
     var statement_probe = std.mem.zeroes(temporal.VerifiedChildV2);
@@ -230,6 +241,7 @@ pub fn prepareInto(
     };
     const prepared_root = try temporal.prepareRootContext(&authority, root_pin);
     var result = PreparedLevel2PairV1{
+        .schema_version = pairSchema(parent_statement.slots.height),
         .child_admission_ids = .{ left.admission_id, right.admission_id },
         .child_publication_ids = .{ left.publication_id, right.publication_id },
         .adjacency_id = undefined,
@@ -240,6 +252,20 @@ pub fn prepareInto(
     result.authority_id = pairAuthorityIdentity(&result);
     try result.validate();
     destination.* = result;
+}
+
+fn childSchema(height: u8) u16 {
+    return if (height == FIRST_MULTI_LEVEL_HEIGHT - 1)
+        SCHEMA_VERSION
+    else
+        GENERIC_SCHEMA_VERSION;
+}
+
+fn pairSchema(height: u8) u16 {
+    return if (height == FIRST_MULTI_LEVEL_HEIGHT)
+        SCHEMA_VERSION
+    else
+        GENERIC_SCHEMA_VERSION;
 }
 
 fn childAdmissionIdentity(value: *const PreparedParentChildV1) Digest {

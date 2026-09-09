@@ -183,3 +183,30 @@ pub fn assembleAuthenticatedLookupV2(
     );
     return workspace.components.active();
 }
+
+/// Version-separated authenticated V2 assembly for full-state incremental
+/// boundaries. The component roster and column placement remain unchanged;
+/// only the memory infrastructure component selects the split V3 evaluator.
+pub fn assembleAuthenticatedLookupV2WithIncrementalBoundaryV3(
+    workspace: *ProofWorkspace,
+    relations: *const relation_challenges.Relations,
+    interaction_claim: *const types.RiscVInteractionClaim,
+    n_main: usize,
+    n_interaction: usize,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+) ![]const prover_component.ComponentProver {
+    try base_component_assembly
+        .assembleIntoAuthenticatedLookupV2WithIncrementalBoundaryV3(
+        .prover,
+        workspace,
+        &workspace.statement,
+        interaction_claim,
+        relations,
+        n_main,
+        n_interaction,
+        manifest,
+        authenticated_statement,
+    );
+    return workspace.components.active();
+}

@@ -4,6 +4,7 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_artifact_store = .{ .path = "../../artifact_store" },
         .stwo_core = .{ .path = "../../core" },
         .stwo_prover_api = .{ .path = "../../prover_api" },
         .stwo_prover_engine = .{ .path = "../../prover" },

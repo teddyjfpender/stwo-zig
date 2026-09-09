@@ -1,0 +1,25 @@
+test-vm-air-profile-v2
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+Build Summary: 16/16 steps succeeded; 363/364 tests passed; 1 skipped
+test-recursion-segment-publication-provider-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 10 passed 344ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 11s MaxRSS:808M
+test-recursion-segment-outer-noncore-audits-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 423ms MaxRSS:16M
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+test-vm-leaf-context-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 4 passed 14ms MaxRSS:2M
+      +- compile test ReleaseSafe native cached 42ms MaxRSS:33M
+test-vm-air-profile-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 344 passed 1 skipped 5s MaxRSS:78M
+      +- compile test ReleaseSafe native cached 40ms MaxRSS:34M
+

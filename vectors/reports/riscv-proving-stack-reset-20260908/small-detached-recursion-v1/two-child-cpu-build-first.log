@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof success
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native success 2m MaxRSS:8G
+build-recursive-segment-v2-detached-verifier success
++- install recursive-segment-v2-detached-verify success
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native success 53s MaxRSS:3G
+

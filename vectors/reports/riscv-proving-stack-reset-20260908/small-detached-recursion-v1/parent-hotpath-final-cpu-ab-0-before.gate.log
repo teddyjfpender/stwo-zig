@@ -1,0 +1,19 @@
+passed 27 fresh-process parent cases; report=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-cpu-ab-0-before.json
+       26.35 real       127.27 user         1.07 sys
+          7152058368  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              908662  page reclaims
+                  68  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  81  voluntary context switches
+               36415  involuntary context switches
+          1383920656  instructions retired
+           662600992  cycles elapsed
+            31687304  peak memory footprint

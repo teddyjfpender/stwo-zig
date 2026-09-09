@@ -1,0 +1,15 @@
+{
+  "before_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "after_manifest_sha256": "dd88e4828e9ad646b29829bf461fcf2823e197751f364360d3560c9f4f3d7409",
+  "changed_files": [
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_rows_10_34_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_cohort_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_components_v4.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig"
+  ],
+  "status": "before_running_after_gates_queued",
+  "scope": "Same real inputs, helpers, profiles and algorithms; only validation boundaries and opaque getter validation change"
+}

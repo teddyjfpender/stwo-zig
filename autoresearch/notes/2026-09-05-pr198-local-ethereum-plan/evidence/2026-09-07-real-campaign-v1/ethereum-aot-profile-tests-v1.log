@@ -1,0 +1,10 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 187s
+1/7 ethereum_aot_profile_test_root.test_0...OK
+2/7 core_aot.test.Native AOT admission authenticates the generated bundle...OK
+3/7 core_aot.test.Native AOT admission rejects authority drift...OK
+4/7 core_aot.test.Native AOT admission rejects corrupted artifacts and incomplete manifests...OK
+5/7 core_aot.test.Ethereum AOT admission keeps legacy encoding and rejects cross profile source authority...OK
+6/7 shaders.aot_profile.test.Ethereum AOT profile preserves exact core authority and admits five separate declarations...OK
+7/7 shared_runtime.test.Ethereum AOT runtime cannot reuse a core library for a different admitted profile...OK
+All 7 tests passed.

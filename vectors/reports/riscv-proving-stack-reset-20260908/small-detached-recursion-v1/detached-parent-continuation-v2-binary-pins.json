@@ -1,0 +1,24 @@
+{
+  "prove": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-continuation-v2-prove",
+    "sha256": "c1bbb4662d60b6d763d70f88fc5dec4992fd2b3616d89d91a172946d565bd5dc"
+  },
+  "verify": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-continuation-v2-verify",
+    "sha256": "f0c5bf2410fa32d19f061a945300ce5968cc57514f3e6f50223be7b310a6497a"
+  },
+  "changed_source_sha256": {
+    "src/frontends/riscv/recursion/mod.zig": "e48588faf9689d5a7507591ff172e01ef604a2e5ca7a73b09fd48dd52e2780ed",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_arithmetic.zig": "09bedf692f6eaee45345771093f56dd6d40889df704499420793f17ca06ac9f4",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_capture_test.zig": "d6b2f06e0627b0ec2868c24c0c3f5318302b9006d2740168856dd7d385476b0b",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig": "f64d21b0021517aa78c715e3d07c97121e4598db2ae6fd06309c2a98c909f4ea",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_prepare.zig": "035ee250bc2db5903d8554b43587c42514f020bf3998de1ff3869b6ab017cd26",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "6fdebd2ec0c7375b7603656df12010607917e6b7a06bc486429b033d386d1acf",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig": "46d567eb618d83fc8032ec3aaac968c0755ebb56717d8fac596a3f22624d217a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_protocol.zig": "0cc4c30b47c3be5633a3304f19ae1a04f7803952130e12c2ecbfa634719dadf7",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_statement.zig": "ef3e89587951b07e71b41ba2fbc2dc38806bd9df9fa41e6edefbd50325612aa7",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig": "a8827280ddddf703ab5df218ab83322d5e6ac9c6ba8d3ac465f698daba3e9a94",
+    "src/frontends/riscv/recursion/span_continuation_v1.zig": "24996e3db950e3476f8370db1d2c7abc10d92f11e56c8306b5a81a7296d6a753"
+  },
+  "head": "e622c7bb2e1806daddc574001cf77ad9160ca714"
+}

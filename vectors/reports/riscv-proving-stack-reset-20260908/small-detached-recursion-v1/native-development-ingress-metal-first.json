@@ -1,0 +1,19 @@
+{
+  "argv": [
+    ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-metal",
+    "--memory-addresses",
+    "1",
+    "--native-ingress-profile",
+    "development_q1",
+    "--native-backend",
+    "metal",
+    "--aot-bundle",
+    ".git/local-ethereum/aot-m4",
+    "--aot-manifest-sha256",
+    "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+  ],
+  "binary_sha256": "2b4910559f3fa031c92da85170adb75890cb069772cd889d6e797f0d9c3a2750",
+  "exit_code": 0,
+  "elapsed_seconds": 1.731603209162131,
+  "maximum_rss_bytes": 560480256
+}

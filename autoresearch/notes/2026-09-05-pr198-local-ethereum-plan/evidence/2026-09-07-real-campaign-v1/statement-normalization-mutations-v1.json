@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "passed": 6,
+  "results": [
+    {
+      "case": "materialization_path",
+      "rejected": true,
+      "error": "independently pinned materialization identity differs"
+    },
+    {
+      "case": "zisk_input",
+      "rejected": true,
+      "error": "ZisK fixture sha256 differs"
+    },
+    {
+      "case": "runner_input",
+      "rejected": true,
+      "error": "Stwo runner input sha256 differs"
+    },
+    {
+      "case": "host_output",
+      "rejected": true,
+      "error": "Stwo host output sha256 differs"
+    },
+    {
+      "case": "elf_sha256",
+      "rejected": true,
+      "error": "independent guest ELF identity differs"
+    },
+    {
+      "case": "projection_executable_sha256",
+      "rejected": true,
+      "error": "projection executable identity differs"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 51s
+1/4 air.incremental_public_logup_v4.test.incremental public V4 adds one actual nonfinal program fetch...OK
+2/4 air.incremental_public_logup_v4.test.incremental public V4 decodes boundary CUSTOM-0 under Ethereum profile...OK
+3/4 air.incremental_public_logup_v4.test.incremental public V4 surviving fractions match scalar replacement by domain...OK
+4/4 air.incremental_public_logup_v4.test.incremental public V4 still rejects zero denominators in removed sparse terms...OK
+All 4 tests passed.

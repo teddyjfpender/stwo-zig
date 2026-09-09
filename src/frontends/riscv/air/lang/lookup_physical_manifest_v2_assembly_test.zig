@@ -152,7 +152,7 @@ test "lookup polynomial v2: failed admission is atomic and explicit V1 compatibi
         }
     }
     try std.testing.expectEqual(
-        @as(u32, 620),
+        @as(u32, 624),
         statement.nInteractionColumns(),
     );
 }

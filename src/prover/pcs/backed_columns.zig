@@ -2,7 +2,59 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const ColumnEvaluation = @import("commitment_tree.zig").ColumnEvaluation;
+const ColumnEvaluation = @import("stwo_prover_api").ColumnEvaluation;
+
+/// Repack independently owned columns for an adopting backend. Logical order
+/// is unchanged; each native-height group becomes one aligned coefficient run.
+/// All fallible work precedes the first ownership transfer. On failure the
+/// caller still owns every input; on success it owns the returned arena list.
+pub fn packOwnedByLog(
+    allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+    comptime alignment: std.mem.Alignment,
+) ![][]M31 {
+    var group_words = [_]usize{0} ** @bitSizeOf(usize);
+    for (columns) |column| {
+        try column.validate();
+        group_words[column.log_size] = try std.math.add(usize, group_words[column.log_size], column.values.len);
+    }
+    const alignment_words = @max(1, alignment.toByteUnits() / @sizeOf(M31));
+    var offsets: [@bitSizeOf(usize)]usize = undefined;
+    var total_words: usize = 0;
+    for (group_words, &offsets) |words, *offset| {
+        if (words != 0) {
+            const rounded = try std.math.add(usize, total_words, alignment_words - 1);
+            total_words = rounded & ~(alignment_words - 1);
+        }
+        offset.* = total_words;
+        total_words = try std.math.add(usize, total_words, words);
+    }
+    const buffers = try allocator.alloc([]M31, 1);
+    errdefer allocator.free(buffers);
+    // Retain the original M31-aligned allocation for ordinary arena teardown.
+    // Only the interior coefficient runs require stronger device alignment.
+    const raw = try allocator.alloc(M31, try std.math.add(usize, total_words, alignment_words - 1));
+    buffers[0] = raw;
+    const address = @intFromPtr(raw.ptr);
+    const aligned_address = std.mem.alignForward(usize, address, @max(@alignOf(M31), alignment.toByteUnits()));
+    const arena = raw[(aligned_address - address) / @sizeOf(M31) ..][0..total_words];
+    for (columns) |*column| {
+        const destination = arena[offsets[column.log_size]..][0..column.values.len];
+        @memcpy(destination, column.values);
+        allocator.free(column.values);
+        offsets[column.log_size] += destination.len;
+        column.values = destination;
+    }
+    return buffers;
+}
+
+/// Backing slices erase their allocation alignment. Keep it with the owner
+/// and use the original value for both successful and error-path teardown.
+pub fn freeBuffers(allocator: std.mem.Allocator, buffers: [][]M31, alignment: std.mem.Alignment) void {
+    for (buffers) |buffer| if (buffer.len != 0)
+        allocator.rawFree(std.mem.sliceAsBytes(buffer), alignment, @returnAddress());
+    allocator.free(buffers);
+}
 
 pub fn detach(
     allocator: std.mem.Allocator,

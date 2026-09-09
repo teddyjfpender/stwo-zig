@@ -1,0 +1,23 @@
+{
+  "schema": "stwo.ethereum.narrow-prepared-cpu-build.v1",
+  "executable": {
+    "path": ".git/local-ethereum/prepared-leaf-cpu-product-v3/bin/ethereum-prepared-leaf-cpu-v1",
+    "bytes": 6991984,
+    "sha256": "4cfee3347ecc216671ffbb9148532dc9d380d3370786d3fd2f5e792975ad5f2c"
+  },
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-ethereum-prepared-leaf-cpu-v1",
+    "-Doptimize=ReleaseSafe",
+    "--prefix",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v3",
+    "--summary",
+    "all"
+  ],
+  "result": "compiled",
+  "compile_report": "1m MaxRSS5G",
+  "provenance": "Shared worktree; focused source inventory sampled during build, not atomic snapshot"
+}

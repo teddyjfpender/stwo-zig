@@ -1,0 +1,40 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/math.zig:784:24: error: evaluation exceeded 1000 backwards branches
+    return std.meta.Int(.unsigned, log2_bits);
+           ~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/math.zig:784:24: note: use @setEvalBranchQuota() to raise the branch limit from 1000
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/math.zig:1282:48: note: called at comptime here
+pub fn log2_int(comptime T: type, x: T) Log2Int(T) {
+                                        ~~~~~~~^~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/math.zig:1309:46: note: generic function instantiated here
+    const log2_val: Log2IntCeil(T) = log2_int(T, x - 1);
+                                     ~~~~~~~~^~~~~~~~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig:79:31: note: called at comptime here
+        std.math.log2_int_ceil(u32, PROTOCOL_MAXIMUM_DEGREE - 1),
+        ~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig:42:32: note: called at comptime here
+    return ComponentForManifest(Air, Relation, default_manifest);
+           ~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursive_segment_v2_detached_parent_cohort.zig:38:51: note: called at comptime here
+    return air.universal_typed_component.Component(entry.Air, air.universal_relation_binding.Binding(entry.Air));
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+recursive_segment_v2_detached_parent_cohort.zig:233:45: note: called at comptime here
+            _ = try builder.append(Component(entry).manifestGeometry(entry.row, try traceLogSize(rows[index].len)));
+                                   ~~~~~~~~~^~~~~~~
+referenced by:
+    test.detached parent snapshots typed rows and rejects mutable ingress and inactive claims: recursive_segment_v2_detached_parent_cohort.zig:467:41
+    comptime: recursive_segment_v2_verifier_components_test_root.zig:4:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_prover_engine --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "detached parent prepares two genuine children with one exact routing plan" --test-filter "detached parent snapshots typed rows and rejects mutable ingress and inactive claims" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-recursive-segment-v2-detached-parent-prepare transitive failure
++- SegmentV2 detached parent preparation guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/2ac9ec45904e591a2c2c18454a6c6f68/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xc43fa467 -Z6d1611cca701f78e --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-parent-prepare -Doptimize=ReleaseSafe --summary all

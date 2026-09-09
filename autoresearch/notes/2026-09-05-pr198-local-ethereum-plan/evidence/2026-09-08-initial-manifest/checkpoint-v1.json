@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "scope": "initial38 manifest and explicit real replay admission; not active initial proof acceptance",
+  "source_files": [
+    {
+      "path": "src/frontends/riscv/recursion/air/manifest_proof_protocol.zig",
+      "sha256": "26fb49516b0e95bbc69ca6c24c856427f1cc16ec7ff21f270a89faaf2c25c41f"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_adapter_manifest.zig",
+      "sha256": "0b50bdacb37db78f1c356d3bf48539e5fe086dcd1f601784a2c594d4255399df"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/ethereum_initial_input_manifest_v1.zig",
+      "sha256": "db3473206916ca0f0f692bb471bdfb4bbbd0e7fe1bc06181dba23ab19758fff6"
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/ethereum_initial_input_manifest_v1_test.zig",
+      "sha256": "72cc85b626c098c128cc587d4d4399fe81e42bd38bddc2d2de893797d5c55790"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "sha256": "e5817998adad81fdef8c159132333daf2421ce7b6b808364b2e57058aad38bcd"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_fixed_circuit_v1.zig",
+      "sha256": "12b656e42e7a4204ed2e4bcb7aac98c1d0f9855f1d52ad809d08845636642258"
+    }
+  ],
+  "checks": {
+    "ast": "passed",
+    "legacy_claim_and_gate_bodies": "match frozen native-root-v2 source modulo component-count selection and whitespace",
+    "semantic_gate": "queued",
+    "command": "python3 scripts/zig_serial_build.py --cwd src/frontends/riscv test-ethereum-initial-manifest -Doptimize=ReleaseSafe --summary all",
+    "log": "/tmp/ethereum-initial-manifest-v1.log",
+    "session": 79218
+  },
+  "remaining": "selected initial cohort component assembly, serialized initial proof and independent verification",
+  "initial_wrapper_verified": false
+}

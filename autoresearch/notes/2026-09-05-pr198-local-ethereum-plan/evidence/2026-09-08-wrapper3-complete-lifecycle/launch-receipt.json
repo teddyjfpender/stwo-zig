@@ -1,0 +1,69 @@
+{
+  "status": "prerequisites_accepted_for_lifecycle_launch",
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/request.json",
+    "bytes": 17841,
+    "sha256": "fd97cb0098014c204ba682cb8ef3d027dac20419c1992863a7420c184f0c129a"
+  },
+  "supervisor": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/run-root.py",
+    "bytes": 13765,
+    "sha256": "c7a238d6400570bb94ca16f4fa34212b1a19040fc6a119b783c21ae66a512163"
+  },
+  "prerequisites": {
+    "compile_execution": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v20/root-production-compile-execution.json",
+      "bytes": 1764,
+      "sha256": "9d3f307c6ea2556420e973e7936ec45f32d6923f64e40a6907af84b25f094238"
+    },
+    "compile_log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v20/root-production-compile.log",
+      "bytes": 132,
+      "sha256": "82c4aa894b7823cd48a517ee14007fb975db68028d7398698f352aa4c28d6492"
+    },
+    "closure_execution": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/execution.json",
+      "bytes": 1223,
+      "sha256": "074c939ff0a4107b3f5516fba080c301c809b51f8f901afadaa68a5d260e63b2"
+    },
+    "closure_log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/replay.log",
+      "bytes": 34547,
+      "sha256": "3f3155d4ccfe7d39d799c89b0bbbebb0f6c618cb5e9cc6422da3f8926290dfad"
+    },
+    "geometry_execution": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v5/execution.json",
+      "bytes": 5429,
+      "sha256": "b7a71a6a65068ae42c9b302e0187b1cc133b9d8a0fa9da5931b8ba9fbd9f3220"
+    },
+    "geometry_log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v5/geometry.log",
+      "bytes": 3868,
+      "sha256": "96efefea0744a910e9febfccfe0449e51cd56d09c9ab93de81c190ef318102db"
+    },
+    "geometry_expected_key": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/root-candidates/0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480/key.json",
+      "bytes": 20912431,
+      "sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357"
+    },
+    "exact_geometry_dimensions": {
+      "commitment_count": 4,
+      "claimed_sum_count": 36,
+      "sampled_value_count": 2453,
+      "queried_value_count": 444865,
+      "trace_path_count": 772,
+      "fri_layer_count": 6,
+      "query_count": 193,
+      "maximum_fold_width": 16,
+      "last_layer_coefficient_count": 1,
+      "maximum_merkle_depth": 25
+    }
+  },
+  "pins_before": {
+    "source_files": 5781,
+    "input_files": 6,
+    "other_pin_records": 35
+  },
+  "created_at": "2026-09-08T12:44:55.454874+00:00",
+  "wrapper_accepted": false
+}

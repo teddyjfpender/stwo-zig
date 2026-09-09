@@ -1,0 +1,34 @@
+{
+  "status": "failed_resource_limit",
+  "accepted_proof": false,
+  "run": ".git/local-ethereum/real-wrapper-segment2-devex-v3",
+  "exit_code": 1,
+  "signal": 9,
+  "wall_seconds": 2205.9100231251214,
+  "os_cause": "low swap; kernel killed largest compressed process pid55152, reported45266 MB",
+  "os_evidence_command": [
+    "/usr/bin/log",
+    "show",
+    "--start",
+    "2026-09-08 13:18:20",
+    "--end",
+    "2026-09-08 13:18:35",
+    "--style",
+    "compact",
+    "--predicate",
+    "process == \"kernel\" AND (eventMessage CONTAINS \"low swap\" OR eventMessage CONTAINS \"55152\")"
+  ],
+  "last_completed_phase": "interaction",
+  "last_reported_peak_footprint_bytes": 42620401128,
+  "last_sample": "computeCompositionEvaluationSequential / ethereum_transcript_payload_raw_v1.prepareDomainEvaluator / evaluationValues",
+  "test_summary_caveat": "3/3 tests passed line is not acceptance: run terminated signal9, lifecycle guard transitive failure, no producer destruction or fresh verification",
+  "next_action": "diagnose quotient temporary column allocations and lifetimes before changed frozen rerun",
+  "files": {
+    "request.json": "fdbb6c7a8cbd6975f1c6e13309e7a8be28507018c6a286792fd9f81d2953b247",
+    "complete-proof.log": "fc029a5ad266079a4558ab4f01c716c2bfc582e06247c9a720b50ce3db4e3e88",
+    "sample-stark-entry.txt": "f30488a689d920568db588ada54f0dea1a763772352afc01e4ecfb0ef61c91e3",
+    "kernel.log": "478b54a44e4f69b0a81dd1f5a096b6a1aaaea5fa9db1d6ff6bda56534196592f",
+    "progress.log": "1c9f7c0d27dd39193fd92bcf885c3f51d65889ca97b8ad54932586fb6702fe94",
+    "execution.json": "cff14540a7a1a6a5132f9dd8854b086c5808887e9cb1ae8376ffab06d379add3"
+  }
+}

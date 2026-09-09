@@ -1,0 +1,15 @@
+test-ethereum-incremental-leaf-materializer-custody-v4-replay
++- saved Ethereum materializer custody guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair validates retained materializer custody' failed
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair validates retained materializer custody', the following test command failed:
+./.zig-cache/o/fc9c3713b1ae579e45eba53803fdc2bd/test --cache-dir=./.zig-cache --seed=0xe37411e9 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-materializer-custody-v4-replay transitive failure
++- saved Ethereum materializer custody guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 46s MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/27cde8f7b209997c6bf64a8a071e58b3/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xe37411e9 -Zf3a1d6b3d2d33ff9 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-materializer-custody-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

@@ -1,0 +1,54 @@
+{
+  "status": "terminal_input_admitted_pcs_preparation_aborted",
+  "verified_and_published": false,
+  "segment_index": 120,
+  "segment_count": 121,
+  "claim_admission": "fixed_program_narrow_v5",
+  "cpu_reference_supplied": false,
+  "full_block_coverage": false,
+  "failure": "@memcpy arguments alias in Metal small-circle LDE fallback; surfaced through prepareColumnsCombinedForBackend",
+  "request_seconds": 169.65,
+  "peak_footprint_bytes": 2581056464,
+  "capture_admission_ns": 151756525583,
+  "resource_preflight_retained_lde_bytes": 7901392112,
+  "poseidon_calls": 1834123,
+  "diagnosis": "Core source-arena adoption deliberately aliases original source and coefficient storage. The existing Metal GPU path supports that, but its base-log<3 host fallback unconditionally copied the same slice onto itself. No terminal AIR proof or native verification was reached.",
+  "correction_status": "Source fix and two small-polynomial regression tests queued; no corrected production result yet.",
+  "files": {
+    "plan.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-plan.json",
+      "bytes": 3315,
+      "sha256": "49aa7ff03bc93ecbd69332713966e456470c83ae1a6b5bcc72b8963da4ffce8f"
+    },
+    "receipt.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-receipt.json",
+      "bytes": 1627,
+      "sha256": "ba5526e445eff4515e60e19871fd29b06a98380352733c10b14b4fa7f10a53b3"
+    },
+    "environment.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-environment.json",
+      "bytes": 45,
+      "sha256": "0e894d349d96246bf351968205ba1f33e10aabd666c9a55cf61b8d73bace1f8c"
+    },
+    "stderr-and-time.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-stderr-and-time.log",
+      "bytes": 2822,
+      "sha256": "a963536cbe5978893d7c9ca940567d6fad97a2c472fe4422cd379992a0290f63"
+    },
+    "stdout.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-run.py",
+      "bytes": 6679,
+      "sha256": "91ea5557275aae3bf98d52dd307bb1266f786a6af13bd6c4530a3c1b164f2687"
+    },
+    "process-samples.ndjson": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-alias-failure-v1-process-samples.ndjson",
+      "bytes": 11642,
+      "sha256": "3e25dd047d90ef9a8ad283a7cc2360bf4a1034ae2e4f039480669e04562d4bbb"
+    }
+  }
+}

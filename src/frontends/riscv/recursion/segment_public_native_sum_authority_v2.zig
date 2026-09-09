@@ -8,11 +8,14 @@
 //! 2. four published QM31 relation sums and their published total (20 M31
 //!    words); and
 //! 3. `(z, alpha)` for registers, memory, program and Merkle relations (32
-//!    M31 words).
+//!    M31 words); and
+//! 4. 256 register bytes already decomposed and range-checked by row 11,
+//!    relayed by row 15 at their fixed appended graph-input coordinates.
 //!
 //! The graph independently recomputes `statement_v2.nativeRelationSums`,
 //! including the retained continuation-tree leaf and empty-root compensation,
-//! and exposes five zero outputs: one per domain and one for the total.
+//! and exposes 21 zero outputs: one per domain, one for the total, and sixteen
+//! equalities binding the Span memory digests to the native snapshot IDs.
 //! Published sums are therefore witnesses to an equality, never arithmetic
 //! authority.
 //!
@@ -20,15 +23,16 @@
 //! 11 proves canonical tags, u16 limbs, byte decompositions, retained-section
 //! order/ranges and the exact raw-wire bridge.  The arithmetic graph consumes
 //! that bridge tuple-by-tuple.  Existing `arithmetic_circuit` operations have
-//! no lookup/bit-decomposition primitive, so the graph specializes optional
-//! event topology and byte constants only after re-authenticating the
+//! no lookup/bit-decomposition primitive, so register bytes consume the
+//! existing row-11 constraints. Sparse-memory event topology and its byte
+//! constants remain specialized only after re-authenticating the
 //! verifier-owned canonical wire.  The complete graph digest, exact node use
 //! counts, wire identity and `PreparedV2` source identities are sealed
 //! together.  No digest-trusted witness controls this specialization.
 //!
 //! Construction is cold and owning.  Hot evaluation uses caller-owned scratch
 //! and destination buffers, allocates nothing, and commits the destination
-//! only after validation, complete replay and all five zero checks succeed.
+//! only after validation, complete replay and all zero checks succeed.
 const shard_0 = @import("segment_public_native_sum_authority_v2_contract.zig");
 const shard_1 = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
 const shard_2 = @import("segment_public_native_sum_authority_v2_source_v2.zig");

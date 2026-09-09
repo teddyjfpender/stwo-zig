@@ -1,0 +1,9 @@
+{
+  "scope": "Bootstrap intermediate-mode key for the same two-segment full-job fixture; this does not yet demonstrate a partial four-segment subtree.",
+  "key_sha256": "1165829bfc2edb90ab38a2b1f8230dcd493591fbeabddc4ce3b25f371720dd62",
+  "publication_mode": "intermediate",
+  "child_key_sha256": [
+    "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+    "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+  ]
+}

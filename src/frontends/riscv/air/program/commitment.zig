@@ -162,7 +162,7 @@ pub fn buildDeclared(
     return buildDeclaredFromSources(
         false,
         allocator,
-        .base,
+        @as(DeclaredDecodeAuthority, .base),
         .{execution_rows},
         program_words,
         extra_fetch,
@@ -180,7 +180,7 @@ pub fn buildDeclaredWithWorkReceipt(
     return buildDeclaredFromSources(
         true,
         allocator,
-        .base,
+        @as(DeclaredDecodeAuthority, .base),
         .{execution_rows},
         program_words,
         extra_fetch,
@@ -203,11 +203,65 @@ pub fn buildDeclaredForProfile(
     program_words: []const memory_state.WordState,
     extra_fetch: ?table.Fetch,
 ) !Commitment {
+    return buildDeclaredForProfileSources(
+        allocator,
+        selected_profile,
+        .{ base_execution_rows, extension_execution_rows },
+        program_words,
+        extra_fetch,
+    );
+}
+
+/// Builds one declared-program commitment from an exact, caller-owned tuple
+/// of heterogeneous execution-row slices.
+///
+/// This is the append-only multi-extension twin of
+/// `buildDeclaredForProfile`: every tuple element must expose `pc` and
+/// `inst_word`, and all sources are accumulated into the same unique-address
+/// table before the declared image is admitted.  Keeping the union inside the
+/// commitment builder avoids a concatenation allocation and, more
+/// importantly, gives combined profiles one source of truth for duplicate
+/// fetch multiplicities.
+pub fn buildDeclaredForProfileSources(
+    allocator: std.mem.Allocator,
+    selected_profile: decode.ExecutionProfile,
+    execution_sources: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
     return buildDeclaredFromSources(
         false,
         allocator,
-        .{ .profile = selected_profile },
-        .{ base_execution_rows, extension_execution_rows },
+        DeclaredDecodeAuthority{ .profile = selected_profile },
+        execution_sources,
+        program_words,
+        extra_fetch,
+        null,
+    );
+}
+
+/// Builds a declared-program commitment with a statically typed external
+/// decode authority.
+///
+/// This is the candidate-only append-only seam for private instruction
+/// registries. `decode_authority` is a source-level type, never a prover-
+/// supplied vtable; it must expose `validate`, `decodeFetchedWord`,
+/// `decodeDeclaredWord`, and `isDeclaredPadding`. Existing base/profile
+/// entrypoints continue through their closed decoder and retain their exact
+/// order and bytes.
+pub fn buildDeclaredWithDecodeAuthoritySources(
+    allocator: std.mem.Allocator,
+    decode_authority: anytype,
+    execution_sources: anytype,
+    program_words: []const memory_state.WordState,
+    extra_fetch: ?table.Fetch,
+) !Commitment {
+    try decode_authority.validate();
+    return buildDeclaredFromSources(
+        false,
+        allocator,
+        decode_authority,
+        execution_sources,
         program_words,
         extra_fetch,
         null,
@@ -226,7 +280,7 @@ pub fn buildDeclaredForProfileWithWorkReceipt(
     return buildDeclaredFromSources(
         true,
         allocator,
-        .{ .profile = selected_profile },
+        DeclaredDecodeAuthority{ .profile = selected_profile },
         .{ base_execution_rows, extension_execution_rows },
         program_words,
         extra_fetch,
@@ -238,10 +292,30 @@ const DeclaredDecodeAuthority = union(enum) {
     base,
     profile: decode.ExecutionProfile,
 
-    fn decodeWord(self: DeclaredDecodeAuthority, word: u32) !decode.ProgramValues {
+    fn decodeFetchedWord(self: DeclaredDecodeAuthority, word: u32) !decode.ProgramValues {
         return switch (self) {
             .base => decode.decodeProgramWord(word),
             .profile => |selected_profile| decode.decodeProgramWordForProfile(
+                selected_profile,
+                word,
+            ),
+        };
+    }
+
+    fn decodeDeclaredWord(self: DeclaredDecodeAuthority, word: u32) !decode.ProgramValues {
+        return switch (self) {
+            .base => decode.decodeProgramWord(word),
+            .profile => |selected_profile| decode.decodeDeclaredProgramWordForProfile(
+                selected_profile,
+                word,
+            ),
+        };
+    }
+
+    fn isDeclaredPadding(self: DeclaredDecodeAuthority, word: u32) bool {
+        return switch (self) {
+            .base => false,
+            .profile => |selected_profile| decode.isDeclaredPaddingForProfile(
                 selected_profile,
                 word,
             ),
@@ -252,7 +326,7 @@ const DeclaredDecodeAuthority = union(enum) {
 fn buildDeclaredFromSources(
     comptime capture_work: bool,
     allocator: std.mem.Allocator,
-    decoder: DeclaredDecodeAuthority,
+    decoder: anytype,
     execution_sources: anytype,
     program_words: []const memory_state.WordState,
     extra_fetch: ?table.Fetch,
@@ -289,7 +363,7 @@ fn buildDeclaredFromSources(
         if (word.initial_word == 0) continue;
         pending.appendAssumeCapacity(.{
             .addr = word.addr,
-            .values = try decoder.decodeWord(word.initial_word),
+            .values = try decoder.decodeDeclaredWord(word.initial_word),
             .multiplicity = multiplicity,
             .root = 0,
         });
@@ -369,7 +443,7 @@ const DeclaredWordIndex = union(enum) {
 };
 
 fn registerDeclaredFetch(
-    decoder: DeclaredDecodeAuthority,
+    decoder: anytype,
     words: []const memory_state.WordState,
     index: *const DeclaredWordIndex,
     multiplicities: []u32,
@@ -379,10 +453,14 @@ fn registerDeclaredFetch(
     const word_index = index.get(fetch.pc) orelse return error.FetchedProgramWordMissing;
     const declared = words[word_index];
     if (declared.initial_word != fetch.word) return error.ProgramWordChanged;
+    // Declared-only padding is committed as raw-bound ROM data with zero
+    // multiplicity. It must never cross into the fetched/execution relation.
+    if (decoder.isDeclaredPadding(fetch.word))
+        return error.FetchedDeclaredPadding;
     if (fetch.word == 0) {
         // Preserve the old fetch-table error surface for an executed zero
         // instruction instead of reporting it merely as an omitted ROM row.
-        _ = try decoder.decodeWord(fetch.word);
+        _ = try decoder.decodeFetchedWord(fetch.word);
         unreachable;
     }
     if (multiplicities[word_index] == std.math.maxInt(u32))
@@ -485,6 +563,86 @@ test "program commitment: declared but unfetched instructions remain root-bound"
     try std.testing.expectEqual(@as(u32, 1), commitment.rows[0].multiplicity);
     try std.testing.expectEqual(@as(u32, 0), commitment.rows[1].multiplicity);
     try std.testing.expectEqual(commitment.tree.root, commitment.rows[1].root);
+}
+
+test "program commitment: Ethereum declared padding is raw-bound and never fetchable" {
+    const ExecutionRow = struct { pc: u32, inst_word: u32 };
+    const no_execution = [_]ExecutionRow{};
+    const padding = memory_state.WordState{
+        .addr = 0x1004,
+        .initial_word = decode.llvm_unimp_padding_word,
+        .final_word = decode.llvm_unimp_padding_word,
+        .final_clock = 0,
+    };
+    const words = [_]memory_state.WordState{
+        .{
+            .addr = 0x1000,
+            .initial_word = 0x00100093,
+            .final_word = 0x00100093,
+            .final_clock = 0,
+        },
+        padding,
+    };
+
+    var commitment = try buildDeclaredForProfile(
+        std.testing.allocator,
+        .rv32im_zkvm_ethereum_v1,
+        &no_execution,
+        &no_execution,
+        &words,
+        null,
+    );
+    defer commitment.deinit(std.testing.allocator);
+    try std.testing.expectEqual(@as(usize, 2), commitment.rows.len);
+    try std.testing.expectEqual(
+        decode.ProgramValues{
+            decode.ethereum_declared_padding_program_opcode_id,
+            0x1073,
+            0xc000,
+            0,
+        },
+        commitment.rows[1].values,
+    );
+    try std.testing.expectEqual(@as(u32, 0), commitment.rows[1].multiplicity);
+    try std.testing.expectEqual(commitment.tree.root, commitment.rows[1].root);
+
+    const fetched = [_]ExecutionRow{.{
+        .pc = padding.addr,
+        .inst_word = padding.initial_word,
+    }};
+    try std.testing.expectError(
+        error.FetchedDeclaredPadding,
+        buildDeclaredForProfile(
+            std.testing.allocator,
+            .rv32im_zkvm_ethereum_v1,
+            &fetched,
+            &no_execution,
+            &words,
+            null,
+        ),
+    );
+    try std.testing.expectError(
+        error.InvalidInstruction,
+        buildDeclaredForProfile(
+            std.testing.allocator,
+            .rv32im_zkvm_keccakf_v1,
+            &no_execution,
+            &no_execution,
+            &words,
+            null,
+        ),
+    );
+
+    var valid_only = try buildDeclaredForProfile(
+        std.testing.allocator,
+        .rv32im_zkvm_ethereum_v1,
+        &no_execution,
+        &no_execution,
+        words[0..1],
+        null,
+    );
+    defer valid_only.deinit(std.testing.allocator);
+    try std.testing.expect(commitment.tree.root != valid_only.tree.root);
 }
 
 test "program commitment: fetched word must belong to declared program" {

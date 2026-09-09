@@ -1,0 +1,40 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+expected 21, found 20
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=1 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+expected 6, found 7
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=4 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+expected 2, found 3
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=16 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_TWO_SEGMENT_EXECUTION status=passed
+
+Build Summary: 5/5 steps succeeded
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof success
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native success 2m MaxRSS:7G
+run-recursive-segment-v2-concrete-outer-proof success
++- run exe recursive-segment-v2-concrete-outer-proof success 267ms MaxRSS:4M
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native (reused)
+

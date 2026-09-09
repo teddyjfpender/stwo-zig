@@ -47,6 +47,40 @@ const validateNativeContextSelf = dependency_0.validateNativeContextSelf;
 const verifierInputEvidence = dependency_1.verifierInputEvidence;
 const writeLogUpWordsAssumeValid = dependency_1.writeLogUpWordsAssumeValid;
 
+/// Receipt-free expected hash program from public statement and admitted native
+/// geometry. Both native custody and detached verification use this one emitter.
+pub fn authorityHashCallCount(component_count: usize, infra_count: usize) Error!usize {
+    return channel.canonicalWordPermutationCount(try statement_v2.authority_preimage.wordCount(component_count, infra_count));
+}
+
+pub fn appendExpectedAuthorityHashCalls(
+    destination: []poseidon2_air.Call,
+    data: *const public_data_v2.PublicDataV2,
+    component_descs: []const statement_v1.FamilyComponentDesc,
+    infra_descs: []const statement_v1.InfraComponentDesc,
+) Error!Digest {
+    const destination_bytes = std.mem.sliceAsBytes(destination);
+    inline for (.{ std.mem.asBytes(data), std.mem.sliceAsBytes(data.words()), std.mem.sliceAsBytes(component_descs), std.mem.sliceAsBytes(infra_descs) }) |input|
+        if (overlap(destination_bytes, input)) return error.AliasedDestination;
+    const count = try authorityHashCallCount(component_descs.len, infra_descs.len);
+    if (destination.len != count) return error.PoseidonCallCountMismatch;
+    const core_public = try statement_v2.canonicalCorePublicData(data);
+    const input = statement_v2.authority_preimage.Input{
+        .initial_pc = core_public.initial_pc,
+        .final_pc = core_public.final_pc,
+        .cycle_count = core_public.clock,
+        .wire_id = data.wireId(),
+        .component_descs = component_descs,
+        .infra_descs = infra_descs,
+    };
+    try input.validate();
+    var recorder = AuthorityHashCallRecorder.init(destination);
+    statement_v2.authority_preimage.emit(&recorder, input);
+    const output = recorder.finalize();
+    std.debug.assert(recorder.call_at == destination.len);
+    return output;
+}
+
 /// Exact native-verifier compensation admitted from a successful verifier
 /// capture.  The full receipt and native-sum seals are retained as typed
 /// fields, while their identities are folded into the final canonical word so
@@ -307,34 +341,9 @@ pub const AuthorityHashPoseidonPlanV2 = struct {
         if (destination.len != self.poseidon_call_count)
             return error.PoseidonCallCountMismatch;
 
-        var recorder = AuthorityHashCallRecorder.init(destination);
-        recorder.u32Value(statement_v2.FORMAT_VERSION);
-        recorder.u32Value(statement_v2.SCHEMA_VERSION);
-        recorder.u32Value(self.component_count);
-        recorder.u32Value(self.infra_count);
-        const core_public = try statement_v2.canonicalCorePublicData(data);
-        recorder.u32Value(core_public.initial_pc);
-        recorder.u32Value(core_public.final_pc);
-        recorder.u32Value(core_public.clock);
-        recorder.digest(data.wireId());
-        for (component_descs) |descriptor| {
-            recorder.u32Value(@intFromEnum(descriptor.family));
-            recorder.u32Value(descriptor.log_size);
-            recorder.u32Value(descriptor.n_rows);
-            recorder.u32Value(descriptor.n_columns);
-        }
-        for (infra_descs) |descriptor| {
-            recorder.u32Value(@intFromEnum(descriptor.kind));
-            recorder.u32Value(descriptor.log_size);
-            recorder.u32Value(descriptor.n_rows);
-            recorder.u32Value(descriptor.n_columns);
-        }
-        const output = recorder.finalize();
-        if (!std.meta.eql(output, self.statement_authority_id) or
-            recorder.call_at != destination.len)
-        {
+        const output = try appendExpectedAuthorityHashCalls(destination, data, component_descs, infra_descs);
+        if (!std.meta.eql(output, self.statement_authority_id))
             return error.NativeVerifierCustodyMismatch;
-        }
     }
 
     pub fn productionReady(_: *const AuthorityHashPoseidonPlanV2) bool {
@@ -597,36 +606,24 @@ pub const AuthorityHashCallRecorder = struct {
     call_at: usize = 0,
 
     fn init(calls: []poseidon2_air.Call) AuthorityHashCallRecorder {
-        var state = [_]M31{M31.zero()} ** poseidon2_air.WIDTH;
-        state[poseidon2_air.WIDTH - 1] = M31.fromCanonical(
-            statement_v2.AUTHORITY_ID_DOMAIN,
-        );
+        const state = channel.canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(statement_v2.AUTHORITY_ID_DOMAIN));
         return .{ .state = state, .calls = calls };
     }
 
     fn canonical(self: *AuthorityHashCallRecorder, value: u32) void {
         std.debug.assert(value < m31.Modulus);
-        self.state[self.filled] = self.state[self.filled].add(
-            M31.fromCanonical(value),
-        );
-        self.filled += 1;
-        if (self.filled == channel.RATE) self.permute();
+        channel.canonical_word_sponge.absorb(self, M31.fromCanonical(value));
     }
 
-    fn u32Value(self: *AuthorityHashCallRecorder, value: u32) void {
-        self.canonical(value & 0xffff);
-        self.canonical(value >> 16);
+    pub fn word(self: *AuthorityHashCallRecorder, _: statement_v2.authority_preimage.Source, value: u32) void {
+        self.canonical(value);
     }
 
-    fn digest(self: *AuthorityHashCallRecorder, value: Digest) void {
-        for (value) |word| self.canonical(word);
-    }
-
-    fn permute(self: *AuthorityHashCallRecorder) void {
+    pub fn permute(self: *AuthorityHashCallRecorder) void {
         std.debug.assert(self.call_at < self.calls.len);
         var input: [poseidon2_air.WIDTH]u32 = undefined;
-        for (&input, self.state) |*destination, word|
-            destination.* = word.toU32();
+        for (&input, self.state) |*destination, field_word|
+            destination.* = field_word.toU32();
         self.calls[self.call_at] = .{
             .input = input,
             .wide = false,
@@ -639,11 +636,10 @@ pub const AuthorityHashCallRecorder = struct {
     }
 
     fn finalize(self: *AuthorityHashCallRecorder) Digest {
-        self.canonical(1);
-        if (self.filled != 0) self.permute();
+        channel.canonical_word_sponge.finish(self, M31.one());
         var result: Digest = undefined;
-        for (&result, self.state[0..channel.RATE]) |*destination, word|
-            destination.* = word.toU32();
+        for (&result, self.state[0..channel.RATE]) |*destination, field_word|
+            destination.* = field_word.toU32();
         return result;
     }
 };

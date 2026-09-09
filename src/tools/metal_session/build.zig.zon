@@ -3,4 +3,7 @@
     .name = .stwo_metal_session,
     .version = "0.1.0",
     .paths = .{"."},
+    .dependencies = .{
+        .stwo_artifact_store = .{ .path = "../../artifact_store" },
+    },
 }

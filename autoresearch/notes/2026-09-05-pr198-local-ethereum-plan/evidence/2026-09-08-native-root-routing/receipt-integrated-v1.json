@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "scope": "joint canonical root publication, public-sum and VM source closure; not real wrapper proof acceptance",
+  "source_manifest_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v1/manifest.json",
+  "source_manifest_sha256": "004f181199b663e94641a5674914c569a03af62a21f602b2dec871324b4447ea",
+  "gate": "test-ethereum-native-root-routing",
+  "passed_tests": 8,
+  "compile_seconds": 11,
+  "compile_max_rss": "986M",
+  "run_ms": 298,
+  "run_max_rss": "5M",
+  "next_gate": "test-ethereum-air-preflight on retained real context2/3",
+  "log_sha256": "40d834025b0e888071be8f8bd331636cc99d27a51f9c73ffa67798751b78e5d9"
+}

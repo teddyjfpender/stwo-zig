@@ -1,0 +1,44 @@
+[
+  {
+    "gate": "pcs-retained",
+    "status": "passed",
+    "exit_code": 0,
+    "wall_seconds": 16.224943875102326,
+    "counts": [
+      [
+        "14",
+        "14"
+      ]
+    ],
+    "log_sha256": "c8d135708e7ea41cff07cd8bb29304bee9df120d74aeed463f00eded79c9fb77",
+    "source_files_rehashed": 5780
+  },
+  {
+    "gate": "typed-quotient",
+    "status": "passed",
+    "exit_code": 0,
+    "wall_seconds": 13.999563834164292,
+    "counts": [
+      [
+        "9",
+        "9"
+      ]
+    ],
+    "log_sha256": "e2be38fc8c5d6fbb17f10598286fd53ffce257993af6d338d5ba576980e3d907",
+    "source_files_rehashed": 5780
+  },
+  {
+    "gate": "small-composition",
+    "status": "passed",
+    "exit_code": 0,
+    "wall_seconds": 23.135676125064492,
+    "counts": [
+      [
+        "3",
+        "3"
+      ]
+    ],
+    "log_sha256": "ddcac187ec101cee52949de3609196031607a756c30df0fccfb908109a85ec9c",
+    "source_files_rehashed": 5780
+  }
+]

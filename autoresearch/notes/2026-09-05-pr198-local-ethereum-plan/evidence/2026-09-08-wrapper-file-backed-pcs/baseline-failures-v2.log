@@ -1,0 +1,20 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 21s
+1/4 pcs_commitments_test_root.test_0...OK
+2/4 pcs.owned_source_admission_test.test.PCS owned source admission preserves real FFT Merkle roots and adopts aligned coefficients...OK
+3/4 pcs.scheme.test.FRI Merkle work follows packed-leaf and constant-parent execution...expected 0, found 1
+FAIL (TestExpectedEqual)
+4/4 vcs_lifted.expand.test.run-broadcast replication equals the scalar lifting gather...thread 39192265 panic: integer overflow
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/source/src/prover/vcs_lifted/expand.zig:117:67: 0x104abb667 in test.run-broadcast replication equals the scalar lifting gather (root)
+    for (&src_buf, 0..) |*value, index| value.* = @as(u64, index) * 0x9e3779b97f4a7c15;
+                                                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x104a59ecf in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x104a5889b in main (root)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xf95d7fffffffffff in ??? (???)
+error: the following test command crashed:
+/tmp/stwo-pcs-baseline-v2-cache/o/90f6b4d86a959e7a93a2c88485876c72/root --seed=0xad416e2b

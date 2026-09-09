@@ -1,0 +1,15 @@
+test-ethereum-fixed-program-admission
++- Ethereum fixed program admission guard
+   +- run test 2/3 passed, 1 failed
+error: 'ethereum_native_tree0_admission_v1_test.test.Ethereum fixed program recursive Tree0 admission binds whole ELF beyond identical roots' failed
+error: while executing test 'ethereum_native_tree0_admission_v1_test.test.Ethereum fixed program recursive Tree0 admission binds whole ELF beyond identical roots', the following test command failed:
+./.zig-cache/o/92463cfc93238b4e4edd5e3d68525584/test --cache-dir=./.zig-cache --seed=0xbbc81756 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 2/3 tests passed; 1 failed
+test-ethereum-fixed-program-admission transitive failure
++- Ethereum fixed program admission guard transitive failure
+   +- run test 2/3 passed, 1 failed
+      +- compile test ReleaseSafe native success 15s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/16a2b73cec4d313e4df2515c887d4b30/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xbbc81756 -Z5e302db727c8d918 --maxrss 25769803776 -j1 test-ethereum-fixed-program-admission -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

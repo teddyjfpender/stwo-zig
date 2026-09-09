@@ -396,8 +396,8 @@ pub fn rebuildVerifierInputProvider(
     audit.* = .{
         .values = values,
         .total = inputs.prepared.claimed_sum,
-        .logical_rows = input_provider_authority.LOGICAL_ROW_COUNT,
-        .event_terms = input_provider_authority.LOGICAL_ROW_COUNT *
+        .logical_rows = inputs.prepared.logical_row_count,
+        .event_terms = inputs.prepared.logical_row_count *
             input_provider_air.RELATION_EVENT_COUNT,
     };
     claim.* = inputs.prepared.claimed_sum;
@@ -437,8 +437,8 @@ comptime {
         !range_authority.ROW_35_COMPLETE or
         boundary_authority.COMPONENT_COUNT != 2 or
         input_provider_authority.PROPOSED_ROSTER_ROW != 38 or
-        input_provider_authority.LOGICAL_ROW_COUNT != 139 or
-        input_provider_witness.DETAILED_CLAIM_COUNT != 21 or
+        input_provider_witness.LUP2_WORD_COUNT != 55 or
+        input_provider_witness.SECURE_LIMB_COUNT != 4 or
         COLD_TYPED_AUDIT_ALLOCATION_CALLS != 36 or
         ROW17_LOGICAL_ROWS != 71 or ROW17_TYPED_EVENT_TERMS != 142 or
         ROW17_ACTIVE_RELATION_EVENTS != 72 or

@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-lookup-table-framework-export success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 268ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 5s MaxRSS:471M
+

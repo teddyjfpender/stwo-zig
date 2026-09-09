@@ -113,7 +113,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn proveAndVerifyCapturedWithVmAirExecution(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             segment_transcript: SegmentTranscriptInputs,
             execution: ExecutionOptions,
@@ -137,7 +137,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn proveAndVerifyCapturedWithVmAirExecutionAndCapture(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             segment_transcript: SegmentTranscriptInputs,
             execution: ExecutionOptions,
@@ -162,7 +162,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn proveAndVerifyCapturedWithVmAirExecutionAndAdmission(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             segment_transcript: SegmentTranscriptInputs,
             execution: ExecutionOptions,
@@ -186,7 +186,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn proveAndVerifyCapturedWithVmAirExecutionAndAdmissionV2(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             segment_transcript: SegmentTranscriptInputs,
             execution: ExecutionOptions,
@@ -212,7 +212,7 @@ pub fn Namespace(comptime context: type) type {
         pub fn classifyCapturedTupleClosureWithVmAir(
             allocator: std.mem.Allocator,
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             segment_transcript: SegmentTranscriptInputs,
         ) !TupleClosureFrontierReceipt {
@@ -245,7 +245,7 @@ pub fn Namespace(comptime context: type) type {
                 .left = &inactive,
                 .right = &inactive,
             };
-            const pcs_input_count = captured.pcs_circuit.bindings.len;
+            const pcs_input_count = captured.pcs_circuit.view().bindings.len;
             const pcs_active_inputs = try allocator.alloc(M31, pcs_input_count);
             defer allocator.free(pcs_active_inputs);
             const pcs_inactive_inputs = try allocator.alloc(M31, pcs_input_count);

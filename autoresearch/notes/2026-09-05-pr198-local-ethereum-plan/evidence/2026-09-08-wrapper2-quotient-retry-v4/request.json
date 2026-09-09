@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v15/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v15/source/src/integrations/riscv_cpu",
+    "test-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1",
+    "STWO_ETHEREUM_PROOF_CORPUS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/progress.log",
+    "STWO_ETHEREUM_PCS_SCRATCH_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/scratch"
+  },
+  "acceptance": "All three named complete-proof tests terminal exit0, ETHEREUM_WRAPPER_SELECTED global_segment=2, producer allocator empty, serialized root independently verified without native inputs and exact expected public words, fresh wrapper coldOpen and recursive child publication checks, then separately invoke pinned root verifier with trusted admitted key pin and compare expected coordinate/statement/output; compile counts or root candidate existence alone do not accept proof",
+  "scope": "Actual ordinary segment2 retry after OS-confirmed low-swap quotient kill; explicitly map typed AIR quotient M31 arrays with retained scratch, preserving pair/profile/worker/proof/independent-verifier acceptance",
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v15/manifest.json",
+  "source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+  "required_validation": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/results.json",
+  "status": "prepared_not_launched_waiting_for_source_v13_resource_gates",
+  "previous_failed_execution": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/execution.json",
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/complete-proof.log",
+  "unset_env": [
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1",
+    "STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE",
+    "STWO_ETHEREUM_WRAPPER_PAIR_SLOT",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY_SHA256"
+  ],
+  "retained_input": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+    "bytes": 8641480
+  },
+  "subsequent_verifier": {
+    "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+    "sha256": "77120ae24d5ef2846cd743baa447bdf7cf5f2641961413db326bd64a89d36907",
+    "arguments": [
+      "<root-candidate-directory>",
+      "<trusted-run-admitted-key-sha256>"
+    ]
+  },
+  "required_before_launch": [
+    "All5780 frozen source-v15 files rehashed; manifest matches independent pin",
+    "Retain v11 signal9 failure and kernel low-swap cause; this retry changes the measured quotient allocation route",
+    "Source-v12 lifted5required+1imported pass, smallcomplete3/3 and native allocatorABBA1/1 with4samples equal identities/empty owners",
+    "Source-v15 PCS retained-column gate, typed AIR quotient-domain gate and smallcomplete3/3 all terminal exit0; inspect named case counts/filter inclusion and results.json",
+    "All same8 input/verifier pins rehashed plus new hostile seed destination; new scratch empty",
+    "Shared heavy lock, native production paused, no other heavy job",
+    "Do not accept a3/3 test-count line without terminal exit0 and full lifecycle markers"
+  ],
+  "prelaunch_seed": {
+    "source": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "destination": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+    "bytes": 8641480
+  },
+  "correctness_gate_logs": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/pcs-retained.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/typed-quotient.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/small-composition.log"
+  ],
+  "admission": {
+    "pair_slot": 0,
+    "global_segment": 2,
+    "expected_coordinate": {
+      "height": 0,
+      "index": 2
+    },
+    "expected_key_sha256": null,
+    "policy": "Secure cohort derives fixed key from independently admitted source geometry and Tree0 before proving. Pin ETHEREUM_ROOT_CANDIDATE expected_key_sha256 from this exact successful source-v15 run; require internal independent root verification with saved expected public values and terminal3/3, then separate pinned verifier. Hashing arbitrary candidate key.json cannot admit it.",
+    "key_derivation_source": "recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig:276",
+    "key_export_source": "recursive_common_ethereum_incremental_leaf_universal_proof_v4_core.zig:517"
+  },
+  "expected_test_names": [
+    "role0 retained corpus records and reopens its whole program admission",
+    "role0 saved Stage101 label input commitment is rejected",
+    "role0 saved Stage101 pair replays recursive wrapper"
+  ],
+  "baseline_note": "v11 actual wrapper2 failed kernel low-swap kill before any candidate acceptance; source-v12 lifted verifier and complete-proof/ABBA gates passed, source-v15 resource repair gates must pass before this retry.",
+  "required_gate_evidence": {
+    "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15",
+    "results": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/results.json",
+    "ordered": [
+      "pcs-retained",
+      "typed-quotient",
+      "small-composition"
+    ],
+    "status": "pending_parent_execution",
+    "expected_source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+    "minimum_expected_counts": {
+      "pcs-retained": 12,
+      "typed-quotient": 8,
+      "small-composition": 3
+    },
+    "additional_required_case": "PCS retained column storage keeps quotient allocator selection explicit in borrowed traces"
+  },
+  "retained_resource_failure": {
+    "summary": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-wrapper2-quotient-memory-failure/failure.json",
+      "bytes": 1672,
+      "sha256": "8a49576b4b11223d58703f7216c8007f3389542a5bb6803d7eead7e8f442a6f6"
+    },
+    "kernel_log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-wrapper2-quotient-memory-failure/kernel.log",
+      "bytes": 255,
+      "sha256": "478b54a44e4f69b0a81dd1f5a096b6a1aaaea5fa9db1d6ff6bda56534196592f"
+    },
+    "execution": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/execution.json",
+      "bytes": 480,
+      "sha256": "cff14540a7a1a6a5132f9dd8854b086c5808887e9cb1ae8376ffab06d379add3"
+    },
+    "reason": "kernel low swap: killed largest compressed process55152, reported45266MB, signal9; no proof accepted",
+    "repair": "Ethereum-only opt-in maps quotient-domain M31 evaluation arrays alongside retained columns; native/defaultCSP allocation policy unchanged"
+  },
+  "supersedes_request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/request.json",
+    "bytes": 7711,
+    "sha256": "fdbb6c7a8cbd6975f1c6e13309e7a8be28507018c6a286792fd9f81d2953b247"
+  },
+  "supersedes_prepared_request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/superseded-source-v14-preparation/request.json",
+    "bytes": 10883,
+    "sha256": "106efd744ddf41ab07f1b2c0e90c2c2680c1f270721cde442fa43dfa9fba0376"
+  },
+  "test_only_corrections": [
+    {
+      "source_v13_failure_dir": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v13",
+      "source_v14_delta": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v14/freeze-evidence.json",
+        "bytes": 780,
+        "sha256": "6aa975d037dccd868de5a2ad9574bdbdab943058b9ab347247096e72b4b859cd"
+      },
+      "reason": "Focused retained-column test Scheme.init requires allocator and try; production quotient memory repair unchanged."
+    },
+    {
+      "failure_dir": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v14",
+      "source_delta": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v15/freeze-evidence.json",
+        "bytes": 780,
+        "sha256": "1bdf9bc3bdaab5150feb7712a3d0d5b2c2dd659775da0d2a2b23bee6057ebffb"
+      },
+      "reason": "Focused propagation test must flushPendingCommit after commitOwned before tree indexing; signal6 failure retained. Production repair unchanged.",
+      "failed_execution": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v14/pcs-retained-execution.json",
+        "bytes": 277,
+        "sha256": "bc57ba76f21210ec6b00af9e6f5c89f64ac8bb4504576b338062e492175c5b4f"
+      },
+      "failed_log": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v14/pcs-retained.log",
+        "bytes": 2149,
+        "sha256": "57c36a68f4a5aa26d715ac2949e205ad9287604177e0c5fb449ac6668da62b11"
+      },
+      "acceptance": false
+    }
+  ]
+}

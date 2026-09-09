@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/framework-resident-v1/parent-prove-metal",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/recursive-framework-aot-m4-v1",
+    "--aot-manifest-sha256",
+    "0e8b67dc70c8d699ba155f16a6fedcd8541c4615326796c7c120c62a64646403",
+    "--aot-profile",
+    "recursive-framework-v1",
+    "--profile",
+    "tiny-parent-root-v2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/strict-parent-rejected",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/complete-tree-metal-4-timing/parent-1-0",
+    "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-0-expected-span.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/complete-tree-metal-4-timing/parent-1-1",
+    "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/pair-1-expected-span.json",
+    "--parent-key",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-key.json",
+    "--parent-key-sha256",
+    "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+    "--proof-profile",
+    "recursive_q193_v1"
+  ],
+  "environment": {
+    "STWO_ZIG_METAL_REQUIRE_GPU": "1"
+  },
+  "exit_code": 1,
+  "expected_rejection": true,
+  "log_sha256": "3ab80b90abfee20d5f000436944ad1b51d21db6f6eb6d17a63fe2ba3d376ce4e",
+  "rejected_boundary": "MetalHostRecursivePreparationForbidden",
+  "boundary_log": "vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/strict-parent-rejection.log",
+  "boundary_log_sha256": "3ab80b90abfee20d5f000436944ad1b51d21db6f6eb6d17a63fe2ba3d376ce4e"
+}

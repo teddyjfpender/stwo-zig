@@ -1,0 +1,28 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "exit_code": 1,
+  "monitor_elapsed_ns": 148320651500,
+  "sampled_peak_footprint_bytes": 9158270800,
+  "stopped_for_footprint_limit": false,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+  },
+  "verified_and_published": false,
+  "ended_unix_ns": 1788804773417861000,
+  "real_seconds": 146.83,
+  "user_seconds": 135.71,
+  "sys_seconds": 2.54,
+  "maximum_resident_set_size_bytes": 9460154368,
+  "peak_memory_footprint_bytes": 9873465816,
+  "measurement_lines": [
+    "INCREMENTAL_FULL_LEAF_INPUT_PHASES_V1 retained_open_ns=45920250 selection_ns=208 replay_program_ns=33354000 fixed_program_admission_ns=3345615334 capture_admission_ns=37490260708",
+    "INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=478450 poseidon_calls=478450 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d",
+    "INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=5874223360 source_column_bytes=2937111680 columns=16742 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator",
+    "INCREMENTAL_FULL_LEAF_PHASES_V1 transaction_ns=70362812291 admission_ns=2282282292 replay_ns=185469500 witness_ns=1013633042 profile_ns=2701362000 prove_ns=63623783541 encode_ns=194342458"
+  ]
+}

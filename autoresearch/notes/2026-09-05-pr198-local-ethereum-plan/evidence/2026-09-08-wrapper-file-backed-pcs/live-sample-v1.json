@@ -1,0 +1,15 @@
+{
+  "status": "live_sample_not_proof_acceptance",
+  "pid": 35684,
+  "sample_file": "ethereum-wrapper2-file-backed-live-sample-v1.txt",
+  "sample_sha256": "d97bec71d724a30b6f0c8a0fac43d16a01284c10e7ed99fd72c9cb08e55870a6",
+  "sample_seconds": 2,
+  "observed_phase": "secure_cohort initialization / complete cohort transcript-state sealing",
+  "sample_report_physical_footprint": "29.3G",
+  "interpretation_limits": [
+    "Two-second CPU sample is not a whole-request profile",
+    "Physical footprint differs from RSS and the current figure does not establish later PCS memory fit",
+    "No STARK verification timing or speedup can be inferred"
+  ],
+  "action": "Leave existing proof running; defer performance change until accepted complete route or demonstrated resource failure"
+}

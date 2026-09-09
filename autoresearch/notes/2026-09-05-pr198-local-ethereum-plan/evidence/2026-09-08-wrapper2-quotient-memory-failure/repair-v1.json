@@ -1,0 +1,87 @@
+{
+  "status": "focused_gates_passed_actual_wrapper_retry_running",
+  "source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+  "failed_artifact": "ordinary wrapper2 source-v11",
+  "hypothesis": "row5 quotient preparation adds9.25GiB anonymous extended columns to retained source/witness/PCS state and exhausts macOS swap",
+  "repair": "optional quotient_values_allocator propagated scheme to trace to typed evaluator; Ethereum scratch mode opts into existing FileBackedAllocator; matching allocator retained for value cleanup; metadata/twiddles/output stay on original allocator",
+  "default": "null preserves existing allocator selection; no degree, coefficient, hash, transcript or CSP policy changes",
+  "row5": {
+    "source_columns": 37,
+    "trace_log": 24,
+    "committed_log": 25,
+    "quotient_log": 26,
+    "expanded_value_bytes": 9932111872,
+    "twiddle_bytes_approx": 268435456,
+    "output_bucket_bytes": 1073741824
+  },
+  "row34": {
+    "source_columns": 454,
+    "committed_log": 23,
+    "quotient_log": 23,
+    "expanded_value_bytes": 0,
+    "borrowed_lde_bytes": 15233712128
+  },
+  "scope": "Static scratch geometry, not final peak or proof acceptance. Full changed run required to establish sufficiency.",
+  "accepting_gates": [
+    "src/prover test-pcs-retained-columns",
+    "src/frontends/riscv test-recursion-quotient-domains",
+    "src/integrations/riscv_cpu test-ethereum-small-composition-proof",
+    "actual wrapper2 test-ethereum-complete-proof and separate pinned independent root check"
+  ],
+  "gate_directory": ".git/local-ethereum/devex-quotient-gates-v15",
+  "gate_results": [
+    {
+      "gate": "pcs-retained",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 16.224943875102326,
+      "counts": [
+        [
+          "14",
+          "14"
+        ]
+      ],
+      "log_sha256": "c8d135708e7ea41cff07cd8bb29304bee9df120d74aeed463f00eded79c9fb77",
+      "source_files_rehashed": 5780
+    },
+    {
+      "gate": "typed-quotient",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 13.999563834164292,
+      "counts": [
+        [
+          "9",
+          "9"
+        ]
+      ],
+      "log_sha256": "e2be38fc8c5d6fbb17f10598286fd53ffce257993af6d338d5ba576980e3d907",
+      "source_files_rehashed": 5780
+    },
+    {
+      "gate": "small-composition",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 23.135676125064492,
+      "counts": [
+        [
+          "3",
+          "3"
+        ]
+      ],
+      "log_sha256": "ddcac187ec101cee52949de3609196031607a756c30df0fccfb908109a85ec9c",
+      "source_files_rehashed": 5780
+    }
+  ],
+  "source_delta_vs_v12": [
+    "src/frontends/riscv/recursion/air/universal_typed_component_component_for_manifest.zig",
+    "src/frontends/riscv/recursion/air/universal_typed_component_test.zig",
+    "src/integrations/riscv_cpu/ethereum_wrapper_resources_v1.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig",
+    "src/prover/air/component_trace.zig",
+    "src/prover/pcs/retained_column_storage_test.zig",
+    "src/prover/pcs/scheme.zig",
+    "src/prover/pcs/scheme_views.zig"
+  ],
+  "actual_retry_request_sha256": "d7d1a1ca8d7e0600a860fff932c3e3885df058403f5a95ac81fc4617e19da117"
+}

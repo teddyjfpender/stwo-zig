@@ -1,0 +1,16 @@
+{
+  "independent_key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+  "key_path": ".git/local-ethereum/root-candidates/b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4/key.json",
+  "preprocessed_root": [
+    540861180,
+    123130679,
+    262723862,
+    1790176245,
+    1552740578,
+    445001413,
+    323999607,
+    1158426385
+  ],
+  "provenance": "Already passed5/5 fresh-process root gate; comparison reference only, never used to construct CPU or Metal Tree0",
+  "comparison_status": "waiting_for_cpu_metal_derivation"
+}

@@ -1,0 +1,7 @@
+{
+  "argv": [
+    "src/integrations/riscv_cpu/.zig-cache/o/7c47371a1abdd68680df6ad78189541e/test"
+  ],
+  "exit_code": 1,
+  "process_ns": 573328042
+}

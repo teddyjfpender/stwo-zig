@@ -11,11 +11,12 @@ bool stwo_zig_metal_compute_quotients(
     const uint32_t *domain_y, uint32_t row_count,
     uint32_t *output, void *resident_output_ptr,
     const uint32_t *leaf_seed, const uint32_t *node_seed,
-    uint32_t domain_prefix_bytes, void *fri_line_output_ptr,
+    uint32_t domain_prefix_bytes, uint32_t hash_family, void *fri_line_output_ptr,
     void *const *fri_coordinate_ptrs, void *fri_final_destination_ptr,
     uint32_t fri_layer_count, uint32_t fri_domain_initial_index, uint32_t fri_domain_step_size,
     uint32_t *fri_channel_state, void **fri_tree_outputs, uint32_t *fri_inverse_generation_mask,
     StwoZigCommandEpochStats *fri_stats, StwoZigQuotientWorkReceipt *quotient_work_receipt,
+    void *quotient_parity_context, StwoZigQuotientParityObserverV1 quotient_parity_observer,
     void **tree_out, double *gpu_milliseconds, char *error_message, size_t error_message_len
 ) {
     bool fri_transaction = fri_line_output_ptr != NULL;
@@ -25,13 +26,17 @@ bool stwo_zig_metal_compute_quotients(
         (raw_views && (raw_columns == NULL || raw_column_lengths == NULL ||
                        raw_column_count == 0u)) ||
         (resident_tree_count != 0u && resident_tree_handles == NULL) ||
+        ((quotient_parity_context == NULL) != (quotient_parity_observer == NULL)) ||
+        (quotient_parity_observer != NULL && !raw_views) ||
         (domain_prefix_bytes != 0u && domain_prefix_bytes != 64u) ||
+        !stwo_zig_valid_commitment_hash_family_v1(hash_family) ||
         (fri_transaction &&
             (fri_coordinate_ptrs == NULL || fri_final_destination_ptr == NULL ||
              fri_layer_count == 0u || fri_layer_count >= 31u ||
              fri_channel_state == NULL || fri_tree_outputs == NULL || fri_stats == NULL ||
              resident_output_ptr == NULL || leaf_seed == NULL || node_seed == NULL ||
-             row_count < 4u || (row_count >> 1u) >> fri_layer_count == 0u)) ||
+             row_count < 4u || (row_count >> 1u) >> fri_layer_count == 0u ||
+             hash_family != StwoZigCommitmentHashFamilyBlake2sV1)) ||
         (!fri_transaction &&
             (fri_coordinate_ptrs != NULL || fri_final_destination_ptr != NULL ||
              fri_layer_count != 0u || fri_channel_state != NULL ||
@@ -86,6 +91,17 @@ bool stwo_zig_metal_compute_quotients(
                             @"Metal quotient raw input byte length overflow");
                 return false;
             }
+            if (!stwo_zig_metal_validate_raw_quotient_source_views_v2(
+                    raw_column_lengths,
+                    raw_column_count,
+                    (const StwoZigRawQuotientSourceViewV2 *)views,
+                    view_count,
+                    row_count,
+                    batch_count)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw source-view authority is invalid");
+                return false;
+            }
             raw_bytes = raw_len * sizeof(uint32_t);
             bool resident_segment_candidate =
                 resident_tree_count != 0u &&
@@ -94,14 +110,17 @@ bool stwo_zig_metal_compute_quotients(
                 raw_bytes >= stwo_zig_quotient_gpu_flat_pack_min_bytes;
             bool segmented_candidate =
                 resident_segment_candidate || large_segment_candidate;
-            raw_source_runs = segmented_candidate
-                ? stwo_zig_quotient_raw_source_run_count(
+            if (segmented_candidate &&
+                !stwo_zig_quotient_raw_source_run_count_v2(
                     raw_columns,
                     raw_column_lengths,
                     raw_column_count,
-                    resident_trees
-                )
-                : 0u;
+                    resident_trees,
+                    &raw_source_runs)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient raw source-run planning failed");
+                return false;
+            }
             gpu_raw_upload =
                 segmented_candidate &&
                 raw_source_runs <= stwo_zig_quotient_max_segmented_source_runs;
@@ -122,6 +141,12 @@ bool stwo_zig_metal_compute_quotients(
                 );
             gpu_flat_pack =
                 large_segment_candidate && !resident_multi_source && !gpu_raw_upload;
+            if (quotient_parity_observer != NULL &&
+                (!gpu_raw_upload || resident_multi_source)) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient internal parity requires the segmented raw path");
+                return false;
+            }
             flat_buffer = (resident_multi_source || gpu_raw_upload)
                 ? [runtime.device newBufferWithLength:sizeof(uint32_t) options:MTLResourceStorageModeShared]
                 : [runtime.device newBufferWithLength:raw_len * sizeof(uint32_t)
@@ -151,6 +176,7 @@ bool stwo_zig_metal_compute_quotients(
             !stwo_zig_prepare_raw_quotient_views_for_single_source(
                 views,
                 view_count,
+                row_count,
                 batch_count,
                 &single_source_raw_views,
                 &single_source_batch_offsets)) {
@@ -384,9 +410,10 @@ bool stwo_zig_metal_compute_quotients(
                 destination_offsets[level] = layer_word_offsets[level + 1u];
                 parent_counts[level] = row_count >> (level + 1u);
             }
-            void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare(
+            void *parent_plan_ptr = stwo_zig_metal_merkle_parent_chain_prepare_v2(
                 runtime_ptr, child_offsets, destination_offsets, parent_counts,
-                lifting_log_size, node_seed, domain_prefix_bytes, error_message, error_message_len);
+                lifting_log_size, node_seed, domain_prefix_bytes, hash_family,
+                error_message, error_message_len);
             if (parent_plan_ptr != NULL)
                 parent_plan = (__bridge_transfer StwoZigMerkleParentChain *)parent_plan_ptr;
             if (parent_plan == nil) {
@@ -409,6 +436,7 @@ bool stwo_zig_metal_compute_quotients(
 
         NSMutableArray<id<MTLBuffer>> *raw_sources = [NSMutableArray array];
         id<MTLCommandBuffer> command = [runtime.queue commandBuffer];
+        double parity_completed_gpu_milliseconds = 0.0;
         if (gpu_flat_pack &&
             !stwo_zig_encode_quotient_flat_pack(
                 runtime,
@@ -487,7 +515,9 @@ bool stwo_zig_metal_compute_quotients(
             [combine endEncoding];
         } else if (gpu_raw_upload && !resident_multi_source) {
             id<MTLBuffer> numerators = [runtime.device newBufferWithLength:(NSUInteger)batch_count * row_count * 4u * sizeof(uint32_t)
-                                                                   options:MTLResourceStorageModePrivate];
+                                                                   options:quotient_parity_observer != NULL
+                                                                       ? MTLResourceStorageModeShared
+                                                                       : MTLResourceStorageModePrivate];
             if (numerators == nil) {
                 write_error(error_message, error_message_len, @"Metal quotient numerator allocation failed");
                 return false;
@@ -498,43 +528,35 @@ bool stwo_zig_metal_compute_quotients(
             size_t column = 0;
             size_t flat_offset = 0;
             size_t page_size = (size_t)getpagesize();
+            uint32_t parity_segment_index = 0u;
             while (column < raw_column_count) {
-                size_t run_start = column;
-                size_t run_words = raw_column_lengths[column];
-                StwoZigResidentColumnBinding resident_binding;
-                bool resident_run = stwo_zig_tree_resident_column(
-                    resident_trees, raw_columns[column], raw_column_lengths[column],
-                    &resident_binding);
-                id<MTLBuffer> resident_source =
-                    resident_run ? resident_binding.buffer : nil;
-                column += 1;
-                if (resident_run) {
-                    while (column < raw_column_count) {
-                        StwoZigResidentColumnBinding next_binding;
-                        if (!stwo_zig_tree_resident_column(
-                                resident_trees, raw_columns[column], raw_column_lengths[column],
-                                &next_binding) ||
-                            next_binding.buffer != resident_source ||
-                            run_words > SIZE_MAX - raw_column_lengths[column])
-                            break;
-                        run_words += raw_column_lengths[column];
-                        column += 1;
-                    }
-                } else {
-                    while (column < raw_column_count &&
-                           raw_columns[column] == raw_columns[run_start] + run_words) {
-                        run_words += raw_column_lengths[column];
-                        column += 1;
-                    }
+                StwoZigRawQuotientSourceRunV2 run;
+                if (!stwo_zig_plan_raw_quotient_source_run_v2(
+                        raw_columns,
+                        raw_column_lengths,
+                        raw_column_count,
+                        resident_trees,
+                        column,
+                        &run)) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient raw source-run remint failed");
+                    return false;
                 }
+                const size_t run_start = run.first_column;
+                const size_t run_words = run.logical_word_count;
+                const bool resident_run = run.resident;
+                id<MTLBuffer> resident_source = run.resident_source;
+                column = run.end_column;
                 size_t run_bytes = run_words * sizeof(uint32_t);
                 uintptr_t address = (uintptr_t)raw_columns[run_start];
                 // Cache-skewed columns intentionally begin inside a VM page.
                 // Alias the complete page envelope and bind the logical byte
                 // offset instead of copying every non-page-aligned column.
                 uintptr_t alias_address = address - (address % page_size);
-                size_t source_binding_offset = address - alias_address;
-                bool alias_shared = runtime.device.hasUnifiedMemory &&
+                size_t source_binding_offset = resident_run
+                    ? run.resident_base_word * sizeof(uint32_t)
+                    : address - alias_address;
+                bool alias_shared = !resident_run && runtime.device.hasUnifiedMemory &&
                     run_bytes <= SIZE_MAX - source_binding_offset;
                 size_t alias_length = 0u;
                 if (alias_shared) {
@@ -552,40 +574,77 @@ bool stwo_zig_metal_compute_quotients(
                         : [runtime.device newBufferWithBytes:raw_columns[run_start]
                                                       length:run_bytes
                                                      options:MTLResourceStorageModeShared]);
-                if (source == nil) {
+                if (source == nil || source_binding_offset > source.length) {
                     write_error(error_message, error_message_len, @"Metal quotient upload allocation failed");
                     return false;
                 }
                 [raw_sources addObject:source];
                 NSMutableData *run_view_data = [NSMutableData data];
-                const StwoZigRawQuotientView *all_views = (const StwoZigRawQuotientView *)views;
+                const StwoZigRawQuotientSourceViewV2 *all_views =
+                    (const StwoZigRawQuotientSourceViewV2 *)views;
+                uint64_t min_original_offset = UINT64_MAX;
+                uint64_t max_original_offset = 0u;
+                uint64_t min_rebased_offset = UINT64_MAX;
+                uint64_t max_rebased_offset = 0u;
+                uint32_t min_batch = UINT32_MAX;
+                uint32_t max_batch = 0u;
                 for (uint32_t view_index = 0; view_index < view_count; ++view_index) {
-                    StwoZigRawQuotientView view = all_views[view_index];
-                    if ((size_t)view.offset >= flat_offset && (size_t)view.offset < flat_offset + run_words) {
+                    const StwoZigRawQuotientSourceViewV2 source_view = all_views[view_index];
+                    if (source_view.offset >= (uint64_t)flat_offset &&
+                        source_view.offset < (uint64_t)flat_offset + (uint64_t)run_words) {
+                        const uint64_t original_offset = source_view.offset;
+                        uint64_t local_offset = source_view.offset - (uint64_t)flat_offset;
                         if (resident_run) {
+                            bool resident_view_mapped = false;
                             size_t logical_column_start = flat_offset;
                             for (size_t source_column = run_start; source_column < column; ++source_column) {
                                 size_t logical_column_end = logical_column_start + raw_column_lengths[source_column];
-                                if ((size_t)view.offset < logical_column_end) {
+                                if (source_view.offset < (uint64_t)logical_column_end) {
                                     StwoZigResidentColumnBinding column_binding;
-                                    size_t row_offset = (size_t)view.offset - logical_column_start;
+                                    size_t row_offset =
+                                        (size_t)(source_view.offset - (uint64_t)logical_column_start);
                                     if (!stwo_zig_tree_resident_column(
                                             resident_trees, raw_columns[source_column],
                                             raw_column_lengths[source_column], &column_binding) ||
                                         column_binding.buffer != resident_source ||
-                                        column_binding.wordOffset > UINT32_MAX - row_offset) {
+                                        column_binding.wordOffset < run.resident_base_word ||
+                                        column_binding.wordOffset - run.resident_base_word >
+                                            UINT64_MAX - row_offset) {
                                         write_error(error_message, error_message_len,
                                                     @"Metal quotient resident view mapping failed");
                                         return false;
                                     }
-                                    view.offset = (uint32_t)(column_binding.wordOffset + row_offset);
+                                    local_offset = (uint64_t)(
+                                        column_binding.wordOffset - run.resident_base_word
+                                    ) + (uint64_t)row_offset;
+                                    resident_view_mapped = true;
                                     break;
                                 }
                                 logical_column_start = logical_column_end;
                             }
-                        } else {
-                            view.offset -= (uint32_t)flat_offset;
+                            if (!resident_view_mapped) {
+                                write_error(error_message, error_message_len,
+                                            @"Metal quotient resident source-view is unbound");
+                                return false;
+                            }
                         }
+                        StwoZigRawQuotientView view;
+                        if (!stwo_zig_metal_local_raw_quotient_view_v2(
+                                &source_view,
+                                local_offset,
+                                row_count,
+                                batch_count,
+                                &view)) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient local source-view overflow");
+                            return false;
+                        }
+                        min_original_offset = MIN(min_original_offset, original_offset);
+                        max_original_offset = MAX(max_original_offset, original_offset);
+                        min_rebased_offset = MIN(min_rebased_offset, (uint64_t)view.offset);
+                        max_rebased_offset = MAX(max_rebased_offset, (uint64_t)view.offset);
+                        min_batch = MIN(min_batch, view.batch);
+                        max_batch = MAX(max_batch, view.batch);
                         [run_view_data appendBytes:&view length:sizeof(view)];
                     }
                 }
@@ -598,8 +657,8 @@ bool stwo_zig_metal_compute_quotients(
                     id<MTLComputeCommandEncoder> numerator_encoder = [command computeCommandEncoder];
                     [numerator_encoder setComputePipelineState:runtime.quotientNumerator];
                     [numerator_encoder setBuffer:source
-                                           offset:resident_run ? 0u :
-                                               (alias_shared ? source_binding_offset : 0u)
+                                           offset:resident_run || alias_shared
+                                               ? source_binding_offset : 0u
                                           atIndex:0];
                     [numerator_encoder setBuffer:run_views offset:0 atIndex:1];
                     [numerator_encoder setBytes:&run_view_count length:sizeof(run_view_count) atIndex:2];
@@ -611,8 +670,100 @@ bool stwo_zig_metal_compute_quotients(
                     [numerator_encoder dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
                                  threadsPerThreadgroup:MTLSizeMake(numerator_width, 1u, 1u)];
                     [numerator_encoder endEncoding];
+                    if (quotient_parity_observer != NULL) {
+                        [command commit];
+                        [command waitUntilCompleted];
+                        if (command.status == MTLCommandBufferStatusError) {
+                            write_error(error_message, error_message_len,
+                                        command.error.localizedDescription ?:
+                                            @"Metal quotient numerator parity dispatch failed");
+                            return false;
+                        }
+                        parity_completed_gpu_milliseconds +=
+                            (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                        StwoZigQuotientParityEventV1 event = {
+                            .schema_version = 1u,
+                            .phase = StwoZigQuotientParityRawSegmentV1,
+                            .segment_index = parity_segment_index,
+                            .segment_count = (uint32_t)raw_source_runs,
+                            .first_column = (uint32_t)run_start,
+                            .column_count = (uint32_t)(column - run_start),
+                            .view_count = run_view_count,
+                            .batch_count = batch_count,
+                            .row_count = row_count,
+                            .flat_offset = flat_offset,
+                            .run_words = run_words,
+                            .source_binding_offset = resident_run || alias_shared
+                                ? source_binding_offset : 0u,
+                            .flags = (resident_run
+                                ? StwoZigQuotientParityResidentSourceV1 : 0u) |
+                                (!resident_run && alias_shared
+                                    ? StwoZigQuotientParityPageAliasSourceV1 : 0u),
+                            .min_batch = min_batch,
+                            .max_batch = max_batch,
+                            .reserved = 0u,
+                            .min_original_offset = min_original_offset,
+                            .max_original_offset = max_original_offset,
+                            .min_rebased_offset = min_rebased_offset,
+                            .max_rebased_offset = max_rebased_offset,
+                        };
+                        const uint32_t *actual_domain_x =
+                            (const uint32_t *)((const uint8_t *)x_buffer.contents + x_offset);
+                        const uint32_t *actual_domain_y =
+                            (const uint32_t *)((const uint8_t *)y_buffer.contents + y_offset);
+                        if (profile_quotient) {
+                            fprintf(stderr,
+                                    "Metal quotient parity source: segment=%u/%u "
+                                    "columns=%u+%u views=%u batches=%u rows=%llu "
+                                    "resident=%u page_alias=%u flat_offset=%llu "
+                                    "run_words=%llu binding_offset=%llu "
+                                    "original_offsets=%llu..%llu rebased_offsets=%llu..%llu "
+                                    "batch_coverage=%u..%u\n",
+                                    event.segment_index, event.segment_count,
+                                    event.first_column, event.column_count,
+                                    event.view_count, event.batch_count,
+                                    (unsigned long long)event.row_count,
+                                    (event.flags & StwoZigQuotientParityResidentSourceV1) != 0u,
+                                    (event.flags & StwoZigQuotientParityPageAliasSourceV1) != 0u,
+                                    (unsigned long long)event.flat_offset,
+                                    (unsigned long long)event.run_words,
+                                    (unsigned long long)event.source_binding_offset,
+                                    (unsigned long long)event.min_original_offset,
+                                    (unsigned long long)event.max_original_offset,
+                                    (unsigned long long)event.min_rebased_offset,
+                                    (unsigned long long)event.max_rebased_offset,
+                                    event.min_batch, event.max_batch);
+                        }
+                        if (actual_domain_x == NULL || actual_domain_y == NULL ||
+                            numerators.contents == NULL ||
+                            !quotient_parity_observer(
+                                quotient_parity_context,
+                                &event,
+                                run_view_data.bytes,
+                                actual_domain_x,
+                                actual_domain_y,
+                                numerators.contents,
+                                numerators.length / sizeof(uint32_t))) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient raw-segment parity failed");
+                            return false;
+                        }
+                        parity_segment_index += 1u;
+                        command = [runtime.queue commandBuffer];
+                        if (command == nil) {
+                            write_error(error_message, error_message_len,
+                                        @"Metal quotient parity command allocation failed");
+                            return false;
+                        }
+                    }
                 }
                 flat_offset += run_words;
+            }
+            if (quotient_parity_observer != NULL &&
+                parity_segment_index != raw_source_runs) {
+                write_error(error_message, error_message_len,
+                            @"Metal quotient parity source-run inventory mismatch");
+                return false;
             }
             id<MTLComputeCommandEncoder> finalize = [command computeCommandEncoder];
             [finalize setComputePipelineState:runtime.quotientFinalize];
@@ -629,6 +780,64 @@ bool stwo_zig_metal_compute_quotients(
             [finalize dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
                    threadsPerThreadgroup:MTLSizeMake(finalize_width, 1u, 1u)];
             [finalize endEncoding];
+            if (quotient_parity_observer != NULL) {
+                [command commit];
+                [command waitUntilCompleted];
+                if (command.status == MTLCommandBufferStatusError) {
+                    write_error(error_message, error_message_len,
+                                command.error.localizedDescription ?:
+                                    @"Metal quotient finalize parity dispatch failed");
+                    return false;
+                }
+                parity_completed_gpu_milliseconds +=
+                    (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+                StwoZigQuotientParityEventV1 event = {
+                    .schema_version = 1u,
+                    .phase = StwoZigQuotientParityFinalizedV1,
+                    .segment_index = parity_segment_index,
+                    .segment_count = (uint32_t)raw_source_runs,
+                    .first_column = 0u,
+                    .column_count = raw_column_count,
+                    .view_count = view_count,
+                    .batch_count = batch_count,
+                    .row_count = row_count,
+                    .flat_offset = 0u,
+                    .run_words = raw_len,
+                    .source_binding_offset = 0u,
+                    .flags = 0u,
+                    .min_batch = 0u,
+                    .max_batch = 0u,
+                    .reserved = 0u,
+                    .min_original_offset = 0u,
+                    .max_original_offset = 0u,
+                    .min_rebased_offset = 0u,
+                    .max_rebased_offset = 0u,
+                };
+                const uint32_t *actual_domain_x =
+                    (const uint32_t *)((const uint8_t *)x_buffer.contents + x_offset);
+                const uint32_t *actual_domain_y =
+                    (const uint32_t *)((const uint8_t *)y_buffer.contents + y_offset);
+                if (actual_domain_x == NULL || actual_domain_y == NULL ||
+                    output_buffer.contents == NULL ||
+                    !quotient_parity_observer(
+                        quotient_parity_context,
+                        &event,
+                        NULL,
+                        actual_domain_x,
+                        actual_domain_y,
+                        output_buffer.contents,
+                        output_buffer.length / sizeof(uint32_t))) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient finalized parity failed");
+                    return false;
+                }
+                command = [runtime.queue commandBuffer];
+                if (command == nil) {
+                    write_error(error_message, error_message_len,
+                                @"Metal quotient post-parity command allocation failed");
+                    return false;
+                }
+            }
         } else {
             id<MTLComputeCommandEncoder> encoder = [command computeCommandEncoder];
             id<MTLComputePipelineState> quotient_pipeline = raw_views ? runtime.rawQuotients : runtime.quotients;
@@ -681,7 +890,10 @@ bool stwo_zig_metal_compute_quotients(
                 write_error(error_message, error_message_len, @"Resident quotient leaf encoder allocation failed");
                 return false;
             }
-            [leaves setComputePipelineState:runtime.leaves];
+            id<MTLComputePipelineState> leaves_pipeline =
+                stwo_zig_commitment_leaves_pipeline(runtime, hash_family);
+            if (leaves_pipeline == nil) return false;
+            [leaves setComputePipelineState:leaves_pipeline];
             [leaves setBuffer:output_buffer offset:0 atIndex:0];
             [leaves setBuffer:column_offsets offset:0 atIndex:1];
             [leaves setBuffer:column_logs offset:0 atIndex:2];
@@ -691,8 +903,8 @@ bool stwo_zig_metal_compute_quotients(
             [leaves setBytes:&lifting_log_size length:sizeof(lifting_log_size) atIndex:5];
             [leaves setBuffer:leaf_seed_buffer offset:0 atIndex:6];
             [leaves setBytes:&domain_prefix_bytes length:sizeof(domain_prefix_bytes) atIndex:7];
-            NSUInteger leaf_width = MIN(runtime.leaves.maxTotalThreadsPerThreadgroup,
-                                        runtime.leaves.threadExecutionWidth * 8u);
+            NSUInteger leaf_width = MIN(leaves_pipeline.maxTotalThreadsPerThreadgroup,
+                                        leaves_pipeline.threadExecutionWidth * 8u);
             [leaves dispatchThreads:MTLSizeMake(row_count, 1u, 1u)
                   threadsPerThreadgroup:MTLSizeMake(leaf_width, 1u, 1u)];
             [leaves endEncoding];
@@ -816,14 +1028,16 @@ bool stwo_zig_metal_compute_quotients(
         if (resident_output_ptr == NULL && !direct_output)
             memcpy(output, output_buffer.contents, output_bytes);
         if (gpu_milliseconds != NULL) {
-            *gpu_milliseconds = (command.GPUEndTime - command.GPUStartTime) * 1000.0;
+            *gpu_milliseconds = parity_completed_gpu_milliseconds +
+                (command.GPUEndTime - command.GPUStartTime) * 1000.0;
         }
         if (profile_quotient) {
             NSTimeInterval quotient_wall_end = [NSDate timeIntervalSinceReferenceDate];
             fprintf(stderr,
                     "Metal quotient timing: gpu_ms=%.3f wall_ms=%.3f path=%s "
                     "source_runs=%zu resident_sources=%lu\n",
-                    (command.GPUEndTime - command.GPUStartTime) * 1000.0,
+                    parity_completed_gpu_milliseconds +
+                        (command.GPUEndTime - command.GPUStartTime) * 1000.0,
                     (quotient_wall_end - quotient_wall_start) * 1000.0,
                     gpu_grouped_partials ? "resident-partials" :
                         (resident_multi_source ? "resident-direct" :

@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 161/161 tests passed
+test-pcs-commitments success
++- run test 161 passed 845ms MaxRSS:7M
+   +- compile test ReleaseSafe native success 39s MaxRSS:1G
+

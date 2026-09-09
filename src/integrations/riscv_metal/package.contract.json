@@ -12,10 +12,16 @@
     "stwo_metal_backend": "../../backends/metal",
     "stwo_prover_api": "../../prover_api",
     "stwo_prover_engine": "../../prover",
-    "stwo_riscv_frontend": "../../frontends/riscv"
+    "stwo_riscv_frontend": "../../frontends/riscv",
+    "stwo_riscv_cpu_integration": "../riscv_cpu"
   },
   "injected_modules": [
-    "metal_aot_config"
+    "keccakf_proof_harness",
+    "metal_aot_config",
+    "secp256k1_proof_harness",
+    "stage101_degree5_provider_sweep_v1",
+    "stage101_leaf_autoresearch_v1",
+    "stwo_riscv_cpu_stage101_degree5_metal"
   ],
   "api_surface": [
     "MetalProverEngine",

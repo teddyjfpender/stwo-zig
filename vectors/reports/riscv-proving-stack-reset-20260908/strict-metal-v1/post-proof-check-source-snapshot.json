@@ -1,0 +1,12 @@
+{
+  "scope": "test coverage and deletion of unreachable duplicate accounting after frozen producer build; no live proving computation changed",
+  "files": {
+    "src/backends/metal/runtime/framework_polynomial_device_test.zig": "71985467a2bfb58c1b54a093eb7fd0dfda2353ec4a4abac1c953c6abb37bc9b8",
+    "src/prover/vcs_lifted/expand.zig": "297e8e705bd87512a252bcd9b65fe3c6ae0148b3a632504ce35c2acfff5509d2",
+    "src/prover/fri.zig": "fb14c5c6dfdcdc239596ac348f0bb345267a4f15de60ad738fd7387b65c3164b",
+    "src/prover/fri_work_test.zig": "7961d124ebdc893f6a41cada8f255d1c2c1ec081974eb281bb1aada82e59d5d3",
+    "src/prover/pcs/scheme.zig": "9e290a6fa966ddc691f130c46b93145cf5da774c69d3ecad281665e18b4e65e3",
+    "src/prover/pcs_commitments_test_root.zig": "62a3457826213557bb8fe331dd6a59873d4fe79109647a09c370c92fc4acaf40",
+    "src/prover/pcs/sampled_value_plan_overlap.zig": "db985d604d553cd5c2333c61b8e86b67b330cc2c26ecdc5b291ea93bfe1cda35"
+  }
+}

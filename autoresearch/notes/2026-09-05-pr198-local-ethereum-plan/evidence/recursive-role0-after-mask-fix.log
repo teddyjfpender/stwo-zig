@@ -1,0 +1,25 @@
+test-ethereum-incremental-leaf-universal-proof-v4-genuine
++- genuine two-segment Ethereum incremental role0 proof guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child' failed: ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=stage101_build source=darwin_proc_pid_rusage_v6 wall_ns=64054933833 process_cpu_ns=105858085084 parallelism_milli=1652 peak_footprint_bytes=1459291888 energy_nj=435673065251 instructions=1980859149275 cycles=406037119356 workers=14 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46957696708 process_cpu_ns=49503741000 parallelism_milli=1054 peak_footprint_bytes=1459291888 energy_nj=229539354100 instructions=1100425559125 cycles=196423573032 workers=14 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=0 bytes=8641480 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=1 bytes=8955531 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/role0-genuine-stage101/45dc05384de0b1b55b765a8a3d80a90e3c631b940a533370dd6c8e8c27f93cbc.bin
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1524693584 process_cpu_ns=1524573834 parallelism_milli=999 peak_footprint_bytes=1459291888 energy_nj=7601520663 instructions=33644157340 cycles=6047415233 workers=14 host_byte_budget=8589934592
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=6025913208 process_cpu_ns=6025411708 parallelism_milli=999 peak_footprint_bytes=1957726656 energy_nj=30839488315 instructions=108977632364 cycles=23927568739 workers=14 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=39731583 public_ns=295239917 transcript_ns=138014875 profile_ns=25875 program_ns=68161375 prepare_ns=57679542 fri_ns=4087030541 seal_ns=39394542 total_ns=4725280500 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=14
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=53 bytes=856163262 peak=1893491093 allocated=3176283160 freed=2320119898 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_GENUINE_STAGE=role0_prove error=OutputLimitExceeded
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child', the following test command failed:
+./.zig-cache/o/049aa5722d50225d5a1714109aacef66/test --cache-dir=./.zig-cache --seed=0xb0f8b752 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-universal-proof-v4-genuine transitive failure
++- genuine two-segment Ethereum incremental role0 proof guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 2m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4745c0706388f0db21b56dea656c4780/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb0f8b752 -Zb3478837c22630a9 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-universal-proof-v4-genuine -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

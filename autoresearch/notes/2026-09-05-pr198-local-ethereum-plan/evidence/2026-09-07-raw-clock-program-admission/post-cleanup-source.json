@@ -1,0 +1,25 @@
+{
+  "active_worktree_dirty": true,
+  "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_content_sha256": "2daf2b7d37ab7bef5eca16c77df3f8a2e2b1b9f5d87b56b964ab0a78904266e8",
+  "source_file_count": 9670,
+  "source_payload_bytes": 357964772,
+  "status_sha256": "baaaa69ff3a82c41186d6307796e1da4de2287df82ec5fbd4d112205db593461",
+  "status_entry_count": 1003,
+  "status_category_counts": {
+    "ordinary": 302,
+    "rename_or_copy": 0,
+    "unmerged": 0,
+    "untracked": 701
+  },
+  "tracked_patch_sha256": "2d1d8e1ffdcf174dc6b53331369023657918ff0c86563eabf495e3bd46d9f19e",
+  "tracked_patch_bytes": 1553407,
+  "untracked_payload_sha256": "32ae7f839741f95306668345c081aec047ae6f5f82c573c99dc9ecaf018c933f",
+  "untracked_file_count": 701,
+  "untracked_payload_bytes": 30706993,
+  "ignored_source_input_count": 0,
+  "temporary_tree_git_oid": "e5206005c4ba3816eb3cdb0d664550a57d891ede",
+  "temporary_tree_listing_sha256": "b0e200c68ecb636c949670c0f7d43d8238bbe79652de2e30bc7f6e34855b9aef",
+  "temporary_commit": "0fc5cc644869db6f5fcb8dbaa8da6387daaaa48f",
+  "capture_protocol": "binary_HEAD_diff_plus_git_ls_files_others_exclude_standard_v1"
+}

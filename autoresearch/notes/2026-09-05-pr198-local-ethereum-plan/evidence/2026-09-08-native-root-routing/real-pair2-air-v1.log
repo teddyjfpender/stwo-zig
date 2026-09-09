@@ -1,0 +1,29 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 193s
+test-ethereum-air-preflight
++- Ethereum genuine AIR preflight guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=2 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_COMPLETION_OPENING admitted_version=1 whole_elf_pinned=true
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=99683258459 process_cpu_ns=99654988500 parallelism_milli=999 peak_footprint_bytes=1706641136 energy_nj=421957583528 instructions=1539249917104 cycles=395552638611 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=151966999917 process_cpu_ns=151923337583 parallelism_milli=999 peak_footprint_bytes=1706641136 energy_nj=547661907486 instructions=1026095984656 cycles=602907575282 workers=1 host_byte_budget=17179869184
+ETHEREUM_WRAPPER_SELECTED pair_slot=0 global_segment=2
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=134657160958 process_cpu_ns=134614906584 parallelism_milli=999 peak_footprint_bytes=3002076376 energy_nj=497199879086 instructions=1029588877509 cycles=534363690930 workers=1 host_byte_budget=17179869184
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=3400188417 public_ns=33808343125 transcript_ns=8402751333 profile_ns=68083 program_ns=79304292 prepare_ns=76607083 fri_ns=4348500334 seal_ns=3413906666 total_ns=53529671917 nodes=618754 node_bytes=12375080 output_bytes=176 binding_bytes=2815408 schedule_bytes=9177376 evaluation_bytes=9900064 input_bytes=703852 claim_bytes=33712 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=61 bytes=1247365590 peak=2275994661 allocated=3630785880 freed=2383420290 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=557261302000 process_cpu_ns=557095948708 parallelism_milli=999 peak_footprint_bytes=5733766448 energy_nj=2147723673466 instructions=5491464191462 cycles=2211199404798 workers=1 host_byte_budget=17179869184
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=cohort error=SemanticConstraintViolation
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair checks typed AIR parameters before PCS', the following test command failed:
+./.zig-cache/o/7c9442802822a29618eb05c11c8e5c19/test --cache-dir=./.zig-cache --seed=0x9687fa79 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-air-preflight transitive failure
++- Ethereum genuine AIR preflight guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ac63a676381de3f3c6851100dc14b8cd/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v1/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x9687fa79 -Z718de661441a0448 --maxrss 25769803776 -j1 test-ethereum-air-preflight -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

@@ -1,0 +1,39 @@
+{
+  "base_commit": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "dirty_tree": true,
+  "scope": "Base ContextV2 composition and native recursive preparation",
+  "complete_ethereum_leaf": false,
+  "recursive_stark_proof": false,
+  "benchmark_promotion": false,
+  "native_gate": {
+    "status": "pass",
+    "cycles": 1,
+    "proof_bytes": 24255,
+    "n_queries": 1,
+    "pow_bits": 0,
+    "fold_step": 2,
+    "transcript_calls": 900,
+    "authority_calls": 14,
+    "core_calls": 294,
+    "complete_provider_calls": 1208
+  },
+  "focused_profile_tests": {
+    "passed": 14,
+    "optimize": "ReleaseSafe"
+  },
+  "evidence": [
+    "base-v2-profile-tests.log",
+    "base-v2-leaf-compile.log",
+    "base-v2-native-ingress.log",
+    "base-v2-debug-loop.log"
+  ],
+  "focused_profile_tests_debug": {
+    "passed": 14,
+    "compile_seconds": 10,
+    "test_seconds": 55
+  },
+  "source_conformance": {
+    "size_failures": 89,
+    "authority_failures": 6
+  }
+}

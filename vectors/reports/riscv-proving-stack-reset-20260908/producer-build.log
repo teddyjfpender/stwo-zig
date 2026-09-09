@@ -1,0 +1,24 @@
+
+Build Summary: 3/3 steps succeeded
+install-ethereum-prepared-leaf-metal-v1 success
++- install ethereum-prepared-leaf-metal-v1 success
+   +- compile exe ethereum-prepared-leaf-metal-v1 ReleaseSafe native success 1m MaxRSS:5G
+
+      110.00 real       105.12 user         4.31 sys
+          5547491328  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              442515  page reclaims
+                 570  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                8239  voluntary context switches
+               68261  involuntary context switches
+           213012919  instructions retired
+            88078686  cycles elapsed
+             9552448  peak memory footprint

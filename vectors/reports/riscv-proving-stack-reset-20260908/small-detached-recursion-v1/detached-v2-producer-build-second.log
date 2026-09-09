@@ -1,0 +1,11 @@
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/build.zig:118:60: error: expected type 'u32', found 'usize'
+                if (std.mem.endsWith(u8, metadata.testName(index), expected_name)) found += 1;
+                                                           ^~~~~
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/build.zig:118:60: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/Build/Step/Run.zig:1724:52: note: parameter type declared here
+    pub fn testName(tm: CachedTestMetadata, index: u32) []const u8 {
+                                                   ^~~
+referenced by:
+    build: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/build.zig:89:25
+    runBuild__anon_79319: /opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/Build.zig:2214:33
+    17 reference(s) hidden; use '-freference-trace=19' to see all references

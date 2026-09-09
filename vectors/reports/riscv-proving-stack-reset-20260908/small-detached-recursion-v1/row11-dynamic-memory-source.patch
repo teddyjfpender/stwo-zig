@@ -1,0 +1,748 @@
+diff --git a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+index 6e6d3004..9eb02835 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+@@ -45,23 +45,23 @@ pub const StatementSemanticsV2 = struct {
+     /// Circuit 44 remains owned by the source-37 publication lane.
+     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
+ 
+-    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
+-    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
++    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 14;
++    pub const PREPROCESSED_COLUMN_COUNT: usize = 22;
+     pub const PARAMETER_COUNT: usize = 0;
+     pub const LOGICAL_INPUT_COUNT: usize =
+         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
+-    pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
+-    pub const RELATION_EVENT_COUNT: usize = 9;
++    pub const DIRECT_CONSTRAINT_COUNT: usize = 23;
++    pub const RELATION_EVENT_COUNT: usize = 11;
+     pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-    pub const INTERACTION_BATCH_COUNT: usize = 5;
+-    pub const INTERACTION_COLUMN_COUNT: usize = 20;
++    pub const INTERACTION_BATCH_COUNT: usize = 6;
++    pub const INTERACTION_COLUMN_COUNT: usize = 24;
+     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+ 
+     // Regenerated from the typed IR by the focused source test. This value is
+     // deliberately pinned before the component can be authenticated.
+     pub const SEMANTIC_DIGEST_HEX =
+-        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
++        "fc0993e7444aaa88049ec7f4ea083da00d5e6a8c7dbacd03641d0b1f8dfa10c9";
+     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
+         SEMANTIC_DIGEST_HEX,
+         "invalid V2 statement-semantics digest",
+@@ -78,6 +78,10 @@ pub const StatementSemanticsV2 = struct {
+         "recursion.segment_leaf_v2.statement_semantics.verifier_a_high_byte",
+         "recursion.segment_leaf_v2.statement_semantics.verifier_b_low_byte",
+         "recursion.segment_leaf_v2.statement_semantics.verifier_b_high_byte",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero",
+     };
+     pub const PREPROCESSED_COLUMN_NAMES =
+         [PREPROCESSED_COLUMN_COUNT][]const u8{
+@@ -100,6 +104,9 @@ pub const StatementSemanticsV2 = struct {
+             "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
+             "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
+             "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
++            "recursion_segment_leaf_v2_statement_semantics_memory_byte_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_memory_low_selector_index",
++            "recursion_segment_leaf_v2_statement_semantics_memory_high_selector_index",
+         };
+     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
+         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
+@@ -117,6 +124,14 @@ pub const StatementSemanticsV2 = struct {
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_a_high_byte_zero",
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_low_byte_zero",
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_high_byte_zero",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse_selector",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero_exact",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_zero_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inactive_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse_selector",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero_exact",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_zero_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inactive_inverse",
+     };
+ 
+     pub const MainColumns = struct {
+@@ -130,6 +145,10 @@ pub const StatementSemanticsV2 = struct {
+         verifier_a_high_byte: types.ValueId,
+         verifier_b_low_byte: types.ValueId,
+         verifier_b_high_byte: types.ValueId,
++        memory_low_inverse: types.ValueId,
++        memory_high_inverse: types.ValueId,
++        memory_low_nonzero: types.ValueId,
++        memory_high_nonzero: types.ValueId,
+ 
+         pub fn physical(
+             self: MainColumns,
+@@ -145,6 +164,10 @@ pub const StatementSemanticsV2 = struct {
+                 self.verifier_a_high_byte,
+                 self.verifier_b_low_byte,
+                 self.verifier_b_high_byte,
++                self.memory_low_inverse,
++                self.memory_high_inverse,
++                self.memory_low_nonzero,
++                self.memory_high_nonzero,
+             };
+         }
+     };
+@@ -169,6 +192,9 @@ pub const StatementSemanticsV2 = struct {
+         register_byte_bridge_mask: types.ValueId,
+         register_low_byte_index: types.ValueId,
+         register_high_byte_index: types.ValueId,
++        memory_byte_bridge_mask: types.ValueId,
++        memory_low_selector_index: types.ValueId,
++        memory_high_selector_index: types.ValueId,
+ 
+         pub fn physical(
+             self: PreprocessedColumns,
+@@ -193,6 +219,9 @@ pub const StatementSemanticsV2 = struct {
+                 self.register_byte_bridge_mask,
+                 self.register_low_byte_index,
+                 self.register_high_byte_index,
++                self.memory_byte_bridge_mask,
++                self.memory_low_selector_index,
++                self.memory_high_selector_index,
+             };
+         }
+     };
+@@ -363,6 +392,10 @@ pub const StatementSemanticsV2 = struct {
+             const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
+             try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
+             try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
++            const memory_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_low_selector_index, self.main.memory_low_nonzero, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[9], 9, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_low_tuple);
++            const memory_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_high_selector_index, self.main.memory_high_nonzero, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[10], 10, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_high_tuple);
+         }
+     };
+ 
+@@ -404,7 +437,7 @@ pub const StatementSemanticsV2 = struct {
+         for (&main_values, MAIN_COLUMN_NAMES, 0..) |*value, name, index|
+             value.* = try arena.input(
+                 name,
+-                if (index == 0) .selector else if (index >= 4) .byte else .felt,
++                if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
+                 span,
+             );
+         const main = MainColumns{
+@@ -418,6 +451,10 @@ pub const StatementSemanticsV2 = struct {
+             .verifier_a_high_byte = main_values[7],
+             .verifier_b_low_byte = main_values[8],
+             .verifier_b_high_byte = main_values[9],
++            .memory_low_inverse = main_values[10],
++            .memory_high_inverse = main_values[11],
++            .memory_low_nonzero = main_values[12],
++            .memory_high_nonzero = main_values[13],
+         };
+         var preprocessed_values: [PREPROCESSED_COLUMN_COUNT]types.ValueId = undefined;
+         for (&preprocessed_values, PREPROCESSED_COLUMN_NAMES, 0..) |
+@@ -426,7 +463,7 @@ pub const StatementSemanticsV2 = struct {
+             index,
+         | value.* = try arena.input(
+             name,
+-            if (index < 9 or index == 15 or index == 16) .selector else .felt,
++            if (index < 9 or index == 15 or index == 16 or index == 19) .selector else .felt,
+             span,
+         );
+         const preprocessed = PreprocessedColumns{
+@@ -449,6 +486,9 @@ pub const StatementSemanticsV2 = struct {
+             .register_byte_bridge_mask = preprocessed_values[16],
+             .register_low_byte_index = preprocessed_values[17],
+             .register_high_byte_index = preprocessed_values[18],
++            .memory_byte_bridge_mask = preprocessed_values[19],
++            .memory_low_selector_index = preprocessed_values[20],
++            .memory_high_selector_index = preprocessed_values[21],
+         };
+         const one = try arena.constantField(1, span);
+         const byte_radix = try arena.constantField(256, span);
+@@ -515,6 +555,17 @@ pub const StatementSemanticsV2 = struct {
+             try arena.mul(inactive_a_u16, main.verifier_a_high_byte, span),
+             try arena.mul(inactive_b_u16, main.verifier_b_low_byte, span),
+             try arena.mul(inactive_b_u16, main.verifier_b_high_byte, span),
++            // For mask=1 these force s=(byte!=0), with a canonical zero
++            // inverse. For mask=0 both extra cells vanish, while unrelated
++            // source bytes remain free. Every root stays quadratic.
++            try arena.sub(try arena.mul(main.source_low_byte, main.memory_low_inverse, span), main.memory_low_nonzero, span),
++            try arena.mul(main.source_low_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
++            try arena.mul(main.memory_low_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
++            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_low_inverse, span),
++            try arena.sub(try arena.mul(main.source_high_byte, main.memory_high_inverse, span), main.memory_high_nonzero, span),
++            try arena.mul(main.source_high_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
++            try arena.mul(main.memory_high_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
++            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_high_inverse, span),
+         };
+         var constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId = undefined;
+         for (&constraints, roots, CONSTRAINT_NAMES) |*constraint, root, name|
+@@ -567,9 +618,11 @@ pub const StatementSemanticsV2 = struct {
+             zero,
+         };
+         // These are the existing range-checked u16 decomposition bytes; the
+-        // admitted preprocessing selects only canonical register-limb rows.
++        // admitted preprocessing selects canonical register and sparse value limbs.
+         const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
+         const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
++        const memory_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_low_selector_index, main.memory_low_nonzero, zero, zero, zero };
++        const memory_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_high_selector_index, main.memory_high_nonzero, zero, zero, zero };
+         const events = [RELATION_EVENT_COUNT]types.EffectId{
+             try relation_effect.append(&arena, .{
+                 .domain = .recursion_statement_word,
+@@ -625,6 +678,8 @@ pub const StatementSemanticsV2 = struct {
+                 .values = &register_high_tuple,
+                 .weight = preprocessed.register_byte_bridge_mask,
+             }, span),
++            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_low_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
++            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_high_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
+         };
+         return .{
+             .arena = arena,
+@@ -646,7 +701,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             index,
+-            if (index == 0) .selector else if (index >= 4) .byte else .felt,
++            if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
+         );
+         for (
+             definition.preprocessed.physical(),
+@@ -657,7 +712,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
+-            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
++            if (local_index < 9 or local_index == 15 or local_index == 16 or local_index == 19) .selector else .felt,
+         );
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+index 179dba53..57ccdbe2 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+@@ -53,7 +53,14 @@ test "SegmentV2 native-sum graph exactly replays all four domains and total" {
+     );
+     try std.testing.expectEqual(@as(u32, 2), source.term_counts.registers_state);
+     try std.testing.expectEqual(native_counts.memory, source.term_counts.memory_access);
+-    try std.testing.expectEqual(native_counts.merkle, source.term_counts.merkle);
++    const canonical = try fixture.owned_public.data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&canonical);
++    var zero_bytes: u32 = 0;
++    for (register_bytes.BYTE_COUNT..memory.byteCount()) |index|
++        zero_bytes += @intFromBool(memory.value(canonical.words, index).isZero());
++    // Graph inventory schedules zero-byte terms too; their exact selectors
++    // make their contribution zero. The native oracle counts active terms.
++    try std.testing.expectEqual(native_counts.merkle + zero_bytes, source.term_counts.merkle);
+     try std.testing.expect(source.term_counts.total() > 0);
+ 
+     const lane = source.loweringLane();
+@@ -75,9 +82,10 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+     defer source.deinit();
+ 
+     const wire_count = fixture.owned_public.data.words().len;
++    const memory = try register_bytes.MemoryLayout.init(&try fixture.owned_public.data.authenticatedView());
+     try std.testing.expectEqual(
+         wire_count + subject.PUBLISHED_WORD_COUNT +
+-            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
++            subject.CHALLENGE_WORD_COUNT + memory.totalBridgeWords(),
+         source.bindings.len,
+     );
+     for (source.bindings, 0..) |binding, index| {
+@@ -120,7 +128,14 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 coordinate.limb,
+             );
+         } else {
+-            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
++            const byte = suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT;
++            if (byte < register_bytes.BYTE_COUNT) {
++                try std.testing.expectEqual(@as(u8, @intCast(byte)), binding.source.register_byte);
++            } else if (byte < memory.byteCount()) {
++                try std.testing.expectEqual(@as(u32, @intCast(byte - register_bytes.BYTE_COUNT)), binding.source.memory_byte);
++            } else {
++                try std.testing.expectEqual(@as(u32, @intCast(byte - memory.byteCount())), binding.source.memory_selector);
++            }
+         }
+     }
+ }
+@@ -654,3 +669,174 @@ test "SegmentV2 native-sum graph independently binds every Span snapshot digest
+     try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
+     try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
+ }
++
++/// Rebuild the complete job and terminal Span after changing actual sparse
++/// memory. This uses canonical admission, never a forged wire or native receipt.
++fn sparseValueCanonicalWords(allocator: std.mem.Allocator, value: u32) ![]M31 {
++    const segment = @import("segment_statement_v2.zig");
++    const span = @import("span_statement.zig");
++    var fixture = try public_data_support.Fixture.init();
++    fixture.right_words[0].final_word = value;
++    const old = fixture.job.complete;
++    var final_state = old.final_state;
++    final_state.rw_memory = segment.snapshotDigest(&fixture.right_words, .final_word).id;
++    fixture.job = try span.JobContext.init(try span.CompleteExecution.init(
++        old.protocol_id,
++        old.program,
++        old.initial_state,
++        final_state,
++        old.public_input,
++        old.public_output,
++        old.total_cycles,
++    ), fixture.job.segment_count);
++    const executed = fixture.statements[1].body.executed;
++    fixture.statements[1] = try span.SpanStatement.segmentLeaf(fixture.job, 1, try span.ExecutedSpan.init(
++        executed.first_segment,
++        executed.segment_count,
++        executed.first_cycle,
++        executed.cycle_count,
++        executed.entry,
++        final_state,
++        executed.input,
++        executed.output,
++    ));
++    const source = fixture.rightSource();
++    try source.validate();
++    const words = try public_data_support.encode(allocator, &source);
++    errdefer allocator.free(words);
++    _ = try segment.authenticateCanonicalWire(words);
++    return words;
++}
++
++test "SegmentV2 native-sum sparse values preserve fixed graph under identical address topology" {
++    const allocator = std.testing.allocator;
++    const segment = @import("segment_statement_v2.zig");
++    const graph_contract = @import("segment_public_native_sum_authority_v2_contract.zig");
++    const graph_builder = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
++    const values = [_]u32{ 13, 14, 269 };
++    var graphs: [values.len]graph_contract.OwnedGraph = undefined;
++    var initialized: usize = 0;
++    defer for (graphs[0..initialized]) |*graph| graph.deinit();
++    var counts: [values.len]graph_contract.TermCountsV2 = undefined;
++    var native_totals: [values.len]QM31 = undefined;
++    var first_words: ?[]M31 = null;
++    defer if (first_words) |words| allocator.free(words);
++    for (values, 0..) |value, index| {
++        const words = try sparseValueCanonicalWords(allocator, value);
++        defer if (index != 0) allocator.free(words);
++        if (index == 0) first_words = words;
++        const view = try segment.authenticateCanonicalWire(words);
++        const baseline = try segment.authenticateCanonicalWire(first_words.?);
++        try std.testing.expectEqual(baseline.words.len, view.words.len);
++        inline for (.{ "entry_snapshot", "exit_snapshot", "entry_memory_clocks", "exit_memory_clocks" }) |field| {
++            const before = @field(baseline, field);
++            const after = @field(view, field);
++            try std.testing.expectEqual(before.count, after.count);
++            for (0..before.count) |row| {
++                // All retained sections begin each row with canonical address
++                // limbs; counts and membership are the admitted topology here.
++                const before_address = baseline.words[before.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                const after_address = view.words[after.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                try std.testing.expectEqualSlices(M31, before_address, after_address);
++            }
++        }
++        var authored = try graph_builder.buildGraph(allocator, &view);
++        defer authored.circuit.deinit();
++        graphs[index] = try graph_contract.OwnedGraph.init(allocator, &authored.circuit);
++        initialized += 1;
++        counts[index] = authored.term_counts;
++        native_totals[index] = try evaluateSparseCanonicalGraph(allocator, &authored.circuit, words);
++    }
++    var plans: [values.len]lowering.Plan = undefined;
++    var plan_count: usize = 0;
++    defer for (plans[0..plan_count]) |*plan| plan.deinit();
++    const companion = lowering.Lane{ .circuit_id = subject.CIRCUIT_ID + 1, .active_in = .binary, .circuit_identity = graphs[0].graph.identity_digest, .graph = graphs[0].graph };
++    for (&graphs, 0..) |*graph, index| {
++        const lanes = [_]lowering.Lane{ .{ .circuit_id = subject.CIRCUIT_ID, .active_in = .segment, .circuit_identity = graph.graph.identity_digest, .graph = graph.graph }, companion };
++        plans[index] = try lowering.Plan.init(allocator, try lowering.Reference.seal(&lanes));
++        plan_count += 1;
++        std.debug.print("SEGMENT_V2_SPARSE_SPECIALIZATION value={d} nodes={d} merkle_terms={d} public_terms={d} graph_sha256={s} native_proof_created=false\n", .{
++            values[index],                                           graph.nodes.len, counts[index].merkle, plans[index].public_terms.len,
++            std.fmt.bytesToHex(graph.graph.identity_digest, .lower),
++        });
++    }
++    // The retained 13/14/269 regression previously changed graph constants
++    // and, when a second byte became nonzero, the operation schedule. All
++    // three now use one graph and fixed lowering anchors. Native sums and
++    // witness evaluation must still respond to the actual values.
++    for (1..values.len) |index| {
++        try std.testing.expectEqualDeep(graphs[0].graph.identity_digest, graphs[index].graph.identity_digest);
++        try std.testing.expectEqualDeep(graphs[0].nodes, graphs[index].nodes);
++        try std.testing.expect(sparseSpecializationTermsEqual(plans[0].public_terms, plans[index].public_terms));
++        try std.testing.expectEqualDeep(plans[0].multiply_rows, plans[index].multiply_rows);
++        try std.testing.expectEqualDeep(plans[0].inverse_rows, plans[index].inverse_rows);
++        try std.testing.expectEqualDeep(plans[0].linear_rows, plans[index].linear_rows);
++        try std.testing.expectEqualDeep(counts[0], counts[index]);
++        try std.testing.expect(!native_totals[0].eql(native_totals[index]));
++    }
++}
++
++fn sparseSpecializationTermsEqual(left: []const lowering.PublicWireTerm, right: []const lowering.PublicWireTerm) bool {
++    if (left.len != right.len) return false;
++    for (left, right) |a, b| if (!std.meta.eql(a, b)) return false;
++    return true;
++}
++
++// Independent input construction for the production graph, using its shared
++// typed coordinates and the native public-sum oracle. No native verification
++// receipt is fabricated just to exercise an arithmetic compiler regression.
++fn evaluateSparseCanonicalGraph(allocator: std.mem.Allocator, circuit: *const @import("arithmetic_circuit.zig").Circuit, words: []const M31) !QM31 {
++    const build = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
++    const data = try public_data_v2.PublicDataV2.authenticate(words);
++    const view = try data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&view);
++    const relations = native_relations.Relations.dummy();
++    const sums = try native_statement.NativePublicSums.init(&data, &relations);
++    const domain_sums = [_]QM31{ sums.sums.registers_state, sums.sums.memory_access, sums.sums.program_access, sums.sums.merkle };
++    const challenges = [_][2]QM31{
++        .{ relations.registers_state.z, relations.registers_state.alpha },
++        .{ relations.memory_access.z, relations.memory_access.alpha },
++        .{ relations.program_access.z, relations.program_access.alpha },
++        .{ relations.merkle.z, relations.merkle.alpha },
++    };
++    const inputs = try allocator.alloc(QM31, circuit.inputNodes().len);
++    defer allocator.free(inputs);
++    for (inputs, 0..) |*input, index| {
++        const coordinate = try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index);
++        const word = switch (coordinate) {
++            .wire_word => |i| words[i],
++            .published_sum_word => |c| domain_sums[@intFromEnum(c.domain)].toM31Array()[c.limb],
++            .published_total_word => |c| sums.total.toM31Array()[c.limb],
++            .native_challenge_word => |c| challenges[@intFromEnum(c.relation)][c.limb / 4].toM31Array()[c.limb % 4],
++            .register_byte => |i| register_bytes.value(words, i),
++            .memory_byte => |i| memory.value(words, register_bytes.BYTE_COUNT + i),
++            .memory_selector => |i| M31.fromCanonical(@intFromBool(!memory.value(words, register_bytes.BYTE_COUNT + i).isZero())),
++        };
++        input.* = QM31.fromBase(word);
++    }
++    var evaluation = try circuit.evaluate(allocator, inputs);
++    defer evaluation.deinit();
++    try std.testing.expect(try circuit.outputsAreZero(evaluation.values));
++    var byte_input: ?usize = null;
++    var selector_input: ?usize = null;
++    for (inputs, 0..) |_, index| {
++        switch (try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index)) {
++            .memory_byte => |i| if (i == 0) {
++                byte_input = index;
++            },
++            .memory_selector => |i| if (i == 0) {
++                selector_input = index;
++            },
++            else => {},
++        }
++    }
++    for ([_]usize{ byte_input.?, selector_input.? }) |index| {
++        const saved = inputs[index];
++        defer inputs[index] = saved;
++        inputs[index] = if (index == selector_input.?) QM31.zero() else saved.add(QM31.one());
++        var changed = try circuit.evaluate(allocator, inputs);
++        defer changed.deinit();
++        try std.testing.expect(!try circuit.outputsAreZero(changed.values));
++    }
++    return sums.total;
++}
+diff --git a/src/frontends/riscv/recursion/segment_range_authority_v2.zig b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+index 31252ed6..e2592244 100644
+--- a/src/frontends/riscv/recursion/segment_range_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+@@ -89,7 +89,7 @@ pub const SourceAuthorityV2 = struct {
+             self.table_size != lookup_schema.size(self.table_kind) or
+             // The appended byte exports are recursion_wire events; request
+             // ordinals3/4/5 remain the complete three-lane range source.
+-            statement.Air.RELATION_EVENT_COUNT != 9 or
++            statement.Air.RELATION_EVENT_COUNT != 11 or
+             !statement.ROW_35_REQUEST_SET_COMPLETE)
+         {
+             return error.InvalidSourceAuthority;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+index 75d8ac4d..9b168fcd 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+@@ -34,9 +34,9 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
+     Air.authenticate,
+ )).@"fn".return_type.?).error_union.error_set;
+ 
+-pub const FORMAT_VERSION: u16 = 4;
+-pub const SCHEMA_VERSION: u16 = 3;
+-pub const MANIFEST_VERSION: u16 = 4;
++pub const FORMAT_VERSION: u16 = 5;
++pub const SCHEMA_VERSION: u16 = 4;
++pub const MANIFEST_VERSION: u16 = 5;
+ pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
+ pub const ROUTING_ROW_11: u8 =
+     @intFromEnum(roster.Component.statement_semantics_input);
+@@ -125,6 +125,10 @@ pub const ClosureLedgerV2 = struct {
+     row15_boundary_wire_consumes: u32,
+     row11_register_byte_emits: u32,
+     row15_register_byte_consumes: u32,
++    row11_memory_byte_emits: u32,
++    row15_memory_byte_consumes: u32,
++    row11_memory_selector_emits: u32,
++    row15_memory_selector_consumes: u32,
+     boundary_bridge_circuit_id: u32 = Air.BOUNDARY_BRIDGE_CIRCUIT_ID,
+     source37_custom_logup_consumes: u32 = source_v2.LOGUP_PUBLICATION_WORD_COUNT,
+     source37_verifier_id: u32 = source_v2.SEGMENT_V2_VERIFIER_ID,
+@@ -148,6 +152,10 @@ pub const ClosureLedgerV2 = struct {
+                 self.row15_boundary_wire_consumes or
+             self.row11_register_byte_emits != register_bytes.BYTE_COUNT or
+             self.row15_register_byte_consumes != self.row11_register_byte_emits or
++            self.row11_memory_byte_emits % 4 != 0 or
++            self.row15_memory_byte_consumes != self.row11_memory_byte_emits or
++            self.row11_memory_selector_emits != self.row11_memory_byte_emits or
++            self.row15_memory_selector_consumes != self.row11_memory_selector_emits or
+             self.boundary_bridge_circuit_id !=
+                 public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID or
+             self.source37_custom_logup_consumes !=
+@@ -175,8 +183,8 @@ comptime {
+         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
+         VM_PUBLIC_LOGUP_ROW_16 != 16 or
+         HEADER_LIMB_COUNT != 8 or
+-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 9 or
+-        Air.INTERACTION_BATCH_COUNT != 5 or Air.INTERACTION_COLUMN_COUNT != 20 or
++        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 11 or
++        Air.INTERACTION_BATCH_COUNT != 6 or Air.INTERACTION_COLUMN_COUNT != 24 or
+         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
+             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
+     {
+@@ -211,6 +219,7 @@ pub const ManifestV2 = struct {
+     range_provider_row_35: u8 = RANGE_PROVIDER_ROW_35,
+     wire_word_count: u32,
+     register_byte_count: u32 = register_bytes.BYTE_COUNT,
++    memory_byte_count: u32,
+     context_word_count: u32 = source_v2.CONTEXT_WORD_COUNT,
+     header_limb_count: u32 = HEADER_LIMB_COUNT,
+     logical_row_count: u32,
+@@ -236,6 +245,7 @@ pub const ManifestV2 = struct {
+             self.range_provider_row_35 != RANGE_PROVIDER_ROW_35 or
+             self.context_word_count != source_v2.CONTEXT_WORD_COUNT or
+             self.register_byte_count != register_bytes.BYTE_COUNT or
++            self.memory_byte_count % 4 != 0 or self.memory_byte_count > self.wire_word_count or
+             self.header_limb_count != HEADER_LIMB_COUNT or
+             self.wire_id_limb_request_count != WIRE_ID_LIMB_COUNT or
+             !self.range_request_source_complete or
+@@ -295,6 +305,9 @@ pub const PreprocessedRowV2 = struct {
+     register_byte_bridge_mask: u32 = 0,
+     register_low_byte_index: u32 = 0,
+     register_high_byte_index: u32 = 0,
++    memory_byte_bridge_mask: u32 = 0,
++    memory_low_selector_index: u32 = 0,
++    memory_high_selector_index: u32 = 0,
+ 
+     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
+         return .{
+@@ -317,6 +330,9 @@ pub const PreprocessedRowV2 = struct {
+             felt(self.register_byte_bridge_mask),
+             felt(self.register_low_byte_index),
+             felt(self.register_high_byte_index),
++            felt(self.memory_byte_bridge_mask),
++            felt(self.memory_low_selector_index),
++            felt(self.memory_high_selector_index),
+         };
+     }
+ };
+@@ -332,6 +348,10 @@ pub const MainRowV2 = struct {
+     verifier_a_high_byte: M31,
+     verifier_b_low_byte: M31,
+     verifier_b_high_byte: M31,
++    memory_low_inverse: M31 = M31.zero(),
++    memory_high_inverse: M31 = M31.zero(),
++    memory_low_nonzero: M31 = M31.zero(),
++    memory_high_nonzero: M31 = M31.zero(),
+ 
+     pub fn values(self: MainRowV2) [Air.PHYSICAL_MAIN_COLUMN_COUNT]M31 {
+         return .{
+@@ -345,6 +365,10 @@ pub const MainRowV2 = struct {
+             self.verifier_a_high_byte,
+             self.verifier_b_low_byte,
+             self.verifier_b_high_byte,
++            self.memory_low_inverse,
++            self.memory_high_inverse,
++            self.memory_low_nonzero,
++            self.memory_high_nonzero,
+         };
+     }
+ };
+@@ -467,6 +491,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     hash.scalar(manifest.range_provider_row_35);
+     hash.u32Value(manifest.wire_word_count);
+     hash.u32Value(manifest.register_byte_count);
++    hash.u32Value(manifest.memory_byte_count);
+     hash.u32Value(manifest.context_word_count);
+     hash.u32Value(manifest.header_limb_count);
+     hash.u32Value(manifest.logical_row_count);
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+index 5c305e3c..ec44810d 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+@@ -200,6 +200,10 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
+         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
+         .row11_register_byte_emits = prepared.manifest.register_byte_count,
+         .row15_register_byte_consumes = prepared.manifest.register_byte_count,
++        .row11_memory_byte_emits = prepared.manifest.memory_byte_count,
++        .row15_memory_byte_consumes = prepared.manifest.memory_byte_count,
++        .row11_memory_selector_emits = prepared.manifest.memory_byte_count,
++        .row15_memory_selector_consumes = prepared.manifest.memory_byte_count,
+     };
+     try result.validate();
+     return result;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+index 29ba8b80..4a4e29f2 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+@@ -148,6 +148,7 @@ pub fn deriveManifest(
+     if (log_size >= 31) return error.InvalidManifest;
+     var result = ManifestV2{
+         .wire_word_count = wire_count,
++        .memory_byte_count = @intCast((try dependency_0.register_bytes.MemoryLayout.init(&view)).memoryByteCount()),
+         .logical_row_count = logical_rows,
+         .trace_log_size = log_size,
+         .trace_row_count = @as(u32, 1) << @intCast(log_size),
+@@ -237,9 +238,16 @@ pub fn wireRow(
+ ) LogicalRowV2 {
+     const value = view.words[index];
+     const is_u16 = wireWordIsU16(view, index);
+-    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
++    const memory = dependency_0.register_bytes.MemoryLayout.init(view) catch unreachable;
++    const memory_byte = memory.firstByteIndexForWireWord(index);
++    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
+     std.debug.assert(register_byte == null or is_u16);
+     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
++    const hint_recipe = @import("../air/lang/hint_recipe.zig");
++    var low_hint: [2]u32 = undefined;
++    var high_hint: [2]u32 = undefined;
++    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[0].toU32() else 0}, &low_hint) catch unreachable;
++    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[1].toU32() else 0}, &high_hint) catch unreachable;
+     return .{
+         .preprocessing = .{
+             .row_mask = 1,
+@@ -259,8 +267,11 @@ pub fn wireRow(
+             .expected_header = 0,
+             .boundary_bridge_mask = 1,
+             .register_byte_bridge_mask = @intFromBool(register_byte != null),
+-            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
+-            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
++            .register_low_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte) else 0,
++            .register_high_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte + 1) else 0,
++            .memory_byte_bridge_mask = @intFromBool(memory_byte != null),
++            .memory_low_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte)) else 0,
++            .memory_high_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte + 1)) else 0,
+         },
+         .main = .{
+             .enabler = M31.one(),
+@@ -269,6 +280,10 @@ pub fn wireRow(
+             .verifier_b = M31.zero(),
+             .source_low_byte = bytes[0],
+             .source_high_byte = bytes[1],
++            .memory_low_inverse = felt(low_hint[0]),
++            .memory_high_inverse = felt(high_hint[0]),
++            .memory_low_nonzero = felt(low_hint[1]),
++            .memory_high_nonzero = felt(high_hint[1]),
+             .verifier_a_low_byte = M31.zero(),
+             .verifier_a_high_byte = M31.zero(),
+             .verifier_b_low_byte = M31.zero(),
+@@ -399,6 +414,16 @@ pub fn writeEvents(
+             main.source_high_byte,                M31.zero(),
+             M31.zero(),                           M31.zero(),
+         }),
++        event(logical_row, 9, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_low_selector_index),
++            main.memory_low_nonzero,              M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
++        event(logical_row, 10, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_high_selector_index),
++            main.memory_high_nonzero,             M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
+     };
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+index bc0767de..9dfd38b4 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+@@ -183,6 +183,10 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     var boundary_wire_emits: usize = 0;
+     var register_byte_emits: usize = 0;
+     var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
++    const memory = try register_bytes.MemoryLayout.init(&try fixture.data.authenticatedView());
++    const seen_memory = try std.testing.allocator.alloc(bool, memory.memoryByteCount() * 2);
++    defer std.testing.allocator.free(seen_memory);
++    @memset(seen_memory, false);
+     for (owned.events) |event| {
+         try event.validate();
+         if (event.multiplicity == 0) continue;
+@@ -212,14 +216,35 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+             const coordinate = event.tuple[1].toU32();
+             try std.testing.expect(coordinate >= fixture.words.len);
+             const byte_index = coordinate - fixture.words.len;
+-            try std.testing.expect(byte_index < register_bytes.BYTE_COUNT);
++            if (byte_index >= register_bytes.BYTE_COUNT) {
++                try std.testing.expect(byte_index < memory.byteCount());
++                const offset = byte_index - register_bytes.BYTE_COUNT;
++                try std.testing.expect(!seen_memory[offset]);
++                seen_memory[offset] = true;
++                try std.testing.expect(event.tuple[2].eql(memory.value(fixture.words, byte_index)));
++                continue;
++            }
+             try std.testing.expect(!seen_register_bytes[byte_index]);
+             seen_register_bytes[byte_index] = true;
+             try std.testing.expect(event.tuple[2].eql(register_bytes.value(fixture.words, byte_index)));
+             try std.testing.expect(event.tuple[3].isZero() and event.tuple[4].isZero() and event.tuple[5].isZero());
+             register_byte_emits += 1;
+         }
++        if (event.ordinal == 9 or event.ordinal == 10) {
++            const coordinate = event.tuple[1].toU32() - fixture.words.len;
++            try std.testing.expect(coordinate >= memory.byteCount() and coordinate < memory.totalBridgeWords());
++            const offset = coordinate - register_bytes.BYTE_COUNT;
++            try std.testing.expect(!seen_memory[offset]);
++            seen_memory[offset] = true;
++            const byte_index = coordinate - memory.memoryByteCount();
++            try std.testing.expectEqual(@as(u32, @intFromBool(!memory.value(fixture.words, byte_index).isZero())), event.tuple[2].toU32());
++        }
+     }
++    for (seen_memory) |seen| try std.testing.expect(seen);
++    try std.testing.expectEqual(memory.memoryByteCount(), closure.row11_memory_byte_emits);
++    var missing_selector = closure;
++    missing_selector.row11_memory_selector_emits -= 1;
++    try std.testing.expectError(error.SourceMismatch, missing_selector.validate());
+     try std.testing.expectEqual(
+         fixture.words.len + source_v2.CONTEXT_WORD_COUNT,
+         source_consumes,
+@@ -533,3 +558,35 @@ test "V2 row-11 register byte bridge reuses constrained decomposition" {
+     try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
+     try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
+ }
++
++test "V2 row-11 sparse bytes constrain exact nonzero selectors" {
++    const rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
++    var fixture = try Fixture.init(std.testing.allocator);
++    defer fixture.deinit();
++    const view = try fixture.data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&view);
++    var authority = try subject.AuthorityV2.init(std.testing.allocator);
++    defer authority.deinit();
++    var workspace = subject.WorkspaceV2{};
++    var saw_zero = false;
++    var saw_nonzero = false;
++    for (register_bytes.BYTE_COUNT..memory.byteCount()) |byte_index| {
++        const row = rows.wireRow(&view, memory.wireWordIndex(byte_index));
++        try rows.validateDirectRow(&workspace, &authority, row.runtime());
++        const byte = memory.value(view.words, byte_index);
++        saw_zero = saw_zero or byte.isZero();
++        saw_nonzero = saw_nonzero or !byte.isZero();
++        inline for (.{ "source_low_byte", "source_high_byte", "memory_low_inverse", "memory_high_inverse", "memory_low_nonzero", "memory_high_nonzero" }) |field| {
++            var changed = row;
++            @field(changed.main, field) = @field(changed.main, field).add(M31.one());
++            try std.testing.expectError(error.DirectConstraintFailure, rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++        }
++    }
++    try std.testing.expect(saw_zero and saw_nonzero);
++    const ordinary = rows.wireRow(&view, register_bytes.wireWordIndex(0));
++    inline for (.{ "memory_low_inverse", "memory_high_inverse", "memory_low_nonzero", "memory_high_nonzero" }) |field| {
++        var changed = ordinary;
++        @field(changed.main, field) = M31.one();
++        try std.testing.expectError(error.DirectConstraintFailure, rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++    }
++}

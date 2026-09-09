@@ -2,6 +2,8 @@ const std = @import("std");
 const shader_manifest = @import("shader_manifest");
 const core_aot = shader_manifest.core_aot;
 
+pub const Profile = core_aot.Profile;
+
 pub const format = core_aot.format;
 pub const source_filename = core_aot.source_filename;
 pub const manifest_filename = core_aot.manifest_filename;
@@ -21,13 +23,17 @@ pub fn renderManifest(allocator: std.mem.Allocator, evidence: ?BuildEvidence) ![
 }
 
 pub fn emit(allocator: std.mem.Allocator, output_dir: []const u8) !void {
+    return emitForProfile(allocator, output_dir, .core_v2);
+}
+
+pub fn emitForProfile(allocator: std.mem.Allocator, output_dir: []const u8, profile: Profile) !void {
     try verifyAuthority();
-    const manifest_bytes = try renderManifest(allocator, null);
+    const manifest_bytes = try core_aot.renderManifestForProfile(allocator, null, profile);
     defer allocator.free(manifest_bytes);
 
     var directory = try std.fs.cwd().makeOpenPath(output_dir, .{});
     defer directory.close();
-    try writeAtomic(directory, source_filename, source());
+    try writeAtomic(directory, source_filename, profile.source());
     try writeAtomic(directory, manifest_filename, manifest_bytes);
 }
 
@@ -36,16 +42,20 @@ pub fn finalizeBuild(
     output_dir: []const u8,
     toolchain: shader_manifest.build_contract.ToolchainIdentity,
 ) !BuildMeasurements {
+    return finalizeBuildForProfile(allocator, output_dir, toolchain, .core_v2);
+}
+
+pub fn finalizeBuildForProfile(allocator: std.mem.Allocator, output_dir: []const u8, toolchain: shader_manifest.build_contract.ToolchainIdentity, profile: Profile) !BuildMeasurements {
     var directory = try std.fs.cwd().openDir(output_dir, .{});
     defer directory.close();
     const measurements: BuildMeasurements = .{
         .air = try measure(directory, air_filename),
         .metallib = try measure(directory, metallib_filename),
     };
-    const manifest_bytes = try renderManifest(allocator, .{
+    const manifest_bytes = try core_aot.renderManifestForProfile(allocator, .{
         .measurements = measurements,
         .toolchain = toolchain,
-    });
+    }, profile);
     defer allocator.free(manifest_bytes);
     const trust_anchor = try core_aot.renderManifestTrustAnchor(allocator, manifest_bytes);
     defer allocator.free(trust_anchor);

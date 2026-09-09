@@ -1,0 +1,30 @@
+test-recursion-segment-statement-source-v2
++- stwo_riscv_frontend test count floor
+   +- run test 1/5 passed, 4 failed
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 statement source has a pinned typed authority' failed: slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+5A 48 29 35 0C 9E 0E 0B  8F 8A AC AF 0F A8 A6 04  ZH)5............
+2D A9 65 D3 70 B2 AC 1D  AE A0 A0 78 0E 58 59 41  -.e.p......x.XYA
+
+============= instead found this: ==============  len: 32 (0x20)
+
+FC 09 93 E7 44 4A AA 88  04 9E C7 F4 EA 08 3D A0  .␉..DJ........=.
+0D 5E 6A 8C 7D BA CD 03  64 1D 0B 1F 8D FA 10 C9  ␍^j.}...d.......
+
+================================================
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 closes boundary words and exact ProgramV2 statement payloads' failed
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 register byte bridge reuses constrained decomposition' failed
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 sparse bytes constrain exact nonzero selectors' failed
+error: while executing test 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 sparse bytes constrain exact nonzero selectors', the following test command failed:
+./.zig-cache/o/215811212a4222050f0670fbb7be48fd/test --cache-dir=./.zig-cache --seed=0xbf22542d --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/5 tests passed; 4 failed
+test-recursion-segment-statement-source-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 1/5 passed, 4 failed
+      +- compile test ReleaseSafe native success 13s MaxRSS:986M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/7c749f3fcc475c8a64bb8d45cbaecee9/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xbf22542d -Z76e70f17b07a891b --maxrss 25769803776 -j1 test-recursion-segment-statement-source-v2 -Doptimize=ReleaseSafe --summary all

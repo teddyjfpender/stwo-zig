@@ -15,6 +15,7 @@ pub const Cpu = @import("../runner/cpu.zig").Cpu;
 pub const channel = @import("poseidon2_channel.zig");
 pub const protocol = @import("protocol.zig");
 pub const span_statement = @import("span_statement.zig");
+const identity_preimage = @import("segment_statement_v2_identity_preimage.zig");
 
 pub const Digest = channel.Digest;
 pub const BaseStatementWords = span_statement.StatementWords;
@@ -112,6 +113,7 @@ pub const Error = span_statement.Error || error{
     CanonicalPaddingNonZero,
     CanonicalTagMismatch,
     CanonicalWordNonCanonical,
+    ClockFrameMismatch,
     CompletionForbidden,
     CompletionMissing,
     CompletionMismatch,
@@ -249,6 +251,12 @@ pub const StatementV2 = struct {
         const decoded_base = try self.base();
         const executed = try executedLeaf(decoded_base);
         const range = try statementRange(decoded_base, executed);
+        // Snapshot identities are recomputed from the retained canonical
+        // sections by wire admission. Bind the Span's public boundary to them.
+        if (!std.meta.eql(executed.entry.rw_memory, self.entry_snapshot_id) or
+            !std.meta.eql(executed.exit.rw_memory, self.exit_snapshot_id))
+            return error.MemorySnapshotMismatch;
+
         const expected_job_id = jobIdAssumeCanonical(&self.base_statement_words);
         const expected_base_id = baseStatementIdAssumeCanonical(
             &self.base_statement_words,
@@ -424,18 +432,18 @@ pub fn clockWithinBoundary(clock: u32, cycle: u32, allow_zero: bool) bool {
     return access_clock.isWithinExecution(clock, cycle, allow_zero);
 }
 
+fn hashIdentity(input: identity_preimage.Input) Digest {
+    var hasher = IdentityHasher.init(identity_preimage.domain(std.meta.activeTag(input)));
+    identity_preimage.emit(&hasher, input);
+    return hasher.finalize();
+}
+
 pub fn jobIdAssumeCanonical(words: *const BaseStatementWords) Digest {
-    return channel.hashCanonicalWords(
-        words[span_statement.canonical_layout.job_start..span_statement.canonical_layout.slot_start],
-        JOB_ID_DOMAIN,
-    );
+    return hashIdentity(.{ .job = words });
 }
 
 pub fn baseStatementIdAssumeCanonical(words: *const BaseStatementWords) Digest {
-    var canonical: [V1_PROJECTION_WORD_COUNT]u32 = undefined;
-    for (&canonical, words) |*destination, word|
-        destination.* = word.toU32();
-    return protocol.statementId(&canonical);
+    return hashIdentity(.{ .base_statement = words });
 }
 
 pub fn derivePositionId(
@@ -446,18 +454,14 @@ pub fn derivePositionId(
     range: RangeV2,
     slots: span_statement.SlotSpan,
 ) Digest {
-    var hasher = IdentityHasher.init(POSITION_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.u32Value(segment_index);
-    hasher.u32Value(segment_count);
-    hasher.u32Value(range.start);
-    hasher.u32Value(range.end);
-    hasher.u64Value(slots.first);
-    hasher.scalar(slots.height);
-    hasher.u64Value(slots.nodeIndex());
-    return hasher.finalize();
+    return hashIdentity(.{ .position = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .segment_index = segment_index,
+        .segment_count = segment_count,
+        .range = range,
+        .slots = slots,
+    } });
 }
 
 pub fn deriveBoundaryLineageId(
@@ -471,20 +475,18 @@ pub fn deriveBoundaryLineageId(
     memory_clock_id: Digest,
     memory_clock_count: u32,
 ) Digest {
-    var hasher = IdentityHasher.init(BOUNDARY_LINEAGE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.u32Value(boundary_index);
-    hasher.u32Value(cycle);
-    hasher.m31s(machine_words);
-    hasher.digest(snapshot.id);
-    hasher.u32Value(snapshot.count);
-    hasher.scalar(snapshot.root);
-    for (register_clocks) |clock| hasher.u32Value(clock);
-    hasher.digest(memory_clock_id);
-    hasher.u32Value(memory_clock_count);
-    return hasher.finalize();
+    std.debug.assert(machine_words.len == span_statement.MACHINE_STATE_CANONICAL_WORDS);
+    return hashIdentity(.{ .entry_lineage = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .boundary_index = boundary_index,
+        .cycle = cycle,
+        .machine_words = machine_words[0..span_statement.MACHINE_STATE_CANONICAL_WORDS],
+        .snapshot = snapshot,
+        .register_clocks = register_clocks,
+        .memory_clock_id = memory_clock_id,
+        .memory_clock_count = memory_clock_count,
+    } });
 }
 
 pub fn deriveSegmentLineageId(
@@ -495,15 +497,14 @@ pub fn deriveSegmentLineageId(
     exit_lineage_id: Digest,
     base_statement_id: Digest,
 ) Digest {
-    var hasher = IdentityHasher.init(SEGMENT_LINEAGE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.digest(position_id);
-    hasher.digest(entry_lineage_id);
-    hasher.digest(exit_lineage_id);
-    hasher.digest(base_statement_id);
-    return hasher.finalize();
+    return hashIdentity(.{ .lineage = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .position_id = position_id,
+        .entry_lineage_id = entry_lineage_id,
+        .exit_lineage_id = exit_lineage_id,
+        .base_statement_id = base_statement_id,
+    } });
 }
 
 pub fn writeCompletion(writer: *Writer, completion: ?CompletionV2) void {

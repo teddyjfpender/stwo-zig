@@ -1,0 +1,24 @@
+{
+  "scope": "strict rejection, authenticated framework export/device parity, hybrid complete proof preservation, local formal checks and PCS cleanup; production strict positive gate pending",
+  "passed": true,
+  "evidence_sha256": {
+    "backend-boundary-tests-final.log": "e654306c485212b6245ab57e3c753cc68af413ea9dc667d454915e03b1266ebf",
+    "framework-codegen-tests.log": "3aaebdc9d0e618308879d93f48b5832c0e093408bfc19db70212d06541e9d276",
+    "framework-device-expanded-tests.log": "8b02971fc57cae9bcd47eadd2f5fb84288eb5a803dad43f98ab231a25f4d6694",
+    "pcs-commitment-tests-final.log": "3d5d9c9d8823bf2e9be048bc38bee30a4155bc7291cf0afabe5b2a6982cd4f56",
+    "final-producers-build.log": "167ad0123517b2626aae95c55ef7437e9afe8b7a8c8ec8187d18adb5b8725217",
+    "final-formal-check.json": "21ae0246cf1e244774ad4ffafa60260fbc1adb48aa3aa750d8906476ea3cf35b",
+    "final-tree-checkpoint.json": "ce34cfb8b1518a538a8166ccd9209b2c8c7eaa6502b63be544bf0e3a5d653089",
+    "final-strict-parent-rejections.json": "415d37d4fbcd79d1c8e134e575fe1521d828b6d67ba8a77e8a5521dd8383e035",
+    "post-proof-check-source-snapshot.json": "cd7e0ba01a4e61055c8f2f0ecf8fe71dd222f04acc68e7f8d0650f073e92b8b6"
+  },
+  "checks": {
+    "backend_boundary": 18,
+    "framework_export": 32,
+    "expanded_device": 10,
+    "pcs_commitments": 161,
+    "local_formal_theorems": 10,
+    "complete_tree_fresh_cases": 136,
+    "byte_identical_tree_artifacts": 21
+  }
+}

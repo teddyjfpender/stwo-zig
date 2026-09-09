@@ -1,0 +1,24 @@
+{
+  "status": "native_diagnostic_freshly_verified",
+  "proof_identical_to_accepted_segment19": true,
+  "proof_sha256": "0db6f28766333703ed2f55d6f16757c28e0843c61db870d728455dce960046a6",
+  "keccak_component_index": 112,
+  "keccak_eval_rows": 524288,
+  "keccak_constraints": 7215,
+  "keccak_seconds": 278.71826325,
+  "composition_seconds": 311.785765875,
+  "keccak_composition_share": 0.8939415898856099,
+  "proving_seconds": 410.729736333,
+  "keccak_proving_share": 0.6785928521718442,
+  "producer_request_seconds": 531.1739939171821,
+  "fresh_verifier_request_seconds": 64.65074545890093,
+  "peak_process_footprint_bytes": 31878078080,
+  "all_wall_phases_accounted": true,
+  "csp_ab_complete": false,
+  "speedup_claim": false,
+  "remaining_attribution": [
+    "Per-component allocation ownership at peak; process snapshots only currently.",
+    "Synchronous device call setup and waits beyond device execution time.",
+    "Capture admission subphases and duplicate public-wire authentication."
+  ]
+}

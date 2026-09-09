@@ -23,8 +23,14 @@ pub const Error = manifest_mod.Error || error{
 pub const LogSizes = [roster.COMPONENT_COUNT]u32;
 
 pub fn build(log_sizes: LogSizes) Error!manifest_mod.Manifest {
+    return buildForCatalog(catalog, log_sizes);
+}
+
+/// Explicit versioned profiles may replace logical AIRs without changing the
+/// default universal roster. Each selected AIR seals its own exact geometry.
+pub fn buildForCatalog(comptime Catalog: type, log_sizes: LogSizes) Error!manifest_mod.Manifest {
     var builder = manifest_mod.Builder{};
-    inline for (catalog.LOGICAL_ROWS) |entry|
+    inline for (Catalog.LOGICAL_ROWS) |entry|
         try appendTyped(&builder, entry.Air, entry.row, log_sizes);
 
     const poseidon_log = rowLogSize(log_sizes, .poseidon2);

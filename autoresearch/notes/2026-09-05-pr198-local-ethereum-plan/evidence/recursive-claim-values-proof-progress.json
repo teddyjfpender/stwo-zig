@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "pending_sessions": [],
+  "log": "recursive-claim-values-proof.log",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/universal_adapter_manifest.zig": "008e02061039e9bacd7514b49733f44decf2c27f3fa8b8aa5ef69e608ce482e7",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig": "5a09acf556bf3eeee8b0d5bd3d4557085bef3c767dbeb066d5850f477583c39e",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_manifest_v2.zig": "223fa91df37a689f6d82e6d203d22e63ff4c2d27d5fc7b9c4f1a1378e9c4d215",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "888426c5764f08c46bff5256626ab6d24e0e415fa45a2d5b13ecf0ae5db8afd9",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "c68a04a08d9b89bca3ab509fd7aa4a8b5349bc055e41cce1e1075735dcd5ee60",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "80f282102b037c780da0f5b18cc09b449dedc6154616dd466080af16da7ca16f",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "a473cd44e81ab84a559b0354447d6deef6466efd827a50b3774376ca1bb59c54",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "62b7e52aaa5182a4fcac519ebcd3f11309d7401cbc6540887d7329a745f04a8f",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "a79fcaa849d57b667f0fecc1ef77a521f0afeee28bf0fcde1ca6bc695f3b7661",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "1788676e002413cefe8beddf6f9710d041b4aa5a8b71e5f6ffeda5a43494c3c7",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "8c80cc8203fb31c5a42dd7c32c7cd0bcb0fa38d15da8265ed261db50700e3ee1",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "133d21728088250d7c4dc69de5cb9a99cff091038d618955c8185ef12861c881",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "bb66bf0327f11bbdcbae9068b3eb5ce202d5ea7ca80799f5106389162bc98231",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "309f8be6132249797dac4bf90c0aa6c19648d451d5cc49774831af972d7d01df"
+  },
+  "common_fold_cohort_schema": 7,
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "scope": "Omit redundant common-fold claim seal, pin canonical-empty preprocessing key in AIR, preserve explicit claim/subclaim and statement binding. Session SHA and native boundary dependencies remain.",
+  "verified": {
+    "steps": "4/4",
+    "tests": "1/1",
+    "test_time": "12m",
+    "test_max_rss": "9G",
+    "compile_time": "1m",
+    "compile_max_rss": "5G",
+    "producer_destroyed": true,
+    "fresh_verification": true,
+    "canonical_preprocessed_root_fixed_in_air": true,
+    "preserving_total_partial_mutation_rejected": true,
+    "operations": 182,
+    "frames": 184,
+    "permutations": 1764,
+    "queries": 193
+  }
+}

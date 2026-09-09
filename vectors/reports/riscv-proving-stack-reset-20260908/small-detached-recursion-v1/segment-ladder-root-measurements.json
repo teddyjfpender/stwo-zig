@@ -1,0 +1,103 @@
+{
+  "scope": "Actual recursive four/eight-segment development roots. Totals are sums of separate observed stages, not a single controller wall-time benchmark. Metal rows reuse CPU aggregation timings; actual leaf artifacts are identical. Production security and quiet-host CSP promotion pending.",
+  "rows": [
+    {
+      "segments": 4,
+      "node": "root",
+      "request_ms": 3908.548708,
+      "preparation_ms": 377.9255,
+      "key_preparation_ms": 237.636458,
+      "proof_ms": 3257.97325,
+      "verify_ms": 12.382,
+      "proof_bytes": 90169,
+      "max_rss_bytes": 688193536,
+      "fresh_gate_cases": 25,
+      "key_sha256": "d87edd48e6614a4b38deebe7328b394a6bd8b322fd913c81af832d97364ba300",
+      "evidence": "segment-ladder-cpu-4-root-first"
+    },
+    {
+      "segments": 8,
+      "node": "level2-0",
+      "request_ms": 3927.247667,
+      "preparation_ms": 377.591625,
+      "key_preparation_ms": 239.524542,
+      "proof_ms": 3276.787583,
+      "verify_ms": 10.172041,
+      "proof_bytes": 91339,
+      "max_rss_bytes": 688291840,
+      "fresh_gate_cases": 25,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "evidence": "segment-ladder-cpu-8-level2-0-first"
+    },
+    {
+      "segments": 8,
+      "node": "level2-1",
+      "request_ms": 3943.894041,
+      "preparation_ms": 407.165666,
+      "key_preparation_ms": 232.390417,
+      "proof_ms": 3269.452083,
+      "verify_ms": 10.207875,
+      "proof_bytes": 91738,
+      "max_rss_bytes": 688275456,
+      "fresh_gate_cases": 25,
+      "key_sha256": "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+      "evidence": "segment-ladder-cpu-8-level2-1-first"
+    },
+    {
+      "segments": 8,
+      "node": "root",
+      "request_ms": 3915.177459,
+      "preparation_ms": 384.247166,
+      "key_preparation_ms": 242.072084,
+      "proof_ms": 3256.266125,
+      "verify_ms": 9.778042,
+      "proof_bytes": 85923,
+      "max_rss_bytes": 688144384,
+      "fresh_gate_cases": 25,
+      "key_sha256": "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09",
+      "evidence": "segment-ladder-cpu-8-root-first"
+    }
+  ],
+  "stage_sums": [
+    {
+      "segments": 4,
+      "native_backend": "cpu",
+      "parent_backend": "cpu",
+      "leaf_production_ms": 15239.898666040972,
+      "aggregation_request_sum_ms": 11669.910834,
+      "stage_sum_ms": 26909.809500040974,
+      "aggregation_proofs": 3,
+      "final_verify_ms": 12.382
+    },
+    {
+      "segments": 4,
+      "native_backend": "metal",
+      "parent_backend": "cpu",
+      "leaf_production_ms": 12168.118000030518,
+      "aggregation_request_sum_ms": 11669.910834,
+      "stage_sum_ms": 23838.02883403052,
+      "aggregation_proofs": 3,
+      "final_verify_ms": 12.382
+    },
+    {
+      "segments": 8,
+      "native_backend": "cpu",
+      "parent_backend": "cpu",
+      "leaf_production_ms": 30449.933749856427,
+      "aggregation_request_sum_ms": 27295.735291999998,
+      "stage_sum_ms": 57745.669041856425,
+      "aggregation_proofs": 7,
+      "final_verify_ms": 9.778042
+    },
+    {
+      "segments": 8,
+      "native_backend": "metal",
+      "parent_backend": "cpu",
+      "leaf_production_ms": 24926.54175008647,
+      "aggregation_request_sum_ms": 27295.735291999998,
+      "stage_sum_ms": 52222.27704208647,
+      "aggregation_proofs": 7,
+      "final_verify_ms": 9.778042
+    }
+  ]
+}

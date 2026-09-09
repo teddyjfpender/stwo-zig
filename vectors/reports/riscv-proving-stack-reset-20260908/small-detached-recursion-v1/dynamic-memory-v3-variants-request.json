@@ -1,0 +1,101 @@
+{
+  "status": "prepared_not_launched_awaiting_independent_key_review",
+  "producer": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-producer",
+    "sha256": "7f015e847e96273f0fedd97295f3f03e1aa829694547bde79a025433a88f59f0"
+  },
+  "verifier": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-verifier",
+    "sha256": "2d9f4534d703100a66d7b84e1e7e2e02c8fd0c47a7061bcec07f2df8a0e1fa52"
+  },
+  "baseline_children": [
+    {
+      "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0",
+      "files": {
+        "claims.json": {
+          "bytes": 4134,
+          "sha256": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca"
+        },
+        "expected-wire.json": {
+          "bytes": 3015,
+          "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+        },
+        "key.json": {
+          "bytes": 120578,
+          "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+        },
+        "proof.bin": {
+          "bytes": 92732,
+          "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d"
+        }
+      }
+    },
+    {
+      "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1",
+      "files": {
+        "claims.json": {
+          "bytes": 4126,
+          "sha256": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae"
+        },
+        "expected-wire.json": {
+          "bytes": 3050,
+          "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+        },
+        "key.json": {
+          "bytes": 119280,
+          "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+        },
+        "proof.bin": {
+          "bytes": 92109,
+          "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a"
+        }
+      }
+    }
+  ],
+  "commands": [
+    {
+      "seed": 14,
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-producer",
+        "--memory-addresses",
+        "1",
+        "--initial-memory-word",
+        "14",
+        "--two-segment-output",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed14",
+        "--native-backend",
+        "cpu",
+        "--child-0-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0/key.json",
+        "--child-0-key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--child-1-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1/key.json",
+        "--child-1-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+      ]
+    },
+    {
+      "seed": 269,
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/dynamic-memory-v3-producer",
+        "--memory-addresses",
+        "1",
+        "--initial-memory-word",
+        "269",
+        "--two-segment-output",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed269",
+        "--native-backend",
+        "cpu",
+        "--child-0-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0/key.json",
+        "--child-0-key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--child-1-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1/key.json",
+        "--child-1-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T08:26:36.895860+00:00",
+  "status": "source_fmt_ast_passed_no_semantic_or_benchmark_run",
+  "files": [
+    {
+      "path": "src/frontends/riscv/air/public_logup_v2.zig",
+      "sha256": "346ceaee369400507d8891c0b885b60e8d351581add471958cd850258fe89768"
+    },
+    {
+      "path": "src/frontends/riscv/air/statement_v2.zig",
+      "sha256": "f82c4f560203bb587885ef8eecfa5c47b341bfdb561a782d984938f43e86110d"
+    },
+    {
+      "path": "src/frontends/riscv/air/incremental_public_logup_v4.zig",
+      "sha256": "748afb80ea40174fc4ff07911a6b14df24c6adb6b6e32ede336d8e0ce7d379d2"
+    },
+    {
+      "path": "src/frontends/riscv/air/incremental_public_logup_v4_bench_test.zig",
+      "sha256": "199c9df331b3c96dc3f18ab54592c768a64727af7d8ed5cac2aa57ae28083383"
+    }
+  ],
+  "causal_path": [
+    "FreshInput.validate",
+    "FreshVerifiedCapture.validate",
+    "VerifiedPublicSumsV4.validateAgainst",
+    "initWithCircuitProfile",
+    "old audit: nativeRelationSums includes sparse RW and continuation fractions, then computes them again and subtracts"
+  ],
+  "algebra": {
+    "registers_state": "native CPU state compensation unchanged",
+    "memory_access": "native register endpoint compensation + role-aware public IO; native sparse RW contribution minus same sparse RW contribution equals zero",
+    "merkle": "three native root anchors; native sparse continuation compensation minus itself equals zero; fixed-program profile subtracts exactly its program root anchor as before",
+    "program_access": "native completion plus role-aware unretired fetch when native completion absent"
+  },
+  "zero_denominators": "new explicit V4 helper traverses identical sparse RW event and sparse continuation tuple enumerators and requires each canceled denominator nonzero; original root/register/IO/fetch inversions and errors retained",
+  "csp_boundary": "ordinary public_logup_v2.relationSums and native sparse continuation compensation remain scalar paths via comptime true; only V4 profile adapter uses zero-check-only removed terms. No profile identities/defaults/capture layouts changed. CSP A/B not run or promoted.",
+  "ownership": "PublicDataV2 eventCursor/authenticatedView still authenticate mutable borrowed sources; existing owned immutable wire leases remain supported. No flags over mutable references or new skipped input admission.",
+  "existing_batch_path": "core.fields.batchInverseInPlace has packed QM31 variants; not used for canceled terms because no inverse survives algebraically",
+  "operation_reduction": "exactly2R+2L scalar inversions removed per V4 computation, where R is actual sparse RW event count and L is nonzero continuation-byte count plus empty-section root terms; denominator checks retained once each",
+  "regressions": [
+    "incremental public V4 surviving fractions match scalar replacement by domain",
+    "incremental public V4 still rejects zero denominators in removed sparse terms"
+  ],
+  "regression_coverage": [
+    "first/nonfinal and resumed/final boundaries",
+    "empty sparse sections",
+    "both legacy_v4 and fixed_program_narrow_v1",
+    "three relation challenge choices",
+    "all four relation domains independently",
+    "complete VerifiedPublicSums identity equivalence",
+    "zero denominator only in removed address-space1 RW fractions",
+    "zero denominator only in removed continuation byte leaf"
+  ],
+  "benchmark": {
+    "fixture": "expanded existing PublicDataV2 authenticated fixture, not a real Ethereum proof",
+    "default_sparse_words": 4096,
+    "expected_counted_rw_terms": 8192,
+    "expected_counted_continuation_terms": 32768,
+    "expected_eliminated_inversions": 81920,
+    "measurements": "median of3 scalar reference and surviving-path timings; exact per-domain equality each round; immutable owned wire admission outside measured interval",
+    "source_fixture_type": "canonical wire generated from PublicDataV2 test support then cold-authenticated into OwnedValidatedLeaseV2",
+    "no_production_instrumentation": true,
+    "command": [
+      "python3",
+      "scripts/zig_protocol_test.py",
+      "src/frontends/riscv/air/incremental_public_logup_v4_bench_test.zig",
+      "-OReleaseSafe",
+      "-fstrip",
+      "--test-filter",
+      "Ethereum surviving public sums sparse work benchmark"
+    ],
+    "scale_env": "STWO_ETHEREUM_PUBLIC_SUMS_BENCH_WORDS"
+  },
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/frontends/riscv/air/incremental_public_logup_v4.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "incremental public V4"
+  ],
+  "execution": "Parent controls consolidated frozenv8 semantic gate and benchmark queue; livev6/frozenv7 untouched. No speedup claimed before measurement."
+}

@@ -1,0 +1,13 @@
+{
+  "status": "failed",
+  "pid": 54872,
+  "started_at": "2026-09-08T08:41:42.944933+00:00",
+  "source_manifest_sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a",
+  "request_sha256": "fdbb6c7a8cbd6975f1c6e13309e7a8be28507018c6a286792fd9f81d2953b247",
+  "validated_source_files": 5779,
+  "validated_inputs_and_verifier": 8,
+  "child_pid": 54873,
+  "exit_code": 1,
+  "wall_seconds": 2205.9100231251214,
+  "finished_at": "2026-09-08T09:18:28.959275+00:00"
+}

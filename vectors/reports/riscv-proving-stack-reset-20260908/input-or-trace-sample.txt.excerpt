@@ -1,0 +1,75 @@
+Analysis of sampling ethereum-prepared-leaf-metal-v1 (pid 75019) every 1 millisecond
+Process:         ethereum-prepared-leaf-metal-v1 [75019]
+Path:            /Users/USER/*/ethereum-prepared-leaf-metal-v1
+Load Address:    0x10034c000
+Identifier:      ethereum-prepared-leaf-metal-v1
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  time [75018]
+
+Date/Time:       2026-09-08 18:17:29.869 +0400
+Launch Time:     2026-09-08 18:15:58.226 +0400
+OS Version:      macOS 15.3.1 (24D70)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         4.3G
+Physical footprint (peak):  4.5G
+Idle exit:                  untracked
+----
+
+Call graph:
+    778 Thread_40953350   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 778 start  (in dyld) + 2840  [0x19bcdc274]
+    +   778 main  (in ethereum-prepared-leaf-metal-v1) + 5924  [0x100498108]
+    +     778 ethereum_incremental_full_leaf_replay_command_v4.runWithEnginesInternal__anon_8385  (in ethereum-prepared-leaf-metal-v1) + 30216  [0x100491cec]
+    +       778 ethereum_incremental_full_leaf_prepared_replay_producer_v4.produceAllocWithRecorderAndTiming__anon_15357  (in ethereum-prepared-leaf-metal-v1) + 22436  [0x10043d0a8]
+    +         510 prover.incremental_ethereum_orchestration_v3.provePreparedAfterAdmission__anon_29338  (in ethereum-prepared-leaf-metal-v1) + 732  [0x100424de4]
+    +         ! 499 ethereum_incremental_full_leaf_profile_v4.AuthorityV4.mixPreTree0__anon_34736  (in ethereum-prepared-leaf-metal-v1) + 2112  [0x100469c40]
+    +         ! : 494 recursion.poseidon2_channel.Channel.mixCanonicalM31Words  (in ethereum-prepared-leaf-metal-v1) + 196  [0x100468988]
+    +         ! : | 355 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 1172,1204,...  [0x1004a1df8,0x1004a1e18,...]
+    +         ! : | 20 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 172,212,...  [0x100570c8c,0x100570cb4,...]
+    +         ! : | 19 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 1540  [0x1004a1f68]
+    +         ! : | + 19 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 132,152,...  [0x100570c64,0x100570c78,...]
+    +         ! : | 16 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 1692  [0x1004a2000]
+    +         ! : | + 16 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 152,272,...  [0x100570c78,0x100570cf0,...]
+    +         ! : | 15 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 184  [0x1004a1a1c]
+    +         ! : | + 15 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 112,336,...  [0x100570c50,0x100570d30,...]
+    +         ! : | 15 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 480  [0x1004a1b44]
+    +         ! : | + 15 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 272,292,...  [0x100570cf0,0x100570d04,...]
+    +         ! : | 15 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 628  [0x1004a1bd8]
+    +         ! : | + 15 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 252,228,...  [0x100570cdc,0x100570cc4,...]
+    +         ! : | 14 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 28  [0x1004a1980]
+    +         ! : | + 14 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 272,180,...  [0x100570cf0,0x100570c94,...]
+    +         ! : | 13 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 1388  [0x1004a1ed0]
+    +         ! : | + 13 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 76,112,...  [0x100570c2c,0x100570c50,...]
+    +         ! : | 12 air.memory_commitment.poseidon2.permute  (in ethereum-prepared-leaf-metal-v1) + 332  [0x1004a1ab0]
+    +         ! : |   12 air.memory_commitment.poseidon2.externalMatrix  (in ethereum-prepared-leaf-metal-v1) + 252,56,...  [0x100570cdc,0x100570c18,...]
+    +         ! : 5 recursion.poseidon2_channel.Channel.mixCanonicalM31Words  (in ethereum-prepared-leaf-metal-v1) + 176,112,...  [0x100468974,0x100468934,...]
+    +         ! 11 ethereum_incremental_full_leaf_profile_v4.AuthorityV4.mixPreTree0__anon_34736  (in ethereum-prepared-leaf-metal-v1) + 4232  [0x10046a488]
+    +         !   11 air.guest_precompile.ethereum_statement.Statement.mixIntoV2WithCircuitProfileV1__anon_34973  (in ethereum-prepared-leaf-metal-v1) + 80  [0x100468db8]
+    +         !     11 air.guest_precompile.ethereum_statement.Statement.validateV2WithCircuitProfileV1  (in ethereum-prepared-leaf-metal-v1) + 264  [0x100414cf0]
+    +         !       11 air.guest_precompile.ethereum_statement.canonicalAdmissionV2  (in ethereum-prepared-leaf-metal-v1) + 76  [0x1004aeb34]
+    +         !         8 air.statement_v2.nativePublicTermCounts  (in ethereum-prepared-leaf-metal-v1) + 104  [0x10057c330]
+    +         !         | 8 air.public_data_v2.PublicDataV2.eventCursor  (in ethereum-prepared-leaf-metal-v1) + 164  [0x1003c6204]
+    +         !         |   8 air.public_data_v2.nextMemoryBoundary  (in ethereum-prepared-leaf-metal-v1) + 64,472,...  [0x1004a9b04,0x1004a9c9c,...]
+    +         !         2 air.statement_v2.nativePublicTermCounts  (in ethereum-prepared-leaf-metal-v1) + 168  [0x10057c370]
+    +         !         | 2 air.statement_v2.nonzeroByteCount  (in ethereum-prepared-leaf-metal-v1) + 28,108  [0x10067b9b4,0x10067ba04]
+    +         !         1 air.statement_v2.nativePublicTermCounts  (in ethereum-prepared-leaf-metal-v1) + 140  [0x10057c354]
+    +         !           1 air.statement_v2.nonzeroByteCount  (in ethereum-prepared-leaf-metal-v1) + 108  [0x10067ba04]
+    +         155 prover.incremental_ethereum_orchestration_v3.provePreparedAfterAdmission__anon_29338  (in ethereum-prepared-leaf-metal-v1) + 1600  [0x100425148]
+    +         ! 74 pcs.commit_ops.CommitOps(commit_backend.MetalCommitBackend,recursion.poseidon2_channel.MerkleHasher,recursion.poseidon2_channel.MerkleChannel,pcs.scheme.CommitmentSchemeProver(commit_backend.MetalCommitBackend,recursion.poseidon2_channel.MerkleHasher,recursion.poseidon2_channel.MerkleChannel)).commitOwnedPreparedWithRecorderAndBacking__anon_53946  (in ethereum-prepared-leaf-metal-v1) + 2008  [0x1004c0a40]
+    +         ! : 74 pcs.columns.preparation.prepareColumnsForCommitOwnedForBackendWithWorkRecorder__anon_54737  (in ethereum-prepared-leaf-metal-v1) + 480  [0x1004bd744]
+    +         ! :   62 pcs.columns.preparation.prepareColumnsCombinedForBackend__anon_54743  (in ethereum-prepared-leaf-metal-v1) + 6276  [0x1004b8940]
+    +         ! :   | 62 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+    +         ! :   9 pcs.columns.preparation.prepareColumnsCombinedForBackend__anon_54743  (in ethereum-prepared-leaf-metal-v1) + 10832  [0x1004b9b0c]
+    +         ! :   | 9 runtime.circle_transform_operations.transformCircleLdeIntoConfigured  (in ethereum-prepared-leaf-metal-v1) + 1500  [0x10058211c]
+    +         ! :   |   8 circle_lde_impl  (in ethereum-prepared-leaf-metal-v1) + 8392  [0x100372fa8]
+    +         ! :   |   + 8 -[_MTLCommandBuffer waitUntilCompleted]  (in Metal) + 84  [0x1a6f3219c]
+    +         ! :   |   +   8 _pthread_cond_wait  (in libsystem_pthread.dylib) + 1204  [0x19c05c894]
+    +         ! :   |   +     8 __psynch_cvwait  (in libsystem_kernel.dylib) + 8  [0x19c01e6ec]
+    +         ! :   |   1 circle_lde_impl  (in ethereum-prepared-leaf-metal-v1) + 3988  [0x100371e74]
+    +         ! :   |     1 -[AGXG16XFamilyComputeContext dispatchThreads:threadsPerThreadgroup:]  (in AGXMetalG16X) + 296  [0x1029bbc5c]
+    +         ! :   |       1 AGX::ComputeContext<AGX::HAL200::Encoders, AGX::HAL200::Classes, AGX::HAL200::ObjClasses, AGX::HAL200::EncoderComputeServiceClasses>::executeKernelWithThreadsPerGridImpl(eAGXDataBufferPools, MTLSize, MTLSize)  (in AGXMetalG16X) + 544  [0x1029b94c8]
+    +         ! :   |         1 AGX::ComputeContext<AGX::HAL200::Encoders, AGX::HAL200::Classes, AGX::HAL200::ObjClasses, AGX::HAL200::EncoderComputeServiceClasses>::performEnqueueKernel(eAGXDataBufferPools, unsigned long long, AGX::HAL200::ComputePipeline const*, unsigned int, unsigned long long*)  (in AGXMetalG16X) + 1440  [0x1029b9cdc]

@@ -346,7 +346,7 @@ pub fn Namespace(comptime context: type) type {
 
         pub fn preflightV2Rows18Through35(
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             pcs_config: stwo_core.pcs.PcsConfig,
             data: *const frontend.air.public_data_v2.PublicDataV2,
@@ -398,8 +398,8 @@ pub fn Namespace(comptime context: type) type {
                 .authority_manifest_id = authority_manifest_id,
                 .authority_prepared_id = authority_prepared_id,
                 .fri_circuit_id = captured.circuit.identity_digest,
-                .pcs_circuit_id = captured.pcs_circuit.identity_digest,
-                .vm_air_circuit_id = vm_air.circuit.identity_digest,
+                .pcs_circuit_id = captured.pcs_circuit.view().identity_digest,
+                .vm_air_circuit_id = vm_air.view().circuit.identity_digest,
                 .vm_plan_id = verifier_plans.vm.authority_digest,
                 .recursion_plan_id = verifier_plans.recursion.authority_digest,
                 .transcript_program_id = transcript_evidence.program_id,
@@ -500,6 +500,30 @@ pub fn Namespace(comptime context: type) type {
                     words,
                     captured.raw_queries,
                 );
+                return .{
+                    .allocator = allocator,
+                    .owned_words = words,
+                    .value = .{ .segment_leaf = words },
+                };
+            }
+
+            /// Versioned constructor for a transcript implementation that
+            /// already retained the complete verifier-drawn query words.
+            /// The native capture still owns the selected low-bit positions;
+            /// every supplied word is projection-checked before the owned
+            /// witness is published.
+            pub fn initFullWordsV2(
+                allocator: std.mem.Allocator,
+                captured: *const recursion.captured_fri.Owned,
+                full_words: []const M31,
+            ) !PreparedQueryWitness {
+                try validateQueryWordProjection(
+                    captured.circuit.lifting_log_size,
+                    full_words,
+                    captured.raw_queries,
+                );
+                const words = try allocator.dupe(M31, full_words);
+                errdefer allocator.free(words);
                 return .{
                     .allocator = allocator,
                     .owned_words = words,

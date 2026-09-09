@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 183942983292,
+  "log_sha256": "1fcc7819d72f8d7f339825e69dbdb9cd7438453f9525e24e19f216efab30cc7b",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/air-fusion-final-leaf-prove",
+  "binary_sha256": "4657c1219b634dfb659d63e1059c94a959963dad52e6e1eb7a5055425c32cce2"
+}

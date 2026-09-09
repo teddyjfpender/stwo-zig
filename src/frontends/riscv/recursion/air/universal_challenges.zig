@@ -7,7 +7,8 @@
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
-const M31 = stwo_core.fields.m31.M31;
+const m31 = stwo_core.fields.m31;
+const M31 = m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const relation = @import("../../air/lang/relation.zig");
 
@@ -57,7 +58,26 @@ pub const Elements = struct {
     pub fn combineBase(self: *const Elements, values: []const M31) Error!QM31 {
         if (values.len != self.arity) return error.InvalidArity;
         var result = QM31.zero();
-        for (values, self.alpha_powers[0..values.len]) |value, power| {
+        var index: usize = 0;
+        // Four canonical products fit in u64. Reuse the field backend's
+        // delayed-reduction dot product across the four secure coordinates.
+        // Other native vector widths retain the existing scalar-tail path.
+        if (comptime m31.PACK_WIDTH == 4) {
+            while (index + 4 <= values.len) : (index += 4) {
+                var words: [4]m31.PackedM31 = undefined;
+                var coefficients: [4]m31.PackedM31 = undefined;
+                inline for (0..4) |term| {
+                    words[term] = @splat(values[index + term].v);
+                    const power = &self.alpha_powers[index + term];
+                    // Keep aggregate extraction at the consuming operation;
+                    // this matches QM31.mulM31's compiler-portability boundary.
+                    coefficients[term] = .{ power.c0.a.v, power.c0.b.v, power.c1.a.v, power.c1.b.v };
+                }
+                const sum = m31.dot4Packed(words, coefficients);
+                result = result.add(QM31.fromU32Unchecked(sum[0], sum[1], sum[2], sum[3]));
+            }
+        }
+        for (values[index..], self.alpha_powers[index..values.len]) |value, power| {
             result = result.add(power.mulM31(value));
         }
         return result.sub(self.z);
@@ -240,4 +260,42 @@ test "R-012 universal challenge combine uses exact alpha-power convention" {
 comptime {
     if (MAX_ARITY != @import("../../air/lang/effects.zig").MAX_ARITY)
         @compileError("universal challenge storage must track typed effect arity");
+}
+
+test "R-012 universal challenge packed base combination matches extension oracle at every arity" {
+    var prng = std.Random.DefaultPrng.init(0x27fe_691a_a3d7_0019);
+    const random = prng.random();
+    const maximum = M31.fromCanonical(m31.Modulus - 1);
+    for (1..MAX_ARITY + 1) |arity| {
+        for (0..5) |sample| {
+            var element = Elements.init(@intCast(arity), QM31.fromM31(maximum, maximum, maximum, maximum), QM31.fromU32Unchecked(7, 11, 13, 17));
+            var base: [MAX_ARITY]M31 = undefined;
+            var secure: [MAX_ARITY]QM31 = undefined;
+            for (base[0..arity], secure[0..arity], element.alpha_powers[0..arity], 0..) |*value, *lifted, *power, index| {
+                value.* = switch (sample) {
+                    0 => M31.zero(),
+                    1 => maximum,
+                    2 => if (index % 2 == 0) maximum else M31.one(),
+                    else => M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus)),
+                };
+                lifted.* = QM31.fromBase(value.*);
+                // Stored powers are part of this API's input, even when they
+                // are not generated from alpha. In particular power[0] need
+                // not be one; no optimization may silently replace it.
+                if (sample != 4) {
+                    var coordinates: [4]M31 = undefined;
+                    for (&coordinates, 0..) |*coordinate, lane| coordinate.* = switch (sample) {
+                        1 => maximum,
+                        2 => if ((index + lane) % 2 == 0) maximum else M31.zero(),
+                        else => M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus)),
+                    };
+                    power.* = QM31.fromM31(coordinates[0], coordinates[1], coordinates[2], coordinates[3]);
+                }
+            }
+            const expected = try element.combineSecure(secure[0..arity]);
+            const actual = try element.combineBase(base[0..arity]);
+            try std.testing.expectEqualDeep(expected, actual);
+            try std.testing.expectError(error.InvalidArity, element.combineBase(base[0 .. arity - 1]));
+        }
+    }
 }

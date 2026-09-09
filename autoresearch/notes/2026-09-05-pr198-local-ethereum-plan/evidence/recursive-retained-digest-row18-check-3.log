@@ -1,0 +1,11 @@
+test-recursion-binary-fri-row18
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+RETAINED_ROWS_DIGEST_AB lengths=131 legacy_bytes_preserved=true changed_word_rejected=true
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-recursion-binary-fri-row18 success
++- stwo_riscv_frontend test count floor success
+   +- run test 2 passed 1s MaxRSS:82M
+      +- compile test ReleaseSafe native success 17s MaxRSS:1G
+

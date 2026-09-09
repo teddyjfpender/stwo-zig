@@ -2,6 +2,7 @@
 
 pub fn Operations(comptime Context: type) type {
     const Self = Context.Source;
+    const Boundary = Context.BoundaryType;
     const PreparedAuthority = Self.PreparedAuthority;
     const ArithmeticWorkspace = Self.ArithmeticWorkspace;
 
@@ -168,9 +169,12 @@ pub fn Operations(comptime Context: type) type {
         ) !void {
             const rows = self.arithmetic_rows orelse
                 return error.MissingCompositionAuthority;
-            var evaluations = arithmeticEvaluations(
-                self,
-            );
+            var evaluations: [8]lowering.Evaluation = undefined;
+            if (comptime @hasDecl(Boundary, "fillArithmeticEvaluations")) {
+                try Boundary.fillArithmeticEvaluations(self, &evaluations);
+            } else {
+                evaluations = arithmeticEvaluations(self);
+            }
             try rows.plan.materializeInto(
                 rows.reference,
                 .{ .lanes = evaluations[0..rows.lanes.len] },
@@ -216,8 +220,8 @@ pub fn Operations(comptime Context: type) type {
                 left_composition.evaluation,
                 left_composition.evaluation,
                 .{
-                    .circuit_identity = left.capture.pcs_evaluation.circuit_identity,
-                    .values = left.capture.pcs_evaluation.values,
+                    .circuit_identity = left.capture.pcs_evaluation.view().circuit_identity,
+                    .values = left.capture.pcs_evaluation.view().values,
                 },
                 .{
                     .circuit_identity = left.capture.evaluation.circuit_identity,
@@ -225,8 +229,8 @@ pub fn Operations(comptime Context: type) type {
                 },
                 right_composition.evaluation,
                 .{
-                    .circuit_identity = right.capture.pcs_evaluation.circuit_identity,
-                    .values = right.capture.pcs_evaluation.values,
+                    .circuit_identity = right.capture.pcs_evaluation.view().circuit_identity,
+                    .values = right.capture.pcs_evaluation.view().values,
                 },
                 .{
                     .circuit_identity = right.capture.evaluation.circuit_identity,

@@ -1,0 +1,25 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-interaction-direct-first-prove",
+    "--memory-addresses",
+    "1",
+    "--segments-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-cpu-bootstrap",
+    "--segment-count",
+    "8",
+    "--initial-memory-word",
+    "13",
+    "--proof-profile",
+    "recursive_q193_v1",
+    "--native-backend",
+    "cpu",
+    "--recursive-backend",
+    "cpu"
+  ],
+  "binary_sha256": "16d2904f34f9b741cd39ada170b69f42b17e3d46d40033e45ecc057d8c6b76f1",
+  "process_ns": 89340217958,
+  "maximum_rss_bytes": 2908782592,
+  "exit_code": 0,
+  "status": "unverified_candidate",
+  "log_sha256": "0d210a6b3008efcc29a6ce6933a5fc31e6f97c5e6b3619ef5151883af3003580"
+}

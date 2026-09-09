@@ -47,6 +47,7 @@ const wire_statement = dependency_0.wire_statement;
 pub const SourceV2 = struct {
     allocator: std.mem.Allocator,
     wire_word_count: u32,
+    memory_byte_count: u32,
     input_count: u32,
     term_counts: TermCountsV2,
     prepared_source_id: public_source.Digest,
@@ -70,12 +71,12 @@ pub const SourceV2 = struct {
         const view = try authenticatedView(prepared, inputs);
         const wire_count = std.math.cast(u32, view.words.len) orelse
             return error.ArithmeticOverflow;
-        const expected_inputs = try checkedAddU32(
-            wire_count,
-            INPUT_SUFFIX_WORD_COUNT,
-        );
+        const layout = try dependency_0.register_bytes.MemoryLayout.init(&view);
+        const memory_byte_count = std.math.cast(u32, layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
+        const expected_inputs = try checkedAddU32(try checkedAddU32(wire_count, INPUT_SUFFIX_WORD_COUNT), try checkedAddU32(memory_byte_count, memory_byte_count));
         if (prepared.lowering_obligation.input_count != expected_inputs or
             prepared.lowering_obligation.boundary_word_count != wire_count or
+            prepared.lowering_obligation.memory_byte_count != memory_byte_count or
             prepared.lowering_obligation.zero_output_count != OUTPUT_COUNT or
             prepared.lowering_obligation.circuit_id != CIRCUIT_ID)
         {
@@ -105,7 +106,7 @@ pub const SourceV2 = struct {
                 .use_count = try authored.circuit.inputUseCount(
                     @intCast(input_index),
                 ),
-                .source = try inputSource(wire_count, input_index),
+                .source = try inputSource(wire_count, memory_byte_count, input_index),
             };
         }
 
@@ -114,6 +115,7 @@ pub const SourceV2 = struct {
         var result = SourceV2{
             .allocator = allocator,
             .wire_word_count = wire_count,
+            .memory_byte_count = memory_byte_count,
             .input_count = expected_inputs,
             .term_counts = authored.term_counts,
             .prepared_source_id = prepared.source_id,
@@ -242,7 +244,7 @@ pub const SourceV2 = struct {
 
     /// Zero-allocation and fail-atomic hot evaluation. Scratch buffers are
     /// disposable on failure; `destination_values` is byte-for-byte unchanged
-    /// unless the complete graph replays and all five outputs are zero.
+    /// unless the complete graph replays and all relation and snapshot-binding outputs are zero.
     pub fn evaluateInto(
         self: *const SourceV2,
         prepared: *const public_source.PreparedV2,
@@ -277,11 +279,10 @@ pub const SourceV2 = struct {
     ) Error!void {
         const wire_count = std.math.cast(u32, view.words.len) orelse
             return error.ArithmeticOverflow;
-        const expected_inputs = try checkedAddU32(
-            wire_count,
-            INPUT_SUFFIX_WORD_COUNT,
-        );
-        if (self.wire_word_count != wire_count or
+        const layout = try dependency_0.register_bytes.MemoryLayout.init(view);
+        const memory_byte_count = std.math.cast(u32, layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
+        const expected_inputs = try checkedAddU32(try checkedAddU32(wire_count, INPUT_SUFFIX_WORD_COUNT), try checkedAddU32(memory_byte_count, memory_byte_count));
+        if (self.wire_word_count != wire_count or self.memory_byte_count != memory_byte_count or
             self.input_count != expected_inputs or
             self.bindings.len != expected_inputs or
             self.circuit.inputNodes().len != expected_inputs or
@@ -331,7 +332,7 @@ pub const SourceV2 = struct {
                 ) or
                 !std.meta.eql(
                     binding.source,
-                    try inputSource(self.wire_word_count, input_index),
+                    try inputSource(self.wire_word_count, self.memory_byte_count, input_index),
                 ))
             {
                 return error.InputBindingMismatch;
@@ -484,6 +485,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
     hashInt(&hash, u16, SCHEMA_VERSION);
     hashInt(&hash, u32, CIRCUIT_ID);
     hashInt(&hash, u32, source.wire_word_count);
+    hashInt(&hash, u32, source.memory_byte_count);
     hashInt(&hash, u32, source.input_count);
     hashInt(&hash, u32, source.term_counts.registers_state);
     hashInt(&hash, u32, source.term_counts.memory_access);
@@ -521,6 +523,8 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
                 hashInt(&hash, u8, @intFromEnum(coordinate.relation));
                 hashInt(&hash, u8, coordinate.limb);
             },
+            .register_byte => |index| hashInt(&hash, u8, index),
+            .memory_byte, .memory_selector => |index| hashInt(&hash, u32, index),
         }
     }
     return hash.finalResult();
@@ -541,7 +545,7 @@ pub fn ownedEvaluationIdentity(evaluation: *const OwnedEvaluationV2) [32]u8 {
 comptime {
     if (CIRCUIT_ID != 42 or DOMAIN_COUNT != 4 or
         PUBLISHED_WORD_COUNT != 20 or CHALLENGE_WORD_COUNT != 32 or
-        OUTPUT_COUNT != 5 or HOT_HEAP_ALLOCATIONS != 0 or
+        OUTPUT_COUNT != 21 or HOT_HEAP_ALLOCATIONS != 0 or
         !DESTINATION_FAILS_ATOMICALLY or !POINTER_STABLE_OWNERSHIP or
         !EXACT_GRAPH_AND_USE_COUNTS_SEALED or
         !ROW11_OWNS_CANONICAL_PARSING or

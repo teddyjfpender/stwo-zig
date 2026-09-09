@@ -1,0 +1,76 @@
+{
+  "binary_sha256": "c7e59eb8f3cb4b1948575cce88c1a540bfcd96557a418b7481ccfc0049363836",
+  "cases": [
+    {
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--native-ingress-profile",
+        "unknown",
+        "--memory-addresses",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_error": "InvalidNativeProfile",
+      "passed": true,
+      "stderr": "error: InvalidNativeProfile\n"
+    },
+    {
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--native-steps",
+        "64"
+      ],
+      "exit_code": 1,
+      "expected_error": "ConflictingNativeProfileArguments",
+      "passed": true,
+      "stderr": "error: ConflictingNativeProfileArguments\n"
+    },
+    {
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--memory-addresses",
+        "1",
+        "--segments-output",
+        "must-not-create"
+      ],
+      "exit_code": 1,
+      "expected_error": "ConflictingNativeProfileArguments",
+      "passed": true,
+      "stderr": "error: ConflictingNativeProfileArguments\n"
+    },
+    {
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--memory-addresses",
+        "1"
+      ],
+      "exit_code": 1,
+      "expected_error": "DuplicateArgument",
+      "passed": true,
+      "stderr": "error: DuplicateArgument\n"
+    },
+    {
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--memory-addresses",
+        "1",
+        "--initial-memory-word",
+        "14"
+      ],
+      "exit_code": 1,
+      "expected_error": "TwoSegmentOutputRequired",
+      "passed": true,
+      "stderr": "error: TwoSegmentOutputRequired\n"
+    }
+  ]
+}

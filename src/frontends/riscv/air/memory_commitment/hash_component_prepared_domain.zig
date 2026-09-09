@@ -16,6 +16,8 @@ pub fn Namespace(comptime contract: anytype) type {
         const PREPARED_DENOMINATOR_COUNT = contract.PREPARED_DENOMINATOR_COUNT;
         const prepared_parallel_telemetry = contract.prepared_parallel_telemetry;
         const HashComponent = contract.HashComponent;
+        const merkleExternalizedProviderConstraints =
+            contract.merkleExternalizedProviderConstraints;
         const poseidonConstraints = contract.poseidonConstraints;
         const poseidonGeneralConstraints = contract.poseidonGeneralConstraints;
         const readMain = contract.readMain;
@@ -24,7 +26,12 @@ pub fn Namespace(comptime contract: anytype) type {
 
         pub const PreparedDomainState = struct {
             const CANCELLATION_POLL_ROWS: usize = 4096;
-            const Kernel = enum { merkle, poseidon_narrow, poseidon_general };
+            const Kernel = enum {
+                merkle,
+                merkle_externalized_provider,
+                poseidon_narrow,
+                poseidon_general,
+            };
 
             comptime {
                 if (PREPARED_DENOMINATOR_COUNT != 2) {
@@ -129,13 +136,22 @@ pub fn Namespace(comptime contract: anytype) type {
                 row_end: usize,
             ) anyerror!bool {
                 return switch (self.component.kind) {
-                    .merkle => self.evaluateRangeKernel(
-                        .merkle,
-                        parent_cancellation,
-                        range_index,
-                        row_start,
-                        row_end,
-                    ),
+                    .merkle => switch (self.component.merkle_shell) {
+                        .standard => self.evaluateRangeKernel(
+                            .merkle,
+                            parent_cancellation,
+                            range_index,
+                            row_start,
+                            row_end,
+                        ),
+                        .externalized_poseidon_provider => self.evaluateRangeKernel(
+                            .merkle_externalized_provider,
+                            parent_cancellation,
+                            range_index,
+                            row_start,
+                            row_end,
+                        ),
+                    },
                     .poseidon2 => switch (self.component.poseidon_shell) {
                         .narrow_memory => self.evaluateRangeKernel(
                             .poseidon_narrow,
@@ -178,7 +194,7 @@ pub fn Namespace(comptime contract: anytype) type {
                     );
                     const is_first = QM31.fromBase(self.evaluations[0][row]);
                     const row_evaluation = switch (kernel) {
-                        .merkle => blk: {
+                        .merkle, .merkle_externalized_provider => blk: {
                             const is_active = QM31.fromBase(self.evaluations[1][row]);
                             const main = readMain(
                                 merkle_node.N_MAIN_COLUMNS,
@@ -196,7 +212,22 @@ pub fn Namespace(comptime contract: anytype) type {
                                 &sums,
                                 &previous,
                             );
-                            const constraints = merkle_node.evaluate(
+                            if (kernel == .merkle) {
+                                const constraints = merkle_node.evaluate(
+                                    main,
+                                    is_active,
+                                    is_first,
+                                    sums,
+                                    previous,
+                                    component.merkle_claims,
+                                    component.relations,
+                                );
+                                break :blk combineConstraints(
+                                    self.column_accumulator.random_coeff_powers,
+                                    &constraints,
+                                );
+                            }
+                            const constraints = merkleExternalizedProviderConstraints(
                                 main,
                                 is_active,
                                 is_first,

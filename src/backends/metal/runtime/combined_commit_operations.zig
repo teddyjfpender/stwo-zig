@@ -26,7 +26,7 @@ pub fn transformCircleLdeAndCommit(
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
 ) (MetalError || std.mem.Allocator.Error)!LdeCommitResult {
-    return transformCircleLdeAndCommitPrepared(
+    return transformCircleLdeAndCommitPreparedForHash(
         self,
         allocator,
         source_columns,
@@ -42,6 +42,7 @@ pub fn transformCircleLdeAndCommit(
         leaf_seed,
         node_seed,
         domain_prefix_bytes,
+        1,
         null,
         false,
     );
@@ -66,13 +67,56 @@ pub fn transformCircleLdeAndCommitPrepared(
     deferred_recipe: ?[7]u32,
     coefficients_ready: bool,
 ) (MetalError || std.mem.Allocator.Error)!LdeCommitResult {
+    return transformCircleLdeAndCommitPreparedForHash(
+        self,
+        allocator,
+        source_columns,
+        base_columns,
+        extended_columns,
+        transform_buffer,
+        extended_start,
+        extended_stride,
+        inverse_twiddles,
+        forward_twiddles,
+        base_log_size,
+        extended_log_size,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        1,
+        deferred_recipe,
+        coefficients_ready,
+    );
+}
+
+pub fn transformCircleLdeAndCommitPreparedForHash(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    source_columns: []const []const M31,
+    base_columns: []const []M31,
+    extended_columns: []const []M31,
+    transform_buffer: []M31,
+    extended_start: usize,
+    extended_stride: usize,
+    inverse_twiddles: []const M31,
+    forward_twiddles: []const M31,
+    base_log_size: u32,
+    extended_log_size: u32,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+    deferred_recipe: ?[7]u32,
+    coefficients_ready: bool,
+) (MetalError || std.mem.Allocator.Error)!LdeCommitResult {
     const supported_column_count = source_columns.len == 8 or
         (source_columns.len >= 64 and source_columns.len <= 256);
     if (!supported_column_count or source_columns.len != base_columns.len or
         base_columns.len != extended_columns.len or base_log_size < 16 or
         extended_log_size != base_log_size + 1 or extended_log_size >= 31 or
         extended_start > std.math.maxInt(u32) or extended_stride > std.math.maxInt(u32) or
-        source_columns.len > std.math.maxInt(u32))
+        source_columns.len > std.math.maxInt(u32) or
+        (hash_family != 1 and hash_family != 2))
         return MetalError.CircleTransformFailed;
     const base_len = @as(usize, 1) << @intCast(base_log_size);
     const extended_len = @as(usize, 1) << @intCast(extended_log_size);
@@ -147,6 +191,7 @@ pub fn transformCircleLdeAndCommitPrepared(
         &leaf_seed,
         &node_seed,
         domain_prefix_bytes,
+        hash_family,
         &normalization_batch_count,
         &forward_skipped_layers,
         &merkle_compressions,

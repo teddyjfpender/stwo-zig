@@ -1,0 +1,18 @@
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+COMMON_FOLD_CHECKPOINT node_sha256=d2be24c35bfb24717be449bb46e59f5c155925415f438ae0ed072cff329c8ac9
+COMMON_FOLD_STATEMENT_PROVIDER words=900 range_requests=3564 native_statement_boundary=false statement_fold_air=true
+COMMON_FOLD_FRESH_VERIFICATION producer_destroyed=true verified=true
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=182 frames=184 permutations=1762 queries=193
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-program-v1 success
++- Common-fold transcript program proof identity guard success
+   +- run test 1 passed 8m MaxRSS:10G
+      +- compile test ReleaseSafe native success 1m MaxRSS:5G
+

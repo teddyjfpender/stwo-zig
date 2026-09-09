@@ -1,0 +1,144 @@
+{
+  "schema": "native-security-ingress-measurements-v1",
+  "scope": "first 64-instruction memory segment; complete native proof and owned recursive ingress, no outer STARK",
+  "limitations": [
+    "single local observations, not performance promotion",
+    "RSS excludes separate Metal device footprint",
+    "native verification occurs after producer destruction in the same process",
+    "production-security recursive profile and formal CSP admission remain incomplete"
+  ],
+  "rows": [
+    {
+      "backend": "cpu",
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--memory-addresses",
+        "1",
+        "--native-ingress-profile",
+        "development_q1"
+      ],
+      "binary_sha256": "c7e59eb8f3cb4b1948575cce88c1a540bfcd96557a418b7481ccfc0049363836",
+      "exit_code": 0,
+      "elapsed_seconds": 2.5695929578505456,
+      "maximum_rss_bytes": 1056735232,
+      "phases": {
+        "profile": "development_q1",
+        "segment": 0,
+        "queries": 1,
+        "fold_step": 2,
+        "pcs_pow_bits": 0,
+        "interaction_pow_bits": 10,
+        "prove_ns": 2018956417,
+        "transport_ns": 1192833,
+        "verify_ns": 409395084,
+        "recursive_prepare_ns": 129700000,
+        "proof_bytes": 29002,
+        "transcript_calls": 1141,
+        "verifier_core_calls": 315,
+        "outer_proof_created": "false"
+      }
+    },
+    {
+      "backend": "cpu",
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+        "--memory-addresses",
+        "1",
+        "--native-ingress-profile",
+        "protocol_v1"
+      ],
+      "binary_sha256": "c7e59eb8f3cb4b1948575cce88c1a540bfcd96557a418b7481ccfc0049363836",
+      "exit_code": 0,
+      "elapsed_seconds": 4.481522666988894,
+      "maximum_rss_bytes": 1056849920,
+      "phases": {
+        "profile": "protocol_v1",
+        "segment": 0,
+        "queries": 193,
+        "fold_step": 4,
+        "pcs_pow_bits": 16,
+        "interaction_pow_bits": 10,
+        "prove_ns": 2279336584,
+        "transport_ns": 8864666,
+        "verify_ns": 451758792,
+        "recursive_prepare_ns": 993223208,
+        "proof_bytes": 1323023,
+        "transcript_calls": 1164,
+        "verifier_core_calls": 58865,
+        "outer_proof_created": "false"
+      }
+    },
+    {
+      "backend": "metal",
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-metal",
+        "--memory-addresses",
+        "1",
+        "--native-ingress-profile",
+        "development_q1",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        ".git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "binary_sha256": "2b4910559f3fa031c92da85170adb75890cb069772cd889d6e797f0d9c3a2750",
+      "exit_code": 0,
+      "elapsed_seconds": 1.731603209162131,
+      "maximum_rss_bytes": 560480256,
+      "phases": {
+        "profile": "development_q1",
+        "segment": 0,
+        "queries": 1,
+        "fold_step": 2,
+        "pcs_pow_bits": 0,
+        "interaction_pow_bits": 10,
+        "prove_ns": 1115130209,
+        "transport_ns": 1199958,
+        "verify_ns": 422266375,
+        "recursive_prepare_ns": 133909250,
+        "proof_bytes": 29002,
+        "transcript_calls": 1141,
+        "verifier_core_calls": 315,
+        "outer_proof_created": "false"
+      }
+    },
+    {
+      "backend": "metal",
+      "argv": [
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-metal",
+        "--memory-addresses",
+        "1",
+        "--native-ingress-profile",
+        "protocol_v1",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        ".git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "binary_sha256": "2b4910559f3fa031c92da85170adb75890cb069772cd889d6e797f0d9c3a2750",
+      "exit_code": 0,
+      "elapsed_seconds": 3.378921792143956,
+      "maximum_rss_bytes": 556826624,
+      "phases": {
+        "profile": "protocol_v1",
+        "segment": 0,
+        "queries": 193,
+        "fold_step": 4,
+        "pcs_pow_bits": 16,
+        "interaction_pow_bits": 10,
+        "prove_ns": 1071860416,
+        "transport_ns": 9579792,
+        "verify_ns": 473221625,
+        "recursive_prepare_ns": 1005855042,
+        "proof_bytes": 1323023,
+        "transcript_calls": 1164,
+        "verifier_core_calls": 58865,
+        "outer_proof_created": "false"
+      }
+    }
+  ]
+}

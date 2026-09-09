@@ -35,6 +35,13 @@ pub fn addProducts(context: Context) void {
         context.optimize,
         stwo,
     );
+    _ = graph.addArtifactStoreImport(
+        b,
+        compatibility_product,
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         b,
         compatibility_product,

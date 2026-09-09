@@ -164,6 +164,47 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
     source_arena: ?[]M31,
     work_recorder: ?*WorkRecorder,
 ) !PreparedCommitmentColumns {
+    if (std.process.hasEnvVarConstant("STWO_ZIG_PCS_TIMING")) {
+        var census_timer: ?std.time.Timer = std.time.Timer.start() catch null;
+        const Group = struct {
+            columns: usize = 0,
+            constant_columns: usize = 0,
+            source_values: u128 = 0,
+            constant_values: u128 = 0,
+        };
+        // Fixed storage keeps diagnostics out of allocator and worker policy.
+        // Invalid declared logs remain the ordinary preparation path's error.
+        var groups = [_]Group{.{}} ** @bitSizeOf(usize);
+        var invalid_log_columns: usize = 0;
+        for (owned_columns) |column| {
+            if (column.log_size >= groups.len) {
+                invalid_log_columns += 1;
+                continue;
+            }
+            const group = &groups[column.log_size];
+            group.columns += 1;
+            group.source_values += column.values.len;
+            const constant = column.values.len != 0 and blk: {
+                const first = column.values[0];
+                for (column.values[1..]) |value| {
+                    if (!value.eql(first)) break :blk false;
+                }
+                break :blk true;
+            };
+            if (constant) {
+                group.constant_columns += 1;
+                group.constant_values += column.values.len;
+            }
+        }
+        const census_ns: ?u64 = if (census_timer) |*clock| clock.read() else null;
+        for (groups, 0..) |group, log_size| {
+            if (group.columns == 0) continue;
+            std.log.info("pcs source census: declared_log_size={} columns={} constant_columns={} source_values={} constant_values={} source_payload_bytes={} payload_is_allocator_live=false", .{
+                log_size, group.columns, group.constant_columns, group.source_values, group.constant_values, group.source_values * @sizeOf(M31),
+            });
+        }
+        std.log.info("pcs source census: scan_ns={?} invalid_log_columns={} scan_includes_no_logging=true", .{ census_ns, invalid_log_columns });
+    }
     const retain_coefficients = column_storage.shouldRetainCoefficients(owned_columns, retention_policy);
     if (source_arena != null and (log_blowup_factor == 0 or
         !(comptime @hasDecl(B, "interpolateAndEvaluateCircleBuffers"))))
@@ -253,7 +294,8 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
         );
     };
     errdefer column_storage.deinitOwnedCoefficientColumns(allocator, coeffs);
-    allocator.free(owned_columns);
+    // Keep the emptied source descriptors alive until extension succeeds:
+    // callers retain error-path ownership of the input descriptor allocation.
     // work-profile-complete:column-interpolate-for-extension-fft
 
     const extended = blk: {
@@ -274,6 +316,7 @@ pub fn prepareColumnsForCommitOwnedForBackendWithWorkRecorder(
         );
     };
     errdefer column_storage.freeOwnedColumnEvaluations(allocator, extended);
+    allocator.free(owned_columns);
     // work-profile-complete:column-extension-fft
 
     if (!retain_coefficients) {
@@ -309,6 +352,7 @@ fn prepareColumnsCombinedForBackend(
     errdefer allocator.free(coefficients);
     var initialized_indices = std.ArrayList(usize).empty;
     defer initialized_indices.deinit(allocator);
+    try initialized_indices.ensureTotalCapacity(allocator, owned_columns.len);
     errdefer for (initialized_indices.items) |index| coefficients[index].deinit(allocator);
 
     var coefficient_buffers = std.ArrayList([]M31).empty;
@@ -316,7 +360,12 @@ fn prepareColumnsCombinedForBackend(
     errdefer for (coefficient_buffers.items) |buffer| allocator.free(buffer);
     var column_buffers = std.ArrayList([]M31).empty;
     defer column_buffers.deinit(allocator);
-    errdefer for (column_buffers.items) |buffer| allocator.free(buffer);
+    const column_alignment = if (comptime @hasDecl(B, "resident_column_arena_alignment"))
+        B.resident_column_arena_alignment
+    else
+        std.mem.Alignment.of(M31);
+    errdefer for (column_buffers.items) |buffer|
+        allocator.rawFree(std.mem.sliceAsBytes(buffer), column_alignment, @returnAddress());
 
     var groups = try circle_transforms.buildLogSizeGroupsFromColumns(allocator, owned_columns);
     defer circle_transforms.deinitLogSizeGroups(allocator, &groups);
@@ -365,19 +414,17 @@ fn prepareColumnsCombinedForBackend(
         );
     }
     if (transform_arena_words == 0) return error.ShapeMismatch;
-    const transform_arena: []M31 = if (comptime @hasDecl(B, "resident_column_arena_alignment"))
-        try allocator.alignedAlloc(
-            M31,
-            B.resident_column_arena_alignment,
-            transform_arena_words,
-        )
-    else
-        try allocator.alloc(M31, transform_arena_words);
+    const transform_arena = try allocator.alignedAlloc(M31, column_alignment, transform_arena_words);
     column_buffers.append(allocator, transform_arena) catch |err| {
         allocator.free(transform_arena);
         return err;
     };
     var transform_arena_cursor: usize = 0;
+    const supports_circle_lde_batch = comptime @hasDecl(B, "CircleLdeBatch") and
+        @hasDecl(B, "interpolateAndEvaluateCircleBuffersBatched");
+    var circle_lde_batch: if (supports_circle_lde_batch) B.CircleLdeBatch else void =
+        if (supports_circle_lde_batch) try B.CircleLdeBatch.init() else {};
+    defer if (supports_circle_lde_batch) circle_lde_batch.deinit();
 
     for (groups.items) |group| {
         const extended_log_size = std.math.add(u32, group.log_size, log_blowup_factor) catch
@@ -417,6 +464,7 @@ fn prepareColumnsCombinedForBackend(
                 M31,
                 try std.math.mul(usize, column_count, base_domain.size()),
             );
+            errdefer allocator.free(buffer);
             try coefficient_buffers.append(allocator, buffer);
             break :blk buffer;
         };
@@ -461,7 +509,22 @@ fn prepareColumnsCombinedForBackend(
             extended_values[group_index] = values;
             extended[column_index] = .{ .log_size = extended_log_size, .values = values };
         }
-        const execution: work_profile.M31CircleLdeExecution =
+        const execution: work_profile.M31CircleLdeExecution = if (supports_circle_lde_batch)
+            try B.interpolateAndEvaluateCircleBuffersBatched(
+                &circle_lde_batch,
+                allocator,
+                source_values,
+                base_values,
+                extended_values,
+                transform_buffer,
+                extended_start,
+                extended_stride,
+                base_domain,
+                base_twiddles,
+                extended_domain,
+                extended_twiddles,
+            )
+        else
             try B.interpolateAndEvaluateCircleBuffers(
                 allocator,
                 source_values,
@@ -491,9 +554,10 @@ fn prepareColumnsCombinedForBackend(
                 owned_columns[column_index].values = &.{};
                 break :blk coefficient;
             } else try prover_circle.CircleCoefficients.initBorrowed(base);
-            try initialized_indices.append(allocator, column_index);
+            initialized_indices.appendAssumeCapacity(column_index);
         }
     }
+    if (supports_circle_lde_batch) try circle_lde_batch.finish();
     std.debug.assert(transform_arena_cursor == transform_arena.len);
     try recordM31TransformCompletion(
         work_recorder,
@@ -503,41 +567,43 @@ fn prepareColumnsCombinedForBackend(
     );
     // work-profile-complete:column-combined-fft
 
-    if (source_arena) |arena| {
-        // Column values borrow the arena; the arena is released exactly once,
-        // with the coefficients that now live inside it.
-        try coefficient_buffers.append(allocator, arena);
-    } else {
+    const owned_column_buffers = try allocator.dupe([]M31, column_buffers.items);
+    errdefer allocator.free(owned_column_buffers);
+    const coefficient_buffer_count = coefficient_buffers.items.len + @intFromBool(source_arena != null);
+    const owned_coefficient_buffers: ?[][]M31 = if (retain_coefficients and coefficient_buffer_count != 0) blk: {
+        const buffers = try allocator.alloc([]M31, coefficient_buffer_count);
+        @memcpy(buffers[0..coefficient_buffers.items.len], coefficient_buffers.items);
+        if (source_arena) |arena| buffers[buffers.len - 1] = arena;
+        break :blk buffers;
+    } else null;
+
+    // All fallible work is complete. Until this point the caller retains the
+    // source arena, and our error cleanup owns only newly allocated buffers.
+    if (source_arena == null) {
         for (owned_columns) |column| if (column.values.len != 0) allocator.free(column.values);
     }
     allocator.free(owned_columns);
 
-    const owned_column_buffers = try allocator.dupe([]M31, column_buffers.items);
-    errdefer allocator.free(owned_column_buffers);
-
     if (!retain_coefficients) {
         column_storage.deinitOwnedCoefficientColumns(allocator, coefficients);
         for (coefficient_buffers.items) |buffer| allocator.free(buffer);
+        if (source_arena) |arena| allocator.free(arena);
         coefficient_buffers.clearRetainingCapacity();
         column_buffers.clearRetainingCapacity();
         return .{
             .columns = extended,
             .coefficients = null,
             .column_backing_buffers = owned_column_buffers,
+            .column_backing_alignment = column_alignment,
         };
     }
-    const owned_coefficient_buffers: ?[][]M31 = if (coefficient_buffers.items.len == 0)
-        null
-    else blk: {
-        const buffers = try allocator.dupe([]M31, coefficient_buffers.items);
-        coefficient_buffers.clearRetainingCapacity();
-        break :blk buffers;
-    };
+    coefficient_buffers.clearRetainingCapacity();
     column_buffers.clearRetainingCapacity();
     return .{
         .columns = extended,
         .coefficients = coefficients,
         .column_backing_buffers = owned_column_buffers,
+        .column_backing_alignment = column_alignment,
         .coefficient_backing_buffers = owned_coefficient_buffers,
     };
 }

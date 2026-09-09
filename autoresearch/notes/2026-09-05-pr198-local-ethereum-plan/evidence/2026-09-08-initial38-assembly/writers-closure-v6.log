@@ -1,0 +1,5 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 71s
+1/2 recursive_common_ethereum_incremental_leaf_universal_closure_v4.test.Ethereum initial complete closure requires all38 audits and every domain to cancel...OK
+2/2 recursive_common_ethereum_initial_input_rows_v1.test.Ethereum initial complete writers commit genuine lane and packet rows at appended offsets...OK
+All 2 tests passed.

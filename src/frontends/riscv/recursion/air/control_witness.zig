@@ -239,6 +239,57 @@ fn rowFor(
     };
 }
 
+/// Append-only helper for independently authenticated lane-specific schedule
+/// compilers. The frozen V1 owner continues to call the private constructor
+/// above; V2 callers still must reconstruct and compare every emitted row.
+pub fn rowForVerifierStep(
+    step: schedule.VerifierStep,
+    sequence: u32,
+    verifier_id: u32,
+    segment_mask: u32,
+    binary_mask: u32,
+) Row {
+    return rowFor(
+        step,
+        sequence,
+        verifier_id,
+        segment_mask,
+        binary_mask,
+    );
+}
+
+pub fn logSizeForRowCount(row_count: usize) Error!u32 {
+    const result: u32 = @max(
+        MIN_LOG_SIZE,
+        @as(u32, @intCast(std.math.log2_int_ceil(
+            usize,
+            @max(row_count, 1),
+        ))),
+    );
+    if (result > MAX_LOG_SIZE) return error.LogSizeOutOfRange;
+    return result;
+}
+
+pub fn generateValidatedRows(
+    authority: anytype,
+    columns: *[COLUMN_COUNT][]M31,
+    rows: []const Row,
+    log_size: u32,
+) Error!void {
+    return direct.generateMainInto(
+        M31,
+        Row,
+        COLUMN_COUNT,
+        columns,
+        rows,
+        log_size,
+        M31.zero(),
+        authority,
+        validateRow,
+        writeRow,
+    );
+}
+
 fn validateRow(row: Row) direct.Error!void {
     if ((row.segment_mask > 1 or row.binary_mask > 1 or row.terminal_mask > 1) or
         row.segment_mask + row.binary_mask != 1 or

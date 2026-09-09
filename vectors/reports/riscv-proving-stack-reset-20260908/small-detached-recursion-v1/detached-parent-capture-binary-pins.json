@@ -1,0 +1,10 @@
+{
+  "prove": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-capture-prove",
+    "sha256": "d9ac6106b74be712f58f2c01c1177e9c822d3062af092d2d9f80c186f52c18a8"
+  },
+  "verify": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-capture-verify",
+    "sha256": "fac4c412062d19e4cab940887f0a8576b72a642c286a8aa8e0a370c8beba7a16"
+  }
+}

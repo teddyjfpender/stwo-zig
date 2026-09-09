@@ -1,0 +1,5 @@
+1/4 pcs_commitments_test_root.test_0...OK
+2/4 pcs.owned_source_admission_test.test.PCS owned source admission releases every partial ownership stage on allocation failure...OK
+3/4 pcs.owned_source_admission_test.test.PCS owned source admission preserves real FFT Merkle roots and adopts aligned coefficients...OK
+4/4 pcs.owned_source_admission_test.test.PCS owned source admission never retention preserves LDE roots without coefficients...OK
+All 4 tests passed.

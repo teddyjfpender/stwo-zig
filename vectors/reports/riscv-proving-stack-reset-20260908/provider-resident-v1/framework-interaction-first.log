@@ -1,0 +1,32 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 35s
+test-framework-interaction-device
++- run test
+   +- compile test ReleaseSafe native 2 errors
+runtime/framework_interaction.zig:125:62: error: invalid left-hand side to assignment
+        for (invocation.relation_values, 0..) |value, index| for (value.toM31Array(), 0..) |coordinate, k| relations[index * 4 + k] = coordinate.toU32();
+                                                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:75:42: error: expected type 'usize', found 'i64'
+    return expectEqualInner(T, expected, actual);
+                                         ^~~~~~
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:75:42: note: unsigned 64-bit int cannot represent all possible signed 64-bit values
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:78:60: note: parameter type declared here
+fn expectEqualInner(comptime T: type, expected: T, actual: T) !void {
+                                                           ^
+shaders/aot_profile.zig:110:32: note: called inline here
+    try std.testing.expectEqual(recursive_generated.entries.len, coverage.value.object.get("kernel_count").?.integer);
+        ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    runtime.Runtime: runtime.zig:166:32
+    Runtime: runtime.zig:164:21
+    5 reference(s) hidden; use '-freference-trace=7' to see all references
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal/runtime/framework_interaction_device_test.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal/framework_interaction_device_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -framework Foundation -framework Metal -lc --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-framework-interaction-device transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 2 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/32ea8c934a74378eeb1f5496095be3a4/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x112fd0ef -Z65512c897258d731 --maxrss 25769803776 -j1 test-framework-interaction-device -Doptimize=ReleaseSafe --summary all

@@ -13,7 +13,7 @@ pub fn Evaluator(comptime S: type) type {
         const ops = common.Ops(S);
         const reads = read_access.Ops(S, ops.Access);
 
-        pub const MAIN_COLUMN_COUNT: usize = 48;
+        pub const MAIN_COLUMN_COUNT: usize = 50;
         pub const CONSTRAINT_COUNT: usize = 62;
         pub const Row = struct {
             clk: S,
@@ -38,6 +38,8 @@ pub fn Evaluator(comptime S: type) type {
             is_sw: S,
             result: [4]S,
             destination: ops.Destination,
+            aligned_addr_quarter: S,
+            aligned_addr_low20: S,
 
             pub fn fromMainColumns(columns: []const S) !Row {
                 if (columns.len != MAIN_COLUMN_COUNT) return error.InvalidMainTraceShape;
@@ -64,6 +66,8 @@ pub fn Evaluator(comptime S: type) type {
                     .is_sw = columns[41],
                     .result = columns[42..46].*,
                     .destination = ops.destinationFromColumns(columns[46..48]),
+                    .aligned_addr_quarter = columns[48],
+                    .aligned_addr_low20 = columns[49],
                 };
             }
 
@@ -87,6 +91,8 @@ pub fn Evaluator(comptime S: type) type {
             shift_id: S,
             signed_mask: S,
             aligned_addr_quarter: S,
+            aligned_addr_quarter_source: S,
+            aligned_addr_high8: S,
         };
 
         pub fn derive(row: Row) Derived {
@@ -101,6 +107,8 @@ pub fn Evaluator(comptime S: type) type {
                 marker_sum = marker_sum.add(marker);
                 shift_id = shift_id.add(marker.mul(ops.q(i)));
             }
+            const aligned_addr_quarter_source = row.src_addr_selector
+                .add(row.dst_addr_selector).sub(row.r2_idx).mul(ops.INV_4());
             return .{
                 .opcode_b = opcode_b,
                 .opcode_h = opcode_h,
@@ -114,8 +122,10 @@ pub fn Evaluator(comptime S: type) type {
                 .marker_sum = marker_sum,
                 .shift_id = shift_id,
                 .signed_mask = is_signed.mul(row.src_msb).mul(ops.q(255)),
-                .aligned_addr_quarter = row.src_addr_selector.add(row.dst_addr_selector)
-                    .sub(row.r2_idx).mul(ops.INV_4()),
+                .aligned_addr_quarter = row.aligned_addr_quarter,
+                .aligned_addr_quarter_source = aligned_addr_quarter_source,
+                .aligned_addr_high8 = row.aligned_addr_quarter
+                    .sub(row.aligned_addr_low20).mul(ops.q(1 << 11)),
             };
         }
 
@@ -239,22 +249,14 @@ pub fn Evaluator(comptime S: type) type {
                 out[n] = S.one().sub(d.is_load).mul(limb);
                 n += 1;
             }
-            // The address is a base-field sum, so it is the architectural address
-            // only while `base + imm` stays below `M31`. The aligned-address
-            // `range_check_20` confines every admitted address to `[0, 2^22)` and
-            // the displacement is a signed 12-bit field, so an honest base is
-            // always below `2^22 + 2^11`. Pinning the base's high limb to zero
-            // bounds it by `2^24`: above every address this AIR can admit, and
-            // more than a displacement below the modulus, so the sum cannot wrap.
-            // The bound reads the remaining limbs as bytes, which is the memory
-            // bus's job here as it is for every other family's operand
-            // arithmetic — each register write is byte-range-checked by the
-            // family that made it.
-            // Only rows whose field address already disagrees with their
-            // architectural address are lost — `LW x7, 8(x5)` with
-            // `x5 = 0x7ffffffb` is architecturally the misaligned `0x80000003`
-            // but the field sum is the clean `0x00000004` (issue #140).
-            out[n] = enabler.mul(row.rs1.value[3]);
+            // The committed word index is tied to the exact selector-derived
+            // address here. Ordered range requests decompose it into low20 and
+            // high8 limbs, proving an aligned byte address below 2^30. A separate
+            // range-M31 request checks twice the top base byte, proving `rs1 <
+            // 2^30`; with a signed 12-bit displacement this prevents field wrap.
+            out[n] = enabler.mul(
+                row.aligned_addr_quarter.sub(d.aligned_addr_quarter_source),
+            );
             n += 1;
             std.debug.assert(n == out.len);
             return .{ .values = out };
@@ -314,11 +316,15 @@ pub fn Evaluator(comptime S: type) type {
         }
 
         pub fn alignedAddressRangeLookup(row: Row) S {
-            return derive(row).aligned_addr_quarter;
+            return row.aligned_addr_low20;
+        }
+
+        pub fn alignedAddressHighRangeLookup(row: Row) [2]S {
+            return .{ derive(row).aligned_addr_high8, S.zero() };
         }
 
         pub fn baseAddressM31Lookup(row: Row) [2]S {
-            return .{ row.rs1.value[0], row.rs1.value[3] };
+            return .{ row.rs1.value[0], row.rs1.value[3].mul(ops.q(2)) };
         }
 
         /// Seven-bit residuals that bind `src_msb` to the actual sign-bearing result

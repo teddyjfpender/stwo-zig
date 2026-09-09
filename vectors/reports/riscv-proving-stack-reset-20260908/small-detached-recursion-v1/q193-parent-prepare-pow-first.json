@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-recursive-segment-v2-detached-parent-prepare",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "inputs": {
+    "STWO_SEGMENT_V2_PARENT_LEFT_BUNDLE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed13-first/child-0",
+    "STWO_SEGMENT_V2_PARENT_LEFT_KEY_SHA256": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+    "STWO_SEGMENT_V2_PARENT_LEFT_EXPECTED_WIRE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+    "STWO_SEGMENT_V2_PARENT_RIGHT_BUNDLE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed13-first/child-1",
+    "STWO_SEGMENT_V2_PARENT_RIGHT_KEY_SHA256": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+    "STWO_SEGMENT_V2_PARENT_RIGHT_EXPECTED_WIRE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json"
+  },
+  "exit_code": 0,
+  "elapsed_seconds": 91.03431987506337
+}

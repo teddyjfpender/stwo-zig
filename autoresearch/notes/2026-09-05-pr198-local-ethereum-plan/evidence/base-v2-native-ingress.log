@@ -1,0 +1,19 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 265s
+info: Columns: opcode=18 infra=481 total tree1=499 interaction=84
+info: Poseidon2 Merkle: 179 exact sparse-node calls, poseidon_log_size=8, merkle_log_size=8
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=96.470
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=29.139
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=38.322
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=167.584
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=116.388 publish_01_ms=0.536 interaction_ms=66.820 publish_2_ms=0.294 cached_validate_ns=104080750 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+V2_POSEIDON_RECURSIVE_INGRESS cycles=1 prove_ms=4457.192 verify_ms=901.832 transcript_calls=900 authority_calls=14 core_calls=294 proof_bytes=24255 core_cols=338/760/276 core_constraints=862 complete_provider_calls=1208 complete_provider_log=11 core_init_ms=96.470 provider_ms=29.139 interaction_ms=38.322 independent_ms=167.584
+
+Build Summary: 3/3 steps succeeded
+run-recursive-segment-v2-poseidon-ingress success
++- run exe recursive-segment-v2-poseidon-ingress success 7s MaxRSS:1G
+   +- compile exe recursive-segment-v2-poseidon-ingress ReleaseSafe native success 1m MaxRSS:6G
+

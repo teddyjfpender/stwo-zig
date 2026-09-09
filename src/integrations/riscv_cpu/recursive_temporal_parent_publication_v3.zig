@@ -2,6 +2,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const suffix_mod = @import("recursive_temporal_parent_suffix_v3.zig");
+const child_transcript = @import("recursive_temporal_child_transcript_authority_v1.zig");
 
 const m31 = stwo_core.fields.m31;
 const recursion = frontend.recursion;
@@ -23,6 +24,9 @@ pub const VerifiedPublicationV1 = struct {
     canonical_proof_sha_id: [32]u8,
     capture_id: channel.Digest,
     transcript_id: channel.Digest,
+    transcript_authority: child_transcript.DescriptorV1 =
+        .temporalParentV3(),
+    transcript_context_sha_id: [32]u8,
     statement_words: recursion.span_statement.StatementWords,
     pair_authority_id: channel.Digest,
     context: suffix_mod.ContextReceiptV3,
@@ -46,9 +50,19 @@ pub const VerifiedPublicationV1 = struct {
             return error.InvalidPublication;
         }
         try self.context.validate();
+        try self.transcript_authority.validate();
         const statement = recursion.span_statement.SpanStatement
             .fromCanonicalWords(&self.statement_words) catch
             return error.InvalidPublication;
+        self.transcript_authority.validateForChildHeight(
+            statement.slots.height,
+        ) catch return error.InvalidPublication;
+        try requireSha(self.transcript_context_sha_id);
+        if (self.transcript_authority.isLegacyParent() and !std.mem.eql(
+            u8,
+            &self.transcript_context_sha_id,
+            &self.context.identity,
+        )) return error.InvalidPublication;
         if (self.statement_version != self.context.statement_version or
             statement.slots.height != self.context.parent_height or
             statement.slots.nodeIndex() != self.context.parent_node_index or
@@ -99,6 +113,10 @@ pub fn identity(value: *const VerifiedPublicationV1) [32]u8 {
     hash.update(&value.canonical_proof_sha_id);
     hashNative(&hash, value.capture_id);
     hashNative(&hash, value.transcript_id);
+    if (!value.transcript_authority.isLegacyParent())
+        hashTranscriptAuthority(&hash, value.transcript_authority);
+    if (!value.transcript_authority.isLegacyParent())
+        hash.update(&value.transcript_context_sha_id);
     for (value.statement_words) |word| hashInt(&hash, u32, word.toU32());
     hashNative(&hash, value.pair_authority_id);
     hash.update(&value.context.identity);
@@ -135,6 +153,42 @@ pub fn validateMutationFleetForTest(
     suffix_mod.context_test_support.reseal(&forged.context);
     forged.publication_sha_id = identity(&forged);
     try expectPublicationRejected(&forged);
+
+    forged = publication;
+    forged.transcript_authority.domain +%= 1;
+    forged.publication_sha_id = identity(&forged);
+    try expectPublicationRejected(&forged);
+
+    forged = publication;
+    forged.transcript_authority.cohort_format_version +%= 1;
+    forged.publication_sha_id = identity(&forged);
+    try expectPublicationRejected(&forged);
+
+    forged = publication;
+    forged.transcript_authority.cohort_schema_version +%= 1;
+    forged.publication_sha_id = identity(&forged);
+    try expectPublicationRejected(&forged);
+
+    forged = publication;
+    forged.transcript_authority.schema_version +%= 1;
+    forged.publication_sha_id = identity(&forged);
+    try expectPublicationRejected(&forged);
+
+    forged = publication;
+    forged.transcript_authority = switch (publication.transcript_authority.kind) {
+        .temporal_parent_v3 => .recursiveNodeV1(),
+        .recursive_node_v1 => .temporalParentV3(),
+        .empty_parent_v1 => .temporalParentV3(),
+    };
+    forged.publication_sha_id = identity(&forged);
+    try expectPublicationRejected(&forged);
+
+    if (publication.transcript_authority.isLegacyParent()) {
+        forged = publication;
+        forged.transcript_context_sha_id[0] ^= 1;
+        forged.publication_sha_id = identity(&forged);
+        try expectPublicationRejected(&forged);
+    }
 }
 
 fn expectPublicationRejected(
@@ -169,6 +223,22 @@ fn requireSha(value: [32]u8) !void {
 
 fn hashNative(hash: anytype, value: channel.Digest) void {
     for (value) |word| hashInt(hash, u32, word);
+}
+
+fn hashTranscriptAuthority(
+    hash: anytype,
+    value: child_transcript.DescriptorV1,
+) void {
+    hash.update("stwo-zig/typed-air/temporal-child-transcript-authority/v1\x00");
+    hashInt(hash, u16, value.format_version);
+    hashInt(hash, u16, value.schema_version);
+    hashInt(hash, u8, @intFromEnum(value.kind));
+    hash.update(&value.padding);
+    hashInt(hash, u32, value.domain);
+    hashInt(hash, u16, value.cohort_format_version);
+    hashInt(hash, u16, value.cohort_schema_version);
+    hashInt(hash, u16, value.component_count);
+    hashInt(hash, u16, value.reserved);
 }
 
 fn hashInt(hash: anytype, comptime T: type, value: anytype) void {

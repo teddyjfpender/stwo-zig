@@ -69,6 +69,19 @@ pub const CircuitViewV3 = opaque {
         try recordingStorageFromView(self).validate(manifests, air_program_ids);
     }
 
+    pub fn validateAuthenticatedH1(
+        self: *const CircuitViewV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+    ) !void {
+        try recordingStorageFromView(self).validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+    }
+
     pub fn validatedLane(
         self: *const CircuitViewV3,
         manifests: TrustedManifestsV3,
@@ -88,12 +101,38 @@ pub const CircuitViewV3 = opaque {
             .bindings = storage.bindings,
         };
     }
+
+    pub fn validatedLaneAuthenticatedH1(
+        self: *const CircuitViewV3,
+        manifests: TrustedManifestsV3,
+        air_program_ids: AirProgramIdsV3,
+        h1_manifest: anytype,
+        verifier_id: u32,
+        circuit_id: u32,
+        statement_scope: u32,
+    ) !graph_mod.RecursionLane {
+        try self.validateAuthenticatedH1(
+            manifests,
+            air_program_ids,
+            h1_manifest,
+        );
+        const storage = recordingStorageFromView(self);
+        return .{
+            .verifier_id = verifier_id,
+            .circuit_id = circuit_id,
+            .statement_scope = statement_scope,
+            .graph = storage.graph(),
+            .profile = storage.configuration.graphInputProfile(),
+            .bindings = storage.bindings,
+        };
+    }
 };
 
 pub const WitnessV3 = struct {
     parent_binary_selector: bool,
     proof_kind: ProofKind,
     statement_words: *const [STATEMENT_WORD_COUNT]M31,
+    field_public_extra_words: []const M31 = &.{},
     sampled_values: []const QM31,
     claim_inputs: *const [COMPOSITION_CLAIM_INPUT_COUNT]QM31,
     public_wire_boundary: QM31,

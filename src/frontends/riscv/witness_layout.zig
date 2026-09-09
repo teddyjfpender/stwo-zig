@@ -79,7 +79,7 @@ fn Names(comptime Layout: type) type {
 }
 
 test "witness layout digest matches the Sail-authoritative schema receipt" {
-    const expected = "2163899f40e1bffb7f5d355b600ee4e013e7e4f63c205cedd01f6feb9d88f4f5";
+    const expected = "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000";
     const actual = std.fmt.bytesToHex(digest(), .lower);
     try std.testing.expectEqualStrings(expected, &actual);
 }

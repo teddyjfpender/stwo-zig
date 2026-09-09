@@ -1,0 +1,13 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 47s
+test-recursion-composition-v3
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+Build Summary: 3/3 steps succeeded; 346/347 tests passed; 1 skipped
+test-recursion-composition-v3 success
++- run test 346 passed 1 skipped 923ms MaxRSS:16M
+   +- compile test ReleaseSafe native success 2m MaxRSS:6G
+

@@ -163,6 +163,15 @@ pub fn build(
     log_sizes: universal_manifest.LogSizes,
     boundary_components: [boundary_v2.COMPONENT_COUNT]boundary_v2.ComponentGeometryV2,
 ) Error!Catalog {
+    return buildWithProviderShape(log_sizes, boundary_components, provider_authority_v2.Shape.init(21) catch unreachable);
+}
+
+pub fn buildWithProviderShape(
+    log_sizes: universal_manifest.LogSizes,
+    boundary_components: [boundary_v2.COMPONENT_COUNT]boundary_v2.ComponentGeometryV2,
+    provider_shape: provider_authority_v2.Shape,
+) Error!Catalog {
+    provider_shape.validate() catch return error.InvalidCatalogGeometry;
     for (boundary_components) |component|
         component.validate() catch return error.InvalidCatalogGeometry;
 
@@ -212,7 +221,7 @@ pub fn build(
         PUBLIC_LOGUP_SOURCE_INDEX,
         boundary_components[1],
     );
-    entries[VERIFIER_INPUT_PROVIDER_INDEX] = try providerEntry();
+    entries[VERIFIER_INPUT_PROVIDER_INDEX] = try providerEntry(provider_shape.trace_log_size);
 
     var result = Catalog{
         .entries = entries,
@@ -409,10 +418,11 @@ fn validateSourceAir(comptime Air: type, geometry: Geometry) Error!void {
     }
 }
 
-fn providerEntry() Error!Entry {
+fn providerEntry(log_size: u32) Error!Entry {
+    if (log_size < 6 or log_size > 30) return error.InvalidCatalogGeometry;
     const geometry = Geometry{
         .roster_row = VERIFIER_INPUT_PROVIDER_INDEX,
-        .log_size = provider_authority_v2.TRACE_LOG_SIZE,
+        .log_size = log_size,
         .preprocessed_columns = provider_air_v2.PREPROCESSED_COLUMN_COUNT,
         .main_columns = provider_air_v2.PHYSICAL_MAIN_COLUMN_COUNT,
         .interaction_columns = provider_air_v2.INTERACTION_COLUMN_COUNT,
@@ -432,7 +442,7 @@ fn providerEntry() Error!Entry {
 }
 
 fn validateProviderEntry(entry: *const Entry) Error!void {
-    const expected = try providerEntry();
+    const expected = try providerEntry(entry.geometry.log_size);
     if (!std.meta.eql(entry.*, expected))
         return error.InvalidCatalogGeometry;
 }

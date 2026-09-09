@@ -14,8 +14,9 @@ const canonic = @import("stwo_core").poly.circle.canonic;
 const prover_circle = @import("../poly/circle/mod.zig");
 const twiddle_source_mod = @import("../poly/twiddle_source.zig");
 const work_pool = @import("../work_pool.zig");
-const stage_profile = @import("stwo_prover_api").stage_profile;
-const work_profile = @import("stwo_prover_api").work_profile;
+const prover_api = @import("stwo_prover_api");
+const stage_profile = prover_api.stage_profile;
+const work_profile = prover_api.work_profile;
 const prover_fri = @import("../fri.zig");
 const commitment_tree = @import("commitment_tree.zig");
 const commit_polys = @import("commit_polys.zig");
@@ -83,6 +84,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
         trees: std.ArrayListUnmanaged(BackendCommitmentTree),
         config: PcsConfig,
         coefficient_retention_policy: CoefficientRetentionPolicy,
+        /// Optional storage for retained LDE values only. Its owner must outlive
+        /// every tree; descriptors, source columns and Merkle layers use the caller allocator.
+        retained_column_allocator: ?std.mem.Allocator = null,
+        /// Optional scratch storage for typed AIR quotient-domain values.
+        /// Its owner must outlive proving and all prepared evaluators.
+        quotient_values_allocator: ?std.mem.Allocator = null,
+        /// Execution-only opt-in; CSP and existing callers retain their path.
+        reuse_bounded_merkle_tail: bool = false,
+        /// Execution-only opt-in for adopting backends; keeps source and
+        /// coefficient storage in the same aligned arena.
+        pack_owned_source_by_log: bool = false,
         twiddle_source: TwiddleSource,
         pending_commit: ?deferred_commit.Pending(BackendCommitmentTree),
         shell_preopening_audit: shell_work_profile.PreOpeningAudit,
@@ -145,6 +157,17 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             policy: CoefficientRetentionPolicy,
         ) void {
             self.coefficient_retention_policy = policy;
+        }
+
+        /// Execution-only storage selection. The default allocation and protocol
+        /// are unchanged. Selected storage currently requires `.never` coefficients.
+        pub fn setRetainedColumnAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+            self.retained_column_allocator = allocator;
+        }
+
+        /// Execution-only opt-in; no commitment or transcript parameter changes.
+        pub fn setQuotientValuesAllocator(self: *Self, allocator: ?std.mem.Allocator) void {
+            self.quotient_values_allocator = allocator;
         }
 
         const CommitOps = @import("commit_ops.zig").CommitOps(B, H, MC, Self);
@@ -217,17 +240,8 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             );
         }
 
-        /// Proves sampled values for already-committed trees.
-        ///
-        /// Inputs:
-        /// - `sampled_points`: per tree -> per column sampled points.
-        ///
-        /// Output:
-        /// - full PCS opening proof with sampled values computed in-prover.
-        ///
-        /// Invariants:
-        /// - sampled-point tree/column shape must match committed trees/columns.
-        /// - every sampled point is folded to each column's log size before evaluation.
+        /// Proves points for committed trees after exact tree/column shape
+        /// validation and per-column log-size folding.
         pub fn proveValues(
             self: Self,
             allocator: std.mem.Allocator,
@@ -243,6 +257,24 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             sampled_points: TreeVec([][]CirclePointQM31),
             recorder: ?*stage_profile.Recorder,
             channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var ignored_phase: prover_api.ProvePhase = .openings;
+            return self.proveValuesWithRecorderAndPhase(
+                allocator,
+                sampled_points,
+                recorder,
+                channel,
+                &ignored_phase,
+            );
+        }
+
+        pub fn proveValuesWithRecorderAndPhase(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+            diagnostic_phase: *prover_api.ProvePhase,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             var owns_scheme = true;
@@ -275,24 +307,19 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             // The downstream method consumes both owners on success and error.
             owns_scheme = false;
             owns_sampled_points = false;
-            return scheme.proveValuesFromSamplesWithRecorder(
+            diagnostic_phase.* = .fri;
+            return scheme.proveValuesFromSamplesWithRecorderAndPhase(
                 allocator,
                 sampled_points_owned,
                 sampled_values,
                 recorder,
                 channel,
+                diagnostic_phase,
             );
         }
 
-        /// Proves sampled values for already-committed trees using precomputed point evaluations.
-        ///
-        /// Inputs:
-        /// - `sampled_points`: per tree -> per column sampled points.
-        /// - `sampled_values`: per tree -> per column sampled values (same shape as points).
-        ///
-        /// Invariants:
-        /// - `sampled_points` and `sampled_values` must match the tree/column shape.
-        /// - Values are assumed to match the committed columns at those points.
+        /// Proves precomputed point evaluations after exact tree/column shape
+        /// validation; values must match the committed columns.
         pub fn proveValuesFromSamples(
             self: Self,
             allocator: std.mem.Allocator,
@@ -316,6 +343,26 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             sampled_values: TreeVec([][]QM31),
             recorder: ?*stage_profile.Recorder,
             channel: anytype,
+        ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
+            var ignored_phase: prover_api.ProvePhase = .openings;
+            return self.proveValuesFromSamplesWithRecorderAndPhase(
+                allocator,
+                sampled_points,
+                sampled_values,
+                recorder,
+                channel,
+                &ignored_phase,
+            );
+        }
+
+        pub fn proveValuesFromSamplesWithRecorderAndPhase(
+            self: Self,
+            allocator: std.mem.Allocator,
+            sampled_points: TreeVec([][]CirclePointQM31),
+            sampled_values: TreeVec([][]QM31),
+            recorder: ?*stage_profile.Recorder,
+            channel: anytype,
+            diagnostic_phase: *prover_api.ProvePhase,
         ) !pcs_core.ExtendedCommitmentSchemeProof(H) {
             var scheme = self;
             defer scheme.deinit(allocator);
@@ -396,6 +443,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
             const lifting_log_size = try scheme.proofLiftingLogSize();
             const domain = canonic.CanonicCoset.new(lifting_log_size).circleDomain();
 
+            diagnostic_phase.* = .fri;
             var fri_root_mix_capture = shell_work_profile.FriRootMixCapture{};
             var fri_prover = blk: {
                 var fri_quotient_stage = try stage_profile.StageScope.begin(
@@ -476,6 +524,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 } else work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .finalize;
             const proof_of_work = blk: {
                 var proof_of_work_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -483,7 +532,11 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                     "Proof of work",
                 );
                 defer proof_of_work_stage.end();
-                const nonce = pow_search.grind(channel, scheme.config.pow_bits);
+                const nonce = try pow_search.grindForBackend(
+                    B,
+                    channel,
+                    scheme.config.pow_bits,
+                );
                 channel.mixU64(nonce);
                 break :blk nonce;
             };
@@ -494,6 +547,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .fri;
             var fri_decommit = blk: {
                 var fri_decommit_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -511,6 +565,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .openings;
             var trace_decommit = blk: {
                 var trace_decommit_stage = try stage_profile.StageScope.begin(
                     recorder,
@@ -543,6 +598,7 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
                 ) catch work_recorder.?.markIncomplete();
             }
 
+            diagnostic_phase.* = .finalize;
             var commitments = try scheme.roots(allocator);
             errdefer commitments.deinit(allocator);
             if (shell_audit) |*audit| {
@@ -644,165 +700,10 @@ pub fn CommitmentSchemeProver(comptime B: type, comptime H: type, comptime MC: t
     };
 }
 
-fn friMerkleCompressions(
-    comptime B: type,
-    prover: anytype,
-    config: core_fri.FriConfig,
-) !u64 {
-    var total: u64 = 0;
-    const first_packed = friLayerUsesPackedLeaves(
-        prover.first_layer.column.len(),
-        config.fold_step,
-    );
-    const first_reuses_constant = if (comptime @hasDecl(B, "commitLazyMerkle"))
-        if (first_packed)
-            B.reuses_constant_merkle_parents
-        else
-            B.lazy_merkle_reuses_constant_parents
-    else
-        B.reuses_constant_merkle_parents;
-    total = try addMerkleCompressions(
-        total,
-        try friLayerMerkleCompressions(
-            prover.first_layer.column,
-            first_packed,
-            first_reuses_constant,
-        ),
-    );
-
-    for (prover.inner_layers) |layer| {
-        const uses_packed_leaves = friLayerUsesPackedLeaves(
-            layer.column.len(),
-            layer.fold_step,
-        );
-        total = try addMerkleCompressions(
-            total,
-            try friLayerMerkleCompressions(
-                layer.column,
-                uses_packed_leaves,
-                B.reuses_constant_merkle_parents,
-            ),
-        );
-    }
-    return total;
-}
-
-fn friLayerUsesPackedLeaves(column_len: usize, fold_step: u32) bool {
-    const packed_leaf_size = @as(usize, 1) <<
-        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
-    return fold_step > 1 and column_len >= packed_leaf_size and
-        std.math.isPowerOfTwo(column_len);
-}
-
-fn friLayerMerkleCompressions(
-    column: anytype,
-    uses_packed_leaves: bool,
-    reuses_constant_parents: bool,
-) !u64 {
-    const packed_leaf_size = @as(usize, 1) <<
-        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
-    if (column.len() == 0 or !std.math.isPowerOfTwo(column.len()))
-        return error.InvalidCounterGroup;
-    const leaf_count = if (uses_packed_leaves)
-        column.len() / packed_leaf_size
-    else
-        column.len();
-    const encoded_leaf_count = std.math.cast(u64, leaf_count) orelse
-        return error.CounterOverflow;
-    return work_profile.logicalMerkleCompressions(
-        encoded_leaf_count,
-        reuses_constant_parents and
-            friColumnIsMerkleConstant(column, uses_packed_leaves),
-    );
-}
-
-fn friColumnIsMerkleConstant(column: anytype, uses_packed_leaves: bool) bool {
-    const packed_leaf_size = @as(usize, 1) <<
-        @intCast(core_fri.LOG_PACKED_LEAF_SIZE);
-    const leaf_count = if (uses_packed_leaves)
-        column.len() / packed_leaf_size
-    else
-        column.len();
-    if (leaf_count == 0) return false;
-
-    for (column.columns) |coordinate| {
-        const values_per_leaf = if (uses_packed_leaves) packed_leaf_size else 1;
-        for (0..values_per_leaf) |offset| {
-            const first = coordinate[offset];
-            for (1..leaf_count) |leaf| {
-                const index = leaf * values_per_leaf + offset;
-                if (!coordinate[index].eql(first)) return false;
-            }
-        }
-    }
-    return true;
-}
-
-fn addMerkleCompressions(lhs: u64, rhs: u64) !u64 {
-    return std.math.add(u64, lhs, rhs) catch error.CounterOverflow;
-}
-
 pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
     return tree_builders.TreeBuilder(B, H, MC, CommitmentSchemeProver(B, H, MC));
 }
 
 pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: type) type {
     return tree_builders.StreamingTreeBuilder(B, H, MC, CommitmentSchemeProver(B, H, MC));
-}
-
-test "FRI Merkle work follows packed-leaf and constant-parent execution" {
-    const TestColumn = struct {
-        columns: [qm31.SECURE_EXTENSION_DEGREE][]const M31,
-
-        fn len(self: @This()) usize {
-            return self.columns[0].len;
-        }
-    };
-    const constant_values = [_]M31{M31.fromCanonical(7)} ** 8;
-    const varying_values = [_]M31{
-        M31.fromCanonical(1),
-        M31.fromCanonical(2),
-        M31.fromCanonical(3),
-        M31.fromCanonical(4),
-        M31.fromCanonical(5),
-        M31.fromCanonical(6),
-        M31.fromCanonical(7),
-        M31.fromCanonical(8),
-    };
-    const constant = TestColumn{ .columns = .{
-        &constant_values,
-        &constant_values,
-        &constant_values,
-        &constant_values,
-    } };
-    const varying = TestColumn{ .columns = .{
-        &varying_values,
-        &constant_values,
-        &constant_values,
-        &constant_values,
-    } };
-
-    try std.testing.expect(friColumnIsMerkleConstant(constant, false));
-    try std.testing.expect(!friColumnIsMerkleConstant(varying, false));
-    try std.testing.expectEqual(
-        @as(u64, 3),
-        try friLayerMerkleCompressions(constant, false, true),
-    );
-    try std.testing.expectEqual(
-        @as(u64, 7),
-        try friLayerMerkleCompressions(varying, false, true),
-    );
-
-    // Four evaluation rows become one packed leaf. Constant packed columns
-    // therefore need zero parent compressions, while two varying packed
-    // leaves require exactly one.
-    try std.testing.expect(friLayerUsesPackedLeaves(8, 2));
-    try std.testing.expectEqual(
-        @as(u64, 0),
-        try friLayerMerkleCompressions(constant, true, true),
-    );
-    try std.testing.expectEqual(
-        @as(u64, 1),
-        try friLayerMerkleCompressions(varying, true, true),
-    );
 }

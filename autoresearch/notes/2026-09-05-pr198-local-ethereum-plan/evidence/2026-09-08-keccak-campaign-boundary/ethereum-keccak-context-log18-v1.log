@@ -1,0 +1,7 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 3542s
+1/2 ethereum_leaf_context_v1_test_root.test_0...OK
+2/2 recursion.ethereum_leaf_context_v1.test.Ethereum leaf context log18 admission remains explicit through retained validation...FAIL (CallCountMismatch)
+1 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/d01d59f7c68a0387fa9a20245662955d/root --seed=0x6313b5a1

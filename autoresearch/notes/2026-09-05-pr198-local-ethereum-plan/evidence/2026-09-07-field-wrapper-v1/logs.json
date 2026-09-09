@@ -1,0 +1,42 @@
+[
+  {
+    "path": "ethereum-native-field-producer.log",
+    "bytes": 2397,
+    "sha256": "4bf532a0898741ae252935db5d006414b83ae4b12ef9104e76d70e307cd8ad99"
+  },
+  {
+    "path": "ethereum-field4-air-preflight-v2.log",
+    "bytes": 9079,
+    "sha256": "881035ce8460468ab9384291339c8fb6d34f056115c31f40069784c14181279b"
+  },
+  {
+    "path": "ethereum-field4-source-closure-v1.log",
+    "bytes": 12562,
+    "sha256": "d84ba1b3495913275a657f3219873d88e7e2fd367290c446651e9a48e906e339"
+  },
+  {
+    "path": "ethereum-field4-source-closure-v2.log",
+    "bytes": 8579,
+    "sha256": "0bd1839876508788d6540dc81982f74e82f2eac49857b2aa56b400b0295945e1"
+  },
+  {
+    "path": "ethereum-field4-step-source-gates-v1.log",
+    "bytes": 4819,
+    "sha256": "93801e9c63d137839b615d317b00315d1048e21f7388894fdaa367bb60226cd5"
+  },
+  {
+    "path": "ethereum-root-native-tree0-admission-gates-v2.log",
+    "bytes": 364,
+    "sha256": "070793e052401ef3bd872229a819036e7606c46b8c399acba8c45e8ab0b4b5bb"
+  },
+  {
+    "path": "ethereum-bundle-independent-job-negative.log",
+    "bytes": 33,
+    "sha256": "8bc07b1cccd5b45ac9198761cccf20557f679e4c9b9528a86ca51d19f52b5b47"
+  },
+  {
+    "path": "ethereum-field4-source-closure-v3.log",
+    "bytes": 7561,
+    "sha256": "a38f523abdf71bf975bc4d9f38e695b9361aba2b5b34420b92970227c275eb0f"
+  }
+]

@@ -327,6 +327,16 @@ pub fn Namespace(comptime context: type) type {
         /// and 36-claim universal temporal parents without misclassifying the
         /// following public wire, samples, or last-layer coefficients.
         pub const TRANSCRIPT_ROWS_SCHEMA_VERSION: u16 = 2;
+        /// Append-only custody for two canonical proofless height-zero empty
+        /// children.  The rows remain the same typed binary-parent transcript
+        /// AIR; only the admitted replay has no PCS/FRI/query continuation.
+        pub const PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION: u16 = 2;
+        pub const PROOFLESS_EMPTY_TRANSCRIPT_ROWS_SCHEMA_VERSION: u16 = 3;
+
+        pub fn validTranscriptRowsSchema(schema: u16) bool {
+            return schema == TRANSCRIPT_ROWS_SCHEMA_VERSION or
+                schema == PROOFLESS_EMPTY_TRANSCRIPT_ROWS_SCHEMA_VERSION;
+        }
         pub const TRANSCRIPT_ROWS_AUTHORITY_DOMAIN =
             "stwo-zig/typed-air/recursive-temporal-transcript-rows/v2\x00";
         pub const TRANSCRIPT_MANIFEST_FORMAT_VERSION: u16 = 2;

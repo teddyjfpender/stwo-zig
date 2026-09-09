@@ -1,0 +1,49 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v4/bin/ethereum-prepared-leaf-cpu-v1",
+    "ethereum-incremental-full-leaf-replay-prepared-cpu-v1",
+    "--retained-materialization-result",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4",
+    "--selected-leaf-admission-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/selected-leaf-000009-v1",
+    "--segment-index",
+    "9",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v2/segment-000009.stwief04",
+    "--campaign-geometry",
+    "authenticated-v1",
+    "--claim-admission",
+    "field_authority_v4",
+    "--global-metadata-output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v2/segment-000009.metadata.json",
+    "--workers",
+    "1",
+    "--host-byte-budget",
+    "17179869184",
+    "--host-byte-limit",
+    "34359738368"
+  ],
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+  },
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v4/bin/ethereum-prepared-leaf-cpu-v1",
+    "bytes": 6992720,
+    "sha256": "eaa2c05550e9052e180b5ae79b7953deaef01e221ca2150eca994a6f4fcef9e7"
+  },
+  "started_unix_ns": 1788789116330490000,
+  "segment_index": 9,
+  "execution_cycles": 2097152,
+  "core_rows": 2096404,
+  "keccak_calls": 682,
+  "signer_calls": 66,
+  "claim_admission": "field_authority_v4",
+  "claim": "one native full leaf core plus providers, serialized producer destruction and fresh native verification; not a block or succinct root"
+}

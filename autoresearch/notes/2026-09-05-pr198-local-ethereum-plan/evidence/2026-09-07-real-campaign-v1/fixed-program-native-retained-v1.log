@@ -1,0 +1,17 @@
+test-ethereum-fixed-program-native
++- Ethereum fixed program native guard
+   +- run test stderr
+ETHEREUM_FIXED_PROGRAM_GEOMETRY segment=0 fixed_rows=6 removed_program_hashes=49 removed_program_nodes=49 poseidon_calls_before=345 poseidon_calls_after=296 fixed_pp_columns=6 main_width_before=445 main_width_after=287
+ETHEREUM_FIXED_PROGRAM_GEOMETRY segment=1 fixed_rows=6 removed_program_hashes=49 removed_program_nodes=49 poseidon_calls_before=501 poseidon_calls_after=452 fixed_pp_columns=6 main_width_before=445 main_width_after=287
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=0 bytes=8517294 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-narrow-v5/3417baa42016aa8e6473f5da044c08bc8d1a2ad16e4a45b173c1578ab0d4179e.bin
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=1 bytes=8827521 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-narrow-v5/64f20798b87279282c441ac08a2fa9883a41e3a7a2b8dce302110db4a3a8796f.bin
+ETHEREUM_BASE_BOUND_PROGRAM sha256=ecfd324f8088f9c985210b728d91851fb1144254f0bb6d52aa3d7ed0e3625f55 bytes=1048 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-narrow-v5/program.elf
+ETHEREUM_FIXED_PROGRAM_NATIVE_CORPUS path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-narrow-v5 manifest_sha256=97113e1e50f053bf65406eda1c2fd8c28bb68e1bad3b8c54d5440245ec026914 custody_only=true
+ETHEREUM_FIXED_PROGRAM_NATIVE profile=5 leaves=2 producer_destroyed=true independent_elf_reconstructed=true fresh_native_verified=true legacy_entry_rejected=true same_table_wrong_elf_rejected=true
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-fixed-program-native success
++- Ethereum fixed program native guard success
+   +- run test 1 passed 2m MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

@@ -1,0 +1,848 @@
+diff --git a/scripts/riscv_segment_v2_detached_parent_gate.py b/scripts/riscv_segment_v2_detached_parent_gate.py
+index d7ef1a40..d385cdc8 100644
+--- a/scripts/riscv_segment_v2_detached_parent_gate.py
++++ b/scripts/riscv_segment_v2_detached_parent_gate.py
+@@ -1,5 +1,5 @@
+ #!/usr/bin/env python3
+-"""Fresh-process acceptance of the tiny detached two-child parent development proof.
++"""Fresh-process acceptance of the tiny detached two-child parent proof.
+ 
+ Requires independently supplied verifier, key and expected-root SHA256 pins.
+ Optional production exits before fresh verification; only production takes the
+@@ -38,6 +38,8 @@ def main() -> None:
+     parser.add_argument("--expected-root", type=Path, required=True)
+     parser.add_argument("--expected-root-sha256", type=digest, required=True)
+     parser.add_argument("--output", type=Path, required=True)
++    parser.add_argument("--proof-profile", choices=("detached_continuation_development_q3_v2", "recursive_q193_v1"),
++                        default="detached_continuation_development_q3_v2")
+     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
+     parser.add_argument("--memory-profile", choices=("initial", "continuation"), default="initial")
+     parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
+@@ -47,6 +49,9 @@ def main() -> None:
+     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
+     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
+     args = parser.parse_args()
++    strong = args.proof_profile == "recursive_q193_v1"
++    suffix = "q193" if strong else "development_q3"
++    boundary_errors = ("DetachedParentClaimClosureMismatch", "InvalidDetachedInteractionPow") if strong else "DetachedParentClaimClosureMismatch"
+     if args.memory_profile == "continuation" and args.publication_mode != "intermediate":
+         parser.error("continuation memory profile requires intermediate publication")
+     if args.child_family == "parent" and args.memory_profile != "initial":
+@@ -85,7 +90,7 @@ def main() -> None:
+         if unchanged[path] != pin:
+             parser.error(f"independent SHA256 pin mismatch: {path}")
+     output.parent.mkdir(parents=True, exist_ok=True)
+-    report = {"gate_sha256": sha256(Path(__file__)), "development_only": True,
++    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile, "development_only": True,
+               "verifier_sha256": args.verifier_sha256, "key_sha256": args.key_sha256,
+               "expected_root_sha256": args.expected_root_sha256,
+               "original_files": {str(path): pin for path, pin in unchanged.items()},
+@@ -117,8 +122,9 @@ def main() -> None:
+             receipt = json.loads(result.stdout)
+             entry["receipt"] = receipt
+             for field, value in {
+-                "endpoint": ("verified_segment_v2_detached_two_child_parent_development_q3" if args.publication_mode == "root"
+-                             else "verified_segment_v2_detached_intermediate_parent_development_q3"),
++                "endpoint": (f"verified_segment_v2_detached_two_child_parent_{suffix}" if args.publication_mode == "root"
++                             else f"verified_segment_v2_detached_intermediate_parent_{suffix}"),
++                "proof_profile": args.proof_profile,
+                 "development_only": True, "verified": True, "native_inputs_used": False,
+                 "key_sha256": list(bytes.fromhex(pin)),
+                 "expected_root_sha256": list(bytes.fromhex(sha256(root))),
+@@ -143,7 +149,7 @@ def main() -> None:
+                 profile = "tiny-parent-root-v2" if args.publication_mode == "root" else "tiny-parent-span-v2"
+             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
+                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
+-                    "--parent-key-sha256", args.key_sha256]
++                    "--parent-key-sha256", args.key_sha256, "--proof-profile", args.proof_profile]
+             log = output.with_name(output.name + ".producer.log")
+             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
+             report["producer"] = production
+@@ -178,8 +184,12 @@ def main() -> None:
+             raise RuntimeError("unsupported parent transport version/claim inventory")
+         if key.get("publication_mode", "root") != args.publication_mode:
+             raise RuntimeError("admitted key does not match requested publication mode")
+-        if proof[:7] != bytes([0, 1, 3, 0, 1, 0, 4]):
+-            raise RuntimeError("unsupported canonical q3 parent proof prefix")
++        if key["profile"] != args.proof_profile:
++            raise RuntimeError("admitted key does not match requested proof profile")
++        prefix = bytes([16, 1, 193, 1, 0, 4, 0, 4] if strong else [0, 1, 3, 0, 1, 0, 4])
++        if proof[:len(prefix)] != prefix:
++            raise RuntimeError("unsupported canonical parent proof prefix")
++        commitment_count = len(prefix) - 1
+         with tempfile.TemporaryDirectory(prefix="segment-v2-parent-replay-") as temporary:
+             work = Path(temporary)
+ 
+@@ -197,9 +207,9 @@ def main() -> None:
+                 return directory
+ 
+             for name, data in {
+-                "changed_proof_config": bytes([1]) + proof[1:],
+-                "noncanonical_varint": bytes([0x80, 0]) + proof[1:],
+-                "forged_commitment_length": proof[:6] + bytes([0xff] * 9 + [1]) + proof[7:],
++                "changed_proof_config": bytes([proof[0] ^ 1]) + proof[1:],
++                "noncanonical_varint": bytes([proof[0] | 0x80, 0]) + proof[1:],
++                "forged_commitment_length": proof[:commitment_count] + bytes([0xff] * 9 + [1]) + proof[commitment_count + 1:],
+                 "truncated": proof[:-1], "trailing": proof + b"\x00",
+                 "altered_proof_tail": proof[:-1] + bytes([proof[-1] ^ 1]),
+             }.items():
+@@ -215,6 +225,19 @@ def main() -> None:
+                     if name == "balanced_claims":
+                         shifted(values["values"][1], -1)
+                 invoke(name, candidate(name, changed_claims=changed))
++            if strong:
++                changed = copy.deepcopy(claims)
++                del changed["claims"]["interaction_pow"]
++                invoke("missing_interaction_pow", candidate("missing_interaction_pow", changed_claims=changed),
++                       error="MissingDetachedInteractionPow")
++                changed = copy.deepcopy(claims)
++                changed["claims"]["interaction_pow"] ^= 1
++                invoke("changed_interaction_pow", candidate("changed_interaction_pow", changed_claims=changed))
++            else:
++                changed = copy.deepcopy(claims)
++                changed["claims"]["interaction_pow"] = 0
++                invoke("unexpected_interaction_pow", candidate("unexpected_interaction_pow", changed_claims=changed),
++                       error="UnexpectedDetachedInteractionPow")
+             for row in range(14, 20):
+                 changed = copy.deepcopy(claims)
+                 shifted(changed["claims"]["values"][row], 1)
+@@ -246,21 +269,21 @@ def main() -> None:
+             changed_root = work / "changed-canonical-root.json"
+             changed_root.write_text(json.dumps(words))
+             invoke("changed_canonical_expected_root", root=changed_root,
+-                   error="DetachedParentClaimClosureMismatch")
++                   error=boundary_errors)
+             if key["version"] == 2:
+                 changed_key = copy.deepcopy(key)
+                 changed_key["publication_mode"] = "intermediate" if key["publication_mode"] == "root" else "root"
+                 changed_directory = candidate("changed_publication_mode", changed_key=changed_key)
+                 invoke("changed_publication_mode", changed_directory, sha256(changed_directory / "key.json"),
+-                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal")
+-                       if args.publication_mode == "intermediate" else "DetachedParentClaimClosureMismatch")
++                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal", "InvalidDetachedInteractionPow")
++                       if args.publication_mode == "intermediate" else boundary_errors)
+                 for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
+                     words = json.loads(expected.read_bytes())
+                     words[index] = (words[index] + 1) % MODULUS
+                     changed_root = work / f"changed-{name}.json"
+                     changed_root.write_text(json.dumps(words))
+                     invoke(f"changed_published_{name}", root=changed_root,
+-                           error="DetachedParentClaimClosureMismatch")
++                           error=boundary_errors)
+         report["passed"] = True
+     except Exception as error:
+         report["failure"] = str(error)
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+index 0f1df4de..9d8bd269 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+@@ -210,7 +210,7 @@ pub fn OwnedFor(comptime family: Family) type {
+             return recursion.captured_fri.Owned.init(allocator, .{
+                 .log_blowup_factor = pcs.fri_config.log_blowup_factor,
+                 .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
+-                .interaction_pow_bits = if (family == .segment) self.key().profile.interactionPowBits() else 0,
++                .interaction_pow_bits = self.key().profile.interactionPowBits(),
+                 .pcs_pow_bits = pcs.pow_bits,
+                 .claimed_sum_count = @intCast(self.claims().values.len),
+             }, &self.storage().capture);
+@@ -376,7 +376,7 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
+     defer other_expected.deinit();
+     try std.testing.expectEqual(expected.words.len, other_expected.words.len);
+     try std.testing.expect(!std.meta.eql(expected.data.wireId(), other_expected.data.wireId()));
+-    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, OwnedV1.init(allocator, key_json, args.independent_key_sha256, &other_expected.data, input.claims, proof_bytes));
++    try std.testing.expectError(if (key.key().profile.interactionPowBits() > 0) error.InvalidDetachedInteractionPow else error.SegmentV2PublicInputClaimMismatch, OwnedV1.init(allocator, key_json, args.independent_key_sha256, &other_expected.data, input.claims, proof_bytes));
+ 
+     // Change an actual sampled opening and canonically serialize it. Decoder
+     // shape acceptance must not mask the required cryptographic rejection.
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_base_rows.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_base_rows.zig
+index 3e2c49c0..37660c53 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_base_rows.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_base_rows.zig
+@@ -56,12 +56,15 @@ pub const OwnedV1 = opaque {
+             const head_payload = try reserveAppend(value, 5, head.payload.len);
+             for (head_payload, 0..) |*destination, index| destination.* = prefix_owner.payloadLogical(index);
+             try appendConverted(value, 5, tail.payload);
++            try appendConverted(value, 6, head.pow_check);
+             try appendConverted(value, 6, tail.pow_check);
++            try appendConverted(value, 7, head.pow_frame);
+             try appendConverted(value, 7, tail.pow_frame);
+             try appendConverted(value, 8, head.challenges);
+             try appendConverted(value, 9, tail.randomness);
+             // Catalog10 explicitly selects the existing field-statement AIR;
+             // this is the same nonce logical row formerly installed at slot12.
++            try appendLogical(value, 10, head.nonce);
+             try appendLogical(value, 10, tail.nonce);
+             try appendConverted(value, 0, check.control);
+             inline for (.{ "query_bits", "query_mapping", "merkle_root", "trace_merkle", "pcs_deep", "fri_leaf", "fri_node", "fri_anchor", "fri_control", "fri_input" }, 20..) |field, row|
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig
+index 65d3e256..3d1e439f 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig
+@@ -73,6 +73,8 @@ pub const ParametersV1 = struct {
+ pub const ClaimsV1 = struct {
+     values: [manifest_mod.COMPONENT_COUNT]QM31,
+     poseidon_partials: [2]QM31,
++    interaction_pow: ?u64 = null,
++    pub const jsonStringify = @import("recursive_detached_claims_v1.zig").jsonStringify;
+ 
+     pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
+         var result = try manifest_mod.ClaimVector.init(manifest);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig
+index 7b4a2f1a..fff2d2f1 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig
+@@ -89,6 +89,7 @@ pub const ReceiptV1 = struct {
+     endpoint: []const u8 = "verified_segment_v2_detached_two_child_parent_development_q3",
+     development_only: bool = true,
+     publication_mode: protocol.PublicationMode,
++    proof_profile: protocol.ProfileV1,
+     verified: bool = true,
+     native_inputs_used: bool = false,
+     key_sha256: [32]u8,
+@@ -124,7 +125,7 @@ fn verifyDirectoryInner(allocator: std.mem.Allocator, directory: []const u8, ind
+     if (proof.len != claims.proof_bytes or !std.meta.eql(hash(proof), claims.proof_sha256)) return error.DetachedParentProofIdentityMismatch;
+     var timer = try std.time.Timer.start();
+     const terminal = try verifier.verify(allocator, key.key(), &expected, claims.claims, proof);
+-    return .{ .endpoint = if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
++    return .{ .proof_profile = key.key().profile, .endpoint = if (key.key().profile == .recursive_q193_v1) (if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_q193" else "verified_segment_v2_detached_intermediate_parent_q193") else if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
+ }
+ pub fn main() !void {
+     const allocator = std.heap.smp_allocator;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
+index 17d9edc3..c03c9a97 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
+@@ -14,6 +14,7 @@ pub const PARENT_ROOT_PROFILE = "tiny-parent-root-v2";
+ pub const PARENT_SPAN_PROFILE = "tiny-parent-span-v2";
+ pub const ArgumentsV1 = struct {
+     output: []const u8,
++    proof_profile: protocol.ProfileV1 = .detached_continuation_development_q3_v2,
+     publication_mode: protocol.PublicationMode = .root,
+     memory_profile: enum { initial, continuation } = .initial,
+     child_family: @import("recursive_segment_v2_detached_child_transcript.zig").Family = .segment,
+@@ -23,18 +24,35 @@ pub const ArgumentsV1 = struct {
+ 
+ /// Reviewed fixture topologies and one unambiguous argument order.
+ pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
+-    if ((args.len != 9 and args.len != 13) or !std.mem.eql(u8, args[0], "--profile") or
++    if ((args.len < 9 or (args.len - 9) % 2 != 0) or !std.mem.eql(u8, args[0], "--profile") or
+         (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE) and !std.mem.eql(u8, args[1], CONTINUATION_PROFILE) and !std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) and !std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
+         return error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren;
+     var result = ArgumentsV1{ .child_family = if (std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) or std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) .parent else .segment, .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE) or std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
+-    if (args.len == 13) {
+-        if (!std.mem.eql(u8, args[9], "--parent-key") or args[10].len == 0 or
+-            !std.mem.eql(u8, args[11], "--parent-key-sha256") or args[12].len != 64)
+-            return error.ExpectedIndependentParentKeyAndHash;
+-        var pin: [32]u8 = undefined;
+-        _ = try std.fmt.hexToBytes(&pin, args[12]);
+-        result.parent_key = .{ .path = args[10], .sha256 = pin };
++    var key_path: ?[]const u8 = null;
++    var key_pin: ?[32]u8 = null;
++    var profile_seen = false;
++    var index: usize = 9;
++    while (index < args.len) : (index += 2) {
++        const option = args[index];
++        const value = args[index + 1];
++        if (std.mem.eql(u8, option, "--proof-profile")) {
++            if (profile_seen) return error.DuplicateParentOption;
++            profile_seen = true;
++            result.proof_profile = std.meta.stringToEnum(protocol.ProfileV1, value) orelse return error.DetachedParentProfileMismatch;
++        } else if (std.mem.eql(u8, option, "--parent-key")) {
++            if (key_path != null) return error.DuplicateParentOption;
++            if (value.len == 0 or std.mem.startsWith(u8, value, "--")) return error.ExpectedIndependentParentKeyAndHash;
++            key_path = value;
++        } else if (std.mem.eql(u8, option, "--parent-key-sha256")) {
++            if (key_pin != null) return error.DuplicateParentOption;
++            if (value.len != 64) return error.ExpectedIndependentParentKeyAndHash;
++            var pin: [32]u8 = undefined;
++            _ = try std.fmt.hexToBytes(&pin, value);
++            key_pin = pin;
++        } else return error.UnknownParentOption;
+     }
++    if ((key_path == null) != (key_pin == null)) return error.ExpectedIndependentParentKeyAndHash;
++    if (key_path) |path| result.parent_key = .{ .path = path, .sha256 = key_pin.? };
+     return result;
+ }
+ 
+@@ -42,6 +60,7 @@ pub const CandidateReportV1 = struct {
+     endpoint: []const u8 = "segment_v2_detached_two_child_parent_candidate_development_q3",
+     profile: []const u8,
+     publication_mode: protocol.PublicationMode,
++    proof_profile: protocol.ProfileV1,
+     status: []const u8 = "unverified_candidate",
+     verified: bool = false,
+     development_only: bool = true,
+@@ -72,6 +91,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+         const bytes = try std.fs.cwd().readFileAlloc(allocator, input.path, command.MAX_KEY_BYTES);
+         defer allocator.free(bytes);
+         admitted_key = try command.OwnedKeyV1.admit(allocator, bytes, input.sha256);
++        if (admitted_key.?.key().profile != args.proof_profile) return error.DetachedParentProfileMismatch;
+     }
+     var expected: protocol.ExpectedV1 = undefined;
+     var child_pins: [2][32]u8 = undefined;
+@@ -83,12 +103,14 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+                 defer left.deinit();
+                 const right = try prepare.loadAdmittedParent(allocator, args.children[1]);
+                 defer right.deinit();
++                try requireChildProfiles(args.proof_profile, left, right);
+                 break :child_scope try prepare.prepareParents(allocator, .{ left, right }, args.publication_mode);
+             }
+             const left = try prepare.loadAdmittedChild(allocator, args.children[0]);
+             defer left.deinit();
+             const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
+             defer right.deinit();
++            try requireChildProfiles(args.proof_profile, left, right);
+             break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, switch (args.memory_profile) {
+                 .initial => prepare.TINY_MEMORY_PROFILE_V1,
+                 .continuation => prepare.TINY_MEMORY_CONTINUATION_PROFILE_V1,
+@@ -100,7 +122,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+         expected = prepared.expected;
+         child_pins = prepared.child_key_sha256;
+         preparation_ns = prepared.preparation_ns;
+-        break :blk try proof.produce(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null);
++        break :blk try proof.produceWithProfile(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
+     };
+     // The cohort and every original proof/prover component have been destroyed.
+     // Only durable candidate bytes and fixed claims survive this boundary.
+@@ -115,6 +137,8 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+     try expected_file.writeAll(expected_json);
+     return .{
+         .profile = if (args.child_family == .parent) (if (args.publication_mode == .root) PARENT_ROOT_PROFILE else PARENT_SPAN_PROFILE) else if (args.memory_profile == .continuation) CONTINUATION_PROFILE else if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
++        .endpoint = if (args.proof_profile == .recursive_q193_v1) "segment_v2_detached_two_child_parent_candidate_q193" else "segment_v2_detached_two_child_parent_candidate_development_q3",
++        .proof_profile = args.proof_profile,
+         .publication_mode = args.publication_mode,
+         .reused_admitted_parent_key = admitted_key != null,
+         .child_key_sha256 = child_pins,
+@@ -128,6 +152,14 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+     };
+ }
+ 
++/// Owners have already verified their child proofs against independent keys.
++/// This policy reads that immutable admission once, before AIR allocation.
++fn requireChildProfiles(profile: protocol.ProfileV1, left: anytype, right: @TypeOf(left)) !void {
++    if (profile == .recursive_q193_v1 and
++        (left.key().profile != .recursive_q193_v1 or right.key().profile != .recursive_q193_v1))
++        return error.DetachedParentChildSecurityMismatch;
++}
++
+ fn requireNewOutput(path: []const u8) !void {
+     // Fail before witness preparation if the directory cannot be created.
+     // retainCandidate repeats exclusive creation after proving to cover races.
+@@ -161,7 +193,11 @@ test "detached parent producer requires explicit profile and independent child a
+     const pinned = try parseArguments(&with_parent);
+     try std.testing.expectEqualStrings("parent.json", pinned.parent_key.?.path);
+     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(valid[2..]));
+-    try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(with_parent[0..11]));
++    try std.testing.expectError(error.ExpectedIndependentParentKeyAndHash, parseArguments(with_parent[0..11]));
++    const strong = try parseArguments(&(valid ++ .{ "--proof-profile", "recursive_q193_v1" }));
++    try std.testing.expectEqual(.recursive_q193_v1, strong.proof_profile);
++    try std.testing.expectError(error.DuplicateParentOption, parseArguments(&(valid ++ .{ "--proof-profile", "recursive_q193_v1", "--proof-profile", "recursive_q193_v1" })));
++    try std.testing.expectError(error.DetachedParentProfileMismatch, parseArguments(&(valid ++ .{ "--proof-profile", "unsupported" })));
+     var continuation = valid;
+     continuation[1] = CONTINUATION_PROFILE;
+     const continued = try parseArguments(&continuation);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
+index b8d6acec..68667de4 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
+@@ -27,6 +27,10 @@ pub const Candidate = struct {
+ };
+ 
+ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1) !Candidate {
++    return produceWithProfile(allocator, prepared, expected, child_key_sha256, mode, admitted_key, .detached_continuation_development_q3_v2);
++}
++
++pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+     try recursion.span_continuation_v1.validate(expected, mode);
+     var timer = try std.time.Timer.start();
+     var recorder = stage_profile.Recorder.initWithOptions(allocator, "cpu", "detached-recursive-parent", .{ .capture_tasks = false });
+@@ -35,7 +39,7 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
+     var phase = try stage_profile.StageScope.begin(diagnostic, "parent.fixed", "Fixed columns and key admission");
+     defer phase.end();
+     const manifest = prepared.manifest();
+-    var scheme = try Engine.init(allocator, protocol.PCS_CONFIG);
++    var scheme = try Engine.init(allocator, profile.pcsConfig());
+     // This small admitted cohort reuses coefficients for sampled openings.
+     scheme.setCoefficientRetentionPolicy(.always);
+     var scheme_moved = false;
+@@ -50,6 +54,8 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
+     defer roots.deinit(allocator);
+     if (roots.items.len != 1) return error.DetachedParentPreprocessedCommitmentMismatch;
+     const candidate_key = protocol.KeyV1{
++        .profile = profile,
++        .pcs_config = profile.pcsConfig(),
+         .manifest = manifest.*,
+         .publication_mode = mode,
+         .parameters = prepared.parameters(),
+@@ -77,10 +83,13 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
+     phase.end();
+     phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_fill", "Transcript and interaction columns");
+     try protocol.mixAdmission(&channel, key, expected);
++    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
++    try protocol.mixInteractionPow(&channel, key, interaction_pow);
+     const relations = try cohort.Relations.draw(allocator, &channel);
+     var interaction = try TreeStorage.init(allocator, manifest, 2);
+     defer interaction.deinit();
+-    const claims = try prepared.fillInteractionInto(&relations, interaction.columns);
++    var claims = try prepared.fillInteractionInto(&relations, interaction.columns);
++    claims.interaction_pow = interaction_pow;
+     try protocol.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
+     phase.end();
+     phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_commit", "Interaction commitment");
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_protocol.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_protocol.zig
+index e742c655..da6ee1b1 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_protocol.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_protocol.zig
+@@ -1,6 +1,6 @@
+ //! Shared native/standalone transcript for the small detached two-child parent.
+-//! This is an explicitly admitted development q3 profile, not CSP or production
+-//! security. Key hashes authorize nothing unless pinned independently by callers.
++//! Profiles are explicitly admitted separately from CSP. Key hashes authorize
++//! nothing unless pinned independently by callers.
+ const std = @import("std");
+ const core = @import("stwo_core");
+ const frontend = @import("stwo_riscv_frontend");
+@@ -18,7 +18,23 @@ pub const PUBLIC_SCOPE: u32 = 3;
+ pub const ExpectedV1 = continuation.Words;
+ pub const PublicationMode = continuation.Mode;
+ pub const ClaimsV1 = cohort.ClaimsV1;
+-pub const ProfileV1 = enum(u8) { detached_continuation_development_q3_v2 = 2 };
++pub const ProfileV1 = enum(u8) {
++    detached_continuation_development_q3_v2 = 2,
++    recursive_q193_v1 = 3,
++    pub fn pcsConfig(self: ProfileV1) core.pcs.PcsConfig {
++        return switch (self) {
++            .detached_continuation_development_q3_v2 => PCS_CONFIG,
++            .recursive_q193_v1 => recursion.protocol.PCS_CONFIG,
++        };
++    }
++    pub fn interactionPowBits(self: ProfileV1) u32 {
++        return switch (self) {
++            .detached_continuation_development_q3_v2 => 0,
++            .recursive_q193_v1 => recursion.protocol.INTERACTION_POW_BITS,
++        };
++    }
++};
++pub const mixInteractionPow = @import("recursive_detached_claims_v1.zig").mixInteractionPow;
+ 
+ pub const KeyV1 = struct {
+     version: u32 = VERSION,
+@@ -35,15 +51,18 @@ pub const KeyV1 = struct {
+     }
+ 
+     pub fn identity(self: *const KeyV1) ![32]u8 {
+-        if (self.version != VERSION or self.profile != .detached_continuation_development_q3_v2 or
+-            !std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.DetachedParentProfileMismatch;
++        if (self.version != VERSION or !std.meta.eql(self.pcs_config, self.profile.pcsConfig())) return error.DetachedParentProfileMismatch;
+         try self.parameters.validate(&self.manifest);
+         if (std.mem.allEqual(u32, &self.preprocessed_root, 0)) return error.DetachedParentKeyMismatch;
+         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus) return error.DetachedParentKeyMismatch;
+         for (self.child_key_sha256) |pin| if (std.mem.allEqual(u8, &pin, 0)) return error.DetachedParentKeyMismatch;
+         var hash = std.crypto.hash.sha2.Sha256.init(.{});
+-        hash.update("stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00");
+-        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
++        hash.update(switch (self.profile) {
++            .detached_continuation_development_q3_v2 => "stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00",
++            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-two-child-q193-parent/v1\x00",
++        });
++        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step }) |word| hashWord(&hash, word);
++        if (self.profile == .recursive_q193_v1) hashWord(&hash, self.profile.interactionPowBits());
+         hash.update(&self.manifest.seal);
+         hash.update(&recursion.air.universal_challenges.registryOrderDigest());
+         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig
+index 8f5457a1..17bbc385 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig
+@@ -64,6 +64,7 @@ fn verifyImpl(comptime MerkleChannel: type, allocator: std.mem.Allocator, key: *
+     defer scheme.deinit(allocator);
+     for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], channel);
+     try transcript.mixAdmission(channel, key, expected);
++    try transcript.mixInteractionPow(channel, key, claims.interaction_pow);
+     const relations = try components.Relations.draw(allocator, channel);
+     try transcript.mixClaimsAndBoundary(channel, key, expected, claims, &relations);
+     try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], channel);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_checks.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_checks.zig
+index da8713ed..6fc46f70 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_checks.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_checks.zig
+@@ -348,7 +348,7 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void
+     }
+ }
+ 
+-fn checkLogicalRows(allocator: std.mem.Allocator, comptime Air: type, rows: []const Row(Air)) !void {
++pub fn checkLogicalRows(allocator: std.mem.Allocator, comptime Air: type, rows: []const Row(Air)) !void {
+     var definition = try Air.build(allocator);
+     defer definition.deinit();
+     const direct = air.direct_constraint_program;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_rows.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_rows.zig
+index 3d47070a..dba3a847 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_rows.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_rows.zig
+@@ -13,7 +13,7 @@ const child_mod = @import("recursive_segment_v2_detached_child_transcript.zig");
+ const frame_rows = @import("recursive_transcript_frame_rows_v1.zig");
+ const shared_rows = @import("recursive_secure_transcript_rows_v1.zig");
+ const M31 = core.fields.m31.M31;
+-const NonceRow = [air.field_statement_word_v3.LOGICAL_INPUT_COUNT]M31;
++const NonceRow = frame_rows.NonceRow;
+ const STEP_TAG_BASE: u32 = 0x5354_0000;
+ 
+ pub const View = struct {
+@@ -111,16 +111,7 @@ pub const OwnedV1 = opaque {
+                     word_at += 1;
+                 }
+                 if (instruction.source == .nonce and part == 0) {
+-                    const limbs = frame.words[recording.RATE..];
+-                    for (0..2) |half| {
+-                        const low = limbs[2 * half].toU32();
+-                        const high = limbs[2 * half + 1].toU32();
+-                        if (low > 65535 or high > 65535) return error.DetachedPcsNonceMismatch;
+-                        const target = &nonce[2 * pow_at + half];
+-                        target[0..air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT].* = try air.field_statement_word_v3.nonceRow(low + 65536 * high);
+-                        const pp = [_]u32{ 1, lane, step.sequence, step.tag } ++ step.args ++ [_]u32{ @intCast(2 * half), 0, 0, 0, 0 };
+-                        for (target[air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT..], pp) |*value, raw| value.* = M31.fromCanonical(raw);
+-                    }
++                    nonce[2 * pow_at ..][0..2].* = try frame_rows.nonceRows(step, frame.words[recording.RATE..]);
+                 }
+                 if (shared_rows.payloadKind(instruction.source)) |kind| {
+                     const width: u32 = if (kind == .commitment or kind == .fri_commitment) 8 else 4;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
+index fee22863..a23850a5 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
+@@ -41,6 +41,7 @@ pub const PayloadSource = enum(u8) {
+     partials,
+     tree2,
+     span_u32,
++    interaction_pow,
+     pub fn fixed(self: PayloadSource) bool {
+         return switch (self) {
+             .tree0, .admission_header, .key_identity, .public_frame, .claims_header, .boundary_header => true,
+@@ -53,6 +54,7 @@ pub const Operation = struct {
+     effect: recording.Effect,
+     item: u32 = 0,
+     payload_words: u32 = 0,
++    pow_bits: u32 = 0,
+     constant_words: [16]u32 = @splat(0),
+ };
+ pub const InputCoordinate = struct { kind: Kind, item: u32, limb: u32, uses: u32 };
+@@ -75,7 +77,7 @@ pub fn inputCoordinateFor(comptime family: child_mod.Family, source: PayloadSour
+         .claims => .{ .kind = .claimed_sum, .item = word / 4, .limb = word % 4, .uses = if (family == .segment and word / 4 == 36) 2 else 1 },
+         .boundary => .{ .kind = .claimed_sum, .item = BOUNDARY_CLAIM_INDEX, .limb = word, .uses = 2 },
+         .partials => .{ .kind = .claimed_sum, .item = @intCast(v3.POSEIDON_AUX_START + word / 4), .limb = word % 4, .uses = 1 },
+-        .relations => null,
++        .relations, .interaction_pow => null,
+         else => .{ .kind = .protocol, .item = 0, .limb = word, .uses = 0 },
+     };
+ }
+@@ -110,6 +112,9 @@ pub const View = struct {
+     word: []const rows.TranscriptWordRowV2,
+     payload: []const PayloadRow,
+     challenges: []const rows.RelationChallengeRowV2,
++    pow_check: []const air.pow_check_witness.RelationRow,
++    pow_frame: []const air.pow_frame_witness.RelationRow,
++    nonce: []const frame_rows.NonceRow,
+     provider: []const rows.ProviderCall,
+     next_operation: u32,
+     next_hash: u32,
+@@ -127,6 +132,9 @@ pub const OwnedV1 = opaque {
+         word: []rows.TranscriptWordRowV2,
+         payload: []PayloadRow,
+         challenges: []rows.RelationChallengeRowV2,
++        pow_check: []air.pow_check_witness.RelationRow,
++        pow_frame: []air.pow_frame_witness.RelationRow,
++        nonce: []frame_rows.NonceRow,
+         provider: []rows.ProviderCall,
+         fn deinit(self: *Storage) void {
+             self.allocator.free(self.operations);
+@@ -137,6 +145,9 @@ pub const OwnedV1 = opaque {
+             self.allocator.free(self.word);
+             self.allocator.free(self.payload);
+             self.allocator.free(self.challenges);
++            self.allocator.free(self.pow_check);
++            self.allocator.free(self.pow_frame);
++            self.allocator.free(self.nonce);
+             self.allocator.free(self.provider);
+         }
+     };
+@@ -152,6 +163,7 @@ pub const OwnedV1 = opaque {
+         try plan.root(.tree0, child.key().preprocessed_root);
+         try plan.root(.tree1, captured.commitments[1]);
+         try Protocol.mixAdmission(&plan, child.key(), child.expected());
++        try Protocol.mixInteractionPow(&plan, child.key(), child.claims().interaction_pow);
+         const relations = try universal.UniversalRelations.draw(allocator, &plan);
+         try Protocol.mixClaimsAndBoundary(&plan, child.key(), child.expected(), child.claims(), &relations);
+         try plan.root(.tree2, captured.commitments[2]);
+@@ -163,7 +175,10 @@ pub const OwnedV1 = opaque {
+         const frame_count = @as(usize, last.first_hash_id) + last.hash_count;
+         const call_count = @as(usize, last.first_call_id) + last.call_count;
+         var payload_count: usize = 0;
+-        for (plan.operations.items) |operation| payload_count += operation.payload_words;
++        var pow_count: usize = 0;
++        for (plan.operations.items) |operation| {
++            if (operation.effect == .pow) pow_count += 1 else payload_count += operation.payload_words;
++        }
+         const operation_values = try plan.operations.toOwnedSlice(allocator);
+         errdefer allocator.free(operation_values);
+         const control = try allocator.alloc(air.control_witness.Row, operation_count);
+@@ -182,56 +197,89 @@ pub const OwnedV1 = opaque {
+         errdefer allocator.free(challenges);
+         const provider = try allocator.alloc(rows.ProviderCall, call_count);
+         errdefer allocator.free(provider);
++        const pow_check = try allocator.alloc(air.pow_check_witness.RelationRow, pow_count);
++        errdefer allocator.free(pow_check);
++        const pow_frame = try allocator.alloc(air.pow_frame_witness.RelationRow, pow_count);
++        errdefer allocator.free(pow_frame);
++        const nonce = try allocator.alloc(frame_rows.NonceRow, 2 * pow_count);
++        errdefer allocator.free(nonce);
+         var mix_ordinal: u32 = 0;
+         var draw_count: u32 = 0;
+         var word_at: usize = 0;
+         var payload_at: usize = 0;
+         var challenge_at: usize = 0;
+         var call_at: usize = 0;
++        var hash_at: usize = 0;
++        var pow_at: usize = 0;
+         for (operation_values, execution.operations[0..operation_count], 0..) |instruction, operation, index| {
+-            if (operation.effect != instruction.effect or operation.hash_count != 1 or operation.first_hash_id != index or operation.first_call_id != call_at or operation.pow_check_index != null)
+-                return error.DetachedPrefixScheduleMismatch;
+-            const frame = execution.trace.hash_frames[index];
+-            const draw = instruction.effect == .draw;
+-            const expected_words = recording.RATE + @as(usize, if (draw) 2 else instruction.payload_words);
+-            if (frame.words.len != expected_words or frame.call_count != expected_words / recording.RATE + 1 or frame.purpose != @as(recording.HashPurpose, if (draw) .draw else .mix))
++            const is_pow = instruction.effect == .pow;
++            const hash_count: usize = if (is_pow) 2 else 1;
++            if (operation.effect != instruction.effect or operation.hash_count != hash_count or
++                operation.first_hash_id != hash_at or operation.first_call_id != call_at or
++                (operation.pow_check_index != null) != is_pow)
+                 return error.DetachedPrefixScheduleMismatch;
+-            const step = frame_rows.Step{ .verifier_id = lane, .sequence = @intCast(index), .tag = STEP_TAG_BASE + @intFromEnum(instruction.source), .args = .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION } };
++            const step = frame_rows.Step{
++                .verifier_id = lane,
++                .sequence = @intCast(index),
++                .tag = if (is_pow) air.pow_frame.controlTag(.interaction) else STEP_TAG_BASE + @intFromEnum(instruction.source),
++                .args = if (is_pow) .{ instruction.pow_bits, 4, 0, 0 } else .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION },
++            };
+             control[index] = .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .terminal_mask = 0 };
+-            state[index] = frame_rows.state(step, execution.trace.hash_frames, index, mix_ordinal, false);
+-            mix_ordinal += @intFromBool(!draw);
+-            if (draw) {
+-                if (frame.words[recording.RATE].toU32() != draw_count or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG or instruction.item != challenge_at)
++            for (0..hash_count) |part| {
++                const frame = execution.trace.hash_frames[hash_at];
++                const pow_draw = is_pow and part == 1;
++                const draw = instruction.effect == .draw;
++                const expected_words = recording.RATE + @as(usize, if (draw or pow_draw) 2 else instruction.payload_words);
++                if (frame.hash_id != hash_at or frame.first_call_id != call_at or frame.words.len != expected_words or
++                    frame.call_count != expected_words / recording.RATE + 1 or
++                    frame.purpose != @as(recording.HashPurpose, if (draw or pow_draw) .draw else .mix))
+                     return error.DetachedPrefixScheduleMismatch;
+-                draw_count += 1;
+-                challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallengeFor(family, challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
+-                challenge_at += 1;
+-            } else {
+-                draw_count = 0;
+-                for (frame.words[recording.RATE..], 0..) |value, offset| {
+-                    const at: u32 = @intCast(offset);
+-                    const coordinate = inputCoordinateFor(family, instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
+-                    if (instruction.source.fixed() and value.toU32() != instruction.constant_words[offset]) return error.DetachedPrefixFixedWordMismatch;
+-                    payload[payload_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .payload_index = at, .source_kind = coordinate.kind, .item_index = coordinate.item, .limb_index = coordinate.limb, .constant_mask = @intFromBool(instruction.source.fixed()), .input_use_count = coordinate.uses, .constant_value = if (instruction.source.fixed()) instruction.constant_words[offset] else 0, .source_hash_id = @intCast(index), .source_word_index = @intCast(recording.RATE + at) }, .value = value };
+-                    payload_at += 1;
++                state[hash_at] = frame_rows.state(step, execution.trace.hash_frames, hash_at, mix_ordinal, pow_draw);
++                mix_ordinal += @intFromBool(frame.purpose == .mix);
++                if (pow_draw) {
++                    if (frame.words[recording.RATE].toU32() != 0 or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG)
++                        return error.DetachedPrefixScheduleMismatch;
++                    const check = execution.trace.pow_checks[operation.pow_check_index.?];
++                    if (check.bits != instruction.pow_bits) return error.DetachedPrefixPowMismatch;
++                    pow_check[pow_at] = try air.pow_check_witness.mainRow(.{ .verifier_id = lane, .kind = .interaction, .check = check });
++                    pow_frame[pow_at] = try air.pow_frame_witness.mainRow(.{ .verifier_id = lane, .sequence = step.sequence, .kind = .interaction, .hash_id = frame.hash_id, .check = check, .words = frame.output[0..recording.RATE].* });
++                    pow_at += 1;
++                } else if (draw) {
++                    if (frame.words[recording.RATE].toU32() != draw_count or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG or instruction.item != challenge_at)
++                        return error.DetachedPrefixScheduleMismatch;
++                    draw_count += 1;
++                    challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallengeFor(family, challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
++                    challenge_at += 1;
++                } else {
++                    draw_count = 0;
++                    if (is_pow) {
++                        nonce[2 * pow_at ..][0..2].* = try frame_rows.nonceRows(step, frame.words[recording.RATE..]);
++                    } else for (frame.words[recording.RATE..], 0..) |value, offset| {
++                        const at: u32 = @intCast(offset);
++                        const coordinate = inputCoordinateFor(family, instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
++                        if (instruction.source.fixed() and value.toU32() != instruction.constant_words[offset]) return error.DetachedPrefixFixedWordMismatch;
++                        payload[payload_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .payload_index = at, .source_kind = coordinate.kind, .item_index = coordinate.item, .limb_index = coordinate.limb, .constant_mask = @intFromBool(instruction.source.fixed()), .input_use_count = coordinate.uses, .constant_value = if (instruction.source.fixed()) instruction.constant_words[offset] else 0, .source_hash_id = @intCast(hash_at), .source_word_index = @intCast(recording.RATE + at) }, .value = value };
++                        payload_at += 1;
++                    }
+                 }
++                for (frame.first_call_id..frame.first_call_id + frame.call_count) |call_index| {
++                    const call = execution.trace.poseidon_calls[call_index];
++                    const previous = if (call.id.step == 0) [_]M31{M31.zero()} ** recording.WIDTH else execution.trace.poseidon_calls[call_index - 1].output;
++                    sponge[call_index] = air.transcript_air_witness.rowFromCall(lane, frame, call, previous);
++                    binding[call_index] = frame_rows.binding(step, @intCast(call_index), frame, call, sponge[call_index], part == 0, pow_draw);
++                    provider[call_index] = frame_rows.providerCall(call);
++                }
++                for (recording.RATE..frame.call_count * recording.RATE) |index_in_frame| {
++                    word[word_at] = frame_rows.word(step, frame, @intCast(index_in_frame));
++                    word_at += 1;
++                }
++                call_at += frame.call_count;
++                hash_at += 1;
+             }
+-            for (frame.first_call_id..frame.first_call_id + frame.call_count) |call_index| {
+-                const call = execution.trace.poseidon_calls[call_index];
+-                const previous = if (call.id.step == 0) [_]M31{M31.zero()} ** recording.WIDTH else execution.trace.poseidon_calls[call_index - 1].output;
+-                sponge[call_index] = air.transcript_air_witness.rowFromCall(lane, frame, call, previous);
+-                binding[call_index] = frame_rows.binding(step, @intCast(call_index), frame, call, sponge[call_index], true, false);
+-                provider[call_index] = frame_rows.providerCall(call);
+-            }
+-            for (recording.RATE..frame.call_count * recording.RATE) |index_in_frame| {
+-                word[word_at] = frame_rows.word(step, frame, @intCast(index_in_frame));
+-                word_at += 1;
+-            }
+-            call_at += frame.call_count;
+         }
+-        if (challenge_at != challenges.len or word_at != word.len or payload_at != payload.len or call_at != call_count) return error.DetachedPrefixScheduleMismatch;
++        if (pow_at != pow_count or hash_at != frame_count or challenge_at != challenges.len or word_at != word.len or payload_at != payload.len or call_at != call_count) return error.DetachedPrefixScheduleMismatch;
+         const value = try allocator.create(Storage);
+-        value.* = .{ .allocator = allocator, .operations = operation_values, .control = control, .sponge = sponge, .binding = binding, .state = state, .word = word, .payload = payload, .challenges = challenges, .provider = provider };
++        value.* = .{ .allocator = allocator, .operations = operation_values, .control = control, .sponge = sponge, .binding = binding, .state = state, .word = word, .payload = payload, .challenges = challenges, .pow_check = pow_check, .pow_frame = pow_frame, .nonce = nonce, .provider = provider };
+         return @ptrCast(value);
+     }
+     fn storage(self: *const OwnedV1) *const Storage {
+@@ -239,7 +287,7 @@ pub const OwnedV1 = opaque {
+     }
+     pub fn view(self: *const OwnedV1) View {
+         const value = self.storage();
+-        return .{ .operations = value.operations, .control = value.control, .sponge = value.sponge, .binding = value.binding, .state = value.state, .word = value.word, .payload = value.payload, .challenges = value.challenges, .provider = value.provider, .next_operation = @intCast(value.operations.len), .next_hash = @intCast(value.state.len), .next_call = @intCast(value.sponge.len) };
++        return .{ .operations = value.operations, .control = value.control, .sponge = value.sponge, .binding = value.binding, .state = value.state, .word = value.word, .payload = value.payload, .challenges = value.challenges, .pow_check = value.pow_check, .pow_frame = value.pow_frame, .nonce = value.nonce, .provider = value.provider, .next_operation = @intCast(value.operations.len), .next_hash = @intCast(value.state.len), .next_call = @intCast(value.sponge.len) };
+     }
+     /// This SD-only mapping consumes internally admitted immutable rows. The
+     /// legacy witness mapper intentionally keeps its old statement namespace
+@@ -264,6 +312,7 @@ const PlanChannel = struct {
+     operations: std.ArrayList(Operation) = .empty,
+     source: transcript.PayloadSourceV1 = .admission_header,
+     failure: ?anyerror = null,
++    pending_pow_bits: ?u32 = null,
+     pub fn beginDetachedPayload(self: *PlanChannel, source: transcript.PayloadSourceV1) void {
+         self.source = source;
+     }
+@@ -279,6 +328,22 @@ const PlanChannel = struct {
+         self.append(operation);
+         if (self.failure) |err| return err;
+     }
++    pub fn verifyPowNonce(self: *PlanChannel, bits: u32, _: u64) bool {
++        if (self.pending_pow_bits != null) {
++            self.failure = error.DetachedPrefixScheduleMismatch;
++            return false;
++        }
++        self.pending_pow_bits = bits;
++        return true;
++    }
++    pub fn mixU64(self: *PlanChannel, _: u64) void {
++        const bits = self.pending_pow_bits orelse {
++            self.failure = error.DetachedPrefixScheduleMismatch;
++            return;
++        };
++        self.pending_pow_bits = null;
++        self.append(.{ .source = .interaction_pow, .effect = .pow, .payload_words = 4, .pow_bits = bits });
++    }
+     pub fn mixU32s(self: *PlanChannel, values: []const u32) void {
+         const source: PayloadSource = switch (self.source) {
+             .admission_header => .admission_header,
+@@ -356,6 +421,22 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
+     const owner = try OwnedV1.init(allocator, child, 1);
+     defer owner.deinit();
+     const view = owner.view();
++    if (child.key().profile.interactionPowBits() > 0) {
++        const check = @import("recursive_segment_v2_detached_pcs_checks.zig").checkLogicalRows;
++        try std.testing.expectEqual(@as(usize, 1), view.pow_check.len);
++        try std.testing.expectEqual(@as(usize, 1), view.pow_frame.len);
++        try std.testing.expectEqual(@as(usize, 2), view.nonce.len);
++        try check(allocator, air.pow_check, view.pow_check);
++        try check(allocator, air.pow_frame, view.pow_frame);
++        try check(allocator, air.field_statement_word_v3, view.nonce);
++        // Keep the word and its bit decomposition consistent while violating
++        // the admitted low-bit work threshold. The AIR itself must reject.
++        var invalid = view.pow_check[0];
++        try std.testing.expect(invalid[6].isZero());
++        invalid[5] = invalid[5].add(M31.one());
++        invalid[6] = M31.one();
++        try std.testing.expectError(error.DetachedPcsConstraintMismatch, check(allocator, air.pow_check, &.{invalid}));
++    }
+     var definition = try air.transcript_payload.build(allocator);
+     defer definition.deinit();
+     const plan = try air.transcript_payload_relation.authenticate(&definition);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+index 81b49cdd..c1b3a6c8 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+@@ -162,16 +162,7 @@ pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const
+ 
+ /// The profile owns the work threshold and its transcript position. A missing
+ /// nonce must never silently select the development transcript.
+-pub fn mixInteractionPow(channel: anytype, key: *const KeyV1, nonce: ?u64) !void {
+-    const bits = key.profile.interactionPowBits();
+-    if (bits == 0) {
+-        if (nonce != null) return error.UnexpectedDetachedInteractionPow;
+-        return;
+-    }
+-    const value = nonce orelse return error.MissingDetachedInteractionPow;
+-    if (!channel.verifyPowNonce(bits, value)) return error.InvalidDetachedInteractionPow;
+-    channel.mixU64(value);
+-}
++pub const mixInteractionPow = @import("recursive_detached_claims_v1.zig").mixInteractionPow;
+ 
+ /// Claims remain untrusted until STARK verification. The two independent
+ /// checks bind row36 to expected public input and all39 rows to fixed lowering
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+index 77aa958c..06536179 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig
+@@ -66,18 +66,7 @@ pub const ClaimsV1 = struct {
+     /// the original development wire; nonce zero is still a present nonce.
+     interaction_pow: ?u64 = null,
+ 
+-    pub fn jsonStringify(self: ClaimsV1, writer: anytype) !void {
+-        try writer.beginObject();
+-        try writer.objectField("values");
+-        try writer.write(self.values);
+-        try writer.objectField("poseidon_partials");
+-        try writer.write(self.poseidon_partials);
+-        if (self.interaction_pow) |nonce| {
+-            try writer.objectField("interaction_pow");
+-            try writer.write(nonce);
+-        }
+-        try writer.endObject();
+-    }
++    pub const jsonStringify = @import("recursive_detached_claims_v1.zig").jsonStringify;
+ 
+     pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
+         var result = try manifest_mod.ClaimVector.init(manifest);
+diff --git a/src/integrations/riscv_cpu/recursive_transcript_frame_rows_v1.zig b/src/integrations/riscv_cpu/recursive_transcript_frame_rows_v1.zig
+index de298079..c7d48ac7 100644
+--- a/src/integrations/riscv_cpu/recursive_transcript_frame_rows_v1.zig
++++ b/src/integrations/riscv_cpu/recursive_transcript_frame_rows_v1.zig
+@@ -122,3 +122,21 @@ pub fn providerCall(source: recording.PoseidonCall) rows.ProviderCall {
+         .narrow_output = null,
+     };
+ }
++
++pub const NonceRow = [air.field_statement_word_v3.LOGICAL_INPUT_COUNT]M31;
++
++/// The same two checked u32 words supply nonce payloads in the interaction
++/// prefix and PCS suffix. No statement value or external input claim is emitted.
++pub fn nonceRows(step: Step, limbs: []const M31) ![2]NonceRow {
++    if (limbs.len != 4) return error.InvalidTranscriptNonce;
++    var result: [2]NonceRow = undefined;
++    for (&result, 0..) |*target, half| {
++        const low = limbs[2 * half].toU32();
++        const high = limbs[2 * half + 1].toU32();
++        if (low > 65535 or high > 65535) return error.InvalidTranscriptNonce;
++        target[0..air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT].* = try air.field_statement_word_v3.nonceRow(low + 65536 * high);
++        const pp = [_]u32{ 1, step.verifier_id, step.sequence, step.tag } ++ step.args ++ [_]u32{ @intCast(2 * half), 0, 0, 0, 0 };
++        for (target[air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT..], pp) |*value, raw| value.* = M31.fromCanonical(raw);
++    }
++    return result;
++}

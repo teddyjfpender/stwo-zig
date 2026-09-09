@@ -1,0 +1,39 @@
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+CANONICAL_CHILD_WIRE_BOUNDARY limbs=8 transcript_join=true changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70107 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=1 unmatched_control=0
+COMMON_FOLD_ZERO_VERIFIER_INPUTS limbs=24 air_join=true changed_consumer_or_missing_producer_rejected=true
+COMMON_FOLD_FIXED_WIRES rows=34007 graph_join=true missing_or_changed_anchor_rejected=true
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=0 canonical_words=900
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=2 canonical_words=900
+COMPOSITION_STATEMENT_BINDING words=824 literal_graph_checks=false changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+COMMON_FOLD_COMPONENT_ADMISSION components=36 fixed_wire_row_10_active=true closure_verified=true
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_PUBLIC_BOUNDARY_KEY child_indices=211,212 graph_identity_equal=true native_boundary_literals=false
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=70783625 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:95M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 1m MaxRSS:5G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

@@ -1,0 +1,25 @@
+{
+  "parent_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "manifest_sha256": "0c59cb6ef39b87b9f50935119b64bc5c9299e7cd97c28ffe6b1c8e27b59af84e",
+  "files": 5756,
+  "changed": [
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "parent_sha256": "505dbcbec604aa91fb96dd9bc815cb90715caa9391a0ff9d214805fe4c6a05b9",
+      "sha256": "f6949d88a52a7ff700febfd40161b0455cbfa90c88ac21dd41225ad57cc69d72"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_typed_air_preflight_v4.zig",
+      "parent_sha256": "4e77f47345ac5c7705e26cf2df972c5550dce7817402d5dbd180a237423fddcf",
+      "sha256": "f98d1a6258896d5f576c6552b6f1f8b8a45cf0bda258e94cc9ecad3a9c7e64d8"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "parent_sha256": "b3813e2196879d9d7acd5e533bbb508c830a2070d7a216845aef921a5a9490b6",
+      "sha256": "0808881ca72eeda52118537fc7b6f38968e77969ca481cad2e1c7d2b0bccd366"
+    }
+  ],
+  "semantic_test_run": false,
+  "explicit_test_discovery": true,
+  "supersedes_geometry_source_manifest": "063a3269ec6c8eb6a6b4a1d282a6e2a7ff8576f2d5e6f1eb916747b0460cab3f"
+}

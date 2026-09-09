@@ -1,0 +1,20 @@
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=20550093056 source_column_bytes=10275046528 columns=16894 blowup_log=1 budget_bytes=17179869184 excludes=merkle,fri,quotient,twiddles,witness,allocator
+error: PcsResidentBudgetExceeded
+       46.00 real        45.28 user         0.35 sys
+          2187001856  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              320750  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 147  voluntary context switches
+                3200  involuntary context switches
+       1004170245194  instructions retired
+        181684940372  cycles elapsed
+          2186676552  peak memory footprint

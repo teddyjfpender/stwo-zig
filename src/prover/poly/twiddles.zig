@@ -27,6 +27,18 @@ pub fn TwiddleTree(comptime TwiddlesType: type) type {
                 .itwiddles = itwiddles,
             };
         }
+
+        /// Borrow a smaller coset tower from the existing layer suffix. No
+        /// field work or allocation is required; the parent owns both slices.
+        pub fn subtree(self: Self, root_log_size: u32) !Self {
+            if (root_log_size > self.root_coset.logSize() or
+                self.twiddles.len != self.root_coset.size() or
+                self.itwiddles.len != self.twiddles.len)
+                return error.InvalidTwiddleSubtree;
+            const root = self.root_coset.repeatedDouble(self.root_coset.logSize() - root_log_size);
+            const start = self.twiddles.len - root.size();
+            return Self.init(root, self.twiddles[start..], self.itwiddles[start..]);
+        }
     };
 }
 
@@ -128,4 +140,22 @@ test "twiddle tree: precompute m31 uses chunked inverse path for large domains" 
     while (i < tree.twiddles.len) : (i += 521) {
         try std.testing.expect(tree.twiddles[i].mul(tree.itwiddles[i]).eql(M31.one()));
     }
+}
+
+test "twiddle subtree borrows the exact freshly computed tower" {
+    const allocator = std.testing.allocator;
+    var parent = try precomputeM31(allocator, Coset.halfOdds(7));
+    defer deinitM31(allocator, &parent);
+    for (0..8) |log| {
+        const view = try parent.subtree(@intCast(log));
+        var expected = try precomputeM31(allocator, parent.root_coset.repeatedDouble(7 - @as(u32, @intCast(log))));
+        defer deinitM31(allocator, &expected);
+        try std.testing.expectEqualSlices(M31, expected.twiddles, view.twiddles);
+        try std.testing.expectEqualSlices(M31, expected.itwiddles, view.itwiddles);
+        try std.testing.expectEqual(@intFromPtr(parent.twiddles.ptr) + (parent.twiddles.len - view.twiddles.len) * @sizeOf(M31), @intFromPtr(view.twiddles.ptr));
+    }
+    try std.testing.expectError(error.InvalidTwiddleSubtree, parent.subtree(8));
+    var malformed = parent;
+    malformed.itwiddles = malformed.itwiddles[1..];
+    try std.testing.expectError(error.InvalidTwiddleSubtree, malformed.subtree(3));
 }

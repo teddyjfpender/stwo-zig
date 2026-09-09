@@ -1,0 +1,7 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 213s
+
+Build Summary: 2/2 steps succeeded
+check-ethereum-incremental-leaf-materialize-v4-replay success
++- compile test ReleaseSafe native success 3m MaxRSS:5G
+

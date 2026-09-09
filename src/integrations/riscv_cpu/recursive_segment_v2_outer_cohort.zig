@@ -11,6 +11,7 @@ const core_mod = @import("recursive_fri_outer.zig");
 const tuple_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
 const contract = @import("recursive_segment_v2_outer_cohort_contract.zig");
 const support = @import("recursive_segment_v2_outer_cohort_support.zig");
+const verifier_components_mod = @import("recursive_segment_v2_verifier_components.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -25,6 +26,7 @@ const shared_provider = air.universal_shared_provider;
 const relation_interaction = air.relation_interaction;
 const cohort_protocol = recursion.segment_outer_cohort_v2;
 const public_native_sum = recursion.segment_public_native_sum_authority_v2;
+const authority_boundary = @import("recursive_segment_v2_authority_boundary.zig");
 
 const DomainAudit = relation_interaction.DomainAudit;
 const NonCoreOwner = noncore_mod.Owner;
@@ -60,6 +62,8 @@ const componentBit = support.componentBit;
 const rangeMask = support.rangeMask;
 const allZero = support.allZero;
 const CLOSURE_DIAGNOSTIC_ENV = "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC";
+const CIRCUIT_CENSUS_ENV = "STWO_SEGMENT_V2_CIRCUIT_CENSUS";
+var circuit_census_sequence = std.atomic.Value(u64).init(0);
 pub const Error = contract.Error;
 
 /// The complete cohort accepts one authority and nothing else. In particular,
@@ -76,6 +80,7 @@ pub const Cohort = struct {
     pub const AuthorityInput = *const leaf_outer.PreparedNativeV2LeafOuter;
     pub const GeneratedInteractionsV2 = CohortGeneratedInteractionsV2;
     pub const Components = CohortComponents;
+    pub const VerifierComponents = verifier_components_mod.OwnedComponentsV1;
 
     /// Verifier-owned, pointer-free authority for the successful outer proof.
     pub const PublicationAuthorityV1 = contract.PublicationAuthorityV1;
@@ -153,12 +158,13 @@ pub const Cohort = struct {
             log_sizes[row] = log_size;
         }
 
-        const manifest_value = try manifest_mod.build(
+        const manifest_value = try manifest_mod.buildWithProviderShape(
             log_sizes,
             &preflight.transcript_manifest,
             &preflight.statement_manifest,
             &preflight.public_manifest,
             &preflight.boundary_manifest,
+            preflight.input_provider_shape,
         );
         const complete_manifest = try allocator.create(manifest_mod.Manifest);
         errdefer allocator.destroy(complete_manifest);
@@ -178,16 +184,15 @@ pub const Cohort = struct {
         // The provider is finalized exactly once, after both halves have been
         // bound to the same complete manifest and before any external write.
         try core.finalizeSharedProviderMain();
-        const complete_layout = try core.completeScheduleReceipt();
-        const complete_calls = try core.completePoseidonCalls();
+        const core_admission = try core.validateForManifest(complete_manifest);
         // Authenticated geometry, not a frozen measured call count, is authoritative.
         const plan = try cohort_protocol.CohortPlanV2.init(
             complete_manifest,
-            &complete_layout,
-            complete_calls,
+            &core_admission.complete_layout,
+            core_admission.complete_calls,
         );
         const noncore_authority_id = try noncore.authorityIdentity();
-        const core_authority_id = try core.authorityIdentity();
+        const core_authority_id = core_admission.authority_id;
 
         var result = Self{
             .allocator = allocator,
@@ -244,12 +249,13 @@ pub const Cohort = struct {
         try preflight.installLogSizes(&logs);
         const core_logs = try self.core.componentLogSizes();
         for (core_logs, CORE_FIRST_ROW..) |log_size, row| logs[row] = log_size;
-        const rebuilt = try manifest_mod.build(
+        const rebuilt = try manifest_mod.buildWithProviderShape(
             logs,
             &preflight.transcript_manifest,
             &preflight.statement_manifest,
             &preflight.public_manifest,
             &preflight.boundary_manifest,
+            preflight.input_provider_shape,
         );
         if (!std.meta.eql(rebuilt, self.complete_manifest.*))
             return error.ManifestGeometryMismatch;
@@ -257,17 +263,15 @@ pub const Cohort = struct {
 
     fn validateEnvelope(self: *const Self) !void {
         try self.complete_manifest.validate();
-        try self.noncore.validate();
+        const noncore_authority_id = try self.noncore.authorityIdentity();
         try self.public_native_sum_evaluation.validateAgainst(
             self.public_native_sum_source,
         );
-        try self.core.validateComplete();
-        try self.core.validateAgainstManifest(self.complete_manifest);
+        const core_admission = try self.core.validateForManifest(self.complete_manifest);
         try self.plan.validateAgainst(self.complete_manifest);
-        const calls = try self.core.completePoseidonCalls();
         try self.plan.provider.validateAuthenticated(
             self.complete_manifest,
-            calls,
+            core_admission.complete_calls,
         );
         if (self.complete_manifest.roster_count != COMPONENT_COUNT or
             self.plan.provider.provider_instance_count !=
@@ -276,12 +280,12 @@ pub const Cohort = struct {
             !std.mem.eql(
                 u8,
                 &self.noncore_authority_id,
-                &(try self.noncore.authorityIdentity()),
+                &noncore_authority_id,
             ) or
             !std.mem.eql(
                 u8,
                 &self.core_authority_id,
-                &(try self.core.authorityIdentity()),
+                &core_admission.authority_id,
             ) or
             !std.mem.eql(
                 u8,
@@ -362,21 +366,52 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
     ) !cohort_protocol.PublicWireBoundaryV2 {
         try self.validateEnvelope();
+        return self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+    }
+
+    // Only synchronous callers that have admitted this envelope may enter.
+    fn publicWireBoundaryAfterEnvelopeAdmission(
+        self: *const Self,
+        relations: *const universal.UniversalRelations,
+    ) !cohort_protocol.PublicWireBoundaryV2 {
+        const prefix = try self.core.transcriptPrefixAuthority(relations);
+        if (!std.mem.eql(u8, &prefix.authority_sha_id, &self.core_authority_id))
+            return error.AuthorityIdentityMismatch;
+        return self.extendPublicWireBoundary(relations, try cohort_protocol.PublicWireBoundaryV2.init(
+            prefix.authority_sha_id,
+            prefix.public_wire_boundary_term_count,
+            prefix.public_wire_boundary_claimed_sum,
+        ));
+    }
+
+    fn extendPublicWireBoundary(
+        self: *const Self,
+        relations: *const universal.UniversalRelations,
+        core_boundary: cohort_protocol.PublicWireBoundaryV2,
+    ) !cohort_protocol.PublicWireBoundaryV2 {
+        const expected = try authority_boundary.derive(&self.prepared.capture.public_data.data, .{
+            .components = self.prepared.capture.vm_air.component_descs,
+            .infrastructure = self.prepared.capture.vm_air.infra_descs,
+        }, relations);
         return cohort_protocol.PublicWireBoundaryV2.init(
-            self.core_authority_id,
-            try self.core.publicWireBoundaryTermCount(),
-            try self.core.publicWireBoundaryClaim(relations),
+            core_boundary.source_authority_id,
+            try std.math.add(u32, core_boundary.term_count, expected.term_count),
+            core_boundary.claimed_sum.add(expected.claimed_sum),
         );
     }
 
-    /// Rebuilds the three SegmentV2 outer-admission terms from the exact
-    /// verifier claim vector and the prepared authorities that own the public
-    /// wire and verifier-input boundaries. No detached scalar is accepted.
-    pub fn outerAdmissionBoundaries(
+    /// Derives the recursive publication's prefix and public-input boundaries
+    /// in one synchronous admission. Both projections use the same authenticated
+    /// core boundary; no caller-selected scalar or retained validation token is
+    /// accepted. The returned values have no borrowed source pointers.
+    pub fn recursivePublicationInputs(
         self: *const Self,
         relations: *const universal.UniversalRelations,
         claims: *const manifest_mod.ClaimVector,
-    ) !OuterAdmissionBoundariesV2 {
+    ) !struct {
+        transcript_prefix: RecursiveTranscriptPrefixSourceV1,
+        boundaries: OuterAdmissionBoundariesV2,
+    } {
         try self.validateEnvelope();
         try claims.validate(self.complete_manifest);
         const provider_prepared = if (self.noncore.input_provider_active_prepared) |*value|
@@ -384,26 +419,6 @@ pub const Cohort = struct {
         else
             return error.InteractionsNotPrepared;
         try provider_prepared.validate();
-        const public_wire = try self.publicWireBoundary(relations);
-        var claim_aggregate = QM31.zero();
-        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
-        const result = OuterAdmissionBoundariesV2{
-            .input_wire = claim_aggregate,
-            .public_wire = public_wire.claimed_sum,
-            .verifier_input = provider_prepared.detailed_publisher_claim,
-        };
-        try result.validate();
-        return result;
-    }
-
-    /// Rebuilds the complete source-specific transcript prefix in one native
-    /// core validation pass. The returned value remains local to the verifier
-    /// until successful proof admission seals it into the recursive witness.
-    pub fn recursiveTranscriptPrefixSource(
-        self: *const Self,
-        relations: *const universal.UniversalRelations,
-    ) !RecursiveTranscriptPrefixSourceV1 {
-        try self.validateEnvelope();
         const core_prefix = try self.core.transcriptPrefixAuthority(relations);
         if (!std.mem.eql(
             u8,
@@ -411,18 +426,29 @@ pub const Cohort = struct {
             &self.core_authority_id,
         )) return error.AuthorityIdentityMismatch;
         const public_wire_boundary =
-            try cohort_protocol.PublicWireBoundaryV2.init(
+            try self.extendPublicWireBoundary(relations, try cohort_protocol.PublicWireBoundaryV2.init(
                 core_prefix.authority_sha_id,
                 core_prefix.public_wire_boundary_term_count,
                 core_prefix.public_wire_boundary_claimed_sum,
-            );
+            ));
+        var claim_aggregate = QM31.zero();
+        for (claims.values) |claim| claim_aggregate = claim_aggregate.add(claim);
+        const boundaries = OuterAdmissionBoundariesV2{
+            .input_wire = claim_aggregate,
+            .public_wire = public_wire_boundary.claimed_sum,
+            .verifier_input = provider_prepared.detailed_publisher_claim,
+        };
+        try boundaries.validate();
         return .{
-            .noncore_authority_sha_id = self.noncore_authority_id,
-            .core_authority_sha_id = core_prefix.authority_sha_id,
-            .core_layout_sha_id = core_prefix.layout_sha_id,
-            .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
-            .core_total_call_count = core_prefix.total_call_count,
-            .public_wire_boundary = public_wire_boundary,
+            .transcript_prefix = .{
+                .noncore_authority_sha_id = self.noncore_authority_id,
+                .core_authority_sha_id = core_prefix.authority_sha_id,
+                .core_layout_sha_id = core_prefix.layout_sha_id,
+                .core_call_buffer_sha_id = core_prefix.call_buffer_sha_id,
+                .core_total_call_count = core_prefix.total_call_count,
+                .public_wire_boundary = public_wire_boundary,
+            },
+            .boundaries = boundaries,
         };
     }
 
@@ -461,6 +487,91 @@ pub const Cohort = struct {
         errdefer clearTree(destination);
         try self.noncore.fillPreprocessedInto(manifest_value, destination);
         try self.core.fillPreprocessedInto(manifest_value, destination);
+        if (std.process.hasEnvVarConstant(CIRCUIT_CENSUS_ENV))
+            self.printCircuitCensus(destination);
+    }
+
+    /// Diagnostic-only inventory of the actual materialized Tree 0 and all
+    /// lowering constants, including unused graph constants. No new authority
+    /// is minted. Invocation order distinguishes producer Tree 0 from the
+    /// subsequent verifier reconstruction in the engine's surrounding phases.
+    fn printCircuitCensus(self: *const Self, columns: []const []const M31) void {
+        const invocation = circuit_census_sequence.fetchAdd(1, .monotonic);
+        std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=outer_tree0_filled invocation={d} prepared_sha256={s} manifest_sha256={s}\n", .{
+            invocation,
+            std.fmt.bytesToHex(self.prepared_identity, .lower),
+            std.fmt.bytesToHex(self.complete_manifest.seal, .lower),
+        });
+        for (self.complete_manifest.roster_rows[0..self.complete_manifest.roster_count]) |row| {
+            const placement = self.complete_manifest.placements[row].?;
+            const offset: usize = placement.preprocessed_offset;
+            const count: usize = placement.geometry.preprocessed_columns;
+            var values = std.crypto.hash.sha2.Sha256.init(.{});
+            var words: usize = 0;
+            for (columns[offset..][0..count]) |column| {
+                censusHashU64(&values, column.len);
+                for (column) |word| censusHashM31(&values, word);
+                words += column.len;
+            }
+            std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=outer_tree0_filled invocation={d} row={d} log_size={d} columns={d} words={d} values_sha256={s}\n", .{
+                invocation, row, placement.geometry.log_size, count, words, std.fmt.bytesToHex(values.finalResult(), .lower),
+            });
+        }
+        for (self.core.authority.arithmetic_reference.lanes, 0..) |lane, lane_index| {
+            var edges = std.crypto.hash.sha2.Sha256.init(.{});
+            var constants = std.crypto.hash.sha2.Sha256.init(.{});
+            var coordinates = std.crypto.hash.sha2.Sha256.init(.{});
+            var public_values = std.crypto.hash.sha2.Sha256.init(.{});
+            var input_count: usize = 0;
+            var constant_count: usize = 0;
+            var term_count: usize = 0;
+            censusHashU64(&edges, lane.graph.nodes.len);
+            for (lane.graph.nodes, 0..) |node, node_index| {
+                censusHashU64(&edges, @intFromEnum(node.op));
+                switch (node.op) {
+                    .input => input_count += 1,
+                    .constant => |value| {
+                        constant_count += 1;
+                        censusHashU64(&constants, node_index);
+                        for (value) |word| censusHashM31(&constants, M31.fromCanonical(word));
+                    },
+                    .add, .sub, .mul => |operands| {
+                        censusHashU64(&edges, operands.lhs);
+                        censusHashU64(&edges, operands.rhs);
+                    },
+                    .neg, .inverse => |operand| censusHashU64(&edges, operand),
+                }
+            }
+            censusHashU64(&edges, lane.graph.outputs.len);
+            for (lane.graph.outputs) |output| censusHashU64(&edges, output);
+            for (self.core.authority.lowering_plan.public_terms) |term| {
+                if (term.lane != lane_index) continue;
+                term_count += 1;
+                censusHashU64(&coordinates, term.lane);
+                censusHashU64(&coordinates, @intFromEnum(term.active_in));
+                censusHashU64(&coordinates, @intFromEnum(term.role));
+                censusHashU64(&coordinates, term.circuit_id);
+                censusHashU64(&coordinates, term.node_id);
+                censusHashU64(&coordinates, term.multiplicity);
+                for (term.value.toM31Array()) |word| censusHashM31(&public_values, word);
+            }
+            std.debug.print("SEGMENT_V2_CIRCUIT_CENSUS phase=lowering_after_tree0 invocation={d} lane={d} circuit_id={d} mode={s} nodes={d} inputs={d} constants={d} outputs={d} public_terms={d} node_edges_sha256={s} constant_values_sha256={s} public_coordinates_sha256={s} public_values_sha256={s} graph_sha256={s}\n", .{
+                invocation,                                      lane_index,                                          lane.circuit_id,                                       @tagName(lane.active_in),                                lane.graph.nodes.len,                                   input_count, constant_count, lane.graph.outputs.len, term_count,
+                std.fmt.bytesToHex(edges.finalResult(), .lower), std.fmt.bytesToHex(constants.finalResult(), .lower), std.fmt.bytesToHex(coordinates.finalResult(), .lower), std.fmt.bytesToHex(public_values.finalResult(), .lower), std.fmt.bytesToHex(lane.graph.identity_digest, .lower),
+            });
+        }
+    }
+
+    fn censusHashU64(hash: *std.crypto.hash.sha2.Sha256, value: u64) void {
+        var bytes: [8]u8 = undefined;
+        std.mem.writeInt(u64, &bytes, value, .little);
+        hash.update(&bytes);
+    }
+
+    fn censusHashM31(hash: *std.crypto.hash.sha2.Sha256, value: M31) void {
+        var bytes: [4]u8 = undefined;
+        std.mem.writeInt(u32, &bytes, value.toU32(), .little);
+        hash.update(&bytes);
     }
 
     pub fn fillMainInto(
@@ -539,6 +650,19 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
         provider_relations: *const shared_provider.SharedProviderRelations,
     ) !void {
+        try self.validateGeneratedReceipts(generated, relations, provider_relations);
+        const boundary = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+        _ = try self.collectClosure(generated, &boundary);
+    }
+
+    // Synchronous receipt admission shared by the two complete closure checks.
+    // No mutable source is retained as an admission result.
+    fn validateGeneratedReceipts(
+        self: *const Self,
+        generated: *const CohortGeneratedInteractionsV2,
+        relations: *const universal.UniversalRelations,
+        provider_relations: *const shared_provider.SharedProviderRelations,
+    ) !void {
         try self.validateGeneratedHeader(generated);
         try generated.noncore.validateCachedAgainst(
             self.noncore,
@@ -550,7 +674,6 @@ pub const Cohort = struct {
             relations,
             provider_relations,
         );
-        _ = try self.collectClosure(generated, relations);
     }
 
     /// Explicit cold diagnostic. The proof path uses exact equality to the
@@ -574,7 +697,10 @@ pub const Cohort = struct {
             relations,
             provider_relations,
         );
-        _ = try self.collectClosure(generated, relations);
+        // The cold non-core audit above invokes an allocator. Re-admit the
+        // source envelope after that work before deriving its boundary.
+        const boundary = try self.publicWireBoundary(relations);
+        _ = try self.collectClosure(generated, &boundary);
     }
 
     pub fn claimVector(
@@ -598,13 +724,14 @@ pub const Cohort = struct {
         relations: *const universal.UniversalRelations,
         provider_relations: *const shared_provider.SharedProviderRelations,
     ) !cohort_protocol.ClosureSummaryV2 {
-        try self.validateGenerated(
+        try self.validateGeneratedReceipts(
             generated,
             relations,
             provider_relations,
         );
         try claims.validate(self.complete_manifest);
-        const collected = try self.collectClosure(generated, relations);
+        const boundary = try self.publicWireBoundaryAfterEnvelopeAdmission(relations);
+        const collected = try self.collectClosure(generated, &boundary);
         for (claims.values, collected.claims) |actual, expected|
             if (!actual.eql(expected)) return error.ComponentCoverageMismatch;
         return collected.closure;
@@ -696,6 +823,30 @@ pub const Cohort = struct {
         return generated;
     }
 
+    /// Project the already admitted circuit parameters into the witness-free
+    /// verifier factory. Its adapters own their definitions and retain none of
+    /// this cohort's witness, native capture, or generated interaction storage.
+    pub fn initVerifierComponents(
+        self: *const Self,
+        relations: *const universal.UniversalRelations,
+        claims: *const manifest_mod.ClaimVector,
+        poseidon_partials: [2]QM31,
+    ) !*VerifierComponents {
+        try self.validateEnvelope();
+        try claims.validate(self.complete_manifest);
+        return VerifierComponents.init(
+            self.allocator,
+            self.complete_manifest,
+            .{
+                .query_reference = self.core.authority.query_bits_reference,
+                .poseidon_active_rows = std.math.cast(u32, self.core.poseidonCallCount()) orelse
+                    return error.ArithmeticOverflow,
+            },
+            relations,
+            .{ .values = claims.values, .poseidon_partials = poseidon_partials },
+        );
+    }
+
     pub fn initComponents(
         self: *Self,
         generated: *const CohortGeneratedInteractionsV2,
@@ -755,7 +906,7 @@ pub const Cohort = struct {
     fn collectClosure(
         self: *const Self,
         generated: *const CohortGeneratedInteractionsV2,
-        relations: *const universal.UniversalRelations,
+        public_wire_boundary: *const cohort_protocol.PublicWireBoundaryV2,
     ) !CollectedClosure {
         var claims = [_]QM31{QM31.zero()} ** COMPONENT_COUNT;
         var audits: [COMPONENT_COUNT]DomainAudit = undefined;
@@ -780,12 +931,11 @@ pub const Cohort = struct {
         }
         if (mask != ALL_COMPONENT_MASK)
             return error.ComponentCoverageMismatch;
-        const public_wire_boundary = try self.publicWireBoundary(relations);
         const closure = cohort_protocol.verifyInteractionClosureV2(
             self.complete_manifest,
             &claims,
             &audits,
-            &public_wire_boundary,
+            public_wire_boundary,
         ) catch |err| {
             if (err == error.RelationNotClosed and
                 std.process.hasEnvVarConstant(CLOSURE_DIAGNOSTIC_ENV))
@@ -821,11 +971,6 @@ pub const Cohort = struct {
             if (!std.meta.eql(manifest_value.*, self.complete_manifest.*))
                 return error.ManifestGeometryMismatch;
         }
-        if (!std.mem.eql(
-            u8,
-            &manifest_value.seal,
-            &self.complete_manifest.seal,
-        )) return error.ManifestGeometryMismatch;
     }
 };
 

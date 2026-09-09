@@ -1,0 +1,27 @@
+{
+  "head": "00dab6207dd9c1e985bcf2c60541b141f95f5512",
+  "source_clean_before_build": true,
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "build-recursive-segment-v2-detached-parent-verifier",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 138242014791,
+  "binaries": {
+    "prove": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-00dab620-prove",
+      "sha256": "04819202f8aa32c382e9eb1482352d84b114ca31c0d943016fe053f00584d889"
+    },
+    "verify": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-00dab620-verify",
+      "sha256": "2352527008818c2f0b414ac071bb74cca4fedda8bbc98ca1a370f1c2fe66fdaa"
+    }
+  }
+}

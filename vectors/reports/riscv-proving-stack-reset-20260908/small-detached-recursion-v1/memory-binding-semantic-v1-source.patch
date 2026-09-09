@@ -1,0 +1,2178 @@
+diff --git a/src/frontends/riscv/air/public_data_v2_test_support.zig b/src/frontends/riscv/air/public_data_v2_test_support.zig
+index 662c84e9..e13c6091 100644
+--- a/src/frontends/riscv/air/public_data_v2_test_support.zig
++++ b/src/frontends/riscv/air/public_data_v2_test_support.zig
+@@ -24,9 +24,46 @@ pub const Fixture = struct {
+     right_exit_register_clocks: [32]u32,
+ 
+     pub fn init() !Fixture {
+-        const state0 = try machineState(0x1000, 0, "rw-0");
+-        const state1 = try machineState(0x1008, 1, "rw-1");
+-        const state2 = try machineState(0x1010, 2, "rw-2");
++        return initWithRegister7(0);
++    }
++
++    /// Same program, clocks and sparse-memory topology; x7 is unchanged by
++    /// this execution. Build every statement identity from the selected state.
++    pub fn initWithRegister7(value: u32) !Fixture {
++        const left_words: [2]memory_state.WordState = .{
++            .{
++                .addr = 0x2000,
++                .initial_word = 11,
++                .final_word = 12,
++                .final_clock = 3,
++            },
++            .{
++                .addr = 0x2004,
++                .initial_word = 0,
++                .final_word = 0,
++                .final_clock = 0,
++            },
++        };
++        const right_words: [2]memory_state.WordState = .{
++            .{
++                .addr = 0x2000,
++                .initial_word = 12,
++                .final_word = 13,
++                .final_clock = 7,
++            },
++            .{
++                .addr = 0x2004,
++                .initial_word = 0,
++                .final_word = 9,
++                .final_clock = 6,
++            },
++        };
++        var state0 = try machineState(0x1000, 0, segment_v2.snapshotDigest(&left_words, .initial_word).id);
++        var state1 = try machineState(0x1008, 1, segment_v2.snapshotDigest(&left_words, .final_word).id);
++        var state2 = try machineState(0x1010, 2, segment_v2.snapshotDigest(&right_words, .final_word).id);
++        state0.registers[7] = value;
++        state1.registers[7] = value;
++        state2.registers[7] = value;
+         const job = try span.JobContext.init(
+             try span.CompleteExecution.init(
+                 protocol.PROTOCOL_ID_WORDS,
+@@ -76,34 +113,8 @@ pub const Fixture = struct {
+                     ),
+                 ),
+             },
+-            .left_words = .{
+-                .{
+-                    .addr = 0x2000,
+-                    .initial_word = 11,
+-                    .final_word = 12,
+-                    .final_clock = 3,
+-                },
+-                .{
+-                    .addr = 0x2004,
+-                    .initial_word = 0,
+-                    .final_word = 0,
+-                    .final_clock = 0,
+-                },
+-            },
+-            .right_words = .{
+-                .{
+-                    .addr = 0x2000,
+-                    .initial_word = 12,
+-                    .final_word = 13,
+-                    .final_clock = 7,
+-                },
+-                .{
+-                    .addr = 0x2004,
+-                    .initial_word = 0,
+-                    .final_word = 9,
+-                    .final_clock = 6,
+-                },
+-            },
++            .left_words = left_words,
++            .right_words = right_words,
+             .left_exit_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
+             .right_entry_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
+             .right_exit_memory_clocks = .{
+@@ -191,10 +202,10 @@ pub fn writeU32(words: *[2]M31, value: u32) void {
+     words[1] = M31.fromCanonical(value >> 16);
+ }
+ 
+-fn machineState(pc: u32, value: u32, rw_label: []const u8) !span.MachineState {
++fn machineState(pc: u32, value: u32, rw_digest: channel.Digest) !span.MachineState {
+     var registers = [_]u32{0} ** 32;
+     registers[1] = value;
+-    return span.MachineState.init(pc, registers, id(rw_label), .{0} ** 8);
++    return span.MachineState.init(pc, registers, rw_digest, .{0} ** 8);
+ }
+ 
+ fn cpuFromMachine(machine: span.MachineState) Cpu {
+diff --git a/src/frontends/riscv/build.zig b/src/frontends/riscv/build.zig
+index a181409d..5c6805aa 100644
+--- a/src/frontends/riscv/build.zig
++++ b/src/frontends/riscv/build.zig
+@@ -863,12 +863,32 @@ pub fn build(b: *std.Build) void {
+         .description = "Run the V2 rows 10 and 11 statement authority gates",
+         .root = "segment_statement_outer_source_v2_test_root.zig",
+         .imports_prover_engine = true,
++        .filters = &.{"V2 row-11"},
++        .minimum = 3,
+     });
+     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+         .step = "test-recursion-segment-public-source-v2",
+         .description = "Run the V2 rows 12 through 17 public-spine source gates",
+         .root = "segment_public_outer_source_v2_test_root.zig",
+         .imports_prover_engine = true,
++        .filters = &.{ "V2 public spine", "V2 public-spine" },
++        .minimum = 5,
++    });
++    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
++        .step = "test-recursion-segment-claim-hash-v2",
++        .description = "Check dynamic statement-authority hashing and fixed preprocessing",
++        .root = "vm_public_claim_hash_authority_v2_test_root.zig",
++        .imports_prover_engine = true,
++        .filters = &.{"isolated row13 V2"},
++        .minimum = 2,
++    });
++    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
++        .step = "test-recursion-segment-native-sum-v2",
++        .description = "Run the SegmentV2 native-sum graph and register-input authority gates",
++        .root = "segment_public_native_sum_authority_v2_test_root.zig",
++        .imports_prover_engine = true,
++        .filters = &.{ "SegmentV2 native-sum", "SegmentV2 publication provider plan" },
++        .minimum = 9,
+     });
+     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+         .step = "test-recursion-segment-public-components-v2",
+diff --git a/src/frontends/riscv/recursion/air/mod.zig b/src/frontends/riscv/recursion/air/mod.zig
+index 9a870a67..5957ecb3 100644
+--- a/src/frontends/riscv/recursion/air/mod.zig
++++ b/src/frontends/riscv/recursion/air/mod.zig
+@@ -106,6 +106,7 @@ pub const statement_input_witness = @import("statement_input_witness.zig");
+ pub const statement_semantics_input = @import("statement_semantics_input.zig");
+ pub const statement_semantics_input_relation = @import("statement_semantics_input_relation.zig");
+ pub const statement_semantics_input_witness = @import("statement_semantics_input_witness.zig");
++pub const segment_public_outer_air_v2 = @import("segment_public_outer_air_v2.zig");
+ pub const segment_boundary_components_v2 = @import("segment_boundary_components_v2.zig");
+ pub const segment_outer_adapter_manifest_v2 = @import("segment_outer_adapter_manifest_v2.zig");
+ pub const segment_outer_typed_catalog_v2 = @import("segment_outer_typed_catalog_v2.zig");
+diff --git a/src/frontends/riscv/recursion/air/vm_public_claim_hash_authority_v2.zig b/src/frontends/riscv/recursion/air/vm_public_claim_hash_authority_v2.zig
+index a8a84532..abe3e14a 100644
+--- a/src/frontends/riscv/recursion/air/vm_public_claim_hash_authority_v2.zig
++++ b/src/frontends/riscv/recursion/air/vm_public_claim_hash_authority_v2.zig
+@@ -1,15 +1,9 @@
+ //! SegmentV2 row-13 AIR: native-sum relay plus authority-hash custody.
+ //!
+-//! The V2 statement authority is verifier-owned preprocessing.  Each canonical
+-//! Poseidon call is fixed as a 32-word `(input, output)` tuple and requested
+-//! from the one shared row-34 provider.  The first active row also consumes
+-//! the verifier schedule's `bind_protocol` step.  Keeping those tuples out of
+-//! committed main columns prevents an outer prover from substituting a
+-//! different, internally valid hash program.
+-//!
+-//! The same rows retain the sixteen native-public-sum relay values used by the
+-//! V2 arithmetic graph.  Relay and authority masks may overlap; the physical
+-//! trace contains exactly their union and pads with the all-zero row.
++//! Poseidon tuples are committed main inputs, requested from the shared row34
++//! provider and separately emitted at unique public wire coordinates. Verifiers
++//! derive their matching boundary from expected statement and admitted geometry.
++//! Relay and authority masks may overlap; inactive tuple words are zero.
+ 
+ const std = @import("std");
+ 
+@@ -24,24 +18,27 @@ const relation_effect = @import("relation_effect.zig");
+ 
+ pub const STABLE_NAME =
+     "recursion.segment_public_claim_hash_authority.v2";
+-pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 1;
++pub const FORMAT_VERSION: u16 = 3;
++pub const SCHEMA_VERSION: u16 = 2;
+ 
+ pub const POSEIDON_WIDTH: usize = 16;
+ pub const POSEIDON_TUPLE_WIDTH: usize = 2 * POSEIDON_WIDTH;
+-pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 2;
+-pub const PREPROCESSED_COLUMN_COUNT: usize = 15 + POSEIDON_TUPLE_WIDTH;
++pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 2 + POSEIDON_TUPLE_WIDTH;
++pub const PREPROCESSED_COLUMN_COUNT: usize = 15 + CALL_WIRE_GROUP_COUNT;
+ pub const PARAMETER_COUNT: usize = 1;
+ pub const LOGICAL_INPUT_COUNT: usize =
+     PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT + PARAMETER_COUNT;
+-pub const DIRECT_CONSTRAINT_COUNT: usize = 7;
+-pub const RELATION_EVENT_COUNT: usize = 5;
++pub const DIRECT_CONSTRAINT_COUNT: usize = 7 + POSEIDON_TUPLE_WIDTH;
++pub const RELATION_EVENT_COUNT: usize = 5 + CALL_WIRE_GROUP_COUNT;
+ pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-pub const INTERACTION_BATCH_COUNT: usize = 3;
+-pub const INTERACTION_COLUMN_COUNT: usize = 12;
++pub const INTERACTION_BATCH_COUNT: usize = 7;
++pub const INTERACTION_COLUMN_COUNT: usize = 28;
+ pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+ pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+ 
++pub const CALL_WIRE_CIRCUIT_ID: u32 = 46;
++pub const CALL_WIRE_GROUP_COUNT: usize = POSEIDON_TUPLE_WIDTH / 4;
++
+ pub const NATIVE_SUM_CIRCUIT_ID: u32 = 42;
+ pub const CONTROL_RELAY_CIRCUIT_ID: u32 = 43;
+ pub const BIND_PROTOCOL_VERIFIER_ID: u32 = 0;
+@@ -50,15 +47,18 @@ pub const BIND_PROTOCOL_TAG: u32 = 1;
+ 
+ // Regenerated through `computeSemanticDigest` and pinned before integration.
+ pub const SEMANTIC_DIGEST_HEX =
+-    "5ac9b884c34209fe024dfc65d50594276276ef0a8d18629dc87378f60b26f347";
++    "ffcdb219f5f7603c127633a30049ad10ed306ceea9add11027ed231cb5ab918a";
+ pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
+     SEMANTIC_DIGEST_HEX,
+     "invalid SegmentV2 claim-hash authority semantic digest",
+ );
+ 
+-pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{
+-    "recursion.segment_public_claim_hash_authority.v2.enabler",
+-    "recursion.segment_public_claim_hash_authority.v2.relay_value",
++pub const MAIN_COLUMN_NAMES = blk: {
++    var names: [PHYSICAL_MAIN_COLUMN_COUNT][]const u8 = undefined;
++    names[0] = "recursion.segment_public_claim_hash_authority.v2.enabler";
++    names[1] = "recursion.segment_public_claim_hash_authority.v2.relay_value";
++    for (0..POSEIDON_TUPLE_WIDTH) |index| names[2 + index] = std.fmt.comptimePrint("recursion.segment_public_claim_hash_authority.v2.poseidon_{d}", .{index});
++    break :blk names;
+ };
+ 
+ pub const PREPROCESSED_COLUMN_NAMES = blk: {
+@@ -77,9 +77,9 @@ pub const PREPROCESSED_COLUMN_NAMES = blk: {
+     names[12] = "recursion_segment_public_claim_hash_authority_v2_control_circuit";
+     names[13] = "recursion_segment_public_claim_hash_authority_v2_control_node";
+     names[14] = "recursion_segment_public_claim_hash_authority_v2_control_uses";
+-    for (0..POSEIDON_TUPLE_WIDTH) |index| names[15 + index] =
++    for (0..CALL_WIRE_GROUP_COUNT) |index| names[15 + index] =
+         std.fmt.comptimePrint(
+-            "recursion_segment_public_claim_hash_authority_v2_poseidon_{d}",
++            "recursion_segment_public_claim_hash_authority_v2_call_wire_node_{d}",
+             .{index},
+         );
+     break :blk names;
+@@ -89,22 +89,28 @@ pub const PARAMETER_NAMES = [PARAMETER_COUNT][]const u8{
+     "recursion.segment_public_claim_hash_authority.v2.param.zero",
+ };
+ 
+-pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
+-    "recursion.segment_public_claim_hash_authority.v2.enabler_matches_row",
+-    "recursion.segment_public_claim_hash_authority.v2.padding_value_zero",
+-    "recursion.segment_public_claim_hash_authority.v2.nonrelay_value_zero",
+-    "recursion.segment_public_claim_hash_authority.v2.relay_within_row",
+-    "recursion.segment_public_claim_hash_authority.v2.authority_within_row",
+-    "recursion.segment_public_claim_hash_authority.v2.bind_requires_authority",
+-    "recursion.segment_public_claim_hash_authority.v2.row_is_union",
++pub const CONSTRAINT_NAMES = blk: {
++    var names: [DIRECT_CONSTRAINT_COUNT][]const u8 = undefined;
++    names[0..7].* = .{
++        "recursion.segment_public_claim_hash_authority.v2.enabler_matches_row",
++        "recursion.segment_public_claim_hash_authority.v2.padding_value_zero",
++        "recursion.segment_public_claim_hash_authority.v2.nonrelay_value_zero",
++        "recursion.segment_public_claim_hash_authority.v2.relay_within_row",
++        "recursion.segment_public_claim_hash_authority.v2.authority_within_row",
++        "recursion.segment_public_claim_hash_authority.v2.bind_requires_authority",
++        "recursion.segment_public_claim_hash_authority.v2.row_is_union",
++    };
++    for (0..POSEIDON_TUPLE_WIDTH) |index| names[7 + index] = std.fmt.comptimePrint("recursion.segment_public_claim_hash_authority.v2.inactive_poseidon_{d}", .{index});
++    break :blk names;
+ };
+ 
+ pub const MainColumns = struct {
+     enabler: types.ValueId,
+     relay_value: types.ValueId,
++    poseidon_tuple: [POSEIDON_TUPLE_WIDTH]types.ValueId,
+ 
+     pub fn physical(self: MainColumns) [PHYSICAL_MAIN_COLUMN_COUNT]types.ValueId {
+-        return .{ self.enabler, self.relay_value };
++        return .{ self.enabler, self.relay_value } ++ self.poseidon_tuple;
+     }
+ };
+ 
+@@ -120,7 +126,7 @@ pub const PreprocessedColumns = struct {
+     control_circuit_id: types.ValueId,
+     control_node_id: types.ValueId,
+     control_use_count: types.ValueId,
+-    poseidon_tuple: [POSEIDON_TUPLE_WIDTH]types.ValueId,
++    call_wire_nodes: [CALL_WIRE_GROUP_COUNT]types.ValueId,
+ 
+     pub fn physical(
+         self: PreprocessedColumns,
+@@ -137,7 +143,7 @@ pub const PreprocessedColumns = struct {
+             self.control_circuit_id,
+             self.control_node_id,
+             self.control_use_count,
+-        } ++ self.poseidon_tuple;
++        } ++ self.call_wire_nodes;
+     }
+ };
+ 
+@@ -233,8 +239,8 @@ pub const StaticProfile = struct {
+ };
+ 
+ pub const EXPECTED_STATIC_PROFILE = StaticProfile{
+-    .arena_nodes = 66,
+-    .compiled_nodes = 16,
++    .arena_nodes = 107,
++    .compiled_nodes = 49,
+     .direct_constraints = DIRECT_CONSTRAINT_COUNT,
+     .relation_events = RELATION_EVENT_COUNT,
+     .interaction_batches = INTERACTION_BATCH_COUNT,
+@@ -277,9 +283,13 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
+     var arena = ir.Arena.init(allocator);
+     errdefer arena.deinit();
+     const span = source.SourceSpan.generated();
++    var main_inputs: [PHYSICAL_MAIN_COLUMN_COUNT]types.ValueId = undefined;
++    for (&main_inputs, MAIN_COLUMN_NAMES, 0..) |*value, name, index|
++        value.* = try arena.input(name, if (index == 0) .selector else .felt, span);
+     const main = MainColumns{
+-        .enabler = try arena.input(MAIN_COLUMN_NAMES[0], .selector, span),
+-        .relay_value = try arena.input(MAIN_COLUMN_NAMES[1], .felt, span),
++        .enabler = main_inputs[0],
++        .relay_value = main_inputs[1],
++        .poseidon_tuple = main_inputs[2..].*,
+     };
+     var inputs: [PREPROCESSED_COLUMN_COUNT]types.ValueId = undefined;
+     for (&inputs, PREPROCESSED_COLUMN_NAMES, 0..) |*value, name, index|
+@@ -300,7 +310,7 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
+         .control_circuit_id = inputs[12],
+         .control_node_id = inputs[13],
+         .control_use_count = inputs[14],
+-        .poseidon_tuple = inputs[15..][0..POSEIDON_TUPLE_WIDTH].*,
++        .call_wire_nodes = inputs[15..][0..CALL_WIRE_GROUP_COUNT].*,
+     };
+     const parameters = Parameters{
+         .zero = try arena.input(PARAMETER_NAMES[0], .felt, span),
+@@ -326,7 +336,8 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
+         overlap_mask,
+         span,
+     );
+-    const roots = [DIRECT_CONSTRAINT_COUNT]types.ValueId{
++    var roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId = undefined;
++    roots[0..7].* = .{
+         try arena.sub(main.enabler, preprocessed.row_mask, span),
+         try arena.mul(inactive, main.relay_value, span),
+         try arena.mul(nonrelay, main.relay_value, span),
+@@ -339,6 +350,8 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
+         ),
+         try arena.sub(preprocessed.row_mask, union_mask, span),
+     };
++    const nonauthority = try arena.sub(one, preprocessed.authority_mask, span);
++    for (main.poseidon_tuple, 0..) |value, index| roots[7 + index] = try arena.mul(nonauthority, value, span);
+     var constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId = undefined;
+     for (&constraints, roots, CONSTRAINT_NAMES) |*constraint, root, name|
+         constraint.* = try arena.assertZero(
+@@ -360,43 +373,46 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
+         span,
+     );
+     const tuples = relationTuples(preprocessed, main, parameters);
+-    const events = try relation_effect.appendGroup(
+-        RELATION_EVENT_COUNT,
+-        &arena,
++    var event_specs: [RELATION_EVENT_COUNT]relation_effect.EventSpec = undefined;
++    event_specs[0..5].* = .{
+         .{
+-            .{
+-                .domain = .recursion_wire,
+-                .role = .consume,
+-                .values = &tuples.source,
+-                .weight = preprocessed.relay_mask,
+-            },
+-            .{
+-                .domain = .recursion_wire,
+-                .role = .emit,
+-                .values = &tuples.arithmetic,
+-                .weight = arithmetic_weight,
+-            },
+-            .{
+-                .domain = .recursion_wire,
+-                .role = .emit,
+-                .values = &tuples.control,
+-                .weight = control_weight,
+-            },
+-            .{
+-                .domain = .poseidon2_io,
+-                .role = .request,
+-                .values = &tuples.poseidon,
+-                .weight = preprocessed.authority_mask,
+-            },
+-            .{
+-                .domain = .recursion_step,
+-                .role = .consume,
+-                .values = &tuples.bind_protocol,
+-                .weight = preprocessed.bind_mask,
+-            },
++            .domain = .recursion_wire,
++            .role = .consume,
++            .values = &tuples.source,
++            .weight = preprocessed.relay_mask,
+         },
+-        span,
+-    );
++        .{
++            .domain = .recursion_wire,
++            .role = .emit,
++            .values = &tuples.arithmetic,
++            .weight = arithmetic_weight,
++        },
++        .{
++            .domain = .recursion_wire,
++            .role = .emit,
++            .values = &tuples.control,
++            .weight = control_weight,
++        },
++        .{
++            .domain = .poseidon2_io,
++            .role = .request,
++            .values = &tuples.poseidon,
++            .weight = preprocessed.authority_mask,
++        },
++        .{
++            .domain = .recursion_step,
++            .role = .consume,
++            .values = &tuples.bind_protocol,
++            .weight = preprocessed.bind_mask,
++        },
++    };
++    var call_wire: [CALL_WIRE_GROUP_COUNT][6]types.ValueId = undefined;
++    const call_circuit = try arena.constantField(CALL_WIRE_CIRCUIT_ID, span);
++    for (&call_wire, 0..) |*tuple, group| {
++        tuple.* = .{ call_circuit, preprocessed.call_wire_nodes[group] } ++ main.poseidon_tuple[group * 4 ..][0..4].*;
++        event_specs[5 + group] = .{ .domain = .recursion_wire, .role = .emit, .values = tuple, .weight = preprocessed.authority_mask };
++    }
++    const events = try relation_effect.appendGroup(RELATION_EVENT_COUNT, &arena, event_specs, span);
+     return .{
+         .arena = arena,
+         .main = main,
+@@ -448,7 +464,7 @@ fn relationTuples(
+             parameters.zero,
+             parameters.zero,
+         },
+-        .poseidon = preprocessed.poseidon_tuple,
++        .poseidon = main.poseidon_tuple,
+         .bind_protocol = .{
+             parameters.zero,
+             parameters.zero,
+@@ -463,13 +479,14 @@ fn relationTuples(
+ }
+ 
+ fn validateEvents(self: *const Definition) !void {
+-    const expected = [_]struct { domain: relation.Domain, role: relation.Role }{
++    const ExpectedEvent = struct { domain: relation.Domain, role: relation.Role };
++    const expected = [_]ExpectedEvent{
+         .{ .domain = .recursion_wire, .role = .consume },
+         .{ .domain = .recursion_wire, .role = .emit },
+         .{ .domain = .recursion_wire, .role = .emit },
+         .{ .domain = .poseidon2_io, .role = .request },
+         .{ .domain = .recursion_step, .role = .consume },
+-    };
++    } ++ ([_]ExpectedEvent{.{ .domain = .recursion_wire, .role = .emit }} ** CALL_WIRE_GROUP_COUNT);
+     for (self.events, expected, 0..) |effect_id, want, index| {
+         if (types.idIndex(effect_id) != index)
+             return error.InvalidClaimHashAuthorityV2Definition;
+@@ -529,8 +546,8 @@ fn hexDigest(comptime value: []const u8, comptime message: []const u8) digest.Di
+ comptime {
+     if (POSEIDON_TUPLE_WIDTH !=
+         relation.universalDescriptor(.poseidon2_io).arity or
+-        INTERACTION_BATCH_COUNT != 3 or INTERACTION_COLUMN_COUNT != 12 or
+-        RELATION_EVENT_COUNT != 5 or LOOKUP_BATCH_SIZE != 2)
++        INTERACTION_BATCH_COUNT != 7 or INTERACTION_COLUMN_COUNT != 28 or
++        RELATION_EVENT_COUNT != 13 or LOOKUP_BATCH_SIZE != 2)
+     {
+         @compileError("SegmentV2 claim-hash authority relation geometry drifted");
+     }
+diff --git a/src/frontends/riscv/recursion/mod.zig b/src/frontends/riscv/recursion/mod.zig
+index 8a4feeda..86cf7712 100644
+--- a/src/frontends/riscv/recursion/mod.zig
++++ b/src/frontends/riscv/recursion/mod.zig
+@@ -1,6 +1,7 @@
+ //! Recursion protocol namespace.
+ 
+ pub const air = @import("air/mod.zig");
++pub const segment_public_claim_hash_authority_v2 = @import("segment_public_claim_hash_authority_v2.zig");
+ pub const arithmetic_circuit = @import("arithmetic_circuit.zig");
+ pub const binary_arithmetic_rows_heterogeneous_v2 =
+     @import("binary_arithmetic_rows_heterogeneous_v2.zig");
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+index 8d6e9879..5ccd52d5 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+@@ -120,6 +120,8 @@ pub const writeTraceInto = shard_1.writeTraceInto;
+ /// Exact logical relation multiset for closure/audit consumers.  Padding rows
+ /// are inactive and intentionally absent from this compact publication.
+ pub const writeStatementRelationEventsInto = shard_1.writeStatementRelationEventsInto;
++/// Canonical statement tuple shared by source writers and detached verifiers.
++pub const statementEvent = shard_1.statementEvent;
+ /// Allocation-free source preflight over the uncompensated public boundary.
+ ///
+ /// This value is useful for typed-AIR authoring and trace-shape validation,
+@@ -147,6 +149,8 @@ pub const VerifiedNativePublicLogUpPublicationV2 = shard_2.VerifiedNativePublicL
+ /// replays the canonical encoder and checks the final digest before exposing
+ /// calls to the single shared row-34 provider.
+ pub const AuthorityHashPoseidonPlanV2 = shard_2.AuthorityHashPoseidonPlanV2;
++pub const authorityHashCallCount = shard_2.authorityHashCallCount;
++pub const appendExpectedAuthorityHashCalls = shard_2.appendExpectedAuthorityHashCalls;
+ pub const VerifierInputEventV2 = shard_2.VerifierInputEventV2;
+ pub const preparePublicLogUpInto = shard_2.preparePublicLogUpInto;
+ /// Allocation-free, fail-atomic construction from verifier-owned custody.
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+index 96f561d3..f2ef0d0a 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+@@ -47,6 +47,40 @@ const validateNativeContextSelf = dependency_0.validateNativeContextSelf;
+ const verifierInputEvidence = dependency_1.verifierInputEvidence;
+ const writeLogUpWordsAssumeValid = dependency_1.writeLogUpWordsAssumeValid;
+ 
++/// Receipt-free expected hash program from public statement and admitted native
++/// geometry. Both native custody and detached verification use this one emitter.
++pub fn authorityHashCallCount(component_count: usize, infra_count: usize) Error!usize {
++    return channel.canonicalWordPermutationCount(try statement_v2.authority_preimage.wordCount(component_count, infra_count));
++}
++
++pub fn appendExpectedAuthorityHashCalls(
++    destination: []poseidon2_air.Call,
++    data: *const public_data_v2.PublicDataV2,
++    component_descs: []const statement_v1.FamilyComponentDesc,
++    infra_descs: []const statement_v1.InfraComponentDesc,
++) Error!Digest {
++    const destination_bytes = std.mem.sliceAsBytes(destination);
++    inline for (.{ std.mem.asBytes(data), std.mem.sliceAsBytes(data.words()), std.mem.sliceAsBytes(component_descs), std.mem.sliceAsBytes(infra_descs) }) |input|
++        if (overlap(destination_bytes, input)) return error.AliasedDestination;
++    const count = try authorityHashCallCount(component_descs.len, infra_descs.len);
++    if (destination.len != count) return error.PoseidonCallCountMismatch;
++    const core_public = try statement_v2.canonicalCorePublicData(data);
++    const input = statement_v2.authority_preimage.Input{
++        .initial_pc = core_public.initial_pc,
++        .final_pc = core_public.final_pc,
++        .cycle_count = core_public.clock,
++        .wire_id = data.wireId(),
++        .component_descs = component_descs,
++        .infra_descs = infra_descs,
++    };
++    try input.validate();
++    var recorder = AuthorityHashCallRecorder.init(destination);
++    statement_v2.authority_preimage.emit(&recorder, input);
++    const output = recorder.finalize();
++    std.debug.assert(recorder.call_at == destination.len);
++    return output;
++}
++
+ /// Exact native-verifier compensation admitted from a successful verifier
+ /// capture.  The full receipt and native-sum seals are retained as typed
+ /// fields, while their identities are folded into the final canonical word so
+@@ -307,34 +341,9 @@ pub const AuthorityHashPoseidonPlanV2 = struct {
+         if (destination.len != self.poseidon_call_count)
+             return error.PoseidonCallCountMismatch;
+ 
+-        var recorder = AuthorityHashCallRecorder.init(destination);
+-        recorder.u32Value(statement_v2.FORMAT_VERSION);
+-        recorder.u32Value(statement_v2.SCHEMA_VERSION);
+-        recorder.u32Value(self.component_count);
+-        recorder.u32Value(self.infra_count);
+-        const core_public = try statement_v2.canonicalCorePublicData(data);
+-        recorder.u32Value(core_public.initial_pc);
+-        recorder.u32Value(core_public.final_pc);
+-        recorder.u32Value(core_public.clock);
+-        recorder.digest(data.wireId());
+-        for (component_descs) |descriptor| {
+-            recorder.u32Value(@intFromEnum(descriptor.family));
+-            recorder.u32Value(descriptor.log_size);
+-            recorder.u32Value(descriptor.n_rows);
+-            recorder.u32Value(descriptor.n_columns);
+-        }
+-        for (infra_descs) |descriptor| {
+-            recorder.u32Value(@intFromEnum(descriptor.kind));
+-            recorder.u32Value(descriptor.log_size);
+-            recorder.u32Value(descriptor.n_rows);
+-            recorder.u32Value(descriptor.n_columns);
+-        }
+-        const output = recorder.finalize();
+-        if (!std.meta.eql(output, self.statement_authority_id) or
+-            recorder.call_at != destination.len)
+-        {
++        const output = try appendExpectedAuthorityHashCalls(destination, data, component_descs, infra_descs);
++        if (!std.meta.eql(output, self.statement_authority_id))
+             return error.NativeVerifierCustodyMismatch;
+-        }
+     }
+ 
+     pub fn productionReady(_: *const AuthorityHashPoseidonPlanV2) bool {
+@@ -613,20 +622,15 @@ pub const AuthorityHashCallRecorder = struct {
+         if (self.filled == channel.RATE) self.permute();
+     }
+ 
+-    fn u32Value(self: *AuthorityHashCallRecorder, value: u32) void {
+-        self.canonical(value & 0xffff);
+-        self.canonical(value >> 16);
+-    }
+-
+-    fn digest(self: *AuthorityHashCallRecorder, value: Digest) void {
+-        for (value) |word| self.canonical(word);
++    pub fn word(self: *AuthorityHashCallRecorder, _: statement_v2.authority_preimage.Source, value: u32) void {
++        self.canonical(value);
+     }
+ 
+     fn permute(self: *AuthorityHashCallRecorder) void {
+         std.debug.assert(self.call_at < self.calls.len);
+         var input: [poseidon2_air.WIDTH]u32 = undefined;
+-        for (&input, self.state) |*destination, word|
+-            destination.* = word.toU32();
++        for (&input, self.state) |*destination, field_word|
++            destination.* = field_word.toU32();
+         self.calls[self.call_at] = .{
+             .input = input,
+             .wide = false,
+@@ -642,8 +646,8 @@ pub const AuthorityHashCallRecorder = struct {
+         self.canonical(1);
+         if (self.filled != 0) self.permute();
+         var result: Digest = undefined;
+-        for (&result, self.state[0..channel.RATE]) |*destination, word|
+-            destination.* = word.toU32();
++        for (&result, self.state[0..channel.RATE]) |*destination, field_word|
++            destination.* = field_word.toU32();
+         return result;
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_leaf_local_authority_v3_test.zig b/src/frontends/riscv/recursion/segment_leaf_local_authority_v3_test.zig
+index 522e857c..0ce6ed53 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_local_authority_v3_test.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_local_authority_v3_test.zig
+@@ -270,9 +270,9 @@ fn statesFor(
+     right: *const runner.SegmentResult,
+ ) !States {
+     return .{
+-        .entry = try machineFromCpu(left.entry_cpu, digest("rw-entry")),
+-        .shared = try machineFromCpu(left.exit_cpu, digest("rw-shared")),
+-        .exit = try machineFromCpu(right.exit_cpu, digest("rw-exit")),
++        .entry = try machineFromCpu(left.entry_cpu, segment_v2.snapshotDigest(left.rw_memory.words, .initial_word).id),
++        .shared = try machineFromCpu(left.exit_cpu, segment_v2.snapshotDigest(left.rw_memory.words, .final_word).id),
++        .exit = try machineFromCpu(right.exit_cpu, segment_v2.snapshotDigest(right.rw_memory.words, .final_word).id),
+     };
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_leaf_local_projection_v3_test.zig b/src/frontends/riscv/recursion/segment_leaf_local_projection_v3_test.zig
+index 328df78b..7b2673e0 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_local_projection_v3_test.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_local_projection_v3_test.zig
+@@ -33,9 +33,9 @@ test "leaf-local V3: deterministic local projection enters authenticated V2 cust
+     defer right_result.deinit();
+ 
+     const states = States{
+-        .entry = try machineFromCpu(left_result.entry_cpu, digest("rw-entry")),
+-        .shared = try machineFromCpu(left_result.exit_cpu, digest("rw-shared")),
+-        .exit = try machineFromCpu(right_result.exit_cpu, digest("rw-exit")),
++        .entry = try machineFromCpu(left_result.entry_cpu, segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id),
++        .shared = try machineFromCpu(left_result.exit_cpu, segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id),
++        .exit = try machineFromCpu(right_result.exit_cpu, segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id),
+     };
+     const job = try span.JobContext.init(
+         try span.CompleteExecution.init(
+@@ -138,8 +138,8 @@ test "leaf-local V3: a globally positioned nonfinal leaf projects without a resu
+         try span.CompleteExecution.init(
+             protocol.PROTOCOL_ID_WORDS,
+             digest("middle-program"),
+-            try machineFromCpu(first.entry_cpu, digest("middle-rw-entry")),
+-            try machineFromCpu(final.exit_cpu, digest("middle-rw-exit")),
++            try machineFromCpu(first.entry_cpu, segment_v2.snapshotDigest(first.rw_memory.words, .initial_word).id),
++            try machineFromCpu(final.exit_cpu, segment_v2.snapshotDigest(final.rw_memory.words, .final_word).id),
+             digest("middle-input"),
+             digest("middle-output"),
+             5,
+@@ -149,8 +149,8 @@ test "leaf-local V3: a globally positioned nonfinal leaf projects without a resu
+     const statement = try leafStatement(
+         job,
+         &middle,
+-        try machineFromCpu(middle.entry_cpu, digest("middle-rw-shared-entry")),
+-        try machineFromCpu(middle.exit_cpu, digest("middle-rw-shared-exit")),
++        try machineFromCpu(middle.entry_cpu, segment_v2.snapshotDigest(middle.rw_memory.words, .initial_word).id),
++        try machineFromCpu(middle.exit_cpu, segment_v2.snapshotDigest(middle.rw_memory.words, .final_word).id),
+         span.EdgeClaim.absent(),
+         span.EdgeClaim.absent(),
+     );
+diff --git a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+index d77fab43..6e6d3004 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+@@ -46,22 +46,22 @@ pub const StatementSemanticsV2 = struct {
+     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
+ 
+     pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
+-    pub const PREPROCESSED_COLUMN_COUNT: usize = 16;
++    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
+     pub const PARAMETER_COUNT: usize = 0;
+     pub const LOGICAL_INPUT_COUNT: usize =
+         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
+     pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
+-    pub const RELATION_EVENT_COUNT: usize = 7;
++    pub const RELATION_EVENT_COUNT: usize = 9;
+     pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-    pub const INTERACTION_BATCH_COUNT: usize = 4;
+-    pub const INTERACTION_COLUMN_COUNT: usize = 16;
++    pub const INTERACTION_BATCH_COUNT: usize = 5;
++    pub const INTERACTION_COLUMN_COUNT: usize = 20;
+     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+ 
+     // Regenerated from the typed IR by the focused source test. This value is
+     // deliberately pinned before the component can be authenticated.
+     pub const SEMANTIC_DIGEST_HEX =
+-        "4af9b4d32b2f77041729ab8fc458bf845d39a1246984b54878a7cc9ce33f6915";
++        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
+     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
+         SEMANTIC_DIGEST_HEX,
+         "invalid V2 statement-semantics digest",
+@@ -97,6 +97,9 @@ pub const StatementSemanticsV2 = struct {
+             "recursion_segment_leaf_v2_statement_semantics_verifier_b_index",
+             "recursion_segment_leaf_v2_statement_semantics_expected_header",
+             "recursion_segment_leaf_v2_statement_semantics_boundary_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
++            "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
+         };
+     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
+         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
+@@ -163,6 +166,9 @@ pub const StatementSemanticsV2 = struct {
+         verifier_b_index: types.ValueId,
+         expected_header: types.ValueId,
+         boundary_bridge_mask: types.ValueId,
++        register_byte_bridge_mask: types.ValueId,
++        register_low_byte_index: types.ValueId,
++        register_high_byte_index: types.ValueId,
+ 
+         pub fn physical(
+             self: PreprocessedColumns,
+@@ -184,6 +190,9 @@ pub const StatementSemanticsV2 = struct {
+                 self.verifier_b_index,
+                 self.expected_header,
+                 self.boundary_bridge_mask,
++                self.register_byte_bridge_mask,
++                self.register_low_byte_index,
++                self.register_high_byte_index,
+             };
+         }
+     };
+@@ -350,6 +359,10 @@ pub const StatementSemanticsV2 = struct {
+                 self.preprocessed.boundary_bridge_mask,
+                 &boundary_bridge_tuple,
+             );
++            const register_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_low_byte_index, self.main.source_low_byte, zero, zero, zero };
++            const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
++            try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
+         }
+     };
+ 
+@@ -413,7 +426,7 @@ pub const StatementSemanticsV2 = struct {
+             index,
+         | value.* = try arena.input(
+             name,
+-            if (index < 9 or index == 15) .selector else .felt,
++            if (index < 9 or index == 15 or index == 16) .selector else .felt,
+             span,
+         );
+         const preprocessed = PreprocessedColumns{
+@@ -433,6 +446,9 @@ pub const StatementSemanticsV2 = struct {
+             .verifier_b_index = preprocessed_values[13],
+             .expected_header = preprocessed_values[14],
+             .boundary_bridge_mask = preprocessed_values[15],
++            .register_byte_bridge_mask = preprocessed_values[16],
++            .register_low_byte_index = preprocessed_values[17],
++            .register_high_byte_index = preprocessed_values[18],
+         };
+         const one = try arena.constantField(1, span);
+         const byte_radix = try arena.constantField(256, span);
+@@ -550,6 +566,10 @@ pub const StatementSemanticsV2 = struct {
+             zero,
+             zero,
+         };
++        // These are the existing range-checked u16 decomposition bytes; the
++        // admitted preprocessing selects only canonical register-limb rows.
++        const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
++        const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
+         const events = [RELATION_EVENT_COUNT]types.EffectId{
+             try relation_effect.append(&arena, .{
+                 .domain = .recursion_statement_word,
+@@ -593,6 +613,18 @@ pub const StatementSemanticsV2 = struct {
+                 .values = &boundary_bridge_tuple,
+                 .weight = preprocessed.boundary_bridge_mask,
+             }, span),
++            try relation_effect.append(&arena, .{
++                .domain = .recursion_wire,
++                .role = .emit,
++                .values = &register_low_tuple,
++                .weight = preprocessed.register_byte_bridge_mask,
++            }, span),
++            try relation_effect.append(&arena, .{
++                .domain = .recursion_wire,
++                .role = .emit,
++                .values = &register_high_tuple,
++                .weight = preprocessed.register_byte_bridge_mask,
++            }, span),
+         };
+         return .{
+             .arena = arena,
+@@ -625,7 +657,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
+-            if (local_index < 9 or local_index == 15) .selector else .felt,
++            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
+         );
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig b/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
+index 61851730..50b8ff37 100644
+--- a/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
+@@ -21,8 +21,10 @@ const air = @import("air/vm_public_claim_hash_authority_v2.zig");
+ const roster = @import("air/universal_roster.zig");
+ const universal = @import("air/universal_challenges.zig");
+ 
+-pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 1;
++pub const FORMAT_VERSION: u16 = 3;
++pub const SCHEMA_VERSION: u16 = 2;
++pub const CALL_WIRE_CIRCUIT_ID = air.CALL_WIRE_CIRCUIT_ID;
++pub const CALL_WIRE_GROUP_COUNT = air.CALL_WIRE_GROUP_COUNT;
+ pub const RELAY_ROW_COUNT: usize = public_source.NATIVE_PUBLIC_SUM_WORD_COUNT;
+ pub const ROSTER_ROW: u8 = @intFromEnum(roster.Component.vm_public_claim_hash);
+ pub const HOT_HEAP_ALLOCATIONS: usize = 0;
+@@ -104,7 +106,7 @@ pub const PreparedV2 = struct {
+     }
+ 
+     pub fn eventCount(self: *const PreparedV2) Error!usize {
+-        return try checkedAdd(try self.callCount(), 1);
++        return try checkedAdd(std.math.mul(usize, try self.callCount(), 1 + CALL_WIRE_GROUP_COUNT) catch return error.ArithmeticOverflow, 1);
+     }
+ 
+     pub fn validate(self: *const PreparedV2) Error!void {
+@@ -171,23 +173,26 @@ pub const RowV2 = struct {
+     control_node_id: u32,
+     control_use_count: u32,
+     poseidon_tuple: [air.POSEIDON_TUPLE_WIDTH]M31,
++    call_wire_nodes: [CALL_WIRE_GROUP_COUNT]u32,
+ 
+     pub fn values(self: RowV2) LogicalRowV2 {
+         var result: LogicalRowV2 = undefined;
+         result[0] = felt(self.row_mask);
+         result[1] = self.relay_value;
+-        result[2] = felt(self.row_mask);
+-        result[3] = felt(self.relay_mask);
+-        result[4] = felt(self.authority_mask);
+-        result[5] = felt(self.bind_mask);
+-        for (self.source_fields, 0..) |word, index| result[6 + index] = felt(word);
+-        result[11] = felt(self.arithmetic_circuit_id);
+-        result[12] = felt(self.arithmetic_node_id);
+-        result[13] = felt(self.arithmetic_use_count);
+-        result[14] = felt(self.control_circuit_id);
+-        result[15] = felt(self.control_node_id);
+-        result[16] = felt(self.control_use_count);
+-        @memcpy(result[17 .. 17 + air.POSEIDON_TUPLE_WIDTH], &self.poseidon_tuple);
++        @memcpy(result[2..][0..air.POSEIDON_TUPLE_WIDTH], &self.poseidon_tuple);
++        const start = air.PHYSICAL_MAIN_COLUMN_COUNT;
++        result[start] = felt(self.row_mask);
++        result[start + 1] = felt(self.relay_mask);
++        result[start + 2] = felt(self.authority_mask);
++        result[start + 3] = felt(self.bind_mask);
++        for (self.source_fields, 0..) |word, index| result[start + 4 + index] = felt(word);
++        result[start + 9] = felt(self.arithmetic_circuit_id);
++        result[start + 10] = felt(self.arithmetic_node_id);
++        result[start + 11] = felt(self.arithmetic_use_count);
++        result[start + 12] = felt(self.control_circuit_id);
++        result[start + 13] = felt(self.control_node_id);
++        result[start + 14] = felt(self.control_use_count);
++        for (self.call_wire_nodes, 0..) |word, index| result[start + 15 + index] = felt(word);
+         result[result.len - 1] = M31.zero();
+         return result;
+     }
+@@ -241,6 +246,10 @@ pub fn writeInto(
+             tupleForCall(call_scratch[index])
+         else
+             zero_tuple;
++        var call_wire_nodes: [CALL_WIRE_GROUP_COUNT]u32 = @splat(0);
++        if (authority_active) for (&call_wire_nodes, 0..) |*node, group| {
++            node.* = @intCast(index * CALL_WIRE_GROUP_COUNT + group);
++        };
+         const row = RowV2{
+             .relay_value = relay.value,
+             .relay_mask = @intFromBool(relay_active),
+@@ -254,6 +263,7 @@ pub fn writeInto(
+             .control_node_id = relay.control_node_id,
+             .control_use_count = relay.control_use_count,
+             .poseidon_tuple = poseidon_tuple,
++            .call_wire_nodes = call_wire_nodes,
+         };
+         destination.* = row.values();
+         if (authority_active) {
+@@ -285,6 +295,11 @@ pub fn writeInto(
+             );
+             event_at += 1;
+         }
++        if (authority_active) for (0..CALL_WIRE_GROUP_COUNT) |group| {
++            const tuple = callWireTupleFromWords(index, group, &poseidon_tuple);
++            relation_events[event_at] = relationEvent(index, @intCast(5 + group), .recursion_wire, .emit, &tuple);
++            event_at += 1;
++        };
+     }
+     std.debug.assert(event_at == relation_events.len);
+ }
+@@ -297,6 +312,7 @@ fn validateGeometry(
+     relation_events: []const RelationEventV2,
+ ) Error!void {
+     const call_count = try prepared.callCount();
++    if (call_count > (m31.Modulus - 1) / CALL_WIRE_GROUP_COUNT) return error.ArithmeticOverflow;
+     if (relays.len != RELAY_ROW_COUNT or calls.len != call_count or
+         logical_rows.len != prepared.logical_row_count or
+         relation_events.len != try prepared.eventCount())
+@@ -342,6 +358,25 @@ fn validateCall(call: poseidon2_air.Call) Error!void {
+         return error.InvalidAuthorityCall;
+ }
+ 
++/// Shared exact public tuple projection; expected callers regenerate calls
++/// from expected public data and fixed admitted descriptors first.
++pub fn callWireTuples(call_index: usize, call: poseidon2_air.Call) [CALL_WIRE_GROUP_COUNT][6]M31 {
++    const words = tupleForCall(call);
++    var tuples: [CALL_WIRE_GROUP_COUNT][6]M31 = undefined;
++    for (&tuples, 0..) |*tuple, group| tuple.* = callWireTupleFromWords(call_index, group, &words);
++    return tuples;
++}
++
++pub fn callWireTuple(call_index: usize, group: usize, call: poseidon2_air.Call) [6]M31 {
++    return callWireTupleFromWords(call_index, group, &tupleForCall(call));
++}
++
++fn callWireTupleFromWords(call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]M31) [6]M31 {
++    std.debug.assert(group < CALL_WIRE_GROUP_COUNT);
++    std.debug.assert(call_index <= (m31.Modulus - 1 - group) / CALL_WIRE_GROUP_COUNT);
++    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group))) } ++ words[group * 4 ..][0..4].*;
++}
++
+ fn tupleForCall(call: poseidon2_air.Call) [air.POSEIDON_TUPLE_WIDTH]M31 {
+     var input: [poseidon2_air.WIDTH]M31 = undefined;
+     for (&input, call.input) |*destination, word|
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
+index 4f69e438..8296529a 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2.zig
+@@ -8,11 +8,14 @@
+ //! 2. four published QM31 relation sums and their published total (20 M31
+ //!    words); and
+ //! 3. `(z, alpha)` for registers, memory, program and Merkle relations (32
+-//!    M31 words).
++//!    M31 words); and
++//! 4. 256 register bytes already decomposed and range-checked by row 11,
++//!    relayed by row 15 at their fixed appended graph-input coordinates.
+ //!
+ //! The graph independently recomputes `statement_v2.nativeRelationSums`,
+ //! including the retained continuation-tree leaf and empty-root compensation,
+-//! and exposes five zero outputs: one per domain and one for the total.
++//! and exposes 21 zero outputs: one per domain, one for the total, and sixteen
++//! equalities binding the Span memory digests to the native snapshot IDs.
+ //! Published sums are therefore witnesses to an equality, never arithmetic
+ //! authority.
+ //!
+@@ -20,15 +23,16 @@
+ //! 11 proves canonical tags, u16 limbs, byte decompositions, retained-section
+ //! order/ranges and the exact raw-wire bridge.  The arithmetic graph consumes
+ //! that bridge tuple-by-tuple.  Existing `arithmetic_circuit` operations have
+-//! no lookup/bit-decomposition primitive, so the graph specializes optional
+-//! event topology and byte constants only after re-authenticating the
++//! no lookup/bit-decomposition primitive, so register bytes consume the
++//! existing row-11 constraints. Sparse-memory event topology and its byte
++//! constants remain specialized only after re-authenticating the
+ //! verifier-owned canonical wire.  The complete graph digest, exact node use
+ //! counts, wire identity and `PreparedV2` source identities are sealed
+ //! together.  No digest-trusted witness controls this specialization.
+ //!
+ //! Construction is cold and owning.  Hot evaluation uses caller-owned scratch
+ //! and destination buffers, allocates nothing, and commits the destination
+-//! only after validation, complete replay and all five zero checks succeed.
++//! only after validation, complete replay and all zero checks succeed.
+ const shard_0 = @import("segment_public_native_sum_authority_v2_contract.zig");
+ const shard_1 = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
+ const shard_2 = @import("segment_public_native_sum_authority_v2_source_v2.zig");
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+index 0b6e0039..dd47ee18 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+@@ -27,6 +27,7 @@ const program_decode = dependency_0.program_decode;
+ const public_source = dependency_0.public_source;
+ const span_statement = dependency_0.span_statement;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const wire_statement = dependency_0.wire_statement;
+ 
+ pub fn buildGraph(
+@@ -49,7 +50,7 @@ pub fn buildGraph(
+         .builder = &builder,
+         .relations = &graph_inputs.relations,
+     };
+-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire);
++    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes);
+ 
+     for (0..DOMAIN_COUNT) |index| {
+         _ = try builder.markOutput(try builder.sub(
+@@ -63,6 +64,22 @@ pub fn buildGraph(
+         total,
+         graph_inputs.published_total,
+     ));
++    // Separate zero outputs prevent cancellation between digest limbs. Both
++    // sides are authenticated dynamic wire inputs; no snapshot value is a
++    // circuit constant and no extra hash witness is trusted here.
++    inline for (.{
++        .{ span_statement.canonical_layout.entry_state_start, wire_statement.fixed_layout.entry_snapshot_id },
++        .{ span_statement.canonical_layout.exit_state_start, wire_statement.fixed_layout.exit_snapshot_id },
++    }) |side| {
++        const state_digest_start = wire_statement.fixed_layout.base_statement + side[0] +
++            span_statement.canonical_layout.machine_state_rw_digest_start_offset;
++        for (0..@typeInfo(wire_statement.Digest).array.len) |limb| {
++            _ = try builder.markOutput(try builder.sub(
++                graph_inputs.wire[state_digest_start + limb],
++                graph_inputs.wire[side[1] + limb],
++            ));
++        }
++    }
+     return .{
+         .circuit = try builder.finish(),
+         .term_counts = accumulator.counts,
+@@ -73,6 +90,7 @@ pub fn addBoundaryTerms(
+     accumulator: *RelationAccumulator,
+     view: *const wire_statement.CanonicalWireViewV2,
+     wire: []const arithmetic.Value,
++    bytes: []const arithmetic.Value,
+ ) Error!void {
+     const base = try view.statement.base();
+     const executed = switch (base.body) {
+@@ -115,8 +133,8 @@ pub fn addBoundaryTerms(
+     }, .negative);
+ 
+     for (0..32) |register| {
+-        const entry_value = executed.entry.registers[register];
+-        const exit_value = executed.exit.registers[register];
++        const entry = bytes[register_bytes.byteIndex(.entry, register, 0)..][0..4];
++        const exit = bytes[register_bytes.byteIndex(.exit, register, 0)..][0..4];
+         const entry_clock = try fixedU32(
+             accumulator.builder,
+             wire,
+@@ -131,19 +149,19 @@ pub fn addBoundaryTerms(
+             baseValue(0),
+             baseValue(@as(u32, @intCast(register))),
+             entry_clock,
+-            baseValue(@as(u8, @truncate(entry_value))),
+-            baseValue(@as(u8, @truncate(entry_value >> 8))),
+-            baseValue(@as(u8, @truncate(entry_value >> 16))),
+-            baseValue(@as(u8, @truncate(entry_value >> 24))),
++            entry[0],
++            entry[1],
++            entry[2],
++            entry[3],
+         }, .positive);
+         try accumulator.add(.memory_access, &.{
+             baseValue(0),
+             baseValue(@as(u32, @intCast(register))),
+             exit_clock,
+-            baseValue(@as(u8, @truncate(exit_value))),
+-            baseValue(@as(u8, @truncate(exit_value >> 8))),
+-            baseValue(@as(u8, @truncate(exit_value >> 16))),
+-            baseValue(@as(u8, @truncate(exit_value >> 24))),
++            exit[0],
++            exit[1],
++            exit[2],
++            exit[3],
+         }, .negative);
+     }
+ 
+@@ -304,6 +322,8 @@ pub fn inputSource(
+             .limb = @intCast(suffix % 8),
+         } };
+     }
++    suffix -= CHALLENGE_WORD_COUNT;
++    if (suffix < register_bytes.BYTE_COUNT) return .{ .register_byte = @intCast(suffix) };
+     return error.InputBindingMismatch;
+ }
+ 
+@@ -340,6 +360,10 @@ pub fn fillInputValues(
+             at += 1;
+         };
+     }
++    for (0..register_bytes.BYTE_COUNT) |index| {
++        destination[at] = QM31.fromBase(register_bytes.value(inputs.owned_public_data.data.words(), index));
++        at += 1;
++    }
+     std.debug.assert(at == destination.len);
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+index 5ee89dc4..ebd70a7e 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+@@ -14,17 +14,18 @@ pub const span_statement = @import("span_statement.zig");
+ pub const wire_statement = @import("segment_statement_v2.zig");
+ pub const graph_mod = @import("air/composition_circuit.zig");
+ pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+-pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 1;
++pub const FORMAT_VERSION: u16 = 4;
++pub const SCHEMA_VERSION: u16 = 2;
+ pub const CIRCUIT_ID: u32 = public_source.NATIVE_SUM_CIRCUIT_ID;
+ pub const DOMAIN_COUNT: usize = 4;
+ pub const PUBLISHED_WORD_COUNT: usize =
+     public_source.ARITHMETIC_PUBLICATION_WORD_COUNT;
+ pub const CHALLENGE_WORD_COUNT: usize = public_source.CHALLENGE_WORD_COUNT;
+-pub const OUTPUT_COUNT: usize = 5;
++pub const OUTPUT_COUNT: usize = public_source.NATIVE_SUM_ZERO_OUTPUT_COUNT;
+ pub const INPUT_SUFFIX_WORD_COUNT: usize =
+-    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT;
++    PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT;
+ pub const AUTHORITY_DOMAIN =
+     "stwo-zig/typed-air/segment-v2-native-public-sum-authority/v1\x00";
+ pub const EVALUATION_DOMAIN =
+@@ -82,6 +83,7 @@ pub const InputSourceV2 = union(enum) {
+     published_sum_word: PublishedCoordinateV2,
+     published_total_word: PublishedTotalCoordinateV2,
+     native_challenge_word: ChallengeCoordinateV2,
++    register_byte: u8,
+ };
+ 
+ pub const InputBindingV2 = struct {
+@@ -181,6 +183,7 @@ pub const AuthoredGraph = struct {
+ 
+ pub const GraphInputs = struct {
+     wire: []const arithmetic.Value,
++    register_bytes: []const arithmetic.Value,
+     published_sums: [DOMAIN_COUNT]arithmetic.Value,
+     published_total: arithmetic.Value,
+     relations: [DOMAIN_COUNT]BoundRelation,
+@@ -295,6 +298,7 @@ pub fn bindGraphInputs(
+     }
+     return .{
+         .wire = values[0..wire_count],
++        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT ..],
+         .published_sums = published_sums,
+         .published_total = published_total,
+         .relations = relations,
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+index a42f2cce..42d15e58 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+@@ -242,7 +242,7 @@ pub const SourceV2 = struct {
+ 
+     /// Zero-allocation and fail-atomic hot evaluation. Scratch buffers are
+     /// disposable on failure; `destination_values` is byte-for-byte unchanged
+-    /// unless the complete graph replays and all five outputs are zero.
++    /// unless the complete graph replays and all relation and snapshot-binding outputs are zero.
+     pub fn evaluateInto(
+         self: *const SourceV2,
+         prepared: *const public_source.PreparedV2,
+@@ -521,6 +521,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
+                 hashInt(&hash, u8, @intFromEnum(coordinate.relation));
+                 hashInt(&hash, u8, coordinate.limb);
+             },
++            .register_byte => |index| hashInt(&hash, u8, index),
+         }
+     }
+     return hash.finalResult();
+@@ -541,7 +542,7 @@ pub fn ownedEvaluationIdentity(evaluation: *const OwnedEvaluationV2) [32]u8 {
+ comptime {
+     if (CIRCUIT_ID != 42 or DOMAIN_COUNT != 4 or
+         PUBLISHED_WORD_COUNT != 20 or CHALLENGE_WORD_COUNT != 32 or
+-        OUTPUT_COUNT != 5 or HOT_HEAP_ALLOCATIONS != 0 or
++        OUTPUT_COUNT != 21 or HOT_HEAP_ALLOCATIONS != 0 or
+         !DESTINATION_FAILS_ATOMICALLY or !POINTER_STABLE_OWNERSHIP or
+         !EXACT_GRAPH_AND_USE_COUNTS_SEALED or
+         !ROW11_OWNS_CANONICAL_PARSING or
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+index f12c1512..179dba53 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+@@ -19,6 +19,8 @@ const fixed_profile = @import("fixed_profile.zig");
+ const protocol = @import("protocol.zig");
+ const channel = @import("poseidon2_channel.zig");
+ const schedule = @import("air/verifier_schedule.zig");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
++const lowering = @import("air/verifier_arithmetic_lowering.zig");
+ 
+ const Fixture = fixture_support.Fixture;
+ 
+@@ -75,7 +77,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+     const wire_count = fixture.owned_public.data.words().len;
+     try std.testing.expectEqual(
+         wire_count + subject.PUBLISHED_WORD_COUNT +
+-            subject.CHALLENGE_WORD_COUNT,
++            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         source.bindings.len,
+     );
+     for (source.bindings, 0..) |binding, index| {
+@@ -106,7 +108,7 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 )),
+                 coordinate.publication_index,
+             );
+-        } else {
++        } else if (suffix < subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT) {
+             const coordinate = binding.source.native_challenge_word;
+             const challenge_index = suffix - subject.PUBLISHED_WORD_COUNT;
+             try std.testing.expectEqual(
+@@ -117,10 +119,67 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 @as(u3, @intCast(challenge_index % 8)),
+                 coordinate.limb,
+             );
++        } else {
++            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
+         }
+     }
+ }
+ 
++test "SegmentV2 native-sum register inputs preserve graph and preprocessing across canonical statements" {
++    const allocator = std.testing.allocator;
++    var first = try Fixture.initWithRegister7(allocator, 0x01020304);
++    defer first.deinit();
++    var second = try Fixture.initWithRegister7(allocator, 0x05060708);
++    defer second.deinit();
++    const first_prepared = try public_source.preflight(first.inputs());
++    const second_prepared = try public_source.preflight(second.inputs());
++    var first_source = try subject.SourceV2.init(allocator, &first_prepared, first.inputs());
++    defer first_source.deinit();
++    var second_source = try subject.SourceV2.init(allocator, &second_prepared, second.inputs());
++    defer second_source.deinit();
++    try std.testing.expect(!std.meta.eql(first_source.wire_id, second_source.wire_id));
++    try std.testing.expectEqualDeep(first_prepared.manifest.log_sizes, second_prepared.manifest.log_sizes);
++    try std.testing.expectEqualSlices(@import("air/composition_circuit.zig").Node, first_source.owned_graph.nodes, second_source.owned_graph.nodes);
++    try std.testing.expectEqualSlices(u32, first_source.owned_graph.outputs, second_source.owned_graph.outputs);
++    try std.testing.expectEqualDeep(first_source.owned_graph.graph.identity_digest, second_source.owned_graph.graph.identity_digest);
++    try std.testing.expectEqualDeep(first_source.bindings, second_source.bindings);
++
++    // The shared lowering owner requires both proof modes. Keep one identical
++    // companion lane in both plans; only the segment lane varies in this test.
++    var companion = first_source.loweringLane();
++    companion.active_in = .binary;
++    companion.circuit_id += 1;
++    const first_lanes = [_]lowering.Lane{ first_source.loweringLane(), companion };
++    const second_lanes = [_]lowering.Lane{ second_source.loweringLane(), companion };
++    var first_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&first_lanes));
++    defer first_plan.deinit();
++    var second_plan = try lowering.Plan.init(allocator, try lowering.Reference.seal(&second_lanes));
++    defer second_plan.deinit();
++    try std.testing.expectEqualDeep(first_plan.multiply_rows, second_plan.multiply_rows);
++    try std.testing.expectEqualDeep(first_plan.inverse_rows, second_plan.inverse_rows);
++    try std.testing.expectEqualDeep(first_plan.linear_rows, second_plan.linear_rows);
++    try std.testing.expectEqualDeep(first_plan.public_terms, second_plan.public_terms);
++
++    var first_values = try OwnedEvaluation.init(allocator, &first_source);
++    defer first_values.deinit();
++    var second_values = try OwnedEvaluation.init(allocator, &second_source);
++    defer second_values.deinit();
++    _ = try first_source.evaluateInto(&first_prepared, first.inputs(), first_values.buffers());
++    _ = try second_source.evaluateInto(&second_prepared, second.inputs(), second_values.buffers());
++    try std.testing.expect(!std.meta.eql(first_values.destinationDigest(), second_values.destinationDigest()));
++    const byte_index = register_bytes.byteIndex(.entry, 7, 0);
++    const existing_inputs = first.owned_public.data.words().len + subject.PUBLISHED_WORD_COUNT + subject.CHALLENGE_WORD_COUNT;
++    const input_index = register_bytes.inputIndex(existing_inputs, byte_index);
++    try std.testing.expect(first_source.bindings[input_index].use_count > 0);
++    try std.testing.expectEqual(@as(u32, 4), first_values.scratch_inputs[input_index].toM31Array()[0].toU32());
++    try std.testing.expectEqual(@as(u32, 8), second_values.scratch_inputs[input_index].toM31Array()[0].toU32());
++    // Even a canonical byte cannot be substituted while preserving the native
++    // public sums. Row11/15 relation tests separately prove the byte's source.
++    first_values.scratch_inputs[input_index] = QM31.fromBase(M31.fromCanonical(5));
++    try first_source.circuit.evaluateIntoAssumeValid(first_values.scratch_inputs, first_values.scratch_values);
++    try std.testing.expect(!try first_source.circuit.outputsAreZero(first_values.scratch_values));
++}
++
+ test "SegmentV2 native-sum owned evaluation is a compact lowering handoff" {
+     var fixture = try Fixture.init(std.testing.allocator);
+     defer fixture.deinit();
+@@ -373,6 +432,11 @@ const EmptyFixture = struct {
+         segment.memory_words = &.{};
+         segment.entry_memory_clocks = &.{};
+         segment.exit_memory_clocks = &.{};
++        const empty_snapshot = @import("segment_statement_v2.zig").snapshotDigest(&.{}, .initial_word).id;
++        segment.base_statement.job.complete.initial_state.rw_memory = empty_snapshot;
++        segment.base_statement.job.complete.final_state.rw_memory = empty_snapshot;
++        segment.base_statement.body.executed.entry.rw_memory = empty_snapshot;
++        segment.base_statement.body.executed.exit.rw_memory = empty_snapshot;
+         const words = try public_data_support.encode(allocator, &segment);
+         defer allocator.free(words);
+         const borrowed = try public_data_v2.PublicDataV2.authenticate(words);
+@@ -549,3 +613,44 @@ fn expectEvaluationFailure(
+         return error.TestExpectedError;
+     } else |_| {}
+ }
++
++test "SegmentV2 native-sum graph independently binds every Span snapshot digest limb" {
++    const allocator = std.testing.allocator;
++    var fixture = try Fixture.init(allocator);
++    defer fixture.deinit();
++    const prepared = try public_source.preflight(fixture.inputs());
++    var source = try subject.SourceV2.init(allocator, &prepared, fixture.inputs());
++    defer source.deinit();
++    var owned = try OwnedEvaluation.init(allocator, &source);
++    defer owned.deinit();
++    _ = try source.evaluateInto(&prepared, fixture.inputs(), owned.buffers());
++    const wire = @import("segment_statement_v2.zig");
++    const span = @import("span_statement.zig");
++    const relation_output_count = subject.DOMAIN_COUNT + 1;
++    try std.testing.expectEqual(relation_output_count + 16, source.circuit.outputs().len);
++    inline for (.{
++        .{ span.canonical_layout.entry_state_start, wire.fixed_layout.entry_snapshot_id },
++        .{ span.canonical_layout.exit_state_start, wire.fixed_layout.exit_snapshot_id },
++    }, 0..) |side, side_index| {
++        const state_start = wire.fixed_layout.base_statement + side[0] + span.canonical_layout.machine_state_rw_digest_start_offset;
++        for (0..8) |limb| {
++            // Exercise both directions without a host admission call masking
++            // the AIR relation: only one independent equality may fail.
++            for ([_]usize{ state_start + limb, side[1] + limb }) |input_index| {
++                const original = owned.scratch_inputs[input_index];
++                defer owned.scratch_inputs[input_index] = original;
++                owned.scratch_inputs[input_index] = original.add(QM31.one());
++                try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
++                try std.testing.expect(!try source.circuit.outputsAreZero(owned.scratch_values));
++                for (source.circuit.outputs(), 0..) |output, output_index| {
++                    try std.testing.expectEqual(
++                        output_index != relation_output_count + side_index * 8 + limb,
++                        owned.scratch_values[output].isZero(),
++                    );
++                }
++            }
++        }
++    }
++    try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
++    try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
++}
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2.zig
+index 5b1da1ec..f6bcf5a7 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2.zig
+@@ -37,6 +37,7 @@ pub const LAST_ROW = shard_0.LAST_ROW;
+ pub const MIN_LOG_SIZE = shard_0.MIN_LOG_SIZE;
+ pub const MAX_LOG_SIZE = shard_0.MAX_LOG_SIZE;
+ pub const NATIVE_SUM_CIRCUIT_ID = shard_0.NATIVE_SUM_CIRCUIT_ID;
++pub const NATIVE_SUM_ZERO_OUTPUT_COUNT = shard_0.NATIVE_SUM_ZERO_OUTPUT_COUNT;
+ pub const CONTROL_RELAY_CIRCUIT_ID = shard_0.CONTROL_RELAY_CIRCUIT_ID;
+ pub const PUBLICATION_BRIDGE_CIRCUIT_ID = shard_0.PUBLICATION_BRIDGE_CIRCUIT_ID;
+ pub const BOUNDARY_BRIDGE_CIRCUIT_ID = shard_0.BOUNDARY_BRIDGE_CIRCUIT_ID;
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+index 2b368fa6..6ab325b6 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+@@ -48,6 +48,7 @@ const source_v2 = dependency_0.source_v2;
+ const statement_v1 = dependency_0.statement_v1;
+ const statement_v2 = dependency_0.statement_v2;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const sumsEql = dependency_0.sumsEql;
+ const traceLogSize = dependency_0.traceLogSize;
+ const universal = dependency_0.universal;
+@@ -140,8 +141,8 @@ pub const PreparedV2 = struct {
+         return .{
+             .source36_statement_word_emits = wire_count,
+             .row11_statement_word_consumes = wire_count,
+-            .row11_boundary_bridge_emits = wire_count,
+-            .row15_boundary_bridge_consumes = wire_count,
++            .row11_boundary_bridge_emits = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
++            .row15_boundary_bridge_consumes = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+             .rows13_16_arithmetic_wire_emits = self.lowering_obligation.input_count,
+         };
+     }
+@@ -277,7 +278,7 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
+             u32,
+             try checkedAdd(
+                 data.words().len,
+-                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
++                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+             ),
+         ) orelse return error.ArithmeticOverflow,
+         .identity = undefined,
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+index 4cc9a5f1..7e0c3ae1 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+@@ -22,10 +22,13 @@ pub const schedule = @import("air/verifier_schedule.zig");
+ pub const control_v2 = @import("air/vm_public_logup_control_v2.zig");
+ pub const control_relation_v2 = @import("air/vm_public_logup_control_relation_v2.zig");
+ pub const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
++
++const AUTHORITY_EVENTS_PER_CALL = 1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT;
+ 
+ pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 2;
+-pub const MANIFEST_VERSION: u16 = 4;
++pub const SCHEMA_VERSION: u16 = 5;
++pub const MANIFEST_VERSION: u16 = 7;
+ pub const FIRST_ROW: usize = @intFromEnum(roster.Component.vm_public_claim_input);
+ pub const ROW_COUNT: usize = 6;
+ pub const LAST_ROW: usize = FIRST_ROW + ROW_COUNT - 1;
+@@ -218,7 +221,7 @@ pub const ClosureLedgerV2 = struct {
+             self.source36_statement_word_emits !=
+                 self.row11_statement_word_consumes or
+             self.row11_boundary_bridge_emits !=
+-                self.row11_statement_word_consumes or
++                try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT) or
+             self.row15_boundary_bridge_consumes !=
+                 self.row11_boundary_bridge_emits or
+             self.row8_challenge_word_emits != CHALLENGE_WORD_COUNT or
+@@ -294,7 +297,7 @@ pub const ManifestV2 = struct {
+                 control_witness_v2.TRACE_LOG_SIZE or
+             allZeroBytes(&self.control_source_id) or
+             self.logical_rows[rowIndex(.vm_public_claim_semantics_input)] !=
+-                self.wire_word_count)
++                try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT))
+         {
+             return error.InvalidManifest;
+         }
+@@ -317,6 +320,10 @@ pub const ManifestV2 = struct {
+     }
+ };
+ 
++/// Four relation equalities, their total, and both complete snapshot digests.
++pub const NATIVE_SUM_ZERO_OUTPUT_COUNT: u8 =
++    ARITHMETIC_PUBLICATION_WORD_COUNT / 4 + 2 * @typeInfo(Digest).array.len;
++
+ pub const LoweringObligationV2 = struct {
+     format_version: u16 = FORMAT_VERSION,
+     schema_version: u16 = SCHEMA_VERSION,
+@@ -325,7 +332,7 @@ pub const LoweringObligationV2 = struct {
+     native_sum_and_total_word_count: u16 = ARITHMETIC_PUBLICATION_WORD_COUNT,
+     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
+     input_count: u32,
+-    zero_output_count: u8 = 5,
++    zero_output_count: u8 = NATIVE_SUM_ZERO_OUTPUT_COUNT,
+     requires_qm31_composition: bool = true,
+     requires_alpha_power_horner: bool = true,
+     requires_checked_inverse: bool = true,
+@@ -337,7 +344,7 @@ pub const LoweringObligationV2 = struct {
+     pub fn validate(self: *const LoweringObligationV2) Error!void {
+         const expected_inputs = try checkedAddU32(
+             self.boundary_word_count,
+-            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT,
++            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         );
+         if (self.format_version != FORMAT_VERSION or
+             self.schema_version != SCHEMA_VERSION or
+@@ -345,7 +352,7 @@ pub const LoweringObligationV2 = struct {
+             self.native_sum_and_total_word_count !=
+                 ARITHMETIC_PUBLICATION_WORD_COUNT or
+             self.challenge_word_count != CHALLENGE_WORD_COUNT or
+-            self.input_count != expected_inputs or self.zero_output_count != 5 or
++            self.input_count != expected_inputs or self.zero_output_count != NATIVE_SUM_ZERO_OUTPUT_COUNT or
+             !self.requires_qm31_composition or
+             !self.requires_alpha_power_horner or
+             !self.requires_checked_inverse or
+@@ -365,14 +372,14 @@ pub fn deriveCounts(
+     var relay_relation_events = try checkedMul(PUBLICATION_WORD_COUNT, 3);
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+-        try checkedMul(wire_words, 3),
++        try checkedMul(try checkedAdd(wire_words, register_bytes.BYTE_COUNT), 3),
+     );
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+         try checkedMul(CHALLENGE_WORD_COUNT, 3),
+     );
+     const authority_relation_events = try checkedAdd(
+-        authority_call_count,
++        try checkedMul(authority_call_count, AUTHORITY_EVENTS_PER_CALL),
+         AUTHORITY_BIND_EVENT_COUNT,
+     );
+     const relation_events = try checkedAdd(
+@@ -383,7 +390,7 @@ pub fn deriveCounts(
+         .publication_header = PUBLICATION_HEADER_WORD_COUNT,
+         .native_public_sums = NATIVE_PUBLIC_SUM_WORD_COUNT,
+         .publication_seal = PUBLICATION_SEAL_WORD_COUNT,
+-        .boundary_bridge = wire_words,
++        .boundary_bridge = try checkedAdd(wire_words, register_bytes.BYTE_COUNT),
+         .native_challenges = CHALLENGE_WORD_COUNT,
+         .control_relay = CONTROL_LOGICAL_ROW_COUNT,
+         .relay_relation_events = relay_relation_events,
+@@ -403,9 +410,9 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
+         .control_relay = manifest.logical_rows[rowIndex(.vm_public_logup_control)],
+         .relay_relation_events = manifest.relation_event_count -
+             CONTROL_RELATION_EVENT_COUNT -
+-            manifest.authority_poseidon_call_count -
++            manifest.authority_poseidon_call_count * AUTHORITY_EVENTS_PER_CALL -
+             AUTHORITY_BIND_EVENT_COUNT,
+-        .authority_relation_events = manifest.authority_poseidon_call_count +
++        .authority_relation_events = manifest.authority_poseidon_call_count * AUTHORITY_EVENTS_PER_CALL +
+             AUTHORITY_BIND_EVENT_COUNT,
+         .control_relation_events = CONTROL_RELATION_EVENT_COUNT,
+         .relation_events = manifest.relation_event_count,
+@@ -414,9 +421,10 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
+ 
+ pub fn eventCountFromManifest(manifest: *const ManifestV2) Error!u32 {
+     var relay_rows = try checkedAddU32(PUBLICATION_WORD_COUNT, manifest.wire_word_count);
++    relay_rows = try checkedAddU32(relay_rows, register_bytes.BYTE_COUNT);
+     relay_rows = try checkedAddU32(relay_rows, CHALLENGE_WORD_COUNT);
+     var result = try checkedMulU32(relay_rows, 3);
+-    result = try checkedAddU32(result, manifest.authority_poseidon_call_count);
++    result = try checkedAddU32(result, try checkedMulU32(manifest.authority_poseidon_call_count, AUTHORITY_EVENTS_PER_CALL));
+     result = try checkedAddU32(result, AUTHORITY_BIND_EVENT_COUNT);
+     return checkedAddU32(result, CONTROL_RELATION_EVENT_COUNT);
+ }
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+index 2767140d..f673bca6 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+@@ -12,6 +12,7 @@ const subject = @import("segment_public_outer_source_v2.zig");
+ const fixture_support = @import("segment_public_outer_test_support.zig");
+ const control_air_v2 = @import("air/vm_public_logup_control_v2.zig");
+ const control_witness_v2 = @import("air/vm_public_logup_control_witness_v2.zig");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+ const Fixture = fixture_support.Fixture;
+ 
+@@ -29,7 +30,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+     try std.testing.expectEqual(subject.PUBLICATION_HEADER_WORD_COUNT, counts.publication_header);
+     try std.testing.expectEqual(subject.NATIVE_PUBLIC_SUM_WORD_COUNT, counts.native_public_sums);
+     try std.testing.expectEqual(subject.PUBLICATION_SEAL_WORD_COUNT, counts.publication_seal);
+-    try std.testing.expectEqual(wire.len, counts.boundary_bridge);
++    try std.testing.expectEqual(wire.len + register_bytes.BYTE_COUNT, counts.boundary_bridge);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, counts.native_challenges);
+     try std.testing.expectEqual(subject.CONTROL_LOGICAL_ROW_COUNT, counts.control_relay);
+     try std.testing.expectEqual(
+@@ -37,12 +38,12 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         counts.control_relation_events,
+     );
+     try std.testing.expectEqual(
+-        @as(usize, prepared.authority_hash_plan.poseidon_call_count) +
++        @as(usize, prepared.authority_hash_plan.poseidon_call_count) * (1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT) +
+             subject.AUTHORITY_BIND_EVENT_COUNT,
+         counts.authority_relation_events,
+     );
+     try std.testing.expectEqual(
+-        3 * (subject.PUBLICATION_WORD_COUNT + wire.len +
++        3 * (subject.PUBLICATION_WORD_COUNT + wire.len + register_bytes.BYTE_COUNT +
+             subject.CHALLENGE_WORD_COUNT) +
+             counts.authority_relation_events +
+             subject.CONTROL_RELATION_EVENT_COUNT,
+@@ -117,7 +118,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         );
+     }
+ 
+-    for (owned.boundary_bridge, wire, 0..) |row, value, index| {
++    for (owned.boundary_bridge[0..wire.len], wire, 0..) |row, value, index| {
+         try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
+         try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
+         try std.testing.expectEqual(@as(u32, @intCast(index)), row.source_fields[1]);
+@@ -127,6 +128,16 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
+         try std.testing.expectEqual(@as(u32, 0), row.control_mask);
+     }
++    for (owned.boundary_bridge[wire.len..], 0..) |row, byte_index| {
++        try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
++        try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
++        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.bridgeIndex(wire.len, byte_index))), row.source_fields[1]);
++        try std.testing.expect(row.value.eql(register_bytes.value(wire, byte_index)));
++        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.inputIndex(wire.len + subject.ARITHMETIC_PUBLICATION_WORD_COUNT + subject.CHALLENGE_WORD_COUNT, byte_index))), row.arithmetic_node_id);
++        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_mask);
++        try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
++        try std.testing.expectEqual(@as(u32, 0), row.control_mask);
++    }
+ 
+     for (owned.native_challenges, 0..) |row, index| {
+         try std.testing.expectEqual(subject.RelaySourceKindV2.native_challenge, row.source_kind);
+@@ -445,10 +456,10 @@ fn expectExactRelationProjection(owned: *const OwnedDestinations, wire_len: usiz
+             control_emits += @intFromBool(event.multiplicity == 1);
+         }
+     }
+-    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len, source_wire_consumes);
++    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len + register_bytes.BYTE_COUNT, source_wire_consumes);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, source_challenge_consumes);
+     try std.testing.expectEqual(
+-        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT,
++        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
+         arithmetic_emits,
+     );
+     try std.testing.expectEqual(@as(usize, 1), control_emits);
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+index a6f32bc8..82a90eef 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+@@ -54,6 +54,7 @@ const relation_challenge_witness = dependency_0.relation_challenge_witness;
+ const roster = dependency_0.roster;
+ const source_v2 = dependency_0.source_v2;
+ const std = dependency_0.std;
++const register_bytes = dependency_0.register_bytes;
+ const universal = dependency_0.universal;
+ const validateDestinationGeometry = dependency_1.validateDestinationGeometry;
+ const wireTuple = dependency_1.wireTuple;
+@@ -209,6 +210,26 @@ pub fn writeAssumeValid(
+         );
+     }
+ 
++    // Row 11 emitted these exact bytes after its existing u16 decomposition
++    // and range checks. Reuse the ordinary relay with distinct coordinates;
++    // no new value is accepted solely from the native-sum graph producer.
++    for (0..register_bytes.BYTE_COUNT) |byte_index| {
++        const index = register_bytes.bridgeIndex(wire.len, byte_index);
++        const node = register_bytes.inputIndex(wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT, byte_index);
++        const value = register_bytes.value(wire, byte_index);
++        const row = RelayRowV2{
++            .source_kind = .boundary_bridge,
++            .source_fields = .{ BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
++            .value = value,
++            .arithmetic_mask = 1,
++            .arithmetic_node_id = @intCast(node),
++            .arithmetic_use_count = inputUseCount(arithmetic_use_counts, node),
++        };
++        destinations.boundary_bridge[index] = row;
++        const source_tuple = wireTuple(BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), value);
++        writeRelayEvents(&sink, .vm_public_claim_semantics_input, index, row, .recursion_wire, &source_tuple);
++    }
++
+     for (challenges, 0..) |challenge, index| {
+         const node = wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + index;
+         const row = RelayRowV2{
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_test_support.zig b/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
+index 29968f7c..d3085f8c 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_test_support.zig
+@@ -43,7 +43,11 @@ pub const Fixture = struct {
+     vm_plan: schedule.Plan,
+ 
+     pub fn init(allocator: std.mem.Allocator) !Fixture {
+-        const support_fixture = try public_data_support.Fixture.init();
++        return initWithRegister7(allocator, 0);
++    }
++
++    pub fn initWithRegister7(allocator: std.mem.Allocator, value: u32) !Fixture {
++        const support_fixture = try public_data_support.Fixture.initWithRegister7(value);
+         const source = support_fixture.rightSource();
+         const words = try public_data_support.encode(allocator, &source);
+         defer allocator.free(words);
+diff --git a/src/frontends/riscv/recursion/segment_range_authority_v2.zig b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+index 550cf763..31252ed6 100644
+--- a/src/frontends/riscv/recursion/segment_range_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+@@ -87,7 +87,9 @@ pub const SourceAuthorityV2 = struct {
+             self.table_kind != range_bridge.TABLE_KIND or
+             self.table_log_size != lookup_schema.logSize(self.table_kind) or
+             self.table_size != lookup_schema.size(self.table_kind) or
+-            statement.Air.RELATION_EVENT_COUNT != 7 or
++            // The appended byte exports are recursion_wire events; request
++            // ordinals3/4/5 remain the complete three-lane range source.
++            statement.Air.RELATION_EVENT_COUNT != 9 or
+             !statement.ROW_35_REQUEST_SET_COMPLETE)
+         {
+             return error.InvalidSourceAuthority;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+index c770c5a8..75d8ac4d 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+@@ -1,6 +1,7 @@
+ //! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
+ 
+ pub const std = @import("std");
++pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ pub const stwo_core = @import("stwo_core");
+ 
+ pub const M31 = stwo_core.fields.m31.M31;
+@@ -33,9 +34,9 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
+     Air.authenticate,
+ )).@"fn".return_type.?).error_union.error_set;
+ 
+-pub const FORMAT_VERSION: u16 = 3;
+-pub const SCHEMA_VERSION: u16 = 2;
+-pub const MANIFEST_VERSION: u16 = 3;
++pub const FORMAT_VERSION: u16 = 4;
++pub const SCHEMA_VERSION: u16 = 3;
++pub const MANIFEST_VERSION: u16 = 4;
+ pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
+ pub const ROUTING_ROW_11: u8 =
+     @intFromEnum(roster.Component.statement_semantics_input);
+@@ -122,6 +123,8 @@ pub const ClosureLedgerV2 = struct {
+     row11_statement_payload_consumes: u32,
+     row11_boundary_wire_emits: u32,
+     row15_boundary_wire_consumes: u32,
++    row11_register_byte_emits: u32,
++    row15_register_byte_consumes: u32,
+     boundary_bridge_circuit_id: u32 = Air.BOUNDARY_BRIDGE_CIRCUIT_ID,
+     source37_custom_logup_consumes: u32 = source_v2.LOGUP_PUBLICATION_WORD_COUNT,
+     source37_verifier_id: u32 = source_v2.SEGMENT_V2_VERIFIER_ID,
+@@ -143,6 +146,8 @@ pub const ClosureLedgerV2 = struct {
+             self.row11_boundary_wire_emits == 0 or
+             self.row11_boundary_wire_emits !=
+                 self.row15_boundary_wire_consumes or
++            self.row11_register_byte_emits != register_bytes.BYTE_COUNT or
++            self.row15_register_byte_consumes != self.row11_register_byte_emits or
+             self.boundary_bridge_circuit_id !=
+                 public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID or
+             self.source37_custom_logup_consumes !=
+@@ -170,8 +175,8 @@ comptime {
+         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
+         VM_PUBLIC_LOGUP_ROW_16 != 16 or
+         HEADER_LIMB_COUNT != 8 or
+-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 7 or
+-        Air.INTERACTION_BATCH_COUNT != 4 or Air.INTERACTION_COLUMN_COUNT != 16 or
++        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 9 or
++        Air.INTERACTION_BATCH_COUNT != 5 or Air.INTERACTION_COLUMN_COUNT != 20 or
+         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
+             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
+     {
+@@ -205,6 +210,7 @@ pub const ManifestV2 = struct {
+     routing_row_11: u8 = ROUTING_ROW_11,
+     range_provider_row_35: u8 = RANGE_PROVIDER_ROW_35,
+     wire_word_count: u32,
++    register_byte_count: u32 = register_bytes.BYTE_COUNT,
+     context_word_count: u32 = source_v2.CONTEXT_WORD_COUNT,
+     header_limb_count: u32 = HEADER_LIMB_COUNT,
+     logical_row_count: u32,
+@@ -229,6 +235,7 @@ pub const ManifestV2 = struct {
+             self.routing_row_11 != ROUTING_ROW_11 or
+             self.range_provider_row_35 != RANGE_PROVIDER_ROW_35 or
+             self.context_word_count != source_v2.CONTEXT_WORD_COUNT or
++            self.register_byte_count != register_bytes.BYTE_COUNT or
+             self.header_limb_count != HEADER_LIMB_COUNT or
+             self.wire_id_limb_request_count != WIRE_ID_LIMB_COUNT or
+             !self.range_request_source_complete or
+@@ -285,6 +292,9 @@ pub const PreprocessedRowV2 = struct {
+     verifier_b_index: u32,
+     expected_header: u32,
+     boundary_bridge_mask: u32,
++    register_byte_bridge_mask: u32 = 0,
++    register_low_byte_index: u32 = 0,
++    register_high_byte_index: u32 = 0,
+ 
+     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
+         return .{
+@@ -304,6 +314,9 @@ pub const PreprocessedRowV2 = struct {
+             felt(self.verifier_b_index),
+             felt(self.expected_header),
+             felt(self.boundary_bridge_mask),
++            felt(self.register_byte_bridge_mask),
++            felt(self.register_low_byte_index),
++            felt(self.register_high_byte_index),
+         };
+     }
+ };
+@@ -453,6 +466,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     hash.scalar(manifest.routing_row_11);
+     hash.scalar(manifest.range_provider_row_35);
+     hash.u32Value(manifest.wire_word_count);
++    hash.u32Value(manifest.register_byte_count);
+     hash.u32Value(manifest.context_word_count);
+     hash.u32Value(manifest.header_limb_count);
+     hash.u32Value(manifest.logical_row_count);
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+index f34c3846..5c305e3c 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+@@ -198,6 +198,8 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
+         .row11_statement_payload_consumes = transcript_count,
+         .row11_boundary_wire_emits = prepared.manifest.wire_word_count,
+         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
++        .row11_register_byte_emits = prepared.manifest.register_byte_count,
++        .row15_register_byte_consumes = prepared.manifest.register_byte_count,
+     };
+     try result.validate();
+     return result;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+index e11932ac..29ba8b80 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+@@ -237,6 +237,8 @@ pub fn wireRow(
+ ) LogicalRowV2 {
+     const value = view.words[index];
+     const is_u16 = wireWordIsU16(view, index);
++    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
++    std.debug.assert(register_byte == null or is_u16);
+     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
+     return .{
+         .preprocessing = .{
+@@ -256,6 +258,9 @@ pub fn wireRow(
+             .verifier_b_index = 0,
+             .expected_header = 0,
+             .boundary_bridge_mask = 1,
++            .register_byte_bridge_mask = @intFromBool(register_byte != null),
++            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
++            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
+         },
+         .main = .{
+             .enabler = M31.one(),
+@@ -384,6 +389,16 @@ pub fn writeEvents(
+             main.source_value,                    M31.zero(),
+             M31.zero(),                           M31.zero(),
+         }),
++        event(logical_row, 7, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_low_byte_index),
++            main.source_low_byte,                 M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
++        event(logical_row, 8, .recursion_wire, .emit, pp.register_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.register_high_byte_index),
++            main.source_high_byte,                M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
+     };
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+index 3f1f64c4..bc0767de 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+@@ -1,4 +1,5 @@
+ const std = @import("std");
++const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ const stwo_core = @import("stwo_core");
+ 
+ const M31 = stwo_core.fields.m31.M31;
+@@ -180,6 +181,8 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     var wire_id_consumes: usize = 0;
+     var wire_consumes: usize = 0;
+     var boundary_wire_emits: usize = 0;
++    var register_byte_emits: usize = 0;
++    var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
+     for (owned.events) |event| {
+         try event.validate();
+         if (event.multiplicity == 0) continue;
+@@ -203,6 +206,19 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+             try std.testing.expect(event.tuple[2].eql(fixture.words[index]));
+             boundary_wire_emits += 1;
+         }
++        if (event.ordinal == 7 or event.ordinal == 8) {
++            try std.testing.expectEqual(@as(u32, 1), event.multiplicity);
++            try std.testing.expectEqual(air_v2.StatementSemanticsV2.BOUNDARY_BRIDGE_CIRCUIT_ID, event.tuple[0].toU32());
++            const coordinate = event.tuple[1].toU32();
++            try std.testing.expect(coordinate >= fixture.words.len);
++            const byte_index = coordinate - fixture.words.len;
++            try std.testing.expect(byte_index < register_bytes.BYTE_COUNT);
++            try std.testing.expect(!seen_register_bytes[byte_index]);
++            seen_register_bytes[byte_index] = true;
++            try std.testing.expect(event.tuple[2].eql(register_bytes.value(fixture.words, byte_index)));
++            try std.testing.expect(event.tuple[3].isZero() and event.tuple[4].isZero() and event.tuple[5].isZero());
++            register_byte_emits += 1;
++        }
+     }
+     try std.testing.expectEqual(
+         fixture.words.len + source_v2.CONTEXT_WORD_COUNT,
+@@ -212,6 +228,16 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     try std.testing.expectEqual(@as(usize, 16), wire_id_consumes);
+     try std.testing.expectEqual(fixture.words.len, wire_consumes);
+     try std.testing.expectEqual(fixture.words.len, boundary_wire_emits);
++    try std.testing.expectEqual(register_bytes.BYTE_COUNT, register_byte_emits);
++    for (seen_register_bytes) |seen| try std.testing.expect(seen);
++    try std.testing.expectEqual(register_bytes.BYTE_COUNT, closure.row11_register_byte_emits);
++    try std.testing.expectEqual(closure.row11_register_byte_emits, closure.row15_register_byte_consumes);
++    var missing_byte = closure;
++    missing_byte.row11_register_byte_emits -= 1;
++    try std.testing.expectError(error.SourceMismatch, missing_byte.validate());
++    var duplicated_byte = closure;
++    duplicated_byte.row15_register_byte_consumes += 1;
++    try std.testing.expectError(error.SourceMismatch, duplicated_byte.validate());
+     try std.testing.expectEqual(
+         @as(usize, manifest.range_request_count),
+         owned.ranges.len,
+@@ -483,3 +509,27 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     try std.testing.expectEqual(counter_before, counterDigest(range_workspace.counter.values));
+     owned.logical_rows[0][0] = owned.logical_rows[0][0].sub(M31.one());
+ }
++
++test "V2 row-11 register byte bridge reuses constrained decomposition" {
++    const prepared_rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
++    var fixture = try Fixture.init(std.testing.allocator);
++    defer fixture.deinit();
++    const view = try fixture.data.authenticatedView();
++    var authority = try subject.AuthorityV2.init(std.testing.allocator);
++    defer authority.deinit();
++    var workspace = subject.WorkspaceV2{};
++    const word_index = register_bytes.wireWordIndex(register_bytes.byteIndex(.entry, 5, 0));
++    const row = prepared_rows.wireRow(&view, word_index);
++    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.register_byte_bridge_mask);
++    try std.testing.expectEqual(@as(u32, 1), row.preprocessing.source_u16_mask);
++    try prepared_rows.validateDirectRow(&workspace, &authority, row.runtime());
++    inline for (.{ "source_low_byte", "source_high_byte" }) |field| {
++        var changed = row;
++        @field(changed.main, field) = @field(changed.main, field).add(M31.one());
++        try std.testing.expectError(error.DirectConstraintFailure, prepared_rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++    }
++    // Non-register words still emit their original raw word only.
++    const header = prepared_rows.wireRow(&view, 0);
++    try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
++    try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
++}
+diff --git a/src/frontends/riscv/recursion/segment_statement_v2_contract.zig b/src/frontends/riscv/recursion/segment_statement_v2_contract.zig
+index 13a71635..6e94250a 100644
+--- a/src/frontends/riscv/recursion/segment_statement_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_statement_v2_contract.zig
+@@ -251,6 +251,12 @@ pub const StatementV2 = struct {
+         const decoded_base = try self.base();
+         const executed = try executedLeaf(decoded_base);
+         const range = try statementRange(decoded_base, executed);
++        // Snapshot identities are recomputed from the retained canonical
++        // sections by wire admission. Bind the Span's public boundary to them.
++        if (!std.meta.eql(executed.entry.rw_memory, self.entry_snapshot_id) or
++            !std.meta.eql(executed.exit.rw_memory, self.exit_snapshot_id))
++            return error.MemorySnapshotMismatch;
++
+         const expected_job_id = jobIdAssumeCanonical(&self.base_statement_words);
+         const expected_base_id = baseStatementIdAssumeCanonical(
+             &self.base_statement_words,
+diff --git a/src/frontends/riscv/recursion/segment_statement_v2_runner_e2e_test.zig b/src/frontends/riscv/recursion/segment_statement_v2_runner_e2e_test.zig
+index 8f143030..25e43e53 100644
+--- a/src/frontends/riscv/recursion/segment_statement_v2_runner_e2e_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_v2_runner_e2e_test.zig
+@@ -43,17 +43,17 @@ test "real adjacent runner segments authenticate as one canonical V2 span" {
+     const public_output = digest("runner-output");
+     const initial_state = try machineState(
+         left_result.entry_cpu,
+-        digest("runner-rw-entry"),
++        segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id,
+         digest("runner-io-entry"),
+     );
+     const shared_state = try machineState(
+         left_result.exit_cpu,
+-        digest("runner-rw-shared"),
++        segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id,
+         digest("runner-io-shared"),
+     );
+     const final_state = try machineState(
+         right_result.exit_cpu,
+-        digest("runner-rw-exit"),
++        segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id,
+         digest("runner-io-exit"),
+     );
+     const total_cycles = try std.math.add(
+diff --git a/src/frontends/riscv/recursion/segment_statement_v2_source_v2.zig b/src/frontends/riscv/recursion/segment_statement_v2_source_v2.zig
+index 3eb92ac0..d67f6528 100644
+--- a/src/frontends/riscv/recursion/segment_statement_v2_source_v2.zig
++++ b/src/frontends/riscv/recursion/segment_statement_v2_source_v2.zig
+@@ -156,6 +156,14 @@ pub const SourceV2 = struct {
+         }
+ 
+         try validateMemoryWords(self.memory_words, self.segment_role, range.end);
++        // The Span boundary and native sparse projection must name the same
++        // memory state. This checks actual source bytes, not a cached receipt.
++        const entry_snapshot = dependency_1.snapshotDigest(self.memory_words, .initial_word);
++        const exit_snapshot = dependency_1.snapshotDigest(self.memory_words, .final_word);
++        if (!std.meta.eql(executed.entry.rw_memory, entry_snapshot.id) or
++            !std.meta.eql(executed.exit.rw_memory, exit_snapshot.id))
++            return error.MemorySnapshotMismatch;
++
+         try validateClockBoundary(
+             self.entry_register_clocks,
+             self.entry_memory_clocks,
+diff --git a/src/frontends/riscv/recursion/segment_statement_v2_test.zig b/src/frontends/riscv/recursion/segment_statement_v2_test.zig
+index c5775d56..5e855701 100644
+--- a/src/frontends/riscv/recursion/segment_statement_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_v2_test.zig
+@@ -514,9 +514,37 @@ const Fixture = struct {
+     right_exit_register_clocks: [32]u32,
+ 
+     fn init() !Fixture {
+-        const s0 = try machineState(0x1000, 0, "rw-0");
+-        const s1 = try machineState(0x1008, 1, "rw-1");
+-        const s2 = try machineState(0x1010, 2, "rw-2");
++        const left_words: [2]memory_state.WordState = .{
++            .{
++                .addr = 0x2000,
++                .initial_word = 11,
++                .final_word = 12,
++                .final_clock = 3,
++            },
++            .{
++                .addr = 0x2004,
++                .initial_word = 0,
++                .final_word = 0,
++                .final_clock = 0,
++            },
++        };
++        const right_words: [2]memory_state.WordState = .{
++            .{
++                .addr = 0x2000,
++                .initial_word = 12,
++                .final_word = 13,
++                .final_clock = 7,
++            },
++            .{
++                .addr = 0x2004,
++                .initial_word = 0,
++                .final_word = 9,
++                .final_clock = 6,
++            },
++        };
++        const s0 = try machineState(0x1000, 0, v2.snapshotDigest(&left_words, .initial_word).id);
++        const s1 = try machineState(0x1008, 1, v2.snapshotDigest(&left_words, .final_word).id);
++        const s2 = try machineState(0x1010, 2, v2.snapshotDigest(&right_words, .final_word).id);
+         const job = try span.JobContext.init(
+             try span.CompleteExecution.init(
+                 protocol.PROTOCOL_ID_WORDS,
+@@ -566,34 +594,8 @@ const Fixture = struct {
+                     ),
+                 ),
+             },
+-            .left_words = .{
+-                .{
+-                    .addr = 0x2000,
+-                    .initial_word = 11,
+-                    .final_word = 12,
+-                    .final_clock = 3,
+-                },
+-                .{
+-                    .addr = 0x2004,
+-                    .initial_word = 0,
+-                    .final_word = 0,
+-                    .final_clock = 0,
+-                },
+-            },
+-            .right_words = .{
+-                .{
+-                    .addr = 0x2000,
+-                    .initial_word = 12,
+-                    .final_word = 13,
+-                    .final_clock = 7,
+-                },
+-                .{
+-                    .addr = 0x2004,
+-                    .initial_word = 0,
+-                    .final_word = 9,
+-                    .final_clock = 6,
+-                },
+-            },
++            .left_words = left_words,
++            .right_words = right_words,
+             .left_exit_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
+             .right_entry_memory_clocks = .{.{ .addr = 0x2000, .clock = 3 }},
+             .right_exit_memory_clocks = .{
+@@ -684,10 +686,10 @@ fn encode(allocator: std.mem.Allocator, source: *const v2.SourceV2) ![]M31 {
+     return words;
+ }
+ 
+-fn machineState(pc: u32, value: u32, rw_label: []const u8) !span.MachineState {
++fn machineState(pc: u32, value: u32, rw_digest: channel.Digest) !span.MachineState {
+     var registers = [_]u32{0} ** 32;
+     registers[1] = value;
+-    return span.MachineState.init(pc, registers, id(rw_label), .{0} ** 8);
++    return span.MachineState.init(pc, registers, rw_digest, .{0} ** 8);
+ }
+ 
+ fn cpuFromMachine(machine: span.MachineState) Cpu {
+@@ -725,3 +727,30 @@ const RecordingChannel = struct {
+         self.identity = channel.hashCanonicalWords(words, v2.WIRE_ID_DOMAIN);
+     }
+ };
++
++test "segment statement V2 binds Span memory digests to actual snapshots" {
++    var fixture = try Fixture.init();
++    const valid = fixture.leftSource();
++    try valid.validate();
++    var forged_span = valid.base_statement;
++    // This was previously a valid native source: PC, registers, clocks and
++    // sparse memory are unchanged, but the published intermediate root lies.
++    forged_span.body.executed.exit.rw_memory = id("disconnected-span-memory");
++    try forged_span.validate();
++    var forged_source = valid;
++    forged_source.base_statement = forged_span;
++    try std.testing.expectError(error.MemorySnapshotMismatch, forged_source.validate());
++    try std.testing.expectError(error.MemorySnapshotMismatch, forged_source.statement());
++
++    var forged_statement = try valid.statement();
++    forged_statement.base_statement_words = try forged_span.canonicalWords();
++    try std.testing.expectError(error.MemorySnapshotMismatch, forged_statement.validate());
++
++    // Encoding/decoding the honest pair still retains the exact digest link.
++    const words = try encode(std.testing.allocator, &valid);
++    defer std.testing.allocator.free(words);
++    const admitted = try v2.authenticateCanonicalWire(words);
++    const base = try admitted.statement.base();
++    try std.testing.expectEqualDeep(base.body.executed.entry.rw_memory, admitted.statement.entry_snapshot_id);
++    try std.testing.expectEqualDeep(base.body.executed.exit.rw_memory, admitted.statement.exit_snapshot_id);
++}
+diff --git a/src/frontends/riscv/testing.zig b/src/frontends/riscv/testing.zig
+index 16ec528b..94b4c053 100644
+--- a/src/frontends/riscv/testing.zig
++++ b/src/frontends/riscv/testing.zig
+@@ -95,6 +95,7 @@ pub const typed_mulh = @import("air/lang/typed_mulh.zig");
+ pub const typed_mulh_witness = @import("air/lang/typed_mulh_witness.zig");
+ pub const mulh_legacy_test_oracle =
+     @import("runner/witness/mulh_legacy_test_oracle.zig");
++pub const public_data_v2_test_support = @import("air/public_data_v2_test_support.zig");
+ pub const guest_precompile_test_elf =
+     @import("runner/guest_precompile/test_elf.zig");
+ pub const guest_precompile_corpus_elf =
+diff --git a/src/frontends/riscv/vm_public_claim_hash_authority_v2_test_root.zig b/src/frontends/riscv/vm_public_claim_hash_authority_v2_test_root.zig
+index 9f4338a5..1230b817 100644
+--- a/src/frontends/riscv/vm_public_claim_hash_authority_v2_test_root.zig
++++ b/src/frontends/riscv/vm_public_claim_hash_authority_v2_test_root.zig
+@@ -10,10 +10,14 @@ const poseidon2_air = @import("air/memory_commitment/poseidon2_air.zig");
+ 
+ test "isolated row13 V2 identity and authenticated relation plan" {
+     const actual = try air.computeSemanticDigest(std.testing.allocator);
++    if (!std.meta.eql(air.SEMANTIC_DIGEST, actual))
++        std.debug.print("ROW13_SEMANTIC_DIGEST={s}\n", .{std.fmt.bytesToHex(actual, .lower)});
+     try std.testing.expectEqualSlices(u8, &air.SEMANTIC_DIGEST, &actual);
+     var definition = try air.build(std.testing.allocator);
+     defer definition.deinit();
+     const profile = try air.staticProfile(&definition);
++    if (!std.meta.eql(air.EXPECTED_STATIC_PROFILE, profile))
++        std.debug.print("ROW13_STATIC_PROFILE={any}\n", .{profile});
+     try std.testing.expectEqualDeep(air.EXPECTED_STATIC_PROFILE, profile);
+     try std.testing.expectEqual(
+         @as(u16, air.DIRECT_CONSTRAINT_COUNT),
+@@ -61,9 +65,9 @@ test "isolated row13 V2 witness replays authority calls and bind step atomically
+         rows,
+         events,
+     );
+-    try std.testing.expectEqual(@as(u32, 1), rows[0][5].toU32());
+-    try std.testing.expectEqual(@as(u32, 1), rows[0][4].toU32());
+-    try std.testing.expectEqual(@as(u32, 1), rows[0][3].toU32());
++    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 3].toU32());
++    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 2].toU32());
++    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 1].toU32());
+     for (events) |event| try event.validate();
+     try std.testing.expectEqual(
+         @import("air/lang/relation.zig").Domain.recursion_step,
+@@ -72,6 +76,59 @@ test "isolated row13 V2 witness replays authority calls and bind step atomically
+     try std.testing.expectEqual(@as(u8, 4), events[1].event_ordinal);
+     try std.testing.expectEqual(@as(u32, 1), events[1].tuple[2].toU32());
+ 
++    const expected_calls = try std.testing.allocator.alloc(poseidon2_air.Call, call_count);
++    defer std.testing.allocator.free(expected_calls);
++    const authority = @import("recursion/segment_leaf_authority_v2.zig");
++    try std.testing.expectEqual(call_count, try authority.authorityHashCallCount(fixture.inputs().component_descs.len, fixture.inputs().infra_descs.len));
++    const expected_hash = try authority.appendExpectedAuthorityHashCalls(expected_calls, &fixture.owned_public.data, fixture.inputs().component_descs, fixture.inputs().infra_descs);
++    try std.testing.expectEqualDeep(prepared.statement_authority_id, expected_hash);
++    try std.testing.expectEqualDeep(calls, expected_calls);
++    var wire_count: usize = 0;
++    for (events) |event| {
++        if (event.event_ordinal < 5) continue;
++        const group = event.event_ordinal - 5;
++        const expected = subject.callWireTuple(event.logical_row, group, expected_calls[event.logical_row]);
++        try std.testing.expectEqualDeep(expected, event.tuple[0..6].*);
++        try std.testing.expectEqual(@as(u32, @intCast(event.logical_row * air.CALL_WIRE_GROUP_COUNT + group)), event.tuple[1].toU32());
++        try std.testing.expectEqual(@import("air/lang/relation.zig").Domain.recursion_wire, event.domain);
++        wire_count += 1;
++    }
++    try std.testing.expectEqual(call_count * air.CALL_WIRE_GROUP_COUNT, wire_count);
++
++    // Different canonical register values must not change row13 preprocessing.
++    const preprocessing = try std.testing.allocator.alloc([air.PREPROCESSED_COLUMN_COUNT]M31, rows.len);
++    defer std.testing.allocator.free(preprocessing);
++    for (rows, preprocessing) |row, *fixed| fixed.* = row[air.PHYSICAL_MAIN_COLUMN_COUNT..][0..air.PREPROCESSED_COLUMN_COUNT].*;
++    const first_rows_hash = digestBytes(std.mem.sliceAsBytes(rows));
++    var second_fixture = try fixture_support.Fixture.initWithRegister7(std.testing.allocator, 0x01020304);
++    defer second_fixture.deinit();
++    const second_public = try public_source.preflight(second_fixture.inputs());
++    const second_prepared = try subject.PreparedV2.init(&second_public, second_fixture.inputs());
++    try std.testing.expectEqual(prepared.logical_row_count, second_prepared.logical_row_count);
++    var second_relays = relayRows(&second_public);
++    try subject.writeInto(&second_prepared, &second_public, second_fixture.inputs(), &second_relays, calls, rows, events);
++    for (rows, preprocessing) |row, fixed| try std.testing.expectEqualDeep(fixed, row[air.PHYSICAL_MAIN_COLUMN_COUNT..][0..air.PREPROCESSED_COLUMN_COUNT].*);
++    try std.testing.expect(!std.meta.eql(first_rows_hash, digestBytes(std.mem.sliceAsBytes(rows))));
++    // The expected boundary still points at the first statement's exact words.
++    var calls_differ = false;
++    for (calls, expected_calls, 0..) |actual_call, expected_call, index| {
++        calls_differ = calls_differ or !std.meta.eql(subject.callWireTuples(index, actual_call), subject.callWireTuples(index, expected_call));
++    }
++    try std.testing.expect(calls_differ);
++
++    var definition = try air.build(std.testing.allocator);
++    defer definition.deinit();
++    const direct = @import("recursion/air/direct_constraint_program.zig");
++    const program = try direct.authenticate(&definition.arena, air.SEMANTIC_DIGEST, air.LOGICAL_INPUT_COUNT);
++    var padding: subject.LogicalRowV2 = @splat(M31.zero());
++    var scratch: [direct.MAX_NODES]M31 = undefined;
++    var roots: [air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
++    try program.evaluateBaseInto(&padding, &scratch, &roots);
++    for (roots) |root| try std.testing.expect(root.isZero());
++    padding[2] = M31.one();
++    try program.evaluateBaseInto(&padding, &scratch, &roots);
++    try std.testing.expect(!roots[7].isZero());
++
+     @memset(std.mem.sliceAsBytes(rows), 0xa5);
+     @memset(std.mem.sliceAsBytes(events), 0xa5);
+     const before_rows = digestBytes(std.mem.sliceAsBytes(rows));

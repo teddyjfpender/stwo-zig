@@ -55,7 +55,7 @@ fn emitBoundedPrefixStats(stats: anytype) void {
     std.debug.print(
         "pcs_bounded_prefix final_log={d} prefix_log={d} prefix_columns={d} " ++
             "tail_columns={d} prefix_state_bytes={d} leaf_bytes={d} " ++
-            "leaf_phase_peak_bytes={d} repeated_tail_absorptions={d}\n",
+            "leaf_phase_peak_bytes={d} repeated_tail_absorptions={d} tail_cache_bytes={d}\n",
         .{
             stats.final_log_size,
             stats.prefix_log_size,
@@ -65,6 +65,7 @@ fn emitBoundedPrefixStats(stats: anytype) void {
             stats.leaf_layer_bytes,
             stats.leaf_phase_peak_bytes,
             stats.repeated_tail_absorptions,
+            stats.tail_cache_bytes,
         },
     );
 }
@@ -164,29 +165,25 @@ pub fn TreeBuilder(comptime B: type, comptime H: type, comptime MC: type, compti
         pub fn commit(self: *Self, channel: anytype) !void {
             const base_columns = try self.columns.toOwnedSlice(self.allocator);
             self.columns = std.ArrayList(ColumnEvaluation).empty;
-            errdefer {
-                column_storage.freeOwnedColumnEvaluations(self.allocator, base_columns);
-            }
-
-            var prepared = try column_preparation.prepareColumnsForCommitOwnedForBackend(
-                B,
-                self.allocator,
-                base_columns,
-                self.commitment_scheme.config.fri_config.log_blowup_factor,
-                self.commitment_scheme.coefficient_retention_policy,
-                &self.commitment_scheme.twiddle_source,
-                null,
-                null,
-            );
-            errdefer prepared.deinit(self.allocator);
-
-            var tree = try commitment_tree.CommitmentTreeProverForBackend(B, H).initOwnedWithBacking(
-                self.allocator,
-                prepared.columns,
-                prepared.coefficients,
-                prepared.column_backing_buffers,
-                prepared.coefficient_backing_buffers,
-            );
+            if (self.commitment_scheme.retained_column_allocator != null)
+                return self.commitment_scheme.commitOwnedStreaming(self.allocator, base_columns, 64, channel);
+            var tree = blk: {
+                var prepared = column_preparation.prepareColumnsForCommitOwnedForBackend(
+                    B,
+                    self.allocator,
+                    base_columns,
+                    self.commitment_scheme.config.fri_config.log_blowup_factor,
+                    self.commitment_scheme.coefficient_retention_policy,
+                    &self.commitment_scheme.twiddle_source,
+                    null,
+                    null,
+                ) catch |err| {
+                    column_storage.freeOwnedColumnEvaluations(self.allocator, base_columns);
+                    return err;
+                };
+                errdefer prepared.deinit(self.allocator);
+                break :blk try commitment_tree.CommitmentTreeProverForBackend(B, H).initPrepared(self.allocator, &prepared, null);
+            };
             errdefer tree.deinit(self.allocator);
             try appendCommittedTree(MC, self.commitment_scheme, self.allocator, tree, channel);
         }
@@ -226,6 +223,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
         /// Columns retained for later decommitment and sampled-value evaluation.
         /// Each entry stores the *extended* column values and their log_size.
         retained_columns: std.ArrayList(ColumnEvaluation),
+        retained_column_allocator: ?std.mem.Allocator,
 
         /// Original PCS position for each retained column. Streaming hashes
         /// columns in log-size order, then restores this order before commit.
@@ -251,6 +249,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 .batch_size = if (batch_size == 0) 64 else batch_size,
                 .streaming_committer = MerkleProver.StreamingCommitter.init(allocator),
                 .retained_columns = std.ArrayList(ColumnEvaluation).empty,
+                .retained_column_allocator = scheme.retained_column_allocator,
                 .retained_column_indices = std.ArrayList(usize).empty,
                 .retained_coefficients = std.ArrayList(prover_circle.CircleCoefficients).empty,
                 .retain_coefficients = scheme.coefficient_retention_policy == .always,
@@ -260,7 +259,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
         pub fn deinit(self: *Self) void {
             self.streaming_committer.deinit();
             for (self.retained_columns.items) |col| {
-                if (col.values.len > 0) self.allocator.free(col.values);
+                if (col.values.len > 0) (self.retained_column_allocator orelse self.allocator).free(col.values);
             }
             self.retained_columns.deinit(self.allocator);
             self.retained_column_indices.deinit(self.allocator);
@@ -286,7 +285,10 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             recorder: ?*stage_profile.Recorder,
         ) !void {
             const first_index = self.retained_column_indices.items.len;
-            const indices = try self.allocator.alloc(usize, owned_batch.len);
+            const indices = self.allocator.alloc(usize, owned_batch.len) catch |err| {
+                column_storage.freeOwnedColumnEvaluations(self.allocator, owned_batch);
+                return err;
+            };
             defer self.allocator.free(indices);
             for (indices, 0..) |*index, i| index.* = first_index + i;
             return self.addColumnsOwnedIndexed(owned_batch, indices, recorder);
@@ -302,6 +304,13 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             if (owned_batch.len == 0) {
                 self.allocator.free(owned_batch);
                 return;
+            }
+
+            if (self.retained_column_allocator != null and
+                (self.commitment_scheme.coefficient_retention_policy != .never or owned_batch.len > 64))
+            {
+                column_storage.freeOwnedColumnEvaluations(self.allocator, owned_batch);
+                return error.UnsupportedRetainedColumnStorage;
             }
 
             const log_blowup = self.commitment_scheme.config.fri_config.log_blowup_factor;
@@ -329,11 +338,21 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             };
             errdefer prepared.deinit(self.allocator);
 
+            if (self.retained_column_allocator != null and
+                (prepared.column_backing_buffers != null or prepared.coefficients != null))
+                return error.UnsupportedRetainedColumnStorage;
+
             // Pre-allocate space in retained lists before any ownership transfer.
             try self.retained_columns.ensureUnusedCapacity(self.allocator, prepared.columns.len);
             try self.retained_column_indices.ensureUnusedCapacity(self.allocator, prepared.columns.len);
             if (prepared.coefficients) |coeffs| {
                 try self.retained_coefficients.ensureUnusedCapacity(self.allocator, coeffs.len);
+            }
+
+            if (self.retained_column_allocator) |retained_allocator| {
+                const original = prepared.columns;
+                prepared.columns = &.{};
+                prepared.columns = try commitment_tree.relocateOwnedColumns(self.allocator, retained_allocator, original);
             }
 
             // From here, all operations are guaranteed not to fail (no try).
@@ -469,6 +488,12 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             var bounded_stats: MerkleProver.BoundedPrefixStats = .{};
             var merkle = loaded orelse if (supports_sparse_tail)
                 try self.streaming_committer.commitColumnsWithSparseTail(sorted)
+            else if (self.commitment_scheme.reuse_bounded_merkle_tail)
+                try self.streaming_committer.commitColumnsWithReusedBoundedPrefix(
+                    sorted,
+                    bounded_prefix_state_budget_bytes,
+                    &bounded_stats,
+                )
             else
                 try self.streaming_committer.commitColumnsWithBoundedPrefix(
                     sorted,
@@ -491,7 +516,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             const columns = blk: {
                 const streamed = try self.retained_columns.toOwnedSlice(self.allocator);
                 self.retained_columns = std.ArrayList(ColumnEvaluation).empty;
-                errdefer column_storage.freeOwnedColumnEvaluations(self.allocator, streamed);
+                errdefer commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, streamed);
 
                 const ordered = try self.allocator.alloc(ColumnEvaluation, streamed.len);
                 for (streamed, original_indices) |column, original_index| {
@@ -500,7 +525,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
                 self.allocator.free(streamed);
                 break :blk ordered;
             };
-            errdefer column_storage.freeOwnedColumnEvaluations(self.allocator, columns);
+            errdefer commitment_tree.freeRetainedColumns(self.allocator, self.retained_column_allocator orelse self.allocator, columns);
 
             var coefficients: ?[]prover_circle.CircleCoefficients = null;
             errdefer if (coefficients) |owned| column_storage.deinitOwnedCoefficientColumns(self.allocator, owned);
@@ -526,6 +551,7 @@ pub fn StreamingTreeBuilder(comptime B: type, comptime H: type, comptime MC: typ
             const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
             const tree = BackendCommitmentTree{
                 .columns = columns,
+                .retained_column_allocator = self.retained_column_allocator,
                 .coefficients = coefficients,
                 .commitment = try adoptStreamingCommitment(B, H, merkle),
             };

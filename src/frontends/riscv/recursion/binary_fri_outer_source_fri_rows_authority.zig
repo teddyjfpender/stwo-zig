@@ -123,6 +123,43 @@ pub const FriRowsAuthority = struct {
         const left = children[LEFT_CHILD].capture;
         const right = children[RIGHT_CHILD].capture;
 
+        return initFromProfiles(
+            allocator,
+            vm_plan,
+            recursion_plan,
+            left,
+            right,
+            true,
+        );
+    }
+
+    /// Builds the same profile-authenticated rows 20--29 authority while
+    /// selecting no child proof lane. The verified template contributes only
+    /// circuit/VK geometry; none of its proof witness enters the result.
+    pub fn initInactiveFromTemplate(
+        allocator: std.mem.Allocator,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        template: anytype,
+    ) !FriRowsAuthority {
+        return initFromProfiles(
+            allocator,
+            vm_plan,
+            recursion_plan,
+            template,
+            template,
+            false,
+        );
+    }
+
+    fn initFromProfiles(
+        allocator: std.mem.Allocator,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        left: anytype,
+        right: anytype,
+        active_children: bool,
+    ) !FriRowsAuthority {
         const mapping_profile = query_mapping_witness.LaneProfile{
             .query_count = left.circuit.query_count,
             .lifting_log_size = left.circuit.lifting_log_size,
@@ -190,21 +227,21 @@ pub const FriRowsAuthority = struct {
                 .circuit_id = SEGMENT_PCS_CIRCUIT_ID,
                 .profile = left_pcs_profile,
                 .graph = left.pcs_circuit.graph(),
-                .bindings = left.pcs_circuit.bindings,
+                .bindings = left.pcs_circuit.view().bindings,
             },
             .{
                 .verifier_id = pcs_witness.LEFT_RECURSION_VERIFIER_ID,
                 .circuit_id = LEFT_PCS_CIRCUIT_ID,
                 .profile = left_pcs_profile,
                 .graph = left.pcs_circuit.graph(),
-                .bindings = left.pcs_circuit.bindings,
+                .bindings = left.pcs_circuit.view().bindings,
             },
             .{
                 .verifier_id = pcs_witness.RIGHT_RECURSION_VERIFIER_ID,
                 .circuit_id = RIGHT_PCS_CIRCUIT_ID,
                 .profile = right_pcs_profile,
                 .graph = right.pcs_circuit.graph(),
-                .bindings = right.pcs_circuit.bindings,
+                .bindings = right.pcs_circuit.view().bindings,
             },
         };
         const pcs_reference = try pcs_witness.Reference.authenticate(
@@ -335,8 +372,8 @@ pub const FriRowsAuthority = struct {
         var inactive_pcs_evaluation = try left.evaluatePcsInactive();
         errdefer inactive_pcs_evaluation.deinit();
 
-        const pcs_input_count = left.pcs_circuit.bindings.len;
-        if (right.pcs_circuit.bindings.len != pcs_input_count)
+        const pcs_input_count = left.pcs_circuit.view().bindings.len;
+        if (right.pcs_circuit.view().bindings.len != pcs_input_count)
             return error.ProfileMismatch;
         const pcs_input_storage = try allocator.alloc(M31, 3 * pcs_input_count);
         errdefer allocator.free(pcs_input_storage);
@@ -347,25 +384,30 @@ pub const FriRowsAuthority = struct {
             &inactive_pcs_evaluation,
             segment_pcs_inputs,
         );
-        try left.pcs_circuit.inputValuesInto(&left.pcs_evaluation, left_pcs_inputs);
-        try right.pcs_circuit.inputValuesInto(&right.pcs_evaluation, right_pcs_inputs);
+        if (active_children) {
+            try left.pcs_circuit.inputValuesInto(&left.pcs_evaluation, left_pcs_inputs);
+            try right.pcs_circuit.inputValuesInto(&right.pcs_evaluation, right_pcs_inputs);
+        } else {
+            try left.pcs_circuit.inputValuesInto(&inactive_pcs_evaluation, left_pcs_inputs);
+            try right.pcs_circuit.inputValuesInto(&inactive_pcs_evaluation, right_pcs_inputs);
+        }
         const pcs_inputs = pcs_witness.InputWitness{ .lanes = .{
             .{
                 .verifier_id = pcs_witness.SEGMENT_VERIFIER_ID,
                 .circuit_id = SEGMENT_PCS_CIRCUIT_ID,
-                .graph_digest = left.pcs_circuit.graph_digest,
+                .graph_digest = left.pcs_circuit.view().graph_digest,
                 .input_values = segment_pcs_inputs,
             },
             .{
                 .verifier_id = pcs_witness.LEFT_RECURSION_VERIFIER_ID,
                 .circuit_id = LEFT_PCS_CIRCUIT_ID,
-                .graph_digest = left.pcs_circuit.graph_digest,
+                .graph_digest = left.pcs_circuit.view().graph_digest,
                 .input_values = left_pcs_inputs,
             },
             .{
                 .verifier_id = pcs_witness.RIGHT_RECURSION_VERIFIER_ID,
                 .circuit_id = RIGHT_PCS_CIRCUIT_ID,
-                .graph_digest = right.pcs_circuit.graph_digest,
+                .graph_digest = right.pcs_circuit.view().graph_digest,
                 .input_values = right_pcs_inputs,
             },
         } };
@@ -488,7 +530,13 @@ pub const FriRowsAuthority = struct {
             .authority_digest = undefined,
         };
         result.authority_digest = friRowsAuthorityDigest(&result);
-        try result.validate(vm_plan, recursion_plan, children);
+        try result.validateProfiles(
+            vm_plan,
+            recursion_plan,
+            left,
+            right,
+            active_children,
+        );
         return result;
     }
 
@@ -525,6 +573,38 @@ pub const FriRowsAuthority = struct {
         vm_plan: *const schedule.Plan,
         recursion_plan: *const schedule.Plan,
         children: anytype,
+    ) !void {
+        return self.validateProfiles(
+            vm_plan,
+            recursion_plan,
+            children[LEFT_CHILD].capture,
+            children[RIGHT_CHILD].capture,
+            true,
+        );
+    }
+
+    pub fn validateInactiveTemplate(
+        self: *const FriRowsAuthority,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        template: anytype,
+    ) !void {
+        return self.validateProfiles(
+            vm_plan,
+            recursion_plan,
+            template,
+            template,
+            false,
+        );
+    }
+
+    fn validateProfiles(
+        self: *const FriRowsAuthority,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        left: anytype,
+        right: anytype,
+        active_children: bool,
     ) !void {
         try self.query_mapping_reference.validate();
         try self.query_bits_reference.validate();
@@ -598,8 +678,30 @@ pub const FriRowsAuthority = struct {
             fri_input_air.SEMANTIC_DIGEST,
             self.input_definition.events,
         );
-        try self.inactive_fri_evaluation.validateAgainst(&children[0].capture.circuit);
-        try self.inactive_pcs_evaluation.validateAgainst(&children[0].capture.pcs_circuit);
+        try self.inactive_fri_evaluation.validateAgainst(&left.circuit);
+        try self.inactive_pcs_evaluation.validateAgainst(&left.pcs_circuit);
+        if (!std.mem.eql(u8, &left.circuit.profile_digest, &right.circuit.profile_digest) or
+            !std.mem.eql(
+                u8,
+                &left.pcs_circuit.view().profile_digest,
+                &right.pcs_circuit.view().profile_digest,
+            )) return error.ProfileMismatch;
+        const pcs_input_count = left.pcs_circuit.view().bindings.len;
+        if (right.pcs_circuit.view().bindings.len != pcs_input_count or
+            self.pcs_input_storage.len != 3 * pcs_input_count)
+        {
+            return error.ProfileMismatch;
+        }
+        if (!active_children) {
+            const segment = self.pcs_input_storage[0..pcs_input_count];
+            const left_inputs = self.pcs_input_storage[pcs_input_count..][0..pcs_input_count];
+            const right_inputs = self.pcs_input_storage[2 * pcs_input_count ..][0..pcs_input_count];
+            if (!m31SliceEql(segment, left_inputs) or
+                !m31SliceEql(segment, right_inputs))
+            {
+                return error.SourceAuthorityMismatch;
+            }
+        }
         const expected_logs = [FRI_ROW_COUNT]u32{
             self.query_bits_preprocessing.log_size,
             self.query_mapping_preprocessing.log_size,
@@ -619,6 +721,12 @@ pub const FriRowsAuthority = struct {
         }
     }
 };
+
+fn m31SliceEql(left: []const M31, right: []const M31) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |a, b| if (!a.eql(b)) return false;
+    return true;
+}
 
 pub fn friRowsAuthorityDigest(rows: *const FriRowsAuthority) air_digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});

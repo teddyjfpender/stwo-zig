@@ -1,0 +1,19 @@
+{
+  "timestamp": "2026-09-08T04:43:11.314036+00:00",
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v1/request.json",
+    "bytes": 5368,
+    "sha256": "ed38d496dc23ef9eeb525744ae60f547c2afaa8fa06619bf3ac2a8b153343ac9"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper3-geometry-source-v1/manifest.json",
+    "bytes": 1098837,
+    "sha256": "063a3269ec6c8eb6a6b4a1d282a6e2a7ff8576f2d5e6f1eb916747b0460cab3f"
+  },
+  "active_and_frozen_fmt_ast_checks": "passed",
+  "semantic_test_run": false,
+  "geometry_compatible": null,
+  "wrapper3_proof_started": false,
+  "expected_key_pending": "accepted actual wrapper2 independent receipt",
+  "full_air_preflight_behavior": "unchanged; shared dimensions reporter only"
+}

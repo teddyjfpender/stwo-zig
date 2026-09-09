@@ -1,0 +1,22 @@
+{
+  "head": "ad273a96721e1ccc1dd62a861fac11b44d0c680d",
+  "source_patch": "memory-v2-source.patch",
+  "source_patch_sha256": "c0cddd93527a61df6ad35784e1415e0e1dc04612d96f5faba643f95d37e21523",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/.zig-cache/o/a7bafde16983e9109bd703163f920f2d/recursive-segment-v2-concrete-outer-proof-metal",
+  "retained": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+  "binary_sha256": "16d4780edf18c702a2d7a8b39905cc4e2ff9841c6615d7e84c48798aa8d254b6",
+  "build_argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal",
+    "run-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all",
+    "--",
+    "--check-memory-workload"
+  ],
+  "build_log": "memory-v2-metal-build.log",
+  "queue_build_and_execution_seconds": 176.65184404095635
+}

@@ -210,9 +210,9 @@ test "E-017 rejects address transition and load-result forgeries" {
         .memory_words = .{ .previous = previous, .next = previous },
     }));
     try std.testing.expectError(error.MemoryAddressOutOfRange, transaction.compile(&tracker, .{
-        .instruction = instruction(.LW, 3, 1, 0, 0),
+        .instruction = instruction(.LW, 3, 1, 0, 4),
         .instruction_clock = 2,
-        .rs1_value = transaction.MAX_ALIGNED_DATA_ADDRESS + 4,
+        .rs1_value = transaction.MAX_ALIGNED_DATA_ADDRESS,
         .rs2_value = 0,
         .rd_previous_value = 0,
         .rd_next_value = previous,

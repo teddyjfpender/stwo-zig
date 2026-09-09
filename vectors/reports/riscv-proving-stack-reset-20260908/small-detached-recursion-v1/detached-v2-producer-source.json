@@ -1,0 +1,9 @@
+{
+  "head": "51646b444176237a6640f438a032d137af5200b9",
+  "patch": "detached-v2-producer-source.patch",
+  "sha256": "25629637760a056cefb293d8f0e7566972ffaeb58c66d0a50d7ca6232704a0bc",
+  "excluded_unimported_work_in_progress": [
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig"
+  ]
+}

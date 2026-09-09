@@ -1,0 +1,8 @@
+{
+  "head": "53dc8d200704cd00ff5191c4c89f58e4f57e6adf",
+  "patch_sha256": "bfd13c404ccc024e3bcd830330b6cb984a8ac4d577f71028992a1c4cd3306917",
+  "workload_runner_sha256": "33aa6d4f6843c2606daf265d7430345ba6b97df389c58f1651d231459f49c036",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-intermediate-first-producer",
+  "binary_sha256": "83173d230ac017c92c5d633105cfea4e89467f88b8be5932236573d1975f5b2f",
+  "source_unchanged_through_build": true
+}

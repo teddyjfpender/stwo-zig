@@ -87,7 +87,9 @@ pub const SourceAuthorityV2 = struct {
             self.table_kind != range_bridge.TABLE_KIND or
             self.table_log_size != lookup_schema.logSize(self.table_kind) or
             self.table_size != lookup_schema.size(self.table_kind) or
-            statement.Air.RELATION_EVENT_COUNT != 7 or
+            // The appended byte exports are recursion_wire events; request
+            // ordinals3/4/5 remain the complete three-lane range source.
+            statement.Air.RELATION_EVENT_COUNT != 11 or
             !statement.ROW_35_REQUEST_SET_COMPLETE)
         {
             return error.InvalidSourceAuthority;

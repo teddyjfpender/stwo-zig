@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T03:58:15.883991+00:00",
+  "status": "scoped_semantic_and_focused_runtime_gates_passed",
+  "acceptance": [
+    {
+      "gate": "check-ethereum-complete-proof",
+      "snapshot": "initial38-root-lifecycle-source-v4",
+      "source_manifest_sha256": "181a588f6aab4c9526b50338f01c6ca701da06f14fabac546d4458858d186357",
+      "exit_code": 0,
+      "steps": "2/2",
+      "scope": "compile real ordinary and initial38 complete lifecycle/kernel; no proof execution"
+    },
+    {
+      "gate": "test-ethereum-prepared-wrapper-boundary",
+      "snapshot": "initial38-root-lifecycle-source-v5",
+      "source_manifest_sha256": "dfc3b0b8eb70b25f67c3858545ed2ee51eeb50737776ce53fc5106e9e21fd180",
+      "exit_code": 0,
+      "test_count": 8
+    },
+    {
+      "gate": "initial committed-column writers and per-domain closure",
+      "snapshot": "initial38-writers-source-v6",
+      "source_manifest_sha256": "4cceed6147223fb3657a2846657ba7a4fed505328b9eb2407dcfcec616a67c02",
+      "exit_code": 0,
+      "test_count": 2,
+      "command": [
+        "python3",
+        "source/scripts/zig_protocol_test.py",
+        "src/integrations/riscv_cpu/ethereum_initial_complete_cohort_v1_test_root.zig",
+        "-OReleaseSafe",
+        "-fstrip",
+        "--test-filter",
+        "Ethereum initial complete writers",
+        "--test-filter",
+        "Ethereum initial complete closure"
+      ]
+    },
+    {
+      "gate": "test-ethereum-initial-root-admission",
+      "snapshot": "initial38-root-lifecycle-source-v5",
+      "source_manifest_sha256": "dfc3b0b8eb70b25f67c3858545ed2ee51eeb50737776ce53fc5106e9e21fd180",
+      "exit_code": 0,
+      "test_count": 16
+    }
+  ],
+  "log_sha256": {
+    "lifecycle-compile-v4.log": "9782e29d877aa48648f72c5b4842ec0dd0cc00620cb3d79422e70bee0bd4d0ab",
+    "prepared-boundary-v5.log": "fd7af7b5558388742aaf5043cfa18deadc8449f03a813146728bacfd891a6ebb",
+    "writers-closure-v6.log": "e9179ca8c14bc0bed04db5286e7528ff7f65f08efbf5202888f703b5d249b656",
+    "initial-root-admission-v5.log": "6afa60ece3e103e4f6d3b5d6298a76e8eb559fb166fad6356e76dce9f3a4b3d0"
+  },
+  "source_sha256": {
+    "recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig": "ef6c66ca81982d44deaea8b1b62268d34fafa0e28e690e0cce47d71b047fcb8f",
+    "recursive_common_ethereum_initial_input_rows_v1.zig": "6259c522f924a58f00fcdb2c4241a2e9563cc9d9db58ef6a25ef158df091165d",
+    "recursive_common_ethereum_incremental_leaf_universal_closure_v4.zig": "112283ff5307bb017feda0a1a93a227f7a2421567de37f02baca42ad22fcca37",
+    "ethereum_initial_complete_cohort_v1_test_root.zig": "97b088e563e69702abfa8f78862a20cf22b4b9b89479a3bd7038eebd2c486f92",
+    "recursive_common_ethereum_incremental_leaf_composition_capture_v4.zig": "e22ee200e0eab59770ae51a011bc17e13de41e3d2428c804b6773d1ac38fa6fe"
+  },
+  "changes": [
+    "Explicit initial38 complete assembly over unchanged ordinary36 row preparation",
+    "Initial lane/packet typed column writers and shared range/tuple closure before proof admission",
+    "Full38 claim vector and common per-domain finalizer",
+    "Initial immutable row destination alias checks",
+    "Bool-aware profile mutation fixture and explicit writer test discovery"
+  ],
+  "limitations": [
+    "No real initial segment0 wrapper proof, full38 committed proof closure, or fresh initial root proof acceptance",
+    "No new CSP whole-proof/performance promotion claim"
+  ]
+}

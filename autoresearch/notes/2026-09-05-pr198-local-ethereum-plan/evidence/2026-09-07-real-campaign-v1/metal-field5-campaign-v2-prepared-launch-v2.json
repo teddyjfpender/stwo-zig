@@ -1,0 +1,132 @@
+{
+  "version": 2,
+  "scope": "Prepared launch only; not started. Recovery controller19tests passed; actual imported-leaf external verification required.",
+  "recorded_at": "2026-09-07T19:30:26.980957+00:00",
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "-m",
+    "scripts.ethereum_full_leaf_bundle_producer",
+    "--prover",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v3/bin/ethereum-prepared-leaf-metal-v1",
+    "--verifier",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v2/bin/ethereum-full-leaf-bundle-verify-v1",
+    "--materialization",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "--publication-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4",
+    "--selected-leaf-admission-root",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1",
+    "--claim-admission",
+    "fixed_program_narrow_v5",
+    "--backend",
+    "metal",
+    "--aot-bundle",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle",
+    "--aot-manifest-sha256",
+    "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+    "--workers",
+    "1",
+    "--host-byte-budget",
+    "17179869184",
+    "--pcs-retained-byte-budget",
+    "25769803776",
+    "--host-byte-limit",
+    "34359738368",
+    "--timeout-seconds",
+    "14400"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/controller-source-v2",
+  "environment": {
+    "STWO_ZIG_STAGE101_STAGE_PROFILE": "1",
+    "PYTHONPATH": ""
+  },
+  "prover": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v3/bin/ethereum-prepared-leaf-metal-v1",
+    "bytes": 11079344,
+    "sha256": "fa875dd411af00256092e11cfe9ab99965f8f95827da7fb93d64f9fa3874f608"
+  },
+  "verifier": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v2/bin/ethereum-full-leaf-bundle-verify-v1",
+    "bytes": 3663696,
+    "sha256": "9cbd5efedf164eb232a721e0cefa6b420a32083890e47df989aaae587bafabd3"
+  },
+  "controller_sources": [
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_measurements.py",
+      "bytes": 20645,
+      "sha256": "44d41897b0ebfba2afc2a0a5eccc82e93cec34d87e82fffa800523586067e477"
+    },
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_protocol.py",
+      "bytes": 39665,
+      "sha256": "ad50b8ef3ec408f4ee04692c2a1a1af47d67bb0a27458da995452ca10001f1b9"
+    },
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_statement.py",
+      "bytes": 5930,
+      "sha256": "b0718165eddffa7d4de0d75b130f3012e7cc82f8ddd4ce068de20957f36f95ec"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_materialization.py",
+      "bytes": 7211,
+      "sha256": "218941f9a2e611fd02abe4699cfe26b8d5642dab800c2091c54319bd2eb77be6"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_plan_authority.py",
+      "bytes": 9440,
+      "sha256": "58ea7c2c2f6091888f1d874fdcc2c3ae0bc48e9c9971553ac4ee8bddd50375d5"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_process.py",
+      "bytes": 15479,
+      "sha256": "ba8f196ced1e9d17928cc15fde86f8ed62992910cbef3ed44a844bfb9a92a86e"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_protocol.py",
+      "bytes": 34759,
+      "sha256": "39476670eed41f34404a47e937c206ff0034777e9f53009af2af6c7a38538251"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_store.py",
+      "bytes": 12960,
+      "sha256": "85c380e12c1f4c39a25e7613f9c7d5c0ddfab00164ad60acc1292bca67abe773"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_stream_request.py",
+      "bytes": 10957,
+      "sha256": "014649ab711a7baee2195a0d2d22f46ce13ced0bdb3e901952615df209bb9a60"
+    },
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "bytes": 19709,
+      "sha256": "acfdc0e35212b07f12ff2487fbbd615f8b8dbd1bdfd973a0fb87c3d27fc9f757"
+    },
+    {
+      "path": "scripts/zig_serial_build.py",
+      "bytes": 5750,
+      "sha256": "2c66348b36f878caec8ba286b207f75957fcd28ced795f1738545429fec09032"
+    }
+  ],
+  "aot_files": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle/stwo_zig_core.manifest.json",
+      "bytes": 66570,
+      "sha256": "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle/stwo_zig_core.metal",
+      "bytes": 1621173,
+      "sha256": "1c722c8e8541664962469e3277d21b98837b9e8c88c0141c887d0b6163b8b372"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle/stwo_zig_core.metallib",
+      "bytes": 2885498,
+      "sha256": "9a32b36496d66eb0d0889949ec7f6d06f95a25d9aa6bd16695ca4d9e2d1f171d"
+    }
+  ],
+  "acceptance_required_before_launch": "Verified imports9/120 and parent CPU safe-boundary handoff",
+  "timing_note": "Full campaign accounting includes imported proofs and shared-lock queue time; no quiet-run benchmark claim.",
+  "source_manifest_sha256": "6e656c3591c2b57fe3c536cf2b02505944a2a30f792f204f607895172b427c4c"
+}

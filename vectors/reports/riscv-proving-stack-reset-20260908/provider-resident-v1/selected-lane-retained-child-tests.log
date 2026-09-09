@@ -1,0 +1,29 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 26s
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript' failed: detached composition: samples=2287 inputs=10116 nodes=40152 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=61 calls=237 payload_fixed=54 payload_dynamic=876 input_uses=892 boundary_challenges=2 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=42 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=42 provider_calls=1235 sampled_words=9148 randomness_rows=33 pow_rows=1 parent_proof_verified=false
+DETACHED_PARENT_PCS_PHASE lane=1 selected_lane_only=false capture_ns=181496334 plans_ns=4323291 authority_ns=452663625 rows_ns=436080834
+DETACHED_PARENT_PCS_PHASE lane=1 selected_lane_only=true capture_ns=183789709 plans_ns=4159916 authority_ns=453587709 rows_ns=378023125
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+DETACHED_PARENT_PCS_PHASE lane=2 selected_lane_only=false capture_ns=182675833 plans_ns=4236125 authority_ns=452862292 rows_ns=435377250
+DETACHED_PARENT_PCS_PHASE lane=2 selected_lane_only=true capture_ns=182527708 plans_ns=4189417 authority_ns=455194500 rows_ns=378652083
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=193 trace_rows=51917 fri_leaf_rows=10422 path_rows=23353 provider_calls=88201 pcs_inputs=426616 fri_inputs=64487 parent_proof_verified=false
+detached expected boundary: inputs=13960 nodes=177798 outputs=8537 provider_calls=322 rejected=37
+SEGMENT_V2_DETACHED_PCS samples=2287 queried_values=410511 layers=5 rejected_deep_answers=193 parent_proof_verified=false
+expected 676, found 680
+error: while executing test 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript', the following test command failed:
+./.zig-cache/o/3b4bad2e8167947d8af8d278576aaa59/test --cache-dir=./.zig-cache --seed=0x966c3b38 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-segment-v2-detached-child transitive failure
++- SegmentV2 detached child guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseFast native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/3b1b9f744b197f5dcf8522000bf8937f/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x966c3b38 -Zb2e4583e22baa7de --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-child -Doptimize=ReleaseFast --summary all

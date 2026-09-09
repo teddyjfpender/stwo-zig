@@ -1,0 +1,115 @@
+{
+  "scope": "CPU normative runner preflight only; no full cohort launched. Second attempt follows termination of proximity-prize background search. The existing CPU/Metal paired diagnostic remains separate and is not superseded by these preflights.",
+  "formal_preservation_passed": false,
+  "attempts": [
+    {
+      "plan": "csp-wrapper-interaction-plan.json",
+      "head": "52479248",
+      "status": "diagnostic_smoke_only_host_interference",
+      "seal_sha256": "fedf7b0be4e33a022b8b4ed730246f2352b1cfc6f5caf3a2058b80f51e7a2a19",
+      "source_content_sha256": "897396231e48c201a6e1b1ca1c1ea058131d76bed7e0007cb961fb143b8fe174",
+      "publishable_preflight": {
+        "admissible": false,
+        "observed": {
+          "idle_percent": [
+            89.22,
+            88.13,
+            89.44
+          ],
+          "load_1m": [
+            2.75,
+            2.61,
+            2.61
+          ],
+          "maximum_normalized_load_1m": 0.19642857142857142,
+          "median_idle_percent": 89.22,
+          "minimum_idle_percent": 88.13,
+          "normalized_load_1m": [
+            0.19642857142857142,
+            0.18642857142857142,
+            0.18642857142857142
+          ],
+          "thermal": {
+            "kernel_thermal_pressure": null,
+            "provider": "darwin_top_pmset_v1",
+            "thermal_clear": true,
+            "thermal_line_count": 3,
+            "thermal_output_sha256": "96de6076213225f787270bff80efd2011e0ad142953c37697dc547f77d302892"
+          }
+        },
+        "policy": "publishable_initial_or_post_build_v1",
+        "power_admissible": true,
+        "reasons": [
+          "minimum CPU idle is below 90%",
+          "median CPU idle is below 95%"
+        ],
+        "schema": "stwo_native_ab_quiet_host_preflight_v1",
+        "thresholds": {
+          "load_threshold_enforced": true,
+          "maximum_normalized_load_1m": 0.2,
+          "median_idle_percent": 95.0,
+          "minimum_idle_percent": 90.0,
+          "sample_count": 3,
+          "sample_interval_seconds": 1,
+          "thermal_warning_state": "clear"
+        }
+      }
+    },
+    {
+      "plan": "csp-wrapper-interaction-quiet-plan.json",
+      "head": "52479248",
+      "status": "diagnostic_smoke_only_host_interference",
+      "seal_sha256": "2fae47c2082b1d86136ce63ce2d70adf7dd2bdb25a4bd1574424ce5f1922db41",
+      "source_content_sha256": "897396231e48c201a6e1b1ca1c1ea058131d76bed7e0007cb961fb143b8fe174",
+      "publishable_preflight": {
+        "admissible": false,
+        "observed": {
+          "idle_percent": [
+            88.86,
+            87.2,
+            91.61
+          ],
+          "load_1m": [
+            3.18,
+            3.18,
+            3.18
+          ],
+          "maximum_normalized_load_1m": 0.22714285714285715,
+          "median_idle_percent": 88.86,
+          "minimum_idle_percent": 87.2,
+          "normalized_load_1m": [
+            0.22714285714285715,
+            0.22714285714285715,
+            0.22714285714285715
+          ],
+          "thermal": {
+            "kernel_thermal_pressure": null,
+            "provider": "darwin_top_pmset_v1",
+            "thermal_clear": true,
+            "thermal_line_count": 3,
+            "thermal_output_sha256": "96de6076213225f787270bff80efd2011e0ad142953c37697dc547f77d302892"
+          }
+        },
+        "policy": "publishable_initial_or_post_build_v1",
+        "power_admissible": true,
+        "reasons": [
+          "minimum CPU idle is below 90%",
+          "median CPU idle is below 95%",
+          "one-minute load exceeds 0.20 per logical CPU"
+        ],
+        "schema": "stwo_native_ab_quiet_host_preflight_v1",
+        "thresholds": {
+          "load_threshold_enforced": true,
+          "maximum_normalized_load_1m": 0.2,
+          "median_idle_percent": 95.0,
+          "minimum_idle_percent": 90.0,
+          "sample_count": 3,
+          "sample_interval_seconds": 1,
+          "thermal_warning_state": "clear"
+        }
+      }
+    }
+  ],
+  "backend": "cpu",
+  "dual_backend_preservation_complete": false
+}

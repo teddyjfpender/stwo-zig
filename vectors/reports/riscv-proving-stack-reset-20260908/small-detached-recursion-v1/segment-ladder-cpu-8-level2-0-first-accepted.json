@@ -1,0 +1,699 @@
+{
+  "gate_sha256": "d7bd31976c4be6818b36bf53037e10f46136433ff8e5b8a73ad0d1792bbf627c",
+  "development_only": true,
+  "verifier_sha256": "05afe6591ff664064d0d73666486ac9e2cf884d082b6ebf42b9b6b04b5d7e3fd",
+  "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+  "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+  "original_files": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify": "05afe6591ff664064d0d73666486ac9e2cf884d082b6ebf42b9b6b04b5d7e3fd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first/key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first/claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first/proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+  },
+  "cases": [
+    {
+      "case": "genuine",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": true,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 13244625,
+      "exit_code": 0,
+      "stdout": "{\"endpoint\":\"verified_segment_v2_detached_intermediate_parent_development_q3\",\"development_only\":true,\"publication_mode\":\"intermediate\",\"verified\":true,\"native_inputs_used\":false,\"key_sha256\":[155,71,229,44,178,136,119,27,46,248,50,94,206,6,178,165,36,51,241,216,150,123,16,93,21,11,203,132,107,201,23,40],\"expected_root_sha256\":[130,149,176,250,68,106,187,14,243,165,189,129,68,195,62,170,207,172,74,53,61,216,117,184,54,203,30,158,100,69,108,184],\"claims_sha256\":[238,162,89,246,153,250,173,217,76,45,169,193,180,132,216,140,7,90,56,181,248,171,137,95,226,26,88,230,125,209,17,115],\"proof_sha256\":[234,48,88,51,117,61,24,159,129,0,57,236,70,135,46,82,178,36,247,130,56,138,194,38,59,250,14,111,215,190,27,209],\"proof_bytes\":91339,\"request_ns\":10476292,\"verify_ns\":10172041,\"transcript_digest\":[1354019125,2102747990,33632385,1708587773,959463187,1669610819,664822136,1675283081]}\n",
+      "stderr": "",
+      "receipt": {
+        "endpoint": "verified_segment_v2_detached_intermediate_parent_development_q3",
+        "development_only": true,
+        "publication_mode": "intermediate",
+        "verified": true,
+        "native_inputs_used": false,
+        "key_sha256": [
+          155,
+          71,
+          229,
+          44,
+          178,
+          136,
+          119,
+          27,
+          46,
+          248,
+          50,
+          94,
+          206,
+          6,
+          178,
+          165,
+          36,
+          51,
+          241,
+          216,
+          150,
+          123,
+          16,
+          93,
+          21,
+          11,
+          203,
+          132,
+          107,
+          201,
+          23,
+          40
+        ],
+        "expected_root_sha256": [
+          130,
+          149,
+          176,
+          250,
+          68,
+          106,
+          187,
+          14,
+          243,
+          165,
+          189,
+          129,
+          68,
+          195,
+          62,
+          170,
+          207,
+          172,
+          74,
+          53,
+          61,
+          216,
+          117,
+          184,
+          54,
+          203,
+          30,
+          158,
+          100,
+          69,
+          108,
+          184
+        ],
+        "claims_sha256": [
+          238,
+          162,
+          89,
+          246,
+          153,
+          250,
+          173,
+          217,
+          76,
+          45,
+          169,
+          193,
+          180,
+          132,
+          216,
+          140,
+          7,
+          90,
+          56,
+          181,
+          248,
+          171,
+          137,
+          95,
+          226,
+          26,
+          88,
+          230,
+          125,
+          209,
+          17,
+          115
+        ],
+        "proof_sha256": [
+          234,
+          48,
+          88,
+          51,
+          117,
+          61,
+          24,
+          159,
+          129,
+          0,
+          57,
+          236,
+          70,
+          135,
+          46,
+          82,
+          178,
+          36,
+          247,
+          130,
+          56,
+          138,
+          194,
+          38,
+          59,
+          250,
+          14,
+          111,
+          215,
+          190,
+          27,
+          209
+        ],
+        "proof_bytes": 91339,
+        "request_ns": 10476292,
+        "verify_ns": 10172041,
+        "transcript_digest": [
+          1354019125,
+          2102747990,
+          33632385,
+          1708587773,
+          959463187,
+          1669610819,
+          664822136,
+          1675283081
+        ]
+      }
+    },
+    {
+      "case": "changed_proof_config",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed_proof_config",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "7e743c76001fd72cc545c26be1fc30b09fb29ab3bae73cf223a1410607e10690",
+        "proof.bin": "f8e31222c8a07b613bae6582165457abe429ac8c3ef7cf25230ce2eb6d8973f4"
+      },
+      "process_ns": 6482875,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidProofConfig\n"
+    },
+    {
+      "case": "noncanonical_varint",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/noncanonical_varint",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "3662c7bc010aecd72d8a69dfac3e02b838d80208cf205d1f953588d9fb720ffe",
+        "proof.bin": "c5ff2b83a56378f683cff7141dfa35faacb10131f8e38c15bc6f86d3361e8d65"
+      },
+      "process_ns": 5895916,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: NonCanonicalVarint\n"
+    },
+    {
+      "case": "forged_commitment_length",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/forged_commitment_length",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "b5749d7350025658f423c8ac4415ea64f0b364a6557287b60376a0225e2c9b5b",
+        "proof.bin": "637957d6eb11ac161bf95a9923ff402c141cf6396b17be64c938189186dd9c06"
+      },
+      "process_ns": 6091250,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: InvalidProofShape\n"
+    },
+    {
+      "case": "truncated",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/truncated",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "f7dc715f4f7d6981787ab2426e81e5e67e9138fc87daf5f650eb4dbaf949adeb",
+        "proof.bin": "2e4f3481f6133fc913aed3e783a6b4b8e266a2b3efc55505260d4925b3e9abf5"
+      },
+      "process_ns": 5969125,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: EndOfStream\n"
+    },
+    {
+      "case": "trailing",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/trailing",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "d1d6c37ccf145fc977dfa1e4c36e071995563eebce31eeca9963ae8ff71b9f09",
+        "proof.bin": "5de0f9df44cbd251548ab2df3d6f3390d976d5b4f40bfe44ddf177c5999f4c50"
+      },
+      "process_ns": 6356542,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: TrailingProofBytes\n"
+    },
+    {
+      "case": "altered_proof_tail",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/altered_proof_tail",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "31c25caf8fff8043eb95b0956486d52af7cf2e84c674730b6d80b3f1752b509b",
+        "proof.bin": "70831539187636b25bba28766da0e14ca7628643a7a67fe0f2c25f01a79715eb"
+      },
+      "process_ns": 10791167,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: PCS Merkle verification failed for tree 0: WitnessTooLong\nerror: WitnessTooLong\n"
+    },
+    {
+      "case": "changed_claim",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed_claim",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "d4ca4d66abf354d4113dc5adb5d43e5fb5b5d4e35eabfac99ccf5ecbc4147727",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 6691667,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "balanced_claims",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/balanced_claims",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "fcb4bcb03cf183b2c264d8f8a8e23162b096e61204c808d62361a5aeb492c935",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 9791000,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "case": "balanced_provider_partials",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/balanced_provider_partials",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "a446979a2e415f841dbff8b168727c84cf0eb4718843ddb7c78e7bd6c239d4ae",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 10115666,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: OodsNotMatching\n"
+    },
+    {
+      "case": "inactive_claim_14",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_14",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "c5e26f22d50cf8c7b62df07a40c25eac769c7da53dee4a658d0c0e3fb0bfb765",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2744250,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_15",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_15",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "a6c3bd70d457555f49ca95f67a26f47c09421b37666d88954d3fd190396aabc5",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2301417,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_16",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_16",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "6b99a455e215ef42aee9c9cb8d1d1623e6e2f2a5d85922aabcb797975c51b418",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2147333,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_17",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_17",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "b7ebdc1b953cb8f293d58935b935eab0e179a8905f9687f995f0bb62c1be4c2f",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 1989542,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_18",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_18",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "252b08f3ae87f262d97e44e17e07deba859130d844d4b1c03c013ab83e363def",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2028041,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "inactive_claim_19",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/inactive_claim_19",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "48c1b7e6b7d9c2e38de3341627f7f6265a03678fa829d2ff8773679f60a87dc3",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2363458,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentInactiveClaim\n"
+    },
+    {
+      "case": "claims_version",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/claims_version",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "2f3e50fba48aac5ee0f748659ef36237e096983079a5a94e0c4aff09a1e773d8",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2043709,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimsEnvelopeMismatch\n"
+    },
+    {
+      "case": "key_version",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/key_version",
+        "f7511864454627e644ed568aad419e7ad023e089ff144014b5312cf705a9d2e2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "f7511864454627e644ed568aad419e7ad023e089ff144014b5312cf705a9d2e2",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "f7511864454627e644ed568aad419e7ad023e089ff144014b5312cf705a9d2e2",
+        "claims.json": "192f2bbd027f80ba36c06e493e9f403185eed88d1e326bc005fd6c32ad629472",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 1996209,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentProfileMismatch\n"
+    },
+    {
+      "case": "key_config",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/key_config",
+        "15ccd0d6b8f6f60f1c925c525af710ff4827cc9b77588a48a445c7ec06a57f29",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "15ccd0d6b8f6f60f1c925c525af710ff4827cc9b77588a48a445c7ec06a57f29",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "15ccd0d6b8f6f60f1c925c525af710ff4827cc9b77588a48a445c7ec06a57f29",
+        "claims.json": "192f2bbd027f80ba36c06e493e9f403185eed88d1e326bc005fd6c32ad629472",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2018375,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentProfileMismatch\n"
+    },
+    {
+      "case": "wrong_independent_key_pin",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "0b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "0b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 1683958,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentKeyHashMismatch\n"
+    },
+    {
+      "case": "changed_canonical_expected_root",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed-canonical-root.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "9ab1de3fab6b04cfbf41e7b6ae131fbe954df301b1dbd55f0298875a3f942ccd",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 6640791,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "changed_publication_mode",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed_publication_mode",
+        "cf535537b138375ed75a73e5ba0df837c6bd6c104e04211db670d662b6a5962a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "cf535537b138375ed75a73e5ba0df837c6bd6c104e04211db670d662b6a5962a",
+      "expected_root_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+      "artifact_sha256": {
+        "key.json": "cf535537b138375ed75a73e5ba0df837c6bd6c104e04211db670d662b6a5962a",
+        "claims.json": "192f2bbd027f80ba36c06e493e9f403185eed88d1e326bc005fd6c32ad629472",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 2451291,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: RootHeightNotMinimal\n"
+    },
+    {
+      "case": "changed_published_session",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed-session.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "a7064d2efdb29f0a6eea261f44df5b04f5e531f4a96243c9ff384334777018ee",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 6578416,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "changed_published_entry_lineage",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed-entry_lineage.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "45f0a64d2d6fa2f6b163e4db25c01c1c972ef28bed853bec3737997e03123520",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 6550791,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    },
+    {
+      "case": "changed_published_exit_lineage",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-consumer-first-verify",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/segment-v2-parent-replay-x3qr7z1u/changed-exit_lineage.json"
+      ],
+      "expected_acceptance": false,
+      "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+      "expected_root_sha256": "fdfaf9a94655d438c3efdc554940f43bb7a7d4bce2b22f88e9606efa778a4369",
+      "artifact_sha256": {
+        "key.json": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "claims.json": "eea259f699faadd94c2da9c1b484d88c075a38b5f8ab895fe21a58e67dd11173",
+        "proof.bin": "ea305833753d189f810039ec46872e52b224f782388ac2263bfa0e6fd7be1bd1"
+      },
+      "process_ns": 7057041,
+      "exit_code": 1,
+      "stdout": "",
+      "stderr": "error: DetachedParentClaimClosureMismatch\n"
+    }
+  ],
+  "passed": true,
+  "unchanged_files": true
+}

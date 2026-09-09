@@ -13,7 +13,7 @@ const std = @import("std");
 /// `test_inventory_test.zig` fails when a file is missing from that list. This
 /// floor is the backstop for the wiring itself. Raise it deliberately as the
 /// suite grows; never lower it to make a build pass.
-const test_floor = 1078;
+const test_floor = 1084;
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
@@ -83,6 +83,26 @@ pub fn build(b: *std.Build) void {
     frontend.addImport("typed_air_h009_artifacts", typed_air_h009_artifacts);
     frontend.addImport("typed_air_h010_artifacts", typed_air_h010_artifacts);
 
+    // Backend-generic proof harness exported as a separate test-only module.
+    // Keeping it outside the frontend root avoids a dependency cycle while
+    // CPU and Metal instantiate the exact same typed trace and transcript.
+    const secp256k1_proof_harness = b.addModule("secp256k1_proof_harness", .{
+        .root_source_file = b.path("testing/secp256k1_proof_harness.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    secp256k1_proof_harness.addImport("stwo_core", core);
+    secp256k1_proof_harness.addImport("stwo_prover_engine", prover);
+    secp256k1_proof_harness.addImport("stwo_riscv_frontend", frontend);
+    const keccakf_proof_harness = b.addModule("keccakf_proof_harness", .{
+        .root_source_file = b.path("testing/keccakf_proof_harness.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    keccakf_proof_harness.addImport("stwo_core", core);
+    keccakf_proof_harness.addImport("stwo_prover_engine", prover);
+    keccakf_proof_harness.addImport("stwo_riscv_frontend", frontend);
+
     const tests = b.addTest(.{ .root_module = frontend });
     const run_tests = b.addRunArtifact(tests);
     // ReleaseFast production skips the duplicate pre-commit semantic pass.
@@ -102,6 +122,73 @@ pub fn build(b: *std.Build) void {
         "Compile and test the stwo_riscv_frontend package",
     );
     test_step.dependOn(TestCountFloor.add(b, run_tests, test_floor));
+
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-fixed-program-air",
+        .description = "Check fixed ELF table constraints and unchanged legacy program relations",
+        .root = "ethereum_fixed_program_air_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "Ethereum fixed program table", "program interaction:" },
+        .minimum = 7,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-vm-leaf-context-v2",
+        .description = "Test SegmentV2 verifier-instance and capture authority",
+        .root = "vm_leaf_context_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "SegmentV2 VM leaf ContextV2", "Ethereum selected base claim admission" },
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-vm-composition-program",
+        .description = "Check the recording scalar, production masks and active Ethereum verifier program",
+        .root = "vm_air_profile_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{
+            "Ethereum extension evaluators replay over the canonical recording scalar",
+            "Ethereum extension mask geometry is derived from production vtables",
+            "authenticated VM AIR ProfileV2 cold-compiles the Ethereum verifier program",
+        },
+        .minimum = 5, // Three named checks plus two import-discovery tests.
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-vm-air-profile-v2",
+        .description = "Test physical VM profile and composition-program authority",
+        .root = "vm_air_profile_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .strip = b.option(bool, "profile-test-strip", "Omit VM profile-test debug symbols while retaining the selected runtime safety mode") orelse false,
+        .filters = &.{ "authenticated VM AIR ProfileV2", "Ethereum extension", "base ContextV2", "fresh prepared circuit", "provider shard verifier program and field authority" },
+        .minimum = 15,
+    });
+
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-commitment-v1",
+        .description = "Test Ethereum node sponge and full-output Poseidon caller constraints",
+        .root = "ethereum_commitment_v1_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"Ethereum node V1"},
+        .minimum = 6,
+    });
+
+    const poseidon_frontier_test_root = b.createModule(.{
+        .root_source_file = b.path(
+            "poseidon_materialization_frontier_test_root.zig",
+        ),
+        .target = target,
+        .optimize = optimize,
+    });
+    poseidon_frontier_test_root.addImport("stwo_core", core);
+    poseidon_frontier_test_root.addImport("stwo_prover_engine", prover);
+    const poseidon_frontier_tests = b.addTest(.{
+        .root_module = poseidon_frontier_test_root,
+    });
+    const run_poseidon_frontier_tests = b.addRunArtifact(
+        poseidon_frontier_tests,
+    );
+    b.step(
+        "test-poseidon-materialization-frontier",
+        "Run focused typed-Poseidon layout and quotient-frontier tests",
+    ).dependOn(&run_poseidon_frontier_tests.step);
 
     const manifest_mode = b.option(
         []const u8,
@@ -220,6 +307,71 @@ pub fn build(b: *std.Build) void {
         "Install the isolated H-010 runner for fresh-process host sampling",
     ).dependOn(&b.addInstallArtifact(layout_benchmark, .{}).step);
 
+    const keccak_projection_root = b.createModule(.{
+        .root_source_file = b.path("keccakf_adaptive_projection_tool.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    keccak_projection_root.addImport("stwo_core", core);
+    keccak_projection_root.addImport("stwo_prover_engine", prover);
+    const keccak_projection = b.addExecutable(.{
+        .name = "riscv-keccak-adaptive-projection",
+        .root_module = keccak_projection_root,
+    });
+    keccak_projection.linkLibC();
+    const run_keccak_projection = b.addRunArtifact(keccak_projection);
+    if (b.args) |args| run_keccak_projection.addArgs(args);
+    b.step(
+        "keccakf-adaptive-corpus-projection",
+        "Create an exact adaptive-Keccak committed-cell projection receipt",
+    ).dependOn(&run_keccak_projection.step);
+    b.step(
+        "keccakf-adaptive-corpus-projection-install",
+        "Install the retained-corpus adaptive-Keccak projection tool",
+    ).dependOn(&b.addInstallArtifact(keccak_projection, .{}).step);
+
+    const stack_swap_elf_check_root = b.createModule(.{
+        .root_source_file = b.path("stack_swap_candidate_elf_check_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    stack_swap_elf_check_root.addImport("stwo_core", core);
+    stack_swap_elf_check_root.addImport("stwo_prover_api", prover_api);
+    stack_swap_elf_check_root.addImport("stwo_prover_engine", prover);
+    const stack_swap_elf_check = b.addExecutable(.{
+        .name = "check-stack-swap-candidate-elf-v1",
+        .root_module = stack_swap_elf_check_root,
+    });
+    const run_stack_swap_elf_check = b.addRunArtifact(stack_swap_elf_check);
+    if (b.args) |args| run_stack_swap_elf_check.addArgs(args);
+    run_stack_swap_elf_check.has_side_effects = true;
+    b.step(
+        "check-stack-swap-candidate-elf-v1",
+        "Check and receipt one externally digest-bound Ethereum+SWAP guest ELF",
+    ).dependOn(&run_stack_swap_elf_check.step);
+
+    const combined_candidate_elf_check_root = b.createModule(.{
+        .root_source_file = b.path("ethereum_candidate_combined_elf_check_v1.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    combined_candidate_elf_check_root.addImport("stwo_core", core);
+    combined_candidate_elf_check_root.addImport("stwo_prover_api", prover_api);
+    combined_candidate_elf_check_root.addImport("stwo_prover_engine", prover);
+    const combined_candidate_elf_check = b.addExecutable(.{
+        .name = "check-ethereum-combined-candidate-elf-v1",
+        .root_module = combined_candidate_elf_check_root,
+    });
+    const run_combined_candidate_elf_check = b.addRunArtifact(
+        combined_candidate_elf_check,
+    );
+    if (b.args) |args| run_combined_candidate_elf_check.addArgs(args);
+    run_combined_candidate_elf_check.has_side_effects = true;
+    b.step(
+        "check-ethereum-combined-candidate-elf-v1",
+        "Cold-check and receipt one actual combined bulk4+SWAP5 guest ELF",
+    ).dependOn(&run_combined_candidate_elf_check.step);
+
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-isa",
         .description = "Run only RISC-V ISA authority and decoder tests",
@@ -229,6 +381,33 @@ pub fn build(b: *std.Build) void {
         .step = "test-runner",
         .description = "Run only RISC-V execution-runner tests",
         .root = "runner_test_root.zig",
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-minimal-trace-parallel-replay",
+        .description = "Run only the bounded parallel minimal-trace replay gate",
+        .root = "runner_test_root.zig",
+        .filters = &.{"minimal trace: bounded parallel replay preserves canonical leaf order"},
+        .minimum = 1,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "benchmark-minimal-trace-parallel-replay",
+        .description = "Measure bounded parallel minimal-trace replay scaling",
+        .root = "runner_test_root.zig",
+        .filters = &.{"minimal trace: parallel replay reports bounded scaling"},
+        .minimum = 1,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-runner",
+        .description = "Run the combined Ethereum profile and signer-recovery runner tests",
+        .root = "ethereum_runner_test_root.zig",
+        .minimum = 11,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-minimal-trace",
+        .description = "Run compact Ethereum minimal-trace capture and replay tests",
+        .root = "ethereum_minimal_trace_test_root.zig",
+        .filters = &.{"Ethereum minimal trace compacts and independently replays both native calls"},
+        .minimum = 1,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-main-trace-plan-execution",
@@ -255,6 +434,32 @@ pub fn build(b: *std.Build) void {
         .description = "Run only RISC-V instruction-family AIR tests",
         .root = "air_semantics_test_root.zig",
         .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-load-store-private",
+        .description = "Run focused load/store AIR authority and retirement tests",
+        .root = "load_store_private_test_root.zig",
+        .minimum = 19,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-register-read-alias-private",
+        .description = "Run nonproduction register-read alias candidate tests",
+        .root = "register_read_alias_test_root.zig",
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-two-read-register-alias-private",
+        .description = "Run nonproduction two-read register alias candidate tests",
+        .root = "two_read_register_alias_test_root.zig",
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-native-parity",
+        .description = "Check native/recursive memory and PCS parity plus claim mutations",
+        .root = "recursion_protocol_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "RISC-V component keeps legacy", "R-012 PCS-DEEP", "R-012 claim semantics", "R-012 continuation IO" },
+        .minimum = 15,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-semantic-component",
@@ -323,6 +528,35 @@ pub fn build(b: *std.Build) void {
         .minimum = 16,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-source-ingest",
+        .description = "Run exact opcode-source ingestion and rollback tests",
+        .root = "lookup_source_ingest_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-table-framework-export",
+        .description = "Check native fixed-table backend export and ownership without proving",
+        .root = "lookup_table_interaction_test_root.zig",
+        .filters = &.{"native table framework"},
+        .imports_prover_engine = true,
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-table-interaction",
+        .description = "Run lookup-table interaction parity and rollback tests",
+        .root = "lookup_table_interaction_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 9,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-opcode-interaction",
+        .description = "Run scalar/packed opcode interaction parity and rollback tests",
+        .root = "opcode_interaction_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 11,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-lookup-batching-edit",
         .description = "Run the lightweight authenticated lookup-batch planner edit loop",
         .root = "lookup_batch_edit_test_root.zig",
@@ -367,6 +601,105 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-bulk-memcpy-candidate",
+        .description = "Run the nonproduction word-granular memcpy AIR candidate tests",
+        .root = "bulk_memcpy_candidate_test_root.zig",
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-stack-swap-candidate",
+        .description = "Run the nonproduction SWAP1..SWAP16 semantic and AIR candidate tests",
+        .root = "stack_swap_candidate_test_root.zig",
+        .minimum = 7,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-candidate-execution-contract",
+        .description = "Run combined candidate registry, capability, journal, and product tests",
+        .root = "ethereum_candidate_execution_contract_test_root.zig",
+        .filters = &.{"combined candidate contract v1:"},
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-candidate-leaf",
+        .description = "Run candidate leaf profile, tree, and admission authority tests",
+        .root = "ethereum_candidate_leaf_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-candidate-provider",
+        .description = "Run candidate shared-transcript and degree-five provider adapter tests",
+        .root = "ethereum_candidate_provider_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 2,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-omit-validated-parity",
+        .description = "Run validated-vs-unvalidated omission-path parity tests",
+        .root = "ethereum_omit_validated_parity_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-incremental-ethereum-omit-protocol-v4",
+        .description = "Run the omitted-provider V4 route pin, frame, and leaf authority tests",
+        .root = "incremental_ethereum_omit_protocol_v4_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"incremental omission route v4:"},
+        .minimum = 7,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-incremental-ethereum-omit-orchestration-v4",
+        .description = "Run the omitted-provider V4 orchestration prologue, geometry, transcript, and binding tests",
+        .root = "incremental_ethereum_omit_orchestration_v4_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"incremental omitted orchestration v4:"},
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-matched-ab-omitted-provider-policy",
+        .description = "Run matched omitted-provider geometry, plan, and fresh-closure authority tests",
+        .root = "ethereum_matched_ab_omitted_provider_policy_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 3,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-sha256-pair-candidate",
+        .description = "Run the nonproduction fixed64 SHA-256 pair AIR and caller tests",
+        .root = "sha256_pair_candidate_test_root.zig",
+        .minimum = 8,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-poseidon-merkle",
+        .description = "Check canonical Poseidon transcript and scalar/SIMD Merkle parity",
+        .root = "poseidon_merkle_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "recursion Poseidon2:", "memory Poseidon2:" },
+        .minimum = 19,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-keccakf-row",
+        .description = "Run only the shared Keccak row scalar parity and lazy-error regression",
+        .root = "keccakf_precompile_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"Keccak shared row preserves scalar constraint values degrees and lazy errors"},
+        .minimum = 2, // One named check plus the unnamed import root.
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-keccakf-precompile",
+        .description = "Run the Keccak-f semantic and paired-witness authority tests",
+        .root = "keccakf_precompile_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-secp256k1-precompile",
+        .description = "Run compact secp256k1 field and precompile authority tests",
+        .root = "secp256k1_precompile_test_root.zig",
+        .imports_prover_engine = true,
+        .minimum = 34,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-interaction-trace-plan",
         .description = "Run the prepared Tree-2 planning and execution tests",
         .root = "interaction_trace_plan_execution_test_root.zig",
@@ -377,6 +710,30 @@ pub fn build(b: *std.Build) void {
         .description = "Run the frozen recursion protocol and native boundary tests",
         .root = "recursion_protocol_test_root.zig",
         .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-native-root-claim",
+        .description = "Check native-root claim semantics and exact row11/row15 source ownership",
+        .root = "recursion_protocol_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{
+            "Ethereum native root claim semantics separates snapshot digests and requires row11 wires",
+            "R-012 claim semantics SegmentV2 keeps continuation IO in statement relations",
+            "Ethereum statement arithmetic owns admitted graphs and rejects stale evaluations",
+        },
+        .minimum = 3,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-initial-manifest",
+        .description = "Check initial input component admission and preserve legacy claim and adapter protocol",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{
+            "Ethereum initial manifest",
+            "R-012 universal manifest pins roster order offsets claims and transcript",
+            "R-012 generic adapter exposes a sealed outer proof gate",
+        },
+        .minimum = 4,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-transcript-v2",
@@ -391,6 +748,14 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-ethereum-cold-wire-admission",
+        .description = "Authenticate fresh Ethereum canonical wire once with immutable ownership and hostile input checks",
+        .root = "temporal_pair_node_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"public data V2"},
+        .minimum = 7,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-temporal-pair",
         .description = "Run the V2 adjacent-span temporal pair authority tests",
         .root = "temporal_pair_node_test_root.zig",
@@ -401,6 +766,35 @@ pub fn build(b: *std.Build) void {
         .description = "Run only the row-18 VM AIR authority and composition graph tests",
         .root = "recursion_vm_composition_test_root.zig",
         .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-preparation",
+        .description = "Check composition ownership, statement routing closure and legacy provider compatibility",
+        .root = "recursion_preparation_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{
+            "ethereum row12",
+            "ethereum publication hash",
+            "Ethereum publication control",
+            "Ethereum native publication",
+            "Ethereum role input",
+            "composition ownership separates immutable structure inputs and consumer views",
+            "Ethereum statement arithmetic owns admitted graphs and rejects stale evaluations",
+            "composition finalization frees every allocation on rejection and OOM",
+            "composition borrowed admission retains mutation checks and matches frozen data",
+            "VM statement root profile preserves legacy ordering and rejects ambiguous admission",
+            "VM statement root rows consume the canonical statement relation",
+            "VM field binding publishers preserve V1 words and reject root profile before writing",
+            "statement root routing authenticates fixed multiplicities without changing V2",
+            "statement root routing closes actual AIR consumers and rejects missing duplicate altered roots",
+            "R-012 statement input",
+            "R-012 statement semantics",
+            "R-012 canonical statement integer",
+            "R-012 row-10 scoped emission",
+            "statement root physical admission matches native and recursive evaluation",
+            "statement root catalog derives the full physical manifest without changing legacy rows",
+        },
+        .minimum = 41,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-composition-recorder",
@@ -466,16 +860,43 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-segment-statement-v2",
+        .description = "Run only SegmentV2 boundary and continuation-root tests",
+        .root = "segment_statement_v2_test_root.zig",
+        .filters = &.{ "segment statement V2", "V2 transcript layout", "native authority preimage", "access clock:" },
+        .minimum = 23,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-statement-source-v2",
         .description = "Run the V2 rows 10 and 11 statement authority gates",
         .root = "segment_statement_outer_source_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{"V2 row-11"},
+        .minimum = 3,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-public-source-v2",
         .description = "Run the V2 rows 12 through 17 public-spine source gates",
         .root = "segment_public_outer_source_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{ "V2 public spine", "V2 public-spine" },
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-segment-claim-hash-v2",
+        .description = "Check dynamic statement-authority hashing and fixed preprocessing",
+        .root = "vm_public_claim_hash_authority_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{"isolated row13 V2"},
+        .minimum = 2,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-segment-native-sum-v2",
+        .description = "Run the SegmentV2 native-sum graph and register-input authority gates",
+        .root = "segment_public_native_sum_authority_v2_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "SegmentV2 native-sum", "SegmentV2 publication provider plan" },
+        .minimum = 9,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-public-components-v2",
@@ -488,6 +909,8 @@ pub fn build(b: *std.Build) void {
         .description = "Run the committed SegmentV2 verifier-input provider authority tests",
         .root = "segment_publication_input_provider_authority_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{ "publication-input provider", "capture-backed provider", "committed provider", "both authenticated inputs", "publication provider" },
+        .minimum = 10,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-outer-manifest-v2",
@@ -506,6 +929,8 @@ pub fn build(b: *std.Build) void {
         .description = "Run exact-domain custody for SegmentV2 non-core Tree-2 rows",
         .root = "segment_outer_noncore_audits_v2_test_root.zig",
         .imports_prover_engine = true,
+        .filters = &.{ "non-core custody", "family and domain mutations" },
+        .minimum = 5,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-boundary-components-v2",
@@ -560,8 +985,8 @@ pub fn build(b: *std.Build) void {
         .description = "Run only row 18/19 committed-layout and composition custody",
         .root = "binary_fri_outer_source_test_root.zig",
         .imports_prover_engine = true,
-        .filters = &.{"R-015 binary FRI rows 18--19 use the admitted composition graph"},
-        .minimum = 1,
+        .filters = &.{ "R-015 binary FRI rows 18--19 use the admitted composition graph", "retained relation rows preserve little-endian digest bytes" },
+        .minimum = 2,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-binary-closure",
@@ -570,12 +995,35 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-quotient-domains",
+        .description = "Check typed AIR quotient domains against retained PCS sources",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 generic adapter", "Ethereum typed quotient domains" },
+        .minimum = 5,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-schedule-admission",
+        .description = "Check admitted verifier schedules and FRI control ownership",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 verifier schedule", "R-012 verifier plan", "R-012 frozen verifier programs", "R-012 candidate schedule", "R-012 FRI verifier control" },
+        .minimum = 14,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-air-edit",
         .description = "Run only named R-012 recursion tests for the shortest edit loop",
         .root = "recursion_air_core_test_root.zig",
         .imports_prover_engine = true,
         .filters = &.{"R-012"},
         .minimum = 1,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-framework-interaction",
+        .description = "Run interaction column/domain parity, workspace and failure-atomicity checks",
+        .root = "framework_interaction_test_root.zig",
+        .filters = &.{"R-012 framework"},
+        .minimum = 2,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-air-row18",
@@ -605,6 +1053,54 @@ pub fn build(b: *std.Build) void {
         .minimum = 2,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-direct-execution",
+        .description = "Compare pruned direct execution with canonical parent AIR programs",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 direct", "R-012 universal challenge" },
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-selected-lane-writers",
+        .description = "Compare selected-lane recursive witness materialization with the complete native writers",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 trace Merkle direct writers", "R-012 FRI Merkle leaf writers", "R-012 FRI Merkle node writers", "R-012 FRI Merkle anchor writers" },
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-framework-export",
+        .description = "Compare backend polynomial export with authenticated recursive AIR plans",
+        .root = "recursion_framework_export_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-arithmetic-fusion",
+        .description = "Check fused verifier arithmetic and authenticated graph lowering",
+        .root = "recursion_arithmetic_fusion_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-opening-accumulation",
+        .description = "Check fused opening accumulation and exact wire fanout",
+        .root = "recursion_opening_accumulation_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-poseidon-universal-degree3",
+        .description = "Check compact universal Poseidon AIR against the retained permutation",
+        .root = "poseidon2_universal_degree3_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-structural-hashes",
+        .description = "Check canonical hash byte parity and FRI parameter extraction",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 canonical tuple hash", "structural SHA256", "R-012 FRI Merkle node writers" },
+        .minimum = 3,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-air-core",
         .description = "Run recursion-local typed-AIR tests without shared VM-provider bridges",
         .root = "recursion_air_core_test_root.zig",
@@ -626,6 +1122,7 @@ const FocusedTest = struct {
     imports_typed_air_artifacts: bool = false,
     filters: []const []const u8 = &.{},
     minimum: usize = 0,
+    strip: ?bool = null,
 };
 
 fn addFocusedTests(
@@ -644,6 +1141,7 @@ fn addFocusedTests(
         .root_source_file = b.path(spec.root),
         .target = target,
         .optimize = optimize,
+        .strip = spec.strip,
     });
     root.addImport("stwo_core", core);
     root.addImport("stwo_prover_api", prover_api);

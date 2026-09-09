@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "result": "PASS",
+  "steps": "4/4",
+  "tests": "1/1",
+  "producer_used": false,
+  "native_pair_manifest_sha256": "97113e1e50f053bf65406eda1c2fd8c28bb68e1bad3b8c54d5440245ec026914",
+  "proof_bytes": [
+    8517294,
+    8827521
+  ],
+  "verify_ns": [
+    23792451500,
+    22282827584
+  ],
+  "peak_rss_report": "278M",
+  "exact_negative_errors": {
+    "legacy_profile5_entry": "EthereumFixedProgramAdmissionRequired",
+    "missing_leaf": "IncompleteEthereumBundle",
+    "duplicate_leaf": "InvalidEthereumBundleLeaf",
+    "reordered_leaves": "InvalidEthereumBundleLeaf",
+    "changed_adjacent_snapshot_identity": "MemorySnapshotMismatch",
+    "changed_initial_pc": "InitialStateMismatch",
+    "changed_terminal_pc": "FinalStateMismatch",
+    "changed_job_total_cycles": "FinalCycleMismatch"
+  },
+  "scope": "Actual retained schema5 two-leaf directory acceptance with one independently derived immutable ELF owner. Uses the production directory verifier API; full121-leaf terminal is separate."
+}

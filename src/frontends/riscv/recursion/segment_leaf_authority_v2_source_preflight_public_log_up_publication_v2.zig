@@ -350,12 +350,15 @@ pub fn writeTraceRow(
     trace.value[row] = value;
 }
 
+/// Same scoped tuple for native source rows and symbolic expected-public AIR.
+pub fn statementTupleGeneric(comptime S: type, from_base: anytype, scope: u32, index: usize, value: S) [3]S {
+    return .{ from_base(M31.fromCanonical(scope)), from_base(M31.fromCanonical(@intCast(index))), value };
+}
+fn identityBase(value: M31) M31 {
+    return value;
+}
 pub fn statementEvent(scope: u32, index: usize, value: M31) StatementRelationEventV2 {
-    return .{ .tuple = .{
-        M31.fromCanonical(scope),
-        M31.fromCanonical(@intCast(index)),
-        value,
-    } };
+    return .{ .tuple = statementTupleGeneric(M31, identityBase, scope, index, value) };
 }
 
 pub fn validateTraceShape(trace: TraceColumnsV2, expected: u32) Error!void {

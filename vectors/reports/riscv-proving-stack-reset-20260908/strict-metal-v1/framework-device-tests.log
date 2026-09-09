@@ -1,0 +1,9 @@
+test-framework-polynomial-device
++- run test stderr
+framework_polynomial_device: 27 cases, 36 completed GPU dispatches, 1848 rows, all four coordinates matched
+
+Build Summary: 3/3 steps succeeded; 7/7 tests passed
+test-framework-polynomial-device success
++- run test 7 passed 454ms MaxRSS:11M
+   +- compile test ReleaseSafe native success 4s MaxRSS:442M
+

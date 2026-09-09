@@ -265,13 +265,18 @@ pub const Definition = struct {
 };
 
 pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     errdefer result.deinit();
     try result.validate();
     return result;
 }
 
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+pub fn buildRoleRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const definition = try buildDefinition(allocator, true);
+    return definition.arena;
+}
+
+fn buildDefinition(allocator: std.mem.Allocator, comptime role_routing: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -298,6 +303,12 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .source_index_0 = preprocessed_values[9],
         .source_index_1 = preprocessed_values[10],
     };
+    const hash_mask: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_hash_mask", .selector, span) else null;
+    const hash_scope: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_hash_scope", .felt, span) else null;
+    const hash_index: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_hash_index", .felt, span) else null;
+    const source_scope: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_source_scope", .felt, span) else null;
+    const header_mask: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_header_mask", .selector, span) else null;
+    const header_index: ?types.ValueId = if (role_routing) try arena.input("preprocessed.role_header_index", .felt, span) else null;
     const parameters = Parameters{
         .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
         .claim_scope = try arena.input(PARAMETER_NAMES[1], .felt, span),
@@ -369,7 +380,7 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .{
             .domain = .recursion_vm_public_claim_word,
             .role = .consume,
-            .values = &.{ parameters.claim_scope, preprocessed.source_index_0, main.value },
+            .values = &.{ source_scope orelse parameters.claim_scope, preprocessed.source_index_0, main.value },
             .weight = claim_word_weight,
         },
         .{
@@ -416,6 +427,21 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
             .weight = wire_weight,
         },
     }, span);
+    if (role_routing) {
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &.{ hash_scope.?, hash_index.?, main.value },
+            .weight = try arena.mul(parameters.segment_active, hash_mask.?, span),
+        }}, span);
+        const source_hash_scope = try arena.constantField(1102, span);
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &.{ source_hash_scope, header_index.?, main.value },
+            .weight = try arena.mul(parameters.segment_active, header_mask.?, span),
+        }}, span);
+    }
     return .{
         .arena = arena,
         .main = main,

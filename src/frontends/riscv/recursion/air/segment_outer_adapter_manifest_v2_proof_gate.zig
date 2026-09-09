@@ -223,12 +223,23 @@ pub fn build(
     public: *const public_v2.ManifestV2,
     boundary: *const boundary_v2.OuterManifestV2,
 ) Error!Manifest {
+    return buildWithProviderShape(log_sizes, transcript, statement, public, boundary, provider_authority_v2.Shape.init(21) catch unreachable);
+}
+
+pub fn buildWithProviderShape(
+    log_sizes: universal_manifest.LogSizes,
+    transcript: *const transcript_v2.ManifestV2,
+    statement: *const statement_v2.ManifestV2,
+    public: *const public_v2.ManifestV2,
+    boundary: *const boundary_v2.OuterManifestV2,
+    provider_shape: provider_authority_v2.Shape,
+) Error!Manifest {
     transcript.validate() catch return error.SourceManifestMismatch;
     statement.validate() catch return error.SourceManifestMismatch;
     public.validate() catch return error.SourceManifestMismatch;
     boundary.validate() catch return error.SourceManifestMismatch;
     try validateBuildLogSizes(log_sizes, transcript, statement, public);
-    const catalog = try typed_catalog_v2.build(log_sizes, boundary.components);
+    const catalog = try typed_catalog_v2.buildWithProviderShape(log_sizes, boundary.components, provider_shape);
     const result = try assemble(&catalog, .{
         .transcript_manifest_id = transcript.identity,
         .statement_manifest_id = statement.identity,

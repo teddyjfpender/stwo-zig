@@ -1,0 +1,394 @@
+{
+  "schema": "stwo.ethereum.block-benchmark-corpus.v1",
+  "selection_principles": {
+    "axes": [
+      "representative-medium-block",
+      "empty-or-light-transfer",
+      "keccak-heavy",
+      "ecrecover-heavy",
+      "contract-or-storage-heavy"
+    ],
+    "ordered_current_fixture_first": true,
+    "unique_blocks": true,
+    "dynamic_workload_claims_require_instrumented_counts": true,
+    "semantic_io_does_not_imply_guest_transport_equivalence": true,
+    "proofs_not_run": true
+  },
+  "source_provenance": {
+    "schema": "stwo.ethereum.public-rpc-projection-source.v1",
+    "network": "ethereum-mainnet",
+    "chain_id": 1,
+    "provider": "PublicNode",
+    "endpoint": "https://ethereum-rpc.publicnode.com",
+    "retrieved_on": "2026-08-30",
+    "rpc_methods": [
+      "eth_getBlockByNumber(full_transactions=true)",
+      "eth_getBlockByHash(parent,full_transactions=false)",
+      "eth_getBlockReceipts"
+    ],
+    "input_projection": "ethereum-mainnet-block-execution-input-projection.v1",
+    "output_projection": "ethereum-mainnet-block-execution-output-projection.v1",
+    "canonicalization": "canonical-json-sort-keys-no-lf",
+    "payload_custody": "identity-only-refetch-and-rehash-required"
+  },
+  "fixtures": [
+    {
+      "schema": "stwo.ethereum.block-benchmark-fixture.v1",
+      "fixture_id": "mainnet-24628607-representative-medium",
+      "category": "representative-medium-block",
+      "admission_status": "guest-transports-pinned",
+      "block": {
+        "chain": "mainnet",
+        "chain_id": 1,
+        "number": 24628607,
+        "hash": "0xd6edeb114882eb19af618789a4ebd5f84984e7d340d54459d1b2d9d7c1ed99a9",
+        "parent_hash": "0x1fed00f48a765a81aa0adaf558d2dd597cc1141562ccbc239d04f40d67011384",
+        "parent_state_root": "0xab6d9cef65166d92ff4507a3ed09ac786cb5a0a9f598ca46f79621c95c7de186",
+        "state_root": "0xebe5670f335d9b36b3f3824bcda167b542acc86811784f6c4c073c46f53a6354",
+        "transactions_root": "0xf0b9f5ddf3218e063ff485123edb69ee8d4ec1a234749f140c6a14abf90a4c51",
+        "receipts_root": "0x83fdda090173bcc59479a90af13d53de02c7663e9591167c585a0c8a1e5155dc",
+        "withdrawals_root": "0x1900a10f3fc709da22d5f369affc9b95b5d48794ce637d6aa84c71c92b6a31a8",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 66,
+        "gas_used": 7372614,
+        "gas_limit": 60000000,
+        "timestamp": 1773164303
+      },
+      "semantic_io": {
+        "input_projection_schema": "ethereum-mainnet-block-execution-input-projection.v1",
+        "input": {
+          "bytes": 97231,
+          "sha256": "12d8efe0cbdc19886f3e836a7fb3c7279e5f74fde8346b96e78e62e3189f073c",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "output_projection_schema": "ethereum-mainnet-block-execution-output-projection.v1",
+        "output": {
+          "bytes": 878,
+          "sha256": "e12e80512569faf7d1412ade808db88461b4ad7e4f21c70b8db343c8e117527b",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "guest_transports": {
+          "zisk_input": {
+            "bytes": 2718960,
+            "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376",
+            "framing": "zisk-stdin-u64le-frames-bincode-v2"
+          },
+          "zisk_output": {
+            "bytes": 256,
+            "sha256": "9e95dca7f1e10976ac6f4f73c5cc6c6d003ef87041a57d6feb7b8abc99be0946",
+            "framing": "u8-length-prefixed-block-hash-zero-padded"
+          },
+          "stwo_input": {
+            "bytes": 2700692,
+            "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb",
+            "framing": "u32le-payload-length-plus-canonical-input"
+          },
+          "stwo_output": {
+            "bytes": 43,
+            "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5",
+            "framing": "payload-request-root-plus-success-chain-and-schema"
+          }
+        }
+      },
+      "classification": {
+        "status": "selection-evidenced",
+        "selection_basis": "existing cross-system reference fixture with 66 transactions and 7372614 gas used",
+        "metrics": {
+          "transaction_count": 66,
+          "gas_used": 7372614,
+          "receipt_log_count": 191,
+          "contract_creation_count": 0,
+          "canonical_signer_recoveries": 66,
+          "dynamic_keccak_calls": null,
+          "dynamic_storage_writes": null
+        }
+      },
+      "source": {
+        "block_parameter": "0x177cd7f",
+        "block_hash_verified": true,
+        "parent_state_root_verified": true,
+        "receipts_retrieved": true
+      },
+      "proof_status": {
+        "execution_reproduced": false,
+        "leaf_proofs_freshly_verified": false,
+        "recursive_final_root_freshly_verified": false,
+        "status": "not-run"
+      }
+    },
+    {
+      "schema": "stwo.ethereum.block-benchmark-fixture.v1",
+      "fixture_id": "mainnet-24628305-empty",
+      "category": "empty-or-light-transfer",
+      "admission_status": "semantic-io-pinned-guest-transports-pending",
+      "block": {
+        "chain": "mainnet",
+        "chain_id": 1,
+        "number": 24628305,
+        "hash": "0xcb2a90ec14f3113e2a783002f52624c3738ef1b7a3cfdad4ff33f8932ada8564",
+        "parent_hash": "0x71fd8d6b9e5821cd264ce465ecdfb16565a2fdd826a1333d487ba38ea6e4924a",
+        "parent_state_root": "0x0cd5b3fffa67db54ee47fc39de47f3a0fb9057a6bb3678cfb2b41e7387b90970",
+        "state_root": "0x656005dd7ab6175f25bfbb7041979aaeefb85800bb393b4a518f097d9e147519",
+        "transactions_root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "receipts_root": "0x56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+        "withdrawals_root": "0xf279f2a96cc6c22830353158fd31e204bc029745a991c99f71a8558fb64dbc35",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 0,
+        "gas_used": 0,
+        "gas_limit": 60000000,
+        "timestamp": 1773160667
+      },
+      "semantic_io": {
+        "input_projection_schema": "ethereum-mainnet-block-execution-input-projection.v1",
+        "input": {
+          "bytes": 3015,
+          "sha256": "864d51a4ebc70b46eaefbb28dafb0674f1ca1c01ca1944a2533e7cafc17a64fa",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "output_projection_schema": "ethereum-mainnet-block-execution-output-projection.v1",
+        "output": {
+          "bytes": 873,
+          "sha256": "06908a67e8436b628dc405e1adbaa1779a6c104d3eeb743c6948ba2b88d0815e",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "guest_transports": {
+          "zisk_input": null,
+          "zisk_output": null,
+          "stwo_input": null,
+          "stwo_output": null
+        }
+      },
+      "classification": {
+        "status": "selection-evidenced",
+        "selection_basis": "canonical empty block with zero transactions, gas, receipts, and logs",
+        "metrics": {
+          "transaction_count": 0,
+          "gas_used": 0,
+          "receipt_log_count": 0,
+          "contract_creation_count": 0,
+          "canonical_signer_recoveries": 0,
+          "dynamic_keccak_calls": null,
+          "dynamic_storage_writes": null
+        }
+      },
+      "source": {
+        "block_parameter": "0x177cc51",
+        "block_hash_verified": true,
+        "parent_state_root_verified": true,
+        "receipts_retrieved": true
+      },
+      "proof_status": {
+        "execution_reproduced": false,
+        "leaf_proofs_freshly_verified": false,
+        "recursive_final_root_freshly_verified": false,
+        "status": "not-run"
+      }
+    },
+    {
+      "schema": "stwo.ethereum.block-benchmark-fixture.v1",
+      "fixture_id": "mainnet-24628113-keccak-candidate",
+      "category": "keccak-heavy",
+      "admission_status": "semantic-io-pinned-guest-transports-pending",
+      "block": {
+        "chain": "mainnet",
+        "chain_id": 1,
+        "number": 24628113,
+        "hash": "0xb5ad91aa6299c8557f311e87a0966956e24ba53a4e64c4cc68f972dc52b11069",
+        "parent_hash": "0x532cc909d3064929bd331c61ccbb4f5047b57b312810b8291a22af6287ddf172",
+        "parent_state_root": "0xb2f3b3adcbef1e05280659b4828cb3a96083c129cc8756d3363435a1802461f4",
+        "state_root": "0xa92d773b315de914bb017ceacacd011001c3552f19e2cb2ce45e5d2b9cc26b40",
+        "transactions_root": "0x9b3b61341d83860283cebd7e48ce9cfca1b880633cd04b125ddbd77ec850b1fe",
+        "receipts_root": "0xa3f3823e545aeeb9d8ead633b2480702e8da4dde5d8792194004106f51d6b530",
+        "withdrawals_root": "0x751e4c5bd7864cc89fd74111d9ce223ec14e161f208872056f6c3888bbf79fe3",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 353,
+        "gas_used": 59991314,
+        "gas_limit": 60000000,
+        "timestamp": 1773158339
+      },
+      "semantic_io": {
+        "input_projection_schema": "ethereum-mainnet-block-execution-input-projection.v1",
+        "input": {
+          "bytes": 662466,
+          "sha256": "4ae639ca110f3a01b44bea28f0cfca6211c2af0ff04b7bd65d27e9a257db5a31",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "output_projection_schema": "ethereum-mainnet-block-execution-output-projection.v1",
+        "output": {
+          "bytes": 879,
+          "sha256": "cf4c57a9bd19b827199c175c1b8e44254875c8262211d7469731d48219b5b4a4",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "guest_transports": {
+          "zisk_input": null,
+          "zisk_output": null,
+          "stwo_input": null,
+          "stwo_output": null
+        }
+      },
+      "classification": {
+        "status": "pinned-candidate-dynamic-count-pending",
+        "selection_basis": "2157 receipt logs in an audited high-gas sample; dynamic Keccak count remains required",
+        "metrics": {
+          "transaction_count": 353,
+          "gas_used": 59991314,
+          "receipt_log_count": 2157,
+          "contract_creation_count": 0,
+          "canonical_signer_recoveries": 353,
+          "dynamic_keccak_calls": null,
+          "dynamic_storage_writes": null
+        }
+      },
+      "source": {
+        "block_parameter": "0x177cb91",
+        "block_hash_verified": true,
+        "parent_state_root_verified": true,
+        "receipts_retrieved": true
+      },
+      "proof_status": {
+        "execution_reproduced": false,
+        "leaf_proofs_freshly_verified": false,
+        "recursive_final_root_freshly_verified": false,
+        "status": "not-run"
+      }
+    },
+    {
+      "schema": "stwo.ethereum.block-benchmark-fixture.v1",
+      "fixture_id": "mainnet-24627647-ecrecover-heavy",
+      "category": "ecrecover-heavy",
+      "admission_status": "semantic-io-pinned-guest-transports-pending",
+      "block": {
+        "chain": "mainnet",
+        "chain_id": 1,
+        "number": 24627647,
+        "hash": "0x2ead633a825d8b980ad645cd0a73de8297faab6e1201e9f40a66c31bc8e1377e",
+        "parent_hash": "0x1d63f7e44a8a781efcfc70e4b557a3401dc562a211f0346d896f3e09177fb0dc",
+        "parent_state_root": "0xbe367dbcb7fe327142b2c0f817cfb57864c23e0ce4f5f5476ac6c0210dd55b64",
+        "state_root": "0xa23d0a5a8f24ddea9d34622ba12f15eff302362604fd5e7b263f38e4c39d50ed",
+        "transactions_root": "0x383629955d182613b60db55b49768b8cb40b7b5b923b2d3b0e57137cf0246159",
+        "receipts_root": "0x19fce9c9996fe7f13d198fd2132cf26a62e1a14c983c5321c1eda19184401be9",
+        "withdrawals_root": "0xa33417129c322857f23abf522f106371cba9eb449ff05f7c958618ba32746beb",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 1053,
+        "gas_used": 59798459,
+        "gas_limit": 60000000,
+        "timestamp": 1773152711
+      },
+      "semantic_io": {
+        "input_projection_schema": "ethereum-mainnet-block-execution-input-projection.v1",
+        "input": {
+          "bytes": 1059562,
+          "sha256": "8cd7a09747afe36c1ba1a0122ad96c9463bdbc18eb569a375a5a5a3f3ea11249",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "output_projection_schema": "ethereum-mainnet-block-execution-output-projection.v1",
+        "output": {
+          "bytes": 879,
+          "sha256": "11a7c9795f129ce151bc4f1cd0b196ebaf78867bbf38a049391dcbec1960fcea",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "guest_transports": {
+          "zisk_input": null,
+          "zisk_output": null,
+          "stwo_input": null,
+          "stwo_output": null
+        }
+      },
+      "classification": {
+        "status": "selection-evidenced",
+        "selection_basis": "1053 canonical transaction signatures require 1053 signer recoveries when embedded keys are disabled",
+        "metrics": {
+          "transaction_count": 1053,
+          "gas_used": 59798459,
+          "receipt_log_count": 1541,
+          "contract_creation_count": 1,
+          "canonical_signer_recoveries": 1053,
+          "dynamic_keccak_calls": null,
+          "dynamic_storage_writes": null
+        }
+      },
+      "source": {
+        "block_parameter": "0x177c9bf",
+        "block_hash_verified": true,
+        "parent_state_root_verified": true,
+        "receipts_retrieved": true
+      },
+      "proof_status": {
+        "execution_reproduced": false,
+        "leaf_proofs_freshly_verified": false,
+        "recursive_final_root_freshly_verified": false,
+        "status": "not-run"
+      }
+    },
+    {
+      "schema": "stwo.ethereum.block-benchmark-fixture.v1",
+      "fixture_id": "mainnet-24628124-contract-storage-candidate",
+      "category": "contract-or-storage-heavy",
+      "admission_status": "semantic-io-pinned-guest-transports-pending",
+      "block": {
+        "chain": "mainnet",
+        "chain_id": 1,
+        "number": 24628124,
+        "hash": "0x85f9dd0d4369eb9ede7e7dc0f80ef5ae14b829cd60b0ca39387c4f541e1485d8",
+        "parent_hash": "0x6f7c94ff3e1127f897988385636439c4a66166d9cbcf6003e9d37d6b15146eef",
+        "parent_state_root": "0xea1601a18bd056af9d8529a781ac3204ed74f1cd1f6b4f20246d9642b7fc7b5c",
+        "state_root": "0x767f51fa0f0d547108787f7c67e16e38b0f7ce6997a164983e66064793f37069",
+        "transactions_root": "0x96583b75527aa3521c52ee809f4cf7d5d437694dc74d8a1e93aaab1eaffb5eae",
+        "receipts_root": "0xacabd5d12b8790ef6be3736713d45b33af59a15c5720d580aef68705efb16ba1",
+        "withdrawals_root": "0xd7eb9ad509db62ced1e5d330bd2452c61d0ffee51fbe796860a69ece027d85fb",
+        "requests_hash": "0xe3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "transaction_count": 563,
+        "gas_used": 59996845,
+        "gas_limit": 60000000,
+        "timestamp": 1773158471
+      },
+      "semantic_io": {
+        "input_projection_schema": "ethereum-mainnet-block-execution-input-projection.v1",
+        "input": {
+          "bytes": 844818,
+          "sha256": "064fc7c6f6961ce0a943288e5fb67cc2555bd0e1fae91dad8a67eca478cbe1ca",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "output_projection_schema": "ethereum-mainnet-block-execution-output-projection.v1",
+        "output": {
+          "bytes": 879,
+          "sha256": "f168fedf11043fe543d9ddb8d0b8303bba9f4ac81dc55f4e44c26b695157f9c8",
+          "framing": "canonical-json-sort-keys-no-lf"
+        },
+        "guest_transports": {
+          "zisk_input": null,
+          "zisk_output": null,
+          "stwo_input": null,
+          "stwo_output": null
+        }
+      },
+      "classification": {
+        "status": "pinned-candidate-dynamic-count-pending",
+        "selection_basis": "59996845 gas used in an audited sample; dynamic storage-write count remains required",
+        "metrics": {
+          "transaction_count": 563,
+          "gas_used": 59996845,
+          "receipt_log_count": 1812,
+          "contract_creation_count": 0,
+          "canonical_signer_recoveries": 563,
+          "dynamic_keccak_calls": null,
+          "dynamic_storage_writes": null
+        }
+      },
+      "source": {
+        "block_parameter": "0x177cb9c",
+        "block_hash_verified": true,
+        "parent_state_root_verified": true,
+        "receipts_retrieved": true
+      },
+      "proof_status": {
+        "execution_reproduced": false,
+        "leaf_proofs_freshly_verified": false,
+        "recursive_final_root_freshly_verified": false,
+        "status": "not-run"
+      }
+    }
+  ],
+  "corpus_sha256": "127b9863836e021bd96741db4c1c7b4b99ac35da6cc148277e01f945a9d59119",
+  "promotion_ready": false
+}

@@ -30,9 +30,7 @@ const air_v2 = recursion.segment_leaf_outer_air_v2;
 const universal = recursion.air.universal_challenges;
 const schedule = recursion.air.verifier_schedule;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
-const statement = frontend.air.statement;
 const transcript_claims = frontend.air.transcript.claims;
-const opcode_entries = frontend.air.lookups.opcode_entries;
 
 /// Recursive ingestion is deliberately restricted to the Poseidon2-M31 suite;
 /// Blake2s native captures have a different Merkle digest representation and
@@ -243,10 +241,10 @@ pub const PreparedNativeV2LeafOuter = struct {
             &capture.proof,
         );
         errdefer captured_fri.deinit();
-        var vm_air = try recursion.vm_air_composition_circuit.Prepared.init(
+        var vm_air = try recursion.vm_air_composition_prepared_v2.prepare(
             allocator,
-            &capture.vm_air,
-            &capture.proof,
+            capture,
+            pcs_config,
         );
         errdefer vm_air.deinit();
 
@@ -363,7 +361,7 @@ pub const PreparedNativeV2LeafOuter = struct {
 
         const rows_18_35 = try recursive_fri_outer.preflightV2Rows18Through35(
             &captured_fri,
-            &vm_air,
+            .{ .borrowed = &vm_air },
             owned_plans,
             pcs_config,
             &capture.public_data.data,
@@ -382,7 +380,7 @@ pub const PreparedNativeV2LeafOuter = struct {
             try recursive_fri_outer.preflightV2CoreRows18Through34(
                 allocator,
                 &captured_fri,
-                &vm_air,
+                .{ .borrowed = &vm_air },
                 owned_plans,
             );
 
@@ -553,77 +551,8 @@ fn clonePlan(
 fn canonicalClaimsFromCapture(
     capture: *const NativeCapture,
 ) ![transcript_claims.COMPONENT_COUNT]QM31 {
-    var result = [_]QM31{QM31.zero()} ** transcript_claims.COMPONENT_COUNT;
-    var cursor: usize = 0;
-    for (capture.vm_air.component_descs) |descriptor| {
-        const count = opcode_entries.batchCount(descriptor.family);
-        const end = try add(cursor, count);
-        if (end > capture.vm_air.detailed_claims.len)
-            return error.InvalidCanonicalClaim;
-        var total = QM31.zero();
-        for (capture.vm_air.detailed_claims[cursor..end]) |value|
-            total = total.add(value);
-        const index = @intFromEnum(componentForFamily(descriptor.family));
-        result[index] = result[index].add(total);
-        cursor = end;
-    }
-    for (capture.vm_air.infra_descs) |descriptor| {
-        const count: usize = @intCast(statement.nClaimedSumsForInfra(
-            descriptor.kind,
-        ));
-        const end = try add(cursor, count);
-        if (end > capture.vm_air.detailed_claims.len)
-            return error.InvalidCanonicalClaim;
-        var total = QM31.zero();
-        for (capture.vm_air.detailed_claims[cursor..end]) |value|
-            total = total.add(value);
-        const index = @intFromEnum(componentForInfra(descriptor.kind));
-        result[index] = result[index].add(total);
-        cursor = end;
-    }
-    if (cursor != capture.vm_air.detailed_claims.len)
-        return error.InvalidCanonicalClaim;
-    return result;
-}
-
-fn componentForFamily(
-    family: frontend.runner.trace.OpcodeFamily,
-) transcript_claims.Component {
-    return switch (family) {
-        .auipc => .auipc,
-        .base_alu_imm => .base_alu_imm,
-        .base_alu_reg => .base_alu_reg,
-        .branch_eq => .branch_eq,
-        .branch_lt => .branch_lt,
-        .div => .div,
-        .jal => .jal,
-        .jalr => .jalr,
-        .load_store => .load_store,
-        .lt_imm => .lt_imm,
-        .lt_reg => .lt_reg,
-        .lui => .lui,
-        .mul => .mul,
-        .mulh => .mulh,
-        .shifts_imm => .shifts_imm,
-        .shifts_reg => .shifts_reg,
-        .fence => .fence,
-    };
-}
-
-fn componentForInfra(kind: statement.InfraKind) transcript_claims.Component {
-    return switch (kind) {
-        .program => .program,
-        .memory => .memory,
-        .merkle => .merkle,
-        .poseidon2 => .poseidon2,
-        .clock_update => .clock_update,
-        .bitwise => .bitwise,
-        .range_check_20 => .range_check_20,
-        .range_check_8_11 => .range_check_8_11,
-        .range_check_8_8_4 => .range_check_8_8_4,
-        .range_check_8_8 => .range_check_8_8,
-        .range_check_m31 => .range_check_m31,
-    };
+    try capture.vm_air.validate();
+    return capture.vm_air.canonical_claims;
 }
 
 /// The only caller-supplied dynamic word is the interaction PoW nonce.  Exact
@@ -792,7 +721,7 @@ fn bundleIdentity(bundle: *const PreparedNativeV2LeafOuter) Sha256Digest {
     hashDigest(&hash, bundle.vm_plan.authority_digest);
     hashDigest(&hash, bundle.recursion_plan.authority_digest);
     hash.update(&bundle.captured_fri.circuit.identity_digest);
-    hash.update(&bundle.captured_fri.pcs_circuit.identity_digest);
+    hash.update(&bundle.captured_fri.pcs_circuit.view().identity_digest);
     hash.update(&bundle.vm_air.circuit.identity_digest);
     hashDigest(&hash, bundle.transcript_program.identity);
     hashDigest(&hash, bundle.transcript_execution.identity);

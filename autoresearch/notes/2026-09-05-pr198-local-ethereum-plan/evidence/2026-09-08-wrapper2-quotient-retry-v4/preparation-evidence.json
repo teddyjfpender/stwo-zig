@@ -1,0 +1,81 @@
+{
+  "status": "prepared_not_launched_source_v15_gates_pending",
+  "checked_at": "2026-09-08T09:36:55.873215+00:00",
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/request.json",
+    "bytes": 12122,
+    "sha256": "d7d1a1ca8d7e0600a860fff932c3e3885df058403f5a95ac81fc4617e19da117"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v15/manifest.json",
+    "bytes": 1103545,
+    "sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4"
+  },
+  "source_files_rehashed": 5780,
+  "verified_inputs_and_verifier": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/native-inputs-v1.json",
+      "sha256": "689b557a4018bf568e1de5271279dd8220d37c0359d3bc0a77f0621506257216",
+      "bytes": 578
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/global-metadata-v1.json",
+      "sha256": "48dff72af060fb09b0db9e05902563efb0d321792114fed3fcb9fc4f0083ff23",
+      "bytes": 10726
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/program.elf",
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+      "bytes": 3412588
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+      "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+      "bytes": 70206
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+      "sha256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+      "bytes": 53442357
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+      "sha256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e",
+      "bytes": 50730870
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+      "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+      "bytes": 8641480
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+      "sha256": "77120ae24d5ef2846cd743baa447bdf7cf5f2641961413db326bd64a89d36907",
+      "bytes": 4555200
+    }
+  ],
+  "seed_verified": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "bytes": 8641480,
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf"
+  },
+  "scratch_empty": true,
+  "required_gate_evidence": {
+    "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15",
+    "results": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-quotient-gates-v15/results.json",
+    "ordered": [
+      "pcs-retained",
+      "typed-quotient",
+      "small-composition"
+    ],
+    "status": "pending_parent_execution",
+    "expected_source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+    "minimum_expected_counts": {
+      "pcs-retained": 12,
+      "typed-quotient": 8,
+      "small-composition": 3
+    },
+    "additional_required_case": "PCS retained column storage keeps quotient allocator selection explicit in borrowed traces"
+  },
+  "no_jobs_launched": true
+}

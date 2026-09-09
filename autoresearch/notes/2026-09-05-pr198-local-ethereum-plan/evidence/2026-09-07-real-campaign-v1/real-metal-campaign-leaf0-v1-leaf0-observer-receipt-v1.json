@@ -1,0 +1,8 @@
+{
+  "pid": 24606,
+  "sampling_start_unix_ns": 1788810203969495000,
+  "sampling_end_unix_ns": 1788810611550926000,
+  "sampled_peak_footprint_bytes": 38731732592,
+  "process_cap_enforced": false,
+  "scope": "Observational samples begin after producer started; producer phase lifetime peak remains authoritative"
+}

@@ -1,0 +1,37 @@
+{
+  "request_sha256": "f280392c76c47a860f10a6326a6665ea9d1311eb40b7f0900354b79492f31073",
+  "source_manifest_sha256": "e892cf0ba3523ca0afd5bfb6c06f870c3d120d5a17edab7d7affe7775c87538c",
+  "accepted_indices": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    120
+  ],
+  "candidate19_accepted": false,
+  "candidate19_proof": {
+    "bytes": 72328554,
+    "sha256": "0db6f28766333703ed2f55d6f16757c28e0843c61db870d728455dce960046a6"
+  },
+  "candidate19_metadata": {
+    "bytes": 16622,
+    "sha256": "b1c8539a22484cb1dff1d3fed31532e394b2246d272e19c7edbc651c5c8f7929"
+  },
+  "helper_syntax": "passed",
+  "native_jobs_launched": 0
+}

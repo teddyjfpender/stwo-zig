@@ -1,4 +1,5 @@
 pub const runtime = @import("runtime.zig");
+pub const core_aot = @import("core_aot.zig");
 pub const arena_plan = @import("arena_plan.zig");
 pub const commit_backend = @import("commit_backend.zig");
 pub const merkle_tree = @import("merkle_tree.zig");
@@ -7,9 +8,13 @@ pub const recovery = @import("recovery.zig");
 pub const protocol_recipes = @import("protocol_recipes.zig");
 pub const shared_runtime = @import("shared_runtime.zig");
 pub const telemetry = @import("telemetry.zig");
+pub const execution_policy = @import("execution_policy.zig");
+pub const hash_domain = @import("hash_domain.zig");
 pub const commit_policy = @import("commit_policy.zig");
 pub const source_contract = @import("source_contract.zig");
 pub const riscv_polynomial_codegen = struct {
+    pub const framework = @import("runtime/framework_polynomial_codegen.zig");
+    pub const framework_interaction = @import("runtime/framework_interaction_codegen.zig");
     pub const base = @import("runtime/base_polynomial_codegen.zig");
     pub const lookup = @import("runtime/lookup_polynomial_codegen.zig");
     pub const lookup_v2 = @import("runtime/lookup_polynomial_v2_codegen.zig");
@@ -22,6 +27,8 @@ pub const recipes = struct {
 };
 pub const shaders = struct {
     pub const manifest = @import("shaders/manifest.zig");
+    pub const aot_profile = @import("shaders/aot_profile.zig");
+    pub const declaration_digest = @import("shaders/abi_declaration_digest.zig");
 };
 pub const Runtime = runtime.Runtime;
 pub const Tree = runtime.Tree;

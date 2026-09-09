@@ -3,8 +3,10 @@
 pub fn Namespace(comptime context: type) type {
     return struct {
         const std = context.d_std;
+        const M31 = context.d_M31;
         const QM31 = context.d_QM31;
         const recursion = context.d_recursion;
+        const lowering = context.d_lowering;
         const air = context.d_air;
         const schedule = context.d_schedule;
         const manifest_v2 = context.d_manifest_v2;
@@ -53,7 +55,7 @@ pub fn Namespace(comptime context: type) type {
         /// captured circuit itself.
         pub const NativeSegmentCoreAuthorityInputsV2 = struct {
             captured: *const recursion.captured_fri.Owned,
-            vm_air: *const recursion.vm_air_composition_circuit.Prepared,
+            vm_air: recursion.vm_composition_preparation.Source,
             verifier_plans: VerifierPlans,
             transcript_prepared: *const segment_transcript_source_v2.PreparedV2,
             transcript_program: *const recursion.transcript_program_v2.Program,
@@ -105,6 +107,71 @@ pub fn Namespace(comptime context: type) type {
             }
         };
 
+        /// Borrowed inputs for a versioned native verifier whose transcript
+        /// and public-sum arithmetic have already been authenticated by their
+        /// own typed owners.  Unlike `NativeSegmentCoreAuthorityInputsV2`,
+        /// this boundary does not nominally reinterpret a newer public source
+        /// as the frozen SegmentV2 source.  It accepts the common lowering
+        /// capability only after checking the complete graph/evaluation pair,
+        /// and it accepts full q193 query words only after the core checks
+        /// their low-bit projection against the native PCS capture.
+        pub const NativeSegmentCoreAuthorityInputsV4 = struct {
+            statement_arithmetic: *const recursion.ethereum_statement_arithmetic_v4.Prepared,
+            captured: *const recursion.captured_fri.Owned,
+            vm_air: recursion.vm_composition_preparation.Source,
+            verifier_plans: VerifierPlans,
+            public_native_sum_lane: lowering.Lane,
+            public_native_sum_evaluation: lowering.Evaluation,
+            public_native_sum_evaluation_id: [32]u8,
+            full_query_words: []const M31,
+            boundary_layout: *const shared_schedule_v2.SharedPoseidonCallLayoutV2,
+            boundary_calls: []const shared_schedule_v2.Call,
+
+            pub fn validate(self: NativeSegmentCoreAuthorityInputsV4) !void {
+                try self.captured.evaluation.validateAgainst(&self.captured.circuit);
+                try self.captured.pcs_evaluation.validateAgainst(
+                    &self.captured.pcs_circuit,
+                );
+                try self.vm_air.validate();
+                try self.verifier_plans.vm.validate();
+                try self.verifier_plans.recursion.validate();
+                try self.public_native_sum_lane.graph.validate();
+                if (self.verifier_plans.vm.schema != .vm or
+                    self.verifier_plans.recursion.schema != .recursion or
+                    self.public_native_sum_lane.circuit_id !=
+                        public_native_sum.CIRCUIT_ID or
+                    self.public_native_sum_lane.active_in != .segment or
+                    self.public_native_sum_evaluation.values.len !=
+                        self.public_native_sum_lane.graph.nodes.len or
+                    !std.mem.eql(
+                        u8,
+                        &self.public_native_sum_evaluation.circuit_identity,
+                        &self.public_native_sum_lane.circuit_identity,
+                    ) or std.mem.allEqual(
+                    u8,
+                    &self.public_native_sum_evaluation_id,
+                    0,
+                )) return error.V2CoreCohortMismatch;
+                for (self.public_native_sum_lane.graph.outputs) |output| {
+                    if (output >= self.public_native_sum_evaluation.values.len or
+                        !self.public_native_sum_evaluation.values[output].isZero())
+                    {
+                        return error.V2CoreCohortMismatch;
+                    }
+                }
+                self.boundary_layout.validate(self.boundary_calls) catch
+                    return error.V2CoreCohortMismatch;
+                if (self.boundary_layout.call_set_complete or
+                    self.boundary_layout.verifier_core_range_populated or
+                    self.boundary_layout.verifier_core.count() catch 1 != 0 or
+                    self.boundary_layout.boundary_prefix_call_count !=
+                        self.boundary_calls.len)
+                {
+                    return error.V2CoreCohortMismatch;
+                }
+            }
+        };
+
         pub const NativeSegmentCoreGeneratedV2 = struct {
             format_version: u16 = NATIVE_V2_CORE_FORMAT_VERSION,
             padding: [6]u8 = [_]u8{0} ** 6,
@@ -123,7 +190,30 @@ pub fn Namespace(comptime context: type) type {
                 relations: *const universal.UniversalRelations,
                 provider_relations: *const shared_provider.SharedProviderRelations,
             ) !void {
-                try owner.validateComplete();
+                try owner.validatePreparedComplete();
+                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
+            }
+
+            /// Component construction admits the owner and exact manifest in
+            /// one synchronous pass before checking this generated receipt.
+            pub fn validateForManifest(
+                self: *const NativeSegmentCoreGeneratedV2,
+                owner: *const NativeSegmentCoreV2,
+                manifest: *const manifest_v2.Manifest,
+                relations: *const universal.UniversalRelations,
+                provider_relations: *const shared_provider.SharedProviderRelations,
+            ) !void {
+                try owner.validateAgainstManifest(manifest);
+                if (!owner.provider_main_ready) return error.V2CoreCohortMismatch;
+                try self.validateAfterOwnerAdmission(owner, relations, provider_relations);
+            }
+
+            fn validateAfterOwnerAdmission(
+                self: *const NativeSegmentCoreGeneratedV2,
+                owner: *const NativeSegmentCoreV2,
+                relations: *const universal.UniversalRelations,
+                provider_relations: *const shared_provider.SharedProviderRelations,
+            ) !void {
                 try relations.validate();
                 try provider_relations.validateAgainst(relations);
                 if (self.format_version != NATIVE_V2_CORE_FORMAT_VERSION or

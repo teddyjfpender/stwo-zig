@@ -1,0 +1,21 @@
+test-recursion-native-parity
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursion/air/pcs_deep_circuit_prepared.zig:23:13: error: local variable shadows declaration of 'value'
+        var value = try build(allocator, profile_value);
+            ^~~~~
+recursion/air/pcs_deep_circuit_prepared.zig:38:5: note: declared here
+    fn value(self: *const Prepared) *const circuit.Circuit {
+    ^~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion_protocol_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "RISC-V component keeps legacy" --test-filter "R-012 PCS-DEEP" --test-filter "R-012 claim semantics" --test-filter "R-012 continuation IO" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-recursion-native-parity transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e2dd8b018e5554e0c6a24b0f39f0c804/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x7b9fba49 -Z97c33e53db172930 --maxrss 25769803776 -j1 test-recursion-native-parity -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 14/14 tests passed
+test-recursion-native-parity success
++- stwo_riscv_frontend test count floor success
+   +- run test 14 passed 295ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 10s MaxRSS:807M
+

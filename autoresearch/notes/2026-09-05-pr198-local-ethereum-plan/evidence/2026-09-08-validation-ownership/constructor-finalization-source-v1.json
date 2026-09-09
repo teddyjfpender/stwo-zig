@@ -1,0 +1,27 @@
+{
+  "status": "source_fmt_ast_passed_semantic_gates_pending",
+  "changes": [
+    "Program constructor finalizes its already derived owned program and retains shared native Tree0 shape/transcript check; public validator independently rederives",
+    "Transcript row constructor admits capture through program validator and finalizes generated rows locally; public validator remains full",
+    "Native constructor explicitly validates ChildPublic and ChildStatement; Native full validation explicitly validates ChildPublic before reading its binding"
+  ],
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_program_v4.zig",
+      "sha256": "59a03d208ced8131f82b030e44dd8b65171d03d467ab878d83ac64a12015418a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_rows_v4.zig",
+      "sha256": "8f6b5ec6cd348d4753fed9318d3de5e400bd2da1e933cb6664b6443e8657fcb6"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig",
+      "sha256": "94c9efc2c51b03029d479429750e4bf475000e00dd9ddf644a45f7fd3f421a7a"
+    }
+  ],
+  "limitations": [
+    "Not covered by running frozen source-v6 replay",
+    "ChildPublic and ChildStatement snapshot changes in progress",
+    "No speedup or proof acceptance claimed"
+  ]
+}

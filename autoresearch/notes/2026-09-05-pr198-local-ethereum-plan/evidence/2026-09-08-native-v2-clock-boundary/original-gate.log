@@ -1,0 +1,5 @@
+[native-proof-failure-diagnosis] another build holds /tmp/stwo-zig-build.lock; waiting
+[native-proof-failure-diagnosis] acquired after 27s
+1/2 segment_v2_native_proof_test.test.native V2 proves and independently verifies real nonfinal and final segments...FAIL (SegmentResultMismatch)
+2/2 segment_v2_native_proof_test.test.native V2 proves a rebased leaf-local V3 segment without widening the AIR...OK
+1 passed; 0 skipped; 1 failed.

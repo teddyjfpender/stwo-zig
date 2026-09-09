@@ -21,7 +21,6 @@ pub const diagnostic_wiring_source = @embedFile("verifier.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
 const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const logup = @import("../air/logup.zig");
-const public_logup = @import("../air/public_logup.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
 const statement_mod = @import("../air/statement.zig");
@@ -30,8 +29,10 @@ const preprocessed_trace = @import("preprocessed.zig");
 const base_component_assembly = @import("base_component_assembly.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const vm_leaf_context = @import("../recursion/vm_leaf_context.zig");
+const vm_leaf_context_v2 = @import("../recursion/vm_leaf_context_v2.zig");
 const statement_validation = @import("statement_validation.zig");
 const types = @import("types.zig");
+const verifier_protocol = @import("verifier_protocol.zig");
 
 const VerificationWorkspace = proof_workspace.VerificationWorkspace;
 
@@ -71,7 +72,7 @@ pub fn RecursiveLeafCaptureForEngine(comptime Engine: type) type {
 pub fn VerifiedSegmentV2CaptureForEngine(comptime Engine: type) type {
     return struct {
         proof: ProofCaptureForEngine(Engine),
-        vm_air: vm_leaf_context.Context,
+        vm_air: vm_leaf_context_v2.ContextV2,
         public_data: statement_v2.OwnedPublicDataV2,
         native_public_sums: statement_v2.NativePublicSums,
         receipt: statement_v2.VerifiedReceipt,
@@ -88,108 +89,21 @@ pub fn VerifiedSegmentV2CaptureForEngine(comptime Engine: type) type {
         /// Revalidates every mutable, verifier-owned sidecar before recursive
         /// witness construction, including an independent recomputation of the
         /// statement authority from the authenticated wire and VM geometry.
-        /// The proof capture itself remains trusted by transactional publication
-        /// from the successful core verifier; its downstream fixed-wire adapter
-        /// performs the structural revalidation.
+        /// The proof capture is independently resealed by the engine-generic
+        /// ContextV2 authority before downstream consumption.
         pub fn validate(self: *const Self) !void {
-            try self.vm_air.validate();
-            try self.public_data.validate();
-            try self.receipt.validateAgainst(&self.public_data.data);
-            const authority_id = try statement_v2.authorityIdentityFromGeometry(
-                &self.public_data.data,
-                self.vm_air.component_descs,
-                self.vm_air.infra_descs,
-            );
-            if (!std.meta.eql(self.receipt.authority_id, authority_id))
-                return error.InvalidVerifiedReceipt;
-            const relations = relation_challenges.Relations.fromDrawSequence(
-                &self.vm_air.relation_draws,
-            );
-            try self.native_public_sums.validateAgainst(
-                &self.public_data.data,
-                &relations,
+            try self.vm_air.validateCaptureAuthorities(
+                &self.public_data,
+                &self.receipt,
+                &self.native_public_sums,
+                &self.proof,
             );
         }
     };
 }
 
-const V1Protocol = struct {
-    pub const Statement = types.RiscVStatement;
-    pub const is_v2 = false;
-
-    fn core(value: *const Statement) *const types.RiscVStatement {
-        return value;
-    }
-
-    fn validate(value: *const Statement) !void {
-        try statement_validation.validate(value.*, .proof);
-    }
-
-    fn bind(
-        comptime Engine: type,
-        pcs_config: pcs_core.PcsConfig,
-        value: *const Statement,
-        transcript_channel: *Engine.Channel,
-    ) !void {
-        if (comptime @hasDecl(Engine.Channel, "bindRiscVTranscript")) {
-            try transcript_channel.bindRiscVTranscript(
-                pcs_config,
-                &value.public_data,
-            );
-        } else {
-            pcs_config.mixInto(transcript_channel);
-            value.public_data.mixInto(transcript_channel);
-        }
-    }
-
-    fn publicBoundary(
-        value: *const Statement,
-        relations: *const relation_challenges.Relations,
-    ) !@import("stwo_core").fields.qm31.QM31 {
-        return public_logup.sum(&value.public_data, relations);
-    }
-
-    fn declaresPublicIo(value: *const Statement) bool {
-        return value.public_data.declaresPublicIo();
-    }
-};
-
-pub const V2Protocol = struct {
-    pub const Statement = statement_v2.RiscVStatementV2;
-    pub const is_v2 = true;
-
-    fn core(value: *const Statement) *const types.RiscVStatement {
-        return &value.core;
-    }
-
-    fn validate(value: *const Statement) !void {
-        try statement_validation.validateV2(value, .proof);
-    }
-
-    fn bind(
-        comptime Engine: type,
-        pcs_config: pcs_core.PcsConfig,
-        value: *const Statement,
-        transcript_channel: *Engine.Channel,
-    ) !void {
-        pcs_config.mixInto(transcript_channel);
-        try statement_v2.mixIntoNativeTranscript(
-            &value.public_data,
-            transcript_channel,
-        );
-    }
-
-    fn publicBoundary(
-        value: *const Statement,
-        relations: *const relation_challenges.Relations,
-    ) !@import("stwo_core").fields.qm31.QM31 {
-        return statement_v2.nativeRelationSum(&value.public_data, relations);
-    }
-
-    fn declaresPublicIo(value: *const Statement) bool {
-        return value.declaresPublicIo() catch true;
-    }
-};
+pub const V1Protocol = verifier_protocol.V1Protocol;
+pub const V2Protocol = verifier_protocol.V2Protocol;
 
 /// Verify a RISC-V STARK proof with per-opcode-family components.
 /// Consumes `proof_in` on both success and failure.
@@ -234,6 +148,7 @@ pub fn verifyRiscVWithEngineUsingChannel(
         proof_in,
         claim,
         channel,
+        @as(void, {}),
         null,
         null,
         null,
@@ -264,6 +179,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndQueryCapture(
         proof_in,
         claim,
         channel,
+        @as(void, {}),
         capture,
         null,
         null,
@@ -293,6 +209,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndProofCapture(
         proof_in,
         claim,
         channel,
+        @as(void, {}),
         null,
         capture,
         null,
@@ -322,6 +239,7 @@ pub fn verifyRiscVWithEngineUsingChannelAndRecursiveLeafCapture(
         proof_in,
         claim,
         channel,
+        @as(void, {}),
         null,
         null,
         capture,
@@ -370,6 +288,38 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannel(
         proof_in,
         claim,
         transcript_channel,
+        @as(void, {}),
+        null,
+        null,
+        null,
+        null,
+    );
+}
+
+/// Additive selected-lookup SegmentV2 verifier for an authenticated Stage-A
+/// extension. Default SegmentV2 verification continues to pass `void` and
+/// reconstructs its frozen transcript byte-for-byte.
+pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndTranscriptExtension(
+    comptime Engine: type,
+    allocator: std.mem.Allocator,
+    pcs_config: pcs_core.PcsConfig,
+    statement: statement_v2.RiscVStatementV2,
+    proof_in: types.ProofForEngine(Engine),
+    claim: *const types.RiscVInteractionClaim,
+    transcript_channel: *Engine.Channel,
+    transcript_extension: anytype,
+) !void {
+    return verifyRiscVWithEngineUsingChannelImpl(
+        V2Protocol,
+        Engine,
+        .authenticated_physical_v2,
+        allocator,
+        pcs_config,
+        statement,
+        proof_in,
+        claim,
+        transcript_channel,
+        transcript_extension,
         null,
         null,
         null,
@@ -397,6 +347,7 @@ pub fn verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         proof_in,
         claim,
         transcript_channel,
+        @as(void, {}),
         null,
         null,
         null,
@@ -444,6 +395,7 @@ pub fn verifyRiscVSegmentLookupV2WithEngineUsingChannel(
         proof_in,
         claim,
         transcript_channel,
+        @as(void, {}),
         null,
         null,
         null,
@@ -461,6 +413,7 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
     proof_in: types.ProofForEngine(Engine),
     claim: *const types.RiscVInteractionClaim,
     channel: *Engine.Channel,
+    transcript_extension: anytype,
     capture_out: ?*QueryCapture,
     proof_capture_out: ?*ProofCaptureForEngine(Engine),
     recursive_capture_out: ?*RecursiveLeafCaptureForEngine(Engine),
@@ -554,12 +507,21 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
         channel,
     );
 
-    const relations = try proof_transcript.verifyToRelations(
-        allocator,
-        channel,
-        core_statement,
-        claim.interaction_pow,
-    );
+    const relations = if (comptime @TypeOf(transcript_extension) == void)
+        try proof_transcript.verifyToRelations(
+            allocator,
+            channel,
+            core_statement,
+            claim.interaction_pow,
+        )
+    else
+        try proof_transcript.verifyToRelationsWithExtension(
+            allocator,
+            channel,
+            core_statement,
+            claim.interaction_pow,
+            transcript_extension,
+        );
 
     const n_interaction = if (comptime lookup_layout == .authenticated_physical_v2)
         try authenticated_lookup.totalInteractionColumns(
@@ -684,14 +646,6 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
                 &native_capture,
             );
             native_capture_owned = true;
-            var context = try vm_leaf_context.Context.initVerified(
-                allocator,
-                core_statement,
-                claim,
-                &relations,
-                active_components,
-            );
-            errdefer context.deinit();
             var owned_public_data = try statement_v2.OwnedPublicDataV2.initVerified(
                 allocator,
                 &statement.public_data,
@@ -701,6 +655,19 @@ pub fn verifyRiscVWithEngineUsingChannelImpl(
                 &owned_public_data.data,
                 &relations,
             );
+            var context = try vm_leaf_context_v2.ContextV2.initVerified(
+                allocator,
+                &statement,
+                claim,
+                &relations,
+                &lookup_manifest,
+                &authenticated_lookup,
+                active_components,
+                &native_capture,
+                &v2_receipt,
+                &native_public_sums,
+            );
+            errdefer context.deinit();
             capture.* = .{
                 .proof = native_capture,
                 .vm_air = context,
@@ -821,6 +788,34 @@ pub fn assembleComponentsAuthenticatedLookupV2(
     authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
 ) ![]const core_air_components.Component {
     try base_component_assembly.assembleIntoAuthenticatedLookupV2(
+        .verifier,
+        workspace,
+        statement,
+        claim,
+        relations,
+        n_main,
+        n_interaction,
+        manifest,
+        authenticated_statement,
+    );
+    return workspace.components.active();
+}
+
+/// Verifier twin of the full-state incremental V3 boundary assembly. This
+/// preserves the authenticated V2 roster while selecting ternary split memory
+/// multiplicities for the memory infrastructure component only.
+pub fn assembleComponentsAuthenticatedLookupV2WithIncrementalBoundaryV3(
+    workspace: *VerificationWorkspace,
+    statement: *const types.RiscVStatement,
+    claim: *const types.RiscVInteractionClaim,
+    relations: *const relation_challenges.Relations,
+    n_main: usize,
+    n_interaction: usize,
+    manifest: *const lookup_physical_v2.Manifest,
+    authenticated_statement: *const lookup_physical_v2.AuthenticatedStatement,
+) ![]const core_air_components.Component {
+    try base_component_assembly
+        .assembleIntoAuthenticatedLookupV2WithIncrementalBoundaryV3(
         .verifier,
         workspace,
         statement,

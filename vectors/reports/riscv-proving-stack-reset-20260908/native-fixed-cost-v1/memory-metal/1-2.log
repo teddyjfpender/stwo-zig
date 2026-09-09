@@ -1,0 +1,41 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=metal memory_addresses=1
+SEGMENT_V2_NATIVE_METAL_AOT profile=core_v2 manifest_sha256=21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5 source_sha256=c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786 metallib_sha256=9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7 initialization_ns=60204417
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=1 exit_pc=1140
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 560 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: resident RISC-V semantic composition: 3 components, 3 kernels, 0.099 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.249 ms GPU
+SEGMENT_V2_NATIVE_METAL device_dispatches=93 poseidon_commits=14 host_fallbacks=0 native_prove_ns=1297663666 resident_resources_before_shutdown=0
+SEGMENT_V2_NATIVE_MEMORY backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=476446916 producer_live_bytes_after_destroy=0 canonical_proof_bytes=29023
+
+SEGMENT_V2_LADDER_NATIVE requested_steps=64 retired_cycles=64 continuation_cycles=16 trace_rows=64 native_backend=metal native_queries=1 outer_queries=3 native_pcs_pow_bits=0 outer_pcs_pow_bits=0 program=lw_addi_sw_updates memory_addresses=1 native_prove_ms=1297.664 native_verify_ms=414.189 recursive_prepare_ms=141.969 native_proof_bytes=29023 native_tree_heights={ 21, 21, 21, 21 }
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=26791 tree0_prepare_ns=32530084 tree0_commit_ns=43446375 tree1_prepare_ns=33068791 tree1_commit_ns=49107709 transcript_prefix_ns=58102666 interaction_generate_ns=234725750 interaction_admit_closure_ns=90040792 transcript_tree2_commit_ns=62886333 components_ns=93517917 diagnostic_ns=5250 stark_ns=478416083 phase_sum_ns=1175874541
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=15000 preprocessed_root_ns=77565500 transcript_prefix_ns=58790083 interaction_regenerate_ns=203477792 interaction_validate_claims_ns=29225875 closure_ns=60546791 transcript_after_ns=31675042 components_ns=93732042 publication_authority_ns=29225958 stark_ns=5817333 publication_total_ns=36186500 phase_sum_ns=626257916
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=78268 canonical_proof_bytes=91820 canonicalize_ms=4.222 prove_ms=1175.932 verify_ms=626.310 publication_ms=4.366 producer_prepare_ms=340.017 producer_destroy_ms=1.506 verifier_prepare_ms=332.379 decode_ms=0.303 stark_verify_ms=5.817 transaction_ms=2482.789 artifact_rejections_ms=0.674 producer_peak_bytes=112874288 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=91820 verification=native_assisted_fresh_decode draws=1 cols=595/974/508 workers=1
+
+SEGMENT_V2_LADDER_OUTER rows=39 domains=47 component_logs={ 9, 11, 11, 9, 13, 13, 4, 4, 4, 4, 4, 10, 5, 4, 4, 10, 5, 7, 13, 8, 4, 7, 6, 9, 14, 7, 4, 5, 6, 10, 14, 8, 15, 8, 11, 16, 10, 6, 8 } min_component_log=4 max_component_log=16 provider_log=11 samples=2245 queries=3 canonical_proof_bytes=91820 producer_live_bytes_after_destroy=0
+SEGMENT_V2_LADDER status=verified requested_steps=64 native_backend=metal memory_addresses=1 owners_destroyed=true
+        4.42 real         9.10 user         0.23 sys
+           563511296  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              122976  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                7732  involuntary context switches
+        118789090245  instructions retired
+         35052769583  cycles elapsed
+          1393509696  peak memory footprint

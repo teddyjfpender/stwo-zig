@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "recorded_at": "2026-09-07T17:30:32.456197+00:00",
+  "scope": "Controller profile routing, immutable resume custody, per-leaf independent-verifier invocation and receipt binding; mocked subprocesses, not proof acceptance",
+  "tests_passed": 12,
+  "command": "python3 -m unittest scripts.tests.test_ethereum_full_leaf_bundle_producer",
+  "materialization_preflight": {
+    "segment_count": 121,
+    "total_cycles": 253646998,
+    "passed": true
+  },
+  "whole_block_verified": false,
+  "source_files": [
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "sha256": "8f583de93a0106e03fe0f44820f4f4bc93f237c4112037acdd623fba7a2e074c"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_full_leaf_bundle_producer.py",
+      "sha256": "489ccb7676c21dfef7e7c611a0a5a5c54fa2a0c879d28d29b460d30447ba4ef3"
+    }
+  ]
+}

@@ -1,0 +1,71 @@
+[
+  {
+    "label": "instruction-execution",
+    "args": [
+      "--check-workload"
+    ],
+    "exit_code": 0,
+    "seconds": 0.004951542010530829
+  },
+  {
+    "label": "memory-execution",
+    "args": [
+      "--check-memory-workload"
+    ],
+    "exit_code": 0,
+    "seconds": 0.004671790869906545
+  },
+  {
+    "label": "broad-proof",
+    "args": [],
+    "exit_code": 0,
+    "seconds": 8.73426966695115
+  },
+  {
+    "label": "reject-zero",
+    "args": [
+      "--native-steps",
+      "0"
+    ],
+    "exit_code": 1,
+    "seconds": 0.00516083394177258
+  },
+  {
+    "label": "reject-three",
+    "args": [
+      "--native-steps",
+      "3"
+    ],
+    "exit_code": 1,
+    "seconds": 0.0020183748565614223
+  },
+  {
+    "label": "reject-large",
+    "args": [
+      "--native-steps",
+      "65"
+    ],
+    "exit_code": 1,
+    "seconds": 0.001887541962787509
+  },
+  {
+    "label": "reject-memory",
+    "args": [
+      "--memory-addresses",
+      "3"
+    ],
+    "exit_code": 1,
+    "seconds": 0.0018873328808695078
+  },
+  {
+    "label": "reject-missing-metal",
+    "args": [
+      "--native-steps",
+      "1",
+      "--native-backend",
+      "metal"
+    ],
+    "exit_code": 1,
+    "seconds": 0.0019399169832468033
+  }
+]

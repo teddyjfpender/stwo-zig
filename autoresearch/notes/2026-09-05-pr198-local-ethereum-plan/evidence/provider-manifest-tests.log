@@ -1,0 +1,22 @@
+test-recursion-segment-outer-manifest-v2
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+test-recursion-segment-publication-provider-v2
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+Build Summary: 9/9 steps succeeded; 682/684 tests passed; 2 skipped
+test-recursion-segment-publication-provider-v2 success
++- run test 369 passed 1 skipped 939ms MaxRSS:18M
+   +- compile test ReleaseSafe native success 1m MaxRSS:5G
+test-recursion-segment-outer-manifest-v2 success
++- run test 312 passed 1 skipped 462ms MaxRSS:14M
+   +- compile test ReleaseSafe native success 22s MaxRSS:1G
+test-recursion-segment-outer-noncore-audits-v2 success
++- run test 1 passed 663ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 3s MaxRSS:353M
+

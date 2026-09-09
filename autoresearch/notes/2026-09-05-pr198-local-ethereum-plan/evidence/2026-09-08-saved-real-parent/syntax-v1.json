@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "argv": [
+        "zig",
+        "fmt",
+        "--check",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/build_segment_steps.zig",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/ethereum_wrapper_saved_child_parent_v1_test.zig",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/ethereum_wrapper_saved_real_parent_v1_test_root.zig"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "zig",
+        "ast-check",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/build_segment_steps.zig"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "zig",
+        "ast-check",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/ethereum_wrapper_saved_child_parent_v1_test.zig"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "argv": [
+        "zig",
+        "ast-check",
+        ".git/local-ethereum/saved-real-parent-source-v1/source/src/integrations/riscv_cpu/ethereum_wrapper_saved_real_parent_v1_test_root.zig"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "all_frozen_source_pins_rechecked": 5758,
+  "semantic_compile_passed": false
+}

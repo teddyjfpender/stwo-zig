@@ -1,0 +1,18 @@
+test-ethereum-incremental-leaf-universal-proof-v4-genuine
++- genuine two-segment Ethereum incremental role0 proof guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child' failed: ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=stage101_build source=darwin_proc_pid_rusage_v6 wall_ns=79355643833 process_cpu_ns=102140088417 parallelism_milli=1287 peak_footprint_bytes=1154680152 energy_nj=435092989810 instructions=1974465554011 cycles=398443105303 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46791070417 process_cpu_ns=49330902000 parallelism_milli=1054 peak_footprint_bytes=1154680152 energy_nj=226719984526 instructions=1099859332161 cycles=196158663637 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1494389542 process_cpu_ns=1494241083 parallelism_milli=999 peak_footprint_bytes=1154680152 energy_nj=7607472090 instructions=33643366276 cycles=5948778016 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_GENUINE_STAGE=materialize error=UnsatisfiedCircuit
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child', the following test command failed:
+./.zig-cache/o/bd8c24affeeacba69aec1579d63aa867/test --cache-dir=./.zig-cache --seed=0xb00a010 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-universal-proof-v4-genuine transitive failure
++- genuine two-segment Ethereum incremental role0 proof guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5m MaxRSS:8G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/7e93b332a198f4871a2d1384d5ea113b/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb00a010 -Zab4c6e90640b05fb --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-universal-proof-v4-genuine -Doptimize=ReleaseSafe --summary all

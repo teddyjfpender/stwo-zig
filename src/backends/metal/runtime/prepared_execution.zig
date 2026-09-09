@@ -332,6 +332,110 @@ pub fn prepareResidentMerkle(
     return .{ .handle = handle, .lifting_log_size = lifting_log_size };
 }
 
+pub fn prepareResidentMerkleForHash(
+    self: *Runtime,
+    column_offsets: []const u32,
+    column_log_sizes: []const u32,
+    lifting_log_size: u32,
+    layer_offsets: []const u32,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+) MetalError!ResidentMerklePlan {
+    if (column_offsets.len == 0 or column_offsets.len != column_log_sizes.len or
+        lifting_log_size >= 31 or layer_offsets.len < 2 or
+        layer_offsets.len > lifting_log_size + 1 or
+        (hash_family != 1 and hash_family != 2))
+        return MetalError.CommitmentFailed;
+    if (!validDomainPrefixBytes(domain_prefix_bytes)) return MetalError.CommitmentFailed;
+    for (column_log_sizes, 0..) |log_size, index| {
+        if (log_size > lifting_log_size or
+            (index != 0 and column_log_sizes[index - 1] > log_size))
+            return MetalError.CommitmentFailed;
+    }
+    for (layer_offsets) |offset| if (offset % 64 != 0)
+        return MetalError.CommitmentFailed;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    const handle = ffi.stwo_zig_metal_resident_merkle_prepare_v2(
+        self.handle,
+        column_offsets.ptr,
+        column_log_sizes.ptr,
+        @intCast(column_offsets.len),
+        lifting_log_size,
+        layer_offsets.ptr,
+        @intCast(layer_offsets.len),
+        &leaf_seed,
+        &node_seed,
+        domain_prefix_bytes,
+        hash_family,
+        &message,
+        message.len,
+    ) orelse {
+        std.log.err("Metal resident Merkle preparation failed: {s}", .{std.mem.sliceTo(&message, 0)});
+        return MetalError.CommitmentFailed;
+    };
+    return .{ .handle = handle, .lifting_log_size = lifting_log_size };
+}
+
+/// ABI22 staged Poseidon leaf plan. The retained plan owns the exact sorted
+/// column geometry and scratch offsets, so completed-arena adoption can require
+/// provenance from this exact encoder rather than accepting a host assertion.
+pub fn prepareStagedPoseidonResidentMerkleV1(
+    self: *Runtime,
+    column_offsets: []const u32,
+    column_log_sizes: []const u32,
+    lifting_log_size: u32,
+    layer_offsets: []const u32,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    state_offsets: [2]u32,
+) MetalError!ResidentMerklePlan {
+    if (column_offsets.len <= 16 or column_offsets.len != column_log_sizes.len or
+        lifting_log_size >= 31 or layer_offsets.len < 2 or
+        layer_offsets.len > lifting_log_size + 1 or
+        state_offsets[0] == state_offsets[1] or
+        state_offsets[0] % 64 != 0 or state_offsets[1] % 64 != 0)
+        return MetalError.CommitmentFailed;
+    if (!validDomainPrefixBytes(domain_prefix_bytes)) return MetalError.CommitmentFailed;
+    var has_distinct_log = false;
+    for (column_log_sizes, 0..) |log_size, index| {
+        if (log_size > lifting_log_size or
+            (index != 0 and column_log_sizes[index - 1] > log_size))
+            return MetalError.CommitmentFailed;
+        if (index != 0 and column_log_sizes[index - 1] != log_size)
+            has_distinct_log = true;
+    }
+    if (!has_distinct_log or column_log_sizes[column_log_sizes.len - 1] != lifting_log_size)
+        return MetalError.CommitmentFailed;
+    for (layer_offsets) |offset| if (offset % 64 != 0)
+        return MetalError.CommitmentFailed;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    const handle = ffi.stwo_zig_metal_resident_merkle_prepare_staged_poseidon_v1(
+        self.handle,
+        column_offsets.ptr,
+        column_log_sizes.ptr,
+        @intCast(column_offsets.len),
+        lifting_log_size,
+        layer_offsets.ptr,
+        @intCast(layer_offsets.len),
+        &leaf_seed,
+        &node_seed,
+        domain_prefix_bytes,
+        &state_offsets,
+        state_offsets.len,
+        &message,
+        message.len,
+    ) orelse {
+        std.log.err("Metal staged Poseidon Merkle preparation failed: {s}", .{
+            std.mem.sliceTo(&message, 0),
+        });
+        return MetalError.CommitmentFailed;
+    };
+    return .{ .handle = handle, .lifting_log_size = lifting_log_size };
+}
+
 /// Wraps a page-aligned, allocator-owned commitment arena without copying it.
 /// The caller remains the sole owner of `words`; the returned Metal buffer only
 /// retains a no-copy view and must be destroyed before the allocator frees it.

@@ -1,0 +1,27 @@
+test-recursive-common-fold-field-public-v2
++- run test 3/4 passed, 1 failed
+COMMON_FOLD_EMPTY_BOUNDARY zero_tuples=true global_contract_unchanged=true unmatched_input_rejected=true row_preflight_preserved=true
+error: 'recursive_field_statement_word_v3_test.test.field statement bridge rejects noncanonical limb aliases' failed: FIXED_WIRE_AIR_DIGEST=a897d5fa47cc47281b89f753c1c5b5af50c9f3dc6575b4a8472d2c83e1b27aef
+FIXED_WIRE_AIR anchors=2 signed_multiplicity=true missing_or_changed_anchor_rejected=true
+COMMON_FOLD_CLAIM_TRANSCRIPT bound_claims=36 legacy_suffix_preserved=true invalid_claims_rejected_before_mix=true
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+CANONICAL_FIELD_SESSION key_words=24 mutations_rejected=true role_domains_distinct=true stale_rejected_before_mix=true
+CANONICAL_PUBLIC_BOUNDARY_GRAPH calls=113 nodes=232753 checked_mutations=16 zero_denominator_rejected=true native_permutations_match=true
+COMMON_FOLD_SESSION_KEYS words=24 manifest_literals=true key_mutations_rejected=true stale_session_rejected_before_mix=true legacy_encoding_preserved=true
+COMMON_FOLD_PUBLIC_BOUNDARY_GRAPH words=450 word_challenge_claim_mutations=453 zero_denominator_rejected=true
+FIELD_PUBLIC_WORD_DIGEST=c02179e9ba469114f19ddc0ff8e1670ba61bd4dd5d0a1b14445e6799feef3017
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=0
+FIELD_PUBLIC_HASH_INTERNAL_JOIN calls=116 contributions=2336 unmatched=4
+FIELD_STATEMENT_BRIDGE_DIGEST=60daab2d7f7db0786481597b30e9a282e1b9e8a3bf307a5e417998971083e208
+expected 178, found 96
+index 0 incorrect. expected 178, found 96
+error: while executing test 'recursive_common_fold_suffix_input_boundary_v2.test.suffix input producer is tuple-derived and policy rejects wrong role', the following test command failed:
+./.zig-cache/o/b0686c000df808341832a83f306e050a/test --cache-dir=./.zig-cache --seed=0x8c4b9ea9 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 3/4 tests passed; 1 failed
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 3/4 passed, 1 failed
+   +- compile test ReleaseSafe native success 11s MaxRSS:839M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/843d5e9ed195118664d20eb1051fc395/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x8c4b9ea9 -Ze6768dcd8ac20274 --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 -Doptimize=ReleaseSafe --summary all

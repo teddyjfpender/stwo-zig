@@ -1,0 +1,48 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 407s
+test-recursive-common-fold-field-public-v2
++- run test 3/4 passed, 1 failed
+FIELD_STATEMENT_BRIDGE_DIGEST=b2befb25386395106050de88684f519c637477304505732a4a25900121253ac6
+error: 'recursive_common_fold_field_public_v2_test.test.common fold derives exact field parent and 116 Poseidon calls' failed
+error: while executing test 'recursive_common_fold_suffix_input_boundary_v2.test.suffix input producer is tuple-derived and policy rejects wrong role', the following test command failed:
+./.zig-cache/o/7f0e36415746491a3ad24fc4b92e26bc/test --cache-dir=./.zig-cache --seed=0xd546be65 --listen=-
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7860 unmatched=0 canonical_words=900
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7860 unmatched=2 canonical_words=900
+COMPOSITION_STATEMENT_BINDING words=824 literal_graph_checks=false changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70044 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+COMMON_FOLD_COMPONENT_ADMISSION components=36 reserved_row_10_inactive=true
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_EMPTY_REUSE_AB proof_sha=23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468 capture_sha=7b99da9af9acf83249d53f2ed41a9f750c70fd52647fb6d1d4c693e48395f6fd preprocessed_root={ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 } prove_ns=1357498584 prove_fresh_verify_ns=559702708 cold_open_total_ns=622487708 baseline_ns=1558662500 optimized_ns=5255625 reduction_bps=9966 q193_ns=411536084 replay_ns=86808458 graph_ns=75626292 cache_hits=3 cache_misses=1 cache_lookup_ns=133527125 cache_rebuild_ns=133524208
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=69832541 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 11/13 steps succeeded; 1 failed; 5/6 tests passed; 1 failed
+test-recursive-common-fold-field-public-v2 transitive failure
++- run test 3/4 passed, 1 failed
+   +- compile test ReleaseSafe native success 8s MaxRSS:677M
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 48s MaxRSS:5G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:87M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+check-recursive-common-fold-q193-bootstrap-v2 success
++- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bda74839e0255df849331a477c60552/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xd546be65 -Z0d34eda0b3c990c6 --maxrss 25769803776 -j1 test-recursive-common-fold-field-public-v2 test-recursive-common-fold-transcript-source-v1 test-recursive-common-canonical-empty-universal-v2-proof check-recursive-common-fold-q193-bootstrap-v2 -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,15 @@
+{
+  "gate": "small-composition",
+  "exit_code": 0,
+  "wall_ns": 24534390750,
+  "expected_test_count": 3,
+  "exact_test_count_passed": true,
+  "abba_samples_passed": true,
+  "request_manifest_and_inputs_unchanged": true,
+  "log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/small-composition.log",
+    "bytes": 254,
+    "sha256": "8553617e8d687826c168586ef211a55bead4f83125ed95fdc05cc917456e90cf"
+  },
+  "passed": true
+}

@@ -2,6 +2,10 @@
   "schema": "stwo-zig-package-release-policy-v1",
   "archive_format": "tar",
   "packages": {
+    "stwo_artifact_store": {
+      "status": "internal",
+      "reason": "The shared proof artifact store is an internal service used by proving campaigns and Metal sessions."
+    },
     "stwo_backend_contracts": {
       "status": "published",
       "reason": "Portable backend capability contracts are part of the supported Zig SDK."

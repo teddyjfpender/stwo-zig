@@ -18,7 +18,7 @@ const PublicWireTerm = dependency_0.PublicWireTerm;
 const QM31 = dependency_0.QM31;
 const Reference = dependency_0.Reference;
 const checkedAdd = dependency_0.checkedAdd;
-const computeUseCountsInto = dependency_0.computeUseCountsInto;
+const computeLaneUseCountsInto = dependency_0.computeLaneUseCountsInto;
 const coordinate = dependency_0.coordinate;
 const countGraph = dependency_0.countGraph;
 const digest = dependency_0.digest;
@@ -61,7 +61,7 @@ pub const Plan = struct {
         var mode_counts = [2]Counts{ .{}, .{} };
         var public_count: usize = 0;
         for (reference.lanes) |lane| {
-            const uses = try computeUseCountsInto(lane.graph, scratch);
+            const uses = try computeLaneUseCountsInto(lane, scratch);
             const lane_counts = try countGraph(lane.graph, uses);
             const mode_index = @intFromEnum(lane.active_in);
             mode_counts[mode_index] = try mode_counts[mode_index].add(lane_counts);
@@ -92,7 +92,7 @@ pub const Plan = struct {
         var cursors = [2]OperationCursors{ .{}, .{} };
         var public_cursor: usize = 0;
         for (reference.lanes, 0..) |lane, lane_index| {
-            const uses = try computeUseCountsInto(lane.graph, scratch);
+            const uses = try computeLaneUseCountsInto(lane, scratch);
             try fillLane(
                 lane,
                 @intCast(lane_index),
@@ -242,7 +242,7 @@ pub const Plan = struct {
         var result = QM31.zero();
         for (reference.lanes, evaluations.lanes) |lane, evaluation| {
             if (lane.active_in != selected_mode) continue;
-            const uses = try computeUseCountsInto(lane.graph, scratch);
+            const uses = try computeLaneUseCountsInto(lane, scratch);
             for (lane.graph.nodes, evaluation.values, uses, 0..) |
                 node,
                 value,

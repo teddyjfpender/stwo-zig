@@ -1,0 +1,45 @@
+test-recursive-segment-v2-witness-free-verifier
++- SegmentV2 witness-free verifier guard
+   +- run test failure
+thread 42012778 panic: composition recording scalar used outside an active builder
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:520:9: 0x104eaf533 in mul (test)
+        @panic("composition recording scalar used outside an active builder");
+        ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/composition_graph_recorder_builder.zig:453:34: 0x104ea8217 in record (test)
+                power = power.mul(alpha);
+                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig:405:45: 0x104eab74b in test.SegmentV2 witness-free recording keeps all39 claims and two provider partials symbolic (test)
+    var first_circuit = try Recording.record(first, &admitted.manifest, &layout);
+                                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x104c30677 in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x104c2ef57 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x104c2c887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x2b27ffffffffffff in ??? (???)
+error: while executing test 'recursive_segment_v2_verifier_components.test.SegmentV2 witness-free recording keeps all39 claims and two provider partials symbolic', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/727c49a3389adccd91be581b753da18f/test --cache-dir=./.zig-cache --seed=0x8c2d8c8a --listen=-
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript' failed
+error: while executing test 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript', the following test command failed:
+./.zig-cache/o/d56f758a807cb576956331707537227e/test --cache-dir=./.zig-cache --seed=0x8c2d8c8a --listen=-
+
+Build Summary: 2/8 steps succeeded; 2 failed; 4/5 tests passed; 1 failed
+test-recursive-segment-v2-witness-free-verifier transitive failure
++- SegmentV2 witness-free verifier guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 50s MaxRSS:2G
+test-recursive-segment-v2-detached-child transitive failure
++- SegmentV2 detached child guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 53s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/34502e8447e05c37acd670c68b6613fc/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x8c2d8c8a -Z15212ba0b924d77d --maxrss 25769803776 -j1 test-recursive-segment-v2-witness-free-verifier test-recursive-segment-v2-detached-child -Doptimize=ReleaseSafe --summary all

@@ -1,0 +1,85 @@
+{
+  "version": 2,
+  "endpoint": "fixed_wrapper_tree0_admission_comparison",
+  "passed": true,
+  "full_wrapper_proof": false,
+  "real_ethereum_block_proof": false,
+  "cpu_metal_roots_equal": true,
+  "prior_independently_verified_key_root_equal": true,
+  "expected_key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+  "columns": 619,
+  "lifting_log": 25,
+  "host_workers": 1,
+  "cpu_bounded_tail_reuse": true,
+  "metal_bounded_tail_reuse": false,
+  "cpu_pcs_commit_ns": 268804677666,
+  "metal_pcs_commit_ns": 7768282875,
+  "commit_speedup": 34.60284363885243,
+  "cpu_preprocessed_fill_and_commit_ns": 274001287167,
+  "probe_preprocessed_copy_ns": 5348303292,
+  "cohort_destruction_ns": 1449371375,
+  "metal_runtime_initialization_ns": 81649666,
+  "total_test_ns": 465804882625,
+  "process_lifetime_peak_footprint_bytes": 32193470320,
+  "sampled_stop_bytes": 34359738368,
+  "cohort_destroyed_before_metal": true,
+  "source_bytes": 4559583744,
+  "retained_coefficient_backing_bytes": 4559583744,
+  "source_adopted": true,
+  "additional_coefficient_bytes": 0,
+  "lde_bytes": 9119167488,
+  "metal_merkle_commits": 1,
+  "host_merkle_fallbacks": 0,
+  "metal_hash_route": "direct-lifted-leaves",
+  "modeled_column_reads": 20770193408,
+  "modeled_leaf_permutations": 2617245696,
+  "route_evidence": "completed telemetry epoch and existing shared admission predicate",
+  "aot_manifest_sha256": "d51ffc6f4de6307c47604c67a352f724f3763d798f188ab86ab71c226013acba",
+  "aot_metallib_sha256": "9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7",
+  "limitations": [
+    "One same-request measurement, not a statistical benchmark.",
+    "Metal stage used copied admitted preprocessing after destroying unrelated Cohort; this does not establish production Metal Cohort peak.",
+    "Process peak is lifetime-wide and occurred during CPU admission; it is not GPU-only memory.",
+    "This compares fixed wrapper Tree0 commitment, not end-to-end proving or a real block.",
+    "The direct-wide route performs more modeled hash work than native-height CPU reuse, despite lower observed wall time.",
+    "No CSP benchmark promotion from this measurement."
+  ],
+  "files": {
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-plan.json": {
+      "sha256": "2678a393c985892126db7d42870c182e83f078f5b5c14afeb3f515569fb0a69f",
+      "bytes": 2413
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-receipt.json": {
+      "sha256": "58e8bf62059c17acbc59ae5fa117338ab62596847522650e350057014e7558d7",
+      "bytes": 1309
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-run.py": {
+      "sha256": "cc9ff8b1b44334e885cf73fa2d6ac048d1c08cd416bf69f8e9e54e1bd9ed3181",
+      "bytes": 5375
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-stderr.log": {
+      "sha256": "ff7a628e5986fcb4695199ce48ffaec6774d1b01fdc1b276b550c3acc7721c0c",
+      "bytes": 9576
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-progress.log": {
+      "sha256": "a8bb31108c3adda17870e90aba22b870021b2a5431a3f6e5300277ff497aeffc",
+      "bytes": 8372
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-process-samples.ndjson": {
+      "sha256": "d30bae7376a3b1f3eb03fbf1024b08ba60a9d647f769713668bb83f34b420fc2",
+      "bytes": 29426
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-binary-retention.json": {
+      "sha256": "52dbe6c5d2fbb4ffc2c5533a54cdc3e7eea5dcade85ad5d92f7177bb1c1ef2dd",
+      "bytes": 1254
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-cpu-metal-v2-compile.log": {
+      "sha256": "5c2999c6501e95c9926959a1d60f3fbd63e0aa210f5ea4015e0897b80e979da2",
+      "bytes": 243
+    },
+    "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-field-wrapper-v1/tree0-grouped-storage-gates-v3.log": {
+      "sha256": "b23482fa0b78556769f8fd56304696e37b4a6b0953f4d67c9b1aa1a7cdc43b8f",
+      "bytes": 455
+    }
+  }
+}

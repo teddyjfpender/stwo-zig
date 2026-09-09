@@ -53,8 +53,7 @@ pub fn Namespace(comptime context: type) type {
             provider_relations: *const shared_provider.SharedProviderRelations,
             generated: *const NativeSegmentCoreGeneratedV2,
         ) !NativeSegmentCoreComponentsV2 {
-            try self.validateAgainstManifest(manifest);
-            try generated.validateAgainst(self, relations, provider_relations);
+            try generated.validateForManifest(self, manifest, relations, provider_relations);
             const authority = &self.authority;
             const logs = authority.log_sizes;
             return .{
@@ -224,7 +223,7 @@ pub fn Namespace(comptime context: type) type {
                 .poseidon2 = try V2Poseidon2Adapter.init(
                     manifest,
                     logs[LogIndex.poseidon2],
-                    @intCast(self.poseidon_calls.calls.len),
+                    @intCast(self.poseidonCallCount()),
                     provider_relations,
                     relations,
                     generated.poseidon2_partials,

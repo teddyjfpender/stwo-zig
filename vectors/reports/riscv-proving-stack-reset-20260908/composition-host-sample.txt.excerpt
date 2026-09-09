@@ -1,0 +1,75 @@
+Analysis of sampling ethereum-prepared-leaf-metal-v1 (pid 75019) every 1 millisecond
+Process:         ethereum-prepared-leaf-metal-v1 [75019]
+Path:            /Users/USER/*/ethereum-prepared-leaf-metal-v1
+Load Address:    0x10034c000
+Identifier:      ethereum-prepared-leaf-metal-v1
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  time [75018]
+
+Date/Time:       2026-09-08 18:19:28.376 +0400
+Launch Time:     2026-09-08 18:15:58.226 +0400
+OS Version:      macOS 15.3.1 (24D70)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         25.3G
+Physical footprint (peak):  29.7G
+Idle exit:                  untracked
+----
+
+Call graph:
+    841 Thread_40953350   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 841 start  (in dyld) + 2840  [0x19bcdc274]
+    +   841 main  (in ethereum-prepared-leaf-metal-v1) + 5924  [0x100498108]
+    +     841 ethereum_incremental_full_leaf_replay_command_v4.runWithEnginesInternal__anon_8385  (in ethereum-prepared-leaf-metal-v1) + 30216  [0x100491cec]
+    +       841 ethereum_incremental_full_leaf_prepared_replay_producer_v4.produceAllocWithRecorderAndTiming__anon_15357  (in ethereum-prepared-leaf-metal-v1) + 22436  [0x10043d0a8]
+    +         841 prover.incremental_ethereum_orchestration_v3.provePreparedAfterAdmission__anon_29338  (in ethereum-prepared-leaf-metal-v1) + 27664  [0x10042b718]
+    +           841 prove.proveExComponentsWithRecorder__anon_55280  (in ethereum-prepared-leaf-metal-v1) + 3332  [0x100501dcc]
+    +             841 runtime.base_polynomial_composition.evaluateInternal  (in ethereum-prepared-leaf-metal-v1) + 9936  [0x100733e88]
+    +               841 runtime.base_polynomial_host_graph.Worker.runLegacy  (in ethereum-prepared-leaf-metal-v1) + 88  [0x10073c228]
+    +                 841 air.derive.ComponentAdapter(air.guest_precompile.keccakf_component.KeccakShardComponent,air.component_prover.ComponentProver,air.component_trace.Trace,air.accumulation.DomainEvaluationAccumulator).evaluateConstraintQuotientsOnDomain  (in ethereum-prepared-leaf-metal-v1) + 140  [0x1006b2f0c]
+    +                   418 air.guest_precompile.keccakf_component.PreparedDomainState.run  (in ethereum-prepared-leaf-metal-v1) + 528,876,...  [0x1007ac770,0x1007ac8cc,...]
+    +                   330 air.guest_precompile.keccakf_component.PreparedDomainState.run  (in ethereum-prepared-leaf-metal-v1) + 6452  [0x1007ade94]
+    +                   ! 330 air.logup.pairConstraintGeneric__anon_230054  (in ethereum-prepared-leaf-metal-v1) + 76,56,...  [0x100780458,0x100780444,...]
+    +                   90 air.guest_precompile.keccakf_component.PreparedDomainState.run  (in ethereum-prepared-leaf-metal-v1) + 6160  [0x1007add70]
+    +                   ! 49 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 1024  [0x10069ac04]
+    +                   ! : 49 air.relation_challenges.RelationElements(6).combineBase  (in ethereum-prepared-leaf-metal-v1) + 312,264,...  [0x10069bdd4,0x10069bda4,...]
+    +                   ! 15 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 1652,1084,...  [0x10069ae78,0x10069ac40,...]
+    +                   ! 13 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 1920  [0x10069af84]
+    +                   ! : 13 air.relation_challenges.RelationElements(6).combineBase  (in ethereum-prepared-leaf-metal-v1) + 312,112,...  [0x10069bdd4,0x10069bd0c,...]
+    +                   ! 3 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 816  [0x10069ab34]
+    +                   ! : 3 _platform_memset  (in libsystem_platform.dylib) + 72  [0x19c092788]
+    +                   ! 3 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 3780  [0x10069b6c8]
+    +                   ! : 3 air.relation_challenges.RelationElements(7).combineBase  (in ethereum-prepared-leaf-metal-v1) + 256,280,...  [0x10051fba8,0x10051fbc0,...]
+    +                   ! 2 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 4428  [0x10069b950]
+    +                   ! : 2 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+    +                   ! 2 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 4820  [0x10069bad8]
+    +                   ! : 2 _platform_memmove  (in libsystem_platform.dylib) + 88  [0x19c092a68]
+    +                   ! 1 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 2272  [0x10069b0e4]
+    +                   ! : 1 air.relation_challenges.RelationElements(109).combineBase  (in ethereum-prepared-leaf-metal-v1) + 72  [0x1007d6d28]
+    +                   ! :   1 _platform_memmove  (in libsystem_platform.dylib) + 24  [0x19c092a28]
+    +                   ! 1 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 4788  [0x10069bab8]
+    +                   ! : 1 _platform_memmove  (in libsystem_platform.dylib) + 180  [0x19c092ac4]
+    +                   ! 1 air.guest_precompile.keccakf_interaction_plan.rowPairsBase  (in ethereum-prepared-leaf-metal-v1) + 4844  [0x10069baf0]
+    +                   !   1 _platform_memmove  (in libsystem_platform.dylib) + 112  [0x19c092a80]
+    +                   2 air.guest_precompile.keccakf_component.PreparedDomainState.run  (in ethereum-prepared-leaf-metal-v1) + 648  [0x1007ac7e8]
+    +                   ! 2 _platform_memset  (in libsystem_platform.dylib) + 140  [0x19c0927cc]
+    +                   1 air.logup.pairConstraintGeneric__anon_230054  (in ethereum-prepared-leaf-metal-v1) + 6836  [0x100781ec0]
+    841 Thread_40953393
+    + 841 start_wqthread  (in libsystem_pthread.dylib) + 8  [0x19c0570f0]
+    +   841 _pthread_wqthread  (in libsystem_pthread.dylib) + 364  [0x19c058424]
+    +     841 __workq_kernreturn  (in libsystem_kernel.dylib) + 8  [0x19c01cba4]
+    841 Thread_40956143
+      841 start_wqthread  (in libsystem_pthread.dylib) + 8  [0x19c0570f0]
+        841 _pthread_wqthread  (in libsystem_pthread.dylib) + 364  [0x19c058424]
+          841 __workq_kernreturn  (in libsystem_kernel.dylib) + 8  [0x19c01cba4]
+
+Total number in stack (recursive counted multiple, when >=5):
+        5       _platform_memmove  (in libsystem_platform.dylib) + 0  [0x19c092a10]
+
+Sort by top of stack, same collapsed (when >= 5):
+        __workq_kernreturn  (in libsystem_kernel.dylib)        1682
+        air.guest_precompile.keccakf_component.PreparedDomainState.run  (in ethereum-prepared-leaf-metal-v1)        418
+        air.logup.pairConstraintGeneric__anon_230054  (in ethereum-prepared-leaf-metal-v1)        331

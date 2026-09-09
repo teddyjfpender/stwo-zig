@@ -1,0 +1,329 @@
+{
+  "timestamp": "2026-09-08T07:11:59.162078+00:00",
+  "status": "deliberately_stopped_after_before_production_measurement",
+  "test_pid": 48195,
+  "signal": "SIGTERM",
+  "signal_only_after_exact_marker": true,
+  "serialized_bytes": 87326,
+  "producer_allocator_live_bytes_after_destruction": 0,
+  "producer_only_phases": {
+    "prepare": {
+      "components": 36,
+      "ns": 1795987445292,
+      "process_cpu_ns": 1743012168125,
+      "current_footprint_bytes": 31860678416,
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    "tree2_generate": {
+      "components": 36,
+      "ns": 170699444167,
+      "process_cpu_ns": 169235538292,
+      "current_footprint_bytes": 31860825944,
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    "producer_closure": {
+      "components": 36,
+      "ns": 15833,
+      "process_cpu_ns": 15125,
+      "current_footprint_bytes": 31860825944,
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    "serialize": {
+      "components": 36,
+      "ns": 553584,
+      "process_cpu_ns": 351125,
+      "current_footprint_bytes": 31860940656,
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "allocator_live_bytes": 29483716156,
+      "allocator_peak_bytes": 74801485871
+    },
+    "producer_destroy": {
+      "components": 36,
+      "ns": 14592867916,
+      "process_cpu_ns": 4382698208,
+      "current_footprint_bytes": 1974700816,
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "allocator_live_bytes": 0,
+      "allocator_peak_bytes": 74801485871
+    }
+  },
+  "native_ingress_phases": {
+    "cold_open": {
+      "source": "darwin_proc_pid_rusage_v6",
+      "wall_ns": 85091821125,
+      "process_cpu_ns": 85056572459,
+      "parallelism_milli": 999,
+      "peak_footprint_bytes": 1706608368,
+      "energy_nj": 365588243059,
+      "instructions": 1440351131525,
+      "cycles": 339250522836,
+      "workers": 1,
+      "host_byte_budget": 17179869184
+    },
+    "campaign": {
+      "source": "darwin_proc_pid_rusage_v6",
+      "wall_ns": 150792046167,
+      "process_cpu_ns": 150728050542,
+      "parallelism_milli": 999,
+      "peak_footprint_bytes": 1706608368,
+      "energy_nj": 543917611469,
+      "instructions": 1026105826643,
+      "cycles": 601888649309,
+      "workers": 1,
+      "host_byte_budget": 17179869184
+    },
+    "materialize": {
+      "source": "darwin_proc_pid_rusage_v6",
+      "wall_ns": 133191122792,
+      "process_cpu_ns": 133135704250,
+      "parallelism_milli": 999,
+      "peak_footprint_bytes": 3002027176,
+      "energy_nj": 493453443232,
+      "instructions": 1029608500616,
+      "cycles": 531581934198,
+      "workers": 1,
+      "host_byte_budget": 17179869184
+    }
+  },
+  "cohort_resource_subphases": {
+    "begin": {
+      "wall_ns": 42,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 30505474776,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "geometry-ready": {
+      "wall_ns": 305984362375,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 30505474776,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "prefix-rows": {
+      "wall_ns": 26206997041,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 31424601488,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "suffix-rows": {
+      "wall_ns": 231013831334,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 31859482360,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "provider-main": {
+      "wall_ns": 41646244541,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 31893053200,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-begin": {
+      "wall_ns": 207584,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 31893053200,
+      "ledger_present": "true",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-reserved": {
+      "wall_ns": 984500,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 31893053200,
+      "ledger_present": "true",
+      "ledger_len": 0,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-prefix": {
+      "wall_ns": 17868983541,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 41241786680,
+      "ledger_present": "true",
+      "ledger_len": 68953678,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 9377700208,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-suffix": {
+      "wall_ns": 4298125834,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 43420188496,
+      "ledger_present": "true",
+      "ledger_len": 84963552,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 11555043072,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-native": {
+      "wall_ns": 57618571875,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "ledger_present": "true",
+      "ledger_len": 166400087,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 22630411832,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "range-provider": {
+      "wall_ns": 5964402500,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "ledger_present": "true",
+      "ledger_len": 166400537,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 22630473032,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-range": {
+      "wall_ns": 3291125,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "ledger_present": "true",
+      "ledger_len": 166400671,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 22630491256,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-classified": {
+      "wall_ns": 207364137125,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "ledger_present": "true",
+      "ledger_len": 166400671,
+      "ledger_capacity": 316974724,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 22630491256,
+      "ledger_capacity_bytes": 43108562464,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    },
+    "ledger-released": {
+      "wall_ns": 60294953666,
+      "source": "darwin_proc_pid_rusage_v6",
+      "lifetime_peak_footprint_bytes": 56225850168,
+      "ledger_present": "false",
+      "ledger_len": 0,
+      "ledger_capacity": 0,
+      "tuple_record_bytes": 136,
+      "ledger_used_bytes": 0,
+      "ledger_capacity_bytes": 0,
+      "ledger_bytes_overflow": "false",
+      "sampling_unavailable": "none"
+    }
+  },
+  "producer_phase_sum_seconds": 1981.280326792,
+  "native_ingress_phase_sum_seconds": 369.074990084,
+  "prepare_subphase_sum_seconds": 958.265093083,
+  "prepare_outside_internal_cohort_resource_spans_seconds": 837.722352209,
+  "residual_interpretation": "Residual includes outer Geometry.init and any work outside logged internal Cohort spans; not an attributed kernel measurement",
+  "physical_peak_bytes": 56225850168,
+  "allocator_peak_bytes": 74801485871,
+  "cold_prepare_started": true,
+  "independent_cold_reconstruction_completed": false,
+  "complete_replay_pass": false,
+  "wrapper_proof_pass": false,
+  "supervisor_terminal": {
+    "status": "failed",
+    "pid": 48069,
+    "started_at": "2026-09-08T06:27:31.200621+00:00",
+    "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+    "child_pid": 48071,
+    "exit_code": 1,
+    "wall_seconds": 2459.027904875111,
+    "finished_at": "2026-09-08T07:08:30.142281+00:00"
+  },
+  "codec_test": {
+    "status": "separate_failure_reported_in_test_results",
+    "name": "Ethereum cohort replay publication preserves absent and present initial claims",
+    "runner_observation": "Zig0.15.2 Run.zig records named fail only from TestResults.flags.fail; SIGTERM is separately attributed to active cohort test. Diagnostic has no error trace in stripped binary.",
+    "cause_resolved": false,
+    "isolated_investigation_owner": "initial_rows_gate",
+    "no_isolated_test_launched_by_monitor": true
+  },
+  "files": {
+    "request.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/request.json",
+      "bytes": 2437,
+      "sha256": "4e010926dd1b6cc3dee171d0245732297d5164d6606457a21e177c9e099ba8b0"
+    },
+    "execution.json": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/execution.json",
+      "bytes": 319,
+      "sha256": "f779bd3468345713660cc11651e130c8605ebcea4233b58da2ea026445ae1318"
+    },
+    "progress.log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/progress.log",
+      "bytes": 7253,
+      "sha256": "b9fc3d58cf73d2a83fba60301d18ad70d88e181f840586c663f8bb5c8615e48f"
+    },
+    "replay.log": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v2/replay.log",
+      "bytes": 10022,
+      "sha256": "532fdc5c2a9e353cf8f6a72c6cb6c4bc3216288da312a3bceedd0ede2d7cf22d"
+    }
+  }
+}

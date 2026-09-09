@@ -28,9 +28,32 @@ pub const DEFAULT_MAX_OUTPUT_WORDS: u32 = 1025;
 pub const Shape = claim_witness.Shape;
 pub const Digest = channel.Digest;
 
+/// Application-visible public input, without unrelated VM execution state.
+pub const PublicInputProjection = struct {
+    start: u32,
+    len: u32,
+    words: []const u32,
+};
+
+/// One application-visible public output word. Access clocks are deliberately
+/// absent: the public-output digest never commits proof-only predecessor clocks.
+pub const PublicOutputValue = struct {
+    addr: u32,
+    value: u32,
+};
+
+/// Application-visible public output, without unrelated VM execution state.
+pub const PublicOutputProjection = struct {
+    len_addr: u32,
+    data_addr: u32,
+    len: u32,
+    words: []const PublicOutputValue,
+};
+
 pub const Error = public_data_mod.ValidationError || claim_witness.Error ||
     std.mem.Allocator.Error || error{
     HaltFlagCompletionRequiresClaimV2,
+    CompletionMismatch,
     LengthOutOfRange,
     MissingCompletion,
     NonCanonicalRoot,
@@ -131,6 +154,23 @@ pub const Encoded = struct {
 
     pub fn validateAgainst(self: *const Encoded, data: *const public_data_mod.PublicData) Error!void {
         try validateProfile(data);
+        try self.validatePayload();
+    }
+
+    /// Versioned validation for a claim whose completion is constrained by a
+    /// separate authenticated V4 public-semantics row.  The claim bytes and
+    /// hash domain remain the frozen V1 values; no completion is relabelled or
+    /// silently omitted.
+    pub fn validateAgainstBoundCompletionV4(
+        self: *const Encoded,
+        data: *const public_data_mod.PublicData,
+        completion: public_data_mod.Completion,
+    ) Error!void {
+        try validateBoundCompletionV4(data, completion);
+        try self.validatePayload();
+    }
+
+    fn validatePayload(self: *const Encoded) Error!void {
         if (self.words.len != try self.shape.wordCount())
             return error.WordCountMismatch;
         const actual_digest = channel.hashCanonicalWords(self.words, VM_PUBLIC_CLAIM_HASH_DOMAIN);
@@ -151,6 +191,31 @@ pub fn encode(
     shape: Shape,
 ) Error!Encoded {
     try validateProfile(data);
+    return encodeValidated(allocator, data, shape);
+}
+
+/// Frozen claim codec with a separately authenticated V4 completion.  This
+/// intentionally emits byte-for-byte the same claim/hash as `encode`; the
+/// extra argument only prevents the legacy self-loop profile guard from
+/// misrepresenting a real kind-3 completion.
+pub fn encodeWithBoundCompletionV4(
+    allocator: std.mem.Allocator,
+    data: *const public_data_mod.PublicData,
+    shape: Shape,
+    completion: public_data_mod.Completion,
+) Error!Encoded {
+    try validateBoundCompletionV4(data, completion);
+    var result = try encodeValidated(allocator, data, shape);
+    errdefer result.deinit();
+    try result.validateAgainstBoundCompletionV4(data, completion);
+    return result;
+}
+
+fn encodeValidated(
+    allocator: std.mem.Allocator,
+    data: *const public_data_mod.PublicData,
+    shape: Shape,
+) Error!Encoded {
     try validateCapacity(data, shape);
     const count = try shape.wordCount();
     const words = try allocator.alloc(M31, count);
@@ -207,7 +272,7 @@ pub fn encode(
         .public_input_digest = try publicInputDigestFromClaim(words, shape),
         .public_output_digest = try publicOutputDigestFromClaim(words, shape),
     };
-    try result.validateAgainst(data);
+    try result.validatePayload();
     return result;
 }
 
@@ -251,6 +316,210 @@ pub fn publicOutputDigestFromClaim(words: []const M31, shape: Shape) Error!Diges
     return hasher.finalize();
 }
 
+/// Hashes the canonical public-input projection directly from validated VM
+/// data. This is exactly the input portion of the immutable V1 claim layout,
+/// but it does not inherit that envelope's self-loop-only completion policy.
+/// Versioned segmented jobs can therefore bind a real halt-flag transport
+/// without constructing or pretending to admit a V1 claim.
+pub fn publicInputDigestFromData(
+    data: *const public_data_mod.PublicData,
+    shape: Shape,
+) Error!Digest {
+    try validateTransportDigestSource(data, shape);
+    return publicInputDigestFromProjection(.{
+        .start = data.io_entries.input_start,
+        .len = data.io_entries.input_len,
+        .words = data.io_entries.input_words,
+    }, shape);
+}
+
+/// Hashes and validates exactly the clock-free public-input projection. This
+/// is the canonical helper for segmented materialization, where no fictitious
+/// whole-execution register or access-clock state may be constructed merely to
+/// derive an application transport digest.
+pub fn publicInputDigestFromProjection(
+    input: PublicInputProjection,
+    shape: Shape,
+) Error!Digest {
+    try validateInputProjection(input, shape);
+    var hasher = channel.CanonicalWordHasher.init(PUBLIC_INPUT_HASH_DOMAIN);
+    hashScalar(&hasher, @intFromEnum(Tag.public_input));
+    hashU32(&hasher, shape.max_input_words);
+    hashU32(&hasher, input.start);
+    hashU32(&hasher, input.len);
+    hashLength(&hasher, input.words.len) catch
+        return error.LengthOutOfRange;
+    for (0..shape.max_input_words) |index| {
+        const present = index < input.words.len;
+        hashScalar(&hasher, @intFromBool(present));
+        hashU32(&hasher, if (present) input.words[index] else 0);
+    }
+    return hasher.finalize();
+}
+
+/// Hashes the canonical public-output projection directly from validated VM
+/// data. Proof-only predecessor clocks remain deliberately excluded, exactly
+/// as in `publicOutputDigestFromClaim`.
+pub fn publicOutputDigestFromData(
+    data: *const public_data_mod.PublicData,
+    shape: Shape,
+) Error!Digest {
+    try validateTransportDigestSource(data, shape);
+    return publicOutputDigestFromParts(
+        data.io_entries.output_len_addr,
+        data.io_entries.output_data_addr,
+        data.io_entries.output_len,
+        data.io_entries.output_words,
+        shape,
+    );
+}
+
+/// Hashes and validates exactly the clock-free public-output projection.
+pub fn publicOutputDigestFromProjection(
+    output: PublicOutputProjection,
+    shape: Shape,
+) Error!Digest {
+    try validateOutputProjection(output, shape);
+    return publicOutputDigestFromParts(
+        output.len_addr,
+        output.data_addr,
+        output.len,
+        output.words,
+        shape,
+    );
+}
+
+fn publicOutputDigestFromParts(
+    len_addr: u32,
+    data_addr: u32,
+    len: u32,
+    words: anytype,
+    shape: Shape,
+) Error!Digest {
+    var hasher = channel.CanonicalWordHasher.init(PUBLIC_OUTPUT_HASH_DOMAIN);
+    hashScalar(&hasher, @intFromEnum(Tag.public_output));
+    hashU32(&hasher, shape.max_output_words);
+    hashU32(&hasher, len_addr);
+    hashU32(&hasher, data_addr);
+    hashU32(&hasher, len);
+    hashLength(&hasher, words.len) catch
+        return error.LengthOutOfRange;
+    for (0..shape.max_output_words) |index| {
+        const present = index < words.len;
+        hashScalar(&hasher, @intFromBool(present));
+        hashU32(&hasher, if (present) words[index].addr else 0);
+        hashU32(&hasher, if (present) words[index].value else 0);
+    }
+    return hasher.finalize();
+}
+
+fn validateInputProjection(input: PublicInputProjection, shape: Shape) Error!void {
+    _ = try shape.wordCount();
+    if (input.words.len > shape.max_input_words)
+        return error.VectorExceedsShape;
+    const expected_words_u32 = std.math.divCeil(u32, input.len, 4) catch unreachable;
+    const expected_words = std.math.cast(usize, expected_words_u32) orelse
+        return error.InputWordCountMismatch;
+    if (input.words.len != expected_words)
+        return error.InputWordCountMismatch;
+    _ = std.math.add(u32, input.start, input.len) catch
+        return error.InputAddressOverflow;
+    if (input.words.len != 0) {
+        const last_index = std.math.cast(u32, input.words.len - 1) orelse
+            return error.InputAddressOverflow;
+        const last_offset = std.math.mul(u32, last_index, 4) catch
+            return error.InputAddressOverflow;
+        _ = std.math.add(u32, input.start, last_offset) catch
+            return error.InputAddressOverflow;
+    }
+    const used_bytes = input.len & 3;
+    if (used_bytes != 0) {
+        const used_bits: u5 = @intCast(used_bytes * 8);
+        const used_mask = (@as(u32, 1) << used_bits) - 1;
+        if ((input.words[input.words.len - 1] & ~used_mask) != 0)
+            return error.NonCanonicalInputPadding;
+    }
+}
+
+fn validateOutputProjection(output: PublicOutputProjection, shape: Shape) Error!void {
+    _ = try shape.wordCount();
+    if (output.words.len > shape.max_output_words)
+        return error.VectorExceedsShape;
+    if ((output.len_addr & 3) != 0)
+        return error.MisalignedOutputLengthAddress;
+    if ((output.data_addr & 3) != 0)
+        return error.MisalignedOutputDataAddress;
+    if (output.words.len == 0) {
+        if (output.len != 0) return error.OutputWordCountMismatch;
+        return;
+    }
+
+    const data_word_count = if (output.len == 0) 0 else blk: {
+        const end = std.math.add(u32, output.data_addr, output.len) catch
+            return error.OutputAddressOverflow;
+        const end_aligned = (@as(u64, end) + 3) & ~@as(u64, 3);
+        break :blk std.math.cast(
+            usize,
+            (end_aligned - output.data_addr) / 4,
+        ) orelse return error.OutputAddressOverflow;
+    };
+    const expected_count = std.math.add(usize, data_word_count, 1) catch
+        return error.OutputWordCountMismatch;
+    if (output.words.len != expected_count)
+        return error.OutputWordCountMismatch;
+    const length_word = output.words[0];
+    if (length_word.addr != output.len_addr)
+        return error.OutputWordAddressMismatch;
+    if (length_word.value != output.len)
+        return error.OutputLengthWordMismatch;
+    for (output.words[1..], 0..) |word, index| {
+        const word_index = std.math.cast(u32, index) orelse
+            return error.OutputAddressOverflow;
+        const offset = std.math.mul(u32, word_index, 4) catch
+            return error.OutputAddressOverflow;
+        const expected_addr = std.math.add(u32, output.data_addr, offset) catch
+            return error.OutputAddressOverflow;
+        if (expected_addr == output.len_addr)
+            return error.OverlappingOutputRegions;
+        if (word.addr != expected_addr)
+            return error.OutputWordAddressMismatch;
+    }
+}
+
+fn validateTransportDigestSource(
+    data: *const public_data_mod.PublicData,
+    shape: Shape,
+) Error!void {
+    try data.validate();
+    for ([_]?u32{ data.program_root, data.initial_rw_root, data.final_rw_root }) |root| {
+        if (root) |value| if (value >= m31.Modulus) return error.NonCanonicalRoot;
+    }
+    try validateCapacity(data, shape);
+}
+
+fn hashScalar(hasher: *channel.CanonicalWordHasher, value: u32) void {
+    const word = [_]M31{M31.fromCanonical(value)};
+    hasher.update(&word);
+}
+
+fn hashU32(hasher: *channel.CanonicalWordHasher, value: u32) void {
+    const words = [_]M31{
+        M31.fromCanonical(value & 0xffff),
+        M31.fromCanonical(value >> 16),
+    };
+    hasher.update(&words);
+}
+
+fn hashLength(
+    hasher: *channel.CanonicalWordHasher,
+    value: usize,
+) error{LengthOutOfRange}!void {
+    hashU32(
+        hasher,
+        std.math.cast(u32, value) orelse return error.LengthOutOfRange,
+    );
+}
+
 fn validateProfile(data: *const public_data_mod.PublicData) Error!void {
     try data.validate();
     for ([_]?u32{ data.program_root, data.initial_rw_root, data.final_rw_root }) |root| {
@@ -259,6 +528,18 @@ fn validateProfile(data: *const public_data_mod.PublicData) Error!void {
     const completion = data.completion orelse return error.MissingCompletion;
     if (completion.kind != .unretired_self_loop)
         return error.HaltFlagCompletionRequiresClaimV2;
+}
+
+fn validateBoundCompletionV4(
+    data: *const public_data_mod.PublicData,
+    completion: public_data_mod.Completion,
+) Error!void {
+    try data.validate();
+    for ([_]?u32{ data.program_root, data.initial_rw_root, data.final_rw_root }) |root| {
+        if (root) |value| if (value >= m31.Modulus) return error.NonCanonicalRoot;
+    }
+    const retained = data.completion orelse return error.MissingCompletion;
+    if (!std.meta.eql(retained, completion)) return error.CompletionMismatch;
 }
 
 fn validateCapacity(data: *const public_data_mod.PublicData, shape: Shape) Error!void {

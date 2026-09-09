@@ -1,0 +1,48 @@
+{
+  "scope": "Seven CPU parent producers consume actual Metal-origin children through an eight-segment tree, each exiting before 25 fresh cases. All node bytes match independently admitted CPU counterparts. Time includes all hostile gates and process startup; excludes existing native children.",
+  "process_ns": 29059587500,
+  "rows": [
+    {
+      "node": "pair-0",
+      "level": 1,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-pair-0-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "pair-1",
+      "level": 1,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-pair-1-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "pair-2",
+      "level": 1,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-pair-2-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "pair-3",
+      "level": 1,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-pair-3-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "level2-0",
+      "level": 2,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-level2-0-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "level2-1",
+      "level": 2,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-level2-1-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    },
+    {
+      "node": "root",
+      "level": 3,
+      "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-metal-8-root-accepted.json",
+      "cpu_metal_artifacts_identical": true
+    }
+  ]
+}

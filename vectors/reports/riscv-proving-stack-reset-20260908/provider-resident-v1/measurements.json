@@ -1,0 +1,168 @@
+{
+  "scope": "Single complete-tree observations and same-input diagnostic root; not paired medians, not strict GPU-only proving",
+  "complete_tree": {
+    "parity": {
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-parity.json",
+      "receipt_sha256": "39f1493d6e0fca3bf93bace60a339602dae0b74644620b9a120d59a40963d40f",
+      "production_ns": 129725913791,
+      "complete_gate_ns": 133931057708,
+      "maximum_rss_bytes": 4442767360,
+      "passed": true,
+      "artifact_count": 21
+    },
+    "timing": {
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-timing.json",
+      "receipt_sha256": "30b95312db365f838b83a261d74edcadcc06ed5f9a9a55d6e869d2d2d97c5c6e",
+      "production_ns": 61206018706,
+      "complete_gate_ns": 65009552667,
+      "maximum_rss_bytes": 4381343744,
+      "passed": true,
+      "artifact_count": 21
+    }
+  },
+  "root": {
+    "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/root-metal-timing.json",
+    "receipt_sha256": "c8cf14b260861811cb9e1501df9a6c83b0d70c3dffac8f63a4ef17f709854197",
+    "request_ns": 10311360125,
+    "stages": [
+      {
+        "id": "parent.fixed",
+        "label": "Fixed columns and key admission",
+        "seconds": 0.598791,
+        "children": null
+      },
+      {
+        "id": "parent.main_fill",
+        "label": "Main column allocation",
+        "seconds": 0.038042,
+        "children": null
+      },
+      {
+        "id": "parent.main_finalize",
+        "label": "Main filling, range construction and exact lookup closure",
+        "seconds": 2.59281,
+        "children": null
+      },
+      {
+        "id": "parent.main_commit",
+        "label": "Main commitment",
+        "seconds": 0.680613,
+        "children": null
+      },
+      {
+        "id": "parent.interaction_fill",
+        "label": "Transcript and interaction columns",
+        "seconds": 1.659701,
+        "children": null
+      },
+      {
+        "id": "parent.interaction_commit",
+        "label": "Interaction commitment",
+        "seconds": 0.351266,
+        "children": null
+      },
+      {
+        "id": "parent.components",
+        "label": "Typed component assembly",
+        "seconds": 0.00343,
+        "children": null
+      },
+      {
+        "id": "draw_random_coeff",
+        "label": "Draw random coefficient",
+        "seconds": 2e-06,
+        "children": null
+      },
+      {
+        "id": "composition_trace_extract",
+        "label": "Composition trace extract",
+        "seconds": 1.2e-05,
+        "children": null
+      },
+      {
+        "id": "composition_evaluation",
+        "label": "Composition evaluation",
+        "seconds": 0.163565,
+        "children": null
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "label": "Composition interpolate and split",
+        "seconds": 0.002814,
+        "children": null
+      },
+      {
+        "id": "composition_commit",
+        "label": "Composition commit",
+        "seconds": 0.028171,
+        "children": null
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "label": "OODS point and mask points",
+        "seconds": 0.000139,
+        "children": null
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "label": "Sampled-value evaluation",
+        "seconds": 0.049323,
+        "children": null
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "label": "Sampled-value channel mix",
+        "seconds": 0.00078,
+        "children": null
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 0.096068,
+        "children": null
+      },
+      {
+        "id": "proof_of_work",
+        "label": "Proof of work",
+        "seconds": 0.004998,
+        "children": null
+      },
+      {
+        "id": "fri_decommit",
+        "label": "FRI decommit",
+        "seconds": 0.006153,
+        "children": null
+      },
+      {
+        "id": "trace_decommit",
+        "label": "Trace decommit",
+        "seconds": 0.008712,
+        "children": null
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "label": "Constraint check and assembly",
+        "seconds": 0.0003,
+        "children": null
+      },
+      {
+        "id": "parent.serialize",
+        "label": "Canonical proof serialization",
+        "seconds": 0.009701,
+        "children": null
+      }
+    ],
+    "metal": {
+      "dispatches": 119,
+      "poseidon_commits": 9,
+      "cpu_fallbacks": 0,
+      "host_composition_components": 0,
+      "pow_dispatches": 2,
+      "framework_dispatches": 30,
+      "manifest_sha256": "98703ad708efeb6aee92403f0d818498fb97b91174b3a597b42925d64fd82da7",
+      "profile": "recursive_framework_v1",
+      "legacy_core_profile": false,
+      "runtime_released": true
+    }
+  }
+}

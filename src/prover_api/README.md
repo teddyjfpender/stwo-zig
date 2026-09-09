@@ -93,6 +93,15 @@ implementation policy.
 `assertProverEngine` checks the associated types and exact `init`, `deinit`,
 `commit`, and `prove` signatures at compile time.
 
+
+Additional exported surfaces:
+
+- `CompositionSubphase`
+- `EvaluationDiagnostic`
+- `EvaluationStage`
+- `ProveDiagnostic`
+- `ProvePhase`
+
 ## Dependencies
 
 The sole dependency is:

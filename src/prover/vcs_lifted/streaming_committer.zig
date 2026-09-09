@@ -154,6 +154,7 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             leaves: []H.Hash,
             start: usize,
             end: usize,
+            absorptions: usize = 0,
         };
 
         /// Builds lifted leaves while retaining only the largest native
@@ -176,6 +177,29 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             prefix_state_budget_bytes: usize,
             stats: ?*BoundedPrefixStats,
         ) !Self {
+            return self.commitBoundedPrefix(columns, prefix_state_budget_bytes, stats, false);
+        }
+
+        /// Reuse the two parity states at each remaining native height. The
+        /// lifted indexing map nests height groups, so an unchanged source
+        /// index also identifies an unchanged complete prefix. This removes
+        /// repeated absorption without retaining a final-domain state array.
+        pub fn commitColumnsWithReusedBoundedPrefix(
+            self: *Committer,
+            columns: []const ColumnRef,
+            prefix_state_budget_bytes: usize,
+            stats: ?*BoundedPrefixStats,
+        ) !Self {
+            return self.commitBoundedPrefix(columns, prefix_state_budget_bytes, stats, true);
+        }
+
+        fn commitBoundedPrefix(
+            self: *Committer,
+            columns: []const ColumnRef,
+            prefix_state_budget_bytes: usize,
+            stats: ?*BoundedPrefixStats,
+            comptime reuse_tail: bool,
+        ) !Self {
             if (columns.len == 0) {
                 if (stats) |out| out.* = .{
                     .final_log_size = 0,
@@ -194,6 +218,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
 
             for (columns, 0..) |column, index| {
                 if (!std.math.isPowerOfTwo(column.values.len) or column.values.len < 2) {
+                    return error.InvalidColumnSize;
+                }
+                if (column.log_size != std.math.log2_int(usize, column.values.len)) {
                     return error.InvalidColumnSize;
                 }
                 if (index > 0 and column.log_size < columns[index - 1].log_size) {
@@ -292,11 +319,18 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
 
             const layer_alloc = layerAllocator(self.allocator);
             const leaves = try layer_alloc.alloc(H.Hash, final_leaf_count);
-            self.finalizeBoundedTail(
+            const absorptions = self.finalizeBoundedTail(
                 columns[prefix_end..],
                 final_log_size,
                 leaves,
+                reuse_tail,
+                stats,
             );
+            if (reuse_tail) if (stats) |out| {
+                const native_absorptions = out.tail_absorptions - out.repeated_tail_absorptions;
+                out.tail_absorptions = absorptions;
+                out.repeated_tail_absorptions = absorptions - native_absorptions;
+            };
 
             self.allocator.free(self.leaf_hashers);
             self.leaf_hashers = &[_]H{};
@@ -310,7 +344,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             tail_columns: []const ColumnRef,
             final_log_size: u32,
             leaves: []H.Hash,
-        ) void {
+            comptime reuse_tail: bool,
+            stats: ?*BoundedPrefixStats,
+        ) usize {
             std.debug.assert(self.initialized);
             std.debug.assert(final_log_size >= self.leaf_log_size);
             std.debug.assert(leaves.len == @as(usize, 1) << @intCast(final_log_size));
@@ -327,6 +363,9 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
                 break :blk LayerOps.sharedThreadPool();
             } else null;
             const worker_count = if (pool != null) requested_workers else 1;
+            if (reuse_tail) if (stats) |out| {
+                out.tail_cache_bytes = worker_count * tail_cache_bytes_per_worker;
+            };
 
             var ranges: [parameters.max_parallel_workers]BoundedTailRange = undefined;
             for (0..worker_count) |worker| {
@@ -342,17 +381,70 @@ pub fn StreamingCommitter(comptime H: type, comptime Tree: type) type {
             }
 
             if (worker_count == 1) {
-                finalizeBoundedTailRange(&ranges[0]);
-                return;
+                if (reuse_tail) finalizeBoundedTailRangeReusing(&ranges[0]) else finalizeBoundedTailRange(&ranges[0]);
+                return ranges[0].absorptions;
             }
             var wait_group: WaitGroup = .{};
             for (ranges[1..worker_count]) |*range| {
-                pool.?.spawnWg(&wait_group, finalizeBoundedTailRange, .{
-                    @as(*const BoundedTailRange, range),
-                });
+                if (reuse_tail)
+                    pool.?.spawnWg(&wait_group, finalizeBoundedTailRangeReusing, .{range})
+                else
+                    pool.?.spawnWg(&wait_group, finalizeBoundedTailRange, .{@as(*const BoundedTailRange, range)});
             }
-            finalizeBoundedTailRange(&ranges[0]);
+            if (reuse_tail) finalizeBoundedTailRangeReusing(&ranges[0]) else finalizeBoundedTailRange(&ranges[0]);
             wait_group.wait();
+            var absorptions: usize = 0;
+            for (ranges[0..worker_count]) |range| absorptions += range.absorptions;
+            return absorptions;
+        }
+
+        const TailGroup = struct { columns: []const ColumnRef, shift: std.math.Log2Int(usize) };
+        const tail_cache_bytes_per_worker = @bitSizeOf(usize) *
+            (@sizeOf(TailGroup) + 2 * @sizeOf(H) + 2 * @sizeOf(usize));
+
+        fn finalizeBoundedTailRangeReusing(range: *BoundedTailRange) void {
+            // Final-height columns have no repeated source rows. Avoid
+            // copying their sponge state into a cache that cannot hit.
+            const Group = TailGroup;
+            var groups: [@bitSizeOf(usize)]Group = undefined;
+            var group_count: usize = 0;
+            var begin: usize = 0;
+            while (begin < range.tail_columns.len) {
+                const log_size = range.tail_columns[begin].log_size;
+                if (log_size == range.final_log_size) break;
+                var end = begin + 1;
+                while (end < range.tail_columns.len and range.tail_columns[end].log_size == log_size) : (end += 1) {}
+                groups[group_count] = .{
+                    .columns = range.tail_columns[begin..end],
+                    .shift = @intCast(range.final_log_size - log_size + 1),
+                };
+                group_count += 1;
+                begin = end;
+            }
+            var states: [@bitSizeOf(usize)][2]H = undefined;
+            var indices = [_][2]usize{.{ std.math.maxInt(usize), std.math.maxInt(usize) }} ** @bitSizeOf(usize);
+            const base_shift: std.math.Log2Int(usize) = @intCast(range.final_log_size - range.base_log_size + 1);
+            var absorptions: usize = 0;
+            for (range.start..range.end) |position| {
+                const parity = position & 1;
+                const base_index = ((position >> base_shift) << 1) + parity;
+                var hasher = range.base_hashers[base_index];
+                for (groups[0..group_count], 0..) |group, ordinal| {
+                    const index = ((position >> group.shift) << 1) + parity;
+                    if (indices[ordinal][parity] != index) {
+                        for (group.columns) |column| hasher.updateLeaf(column.values[index .. index + 1]);
+                        states[ordinal][parity] = hasher;
+                        indices[ordinal][parity] = index;
+                        absorptions += group.columns.len;
+                    } else {
+                        hasher = states[ordinal][parity];
+                    }
+                }
+                for (range.tail_columns[begin..]) |column| hasher.updateLeaf(column.values[position .. position + 1]);
+                absorptions += range.tail_columns.len - begin;
+                range.leaves[position] = hasher.finalize();
+            }
+            range.absorptions = absorptions;
         }
 
         fn finalizeBoundedTailRange(range: *const BoundedTailRange) void {

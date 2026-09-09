@@ -1,0 +1,3 @@
+1/1 recursion_poseidon_degree3_metal_test.test.recursive universal degree3 Metal proof matches CPU and freshly verifies...RECURSIVE_POSEIDON_DEGREE3_METAL bytes=22932 same_cpu_bytes=true producer_destroyed=true fresh_cpu_verified=true transform_dispatches=1 composition_runs_on_host=true
+OK
+All 1 tests passed.

@@ -294,8 +294,13 @@ pub fn logicalRow(
     statement: StatementWitness,
 ) Error![component.LOGICAL_INPUT_COUNT]M31 {
     const main = try mainRow(row, statement);
-    const selectors = statement.proofKind().selectors();
-    return main ++ row.values() ++ .{
+    return main ++ row.values() ++ parameters(statement.proofKind());
+}
+
+/// Shared verifier scalars for legacy and versioned statement routing.
+pub fn parameters(kind: ProofKind) [component.PARAMETER_COUNT]M31 {
+    const selectors = kind.selectors();
+    return .{
         selectors[0],
         selectors[1],
         M31.fromCanonical(component.STATEMENT_INPUT_KIND),

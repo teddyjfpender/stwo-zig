@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu",
+    "test-ethereum-zero-family-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+  "started_at": "2026-09-08T14:48:12.050811+00:00",
+  "source_before": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig",
+      "sha256": "bfa696e07030611ba528fb59ca8e5096a954543f3b854050f988ffc02dec373a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_proof_steps.zig",
+      "sha256": "b793cd6382ad22f54cdf54a61e3db823c498458aa2133f979dd8c685da0b477c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test.zig",
+      "sha256": "424aeb6b472fed3060cf3124a5866a076c5b33c2f251dc51201381c0f9dd3bc3"
+    }
+  ],
+  "expected_guarded_count": 1,
+  "measurement_scope": "Affected existing general proof root; single timing, not build-speed A/B",
+  "pid": 76991,
+  "exit_code": 0,
+  "wall_seconds": 86.11057545803487,
+  "source_after": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig",
+      "sha256": "bfa696e07030611ba528fb59ca8e5096a954543f3b854050f988ffc02dec373a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_proof_steps.zig",
+      "sha256": "b793cd6382ad22f54cdf54a61e3db823c498458aa2133f979dd8c685da0b477c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test.zig",
+      "sha256": "424aeb6b472fed3060cf3124a5866a076c5b33c2f251dc51201381c0f9dd3bc3"
+    }
+  ],
+  "pins_unchanged": true,
+  "finished_at": "2026-09-08T14:49:38.161711+00:00",
+  "log_sha256": "729298f0aeffb07d5c8cfa68675b988efb2b3d53156db2bf78430606a4589643",
+  "actual_passed_count": 1,
+  "named_guard": "Ethereum zero-family proof identity guard",
+  "named_guard_passed": true
+}

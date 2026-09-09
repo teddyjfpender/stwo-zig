@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "endpoint": "ethereum_field_leaf_wrapper",
+  "source": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/root-candidates/b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4",
+  "source_sha256": {
+    "key.json": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+    "inputs.json": "5a1a53371911b878efc56f8702390737aef2554be9e0b6e305dd19cc139a44e3",
+    "proof.bin": "b1da0bdb2742637661c5d1626c9fa28ef409fedc77c0772164223e73636ee6b4"
+  },
+  "verifier": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/zig-out/bin/ethereum-wrapper-root-verify-v1",
+  "verifier_sha256": "836a243b7aaf7d52e0294bc507953e8da6587c2a40c057b75d2f72d860a101fc",
+  "expected_key_sha256": "6be9c7e9cb82ccaf8ddf85038da033bbd0797e51a6731da1a69ebc8d2bf33edc",
+  "native_inputs_used": false
+}

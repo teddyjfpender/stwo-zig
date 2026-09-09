@@ -2,6 +2,7 @@
 
 pub fn Operations(comptime Context: type) type {
     const Self = Context.Source;
+    const Boundary = Context.BoundaryType;
     const PreparedAuthority = Self.PreparedAuthority;
     const CompositionWorkspace = Self.CompositionWorkspace;
     const Workspace = Self.Workspace;
@@ -10,7 +11,6 @@ pub fn Operations(comptime Context: type) type {
     const RelationRows = Self.RelationRows;
 
     const M31 = Context.M31;
-    const composition = Context.composition;
     const composition_input_witness = Context.composition_input_witness;
     const composition_control_witness = Context.composition_control_witness;
     const query_bits_witness = Context.query_bits_witness;
@@ -295,19 +295,30 @@ pub fn Operations(comptime Context: type) type {
             ) |source, *destination| destination.* =
                 composition_control_witness.logicalRow(source, .binary_node);
 
-            const left = self.children[LEFT_CHILD].capture;
-            const right = self.children[RIGHT_CHILD].capture;
-            const query_witness = query_bits_witness.QueryWitness{ .binary_node = .{
-                .left = self.query_words[LEFT_CHILD],
-                .right = self.query_words[RIGHT_CHILD],
-            } };
-            const root_witness = merkle_root_witness.RootWitness{ .binary_node = .{
-                .left = .{ .trace = left.trace_roots, .fri = left.fri_roots },
-                .right = .{ .trace = right.trace_roots, .fri = right.fri_roots },
-            } };
+            const proof_kind: query_bits_witness.ProofKind = if (comptime @hasDecl(Boundary, "FRI_PROOF_KIND"))
+                Boundary.FRI_PROOF_KIND
+            else
+                .binary_node;
+            const query_witness = if (comptime proof_kind == .empty_leaf)
+                query_bits_witness.QueryWitness{ .empty_leaf = {} }
+            else
+                query_bits_witness.QueryWitness{ .binary_node = .{
+                    .left = self.query_words[LEFT_CHILD],
+                    .right = self.query_words[RIGHT_CHILD],
+                } };
+            const root_witness = if (comptime proof_kind == .empty_leaf)
+                merkle_root_witness.RootWitness{ .empty_leaf = {} }
+            else blk: {
+                const left = self.children[LEFT_CHILD].capture;
+                const right = self.children[RIGHT_CHILD].capture;
+                break :blk merkle_root_witness.RootWitness{ .binary_node = .{
+                    .left = .{ .trace = left.trace_roots, .fri = left.fri_roots },
+                    .right = .{ .trace = right.trace_roots, .fri = right.fri_roots },
+                } };
+            };
             const query_parameters = try query_bits_witness.parameterValues(
                 self.fri_rows.query_bits_reference,
-                .binary_node,
+                proof_kind,
             );
             for (
                 self.fri_rows.query_bits_preprocessing.rows,
@@ -329,7 +340,7 @@ pub fn Operations(comptime Context: type) type {
             ) |source, *destination| destination.* =
                 try merkle_root_witness.logicalRow(source, root_witness);
 
-            const selectors = composition.ProofKind.binary_node.selectors();
+            const selectors = proof_kind.selectors();
             for (
                 self.fri_rows.trace_merkle_preprocessing.rows,
                 rows.trace_merkle,
@@ -358,7 +369,7 @@ pub fn Operations(comptime Context: type) type {
                         .value = value,
                     }).values(),
                     source.values(),
-                    .binary_node,
+                    proof_kind,
                 );
             }
             for (
@@ -420,8 +431,14 @@ pub fn Operations(comptime Context: type) type {
                 };
             const evaluations = fri_input_witness.Evaluations{
                 .segment = &self.fri_rows.inactive_fri_evaluation,
-                .left = &left.evaluation,
-                .right = &right.evaluation,
+                .left = if (comptime proof_kind == .empty_leaf)
+                    &self.fri_rows.inactive_fri_evaluation
+                else
+                    &self.children[LEFT_CHILD].capture.evaluation,
+                .right = if (comptime proof_kind == .empty_leaf)
+                    &self.fri_rows.inactive_fri_evaluation
+                else
+                    &self.children[RIGHT_CHILD].capture.evaluation,
             };
             for (
                 self.fri_rows.input_preprocessing.rows,
@@ -435,7 +452,7 @@ pub fn Operations(comptime Context: type) type {
                         .value = value,
                     }).values(),
                     source.values(),
-                    .binary_node,
+                    proof_kind,
                 );
             }
 

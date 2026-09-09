@@ -1,0 +1,48 @@
+{
+  "schema": "stwo.ethereum.real-metal-independent-fresh-verification.v1",
+  "passed": true,
+  "endpoint": "verified_native_selected_leaf",
+  "proof_origin": "Actual Metal field4 segment9 selected-v3 output; paths pinned in plan",
+  "verifier_origin": "Reused frozen independently validated CPU-native verifier3b3496022e092f636dcc62a7c8f492c6c80653505d4d0a999b1c041c5186f84d",
+  "request_ns": 69183603750,
+  "native_verify_ns": 69109353333,
+  "peak_footprint_bytes": 1029866504,
+  "worker_count": 1,
+  "segment_index": 9,
+  "segment_count": 121,
+  "producer_destroyed": true,
+  "retained_admission_destroyed_before_proof": true,
+  "whole_block": false,
+  "evidence": {
+    "real-selected-metal-fresh-v1-plan.json": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/plan.json",
+      "bytes": 2134,
+      "sha256": "e3ea0983bdeb08acb7e076f065b9a5fcbb26d0a4233651b559055e6b7937df8a"
+    },
+    "real-selected-metal-fresh-v1-receipt.json": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/receipt.json",
+      "bytes": 1640,
+      "sha256": "8e1ca3d15647c5248de9e0b71f15d62c0d4ce2856d7901a3db4d302d0c801617"
+    },
+    "real-selected-metal-fresh-v1-run.py": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/run.py",
+      "bytes": 2569,
+      "sha256": "5ad1818c6dd440412d951250d360c2b4309149fa0c64897e63289ed1d6a6d06e"
+    },
+    "real-selected-metal-fresh-v1-stdout.json": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/stdout.json",
+      "bytes": 676,
+      "sha256": "9de0176cd2d69e47ebf7270685ea944cdb371829b568883fd2769988ca771e0b"
+    },
+    "real-selected-metal-fresh-v1-stderr.log": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "real-selected-metal-fresh-v1-binary-retention.json": {
+      "source": ".git/local-ethereum/selected-real-metal-leaf-fresh-v1/binary-retention.json",
+      "bytes": 1223,
+      "sha256": "9c8b97ca1f1ddcc9054b9c864307bb0b8950f7b3e2181f851610c5a7f9791f07"
+    }
+  }
+}

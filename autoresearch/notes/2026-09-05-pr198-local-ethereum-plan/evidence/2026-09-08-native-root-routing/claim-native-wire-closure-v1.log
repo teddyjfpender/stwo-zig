@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-ethereum-native-root-claim success
++- stwo_riscv_frontend test count floor success
+   +- run test 2 passed 274ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 7s MaxRSS:578M
+

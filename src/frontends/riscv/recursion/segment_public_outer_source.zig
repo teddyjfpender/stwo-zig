@@ -29,3 +29,5 @@ pub const Claims = shard_0.Claims;
 pub const Components = shard_0.Components;
 pub const Prepared = shard_1.Prepared;
 pub const Source = shard_1.Source;
+pub const OwnedGraph = shard_0.OwnedGraph;
+pub const validateArithmeticEvaluation = shard_2.validateArithmeticEvaluation;

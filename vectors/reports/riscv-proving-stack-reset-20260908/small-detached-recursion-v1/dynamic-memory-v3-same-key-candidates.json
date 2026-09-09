@@ -1,0 +1,80 @@
+{
+  "status": "all_three_actual_pairs_produced_seed14_and269_pending_fresh_verification",
+  "seeds": [
+    13,
+    14,
+    269
+  ],
+  "children": [
+    {
+      "segment_index": 0,
+      "key_sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+      "key_bytes_identical": true,
+      "preprocessed_root": [
+        2037053465,
+        17450564,
+        1370844902,
+        1121857081,
+        1612569802,
+        108778593,
+        468845402,
+        1607064577
+      ],
+      "proofs": [
+        {
+          "seed": 13,
+          "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+          "bytes": 92732,
+          "expected_wire_sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+        },
+        {
+          "seed": 14,
+          "sha256": "9a3ff6117f1fa1f3556dc99e6829f6bef501548612e41f3e65c25534e2230a03",
+          "bytes": 93517,
+          "expected_wire_sha256": "d9dda7e8f9fe4e1dfd1fc76aea11caa2a90858960ef1080d766231b0b3a505d0"
+        },
+        {
+          "seed": 269,
+          "sha256": "8c6a942be5394a665f38102702c2074f71556bf9f415f5e4d1133b62114f1b6a",
+          "bytes": 93693,
+          "expected_wire_sha256": "c2306a56966d37481fbdb3d3ddf5915e8c801fd50d4aaef12fce956e6ef1b4ee"
+        }
+      ]
+    },
+    {
+      "segment_index": 1,
+      "key_sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+      "key_bytes_identical": true,
+      "preprocessed_root": [
+        529904059,
+        1728594667,
+        1678097283,
+        410566264,
+        895931541,
+        1177827189,
+        186673285,
+        183990419
+      ],
+      "proofs": [
+        {
+          "seed": 13,
+          "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+          "bytes": 92109,
+          "expected_wire_sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+        },
+        {
+          "seed": 14,
+          "sha256": "cd59f9f96b34cf72e922517938944f1bde4dd8b7bdfdbcb677e454c19956d810",
+          "bytes": 91354,
+          "expected_wire_sha256": "0842fb370151990478847030f32baf4b106fdd9e27a026805b48217e6bac996c"
+        },
+        {
+          "seed": 269,
+          "sha256": "6c2c5f15a6a607b06abd53792587974762687d3f5dbec7351f8c8d89cf212c3c",
+          "bytes": 92238,
+          "expected_wire_sha256": "4011da2dab33d6ca83b947a2ffc614638def320b50741ad7d4317182c45cba59"
+        }
+      ]
+    }
+  ]
+}

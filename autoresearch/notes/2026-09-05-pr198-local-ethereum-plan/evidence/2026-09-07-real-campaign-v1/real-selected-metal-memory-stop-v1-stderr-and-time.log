@@ -1,0 +1,22 @@
+INCREMENTAL_FULL_LEAF_RESOURCE_POLICY_V1 composition_allocation_budget_bytes=17179869184 pcs_retained_byte_budget_bytes=25769803776 host_admission_limit_bytes=34359738368 process_cap_enforced=false
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=20550093056 source_column_bytes=10275046528 columns=16894 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator
+INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1 retained_bytes=17253064448 columns=8458 budget_bytes=25769803776 retention=never
+time: command terminated abnormally
+       69.18 real        60.61 user         4.36 sys
+         17692065792  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             2534932  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                1480  voluntary context switches
+              117336  involuntary context switches
+       1169036655151  instructions retired
+        253196547562  cycles elapsed
+         37972405608  peak memory footprint

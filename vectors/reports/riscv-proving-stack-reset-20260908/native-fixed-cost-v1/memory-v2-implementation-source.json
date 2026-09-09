@@ -1,0 +1,10 @@
+{
+  "head": "bf36c95936274abcbfae83efa9da84962935ebc0",
+  "changed_source_sha256": {
+    "src/frontends/riscv/poseidon_merkle_test_root.zig": "d547f5e8c57b301b1843c87a70eeea49975914a2f31d24fe26d90b331f965427",
+    "src/frontends/riscv/runner/guest_precompile/test_elf.zig": "ce0045278c91a3aab21072bcd47f4764daf22caf8d4e481b770c1868ca8b5d20",
+    "src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig": "cdccc4482c6c13e2fd26d3ea7bbf4e9f6344310cdbadc3df8a1649de456a15eb"
+  },
+  "integration_build_source": "ad273a96721e1ccc1dd62a861fac11b44d0c680d plus memory-v2-source.patch",
+  "standalone_test_not_an_integration_binary_input": "src/frontends/riscv/poseidon_merkle_test_root.zig"
+}

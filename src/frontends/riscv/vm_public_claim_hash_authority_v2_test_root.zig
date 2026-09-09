@@ -10,10 +10,14 @@ const poseidon2_air = @import("air/memory_commitment/poseidon2_air.zig");
 
 test "isolated row13 V2 identity and authenticated relation plan" {
     const actual = try air.computeSemanticDigest(std.testing.allocator);
+    if (!std.meta.eql(air.SEMANTIC_DIGEST, actual))
+        std.debug.print("ROW13_SEMANTIC_DIGEST={s}\n", .{std.fmt.bytesToHex(actual, .lower)});
     try std.testing.expectEqualSlices(u8, &air.SEMANTIC_DIGEST, &actual);
     var definition = try air.build(std.testing.allocator);
     defer definition.deinit();
     const profile = try air.staticProfile(&definition);
+    if (!std.meta.eql(air.EXPECTED_STATIC_PROFILE, profile))
+        std.debug.print("ROW13_STATIC_PROFILE={any}\n", .{profile});
     try std.testing.expectEqualDeep(air.EXPECTED_STATIC_PROFILE, profile);
     try std.testing.expectEqual(
         @as(u16, air.DIRECT_CONSTRAINT_COUNT),
@@ -61,9 +65,9 @@ test "isolated row13 V2 witness replays authority calls and bind step atomically
         rows,
         events,
     );
-    try std.testing.expectEqual(@as(u32, 1), rows[0][5].toU32());
-    try std.testing.expectEqual(@as(u32, 1), rows[0][4].toU32());
-    try std.testing.expectEqual(@as(u32, 1), rows[0][3].toU32());
+    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 3].toU32());
+    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 2].toU32());
+    try std.testing.expectEqual(@as(u32, 1), rows[0][air.PHYSICAL_MAIN_COLUMN_COUNT + 1].toU32());
     for (events) |event| try event.validate();
     try std.testing.expectEqual(
         @import("air/lang/relation.zig").Domain.recursion_step,
@@ -71,6 +75,59 @@ test "isolated row13 V2 witness replays authority calls and bind step atomically
     );
     try std.testing.expectEqual(@as(u8, 4), events[1].event_ordinal);
     try std.testing.expectEqual(@as(u32, 1), events[1].tuple[2].toU32());
+
+    const expected_calls = try std.testing.allocator.alloc(poseidon2_air.Call, call_count);
+    defer std.testing.allocator.free(expected_calls);
+    const authority = @import("recursion/segment_leaf_authority_v2.zig");
+    try std.testing.expectEqual(call_count, try authority.authorityHashCallCount(fixture.inputs().component_descs.len, fixture.inputs().infra_descs.len));
+    const expected_hash = try authority.appendExpectedAuthorityHashCalls(expected_calls, &fixture.owned_public.data, fixture.inputs().component_descs, fixture.inputs().infra_descs);
+    try std.testing.expectEqualDeep(prepared.statement_authority_id, expected_hash);
+    try std.testing.expectEqualDeep(calls, expected_calls);
+    var wire_count: usize = 0;
+    for (events) |event| {
+        if (event.event_ordinal < 5) continue;
+        const group = event.event_ordinal - 5;
+        const expected = subject.callWireTuple(event.logical_row, group, expected_calls[event.logical_row]);
+        try std.testing.expectEqualDeep(expected, event.tuple[0..6].*);
+        try std.testing.expectEqual(@as(u32, @intCast(event.logical_row * air.CALL_WIRE_GROUP_COUNT + group)), event.tuple[1].toU32());
+        try std.testing.expectEqual(@import("air/lang/relation.zig").Domain.recursion_wire, event.domain);
+        wire_count += 1;
+    }
+    try std.testing.expectEqual(call_count * air.CALL_WIRE_GROUP_COUNT, wire_count);
+
+    // Different canonical register values must not change row13 preprocessing.
+    const preprocessing = try std.testing.allocator.alloc([air.PREPROCESSED_COLUMN_COUNT]M31, rows.len);
+    defer std.testing.allocator.free(preprocessing);
+    for (rows, preprocessing) |row, *fixed| fixed.* = row[air.PHYSICAL_MAIN_COLUMN_COUNT..][0..air.PREPROCESSED_COLUMN_COUNT].*;
+    const first_rows_hash = digestBytes(std.mem.sliceAsBytes(rows));
+    var second_fixture = try fixture_support.Fixture.initWithRegister7(std.testing.allocator, 0x01020304);
+    defer second_fixture.deinit();
+    const second_public = try public_source.preflight(second_fixture.inputs());
+    const second_prepared = try subject.PreparedV2.init(&second_public, second_fixture.inputs());
+    try std.testing.expectEqual(prepared.logical_row_count, second_prepared.logical_row_count);
+    var second_relays = relayRows(&second_public);
+    try subject.writeInto(&second_prepared, &second_public, second_fixture.inputs(), &second_relays, calls, rows, events);
+    for (rows, preprocessing) |row, fixed| try std.testing.expectEqualDeep(fixed, row[air.PHYSICAL_MAIN_COLUMN_COUNT..][0..air.PREPROCESSED_COLUMN_COUNT].*);
+    try std.testing.expect(!std.meta.eql(first_rows_hash, digestBytes(std.mem.sliceAsBytes(rows))));
+    // The expected boundary still points at the first statement's exact words.
+    var calls_differ = false;
+    for (calls, expected_calls, 0..) |actual_call, expected_call, index| {
+        calls_differ = calls_differ or !std.meta.eql(subject.callWireTuples(index, actual_call), subject.callWireTuples(index, expected_call));
+    }
+    try std.testing.expect(calls_differ);
+
+    var definition = try air.build(std.testing.allocator);
+    defer definition.deinit();
+    const direct = @import("recursion/air/direct_constraint_program.zig");
+    const program = try direct.authenticate(&definition.arena, air.SEMANTIC_DIGEST, air.LOGICAL_INPUT_COUNT);
+    var padding: subject.LogicalRowV2 = @splat(M31.zero());
+    var scratch: [direct.MAX_NODES]M31 = undefined;
+    var roots: [air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
+    try program.evaluateBaseInto(&padding, &scratch, &roots);
+    for (roots) |root| try std.testing.expect(root.isZero());
+    padding[2] = M31.one();
+    try program.evaluateBaseInto(&padding, &scratch, &roots);
+    try std.testing.expect(!roots[7].isZero());
 
     @memset(std.mem.sliceAsBytes(rows), 0xa5);
     @memset(std.mem.sliceAsBytes(events), 0xa5);

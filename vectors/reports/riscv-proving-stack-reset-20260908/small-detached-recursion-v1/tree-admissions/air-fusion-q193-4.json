@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "initial_memory_word": 13,
+  "leaves": [
+    {
+      "key": {
+        "path": "../q193-ladder-4-admission/child-0-key.json",
+        "sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2"
+      },
+      "expected": {
+        "path": "../q193-ladder-4-admission/child-0-expected-wire.json",
+        "sha256": "e01923264a3f39fd78a049e52365e26f7e4999a306703f67a4eda4f1403545f8"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-4-admission/child-1-key.json",
+        "sha256": "0723005d48d350f3719a61e384df4e3ad7b06550e1ffaa9a6a0f66da3a694fab"
+      },
+      "expected": {
+        "path": "../q193-ladder-4-admission/child-1-expected-wire.json",
+        "sha256": "d7bc8ae71ed948a1bd8ae193fcd5427baefa2ef074fb0da742ede1fcfcfc3ca1"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-4-admission/child-2-key.json",
+        "sha256": "bf5cb7e0102a36053e53e20097ee12dc2f35cdcf23ee5105f1a7134594eb2dd2"
+      },
+      "expected": {
+        "path": "../q193-ladder-4-admission/child-2-expected-wire.json",
+        "sha256": "0b647a13c24bf4e4150e593b11c4615bb23317d86c1578daa696b29eb70cfdd0"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-4-admission/child-3-key.json",
+        "sha256": "45aec7e8e4757f900a72a2bbad40bfb68269f09c6899c163afb1240e8df4dfd3"
+      },
+      "expected": {
+        "path": "../q193-ladder-4-admission/child-3-expected-wire.json",
+        "sha256": "41f7917bb78ee298b4f536d4f768073abe6a72e84e24438bb284cdd1a852d758"
+      }
+    }
+  ],
+  "parents": [
+    [
+      {
+        "key": {
+          "path": "../air-fusion-admission/pair-0-key.json",
+          "sha256": "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603"
+        },
+        "expected": {
+          "path": "../q193-ladder-4-admission/pair-0-expected-span.json",
+          "sha256": "cf7aaf183469c5e3b284dea942b9bd73a3b4e05e93fc71130972efa88697ebbd"
+        }
+      },
+      {
+        "key": {
+          "path": "../air-fusion-admission/pair-1-key.json",
+          "sha256": "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54"
+        },
+        "expected": {
+          "path": "../q193-ladder-4-admission/pair-1-expected-span.json",
+          "sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9"
+        }
+      }
+    ],
+    [
+      {
+        "key": {
+          "path": "../air-fusion-admission/root-key.json",
+          "sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9"
+        },
+        "expected": {
+          "path": "../q193-ladder-4-admission/root-expected-span.json",
+          "sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f"
+        }
+      }
+    ]
+  ]
+}

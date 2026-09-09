@@ -139,6 +139,14 @@ pub const ProofExecutionPool = struct {
 };
 
 pub fn assertCohortContract(comptime Cohort: type) void {
+    assertProofCohortContract(Cohort);
+    if (!@hasDecl(Cohort, "publicationAuthority"))
+        @compileError("binary outer Cohort contract is incomplete: missing publicationAuthority");
+}
+
+/// Shared proof transaction. Legacy publication custody is an additional
+/// capability; field-native cohorts mix their admitted public words directly.
+pub fn assertProofCohortContract(comptime Cohort: type) void {
     inline for (.{
         "AuthorityInputs",
         "GeneratedInteractionsV1",
@@ -156,7 +164,6 @@ pub fn assertCohortContract(comptime Cohort: type) void {
         "claimVector",
         "rebuildGeneratedInteractions",
         "initComponents",
-        "publicationAuthority",
         "recursiveStatementWords",
     }) |name| if (!@hasDecl(Cohort, name))
         @compileError("binary outer Cohort contract is incomplete: missing " ++ name);
@@ -187,6 +194,9 @@ pub fn assertNativeCohortContract(comptime Cohort: type) void {
         "validateAuditedInteractions",
         "verifierSuccessBinding",
         "publishSuccessfulVerifier",
+        "publicationContext",
+        "recursiveStatementWords",
+        "CHILD_TRANSCRIPT_AUTHORITY",
     }) |name| if (!@hasDecl(Cohort, name))
         @compileError(
             "native outer Cohort contract is incomplete: missing " ++ name,
@@ -345,11 +355,11 @@ fn evidenceHashInt(
 pub fn commitVerifierTreeForManifest(
     comptime manifest_contract: type,
     allocator: std.mem.Allocator,
-    scheme: *VerifierScheme,
+    scheme: anytype,
     manifest: *const manifest_contract.Manifest,
     tree: usize,
     commitment: recursion.engine.Hasher.Hash,
-    channel: *Engine.Channel,
+    channel: anytype,
 ) !void {
     const logs = try allocator.alloc(
         u32,
@@ -374,6 +384,7 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
         const Self = @This();
 
         allocator: std.mem.Allocator,
+        value_allocator: ?std.mem.Allocator,
         evaluations: []prover_pcs.ColumnEvaluation,
         columns: [][]M31,
         storage: []M31,
@@ -383,6 +394,37 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
             allocator: std.mem.Allocator,
             manifest: *const manifest_contract.Manifest,
             tree: usize,
+        ) !Self {
+            return initLayout(allocator, null, manifest, tree, false);
+        }
+
+        /// Explicit source-value storage; descriptors retain ordinary ownership.
+        /// Commit borrows this arena and releases it after synchronous ingestion.
+        pub fn initWithValueAllocator(
+            allocator: std.mem.Allocator,
+            value_allocator: std.mem.Allocator,
+            manifest: *const manifest_contract.Manifest,
+            tree: usize,
+        ) !Self {
+            return initLayout(allocator, value_allocator, manifest, tree, false);
+        }
+
+        /// Opt-in physical grouping for PCS arena adoption. Logical columns
+        /// retain manifest order; equal-height slices form stable arena runs.
+        pub fn initGroupedByLog(
+            allocator: std.mem.Allocator,
+            manifest: *const manifest_contract.Manifest,
+            tree: usize,
+        ) !Self {
+            return initLayout(allocator, null, manifest, tree, true);
+        }
+
+        fn initLayout(
+            allocator: std.mem.Allocator,
+            value_allocator: ?std.mem.Allocator,
+            manifest: *const manifest_contract.Manifest,
+            tree: usize,
+            comptime grouped: bool,
         ) !Self {
             const count = treeColumnCount(manifest_contract, manifest, tree);
             const evaluations = try allocator.alloc(
@@ -408,14 +450,34 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
                     cells,
                     @as(usize, 1) << @intCast(evaluation.log_size),
                 ) catch return error.ArithmeticOverflow;
-            const storage = try allocator.alloc(M31, cells);
-            errdefer allocator.free(storage);
+            const storage = try (value_allocator orelse allocator).alloc(M31, cells);
+            errdefer (value_allocator orelse allocator).free(storage);
             @memset(storage, M31.zero());
-            var cursor: usize = 0;
-            for (evaluations) |*evaluation| {
-                const rows = @as(usize, 1) << @intCast(evaluation.log_size);
-                evaluation.values = storage[cursor..][0..rows];
-                cursor += rows;
+            if (grouped) {
+                var offsets = [_]usize{0} ** @bitSizeOf(usize);
+                for (evaluations) |evaluation| {
+                    const rows = @as(usize, 1) << @intCast(evaluation.log_size);
+                    offsets[evaluation.log_size] += rows;
+                }
+                var cursor: usize = 0;
+                for (&offsets) |*offset| {
+                    const words = offset.*;
+                    offset.* = cursor;
+                    cursor += words;
+                }
+                for (evaluations) |*evaluation| {
+                    const rows = @as(usize, 1) << @intCast(evaluation.log_size);
+                    const offset = &offsets[evaluation.log_size];
+                    evaluation.values = storage[offset.*..][0..rows];
+                    offset.* += rows;
+                }
+            } else {
+                var cursor: usize = 0;
+                for (evaluations) |*evaluation| {
+                    const rows = @as(usize, 1) << @intCast(evaluation.log_size);
+                    evaluation.values = storage[cursor..][0..rows];
+                    cursor += rows;
+                }
             }
             const columns = try allocator.alloc([]M31, count);
             errdefer allocator.free(columns);
@@ -426,6 +488,7 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
             backing[0] = storage;
             return .{
                 .allocator = allocator,
+                .value_allocator = value_allocator,
                 .evaluations = evaluations,
                 .columns = columns,
                 .storage = storage,
@@ -437,7 +500,7 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
             if (self.evaluations.len != 0) self.allocator.free(self.evaluations);
             if (self.columns.len != 0) self.allocator.free(self.columns);
             if (self.backing.len != 0) self.allocator.free(self.backing);
-            if (self.storage.len != 0) self.allocator.free(self.storage);
+            if (self.storage.len != 0) (self.value_allocator orelse self.allocator).free(self.storage);
             self.* = undefined;
         }
 
@@ -446,12 +509,36 @@ pub fn TreeStorageForManifest(comptime manifest_contract: type) type {
             scheme: *Engine.Scheme,
             channel: *Engine.Channel,
         ) !void {
+            return self.commitWithEngine(Engine, scheme, channel);
+        }
+
+        /// Selects execution only; the manifest, columns and hash suite remain
+        /// those admitted by the caller. Existing callers retain the CPU route.
+        pub fn commitWithEngine(
+            self: *Self,
+            comptime SelectedEngine: type,
+            scheme: *SelectedEngine.Scheme,
+            channel: *SelectedEngine.Channel,
+        ) !void {
+            if (self.value_allocator) |value_allocator| {
+                // The borrowed PCS entry must finish ingesting each source
+                // before returning. Its retained data owns separate storage.
+                defer {
+                    value_allocator.free(self.storage);
+                    self.allocator.free(self.evaluations);
+                    self.allocator.free(self.backing);
+                    self.storage = &.{};
+                    self.evaluations = &.{};
+                    self.backing = &.{};
+                }
+                return scheme.commit(self.allocator, self.evaluations, channel);
+            }
             const evaluations = self.evaluations;
             const backing = self.backing;
             self.evaluations = &.{};
             self.backing = &.{};
             self.storage = &.{};
-            try Engine.commitWithBacking(
+            try SelectedEngine.commitWithBacking(
                 scheme,
                 self.allocator,
                 evaluations,

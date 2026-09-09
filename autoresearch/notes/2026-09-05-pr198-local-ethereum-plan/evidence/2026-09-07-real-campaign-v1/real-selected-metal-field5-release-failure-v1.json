@@ -1,0 +1,58 @@
+{
+  "status": "native_proof_and_fresh_verification_passed_benchmark_release_rejected",
+  "failure": "Stage101PreparedExecutionReceiptMismatch",
+  "verified_and_published": false,
+  "full_block_coverage": false,
+  "claim_admission": "fixed_program_narrow_v5",
+  "segment_index": 9,
+  "segment_count": 121,
+  "complete_request_seconds": 146.83,
+  "prove_ns": 63623783541,
+  "fresh_verify_ns": 33845255750,
+  "peak_footprint_bytes": 9873465816,
+  "cpu_reference_equality": "Exact reference validation succeeded before the later benchmark counter check; no artifact was published.",
+  "diagnosis": "The schema5 providerCallView used by geometry telemetry adds two owner validations and one borrow; code path has5/3 versus legacy3/2. The failed executable did not print those counters before rejection, so the count values are source-derived, not observed output.",
+  "correction": "Benchmark-only schema5 expected5/3; schema2/3/4 preserve3/2. Full receipt printing now precedes release counter checks. Corrected retry pending.",
+  "files": {
+    "plan.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-plan.json",
+      "bytes": 3298,
+      "sha256": "b487584657d64e625a08af4f27e8eced7039b933a440b524b5d61b9565b20a6c"
+    },
+    "receipt.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-receipt.json",
+      "bytes": 1819,
+      "sha256": "5102dac76f361cc256222b41bf3a2d41ad3b304496f5cae642b085c67a0ecc88"
+    },
+    "environment.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-environment.json",
+      "bytes": 904,
+      "sha256": "b90d0f641eafa33dfd0e73d34ebc8c6293ecabd7b723f4aa5dfe0b9bb52bb4c2"
+    },
+    "benchmark-admission-v2.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-benchmark-admission-v2.json",
+      "bytes": 410,
+      "sha256": "7d4c90da4b0fcf8fac0529edef5e2df9738baad60a4818ed0650ef431bf44620"
+    },
+    "stderr-and-time.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-stderr-and-time.log",
+      "bytes": 5276,
+      "sha256": "6a122aa93a143688dcc221260f61363cae946221861f00ca3b89847ace1bd9fa"
+    },
+    "stdout.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-run.py",
+      "bytes": 7907,
+      "sha256": "af33f0faf9a3b4ebfb076086499695c4d5887b01992b9d11e20bf04e1a383ae7"
+    },
+    "process-samples.ndjson": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-release-failure-v1-process-samples.ndjson",
+      "bytes": 10157,
+      "sha256": "e27a93ba36a1c5f167e6e32017610b258feab6bbe45cc895a7a787aa41648756"
+    }
+  }
+}

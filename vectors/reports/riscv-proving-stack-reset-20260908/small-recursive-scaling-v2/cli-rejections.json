@@ -1,0 +1,25 @@
+{
+  "binary_sha256": "58bcb2716481f93775a42c0ee0b46447e0e53c59bed16291f428da4124dd182b",
+  "cases": [
+    {
+      "argument": "0",
+      "exit_code": 1,
+      "stderr": "error: InvalidNativeStepCount\n"
+    },
+    {
+      "argument": "3",
+      "exit_code": 1,
+      "stderr": "error: InvalidNativeStepCount\n"
+    },
+    {
+      "argument": "65",
+      "exit_code": 1,
+      "stderr": "error: InvalidNativeStepCount\n"
+    },
+    {
+      "argument": "invalid",
+      "exit_code": 1,
+      "stderr": "error: InvalidNativeStepCount\n"
+    }
+  ]
+}

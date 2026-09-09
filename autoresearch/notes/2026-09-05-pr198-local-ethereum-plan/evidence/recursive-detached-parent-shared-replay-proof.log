@@ -1,0 +1,11 @@
+test-recursive-common-fold-detached-parent-proof-v2
++- run test stderr
+DETACHED_FOLD_PARENT_PROVE coordinate=2/53 worker_count=1 preparation_ns=10225127417
+DETACHED_FOLD_PARENT_EXPORT key_sha256=c9d86ae57770878eec3078e5f912822f3159717930d6aa224672d8b2455474ef prove_ns=112996035333 cold_verify_ns=98013846875 independent_key_admission=false
+DETACHED_FOLD_PARENT_VERIFIED coordinate=2/53 producer_destroyed=true children_destroyed=true proof_bytes=2899529 request_ns=228642898667
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-detached-parent-proof-v2 success
++- run test 1 passed 3m MaxRSS:9G
+   +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

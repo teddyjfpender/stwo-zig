@@ -1,0 +1,14 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 727s
+test-ethereum-fixed-program-bundle-verifier
++- Ethereum fixed program genuine bundle verifier guard
+   +- run test stderr
+ETHEREUM_BUNDLE_LEAF index=0 count=2 proof_bytes=8517294 verify_ns=23792451500
+ETHEREUM_BUNDLE_LEAF index=1 count=2 proof_bytes=8827521 verify_ns=22282827584
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-fixed-program-bundle-verifier success
++- Ethereum fixed program genuine bundle verifier guard success
+   +- run test 1 passed 46s MaxRSS:278M
+      +- compile test ReleaseSafe native success 39s MaxRSS:2G
+

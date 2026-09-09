@@ -151,6 +151,7 @@ pub fn decodeStatement(
 ) !OwnedStatement {
     var cursor = Cursor.init(bytes);
     var result: base_statement.RiscVStatement = undefined;
+    result.initializeDescriptorStorage();
     result.n_components = try cursor.readInt(u32);
     if (result.n_components > base_statement.MAX_COMPONENTS)
         return error.InvalidComponentCount;
@@ -352,29 +353,41 @@ pub fn encodeClaim(
 ) !void {
     if (!claim.finalized) return error.InteractionClaimNotFinalized;
     try writer.writeByte(1);
-    try writeInt(writer, u32, claim.base.n_components);
+    try encodeBaseClaim(writer, statement, &claim.base);
+    try encodeComponentClaim(writer, claim.caller);
+    try encodeComponentClaim(writer, claim.provider);
+}
+
+/// Encode the active prefix of the fixed-capacity base interaction claim.
+/// This is the canonical base-claim wire shared by every append-only guest
+/// profile; callers remain responsible for framing their profile claims.
+pub fn encodeBaseClaim(
+    writer: anytype,
+    statement: *const base_statement.RiscVStatement,
+    claim: *const base_statement.RiscVInteractionClaim,
+) !void {
+    _ = try claim.canonical(statement);
+    try writeInt(writer, u32, claim.n_components);
     for (statement.component_descs[0..statement.n_components], 0..) |descriptor, index| {
         try writeEnum(writer, descriptor.family);
-        const sums = try claim.base.opcodeClaims(descriptor.family, index);
+        const sums = try claim.opcodeClaims(descriptor.family, index);
         try writeSmallCount(writer, sums.len);
         for (sums) |sum| try writeQm31(writer, sum);
     }
-    try writeInt(writer, u32, claim.base.n_infra);
+    try writeInt(writer, u32, claim.n_infra);
     for (statement.infra_descs[0..statement.n_infra], 0..) |descriptor, index| {
         try writeEnum(writer, descriptor.kind);
         const count = base_statement.nClaimedSumsForInfra(descriptor.kind);
         try writeSmallCount(writer, count);
         for (0..count) |sum_index| {
-            try writeQm31(writer, try claim.base.infraClaim(
+            try writeQm31(writer, try claim.infraClaim(
                 descriptor.kind,
                 index,
                 sum_index,
             ));
         }
     }
-    try writeInt(writer, u64, claim.base.interaction_pow);
-    try encodeComponentClaim(writer, claim.caller);
-    try encodeComponentClaim(writer, claim.provider);
+    try writeInt(writer, u64, claim.interaction_pow);
 }
 
 pub fn decodeClaim(
@@ -394,8 +407,35 @@ pub fn decodeClaim(
         extension,
     );
     errdefer claim.destroy(allocator);
-    claim.base.initZeroInto();
-    claim.base.n_components = n_components;
+    try decodeBaseClaimAfterCount(&cursor, statement, &claim.base, n_components);
+    claim.caller = try decodeCallerClaim(&cursor);
+    claim.provider = try decodeProviderClaim(&cursor);
+    claim.finalized = true;
+    try cursor.requireDone();
+    try claim.validate(statement, extension);
+    return claim;
+}
+
+/// Decode a complete canonical base claim into caller-owned fixed-capacity
+/// storage. No large temporary claim is allocated.
+pub fn decodeBaseClaimInto(
+    cursor: *Cursor,
+    statement: *const base_statement.RiscVStatement,
+    claim: *base_statement.RiscVInteractionClaim,
+) !void {
+    const n_components = try cursor.readInt(u32);
+    if (n_components != statement.n_components) return error.BaseClaimCountMismatch;
+    try decodeBaseClaimAfterCount(cursor, statement, claim, n_components);
+}
+
+fn decodeBaseClaimAfterCount(
+    cursor: *Cursor,
+    statement: *const base_statement.RiscVStatement,
+    claim: *base_statement.RiscVInteractionClaim,
+    n_components: u32,
+) !void {
+    claim.initZeroInto();
+    claim.n_components = n_components;
     for (statement.component_descs[0..statement.n_components], 0..) |descriptor, index| {
         const family = try cursor.readKnownEnum(@TypeOf(descriptor.family));
         if (family != descriptor.family) return error.ClaimDescriptorMismatch;
@@ -403,33 +443,28 @@ pub fn decodeClaim(
         const expected = opcode_entries.batchCount(descriptor.family);
         if (count != expected) return error.InvalidClaimCount;
         for (0..count) |sum_index| {
-            claim.base.opcode_claims[index][sum_index] = try cursor.readQm31();
+            claim.opcode_claims[index][sum_index] = try cursor.readQm31();
         }
     }
 
     const n_infra = try cursor.readInt(u32);
     if (n_infra != statement.n_infra) return error.BaseClaimCountMismatch;
-    claim.base.n_infra = n_infra;
+    claim.n_infra = n_infra;
     for (statement.infra_descs[0..statement.n_infra], 0..) |descriptor, index| {
         const kind = try cursor.readKnownEnum(base_statement.InfraKind);
         if (kind != descriptor.kind) return error.ClaimDescriptorMismatch;
         const count = try cursor.readSmallCount();
         const expected = base_statement.nClaimedSumsForInfra(descriptor.kind);
         if (count != expected) return error.InvalidClaimCount;
-        for (0..count) |sum_index| try claim.base.setInfraClaim(
+        for (0..count) |sum_index| try claim.setInfraClaim(
             descriptor.kind,
             index,
             sum_index,
             try cursor.readQm31(),
         );
     }
-    claim.base.interaction_pow = try cursor.readInt(u64);
-    claim.caller = try decodeCallerClaim(&cursor);
-    claim.provider = try decodeProviderClaim(&cursor);
-    claim.finalized = true;
-    try cursor.requireDone();
-    try claim.validate(statement, extension);
-    return claim;
+    claim.interaction_pow = try cursor.readInt(u64);
+    _ = try claim.canonical(statement);
 }
 
 fn encodeComponentClaim(writer: anytype, claim: anytype) !void {
@@ -489,7 +524,7 @@ fn decodeDescriptor(cursor: *Cursor) !component_registry.Descriptor {
     };
 }
 
-fn writeQm31(writer: anytype, value: QM31) !void {
+pub fn writeQm31(writer: anytype, value: QM31) !void {
     for (value.toM31Array()) |coordinate|
         try writeInt(writer, u32, coordinate.toU32());
 }

@@ -1,0 +1,6 @@
+{
+  "head": "53dc8d200704cd00ff5191c4c89f58e4f57e6adf",
+  "patch_sha256": "12fd9d3631ecede0a95b0deda5b9c56b45212be234981bed7381ec44f92981d1",
+  "retained_failure": "segment-ladder-materialization-execution-first.log",
+  "fix": "Adjacency joins execution spans; binary alignment remains enforced by recursive SpanStatement.fold."
+}

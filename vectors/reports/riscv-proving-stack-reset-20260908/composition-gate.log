@@ -1,0 +1,24 @@
+
+Build Summary: 3/3 steps succeeded; 14/14 tests passed
+test-composition-task-profile success
++- run test 14 passed 5s MaxRSS:64M
+   +- compile test ReleaseSafe native success 7s MaxRSS:526M
+
+       15.96 real         9.19 user         1.07 sys
+           588021760  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               84934  page reclaims
+                4397  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                4713  voluntary context switches
+                8825  involuntary context switches
+           207194380  instructions retired
+            86967312  cycles elapsed
+             9880032  peak memory footprint

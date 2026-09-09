@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-ethereum-raw-clock-boundary success
++- Ethereum raw clock boundary guard success
+   +- run test 5 passed 720ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 59s MaxRSS:831M
+

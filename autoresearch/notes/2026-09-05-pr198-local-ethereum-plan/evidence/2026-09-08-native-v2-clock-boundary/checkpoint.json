@@ -1,0 +1,72 @@
+{
+  "status": "fixed_and_native_proof_gate_passed",
+  "cause": "Already-authenticated global_continuous resumed span [1,3] was checked as local trace [0,2]",
+  "lease_change_causal": false,
+  "isolation": "The one-line authenticatedView lease change is reverted in isolated source; original first test does not invoke VerifiedLinkV3",
+  "historical_origin_commit": "6084a9792",
+  "diagnostic": {
+    "clock_frame": "global_continuous",
+    "global_first_cycle": 2,
+    "cycle_count": 2,
+    "trace_clock_origin": 1,
+    "trace_last_retirement_clock": 3,
+    "first_row_clock": 2,
+    "last_row_clock": 3,
+    "error": "ProfileClockAuthorityMismatch mapped to SegmentResultMismatch"
+  },
+  "diagnostic_binary": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-v2-clock-diagnosis-source-v1/source/src/integrations/riscv_cpu/.zig-cache/o/67717c97374bba050d0c1d9d48cd9920/test",
+    "bytes": 4562472,
+    "sha256": "e1c7a474b17f1fc2c2949e27fe78b728b90fff27c46d32c4d7a5012c2604c677"
+  },
+  "fix": "Use canonical executed span after exact reconstructed statement equality; no inferred trace origin or default clock policy changes",
+  "acceptance_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-riscv-segment-v2-native-proof",
+    "-Doptimize=ReleaseSafe",
+    "-Dethereum-proof-strip=true",
+    "--summary",
+    "all"
+  ],
+  "files": {
+    "diagnostic-gate.log": {
+      "bytes": 1628,
+      "sha256": "88a7120e1607e4f6c647581435c286c3efbcb2bcf6fbb1cad785cde54c4a792e"
+    },
+    "genuine-fixture.elf": {
+      "bytes": 720,
+      "sha256": "5a29d5ba8ce8c10685380dd442da2862d7ba56c7ff6a18184db2173bd759df57"
+    },
+    "fixed-statement-v2.zig": {
+      "bytes": 30175,
+      "sha256": "e4f6096c72ad22faa0332cb1a34157dce294ecb69fd6bd4a986e349ec66919a9"
+    },
+    "fixed-native-proof-test.zig": {
+      "bytes": 22051,
+      "sha256": "ec7fc328361f66e9a565e34c279b052dc0be798092034dac87432597085a0e24"
+    },
+    "acceptance-gate.log": {
+      "bytes": 1190,
+      "sha256": "eda43bf786e48b13b1330a0a2cb565497182b0252ee4b130b90f4436c395c55b"
+    }
+  },
+  "csp_16_case_benchmark_pass_claimed": false,
+  "acceptance": {
+    "passed": 2,
+    "total": 2,
+    "identity_guard_passed": true,
+    "compile_summary": "1m MaxRSS4G",
+    "run_summary": "10s MaxRSS1G",
+    "coverage": [
+      "original real nonfinal and resumed final native proofs with independent verification",
+      "self-consistent wrong trace origin rejection",
+      "wrong first-row clock rejection",
+      "rebased leaf-local V3 native proof",
+      "authenticatedView lease reuse counter and mutation rejection"
+    ],
+    "scope": "Focused native correctness gate, not CSP16-case latency/memory preservation promotion"
+  }
+}

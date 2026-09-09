@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "tests_passed": 3,
+  "new_regression_tests": 2,
+  "compile_seconds_rounded": 4,
+  "run_milliseconds": 777,
+  "compile_maxrss_reported": "456M",
+  "run_maxrss_reported": "3M",
+  "log_sha256": "42626e9e5d8c9a49d56b443ce78df28e9904339452e77003b28d10d3625a3c5b",
+  "scope": "Metal small-circle host fallback accepts exact adopted source/coefficient alias, rejects partial overlap and invalid lengths. Nonconstant coefficient/LDE parity at canonical logs1/2. Generic preparation, CSP profiles and worker policies unchanged.",
+  "terminal_production_retry": "pending product-v3 build",
+  "source_files": [
+    {
+      "path": "src/backends/metal/commit_backend.zig",
+      "sha256": "79d86e17ec6ea17d8ddcbb6f4c792300e7441ba301df61b848f40096a389ccc0"
+    },
+    {
+      "path": "src/backends/metal/circle_lde_small_alias_test_root.zig",
+      "sha256": "bb859be40f2681df8004a6386e3de013f01e047d8467d456ce1d38fbecf9d1f1"
+    },
+    {
+      "path": "src/backends/metal/build.zig",
+      "sha256": "546be872557afc35d65a8e1086f0e6db71b3d523b61d364fe28263ee440e51ba"
+    }
+  ]
+}

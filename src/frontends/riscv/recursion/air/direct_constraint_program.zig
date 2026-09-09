@@ -72,6 +72,10 @@ pub const Program = struct {
     constraint_count: u16,
     nodes: [MAX_NODES]Node,
     constraints: [MAX_CONSTRAINTS]Constraint,
+    // The complete canonical program remains available to recursive recording.
+    // Native execution visits only nodes reachable from roots and gates.
+    evaluation_node_count: u16,
+    evaluation_nodes: [MAX_NODES]Node,
 
     pub fn evaluateBaseInto(
         self: *const Program,
@@ -85,7 +89,7 @@ pub const Program = struct {
             return error.InvalidProgramShape;
         }
         @memcpy(scratch[0..inputs.len], inputs);
-        for (self.nodes[0..self.compiled_node_count]) |node| {
+        for (self.evaluation_nodes[0..self.evaluation_node_count]) |node| {
             scratch[node.destination] = evaluateBaseOp(node.op, scratch);
         }
         for (self.constraints[0..self.constraint_count], roots) |constraint, *root| {
@@ -107,7 +111,7 @@ pub const Program = struct {
             return error.InvalidProgramShape;
         }
         @memcpy(scratch[0..inputs.len], inputs);
-        for (self.nodes[0..self.compiled_node_count]) |node| {
+        for (self.evaluation_nodes[0..self.evaluation_node_count]) |node| {
             scratch[node.destination] = evaluateSecureOp(node.op, scratch);
         }
         for (self.constraints[0..self.constraint_count], roots) |constraint, *root| {
@@ -157,6 +161,8 @@ pub fn authenticate(
         .compiled_node_count = @intCast(arena.nodesView().len - input_count),
         .constraint_count = @intCast(arena.constraintsView().len),
         .nodes = [_]Node{emptyNode()} ** MAX_NODES,
+        .evaluation_node_count = 0,
+        .evaluation_nodes = [_]Node{emptyNode()} ** MAX_NODES,
         .constraints = [_]Constraint{.{ .root = NO_SLOT, .gate = NO_SLOT }} **
             MAX_CONSTRAINTS,
     };
@@ -187,7 +193,43 @@ pub fn authenticate(
             } else NO_SLOT,
         };
     }
+    prepareEvaluationNodes(&result);
     return result;
+}
+
+/// Prune execution only after the complete arena and every operation have been
+/// authenticated. Preserve canonical node numbering and graph serialization.
+fn prepareEvaluationNodes(program: *Program) void {
+    program.evaluation_node_count = 0;
+    var live = [_]bool{false} ** MAX_NODES;
+    for (program.constraints[0..program.constraint_count]) |constraint| {
+        live[constraint.root] = true;
+        if (constraint.gate != NO_SLOT) live[constraint.gate] = true;
+    }
+    var index: usize = program.compiled_node_count;
+    while (index > 0) {
+        index -= 1;
+        const node = program.nodes[index];
+        if (!live[node.destination]) continue;
+        switch (node.op) {
+            .constant => {},
+            .add, .sub, .mul => |binary| {
+                live[binary.lhs] = true;
+                live[binary.rhs] = true;
+            },
+            .neg => |operand| live[operand] = true,
+            .select => |selection| {
+                live[selection.selector] = true;
+                live[selection.when_true] = true;
+                live[selection.when_false] = true;
+            },
+        }
+    }
+    for (program.nodes[0..program.compiled_node_count]) |node| {
+        if (!live[node.destination]) continue;
+        program.evaluation_nodes[program.evaluation_node_count] = node;
+        program.evaluation_node_count += 1;
+    }
 }
 
 fn compileOp(op: expr.Op, source_index: usize) Error!Op {
@@ -303,4 +345,87 @@ test "R-012 direct compiler evaluates control roots identically over M31 and QM3
             control.LOGICAL_INPUT_COUNT,
         ),
     );
+}
+
+test "R-012 direct execution pruning preserves every parent catalog root over base and extension fields" {
+    @setEvalBranchQuota(500_000);
+    const catalog = @import("universal_catalog.zig");
+    var full_count: usize = 0;
+    var live_count: usize = 0;
+    inline for (catalog.LOGICAL_ROWS, 0..) |entry, row_index| {
+        if (comptime row_index < 14 or row_index >= 20) {
+            const Air = switch (row_index) {
+                10 => @import("field_statement_word_v3.zig"),
+                11 => @import("detached_graph_input_v1.zig"),
+                12 => @import("detached_poseidon_graph_v1.zig"),
+                13 => @import("fixed_wire_v3.zig"),
+                else => entry.Air,
+            };
+            var definition = if (entry.requires_location)
+                try Air.build(std.testing.allocator, .generated)
+            else
+                try Air.build(std.testing.allocator);
+            defer definition.deinit();
+            const pruned = try authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);
+            full_count += pruned.compiled_node_count;
+            live_count += pruned.evaluation_node_count;
+            var complete = pruned;
+            complete.evaluation_node_count = complete.compiled_node_count;
+            @memcpy(complete.evaluation_nodes[0..complete.compiled_node_count], complete.nodes[0..complete.compiled_node_count]);
+            // Arbitrary off-trace values are essential: satisfied zero roots
+            // alone cannot detect a dropped direct constraint dependency.
+            for (0..4) |sample| {
+                var base: [Air.LOGICAL_INPUT_COUNT]M31 = undefined;
+                var secure: [Air.LOGICAL_INPUT_COUNT]QM31 = undefined;
+                for (&base, &secure, 0..) |*word, *extension, index| {
+                    word.* = M31.fromU64((sample + 3) * (index + 17) * 1_234_567);
+                    extension.* = QM31.fromM31(word.*, M31.fromU64(index + 1), M31.fromU64(sample + 2), M31.fromU64(index * 31 + sample));
+                }
+                var base_scratch: [MAX_NODES]M31 = undefined;
+                var secure_scratch: [MAX_NODES]QM31 = undefined;
+                var actual_base: [Air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
+                var expected_base: [Air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
+                var actual_secure: [Air.DIRECT_CONSTRAINT_COUNT]QM31 = undefined;
+                var expected_secure: [Air.DIRECT_CONSTRAINT_COUNT]QM31 = undefined;
+                try pruned.evaluateBaseInto(&base, &base_scratch, &actual_base);
+                try complete.evaluateBaseInto(&base, &base_scratch, &expected_base);
+                try pruned.evaluateSecureInto(&secure, &secure_scratch, &actual_secure);
+                try complete.evaluateSecureInto(&secure, &secure_scratch, &expected_secure);
+                try std.testing.expectEqualDeep(expected_base, actual_base);
+                try std.testing.expectEqualDeep(expected_secure, actual_secure);
+            }
+            std.debug.print("DIRECT_EXECUTION_PRUNING row={d} canonical_nodes={d} executed_nodes={d}\n", .{ row_index, pruned.compiled_node_count, pruned.evaluation_node_count });
+        }
+    }
+    try std.testing.expect(live_count < full_count);
+}
+
+test "R-012 direct execution pruning retains gates and the complete arena seal" {
+    const source = @import("../../air/lang/source.zig").SourceSpan.generated();
+    var arena = ir.Arena.init(std.testing.allocator);
+    defer arena.deinit();
+    const input = try arena.input("value", .felt, source);
+    const gate = try arena.input("gate", .selector, source);
+    const two = try arena.constantField(2, source);
+    const product = try arena.mul(input, two, source);
+    const negative = try arena.neg(product, source);
+    const root = try arena.sub(negative, two, source);
+    const lookup_only = try arena.mul(product, product, source);
+    _ = try arena.assertZero("gated", root, gate, .semantic, source);
+    _ = try @import("relation_effect.zig").append(&arena, .{
+        .domain = .recursion_statement_word,
+        .role = .emit,
+        .values = &.{ input, root, lookup_only },
+        .weight = gate,
+    }, source);
+    const identity = try digest.computeIdentity(&arena);
+    const program = try authenticate(&arena, identity.bytes, 2);
+    try std.testing.expectEqual(@as(u16, 4), program.evaluation_node_count);
+    var scratch: [MAX_NODES]M31 = undefined;
+    var roots: [1]M31 = undefined;
+    try program.evaluateBaseInto(&.{ M31.fromU64(7), M31.one() }, &scratch, &roots);
+    try std.testing.expectEqual(M31.fromU64(16).neg(), roots[0]);
+    var wrong_digest = identity.bytes;
+    wrong_digest[0] ^= 1;
+    try std.testing.expectError(error.BindingSealMismatch, authenticate(&arena, wrong_digest, 2));
 }

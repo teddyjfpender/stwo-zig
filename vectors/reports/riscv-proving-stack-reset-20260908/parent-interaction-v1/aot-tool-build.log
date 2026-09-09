@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 39s
+
+Build Summary: 4/4 steps succeeded
+metal-core-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 5s MaxRSS:479M
+test-metal-core-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 10s MaxRSS:854M
+

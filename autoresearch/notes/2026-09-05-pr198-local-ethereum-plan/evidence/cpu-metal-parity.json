@@ -1,0 +1,179 @@
+{
+  "schema": "stwo.local-csp-restoration-check.v1",
+  "promotion_ready": false,
+  "reason": "single-sample diagnostic on battery; no repeated before-after A/B gate",
+  "source_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+  "workers": 16,
+  "reports": {
+    "cpu": {
+      "path": "cpu-v2-full16.json",
+      "sha256": "c795ff7829d5ec9792cee4cc68bb9896924d3d1f48579777ccb2620719b01070"
+    },
+    "metal": {
+      "path": "metal-v2-full16.json",
+      "sha256": "d01175bc9080e32938256df2bd8551768df694e6d106ad7bc93c054da49686c2"
+    }
+  },
+  "cases": [
+    {
+      "target": "sha256",
+      "input_size": 128,
+      "cpu_peak_bytes": 1348077488,
+      "metal_peak_bytes": 1908803240,
+      "proof_sha256": "19bb635973c23a3b9aea16b420f763d5e6b89fb6ee7760ae0704541e53ec90fa",
+      "statement_sha256": "9df5218af2de642a37a73445e955305010a12074a18cad1bf4b15735547001b0",
+      "cpu_prove_ns": 1023209958,
+      "metal_prove_ns": 489935792
+    },
+    {
+      "target": "sha256",
+      "input_size": 256,
+      "cpu_peak_bytes": 1356531680,
+      "metal_peak_bytes": 1919436600,
+      "proof_sha256": "7e23693a9ebb874cd55415bc1828f679e327ccb0b2917406248f76c59eb03048",
+      "statement_sha256": "9b5025f166f9987deecd0c4eac7344ec5038d85c90aa1725ca2b23556c57c3a7",
+      "cpu_prove_ns": 879126416,
+      "metal_prove_ns": 468806583
+    },
+    {
+      "target": "sha256",
+      "input_size": 512,
+      "cpu_peak_bytes": 1382926352,
+      "metal_peak_bytes": 1929463680,
+      "proof_sha256": "3652a7c4a4fe02999fdb6f052c9e890a635c1a92fc7cf7bc78201ecd4998f696",
+      "statement_sha256": "6bd8da5d96eb12e90e21ffbe02035f28b33d13127cc5ea59dbe7c4caf3dde22c",
+      "cpu_prove_ns": 753851251,
+      "metal_prove_ns": 454826833
+    },
+    {
+      "target": "sha256",
+      "input_size": 1024,
+      "cpu_peak_bytes": 1431046232,
+      "metal_peak_bytes": 1953630296,
+      "proof_sha256": "229bfd31a6ff5f0a3d2db61e9d304ce62ecc700331fa80a148298bfcfd5cc1e0",
+      "statement_sha256": "b9f8b02cf4797305d248e052294684e0ebd3cdc2204e9333737e6e79659ab3bf",
+      "cpu_prove_ns": 865963333,
+      "metal_prove_ns": 497096084
+    },
+    {
+      "target": "sha256",
+      "input_size": 2048,
+      "cpu_peak_bytes": 1497450776,
+      "metal_peak_bytes": 1989150808,
+      "proof_sha256": "9ad5506c4a5601213246ef1853bb0d61591d3ab62cb2cc0d1cdc37212aaf059f",
+      "statement_sha256": "60fbf9f502e211374abe455323ba46ba691547ba76a091e6c5baeacc1931c14c",
+      "cpu_prove_ns": 818430916,
+      "metal_prove_ns": 497914584
+    },
+    {
+      "target": "keccak",
+      "input_size": 128,
+      "cpu_peak_bytes": 1354827696,
+      "metal_peak_bytes": 1913948104,
+      "proof_sha256": "b92746c7432d141f3ce5f2f6e761c51cfbb61bcbf361a7623a4701b514e68273",
+      "statement_sha256": "b95890110961c710cff023617af22fefc0162f01f90579722b0317d799f8e9c9",
+      "cpu_prove_ns": 617653375,
+      "metal_prove_ns": 436203584
+    },
+    {
+      "target": "keccak",
+      "input_size": 256,
+      "cpu_peak_bytes": 1369049152,
+      "metal_peak_bytes": 1920763800,
+      "proof_sha256": "1cabf34c0e4cdcc3464ff4310b91b9ae134bb4276bfc0a5d4d98bae1ed1f5db1",
+      "statement_sha256": "454c31c156ca1de1f4e51dc3b0fecf777bef639f07d5520f11b3d90583d8ac77",
+      "cpu_prove_ns": 722226918,
+      "metal_prove_ns": 452080167
+    },
+    {
+      "target": "keccak",
+      "input_size": 512,
+      "cpu_peak_bytes": 1409861768,
+      "metal_peak_bytes": 1944520672,
+      "proof_sha256": "1fd91686f7b0b0f0930c55346b7cc59423e8468de8a20c56dcd320af6377dcb9",
+      "statement_sha256": "24c7b0d64dcb139713ece7697a6df80791d87f6204c5c1b1eaa7bf8690632429",
+      "cpu_prove_ns": 685466500,
+      "metal_prove_ns": 468229583
+    },
+    {
+      "target": "keccak",
+      "input_size": 1024,
+      "cpu_peak_bytes": 1489848624,
+      "metal_peak_bytes": 1985513632,
+      "proof_sha256": "db7c71429a20bfa3ee21a8e0366757ccf340ba181fc22c76bc57b2a8e618d04f",
+      "statement_sha256": "93411d626d55a8511490287601c9955a6bc3d4b1f710e8e9ea09eaa90cf9cd5d",
+      "cpu_prove_ns": 733569958,
+      "metal_prove_ns": 488295000
+    },
+    {
+      "target": "keccak",
+      "input_size": 2048,
+      "cpu_peak_bytes": 1683606072,
+      "metal_peak_bytes": 2077231552,
+      "proof_sha256": "b473af815458a3250c1a9b50bb5a23524566b0e255d482d1c30245b69d45aded",
+      "statement_sha256": "5eaa65d9b03d589e18409b6acea9ce62e35ff03409b1501df1aac18afffc5e5d",
+      "cpu_prove_ns": 934067417,
+      "metal_prove_ns": 547391708
+    },
+    {
+      "target": "poseidon2_m31",
+      "input_size": 2,
+      "cpu_peak_bytes": 1369016408,
+      "metal_peak_bytes": 1757808608,
+      "proof_sha256": "9e73497f6f6e37f50952a302f2f47c5e79385d0b1431d8099a75d46f408289a5",
+      "statement_sha256": "ad8eb1023f147a7bae344d28a76ec08e948c9cd050dc6ae79753da9e3b6e774b",
+      "cpu_prove_ns": 722161833,
+      "metal_prove_ns": 467115583
+    },
+    {
+      "target": "poseidon2_m31",
+      "input_size": 4,
+      "cpu_peak_bytes": 1458047304,
+      "metal_peak_bytes": 1806813200,
+      "proof_sha256": "93ec05a4eeb6f25c8c9aba7b867852f5c942bbdbcd40a345dcf1d12aa469b5ae",
+      "statement_sha256": "4515e82790e5cc956fa1d9defb6579a6acdf60183dac6f3be41fdbfa14b62b86",
+      "cpu_prove_ns": 789266625,
+      "metal_prove_ns": 492525583
+    },
+    {
+      "target": "poseidon2_m31",
+      "input_size": 8,
+      "cpu_peak_bytes": 1656310520,
+      "metal_peak_bytes": 1905232176,
+      "proof_sha256": "2097b4438182689f885f04f002af64fe7cd94d5559a3a29306a22b982d4b8065",
+      "statement_sha256": "de5da945e962711015f6c24da1b4328fcace3dfa120bf2dabc170e9843faf78d",
+      "cpu_prove_ns": 1105927457,
+      "metal_prove_ns": 559331875
+    },
+    {
+      "target": "poseidon2_m31",
+      "input_size": 12,
+      "cpu_peak_bytes": 1777224536,
+      "metal_peak_bytes": 1959168448,
+      "proof_sha256": "9c2aaad0c3a2b2e70830c82ee1be86857d436208b136183bd1e03363dccc930d",
+      "statement_sha256": "911688dadb33856103abe3693dcfa0cc54a29de7f4022c9c6af6b4ed1a3ae396",
+      "cpu_prove_ns": 918504626,
+      "metal_prove_ns": 586568292
+    },
+    {
+      "target": "poseidon2_m31",
+      "input_size": 16,
+      "cpu_peak_bytes": 1991593248,
+      "metal_peak_bytes": 2054572768,
+      "proof_sha256": "45ee10ecb49a75f9404349f80af3da8bcc74ef43b166dc33a0de4304950e9a8c",
+      "statement_sha256": "854c3e1ef2eb6bd481456d7881a17de9e8dbfbdeef0af5ca4ec80be563094044",
+      "cpu_prove_ns": 1474344041,
+      "metal_prove_ns": 690151209
+    },
+    {
+      "target": "ecdsa_secp256k1",
+      "input_size": 32,
+      "cpu_peak_bytes": 9172135192,
+      "metal_peak_bytes": 5055143784,
+      "proof_sha256": "5581498a4ac99db50d49eff35303a8d49298debe1fcd30d54623c2cb0249309c",
+      "statement_sha256": "6252ca72890a4b95b4239d0251b8a403643c3ae8c864bb27eb3f9ba718d4a95a",
+      "cpu_prove_ns": 4775567666,
+      "metal_prove_ns": 2753885874
+    }
+  ]
+}

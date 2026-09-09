@@ -1,0 +1,43 @@
+{
+  "status": "stopped_diagnostic",
+  "source_snapshot": {
+    "active_worktree_dirty": true,
+    "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+    "capture_protocol": "binary_HEAD_diff_plus_git_ls_files_others_exclude_standard_v1",
+    "ignored_source_input_count": 0,
+    "source_content_sha256": "b87d7796f6c3e98d9086ffbffaf972608260abc681c936459a17444ca2b4e8c9",
+    "source_file_count": 9629,
+    "source_payload_bytes": 355826684,
+    "status_category_counts": {
+      "ordinary": 297,
+      "rename_or_copy": 0,
+      "unmerged": 0,
+      "untracked": 660
+    },
+    "status_entry_count": 957,
+    "status_sha256": "cdd05596deabf5dcc6b3a76cabc36a70f31955dcab9e21be6d719717f6d525b4",
+    "temporary_commit": "2a653b7b835566274552426826173d108f47130c",
+    "temporary_tree_git_oid": "5e36ab1398a1eadff0a859b122b57c56afe78026",
+    "temporary_tree_listing_sha256": "ea3e98c6115c11e19faa6dabe20173ba5e0b1f847054b1e4246a1ea579ce9623",
+    "tracked_patch_bytes": 1474873,
+    "tracked_patch_sha256": "1f26474eb920acccf58d9882bb8c2278186b292b7f1c2f20795c012f7958c432",
+    "untracked_file_count": 660,
+    "untracked_payload_bytes": 28613400,
+    "untracked_payload_sha256": "ee49ac36b06e181617549b7a1b710938ef12fe29dcd31d6bad416ea2ca765c12"
+  },
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/485eac151f4f4d31599e3ff65f575b41/test",
+  "binary_sha256": "738eed40d9f7acf0c9262c29afab23db66f4ac3028d8a937551f965f531739e7",
+  "pid": 78405,
+  "workers": 1,
+  "candidate_sha256": "f404b395543ba08d5b2d0014ef5a71d7653e925b335b0bc5632e3ea179f6ecf3",
+  "target": "test-ethereum-wrapper-candidate-replay",
+  "native_assisted": true,
+  "includes_proving": false,
+  "includes_recursive_postprocessing": true,
+  "includes_query_and_sample_mutations": true,
+  "full_log": "/tmp/ethereum-reviewed-candidate.log",
+  "progress_log": "/tmp/ethereum-reviewed-candidate-progress.log",
+  "reason": "Explicitly stopped repeated retained global-closure audit after cold proof verification passed; no final replay pass claimed.",
+  "stopped_at": "2026-09-07T08:00:43.310875+00:00",
+  "sample": "/tmp/ethereum-reviewed-candidate-postprocess.sample.txt"
+}

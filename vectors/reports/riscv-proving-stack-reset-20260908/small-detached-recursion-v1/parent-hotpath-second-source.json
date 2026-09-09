@@ -1,0 +1,25 @@
+{
+  "base_commit": "6fc814da6a9c3b0d1cde8e45effc0c7d6ca9de64",
+  "source_sha256": {
+    "src/frontends/riscv/build.zig": "3d5250094665f640928cafffdcb34ed143fb15a2176498c615ebcf6fb3324778",
+    "src/frontends/riscv/recursion/air/composition_circuit_reference.zig": "acf731b3e80bb769da94245449649a2da2c42f26128e5c996da243a04eb859b3",
+    "src/frontends/riscv/recursion/air/direct_constraint_program.zig": "3d7fb1c811faa9c42daaa3efbae7be36564294f898d1012fb6dcc8b3d22b0785",
+    "src/frontends/riscv/recursion/air/fri_merkle_node_test.zig": "178abb9f68bbc75777f3216d4639dd826ae71a929f1cb39df5fa3f8358a4874b",
+    "src/frontends/riscv/recursion/air/fri_merkle_node_witness.zig": "eea6fdb4c9c006e84927f3e619129f86642815cfa22311ac0ef784a349c6b7c9",
+    "src/frontends/riscv/recursion/air/fri_verifier_input_witness.zig": "e05b712c773cc89e78a93303a00d2efb37c1c131351370cb4269f800b0f59b53",
+    "src/frontends/riscv/recursion/air/pcs_deep_input_witness_preprocessed.zig": "ef4fb9ed12b3f75346c37aae8304c977ec2d8ae4e646dd8babed276c12de98eb",
+    "src/frontends/riscv/recursion/air/pcs_deep_input_witness_reference.zig": "d6fc82720ded582661330d9521ef1eb3c6a99f34ccc042ef15492a749c6efcd4",
+    "src/frontends/riscv/recursion/air/relation_interaction_tuple_ledger.zig": "96aec61d8f84f756016a6e92be0e408bc1c25ddd501b1c17a69b437b3a60042a",
+    "src/frontends/riscv/recursion/air/trace_merkle_witness_preprocessed.zig": "dc786161dda1c352bf7c834b573cb1e1898bc6cc0f359f5d22411947c5e1c56c",
+    "src/frontends/riscv/recursion/air/universal_challenges.zig": "ae2943f6e296639dccf727a402c46478b5516edc4577d5657b8f68610018390f",
+    "src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig": "1940ae6551a652817ff559a19a74a44765c45c3e72e3e21751a8039128cfb8eb",
+    "src/frontends/riscv/recursion_air_core_test_root.zig": "566f80d244c2a4cb9573f537cbeb872c9b425febefac5be7a89e99ddd4accc7e",
+    "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1.zig": "807947616848cc6d431afc0dd4c730f525f2758bbcff919ec83fd6e4b06a901d",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig": "f71f01f5bab1a02110894afea73ff5926a3f48c7a9730e671b4a7bd52c2ff713",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_prepare.zig": "0d9085355aec1d24e78d9aa04e4d4e9a03eaebbb746213f6ab0b13b95a12e76e",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig": "287017ab82945c4628fa7425d3067f64f211c186aaac09155d77c6f1d9a0a26b",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_checks.zig": "7c8a9af8dca8b10cce5e2552133057b682723f481f9980d4f2019598a9a39009",
+    "src/frontends/riscv/recursion/air/structural_sha256.zig": "9e328432ee92d67cae8790f1a2ba6b81834c8d7d7d47353efe262851513d96a1"
+  },
+  "scope": "Parent preparation, exact closure and composition optimization; CSP benchmark checks excluded by user instruction."
+}

@@ -1,0 +1,11 @@
+{
+  "generated_files_equal": true,
+  "kernel_count": 61,
+  "full_strict_metal_verified": false,
+  "real_aot_interaction_verified": false,
+  "files": {
+    "recursive_framework_v1.metal": "a00ade46f0da2aea1df7f1dfc9d67f33a2cab1c1a470f569059c61fd93be2bd9",
+    "recursive_framework_v1_exports.zig": "17b90c41f197bc1d1e0720ca1a7d278055cf90428d270825cc6283eccac91184",
+    "recursive_framework_v1_coverage.json": "1a863466939e6ce6d846eb7e353e54bc1052eb2c33022c1ca66e854fedafdbfb"
+  }
+}

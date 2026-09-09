@@ -42,7 +42,7 @@ pub const input_provider_air =
     @import("air/segment_publication_input_provider_v2.zig");
 pub const input_provider_witness =
     @import("air/segment_publication_input_provider_witness_v2.zig");
-pub const vm_leaf_context = @import("vm_leaf_context.zig");
+pub const vm_leaf_context = @import("vm_leaf_context_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
@@ -142,7 +142,7 @@ pub const BoundaryInputsV2 = struct {
 pub const VerifierInputProviderInputsV2 = struct {
     authority: *const input_provider_authority.AuthorityV2,
     prepared: *const input_provider_authority.PreparedAuthorityV2,
-    vm_context: *const vm_leaf_context.Context,
+    vm_context: *const vm_leaf_context.ContextV2,
 };
 
 pub const InputsV2 = struct {
@@ -338,10 +338,15 @@ pub fn validateRowAudit(
         audit.logical_rows != boundary_authority.PUBLIC_LOGUP_LOGICAL_ROWS)
     {
         return error.InvalidAuditGeometry;
-    } else if (row == 38 and
-        audit.logical_rows != input_provider_authority.LOGICAL_ROW_COUNT)
-    {
-        return error.InvalidAuditGeometry;
+    } else if (row == 38) {
+        const public_words = input_provider_witness.LUP2_WORD_COUNT;
+        const limbs = input_provider_witness.SECURE_LIMB_COUNT;
+        if (audit.logical_rows < public_words + limbs or
+            (audit.logical_rows - public_words) % limbs != 0)
+            return error.InvalidAuditGeometry;
+        const shape = input_provider_authority.Shape.init((audit.logical_rows - public_words) / limbs) catch
+            return error.InvalidAuditGeometry;
+        if (shape.traceRowCount() != trace_rows) return error.InvalidAuditGeometry;
     }
     if (row == 17 and
         (audit.logical_rows != ROW17_LOGICAL_ROWS or

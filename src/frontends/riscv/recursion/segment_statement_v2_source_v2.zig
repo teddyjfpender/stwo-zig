@@ -2,6 +2,7 @@
 
 const dependency_0 = @import("segment_statement_v2_contract.zig");
 const dependency_1 = @import("segment_statement_v2_canonical_wire_view_v2.zig");
+const transcript_layout = @import("segment_statement_v2_transcript_layout.zig");
 
 const BaseStatementWords = dependency_0.BaseStatementWords;
 const ByteLeaf = dependency_1.ByteLeaf;
@@ -22,6 +23,7 @@ const MEMORY_STATE_ID_DOMAIN = dependency_0.MEMORY_STATE_ID_DOMAIN;
 const RangeV2 = dependency_0.RangeV2;
 const RetainedSectionV2 = dependency_0.RetainedSectionV2;
 const SECTION_HEADER_WORDS = dependency_0.SECTION_HEADER_WORDS;
+const SnapshotIdentity = dependency_0.SnapshotIdentity;
 const StatementV2 = dependency_0.StatementV2;
 const Tag = dependency_0.Tag;
 const WIRE_ID_DOMAIN = dependency_0.WIRE_ID_DOMAIN;
@@ -43,6 +45,7 @@ const nonZeroWordCount = dependency_1.nonZeroWordCount;
 const requireDigest = dependency_0.requireDigest;
 const runner_result = dependency_0.runner_result;
 const snapshotIdentity = dependency_1.snapshotIdentity;
+const snapshotIdentityReusingRoot = dependency_1.snapshotIdentityReusingRoot;
 const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
 const validateClockBoundary = dependency_1.validateClockBoundary;
@@ -80,6 +83,8 @@ pub const SourceV2 = struct {
         base_statement: span_statement.SpanStatement,
         result: *const runner_result.SegmentResult,
     ) Error!SourceV2 {
+        if (result.clock_frame != .global_continuous)
+            return error.ClockFrameMismatch;
         if (!std.meta.eql(result.segment_role, result.rw_memory.segment_role))
             return error.InvalidSegmentRole;
         const completion = if (result.completion_reason) |reason|
@@ -151,6 +156,14 @@ pub const SourceV2 = struct {
         }
 
         try validateMemoryWords(self.memory_words, self.segment_role, range.end);
+        // The Span boundary and native sparse projection must name the same
+        // memory state. This checks actual source bytes, not a cached receipt.
+        const entry_snapshot = dependency_1.snapshotDigest(self.memory_words, .initial_word);
+        const exit_snapshot = dependency_1.snapshotDigest(self.memory_words, .final_word);
+        if (!std.meta.eql(executed.entry.rw_memory, entry_snapshot.id) or
+            !std.meta.eql(executed.exit.rw_memory, exit_snapshot.id))
+            return error.MemorySnapshotMismatch;
+
         try validateClockBoundary(
             self.entry_register_clocks,
             self.entry_memory_clocks,
@@ -168,9 +181,6 @@ pub const SourceV2 = struct {
 
     pub fn statement(self: *const SourceV2) Error!StatementV2 {
         try self.validate();
-        const base_words = try self.base_statement.canonicalWords();
-        const executed = try executedLeaf(self.base_statement);
-        const range = try sourceRange(self, executed);
         const entry_snapshot = snapshotIdentity(
             self.memory_words,
             .initial_word,
@@ -179,6 +189,41 @@ pub const SourceV2 = struct {
             self.memory_words,
             .final_word,
         );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    /// Reuses roots only after the exact current sparse projections reproduce
+    /// both retained snapshot identities and counts. This is the restart path
+    /// for a cold-authenticated STWESG31/PublicDataV2 boundary: it avoids an
+    /// O(nonzero-bytes * tree-depth) Poseidon traversal without accepting a
+    /// detached root or skipping any canonical tuple validation.
+    pub fn statementReusingRoots(
+        self: *const SourceV2,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!StatementV2 {
+        try self.validate();
+        const entry_snapshot = try snapshotIdentityReusingRoot(
+            retained_entry,
+            self.memory_words,
+            .initial_word,
+        );
+        const exit_snapshot = try snapshotIdentityReusingRoot(
+            retained_exit,
+            self.memory_words,
+            .final_word,
+        );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    fn statementFromSnapshots(
+        self: *const SourceV2,
+        entry_snapshot: SnapshotIdentity,
+        exit_snapshot: SnapshotIdentity,
+    ) Error!StatementV2 {
+        const base_words = try self.base_statement.canonicalWords();
+        const executed = try executedLeaf(self.base_statement);
+        const range = try sourceRange(self, executed);
         const entry_memory_clock_id = memoryClockIdentity(self.entry_memory_clocks);
         const exit_memory_clock_id = memoryClockIdentity(self.exit_memory_clocks);
         const job_id = jobIdAssumeCanonical(&base_words);
@@ -267,36 +312,47 @@ pub const SourceV2 = struct {
         destination: []M31,
     ) Error!CanonicalWireViewV2 {
         const statement_v2 = try self.statement();
-        const expected = try checkedWireWordCount(
-            statement_v2.entry_snapshot_count,
-            statement_v2.exit_snapshot_count,
-            statement_v2.entry_memory_clock_count,
-            statement_v2.exit_memory_clock_count,
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    /// Canonical encoder paired with `statementReusingRoots`. The emitted
+    /// bytes are identical to `encodeCanonical`; only the root derivation work
+    /// is elided after exact sparse identity/count replay succeeds.
+    pub fn encodeCanonicalReusingRoots(
+        self: *const SourceV2,
+        destination: []M31,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!CanonicalWireViewV2 {
+        const statement_v2 = try self.statementReusingRoots(
+            retained_entry,
+            retained_exit,
         );
-        if (destination.len != expected) return error.CanonicalLengthMismatch;
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    fn encodeWithStatement(
+        self: *const SourceV2,
+        destination: []M31,
+        statement_v2: StatementV2,
+    ) Error!CanonicalWireViewV2 {
+        const layout = try transcript_layout.Layout.fromStatement(&statement_v2);
+        if (destination.len != layout.wordCount()) return error.CanonicalLengthMismatch;
 
         var writer = Writer{ .words = destination };
         statement_v2.writeFixed(&writer);
-        const entry_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .entry_memory_state, self.memory_words, .initial_word);
-        const exit_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .exit_memory_state, self.memory_words, .final_word);
-        const entry_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_memory_clock_count,
-        };
-        writeClockSection(&writer, .entry_memory_clocks, self.entry_memory_clocks);
-        const exit_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_memory_clock_count,
-        };
-        writeClockSection(&writer, .exit_memory_clocks, self.exit_memory_clocks);
+        const entry_snapshot = layout.section(.entry_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.entry_snapshot.tag(), self.memory_words, .initial_word);
+        const exit_snapshot = layout.section(.exit_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.exit_snapshot.tag(), self.memory_words, .final_word);
+        const entry_memory_clocks = layout.section(.entry_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.entry_memory_clocks.tag(), self.entry_memory_clocks);
+        const exit_memory_clocks = layout.section(.exit_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.exit_memory_clocks.tag(), self.exit_memory_clocks);
         std.debug.assert(writer.at == destination.len);
         return .{
             .words = destination,
@@ -579,13 +635,11 @@ pub fn snapshotSectionIdentity(
     section: RetainedSectionV2,
 ) Digest {
     var hasher = IdentityHasher.init(MEMORY_STATE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.u32Value(section.count);
-    for (0..section.count) |index| {
-        const entry = view.sparseEntry(section, index);
-        hasher.u32Value(entry.address);
-        hasher.u32Value(entry.value);
-    }
+    @import("segment_statement_v2_identity_preimage.zig").emitRetainedSection(
+        &hasher,
+        section.count,
+        view.words[section.payload_start..][0 .. @as(usize, section.count) * 4],
+    );
     return hasher.finalize();
 }
 

@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-09-08T06:26:01.582220+00:00",
+  "controller_pid": 44583,
+  "stop_reason": "Explicit DevEx priority pause after primary reported geometry compilation failure; prevent any native production while fixing focused gate",
+  "current_verifier_drained": true,
+  "bounded_lane_guard_held_during_childless_check": true,
+  "signal": "SIGTERM",
+  "childless_before_signal": true,
+  "guard_wait_seconds": 40.232235041912645,
+  "progress_log_tail": "Ethereum full leaf 1/121 independently verified\nEthereum full leaf 2/121 independently verified\nEthereum full leaf 3/121 independently verified\nEthereum full leaf 4/121 independently verified\nEthereum full leaf 5/121 independently verified\nEthereum full leaf 6/121 independently verified\nEthereum full leaf 7/121 independently verified\nEthereum full leaf 8/121 independently verified\nEthereum full leaf 9/121 independently verified\nEthereum full leaf 10/121 independently verified\nEthereum full leaf 11/121 independently verified\nEthereum full leaf 12/121 independently verified\nEthereum full leaf 13/121 independently verified\nEthereum full leaf 14/121 independently verified\n",
+  "native19_candidate_preserved": true,
+  "new_native_production_launched": false
+}

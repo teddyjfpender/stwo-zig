@@ -1,0 +1,52 @@
+{
+  "status": "complete_lifecycle_passed_external_ten_case_gate_pending",
+  "guarded_tests": 3,
+  "exit_code": 0,
+  "source_manifest_sha256": "3583e75812dadd63810e902d2e3565b35240eb7233432e35dec8d6518666a7c4",
+  "coordinate": {
+    "height": 0,
+    "index": 2,
+    "global_ordinal": 2
+  },
+  "proof_bytes": 3028338,
+  "whole_block_root": false,
+  "request_including_compile_s": 6484.284633541945,
+  "request_runtime_s": 6324.697803625,
+  "internal_detached_root_request_s": 0.209692291,
+  "internal_detached_root_verify_s": 0.119195459,
+  "stark_phase_s": 1053.957189292,
+  "cold_reopen_s": 2074.344685083,
+  "cold_cohort_s": 865.180780041,
+  "cold_verify_s": 623.472880834,
+  "cold_graph_s": 510.40093425,
+  "recursive_publication_checks_s": 500.911333625,
+  "peak_footprint_bytes": 44929895816,
+  "timing_note": "Phase times nest; do not sum all values. Cold reopen includes cohort reconstruction, capture/graph construction and audits; detached root timing is the standalone key/proof endpoint in the producer-destruction lifecycle.",
+  "evidence_files": [
+    {
+      "path": "after-cold-verify-sample.txt",
+      "bytes": 37873,
+      "sha256": "0fddc6c77e59f81285663de9bd2089317b8830cbb2b6458b609146a2a8a15955"
+    },
+    {
+      "path": "complete-proof.log",
+      "bytes": 27906,
+      "sha256": "78dcea52840c7f06a4c4df04e345977496983c15e72b9cdf3b348d97daf8e6f2"
+    },
+    {
+      "path": "execution.json",
+      "bytes": 482,
+      "sha256": "ee3032aa317f40dc41744a306de9e2de5ce54b7c610a82ec4209700f9b1894f6"
+    },
+    {
+      "path": "lifecycle-acceptance-v1.json",
+      "bytes": 8241,
+      "sha256": "2e9ce65c96fa4e1318708635485c2c0f0090b7c277410813e7ae84e8c9fdc3e5"
+    },
+    {
+      "path": "memory-observer-summary.json",
+      "bytes": 329,
+      "sha256": "c06d2db078e105cbca4fa8a212bc70b0a97df1e95bd1ea47842eceb7062b32eb"
+    }
+  ]
+}

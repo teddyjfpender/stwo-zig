@@ -125,7 +125,7 @@ pub const Binding = struct {
     }
 
     pub fn identityDigest(self: *const Binding) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        var hash = @import("structural_sha256.zig").Hasher.init(.{});
         hash.update(BINDING_DOMAIN);
         hashInt(&hash, u16, self.format_version);
         hashInt(&hash, u16, self.semantic_format_version);
@@ -546,7 +546,7 @@ pub fn sourceIndices(source_value: Source) [3]u32 {
 }
 
 pub fn referenceDigest(lanes: [3]Lane) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u16, REFERENCE_FORMAT_VERSION);
     hashInt(&hash, u8, lanes.len);

@@ -1,0 +1,19 @@
+test-recursion-binary-fri-row18
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+RETAINED_ROWS_DIGEST_AB lengths=131 legacy_bytes_preserved=true changed_word_rejected=true
+test-recursion-binary-fri-row18
++- stwo_riscv_frontend test count floor failure
+error: this package compiled 1 tests; its own step requires at least 2.
+  Zig collects a test only from a file it analysed, so a file that fell out of
+  test_inventory.zig is compiled by nothing and still reports green. Restore the
+  import, or move `test_floor` in this build file deliberately.
+
+Build Summary: 2/4 steps succeeded; 1 failed; 1/1 tests passed
+test-recursion-binary-fri-row18 transitive failure
++- stwo_riscv_frontend test count floor failure
+   +- run test 1 passed 638ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 3s MaxRSS:351M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/715bd5f8d885353c2d0d15ab945aa4ac/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xdf1c896c -Zf63058eb1bdd7447 --maxrss 25769803776 -j1 test-recursion-binary-fri-row18 -Doptimize=ReleaseSafe --summary all

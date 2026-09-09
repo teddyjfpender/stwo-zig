@@ -36,9 +36,9 @@ test "LOAD_STORE fixed authority binding is source independent pointer-free and 
     const moved = try authority.Authority.init(&relocated, &moved_binding);
     try std.testing.expectEqualDeep(admitted, authority.Authority.pinned());
     try std.testing.expectEqual(admitted.identityDigest(), moved.identityDigest());
-    try std.testing.expectEqual(@as(usize, 48), authority.MAIN_COLUMN_COUNT);
+    try std.testing.expectEqual(@as(usize, 50), authority.MAIN_COLUMN_COUNT);
     try std.testing.expectEqual(@as(usize, 63), authority.DIRECT_CONSTRAINT_COUNT);
-    try std.testing.expectEqual(@as(usize, 16), authority.LOOKUP_COUNT);
+    try std.testing.expectEqual(@as(usize, 17), authority.LOOKUP_COUNT);
     try std.testing.expectEqual(@as(usize, 2), authority.LOOKUP_BATCH_SIZE);
     try std.testing.expect(!containsPointer(authority.Binding));
     try std.testing.expect(!containsPointer(authority.Authority));
@@ -95,20 +95,39 @@ test "LOAD_STORE authority direct roots and ordered relations equal legacy polyn
         var columns: [authority.MAIN_COLUMN_COUNT]QM31 = undefined;
         for (&columns) |*column| column.* = randomSecure(random);
         const selector = randomSecure(random);
-        const row = try Legacy.Row.fromOracleColumns(&columns);
+        const row = try Legacy.Row.fromOracleColumns(columns[0..48]);
         const expected_direct = Legacy.evaluate(row);
         const expected_placement = Legacy.placementConstraint(row, selector);
         const expected_lookups = legacyLookups(QM31, row);
         const actual = try admitted.buildProgram(QM31, &columns, selector);
 
-        for (expected_direct.values, actual.direct_constraints.values[0..62]) |
+        for (expected_direct.values[0..61], actual.direct_constraints.values[0..61]) |
             expected,
             got,
         | try std.testing.expect(expected.eql(got));
+        try std.testing.expect(actual.direct_constraints.values[61].eql(
+            row.active().mul(columns[48].sub(
+                Legacy.alignedAddressRangeLookup(row),
+            )),
+        ));
         try std.testing.expect(
             expected_placement.eql(actual.direct_constraints.values[62]),
         );
         try expectLookupListsEqual(QM31, expected_lookups, actual.lookup_entries);
+        try std.testing.expect(actual.lookup_entries.entries[6].values[0].eql(
+            columns[49],
+        ));
+        try std.testing.expect(actual.lookup_entries.entries[7].values[1].eql(
+            expected_lookups.entries[7].values[1].add(
+                expected_lookups.entries[7].values[1],
+            ),
+        ));
+        try std.testing.expect(actual.lookup_entries.entries[16].values[0].eql(
+            columns[48].sub(columns[49]).mul(QM31.fromBase(
+                M31.fromCanonical(1 << 11),
+            )),
+        ));
+        try std.testing.expect(actual.lookup_entries.entries[16].values[1].isZero());
     }
 }
 
@@ -122,10 +141,20 @@ test "LOAD_STORE authority direct and lookup programs are symbolically identical
     for (&columns) |*column| column.* = arena.column("");
     const selector = arena.column("is_active");
     const Legacy = legacy.Semantics(symbolic.Scalar);
-    const row = try Legacy.Row.fromOracleColumns(&columns);
+    const row = try Legacy.Row.fromOracleColumns(columns[0..48]);
     const direct = Legacy.evaluate(row);
     const placement = Legacy.placementConstraint(row, selector);
     const lookups = legacyLookups(symbolic.Scalar, row);
+    const expected_word_binding = row.active().mul(columns[48].sub(
+        Legacy.alignedAddressRangeLookup(row),
+    ));
+    const expected_base_high = lookups.entries[7].values[1].mul(
+        symbolic.Scalar.fromBase(M31.fromCanonical(2)),
+    );
+    const expected_high = columns[48].sub(columns[49]).mul(
+        symbolic.Scalar.fromBase(M31.fromCanonical(1 << 11)),
+    );
+    const expected_zero = symbolic.Scalar.zero();
     const node_count_before = arena.nodes.items.len;
 
     const actual = try authority.Authority.pinned().buildProgram(
@@ -135,13 +164,33 @@ test "LOAD_STORE authority direct and lookup programs are symbolically identical
     );
     try std.testing.expectEqual(node_count_before, arena.nodes.items.len);
     try std.testing.expectEqual(row.active().id, actual.active_row.id);
-    for (direct.values, actual.direct_constraints.values[0..62]) |want, got|
+    for (direct.values[0..61], actual.direct_constraints.values[0..61]) |want, got|
         try std.testing.expectEqual(want.id, got.id);
+    try std.testing.expectEqual(
+        expected_word_binding.id,
+        actual.direct_constraints.values[61].id,
+    );
     try std.testing.expectEqual(
         placement.id,
         actual.direct_constraints.values[62].id,
     );
     try expectLookupListsEqual(symbolic.Scalar, lookups, actual.lookup_entries);
+    try std.testing.expectEqual(
+        columns[49].id,
+        actual.lookup_entries.entries[6].values[0].id,
+    );
+    try std.testing.expectEqual(
+        expected_base_high.id,
+        actual.lookup_entries.entries[7].values[1].id,
+    );
+    try std.testing.expectEqual(
+        expected_high.id,
+        actual.lookup_entries.entries[16].values[0].id,
+    );
+    try std.testing.expectEqual(
+        expected_zero.id,
+        actual.lookup_entries.entries[16].values[1].id,
+    );
 }
 
 test "LOAD_STORE authority owns alignment sign extension partial writes x0 witness and AIR" {
@@ -611,11 +660,13 @@ fn expectLookupListsEqual(
     expected: entry.Builder(S).List,
     actual: entry.Builder(S).List,
 ) !void {
-    try std.testing.expectEqual(expected.len, actual.len);
+    try std.testing.expectEqual(@as(usize, 16), expected.len);
+    try std.testing.expectEqual(@as(usize, 17), actual.len);
     try std.testing.expectEqual(expected.batch_size, actual.batch_size);
-    for (expected.entries[0..expected.len], actual.entries[0..actual.len]) |
+    for (expected.entries[0..expected.len], actual.entries[0..expected.len], 0..) |
         want,
         got,
+        index,
     | {
         try std.testing.expectEqual(want.domain, got.domain);
         try std.testing.expectEqual(want.role, got.role);
@@ -623,18 +674,33 @@ fn expectLookupListsEqual(
         try std.testing.expectEqual(want.access_ordinal, got.access_ordinal);
         if (S == symbolic.Scalar) {
             try std.testing.expectEqual(want.numerator.id, got.numerator.id);
-            for (want.values[0..want.arity], got.values[0..got.arity]) |
+            const retained_fields: usize = switch (index) {
+                6 => 0,
+                7 => 1,
+                else => want.arity,
+            };
+            for (want.values[0..retained_fields], got.values[0..retained_fields]) |
                 want_value,
                 got_value,
             | try std.testing.expectEqual(want_value.id, got_value.id);
         } else {
             try std.testing.expect(want.numerator.eql(got.numerator));
-            for (want.values[0..want.arity], got.values[0..got.arity]) |
+            const retained_fields: usize = switch (index) {
+                6 => 0,
+                7 => 1,
+                else => want.arity,
+            };
+            for (want.values[0..retained_fields], got.values[0..retained_fields]) |
                 want_value,
                 got_value,
             | try std.testing.expect(want_value.eql(got_value));
         }
     }
+    const high = actual.entries[16];
+    try std.testing.expectEqual(entry.Domain.range_check_8_8, high.domain);
+    try std.testing.expectEqual(entry.EventRole.request, high.role);
+    try std.testing.expectEqual(@as(u8, 2), high.arity);
+    try std.testing.expectEqual(@as(?u8, null), high.access_ordinal);
 }
 
 fn randomSecure(random: std.Random) QM31 {
@@ -677,7 +743,7 @@ fn measureLegacyDirect(
     var checksum: u64 = 0x6a09_e667_f3bc_c909;
     for (0..iterations) |index| {
         const row = try Legacy.Row.fromOracleColumns(
-            &rows[index & (rows.len - 1)],
+            rows[index & (rows.len - 1)][0..48],
         );
         const direct = Legacy.evaluate(row);
         for (direct.values) |value| absorbScalar(&checksum, value);
@@ -718,7 +784,7 @@ fn measureLegacyLookups(
     var checksum: u64 = 0xbb67_ae85_84ca_a73b;
     for (0..iterations) |index| {
         const row = try Legacy.Row.fromOracleColumns(
-            &rows[index & (rows.len - 1)],
+            rows[index & (rows.len - 1)][0..48],
         );
         const result = legacyLookups(QM31, row);
         absorbLookups(&checksum, &result);
@@ -740,7 +806,6 @@ fn absorbLookups(
     checksum: *u64,
     result: *const entry.Builder(QM31).List,
 ) void {
-    std.debug.assert(result.len == authority.LOOKUP_COUNT);
     for (result.entries[0..result.len]) |lookup| {
         absorbScalar(checksum, lookup.numerator);
         for (lookup.values[0..lookup.arity]) |value|

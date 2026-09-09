@@ -1,0 +1,36 @@
+{
+  "status": "prepared_not_launched_or_queued",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/manifest.json",
+    "bytes": 1103570,
+    "sha256": "b7f1e875529734b0a8373b641417d26b6b54ed8021576e6b70a39b9fb4747a9b"
+  },
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/source",
+  "shared_heavy_lock": "/tmp/stwo-zig-build.lock",
+  "ordering": "Do not launch or queue while live source-v11 wrapper2 is running. If wrapper2 guarded3/3 passes, its pinned independent root verifier must finish first. Parent releases these gates only after that priority is resolved.",
+  "live_run": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3",
+  "unset_env": [
+    "STWO_ZIG_BUILD_HELD_LOCK"
+  ],
+  "acceptance_requires_exit_code": 0,
+  "gate": "existing-three-small-complete-proofs",
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/source/src/integrations/riscv_cpu",
+    "test-ethereum-small-composition-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "expected_test_names": [
+    "Ethereum composition profile small heterogeneous proof serializes destroys and freshly verifies",
+    "Ethereum composition profile small heterogeneous proof rejects inconsistent split admission",
+    "Ethereum composition profile mapped proof preserves bytes after scratch destruction"
+  ],
+  "expected_passed_count": 3,
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/small-composition.log",
+  "acceptance": "Guarded3/3 tests and terminal exit0, actual serialization/destruction/fresh verification and mapped proof-byte parity."
+}

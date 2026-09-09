@@ -14,7 +14,6 @@ const driver = @import("recursive_binary_outer.zig");
 const artifact_mod = @import("recursive_temporal_parent_verified_artifact_v1.zig");
 const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
 const manifest_mod = @import("recursive_temporal_parent_manifest_v3.zig");
-const cohort_mod = @import("recursive_temporal_parent_cohort_v3.zig");
 const nonfri = @import("recursive_temporal_nonfri_source_v2.zig");
 
 const M31 = stwo_core.fields.m31.M31;
@@ -137,15 +136,19 @@ fn replayParent(
         capture.commitments[manifest_mod.MAIN_TREE_INDEX],
     );
     try prefix.mixManifestPrefix(transcript);
+    const authority = publication.transcript_authority;
+    try authority.validate();
     transcript.mixU32s(&.{
-        cohort_mod.AUTHORITY_TRANSCRIPT_DOMAIN,
-        cohort_mod.FORMAT_VERSION,
-        cohort_mod.SCHEMA_VERSION,
+        authority.domain,
+        authority.cohort_format_version,
+        authority.cohort_schema_version,
         manifest_mod.COMPONENT_COUNT,
     });
     transcript.mixU32s(&nonfri.shaWords(publication.cohort_authority_sha_id));
     transcript.mixU32s(&publication.pair_authority_id);
-    transcript.mixU32s(&nonfri.shaWords(publication.context.identity));
+    transcript.mixU32s(&nonfri.shaWords(
+        publication.transcript_context_sha_id,
+    ));
     try nonfri.replayRelationDraws(transcript, &prefix.relation_draws);
 
     transcript.mixU32s(&.{manifest_mod.COMPONENT_COUNT});

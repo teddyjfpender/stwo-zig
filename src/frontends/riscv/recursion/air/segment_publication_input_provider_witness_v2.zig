@@ -1,10 +1,10 @@
 //! Capture-backed witness for the SegmentV2 publication-input publisher.
 //!
-//! One pointer-free snapshot joins two verifier-owned inputs without merging
-//! their authorities: the successful SegmentV2 outer-boundary capture supplies
-//! the 55 LUP2 words, while `vm_leaf_context.Context` supplies the 21 detailed
-//! composition claims. Both inputs validate in full before the first output
-//! write. Hot materialization is allocation-free, exact-size, and alias-safe.
+//! The V3 source schema binds a ContextV2 to the exact boundary publication.
+//! Its trace geometry follows the authenticated physical claim inventory.
+//! Preparation borrows immutable claims until materialization completes; the
+//! committed authority retains pointer-free identities and trace commitments.
+//! Hot materialization is allocation-free, exact-size, and alias-safe.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
@@ -17,20 +17,52 @@ const air = @import("segment_publication_input_provider_v2.zig");
 const universal = @import("universal_challenges.zig");
 const leaf_source = @import("../segment_leaf_authority_v2.zig");
 const boundary = @import("../segment_leaf_outer_authority_v2.zig");
-const vm_leaf_context = @import("../vm_leaf_context.zig");
+const vm_leaf_context = @import("../vm_leaf_context_v2.zig");
 
-pub const FORMAT_VERSION: u16 = 2;
+pub const FORMAT_VERSION: u16 = 3;
 pub const SCHEMA_VERSION: u16 = 1;
 pub const PROPOSED_ROSTER_ROW: u8 = 38;
 pub const LUP2_WORD_COUNT: usize = leaf_source.LOGUP_PUBLICATION_WORD_COUNT;
-pub const DETAILED_CLAIM_COUNT: usize = 21;
 pub const SECURE_LIMB_COUNT: usize = 4;
-pub const DETAILED_LIMB_COUNT: usize =
-    DETAILED_CLAIM_COUNT * SECURE_LIMB_COUNT;
-pub const LOGICAL_ROW_COUNT: usize = LUP2_WORD_COUNT + DETAILED_LIMB_COUNT;
-pub const TRACE_LOG_SIZE: u32 = 8;
-pub const TRACE_ROW_COUNT: usize = @as(usize, 1) << TRACE_LOG_SIZE;
-pub const ACTIVE_RELATION_EVENT_COUNT: usize = LOGICAL_ROW_COUNT;
+
+pub const Shape = struct {
+    claim_count: u32,
+    logical_row_count: u32,
+    trace_log_size: u32,
+
+    pub fn init(claim_count: usize) Error!Shape {
+        if (claim_count == 0) return error.InvalidInputPair;
+        const limbs = std.math.mul(usize, claim_count, SECURE_LIMB_COUNT) catch
+            return error.InvalidInputPair;
+        const rows = std.math.add(usize, LUP2_WORD_COUNT, limbs) catch
+            return error.InvalidInputPair;
+        if (rows > (1 << 30)) return error.InvalidInputPair;
+        return .{
+            .claim_count = @intCast(claim_count),
+            .logical_row_count = @intCast(rows),
+            .trace_log_size = std.math.log2_int_ceil(u32, @intCast(rows)),
+        };
+    }
+
+    pub fn validate(self: Shape) Error!void {
+        if (!std.meta.eql(self, try init(self.claim_count)))
+            return error.InvalidPreparedSource;
+    }
+
+    pub fn traceRowCount(self: Shape) usize {
+        return @as(usize, 1) << @intCast(self.trace_log_size);
+    }
+};
+
+/// Frozen small-fixture geometry. Live captures use PreparedV2.shape.
+pub const DETAILED_CLAIM_COUNT: usize = 21;
+pub const LEGACY_SHAPE = Shape.init(DETAILED_CLAIM_COUNT) catch unreachable;
+pub const DETAILED_LIMB_COUNT = DETAILED_CLAIM_COUNT * SECURE_LIMB_COUNT;
+pub const LOGICAL_ROW_COUNT = LEGACY_SHAPE.logical_row_count;
+pub const TRACE_LOG_SIZE = LEGACY_SHAPE.trace_log_size;
+pub const TRACE_ROW_COUNT = LEGACY_SHAPE.traceRowCount();
+pub const ACTIVE_RELATION_EVENT_COUNT = LOGICAL_ROW_COUNT;
+
 pub const HOT_HEAP_ALLOCATIONS: usize = 0;
 pub const LogicalRow = [air.LOGICAL_INPUT_COUNT]M31;
 
@@ -46,13 +78,17 @@ pub const Error = boundary.Error || vm_leaf_context.Error || error{
 
 pub const InputsV2 = struct {
     capture: *const boundary.PreparedNativeVerifierOuterAuthorityV2,
-    vm_context: *const vm_leaf_context.Context,
+    vm_context: *const vm_leaf_context.ContextV2,
 
     pub fn validate(self: InputsV2) Error!void {
         try self.capture.validate();
         try self.vm_context.validate();
-        if (self.vm_context.detailed_claims.len != DETAILED_CLAIM_COUNT or
-            self.vm_context.profile.claimed_sum_count != DETAILED_CLAIM_COUNT or
+        const publication = &self.capture.public_logup;
+        if (!std.meta.eql(publication.statement_authority_id, self.vm_context.statement_authority_id) or
+            !std.meta.eql(publication.statement_wire_id, self.vm_context.public_wire_id) or
+            !std.meta.eql(publication.receipt.identity, self.vm_context.verified_receipt_identity) or
+            !std.meta.eql(publication.native_public_sums_identity, self.vm_context.native_public_sums_identity) or
+            self.vm_context.detailed_claims.len != self.vm_context.profile.input_profile.claimed_sum_count or
             self.capture.authority_hash_plan.component_count !=
                 self.vm_context.component_descs.len or
             self.capture.authority_hash_plan.infra_count !=
@@ -80,9 +116,9 @@ pub const RowV2 = struct {
     }
 };
 
-/// Pointer-free custody snapshot. The identities and exact values of both
-/// independently validated inputs are retained; neither source can rewrite
-/// the other's tuple class, coordinates, or relation role.
+/// Immutable source view. The ContextV2 must outlive materialization. Mutation
+/// of its borrowed claims is rejected by the source seal before output writes.
+/// Tuple classes, coordinates and relation roles remain source-owned.
 pub const PreparedV2 = struct {
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
@@ -101,7 +137,8 @@ pub const PreparedV2 = struct {
     context_identity_digest: [32]u8,
     context_profile_manifest_digest: [32]u8,
     lup2_words: [LUP2_WORD_COUNT]M31,
-    detailed_claims: [DETAILED_CLAIM_COUNT]QM31,
+    shape: Shape,
+    detailed_claims: []const QM31,
     identity: [32]u8,
 
     pub fn validate(self: *const PreparedV2) Error!void {
@@ -114,6 +151,9 @@ pub const PreparedV2 = struct {
         {
             return error.InvalidPreparedSource;
         }
+        try self.shape.validate();
+        if (self.detailed_claims.len != self.shape.claim_count)
+            return error.InvalidPreparedSource;
         inline for (.{
             self.capture_identity,
             self.capture_manifest_id,
@@ -136,7 +176,9 @@ pub const PreparedV2 = struct {
 
     pub fn validateAgainst(self: *const PreparedV2, inputs: InputsV2) Error!void {
         const expected = try derivePrepared(inputs);
-        if (!std.meta.eql(self.*, expected)) return error.CaptureMismatch;
+        try self.validate();
+        if (!std.mem.eql(u8, &self.identity, &expected.identity))
+            return error.CaptureMismatch;
     }
 };
 
@@ -150,9 +192,10 @@ pub const RelationEventV2 = struct {
     arity: u8 = 5,
     tuple: [universal.MAX_ARITY]M31,
 
-    pub fn validate(self: RelationEventV2) Error!void {
+    pub fn validate(self: RelationEventV2, shape: Shape) Error!void {
+        try shape.validate();
         if (self.roster_row != PROPOSED_ROSTER_ROW or
-            self.logical_row >= LOGICAL_ROW_COUNT or self.event_ordinal != 0 or
+            self.logical_row >= shape.logical_row_count or self.event_ordinal != 0 or
             self.domain != .recursion_verifier_input_word or self.role != .emit or
             self.multiplicity != 1 or self.arity != 5 or
             self.arity != relation.universalDescriptor(self.domain).arity)
@@ -204,9 +247,9 @@ pub fn writeInto(
     prepared: *const PreparedV2,
     destinations: DestinationsV2,
 ) Error!void {
-    try validateDestinationGeometry(destinations);
+    try prepared.validate();
+    try validateDestinationGeometry(destinations, prepared.shape);
     try rejectDestinationAliases(destinations, prepared);
-    prepared.validate() catch return error.InvalidPreparedSource;
 
     for (destinations.main) |column| @memset(column, M31.zero());
     for (destinations.preprocessed) |column| @memset(column, M31.zero());
@@ -231,7 +274,7 @@ pub fn writeInto(
             row_index += 1;
         }
     }
-    std.debug.assert(row_index == LOGICAL_ROW_COUNT);
+    std.debug.assert(row_index == prepared.shape.logical_row_count);
 }
 
 fn writeActiveRow(
@@ -250,8 +293,6 @@ fn writeActiveRow(
 fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
     try inputs.validate();
     const publication = &inputs.capture.public_logup;
-    var detailed_claims: [DETAILED_CLAIM_COUNT]QM31 = undefined;
-    @memcpy(&detailed_claims, inputs.vm_context.detailed_claims);
     var result = PreparedV2{
         .capture_identity = inputs.capture.identity,
         .capture_manifest_id = inputs.capture.manifest.identity,
@@ -262,9 +303,10 @@ fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
         .statement_authority_id = publication.statement_authority_id,
         .outer_relation_context_sha_id = inputs.capture.outer_relation_context_sha_id,
         .context_identity_digest = inputs.vm_context.identity_digest,
-        .context_profile_manifest_digest = inputs.vm_context.profile.manifest_digest,
+        .context_profile_manifest_digest = inputs.vm_context.profile.identity_digest,
         .lup2_words = try publication.canonicalWords(),
-        .detailed_claims = detailed_claims,
+        .shape = try Shape.init(inputs.vm_context.detailed_claims.len),
+        .detailed_claims = inputs.vm_context.detailed_claims,
         .identity = undefined,
     };
     result.identity = preparedIdentity(&result);
@@ -291,13 +333,13 @@ fn providerEvent(row_index: usize, row: RowV2) RelationEventV2 {
     return .{ .logical_row = @intCast(row_index), .tuple = tuple };
 }
 
-fn validateDestinationGeometry(destinations: DestinationsV2) Error!void {
-    for (destinations.main) |column| if (column.len != TRACE_ROW_COUNT)
+fn validateDestinationGeometry(destinations: DestinationsV2, shape: Shape) Error!void {
+    for (destinations.main) |column| if (column.len != shape.traceRowCount())
         return error.DestinationLengthMismatch;
-    for (destinations.preprocessed) |column| if (column.len != TRACE_ROW_COUNT)
+    for (destinations.preprocessed) |column| if (column.len != shape.traceRowCount())
         return error.DestinationLengthMismatch;
-    if (destinations.logical_rows.len != LOGICAL_ROW_COUNT or
-        destinations.relation_events.len != ACTIVE_RELATION_EVENT_COUNT)
+    if (destinations.logical_rows.len != shape.logical_row_count or
+        destinations.relation_events.len != shape.logical_row_count)
     {
         return error.DestinationLengthMismatch;
     }
@@ -327,7 +369,9 @@ fn rejectDestinationAliases(
 
     const prepared_bytes = std.mem.asBytes(prepared);
     for (outputs, 0..) |left, left_index| {
-        if (overlap(left, prepared_bytes)) return error.AliasedDestination;
+        if (overlap(left, prepared_bytes) or
+            overlap(left, std.mem.sliceAsBytes(prepared.detailed_claims)))
+            return error.AliasedDestination;
         for (outputs[left_index + 1 ..]) |right| if (overlap(left, right))
             return error.AliasedDestination;
     }
@@ -340,13 +384,14 @@ fn rejectInputAlias(output: []const u8, inputs: InputsV2) Error!void {
         std.mem.sliceAsBytes(inputs.vm_context.component_descs),
         std.mem.sliceAsBytes(inputs.vm_context.infra_descs),
         std.mem.sliceAsBytes(inputs.vm_context.detailed_claims),
+        std.mem.sliceAsBytes(inputs.vm_context.profile.entries),
     }) |input| if (overlap(output, input)) return error.AliasedDestination;
 }
 
 fn preparedIdentity(prepared: *const PreparedV2) [32]u8 {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(
-        "stwo-zig/riscv/recursion/segment-publication-input-provider/v2\x00",
+        "stwo-zig/riscv/recursion/segment-publication-input-provider/v3\x00",
     );
     hashInt(&hash, u16, prepared.format_version);
     hashInt(&hash, u16, prepared.schema_version);
@@ -366,7 +411,9 @@ fn preparedIdentity(prepared: *const PreparedV2) [32]u8 {
     hash.update(&prepared.context_profile_manifest_digest);
     hashInt(&hash, u16, prepared.lup2_words.len);
     for (prepared.lup2_words) |word| hashInt(&hash, u32, word.toU32());
-    hashInt(&hash, u16, prepared.detailed_claims.len);
+    hashInt(&hash, u32, prepared.shape.claim_count);
+    hashInt(&hash, u32, prepared.shape.logical_row_count);
+    hashInt(&hash, u32, prepared.shape.trace_log_size);
     for (prepared.detailed_claims) |claim| {
         for (claim.toM31Array()) |word| hashInt(&hash, u32, word.toU32());
     }
@@ -422,12 +469,8 @@ fn overlap(left: []const u8, right: []const u8) bool {
 }
 
 comptime {
-    if (PROPOSED_ROSTER_ROW != 38 or LUP2_WORD_COUNT != 55 or
-        DETAILED_CLAIM_COUNT != 21 or DETAILED_LIMB_COUNT != 84 or
-        LOGICAL_ROW_COUNT != 139 or TRACE_LOG_SIZE != 8 or
-        TRACE_ROW_COUNT != 256 or ACTIVE_RELATION_EVENT_COUNT != 139 or
-        HOT_HEAP_ALLOCATIONS != 0 or air.LOGICAL_INPUT_COUNT != 5)
-    {
-        @compileError("SegmentV2 publication-input provider witness drifted");
-    }
+    if (LUP2_WORD_COUNT != 55 or SECURE_LIMB_COUNT != 4 or
+        HOT_HEAP_ALLOCATIONS != 0 or PROPOSED_ROSTER_ROW != 38 or
+        air.LOGICAL_INPUT_COUNT != 5)
+        @compileError("publication-input provider tuple contract drifted");
 }

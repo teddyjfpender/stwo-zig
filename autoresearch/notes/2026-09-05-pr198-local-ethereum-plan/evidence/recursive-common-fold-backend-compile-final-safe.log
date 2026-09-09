@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 3/3 tests passed
+test-recursive-common-fold-child-capability-v2 success
++- run test 3 passed 590ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 45s MaxRSS:2G
+

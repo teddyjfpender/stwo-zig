@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 21s
+
+Build Summary: 3/3 steps succeeded; 231/231 tests passed
+test-poseidon-universal-degree3 success
++- run test 231 passed 688ms MaxRSS:4M
+   +- compile test ReleaseFast native success 56s MaxRSS:3G
+

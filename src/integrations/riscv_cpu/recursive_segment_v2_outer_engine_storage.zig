@@ -67,6 +67,12 @@ pub const ProofExecutionPool = struct {
 };
 
 pub fn TreeStorageFor(comptime Engine: type) type {
+    return TreeStorageForManifest(Engine, manifest_mod);
+}
+
+/// The admitted manifest owns column order; storage ownership and commit transfer
+/// are identical for native-assisted and detached recursive circuits.
+pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) type {
     return struct {
         allocator: std.mem.Allocator,
         evaluations: []prover_pcs.ColumnEvaluation,
@@ -74,28 +80,34 @@ pub fn TreeStorageFor(comptime Engine: type) type {
         storage: []M31,
         backing: [][]M31,
 
+        /// Exact evaluation payload, excluding column metadata and the PCS's
+        /// later expansion/commitment buffers. Reads admitted geometry only.
+        pub fn evaluationBytes(manifest: *const Manifest.Manifest, tree: usize) !usize {
+            var cells: usize = 0;
+            for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+                const geometry = manifest.placements[row].?.geometry;
+                const count = treeGeometryColumns(Manifest, geometry, tree);
+                cells = try std.math.add(usize, cells, try std.math.mul(usize, count, @as(usize, 1) << @intCast(geometry.log_size)));
+            }
+            return std.math.mul(usize, cells, @sizeOf(M31));
+        }
+
         pub fn init(
             allocator: std.mem.Allocator,
-            manifest: *const manifest_mod.Manifest,
+            manifest: *const Manifest.Manifest,
             tree: usize,
         ) !@This() {
-            const count = treeColumnCount(manifest, tree);
+            const cells = try evaluationBytes(manifest, tree) / @sizeOf(M31);
+            const count = treeColumnCount(Manifest, manifest, tree);
             const evaluations = try allocator.alloc(prover_pcs.ColumnEvaluation, count);
             errdefer allocator.free(evaluations);
             for (manifest.roster_rows[0..manifest.roster_count]) |row| {
                 const placement = manifest.placements[row].?;
-                const offset = treeOffset(placement, tree);
-                const local_count = treeGeometryColumns(placement.geometry, tree);
+                const offset = treeOffset(Manifest, placement, tree);
+                const local_count = treeGeometryColumns(Manifest, placement.geometry, tree);
                 for (evaluations[offset..][0..local_count]) |*evaluation|
                     evaluation.log_size = placement.geometry.log_size;
             }
-            var cells: usize = 0;
-            for (evaluations) |evaluation|
-                cells = std.math.add(
-                    usize,
-                    cells,
-                    @as(usize, 1) << @intCast(evaluation.log_size),
-                ) catch return error.ArithmeticOverflow;
             const storage = try allocator.alloc(M31, cells);
             errdefer allocator.free(storage);
             @memset(storage, M31.zero());
@@ -151,29 +163,29 @@ pub fn TreeStorageFor(comptime Engine: type) type {
     };
 }
 
-fn treeColumnCount(manifest: *const manifest_mod.Manifest, tree: usize) usize {
+fn treeColumnCount(comptime Manifest: type, manifest: *const Manifest.Manifest, tree: usize) usize {
     return switch (tree) {
-        manifest_mod.PREPROCESSED_TREE_INDEX => manifest.total_preprocessed_columns,
-        manifest_mod.MAIN_TREE_INDEX => manifest.total_main_columns,
-        manifest_mod.INTERACTION_TREE_INDEX => manifest.total_interaction_columns,
+        Manifest.PREPROCESSED_TREE_INDEX => manifest.total_preprocessed_columns,
+        Manifest.MAIN_TREE_INDEX => manifest.total_main_columns,
+        Manifest.INTERACTION_TREE_INDEX => manifest.total_interaction_columns,
         else => unreachable,
     };
 }
 
-fn treeOffset(placement: manifest_mod.Placement, tree: usize) usize {
+fn treeOffset(comptime Manifest: type, placement: Manifest.Placement, tree: usize) usize {
     return switch (tree) {
-        manifest_mod.PREPROCESSED_TREE_INDEX => placement.preprocessed_offset,
-        manifest_mod.MAIN_TREE_INDEX => placement.main_offset,
-        manifest_mod.INTERACTION_TREE_INDEX => placement.interaction_offset,
+        Manifest.PREPROCESSED_TREE_INDEX => placement.preprocessed_offset,
+        Manifest.MAIN_TREE_INDEX => placement.main_offset,
+        Manifest.INTERACTION_TREE_INDEX => placement.interaction_offset,
         else => unreachable,
     };
 }
 
-fn treeGeometryColumns(geometry: manifest_mod.Geometry, tree: usize) usize {
+fn treeGeometryColumns(comptime Manifest: type, geometry: Manifest.Geometry, tree: usize) usize {
     return switch (tree) {
-        manifest_mod.PREPROCESSED_TREE_INDEX => geometry.preprocessed_columns,
-        manifest_mod.MAIN_TREE_INDEX => geometry.main_columns,
-        manifest_mod.INTERACTION_TREE_INDEX => geometry.interaction_columns,
+        Manifest.PREPROCESSED_TREE_INDEX => geometry.preprocessed_columns,
+        Manifest.MAIN_TREE_INDEX => geometry.main_columns,
+        Manifest.INTERACTION_TREE_INDEX => geometry.interaction_columns,
         else => unreachable,
     };
 }

@@ -1,0 +1,218 @@
+{
+  "schema": "stwo.small-recursive-benchmark.v1",
+  "head": "ad273a96721e1ccc1dd62a861fac11b44d0c680d",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+  "binary_sha256": "16d4780edf18c702a2d7a8b39905cc4e2ff9841c6615d7e84c48798aa8d254b6",
+  "backend": "metal",
+  "memory_ladder": true,
+  "sizes": [
+    1,
+    4,
+    16
+  ],
+  "samples": 3,
+  "source_patch_sha256": "63b4f1319c49596d72d27083e811ff00f200b5d86db09312cfb364117672d911",
+  "removed_diagnostics": [],
+  "worker_environment": {},
+  "runs": [
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "1",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.87686587520875,
+      "log": "1-0.log",
+      "log_sha256": "be1085428b598b1a8d8ca0b538afd4b35a21788dd9acca15870927281646139d",
+      "native_prove_ms": 1366.102,
+      "native_verify_ms": 404.407,
+      "recursive_prepare_ms": 134.795,
+      "max_rss_bytes": 595836928
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "1",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.279281666036695,
+      "log": "1-1.log",
+      "log_sha256": "1a49cab21b4cc283c4b45e4a8e5d1938e33e23902f8212af9950dee19ddb9c7b",
+      "native_prove_ms": 1339.244,
+      "native_verify_ms": 408.716,
+      "recursive_prepare_ms": 129.943,
+      "max_rss_bytes": 560906240
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "1",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.122976457932964,
+      "log": "1-2.log",
+      "log_sha256": "a3b85a1a0dc72c5052873abd1a129e50b335587e21539a5ef8269e24090f82c6",
+      "native_prove_ms": 1133.024,
+      "native_verify_ms": 409.311,
+      "recursive_prepare_ms": 138.431,
+      "max_rss_bytes": 561201152
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "4",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.058977583888918,
+      "log": "4-0.log",
+      "log_sha256": "a3466ccec24e41679e95744b323beb8bff2cc1847f2900b7d732e964ae2387bf",
+      "native_prove_ms": 1071.197,
+      "native_verify_ms": 410.133,
+      "recursive_prepare_ms": 136.417,
+      "max_rss_bytes": 561233920
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "4",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.077352499822155,
+      "log": "4-1.log",
+      "log_sha256": "2156b71a9eaa56388d90939dd4c4b8a2b1c60bd5f4603f269ba594a0120b91db",
+      "native_prove_ms": 1066.946,
+      "native_verify_ms": 412.568,
+      "recursive_prepare_ms": 142.376,
+      "max_rss_bytes": 561512448
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "4",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.097385917091742,
+      "log": "4-2.log",
+      "log_sha256": "cf3f150756033e278e82f7e1b57e731316e641625ed0dde146c1d512658e3d91",
+      "native_prove_ms": 1101.199,
+      "native_verify_ms": 411.73,
+      "recursive_prepare_ms": 132.889,
+      "max_rss_bytes": 561725440
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "16",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.292655625147745,
+      "log": "16-0.log",
+      "log_sha256": "5d197e17e92f12efd690880fb8a4c9002d2fffd10f003099202703cd89a161fb",
+      "native_prove_ms": 1099.173,
+      "native_verify_ms": 415.472,
+      "recursive_prepare_ms": 141.331,
+      "max_rss_bytes": 564019200
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "16",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.294905417133123,
+      "log": "16-1.log",
+      "log_sha256": "654b7082b8622fafcb7ff4b1b434d63539b0808befb41713931b9b53ecf5cf84",
+      "native_prove_ms": 1099.468,
+      "native_verify_ms": 409.261,
+      "recursive_prepare_ms": 146.977,
+      "max_rss_bytes": 565018624
+    },
+    {
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/native-fixed-cost-v1/memory-v2/metal",
+        "--memory-addresses",
+        "16",
+        "--native-backend",
+        "metal",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "verified": true,
+      "request_seconds": 4.246599541045725,
+      "log": "16-2.log",
+      "log_sha256": "09b8c10468e1c6a78aa6726d4854cb92601a01152be327f9043a7b9fdd104cac",
+      "native_prove_ms": 1105.308,
+      "native_verify_ms": 409.218,
+      "recursive_prepare_ms": 145.703,
+      "max_rss_bytes": 564609024
+    }
+  ],
+  "untracked_source_sha256": {}
+}

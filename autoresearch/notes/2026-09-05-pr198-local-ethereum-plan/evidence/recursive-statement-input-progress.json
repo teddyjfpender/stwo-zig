@@ -1,0 +1,75 @@
+{
+  "previous_goal_turn_classification": "progress",
+  "current_goal_turn_classification": "progress",
+  "capture_schema_versions": {
+    "canonical_empty": 2,
+    "common_fold": 2
+  },
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig": "5a09acf556bf3eeee8b0d5bd3d4557085bef3c767dbeb066d5850f477583c39e",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "c68a04a08d9b89bca3ab509fd7aa4a8b5349bc055e41cce1e1075735dcd5ee60",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "1788676e002413cefe8beddf6f9710d041b4aa5a8b71e5f6ffeda5a43494c3c7",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "901f720e55a285d1651656cd51d290b8f0928127b896b6ef2d98f1867c778e5a"
+  },
+  "implemented": [
+    "Remove 412 child statement literal comparisons from each composition graph recorder; preserve all graph input slots.",
+    "Remove session argument from recordProgram so it cannot specialize statement constants.",
+    "Reuse the committed row-12 to row-18 statement lookup binding.",
+    "Add a test that mutates a composition-side statement value with transcript words unchanged and requires tuple closure rejection.",
+    "Release the source-only test owner before constructing the full cohort, preventing overlapping preparation ownership.",
+    "Require all 824 child statement input rows to remain present with zero arithmetic use count, then reject a changed statement value through the AIR lookup join."
+  ],
+  "pending_sessions": [],
+  "check_log": "recursive-statement-input-check.log",
+  "verified": [
+    "zig fmt --check for changed source files"
+  ],
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "remaining": [
+    "Witness-dependent native boundary constants remain in both recorders; do not remove until their AIR or public-input replacements are constrained.",
+    "Dynamic session/claim SHA seals, legacy auxiliary inputs, fixed-key independent root, real Ethereum leaf/bundle, Zisk comparison and latest-tree CSP preservation remain."
+  ],
+  "source_conformance": {
+    "status": "failed",
+    "findings": 94,
+    "files": 93,
+    "new_failing_files": []
+  },
+  "post_launch_test_changes": [
+    "Correct signed consumer weight in provider-partial tuple helper; add a small fixture to the existing field-public gate.",
+    "Add explicit fresh-verification success and causal transcript/partial-join stage logs."
+  ],
+  "test_fix_source_sha256": {
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "850c4172112a1b054dd2f4645c23c019103ce39393e38574ecc01ab53e229b68",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "2852a513152a8864d2e34b1e1f58a153a12acc49c6e33c2dfbd4ca35c334697c",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "b7611551693bfbfbe81ac38f3486fe8ba902a0bcc2b99b2f983a8e44cb43692c"
+  },
+  "checks": {
+    "statement_source_and_backend": {
+      "status": "passed",
+      "steps": "10/10",
+      "tests": "2/2",
+      "source_time": "48s",
+      "source_max_rss": "5G",
+      "canonical_time": "11s",
+      "canonical_max_rss": "87M",
+      "canonical_proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+      "canonical_capture_sha256": "7b99da9af9acf83249d53f2ed41a9f750c70fd52647fb6d1d4c693e48395f6fd",
+      "statement_input_rows": 824,
+      "changed_statement_lookup_rejected": true
+    },
+    "provider_partial_fixture": {
+      "status": "passed",
+      "steps": "3/3",
+      "tests": "4/4",
+      "time": "673ms",
+      "max_rss": "3M",
+      "compile_time": "9s",
+      "compile_max_rss": "733M",
+      "log": "recursive-provider-partial-fixture-check-2.log",
+      "preserving_total_mutation_rejected": true
+    }
+  },
+  "full_proof_receipt": "recursive-statement-input-proof-progress.json"
+}

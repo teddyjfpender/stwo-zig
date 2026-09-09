@@ -82,3 +82,6 @@ import RiscvRefinement.Air.Bridge.Mutations
 import RiscvRefinement.Air.Generated.LuiProgram
 import RiscvRefinement.Air.Generated.Programs
 import RiscvRefinement.Publication.Opcodes
+
+import RiscvRefinement.Recursion.CompactPoseidon
+import RiscvRefinement.Recursion.FrameworkBoundary

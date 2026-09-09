@@ -1,0 +1,9 @@
+{
+  "tests_passed": 7,
+  "controller_tests_passed": 7,
+  "executable": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v6/bin/ethereum-prepared-leaf-cpu-v1",
+  "bytes": 7010112,
+  "sha256": "7ab70e0bb991805a915951cd15bb85793726ebed122f11f98970a1a0dffa6c7f",
+  "log": "separated-budget-cpu-gates.log",
+  "runtime_result": "pending"
+}

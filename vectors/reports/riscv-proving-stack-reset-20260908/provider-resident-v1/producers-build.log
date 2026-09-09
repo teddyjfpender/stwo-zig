@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 2s
+
+Build Summary: 6/6 steps succeeded
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove-metal success
+   +- compile exe recursive-segment-v2-detached-parent-prove-metal ReleaseSafe native success 2m MaxRSS:6G
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof-metal success
+   +- compile exe recursive-segment-v2-concrete-outer-proof-metal ReleaseSafe native success 3m MaxRSS:7G
+

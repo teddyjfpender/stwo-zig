@@ -1,0 +1,21 @@
+test-pcs-retained-columns
++- run test
+   +- compile test ReleaseSafe native 1 errors
+pcs/retained_column_storage_test.zig:378:24: error: expected 2 argument(s), found 1
+    var scheme = Scheme.init(config);
+                 ~~~~~~^~~~~
+pcs/scheme.zig:104:13: note: function declared here
+        pub fn init(allocator: std.mem.Allocator, config: PcsConfig) !Self {
+        ~~~~^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+referenced by:
+    test_0: pcs_commitments_test_root.zig:2:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v13/source/src/prover/pcs_commitments_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v13/source/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v13/source/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v13/source/src/prover_api/mod.zig --test-filter "PCS retained column storage" --test-filter "file backed columns" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-pcs-retained-columns transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ded80719277e7b61d1c7c6b0308c75f3/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v13/source/src/prover .zig-cache /Users/theodorepender/.cache/zig --seed 0x6d1a55d3 -Z6f888eb61febb6cd --maxrss 25769803776 -j1 test-pcs-retained-columns -Doptimize=ReleaseSafe --summary all

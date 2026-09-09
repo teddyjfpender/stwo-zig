@@ -1,0 +1,20 @@
+{
+  "exit_code": -15,
+  "passed": false,
+  "stop_reason": "footprint",
+  "source_and_binary_unchanged": true,
+  "elapsed_ns": 456985673875,
+  "sampled_peak_footprint_bytes": 36443941960,
+  "last_sample_process_cpu_ns": 453750358125,
+  "policy": {
+    "workers": 1,
+    "graph_host_byte_budget": 8589934592,
+    "sampled_process_footprint_stop_bytes": 34359738368,
+    "timeout_seconds": 3600,
+    "sample_interval_seconds": 2,
+    "limits_scope": "sampled process monitor is not an allocation guarantee",
+    "cpu_reuse_bounded_tail": true,
+    "metal_reuse_bounded_tail": false
+  },
+  "wrapper_proof": false
+}

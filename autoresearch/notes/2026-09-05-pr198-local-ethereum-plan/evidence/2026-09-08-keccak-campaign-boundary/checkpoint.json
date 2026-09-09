@@ -1,0 +1,117 @@
+{
+  "status": "failure_retained_fix_acceptance_pending",
+  "failure": "CallRangeTooLarge",
+  "segment_index": 11,
+  "producer_process_ns": 91503172625,
+  "observed_retained_call_count": 5509,
+  "legacy_maximum_calls_per_shard": 4518,
+  "legacy_maximum_log_size": 16,
+  "required_canonical_log_size": 17,
+  "corpus_header_inventory": {
+    "segments": 121,
+    "exceeds_log16": [
+      {
+        "segment": 11,
+        "calls": 5509,
+        "log_size": 17
+      },
+      {
+        "segment": 19,
+        "calls": 9828,
+        "log_size": 18
+      }
+    ],
+    "scope": "Read-only retained compact wire header counts; actual producer authenticates the complete artifact on ingress"
+  },
+  "accepted_indices_preserved": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    120
+  ],
+  "controller_restart_performed": false,
+  "files": {
+    "failed-producer-request.json": {
+      "sha256": "61ea2464e316b1f5b09700ff9ac4ab81d9529c0f260ee5853e983a7e6b425d70",
+      "bytes": 1790
+    },
+    "failed-producer-execution.json": {
+      "sha256": "c6e8fbbb7e9f86461376592759541084bfbb7cc11740b1d02e4ea5457b00c737",
+      "bytes": 41
+    },
+    "failed-producer-stderr.log": {
+      "sha256": "bb4abec03e032d297803481a65f1d6daa06145a77b1c0bff434dc1e139f04ac4",
+      "bytes": 498
+    },
+    "controller-terminal-v2.json": {
+      "sha256": "d367258c07976f090990c561d3ff6047d767d65d67527156297b9c879d658db6",
+      "bytes": 361
+    },
+    "controller-stderr-v2.log": {
+      "sha256": "c40480ab40ce75d5ab164797b1acf3eaef36c0a8e0907ec6a7832e7cafd4e439",
+      "bytes": 3232
+    }
+  },
+  "retained_inputs": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4/segment-000011.stwemt01": {
+      "bytes": 9783570,
+      "sha256": "bd157997bdb72d12d9c4f2ea70b9015c4c9ca4a529feb7a7c75b299491fe3b50"
+    },
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4/segment-000011.stwipw04": {
+      "bytes": 48964992,
+      "sha256": "af0e1203c8e50803cd53bb1340fc3e78dc0968c5804427de21b1eb4ad7a6df02"
+    }
+  },
+  "proposed_fix": "Explicit Ethereum fixed_program_narrow_v5 maximum18 using unchanged AIR/lookup relations and canonical shape-bound admission; legacy/default16 retained",
+  "geometry_gate": {
+    "passed": 2,
+    "total": 2,
+    "scope": "One root import declaration and one focused real-count shape admission case; no proof claim",
+    "log_sha256": "64c2590ab7b9f5d8476294e9f21871dd4ff4a91c47b36794aaa5d7ef12f3bc87",
+    "command": [
+      "python3",
+      "scripts/zig_protocol_test.py",
+      "src/frontends/riscv/keccakf_precompile_test_root.zig",
+      "--test-filter",
+      "keccakf component: explicit Ethereum log18",
+      "-OReleaseSafe",
+      "-fstrip"
+    ]
+  },
+  "source_history": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v4",
+      "manifest_sha256": "bbc0db972825c4a4535ece8fa68581030168b09249975a5404f03303583cdf2d",
+      "files": 5759,
+      "bytes": 75925922
+    }
+  ],
+  "frozen_recovery_source": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v6",
+    "manifest_sha256": "f244898b84d05c854aff22d79348a94cb5f50e98dc93c41aea62581d01272570",
+    "files": 5759,
+    "bytes": 75934460,
+    "derivation": "v4 plus profile-aware field transcript calls, explicit Context admission/native capture validation, and test API shims"
+  },
+  "recovery_acceptance": {
+    "context_geometry_gate": "queued",
+    "metal_product": "queued_after_context_gate",
+    "native_fresh_verifier": "queued_after_metal_product",
+    "real_leaf11_producer": "not_started_waiting_for_all_builds",
+    "real_leaf11_separate_process_verifier": "not_started",
+    "campaign_migration": "prepared_script_only_no_new_campaign_directory",
+    "known_late_guards_fixed": [
+      "field transcript preTree0/postTree1 Ethereum statement admission",
+      "ContextV1 construction and retained native capture validation"
+    ],
+    "legacy_context_identity_and_CSP_defaults": "unchanged"
+  }
+}

@@ -1,0 +1,3 @@
+[1/1] poseidon2_m31/2: execute, prove, verify
+  prove=0.462s verify=0.070s proof=849.6KiB rss=1.65GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/021-current-metal.json

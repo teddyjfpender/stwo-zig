@@ -1,0 +1,650 @@
+{
+  "schema_version": 1,
+  "status": "paired_roots_and_complete_small_trees_verified",
+  "baseline_head": "ee7de71f91eb00714a7198cf9ba6b4830d0b2dc1",
+  "scope": {
+    "endpoint": "one complete detached recursive parent proving verification of two retained parent children",
+    "workload": "q193 four-segment counter/memory tree root, 227 retired instructions, one memory address",
+    "proof_profile": "recursive_q193_v1",
+    "fri_queries": 193,
+    "fri_fold": 4,
+    "interaction_pow_bits": 10,
+    "experimental_not_certified_production_security": true,
+    "csp_tests_run": false,
+    "metal_recursive_composition": "host evaluator; other Metal proving phases use the Metal backend",
+    "native_child_generation_included": false,
+    "request_includes": "preparation, key reuse/admission, complete proof generation and serialization; fresh verification is measured separately",
+    "memory_metric": "maximum process RSS from /usr/bin/time -l; not separately attributed device allocations",
+    "pcs_pow_bits": 16,
+    "pcs_config": {
+      "pow_bits": 16,
+      "fri_config": {
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 193,
+        "fold_step": 4
+      },
+      "lifting_log_size": null
+    },
+    "old_new_pcs_parameters_equal": true
+  },
+  "method": {
+    "rounds_per_backend": 3,
+    "order": [
+      [
+        "before",
+        "after"
+      ],
+      [
+        "after",
+        "before"
+      ],
+      [
+        "before",
+        "after"
+      ]
+    ],
+    "same_retained_children": true,
+    "same_expected_public_root": true,
+    "different_explicit_air_admissions": true,
+    "proof_bytes_stable_within_variant_across_rounds_and_backends": true,
+    "individual_optimization_runtime_ablations_run": false
+  },
+  "paired": {
+    "cpu": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-cpu-ab-measurements.json",
+        "sha256": "8d9b8d3a2c3de07d92c223c05c785fddb83c36c6e37cf6f9c6a4220e2eba513b"
+      },
+      "medians": {
+        "request_ns": {
+          "before": 22770349375,
+          "after": 13244327833,
+          "reduction_fraction": 0.41835201494355645
+        },
+        "preparation_ns": {
+          "before": 3920924667,
+          "after": 3574057791,
+          "reduction_fraction": 0.0884655803054224
+        },
+        "key_preparation_ns": {
+          "before": 3412466875,
+          "after": 1242833292,
+          "reduction_fraction": 0.6357962326007927
+        },
+        "proof_ns": {
+          "before": 15152502083,
+          "after": 8220377458,
+          "reduction_fraction": 0.4574904254774752
+        },
+        "maximum_process_rss_bytes": {
+          "before": 6081462272,
+          "after": 3911417856,
+          "reduction_fraction": 0.35682938065590286
+        },
+        "fresh_verify_ns": {
+          "before": 77013333,
+          "after": 70089417,
+          "reduction_fraction": 0.08990541936420282
+        },
+        "fresh_verifier_request_ns": {
+          "before": 79739000,
+          "after": 71793709,
+          "reduction_fraction": 0.09964121697036576
+        },
+        "proof_bytes": {
+          "before": 2429796,
+          "after": 2298756,
+          "reduction_fraction": 0.053930453420780955
+        }
+      },
+      "fresh_cases": 165,
+      "maximum_observed_process_rss_bytes": {
+        "before": 6753271808,
+        "after": 3911417856
+      },
+      "round_request_ns": {
+        "before": [
+          23488685541,
+          22770349375,
+          22676199000
+        ],
+        "after": [
+          13244327833,
+          13207519542,
+          13354942500
+        ]
+      }
+    },
+    "metal": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-metal-ab-measurements.json",
+        "sha256": "a88702095a42459e6b64682099a05bd1654941089d231da8f56f1003e625e6ff"
+      },
+      "medians": {
+        "request_ns": {
+          "before": 16518837792,
+          "after": 10885893541,
+          "reduction_fraction": 0.34100124487740957
+        },
+        "preparation_ns": {
+          "before": 3996231083,
+          "after": 3734792458,
+          "reduction_fraction": 0.06542129811065278
+        },
+        "key_preparation_ns": {
+          "before": 1224552666,
+          "after": 586924292,
+          "reduction_fraction": 0.5207031038385734
+        },
+        "proof_ns": {
+          "before": 10833268458,
+          "after": 6367356291,
+          "reduction_fraction": 0.4122405148837677
+        },
+        "maximum_process_rss_bytes": {
+          "before": 7553286144,
+          "after": 4386209792,
+          "reduction_fraction": 0.41929781178961256
+        },
+        "fresh_verify_ns": {
+          "before": 76638333,
+          "after": 70328042,
+          "reduction_fraction": 0.0823385733089993
+        },
+        "fresh_verifier_request_ns": {
+          "before": 79457458,
+          "after": 72184875,
+          "reduction_fraction": 0.09152800986913023
+        },
+        "proof_bytes": {
+          "before": 2429796,
+          "after": 2298756,
+          "reduction_fraction": 0.053930453420780955
+        }
+      },
+      "fresh_cases": 165,
+      "maximum_observed_process_rss_bytes": {
+        "before": 7671185408,
+        "after": 4387078144
+      },
+      "round_request_ns": {
+        "before": [
+          16534368875,
+          16518837792,
+          15189905208
+        ],
+        "after": [
+          10885893541,
+          10955969166,
+          10746862333
+        ]
+      }
+    }
+  },
+  "diagnostic_profiles": {
+    "cpu": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-cpu-profile-measurements.json",
+        "sha256": "6a09adca4280b8848b9b6d723187669981c1e3c2b3a5a193b510f1f931bade4e"
+      },
+      "interpretation": "one candidate diagnostic observation, not a median or an isolated optimization effect",
+      "request_ns": 13673474875,
+      "preparation_ns": 3638196625,
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 1.359171,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation",
+          "seconds": 0.030334,
+          "children": null
+        },
+        {
+          "id": "parent.main_finalize",
+          "label": "Main filling, range construction and exact lookup closure",
+          "seconds": 2.507124,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.400372,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.600058,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.930889,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.003137,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 2e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 1.3e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 0.968028,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.005152,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.184312,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.000103,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.09086,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000725,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.340653,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.307405,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.028151,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.00373,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.000318,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.004821,
+          "children": null
+        }
+      ],
+      "fresh_cases": 28
+    },
+    "metal": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-metal-profile-measurements.json",
+        "sha256": "a6bc191224aabd51f9361828f33a6c0aad5e95c9597a4d76cb7de2874a396d55"
+      },
+      "interpretation": "one candidate diagnostic observation, not a median or an isolated optimization effect",
+      "request_ns": 10942749250,
+      "preparation_ns": 3660002584,
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 0.563528,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation",
+          "seconds": 0.029274,
+          "children": null
+        },
+        {
+          "id": "parent.main_finalize",
+          "label": "Main filling, range construction and exact lookup closure",
+          "seconds": 2.641063,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 0.659607,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.610844,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.341412,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.003089,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 2e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 2e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 0.944152,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.002909,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.025357,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.000103,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.043437,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000706,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.110567,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.005072,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.003704,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.008104,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.000297,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.004987,
+          "children": null
+        }
+      ],
+      "fresh_cases": 28
+    }
+  },
+  "gates": {
+    "whole_tree": {
+      "status": "passed",
+      "reports": [
+        {
+          "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-air-fusion/report.json",
+          "sha256": "a7bbcc8f4c80a523f9abf1afca9d4ea5e9fe0563a516190c0cc353d253a2dc32"
+        },
+        {
+          "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-air-fusion/report.json",
+          "sha256": "dd35da6be2f3e7dd7a1ecdc6241bf070b10013c982d176cb562f490fd3052f93"
+        },
+        {
+          "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-air-fusion/report.json",
+          "sha256": "d37427cc324a7ca2164d55023be7979d0c0af87cb798a1f477a240342afd70cc"
+        }
+      ],
+      "measurements": [
+        {
+          "backend": "cpu",
+          "seed": 13,
+          "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-air-fusion/report.json",
+          "report_sha256": "a7bbcc8f4c80a523f9abf1afca9d4ea5e9fe0563a516190c0cc353d253a2dc32",
+          "fresh_cases": 136,
+          "leaf_production_ns": 40750038542,
+          "parent_production_ns": 39017699166,
+          "total_production_ns": 79767737708,
+          "complete_gate_ns": 83350670541,
+          "maximum_rss_bytes": 3896197120
+        },
+        {
+          "backend": "metal",
+          "seed": 13,
+          "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-air-fusion/report.json",
+          "report_sha256": "dd35da6be2f3e7dd7a1ecdc6241bf070b10013c982d176cb562f490fd3052f93",
+          "fresh_cases": 136,
+          "leaf_production_ns": 33648918333,
+          "parent_production_ns": 32186393709,
+          "total_production_ns": 65835312042,
+          "complete_gate_ns": 69507166583,
+          "maximum_rss_bytes": 4370481152
+        },
+        {
+          "backend": "cpu",
+          "seed": 14,
+          "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-air-fusion/report.json",
+          "report_sha256": "d37427cc324a7ca2164d55023be7979d0c0af87cb798a1f477a240342afd70cc",
+          "fresh_cases": 136,
+          "leaf_production_ns": 40471410833,
+          "parent_production_ns": 39718028416,
+          "total_production_ns": 80189439249,
+          "complete_gate_ns": 83805048125,
+          "maximum_rss_bytes": 3896393728
+        }
+      ],
+      "cpu_metal_identical_artifacts": 21,
+      "changed_memory_same_seven_keys": true
+    },
+    "new_parent_child_recursion": {
+      "status": "passed",
+      "reports": [
+        {
+          "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-tree-root-accepted.json",
+          "sha256": "b73fe6527fddbf305979a9d6b0e34a29c74847d971cfe9e3f73929a7c9ac152d"
+        }
+      ],
+      "key": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-key.json",
+        "sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9"
+      }
+    },
+    "final_artifact_audit": {
+      "status": "passed",
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-artifact-audit.json",
+        "sha256": "2ef46acd8beb45d9f581edbd1c23a297e648957ed1ab33a2be7ab1665d45fa0a"
+      }
+    }
+  },
+  "evidence": {
+    "air-fusion-final-source.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-source.json",
+      "sha256": "e61a3d83d1c0df823bb6622886a6e6b1d7e63572796b7e089e03aa766e3280b2"
+    },
+    "air-fusion-integration-cpu-final.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-integration-cpu-final.json",
+      "sha256": "69133bfd8e66e9c4d6fa96630d842592f95f3849be04ccb39c1b784decab56d2"
+    },
+    "air-fusion-integration-metal-final.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-integration-metal-final.json",
+      "sha256": "5c56a873d7664e50345d86829ef10e3ff163b3e87639c7450ee8dc2f9b3187c4"
+    },
+    "air-fusion-static-trace-costs.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-static-trace-costs.json",
+      "sha256": "e4e2c319b55b3f408598a13b046057cf4e73b6ed47b9ef0a6414d3dfc6c44124"
+    },
+    "air-fusion-arithmetic-semantic-final.log": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-arithmetic-semantic-final.log",
+      "sha256": "10da40f9ce22961ea71fc668cdb03e68b045d7494e6d1893b42f725db596deab"
+    },
+    "air-fusion-opening-semantic-final.log": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-opening-semantic-final.log",
+      "sha256": "0becc7a617e38852a143a14f7e4b3d66d62dd53abb820d06c384f51106373a11"
+    },
+    "air-fusion-poseidon-semantic-admission-final.log": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-poseidon-semantic-admission-final.log",
+      "sha256": "05fb795da4cbc4f240a136f661fd80d0ed6796b30d62cf2fd69be3e8521f1fa3"
+    },
+    "air-fusion-inventory-baseline-audit.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-inventory-baseline-audit.json",
+      "sha256": "ac23aa10af1536ad10ce091fd6ec92f3273b2be62d172da5201bb086ff000646"
+    },
+    "q193-ladder-4-admission/root-key.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-key.json",
+      "sha256": "aab2c957cb3dc060ae53fef77c342d5a57760ddb6316007f0089ab615412089b"
+    },
+    "air-fusion-admission/root-from-legacy-key.json": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-admission/root-from-legacy-key.json",
+      "sha256": "a9ff0e1157a7a17406491c319b490b0f313c9fc700e2ed8d72676ca922eadae6"
+    }
+  },
+  "verified_root_acceptance_and_rejection_cases": 386,
+  "source_and_frozen_binaries_rechecked": true,
+  "trace_storage": {
+    "interpretation": "Static trace storage from actual retained q193 preparation row counts plus authenticated/pinned component widths. Not runtime, RSS, polynomial expansion or device memory measurements. MAC-only counterfactual replaces every dot4 by its four MAC rows and uses power-of-two trace padding; no runtime experiment claimed.",
+    "scenarios": {
+      "old": {
+        "main_interaction_bytes": 1123757056,
+        "preprocessed_bytes": 524766656,
+        "total_trace_bytes": 1648523712
+      },
+      "new": {
+        "main_interaction_bytes": 704326656,
+        "preprocessed_bytes": 231165376,
+        "total_trace_bytes": 935492032
+      },
+      "mac_only_with_new_poseidon": {
+        "main_interaction_bytes": 745221120,
+        "preprocessed_bytes": 259476928,
+        "total_trace_bytes": 1004698048
+      }
+    },
+    "sequential_attribution_bytes": {
+      "multiply_add_and_smaller_arithmetic_layout": {
+        "main_interaction": 229638144,
+        "preprocessed": 265289728
+      },
+      "opening_dot4_beyond_multiply_add": {
+        "main_interaction": 40894464,
+        "preprocessed": 28311552
+      },
+      "compact_poseidon_provider": {
+        "main_interaction": 148897792,
+        "preprocessed": 0
+      }
+    },
+    "all_changes_total_trace_reduction_fraction": 0.4325274030392594,
+    "dot4_rows": 238914,
+    "remaining_multiply_add_rows": 314748,
+    "dot4_pcs_rows": 218754,
+    "dot4_pcs_share": 0.9156181722293377,
+    "geometry_note": "Legacy multiplication main19+interaction8/log21 -> MAC main17+interaction8/log21 -> combined MAC/log20 plus dot4 main41+interaction20/log18. Legacy linear main21+interaction8/log21 -> log18. Poseidon main445+interaction8/log18 -> main303+interaction8/log18. Each entry counts 4 bytes per M31 cell.",
+    "final_producer_counts_rechecked_against_static_evidence": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-cpu-ab-0-after.json.producer.log",
+      "sha256": "aa51e0b63bd80324e4aa722df37def2ad8865106690ec1075f9920a0093e7050"
+    }
+  },
+  "limitations": [
+    "Four-segment complete-tree measurements establish this tiny 227-instruction, one-address fixture only; no Ethereum-block performance claim.",
+    "The q193 profile remains experimental; AIR specialization did not change its proof parameters.",
+    "Trace counterfactuals attribute padded cell storage, not individual runtime savings; no additive runtime claims.",
+    "Compilation timings are full command elapsed observations and may include serial build-lock wait.",
+    "The baseline frontend test inventory already omits 156 test-bearing paths; the full inventory gate is not claimed passing.",
+    "CSP benchmarks were excluded by user instruction."
+  ],
+  "verified_acceptance_and_rejection_cases_including_trees": 878,
+  "retained_initial_gate_failure": {
+    "report": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-third-root-accepted.json",
+      "sha256": "99ff1b2ceea361022e5b84f191572099282f7c38e94605388243a4c25721c0a9"
+    },
+    "reason": "Old harness assumed row14 was inactive; new admitted row14 correctly rejected mutation at exact lookup closure. Gate now derives activity from admitted manifest and also tests a balanced active claim mutation.",
+    "corrected_gate": {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-third-root-accepted-v2.json",
+      "sha256": "a9b24a64666808f20d54aa838e2b7d4e49c786e159b9465ac0792ee48354760a"
+    }
+  }
+}

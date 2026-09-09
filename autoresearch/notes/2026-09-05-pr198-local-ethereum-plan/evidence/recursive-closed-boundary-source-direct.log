@@ -1,0 +1,16 @@
+1/1 recursive_common_fold_q193_bootstrap_v2_test.test.common-fold parent owns both child transcript lanes...SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3312 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+CANONICAL_CHILD_WIRE_BOUNDARY limbs=8 transcript_join=true changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70139 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=1 unmatched_control=0
+COMMON_FOLD_ZERO_VERIFIER_INPUTS limbs=24 air_join=true changed_consumer_or_missing_producer_rejected=true
+COMMON_FOLD_FIXED_WIRES rows=34007 graph_join=true missing_or_changed_anchor_rejected=true
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=0 canonical_words=900
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7980 unmatched=2 canonical_words=900
+COMPOSITION_STATEMENT_BINDING words=824 literal_graph_checks=false changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70140 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+FAIL (CommonFoldAuditMismatch)
+0 passed; 0 skipped; 1 failed.

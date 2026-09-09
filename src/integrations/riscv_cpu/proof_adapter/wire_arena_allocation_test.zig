@@ -70,4 +70,12 @@ test "wire arena rolls back every partial allocation" {
         try std.testing.expect(failing.has_induced_failure);
         try std.testing.expectEqual(failing.allocated_bytes, failing.freed_bytes);
     }
+
+    // A segment-only completion cannot enter the unchanged single-proof wire.
+    var segment_output = output;
+    segment_output.statement.public_data.completion.?.kind = .unretired_program_fetch;
+    try std.testing.expectError(
+        error.UnsupportedCompletion,
+        WireArena.init(std.testing.allocator, segment_output),
+    );
 }

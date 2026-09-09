@@ -352,13 +352,13 @@ pub fn Namespace(comptime context: type) type {
             });
             channel.mixU32s(&digestWords(authority.manifest.seal));
             channel.mixU32s(&digestWords(authority.circuit.identity_digest));
-            channel.mixU32s(&digestWords(authority.pcs_circuit.identity_digest));
+            channel.mixU32s(&digestWords(authority.pcs_circuit.view().identity_digest));
             channel.mixU32s(&authority.vm_schedule.authority_digest);
             channel.mixU32s(&authority.recursion_schedule.authority_digest);
             channel.mixU32s(&digestWords(authority.lowering_plan.authority_digest));
-            channel.mixU32s(&digestWords(vm_air.prepared.circuit.identity_digest));
+            channel.mixU32s(&digestWords(vm_air.prepared.view().circuit.identity_digest));
             channel.mixU32s(&digestWords(
-                vm_air.prepared.preprocessing.authority_digest,
+                vm_air.prepared.view().preprocessing.authority_digest,
             ));
             channel.mixU32s(&digestWords(
                 inputs.statement.authority.circuit.identity_digest,

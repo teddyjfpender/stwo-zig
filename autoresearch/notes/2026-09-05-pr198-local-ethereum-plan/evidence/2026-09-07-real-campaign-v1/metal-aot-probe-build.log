@@ -1,0 +1,7 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 515s
+
+Build Summary: 2/2 steps succeeded
+metal-core-aot-probe success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 9s MaxRSS:860M
+

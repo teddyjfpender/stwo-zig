@@ -67,6 +67,71 @@ pub fn Ops(comptime Owner: type) type {
             transcript_channel: *Engine.Channel,
             execution: ExecutionOptionsV2,
         ) !void {
+            return proveStagesV2Internal(
+                Engine,
+                lookup_layout,
+                false,
+                @as(void, {}),
+                workspace,
+                output,
+                allocator,
+                pcs_config,
+                result,
+                recorder,
+                public_data,
+                transcript_channel,
+                execution,
+            );
+        }
+
+        /// Additive selected-lookup SegmentV2 protocol. The extension observes
+        /// the exact committed Tree0/Tree1 scheme and complete V2 statement
+        /// authority immediately before the one interaction PoW/draw.
+        pub fn proveStagesV2WithTranscriptExtension(
+            comptime Engine: type,
+            workspace: *ProofWorkspace,
+            output: *ProveOutputV2ForEngine(Engine),
+            allocator: std.mem.Allocator,
+            pcs_config: pcs_core.PcsConfig,
+            result: *const runner_result.SegmentResult,
+            recorder: ?*stage_profile.Recorder,
+            public_data: public_data_v2.PublicDataV2,
+            transcript_channel: *Engine.Channel,
+            execution: ExecutionOptionsV2,
+            transcript_extension: anytype,
+        ) !void {
+            return proveStagesV2Internal(
+                Engine,
+                .authenticated_physical_v2,
+                true,
+                transcript_extension,
+                workspace,
+                output,
+                allocator,
+                pcs_config,
+                result,
+                recorder,
+                public_data,
+                transcript_channel,
+                execution,
+            );
+        }
+
+        fn proveStagesV2Internal(
+            comptime Engine: type,
+            comptime lookup_layout: LookupLayoutV2,
+            comptime use_transcript_extension: bool,
+            transcript_extension: anytype,
+            workspace: *ProofWorkspace,
+            output: *ProveOutputV2ForEngine(Engine),
+            allocator: std.mem.Allocator,
+            pcs_config: pcs_core.PcsConfig,
+            result: *const runner_result.SegmentResult,
+            recorder: ?*stage_profile.Recorder,
+            public_data: public_data_v2.PublicDataV2,
+            transcript_channel: *Engine.Channel,
+            execution: ExecutionOptionsV2,
+        ) !void {
             const exec_trace = &result.execution_trace;
             const chain = &result.state_chain_tracker;
             if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
@@ -154,14 +219,26 @@ pub fn Ops(comptime Owner: type) type {
             defer retained.deinit(allocator, workspace);
 
             logProofGeometry(core_statement, geometry, witness.poseidonCalls().len);
-            const transcript_prefix = try interaction_trace.drawChallenges(
-                Engine,
-                .prove,
-                allocator,
-                transcript_channel,
-                core_statement,
-                recorder,
-            );
+            const transcript_prefix = if (comptime use_transcript_extension)
+                try transcript_extension.drawChallenges(
+                    allocator,
+                    &scheme,
+                    transcript_channel,
+                    native_statement,
+                    core_statement,
+                    &lookup_manifest,
+                    &authenticated_lookup,
+                    recorder,
+                )
+            else
+                try interaction_trace.drawChallenges(
+                    Engine,
+                    .prove,
+                    allocator,
+                    transcript_channel,
+                    core_statement,
+                    recorder,
+                );
 
             const interaction_claim = try allocator.create(RiscVInteractionClaim);
             var interaction_claim_owned = true;
@@ -283,6 +360,91 @@ pub fn Ops(comptime Owner: type) type {
             execution: ExecutionOptions,
             phase_meter: ?*proof_phase_meter.Meter,
         ) !void {
+            return proveStagesInternal(
+                Engine,
+                mode,
+                false,
+                {},
+                workspace,
+                output,
+                allocator,
+                pcs_config,
+                exec_trace,
+                opt_chain,
+                opt_memory,
+                recorder,
+                public_data,
+                channel,
+                test_mutation,
+                test_dump,
+                execution,
+                phase_meter,
+            );
+        }
+
+        /// Additive proving route for a pre-PoW Stage-A transcript extension.
+        /// It is intentionally unavailable to relation diagnostics: the
+        /// extension is a proof protocol, not an ambient scheduling option.
+        pub fn proveStagesWithTranscriptExtension(
+            comptime Engine: type,
+            workspace: *ProofWorkspace,
+            output: *RunOutputForEngine(Engine, .prove),
+            allocator: std.mem.Allocator,
+            pcs_config: pcs_core.PcsConfig,
+            exec_trace: *const trace_mod.Trace,
+            opt_chain: ?*const state_chain.StateChainTracker,
+            opt_memory: ?*const memory_state.Snapshot,
+            recorder: ?*stage_profile.Recorder,
+            public_data: PublicData,
+            channel: *Engine.Channel,
+            test_mutation: ?TestWitnessMutation,
+            test_dump: ?*TestTraceDump,
+            execution: ExecutionOptions,
+            phase_meter: ?*proof_phase_meter.Meter,
+            transcript_extension: anytype,
+        ) !void {
+            return proveStagesInternal(
+                Engine,
+                .prove,
+                true,
+                transcript_extension,
+                workspace,
+                output,
+                allocator,
+                pcs_config,
+                exec_trace,
+                opt_chain,
+                opt_memory,
+                recorder,
+                public_data,
+                channel,
+                test_mutation,
+                test_dump,
+                execution,
+                phase_meter,
+            );
+        }
+
+        fn proveStagesInternal(
+            comptime Engine: type,
+            comptime mode: RunMode,
+            comptime use_transcript_extension: bool,
+            transcript_extension: anytype,
+            workspace: *ProofWorkspace,
+            output: *RunOutputForEngine(Engine, mode),
+            allocator: std.mem.Allocator,
+            pcs_config: pcs_core.PcsConfig,
+            exec_trace: *const trace_mod.Trace,
+            opt_chain: ?*const state_chain.StateChainTracker,
+            opt_memory: ?*const memory_state.Snapshot,
+            recorder: ?*stage_profile.Recorder,
+            public_data: PublicData,
+            channel: *Engine.Channel,
+            test_mutation: ?TestWitnessMutation,
+            test_dump: ?*TestTraceDump,
+            execution: ExecutionOptions,
+            phase_meter: ?*proof_phase_meter.Meter,
+        ) !void {
             if (exec_trace.step_count == 0) return ProverError.EmptyTrace;
 
             // One admitted pool spans Tree 0, Tree 1, Tree 2, quotient composition,
@@ -366,14 +528,23 @@ pub fn Ops(comptime Owner: type) type {
 
             if (comptime mode == .prove) logProofGeometry(statement, geometry, witness.poseidonCalls().len);
 
-            const transcript_prefix = try interaction_trace.drawChallenges(
-                Engine,
-                mode,
-                allocator,
-                channel,
-                statement,
-                recorder,
-            );
+            const transcript_prefix = if (comptime use_transcript_extension)
+                try transcript_extension.drawChallenges(
+                    allocator,
+                    &scheme,
+                    channel,
+                    statement,
+                    recorder,
+                )
+            else
+                try interaction_trace.drawChallenges(
+                    Engine,
+                    mode,
+                    allocator,
+                    channel,
+                    statement,
+                    recorder,
+                );
 
             const interaction_claim = try allocator.create(RiscVInteractionClaim);
             var interaction_claim_owned = true;

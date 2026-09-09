@@ -19,6 +19,7 @@ PROTOCOL_PACKAGES = (
     "stwo_prover_api",
     "stwo_prover_engine",
     "stwo_proof_wire",
+    "stwo_artifact_store",
     "stwo_metal_session",
     "stwo_cpu_backend",
     "stwo_cuda_backend",
@@ -78,6 +79,13 @@ def protocol_package_modules() -> tuple[PackageModule, ...]:
             "protocol package selection differs from contracts: "
             f"missing={sorted(missing)}, extra={sorted(extra)}"
         )
+    for module in discovered.values():
+        missing_dependencies = set(module.dependencies) - set(discovered)
+        if missing_dependencies:
+            raise ValueError(
+                f"{module.contract}: unselected protocol dependencies: "
+                f"{sorted(missing_dependencies)}"
+            )
     return tuple(discovered[name] for name in PROTOCOL_PACKAGES)
 
 
@@ -89,25 +97,61 @@ def _dependency_args(dependencies: tuple[str, ...]) -> list[str]:
     ]
 
 
-def _package_module_args() -> list[str]:
+def _compile_options(optimize: str | None, strip: bool | None) -> list[str]:
+    return [
+        *([f"-O{optimize}"] if optimize is not None else []),
+        *(["-fstrip" if strip else "-fno-strip"] if strip is not None else []),
+    ]
+
+
+def _package_module_args(optimize: str | None = None, strip: bool | None = None) -> list[str]:
     arguments: list[str] = []
     for module in protocol_package_modules():
         arguments.extend(_dependency_args(module.dependencies))
+        arguments.extend(_compile_options(optimize, strip))
         arguments.append(f"-M{module.name}={module.source}")
     return arguments
 
 
-def protocol_module_args(root_source: str) -> list[str]:
+def protocol_module_args(root_source: str, *, optimize: str | None = None, strip: bool | None = None) -> list[str]:
     root_dependencies = tuple(module.name for module in protocol_package_modules())
     return [
         *_dependency_args(root_dependencies),
+        *_compile_options(optimize, strip),
         f"-Mroot={root_source}",
-        *_package_module_args(),
+        *_package_module_args(optimize, strip),
     ]
 
 
 def test_command(root_source: str, *arguments: str) -> list[str]:
-    return ["zig", "test", *protocol_module_args(root_source), *arguments]
+    # Zig resets per-module options at every -M. A trailing -O silently
+    # leaves the root (and almost all dependencies) in Debug, invalidating
+    # benchmark results. Apply a requested mode to every selected module.
+    optimize: str | None = None
+    strip: bool | None = None
+    trailing: list[str] = []
+    remaining = iter(arguments)
+    for argument in remaining:
+        if argument == "--":
+            trailing.extend((argument, *remaining))
+            break
+        if argument in ("--test-filter", "--test-name-prefix", "--test-cmd"):
+            trailing.extend((argument, next(remaining)))
+        elif argument in ("-fstrip", "-fno-strip"):
+            # Like -O, strip resets at each -M. A trailing flag otherwise
+            # leaves the expensive root debug-location emission enabled.
+            strip = argument == "-fstrip"
+        elif argument == "-O":
+            optimize = next(remaining)
+        elif argument.startswith("-O"):
+            optimize = argument[2:]
+        else:
+            trailing.append(argument)
+    if optimize is not None and optimize not in (
+        "Debug", "ReleaseSafe", "ReleaseFast", "ReleaseSmall"
+    ):
+        raise ValueError(f"invalid Zig optimization mode: {optimize}")
+    return ["zig", "test", *protocol_module_args(root_source, optimize=optimize, strip=strip), *trailing]
 
 
 def aggregate_run_command(root_source: str, *arguments: str) -> list[str]:

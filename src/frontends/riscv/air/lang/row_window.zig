@@ -28,23 +28,23 @@ pub const format_version: u16 = 1;
 pub const digest_domain = "stwo-zig/typed-air/row-window-plan/v1\x00";
 pub const Digest = [32]u8;
 pub const EXPECTED_NATIVE_PLAN_DIGEST_HEX = [_][]const u8{
-    "bdf9e1a872586a9cd2e757525f3999a5dd399bd552684a8cc43573954506c636",
-    "6af575f69bdd9e2437d6e7aec5056cd230aa000002c2f3f2508904cf644e29d6",
-    "dd6d8909ee1fd18a487b2777162cd062e331592833ac729416cb2e6d50159a3d",
-    "91e56b3b0bd9c4d770c944c7d324635518a0440c3f0ad91c1d841b452e1bc9f8",
-    "433785230ac74aa7e820348d5cc2bcee0db845e854d3ea64b32de3d9503c9316",
-    "51d1aeda45f142f7eb37c0b164b1713d19ef0a34c865b17a34c78c51b05a9629",
-    "d645e166f71828ae6cf8b4448983b6e9ee38ca658c51f95eb9b5160410e03e0b",
-    "ab4cec9f954470e0f1d3c7a7ef20f62ca08a2742f0342735fdb04aa79e6ec8f7",
-    "2224cfaa2175e583cf14d71916a64d31dfd51a17647698e0e85d58e6656be2d5",
-    "d99f53669161b0917aecf4c80b25850eb106485471df8b325c476926157e60d6",
-    "c53ef9458e16494f44e64cd46aa87389c0deeac03ab3138589c80a83c91648de",
-    "7ea0fe73f1c1a8b483ae37076f1647ead1bbb99d982b98044f858006b7e38861",
-    "8cc99a1260301e73188995ee51ec66bc477c4113df72802749d21f36e2a135af",
-    "7ecea862497778e3390157e0d8ebc9511a9f0ba7c95370d85b41d3ba51fc3b77",
-    "59093f40f58a284919a70cc2e1e291b0ec97ef554d68944ca62404456bda5434",
-    "4c31252a61ae21966430a8d41fcaaa2d7ee94fb04533a9f2453afb448556e7e8",
-    "12d359cacf944c7676aa9f8c8fbe8abaf5d10b13de37078b8b9ee6575beaf414",
+    "88357995fd98f5e4eda212d47879e5b5d28620f82f23b6f58a587ffe18161f97",
+    "3749b07ca27a85518283d06e8239fd430cf2fdb16cd76060a8ada7a72ce450d7",
+    "b3069e65fbf1b6ddd7fdb020ddfbc7b1220430413a81ca2b2fcd1d5fa198bd0b",
+    "3376a963667782f260605ead10b746bcab21027b6c7632ce8cca44daa92fd995",
+    "9b75ff3673ae4d8b971fe604ff74f6cc19b02735a0f41cbc1ccee6eb6d8e7f84",
+    "3c7af8ffd7f0e792fc98348c19e63730bb1d65e713d316d1f21dfa1221de41fd",
+    "6546c6b45934789e638f40c22d635096f2ec102e7805b03037acb02ba960c6b5",
+    "70a26da8d080b1d4d6440164fc9a1f7ae36b3741ea3d8ec9d60b1ae1ef25a82d",
+    "d296b4e6d2f01a669a767af6ff0faba90e860ff4656d4492f152fdd963928176",
+    "ac8e2790b2d3136bbe842e040a73bc98d19626293dff0fe1bf75885ff2860e20",
+    "f6de58e5deb1fec41d7130be902f7dd6bf5c454245ee545702047a5a3f8b0331",
+    "6e4579c3a2ce34f7874e7697d42feb1b7e643a47b85900db0b9cb18a744fc934",
+    "7886c24318859be5d43db3e8ee07657d60b100061d111d4fe8d7fddea2ac22f9",
+    "dba61b88c736095938bbfab1b2a7a40d6ed0f58e8626bd62680cbbcf11d02257",
+    "6abd0047914fdbf8e0cc893ad6b1dcb872d74e71bff91d5259041232f8777a6e",
+    "4f8140d60832a503b48d5cca3bef6958c76233538baa913585bf1a2345321a47",
+    "d30e6c92b92f550f36165b6bac7bb7f81743a53377357a7479e049986d6995df",
 };
 pub const component_binding_domain =
     "stwo-zig/typed-air/component-mask-binding/v1\x00";
@@ -628,7 +628,12 @@ pub const Plan = struct {
             u8,
             &actual_hex,
             EXPECTED_NATIVE_PLAN_DIGEST_HEX[family_index],
-        )) return error.InvalidWindowDigest;
+        )) {
+            std.debug.print("row window {s}: {s}\n", .{
+                @tagName(self.family), actual_hex,
+            });
+            return error.InvalidWindowDigest;
+        }
     }
 
     /// Allocation-free canonical identity of semantic/layout authority and

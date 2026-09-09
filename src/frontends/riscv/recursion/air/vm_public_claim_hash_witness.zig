@@ -36,3 +36,11 @@ pub const MainRow = shard_0.MainRow;
 pub const MainWitness = shard_1.MainWitness;
 pub const Executor = shard_1.Executor;
 pub const logicalInputs = shard_1.logicalInputs;
+/// Low-level, shape-independent schedule helpers used by append-only
+/// recursive hash programs with a distinct domain/scope.  The frozen VM-claim
+/// constructors remain unchanged; callers must supply and validate their own
+/// initial domain state and typed parameter row.
+pub const expectedRow = shard_0.expectedRow;
+pub const materialize = shard_0.materialize;
+pub const callFor = shard_0.callFor;
+pub const traceLogSize = shard_0.traceLogSize;

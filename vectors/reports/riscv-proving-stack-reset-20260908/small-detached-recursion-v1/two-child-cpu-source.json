@@ -1,0 +1,8 @@
+{
+  "head": "51646b444176237a6640f438a032d137af5200b9",
+  "patch": "two-child-cpu-source.patch",
+  "sha256": "187e089780357447bac3cf235403d7146ce29d524efa773c5a241146443a3f1b",
+  "excluded_unimported_work_in_progress": [
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig"
+  ]
+}

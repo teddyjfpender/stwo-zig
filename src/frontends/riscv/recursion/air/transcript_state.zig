@@ -352,19 +352,26 @@ pub const Definition = struct {
 };
 
 pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     errdefer result.deinit();
     try result.validate();
     return result;
 }
 
 pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, false);
     defer result.deinit();
     return digest.computeIdentity(&result.arena);
 }
 
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+/// Publish the digest prefix of the final native draw frame. Draw output is
+/// randomness; drawing leaves the channel digest itself unchanged.
+pub fn buildPublicationRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinition(allocator, true);
+    return result.arena;
+}
+
+fn buildDefinition(allocator: std.mem.Allocator, comptime publication_routing: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -399,6 +406,7 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .state_produce_multiplicity = pp_values[15],
         .draw_output_mask = pp_values[16],
     };
+    const publication_mask: ?types.ValueId = if (publication_routing) try arena.input("preprocessed.terminal_digest_mask", .selector, span) else null;
     const parameters = Parameters{
         .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
         .binary_active = try arena.input(PARAMETER_NAMES[1], .selector, span),
@@ -504,6 +512,20 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         event_specs,
         span,
     );
+    if (publication_mask) |mask| {
+        const publication = @import("../ethereum_publication_routing_v1.zig");
+        const scope = try arena.constantField(publication.STATEMENT_SCOPE, span);
+        const weight = try arena.mul(active, mask, span);
+        for (main.inputs, 0..) |input, limb| {
+            const index = try arena.constantField(publication.terminalIndex(@intCast(limb)).?, span);
+            _ = try relation_effect.appendGroup(1, &arena, .{.{
+                .domain = .recursion_vm_public_claim_word,
+                .role = .emit,
+                .values = &.{ scope, index, input },
+                .weight = weight,
+            }}, span);
+        }
+    }
     return .{
         .arena = arena,
         .main = main,

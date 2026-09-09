@@ -289,19 +289,30 @@ pub const Definition = struct {
 };
 
 pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, true);
     errdefer result.deinit();
     try result.validate();
     return result;
 }
 
 pub fn semanticIdentity(allocator: std.mem.Allocator) !digest.Identity {
-    var result = try buildDefinition(allocator);
+    var result = try buildDefinition(allocator, true);
     defer result.deinit();
     return digest.computeIdentity(&result.arena);
 }
 
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+/// Ethereum uses the same canonical claim and range constraints, but its
+/// public-sum circuit consumes the SpanStatement and committed role-I/O stream.
+/// The legacy VM-claim digest is not a native Ethereum transcript input, so
+/// this arena emits no claim-hash fanout. Exact role uses replace the legacy
+/// LogUp fanouts; semantic and IO projections retain their original weights.
+/// The default builder remains sealed to the original CSP relation schedule.
+pub fn buildEthereumRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const definition = try buildDefinition(allocator, false);
+    return definition.arena;
+}
+
+fn buildDefinition(allocator: std.mem.Allocator, comptime legacy_logup_exports: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -336,6 +347,11 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .output_io_mask = preprocessed_values[8],
         .output_io_index = preprocessed_values[9],
     };
+    var routed_uses: [3]?types.ValueId = .{ null, null, null };
+    if (!legacy_logup_exports) {
+        for (&routed_uses, [_][]const u8{ "preprocessed.role_word_uses", "preprocessed.role_low_byte_uses", "preprocessed.role_high_byte_uses" }) |*uses, name|
+            uses.* = try arena.input(name, .felt, span);
+    }
     var parameter_values: [PARAMETER_COUNT]types.ValueId = undefined;
     for (&parameter_values, PARAMETER_NAMES, 0..) |*value, name, index|
         value.* = try arena.input(name, if (index == 0) .selector else .felt, span);
@@ -394,15 +410,19 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
 
     const input_io_weight = try arena.mul(active, preprocessed.input_io_mask, span);
     const output_io_weight = try arena.mul(active, preprocessed.output_io_mask, span);
+    const logup_word_weight = if (legacy_logup_exports) active else try arena.mul(active, routed_uses[0].?, span);
+    const logup_low_weight = if (legacy_logup_exports) active_u16 else try arena.mul(active_u16, routed_uses[1].?, span);
+    const logup_high_weight = if (legacy_logup_exports) active_u16 else try arena.mul(active_u16, routed_uses[2].?, span);
+    const claim_hash_weight = if (legacy_logup_exports) active else try arena.constantField(0, span);
     const weights = [RELATION_EVENT_COUNT]types.ValueId{
         active,
-        active,
-        active,
+        claim_hash_weight,
+        logup_word_weight,
         input_io_weight,
         output_io_weight,
         active_u16,
-        active_u16,
-        active_u16,
+        logup_low_weight,
+        logup_high_weight,
     };
     const events = try relation_effect.appendGroup(RELATION_EVENT_COUNT, &arena, .{
         .{
@@ -415,13 +435,13 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
             .domain = .recursion_vm_public_claim_word,
             .role = .emit,
             .values = &.{ parameters.hash_scope, preprocessed.word_index, main.value },
-            .weight = active,
+            .weight = claim_hash_weight,
         },
         .{
             .domain = .recursion_vm_public_claim_word,
             .role = .emit,
             .values = &.{ parameters.public_logup_scope, preprocessed.word_index, main.value },
-            .weight = active,
+            .weight = logup_word_weight,
         },
         .{
             .domain = .recursion_vm_public_io_word,
@@ -445,13 +465,13 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
             .domain = .recursion_vm_public_claim_byte,
             .role = .emit,
             .values = &.{ preprocessed.word_index, parameters.low_byte_index, main.low_byte },
-            .weight = active_u16,
+            .weight = logup_low_weight,
         },
         .{
             .domain = .recursion_vm_public_claim_byte,
             .role = .emit,
             .values = &.{ preprocessed.word_index, parameters.high_byte_index, main.high_byte },
-            .weight = active_u16,
+            .weight = logup_high_weight,
         },
     }, span);
     return .{

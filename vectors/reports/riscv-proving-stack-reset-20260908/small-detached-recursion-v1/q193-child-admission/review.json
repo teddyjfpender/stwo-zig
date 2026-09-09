@@ -1,0 +1,26 @@
+{
+  "policy": "bootstrap q193 small child circuit review; pin is explicit and reused in subsequent runs",
+  "production_security_admission_complete": false,
+  "remaining": "recursive consumption with interaction PoW in parent AIR, stronger root and CSP admission",
+  "key_sha256": [
+    "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+    "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+  ],
+  "source_build": "q193-child-build-first.json",
+  "native_and_outer_pcs": {
+    "queries": 193,
+    "fold_step": 4,
+    "pcs_pow_bits": 16,
+    "interaction_pow_bits": 10
+  },
+  "expected_source": "previous independently executed segment-ladder-2-admission",
+  "cross_statement_key_reuse": {
+    "verified": true,
+    "seeds": [
+      13,
+      14
+    ],
+    "independently_expected_wires": "dynamic-memory-v3-admission",
+    "fresh_cases": 56
+  }
+}

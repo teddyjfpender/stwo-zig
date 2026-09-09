@@ -1,0 +1,46 @@
+{
+  "schema": "stwo.ethereum.fold-engine-namespace-regression.v1",
+  "recorded_at": "2026-09-07T18:52:02.470880+00:00",
+  "passed": true,
+  "tests_passed": 7,
+  "scope": "Actual engine replay program selector and fixed-key namespace guards; not a two-child parent proof",
+  "problem": "recordReplay used legacy common-fold Program.init despite explicit Ethereum fold key in cohort native transcript",
+  "fix": "Replay selects Program.initEthereumFoldKeyV1 from validated cohort key; only absent Ethereum admission uses legacy program; all other admission errors propagate",
+  "command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-fold-fixed-namespace",
+    "-Doptimize=ReleaseSafe",
+    "-Dethereum-proof-strip=true",
+    "--summary",
+    "all"
+  ],
+  "regressions": [
+    "Ethereum admitted key selects expected operations and identity",
+    "absent Ethereum admission preserves legacy operations and identity",
+    "invalid key version rejected",
+    "invalid cohort rejected without fallback"
+  ],
+  "log": {
+    "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fold-engine-namespace-v1.log",
+    "bytes": 359,
+    "sha256": "346b054478a3d67d94b42503443724d1ad61d5b32750fc6953c2fdb25ac0e2e1"
+  },
+  "selected_source_files_at_completion": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig",
+      "bytes": 98147,
+      "sha256": "fc4370f295b9ab5f9536ec7297ce1821f7eb43c4787eeebfcb90dd35b2620dff"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_wrapper_detached_fold_namespace_v1_test.zig",
+      "bytes": 9498,
+      "sha256": "9e1652e1b7d9af606c3b04f4672522c294d493aa9b904fdbae46c40fd8028f04"
+    }
+  ],
+  "source_provenance": "Active worktree build; selected-file hashes are not a full immutable build snapshot",
+  "parent_proof_verified": false,
+  "whole_block_root_verified": false
+}

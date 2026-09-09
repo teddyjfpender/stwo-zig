@@ -1,0 +1,9 @@
+Checking deliberate proof corruption; a Merkle rejection below is expected.
+error: PCS Merkle verification failed for tree 0: RootMismatch
+Ethereum node V1 Metal: 24798 serialized bytes, sha256=bb5d6da5cbce1a85bebe70341370e3e8f791a684b700256135a4c5c2cc6eff69, produce=12423875ns, fresh-verify=1054167ns, forgery rejection passed, dispatches=40, fallbacks=0 (diagnostic PCS)
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1-metal success 755ms MaxRSS:35M
+   +- compile exe ethereum-node-proof-v1-metal ReleaseSafe native success 24s MaxRSS:1G
+

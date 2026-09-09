@@ -16,22 +16,19 @@ pub fn commitConstant(
     channel: anytype,
 ) !void {
     const BackendCommitmentTree = commitment_tree.CommitmentTreeProverForBackend(B, H);
-    errdefer column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
-    var prepared = try column_preparation.prepareConstantColumnsForCommitOwned(
-        allocator,
-        owned_columns,
-        scheme.config.fri_config.log_blowup_factor,
-        scheme.coefficient_retention_policy,
-    );
-    errdefer prepared.deinit(allocator);
-    var tree = try BackendCommitmentTree.initOwnedWithBackingAndWorkRecorder(
-        allocator,
-        prepared.columns,
-        prepared.coefficients,
-        null,
-        null,
-        work_recorder,
-    );
+    var tree = blk: {
+        var prepared = column_preparation.prepareConstantColumnsForCommitOwned(
+            allocator,
+            owned_columns,
+            scheme.config.fri_config.log_blowup_factor,
+            scheme.coefficient_retention_policy,
+        ) catch |err| {
+            column_storage.freeOwnedColumnEvaluations(allocator, owned_columns);
+            return err;
+        };
+        errdefer prepared.deinit(allocator);
+        break :blk try BackendCommitmentTree.initPrepared(allocator, &prepared, work_recorder);
+    };
     errdefer tree.deinit(allocator);
     return scheme.appendCommittedTree(allocator, tree, channel);
 }

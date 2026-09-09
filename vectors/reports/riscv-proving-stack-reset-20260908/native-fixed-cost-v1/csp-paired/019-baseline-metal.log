@@ -1,0 +1,3 @@
+[1/1] keccak/2048: execute, prove, verify
+  prove=0.537s verify=0.070s proof=871.9KiB rss=1.95GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/019-baseline-metal.json

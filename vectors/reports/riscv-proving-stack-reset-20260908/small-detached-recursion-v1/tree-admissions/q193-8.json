@@ -1,0 +1,165 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "initial_memory_word": 13,
+  "leaves": [
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-0-key.json",
+        "sha256": "f3583bba4c386773c40bd1462ba62ccb1b2dff5f462ac0d5261805bb541e1678"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-0-expected-wire.json",
+        "sha256": "77f739700803532262dd8a66366c16fa6ce064b66ec998cb4e0a3b350f94f659"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-1-key.json",
+        "sha256": "99820d4209b13a30073dbaf4ecd0524b899ce0b343b6c959c5f0bcbfa6cd3153"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-1-expected-wire.json",
+        "sha256": "e02da4c7fb1bdb70905112cd7406d2fd988450469198f8d2b2aeb158a5f53abb"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-2-key.json",
+        "sha256": "7c4789d2548af27711311bb082876e0be0121b225e41b701f502be4371b9fe2f"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-2-expected-wire.json",
+        "sha256": "0efe2fb234e7e86b8b5b8308731bb7ecc0c32e0628ba37015d9610bd95897516"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-3-key.json",
+        "sha256": "53e549946dc9e1b647d949fbb899e5e18882739dc913675df4cc8304986fe448"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-3-expected-wire.json",
+        "sha256": "95de0886e4900bcbb74ab323b7cb1b7eea73b54fb27990f2e959e4bb2035260c"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-4-key.json",
+        "sha256": "cc5efb4a6fbf5bd943ad5681c4aedcbb9f144d76969a05c4cf9fb7846a33e48a"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-4-expected-wire.json",
+        "sha256": "3ec4132b1d414b22553c39b9227dd8448f9e6b44358229c9b457d62a8942e56d"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-5-key.json",
+        "sha256": "7ba7de3317a93280f5f0fe0d565af62ad28a9a9ec70731a8d3f9cdbaf0415c7f"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-5-expected-wire.json",
+        "sha256": "0b83f106fa2693c617aaa63b912a2b27d326a321f4e9a26cf85fa7f4c656072f"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-6-key.json",
+        "sha256": "bad0d1fd93719f3d7c1cc9ba56f75a66ed9044c1859b8b9239777f6d9929e33e"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-6-expected-wire.json",
+        "sha256": "a37992f1694f42ee2e5107b528efa79b9ea1a47fb8d74284229ecca6580e2220"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-ladder-8-admission/child-7-key.json",
+        "sha256": "4ca9fb2639a19a6a4504733f0932930bacdf0731279f6b16f6cfa4b690eac30c"
+      },
+      "expected": {
+        "path": "../q193-ladder-8-admission/child-7-expected-wire.json",
+        "sha256": "5e0ae527dfabdf0c698046dfa8c7b95021e7a5eb0ba2ee8c91c714ad19c61241"
+      }
+    }
+  ],
+  "parents": [
+    [
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/pair-0-key.json",
+          "sha256": "10262b5554ba7b0f69eee100015cbc28b661c907cf6fe9e3a2c1d7aee728bff0"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/pair-0-expected-span.json",
+          "sha256": "30a97cc0153e052b6d4414af891da7946fc1b760f48461d6355cf28ec739a1dd"
+        }
+      },
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/pair-1-key.json",
+          "sha256": "20104a1c6c47a974cd086c6f1d1733a8d948b83b0f0baf03e8e2cf98b5e9533e"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/pair-1-expected-span.json",
+          "sha256": "7a8f6176b20fdef5547725df042cf00174f9afe2bcb700a066615e4bd3d6a89a"
+        }
+      },
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/pair-2-key.json",
+          "sha256": "26a740c0c9033561a1bc95cdce001eb66693d1018a4ec55bdf83acabc20ace7b"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/pair-2-expected-span.json",
+          "sha256": "4d59896640b38a860536fb7b5844869a721d6eb2f6c5fb17629476d730cb5e25"
+        }
+      },
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/pair-3-key.json",
+          "sha256": "195d23d007ccc82e54a184305282d91c1a63cfcd82b81c6b2286001a358e7093"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/pair-3-expected-span.json",
+          "sha256": "0206514bfc2b49554ece353972d567fea4b1c99ce6573be18bfa7c494c4e28bf"
+        }
+      }
+    ],
+    [
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/level2-0-key.json",
+          "sha256": "128e6b2ce19528caa737b56ab9d16168cf298f38d217dfff712a8b230cf2c2ad"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/level2-0-expected-span.json",
+          "sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8"
+        }
+      },
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/level2-1-key.json",
+          "sha256": "2efc1b2200879582e225f6ded9f4fc08a68ab4e21c4e86ad9f48bc674573aab4"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/level2-1-expected-span.json",
+          "sha256": "16eafccc11e976e6bd9dbc83f527ccf6cad550e3735c6af5a22a03c02e93a607"
+        }
+      }
+    ],
+    [
+      {
+        "key": {
+          "path": "../q193-ladder-8-admission/root-key.json",
+          "sha256": "4a6617705918b08b18e92484bb2ad6b05c829dadbd40f3aad82f962e765b1d00"
+        },
+        "expected": {
+          "path": "../q193-ladder-8-admission/root-expected-span.json",
+          "sha256": "61fb1f55bbe7a8f20d6a090a971455c543d077cc4e2909f36b30c30ecdda8896"
+        }
+      }
+    ]
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "fresh_process_verified": true,
+  "key_sha256": "d851a6465f6edb02cbeb8a3bc8173b40b86ad6642e07b791478e8b08975a9b37",
+  "binary_sha256": "ab2266e8ad1bb179f0f399bb85dada4fc081bd8cf39a404419fe0ea257d6737f",
+  "original_store_read_denied": true,
+  "denial_probe_stderr": "cat: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/detached-verifier-v2/key.json: Operation not permitted\n",
+  "process_wall_seconds": 0.7929587920662016,
+  "maximum_resident_set_size_bytes": 17776640,
+  "receipt": {
+    "verified": true,
+    "common_fold_schema": 15,
+    "proof_bytes": 2886425,
+    "verify_ns": 119576334,
+    "request_ns": 121977667,
+    "output_digest": [
+      191977022,
+      1332532490,
+      1515503021,
+      958278996,
+      1002485327,
+      1557774877,
+      661358290,
+      425269435
+    ],
+    "transcript_digest": [
+      1683090875,
+      80441706,
+      758757693,
+      648652550,
+      201710776,
+      719341375,
+      1254491271,
+      1389032208
+    ]
+  },
+  "mutations_rejected": {
+    "expected_key_hash": true,
+    "schema_version": true,
+    "proof_file": true
+  },
+  "independent_key_admission": false,
+  "scope": "One sandboxed verification process. Only copied key, public inputs and proof available in its temporary working directory; reads of original .git/local-ethereum store denied. Expected key identity comes from the verified bootstrap export; independent circuit admission is still outstanding."
+}

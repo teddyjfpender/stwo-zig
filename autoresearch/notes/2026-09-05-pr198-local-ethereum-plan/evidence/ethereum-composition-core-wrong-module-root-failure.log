@@ -1,0 +1,72 @@
+src/prover/air/component_prover_test.zig:13:29: error: import of file outside module path
+const secure_poly = @import("../poly/circle/secure_poly.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_prover_test.zig:14:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_prover_test.zig:171:25: error: import of file outside module path
+            _: *@import("../work_pool.zig").WorkPool,
+                        ^~~~~~~~~~~~~~~~~~
+src/prover/air/accumulation.zig:5:29: error: import of file outside module path
+const prover_poly = @import("../poly/circle/poly.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/accumulation.zig:6:33: error: import of file outside module path
+const prover_twiddles = @import("../poly/twiddles.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/accumulation.zig:7:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_prover.zig:16:33: error: import of file outside module path
+const prover_twiddles = @import("../poly/twiddles.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_prover.zig:17:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_prover.zig:18:31: error: import of file outside module path
+const work_pool_mod = @import("../work_pool.zig");
+                              ^~~~~~~~~~~~~~~~~~
+src/prover/air/prepared_domain.zig:7:28: error: import of file outside module path
+const task_graph = @import("../task_graph.zig");
+                           ^~~~~~~~~~~~~~~~~~~
+src/prover/air/composition_execution.zig:5:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/composition_execution.zig:7:27: error: import of file outside module path
+const work_pool = @import("../work_pool.zig");
+                          ^~~~~~~~~~~~~~~~~~
+src/prover/air/component_parallel.zig:9:39: error: import of file outside module path
+const host_budget_allocator = @import("../host_budget_allocator.zig");
+                                      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_parallel.zig:10:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/component_parallel.zig:11:28: error: import of file outside module path
+const task_graph = @import("../task_graph.zig");
+                           ^~~~~~~~~~~~~~~~~~~
+src/prover/air/component_parallel.zig:12:27: error: import of file outside module path
+const work_pool = @import("../work_pool.zig");
+                          ^~~~~~~~~~~~~~~~~~
+src/prover/air/component_trace.zig:6:31: error: import of file outside module path
+const prover_circle = @import("../poly/circle/mod.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~~~
+src/prover/air/device_composition.zig:28:31: error: import of file outside module path
+const secure_column = @import("../secure_column.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+        0.34 real         0.06 user         0.96 sys
+           200523776  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               15817  page reclaims
+                 117  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                6709  voluntary context switches
+                2628  involuntary context switches
+           631218359  instructions retired
+           188591635  cycles elapsed
+            12599800  peak memory footprint

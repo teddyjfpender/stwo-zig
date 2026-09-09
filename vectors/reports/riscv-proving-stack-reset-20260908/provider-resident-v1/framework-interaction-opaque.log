@@ -1,0 +1,9 @@
+test-framework-interaction-device
++- run test stderr
+FRAMEWORK_INTERACTION_GPU_V1 geometries=5 rows=1922 batches=2 dispatches=100 includes_failure_recovery=true
+
+Build Summary: 3/3 steps succeeded; 3/3 tests passed
+test-framework-interaction-device success
++- run test 3 passed 713ms MaxRSS:12M
+   +- compile test ReleaseSafe native success 5s MaxRSS:401M
+

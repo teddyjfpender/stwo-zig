@@ -1,0 +1,3 @@
+[1/1] keccak/128: execute, prove, verify
+  prove=0.619s verify=0.122s proof=820.0KiB rss=1.28GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/042-baseline-cpu.json

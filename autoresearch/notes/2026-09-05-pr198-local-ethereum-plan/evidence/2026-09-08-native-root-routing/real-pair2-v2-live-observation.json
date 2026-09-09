@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "source_manifest_sha256": "cafe4e94959879fd3b8d4afcd48804842885d69bce06188748251e05f2f5d417",
+  "observed_at": "2026-09-07T21:19:14.041530+00:00",
+  "pid": 28304,
+  "process": "  PID ELAPSED STAT    RSS\n28304   15:59 R    17285008\n",
+  "status": "running_at_observation",
+  "proof_verified": false,
+  "samples": [
+    "real-pair2-v2-live-sample.txt",
+    "real-pair2-v2-allocation-sample.txt"
+  ],
+  "finding": "Both bounded samples enter repeated public-logup validation through statement owners. The second sample is later in rows10Through34 construction, with a 28.4 GiB reported peak physical footprint. Samples are phase evidence, not an end-to-end cost fraction. Optimization deferred pending the real AIR verdict."
+}

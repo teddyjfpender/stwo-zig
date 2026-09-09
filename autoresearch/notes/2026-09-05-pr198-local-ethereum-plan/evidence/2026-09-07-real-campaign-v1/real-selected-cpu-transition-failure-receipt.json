@@ -1,0 +1,21 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "exit_code": -6,
+  "monitor_elapsed_ns": 80203532208,
+  "sampled_peak_footprint_bytes": 452330192,
+  "stopped_for_footprint_limit": false,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "PCS LDE lower bound preflight and composition budget; task process monitor is a sampled fallback, not allocation guarantee"
+  },
+  "verified_and_published": false,
+  "ended_unix_ns": 1788785738068597000,
+  "real_seconds": 79.67,
+  "user_seconds": 77.94,
+  "sys_seconds": 0.82,
+  "maximum_resident_set_size_bytes": 693796864,
+  "peak_memory_footprint_bytes": 692814904
+}

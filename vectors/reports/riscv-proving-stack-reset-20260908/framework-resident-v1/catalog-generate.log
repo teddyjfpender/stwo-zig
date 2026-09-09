@@ -1,0 +1,4 @@
+no step named 'test-riscv-metal-recursive-aot'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/b74b26d00337b5423de534fc16722789/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0xef2c481 -Z3e11d88327330577 --maxrss 25769803776 -j1 test-riscv-metal-recursive-aot -Doptimize=ReleaseSafe -Dmetal-core-aot-bundle=.git/local-ethereum/aot-m4 --summary all

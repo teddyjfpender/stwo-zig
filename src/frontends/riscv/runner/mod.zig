@@ -2,6 +2,7 @@
 
 const std = @import("std");
 const execution_profile = @import("../isa/execution_profile.zig");
+pub const ethereum = @import("ethereum.zig");
 pub const cpu = @import("cpu.zig");
 pub const decode = @import("decode.zig");
 pub const memory = @import("memory.zig");
@@ -33,6 +34,7 @@ pub const guest_precompile = @import("guest_precompile/mod.zig");
 pub const sail_oracle = @import("sail_oracle.zig");
 pub const state_chain = @import("state_chain.zig");
 pub const memory_state = @import("memory_state.zig");
+pub const minimal_trace = @import("minimal_trace/mod.zig");
 pub const result_mod = @import("result.zig");
 pub const segment_session = @import("segment_session.zig");
 pub const host_mod = @import("../host/mod.zig");
@@ -46,18 +48,35 @@ pub const CompletionReason = result_mod.CompletionReason;
 pub const OutputWord = result_mod.OutputWord;
 pub const RunResult = result_mod.RunResult;
 pub const Poseidon2RunResult = result_mod.Poseidon2RunResult;
+pub const KeccakfRunResult = result_mod.KeccakfRunResult;
+pub const EthereumRunResult = result_mod.EthereumRunResult;
 pub const SegmentResult = result_mod.SegmentResult;
 pub const Poseidon2SegmentResult = result_mod.Poseidon2SegmentResult;
+pub const KeccakfSegmentResult = result_mod.KeccakfSegmentResult;
+pub const EthereumSegmentResult = result_mod.EthereumSegmentResult;
 pub const ContinuationToken = result_mod.ContinuationToken;
+pub const SegmentClockFrame = result_mod.SegmentClockFrame;
 pub const SessionOptions = segment_session.SessionOptions;
+pub const TraceRetention = segment_session.TraceRetention;
+pub const RetirementObserverV1 = segment_session.RetirementObserverV1;
+pub const PreRetirementBoundaryV1 = segment_session.PreRetirementBoundaryV1;
+pub const PreRetirementBoundaryObserverV1 =
+    segment_session.PreRetirementBoundaryObserverV1;
 pub const ExecutionSession = segment_session.ExecutionSession;
 pub const BaseExecutionSession = ExecutionSession(.rv32im_zkvm_v1);
 pub const Poseidon2ExecutionSession = ExecutionSession(.rv32im_zkvm_poseidon2_v1);
+pub const KeccakfExecutionSession = ExecutionSession(.rv32im_zkvm_keccakf_v1);
+pub const EthereumExecutionSession = ethereum.ExecutionSession;
 
 const ExecutionProfile = execution_profile.ExecutionProfile;
 
 fn ConfiguredResult(comptime profile: ExecutionProfile) type {
-    return if (profile == .rv32im_zkvm_v1) RunResult else Poseidon2RunResult;
+    return switch (profile) {
+        .rv32im_zkvm_v1 => RunResult,
+        .rv32im_zkvm_poseidon2_v1 => Poseidon2RunResult,
+        .rv32im_zkvm_keccakf_v1 => KeccakfRunResult,
+        .rv32im_zkvm_ethereum_v1 => EthereumRunResult,
+    };
 }
 
 /// Run a RISC-V ELF program to completion (or until `max_steps`).
@@ -150,6 +169,47 @@ pub fn runPoseidon2ExtensionWithInput(
         true,
     );
 }
+
+/// Execute an explicitly admitted Keccak-f ELF. CUSTOM-0 retirement is kept
+/// outside the base trace and retained in the typed Keccak call authority.
+pub fn runKeccakfExtension(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    max_steps: usize,
+) !KeccakfRunResult {
+    return runConfigured(
+        .rv32im_zkvm_keccakf_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        &.{},
+        false,
+        false,
+    );
+}
+
+/// Strict input/halt variant used by proof production and benchmarks.
+pub fn runKeccakfExtensionWithInput(
+    allocator: std.mem.Allocator,
+    elf_bytes: []const u8,
+    input: []const u8,
+    max_steps: usize,
+) !KeccakfRunResult {
+    return runConfigured(
+        .rv32im_zkvm_keccakf_v1,
+        allocator,
+        elf_bytes,
+        max_steps,
+        null,
+        input,
+        true,
+        true,
+    );
+}
+
+pub const runEthereumExtension = ethereum.run;
+pub const runEthereumExtensionWithInput = ethereum.runWithInput;
 
 fn runConfigured(
     comptime profile: ExecutionProfile,

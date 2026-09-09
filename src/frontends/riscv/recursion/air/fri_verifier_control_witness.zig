@@ -408,7 +408,7 @@ fn materialize(row: Row, witness: QueryWitness) MainRow {
     };
 }
 
-fn fillLaneRows(
+pub fn fillLaneRows(
     rows: []Row,
     cursor: *usize,
     lane: Lane,
@@ -484,7 +484,7 @@ fn fillLaneRows(
     }
 }
 
-fn validateLaneRows(
+pub fn validateLaneRows(
     rows: []const Row,
     cursor: *usize,
     lane: Lane,
@@ -592,7 +592,7 @@ fn routeWeights(
     };
 }
 
-fn validateLaneMetadata(lane: Lane, expected_schema: schedule.Schema) Error!void {
+pub fn validateLaneMetadata(lane: Lane, expected_schema: schedule.Schema) Error!void {
     if (lane.plan.schema != expected_schema) return error.ScheduleAuthorityMismatch;
     const mapping_reference = try query_mapping.Reference.seal(lane.mapping, lane.mapping);
     _ = mapping_reference;
@@ -615,12 +615,12 @@ fn validateLaneMetadata(lane: Lane, expected_schema: schedule.Schema) Error!void
     }
 }
 
-fn validateLaneAuthority(lane: Lane, expected_schema: schedule.Schema) Error!void {
+pub fn validateLaneAuthority(lane: Lane, expected_schema: schedule.Schema) Error!void {
     try lane.plan.validate();
     try validateLaneMetadata(lane, expected_schema);
 }
 
-fn rowsForLane(profile: query_mapping.LaneProfile) Error!usize {
+pub fn rowsForLane(profile: query_mapping.LaneProfile) Error!usize {
     const per_query = std.math.add(usize, profile.fri_fold_widths.len, 2) catch
         return error.ArithmeticOverflow;
     return std.math.mul(usize, profile.query_count, per_query) catch
@@ -769,7 +769,7 @@ fn objectRange(value: anytype) direct.Error!AddressRange {
         return error.AddressOverflow };
 }
 
-fn traceLogSize(row_count: usize) Error!u32 {
+pub fn traceLogSize(row_count: usize) Error!u32 {
     const result: u32 = @max(
         MIN_LOG_SIZE,
         @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(row_count, 1)))),
@@ -793,7 +793,7 @@ fn referenceDigest(
     return hash.finalResult();
 }
 
-fn rowsDigest(rows: []const Row) digest.Digest {
+pub fn rowsDigest(rows: []const Row) digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(ROWS_DOMAIN);
     hashInt(&hash, u32, rows.len);

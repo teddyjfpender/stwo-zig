@@ -1,0 +1,18 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 29s
+1/13 recursive_common_ethereum_initial_public_sums_v1_test.test.Ethereum compact initial policy builds exact large claim shape with bounded packet graph...INITIAL_COMPACT_GRAPH input_words=675173 output_capacity=12 inputs=3649 nodes=45402 roots=4552 opening_inputs=27 packet_inputs=52 quadratic_input_terms=0
+OK
+2/13 recursive_common_ethereum_initial_public_sums_v1_test.test.Ethereum compact initial policy rejects count output and noninitial position mutations...OK
+3/13 recursive_common_ethereum_initial_public_sums_v1_test.test.Ethereum compact initial policy binds genuine completion opening and canonical packet limbs...OK
+4/13 recursive_common_ethereum_initial_input_packet_v1_test.test.Ethereum initial input packet authenticates semantic seal and fixed graph routes...ETHEREUM_INITIAL_INPUT_PACKET_SEAL=6c65d75620f0a61a4f36ba95c5297a927cdb06e172bd1c91481421cec60fefa5
+OK
+5/13 recursive_common_ethereum_initial_input_packet_v1_test.test.Ethereum initial input packet binds every scalar to genuine lane and graph...OK
+6/13 recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.test.Ethereum initial admitted shape routes canonical frame header and output slots...OK
+7/13 recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.test.Ethereum schema4 frame plan separates dynamic custody from admitted shape...OK
+8/13 recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.test.Ethereum schema4 frame plan records exact claim and split-root obligations...OK
+9/13 recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.test.Ethereum schema4 frame routes preserve source joins and reject changed witnesses...OK
+10/13 recursive_common_ethereum_initial_input_rows_v1_test.test.Ethereum compact initial policy owned rows preserve genuine witness and exact shared range histogram...OK
+11/13 recursive_common_ethereum_initial_input_rows_v1_test.test.Ethereum compact initial policy owned rows reject duplicate role publishers and preserve exact claim fanout...OK
+12/13 recursive_common_ethereum_incremental_leaf_public_sums_v4_support.test.Ethereum public sum fixed program removes only native program root anchor...OK
+13/13 ethereum_incremental_field_transcript_v4.test.Ethereum schema4 frame payloads exactly match native recording encodings...OK
+All 13 tests passed.

@@ -53,7 +53,6 @@ pub fn Namespace(comptime context: type) type {
         const RelationDomain = context.d_RelationDomain;
         const ClosureAudit = context.d_ClosureAudit;
         const emptyDomainAudit = context.d_emptyDomainAudit;
-        const recordDomainAudit = context.d_recordDomainAudit;
         const PreparedRelationRows = context.d_PreparedRelationRows;
         const Authority = context.d_Authority;
         const admittedSegmentLeafBundle = context.d_admittedSegmentLeafBundle;
@@ -66,6 +65,14 @@ pub fn Namespace(comptime context: type) type {
         const placementOffset = context.d_placementOffset;
         const copyInteraction = context.d_copyInteraction;
         const TreeStorage = context.d_TreeStorage;
+
+        /// Native rows18--34 have their own complete result. The legacy graph
+        /// input-wire claim is not part of this result or its protocol encoding.
+        pub const NativeInteractionClaims = struct {
+            claims: [context.d_NATIVE_V2_CORE_ROW_COUNT]QM31,
+            poseidon2_partials: [2]QM31,
+            public_boundaries: PublicBoundaryClaims,
+        };
 
         pub fn fillInteraction(
             allocator: std.mem.Allocator,
@@ -84,6 +91,118 @@ pub fn Namespace(comptime context: type) type {
             relations: *const universal.UniversalRelations,
             closure_audit: ?*ClosureAudit,
         ) !Claims {
+            return fillInteractionImpl(false, allocator, authority, tree, evaluations, pcs_inputs, arithmetic_evaluations, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit);
+        }
+
+        pub fn fillNativeInteraction(
+            allocator: std.mem.Allocator,
+            authority: *const Authority,
+            tree: *TreeStorage,
+            evaluations: []const M31,
+            pcs_inputs: pcs_witness.InputWitness,
+            invocations: *const InvocationBuffers,
+            query_witness: query_bits_witness.QueryWitness,
+            root_witness: merkle_root_witness.RootWitness,
+            merkle_paths: *const MerklePathBuffers,
+            poseidon_calls: *const PoseidonCallBuffers,
+            prepared_relation_rows: *const PreparedRelationRows,
+            provider_relations: *const shared_provider.SharedProviderRelations,
+            relations: *const universal.UniversalRelations,
+            closure_audit: ?*ClosureAudit,
+        ) !NativeInteractionClaims {
+            if (authority.segment_transcript_inputs != null) return error.AuthorityMismatch;
+            if (evaluations.len != authority.input_preprocessing.rows.len) return error.AuthorityMismatch;
+            return fillInteractionImpl(true, allocator, authority, tree, evaluations, pcs_inputs, {}, invocations, query_witness, root_witness, merkle_paths, poseidon_calls, prepared_relation_rows, provider_relations, relations, closure_audit);
+        }
+
+        /// The admitted framework writer owns both the column layout and its
+        /// per-domain decomposition. Reuse its inverse plane instead of copying
+        /// temporary columns and then evaluating/inverting every pair again.
+        fn generateInteractionInto(
+            comptime Framework: type,
+            allocator: std.mem.Allocator,
+            authority: *const Authority,
+            tree: *TreeStorage,
+            plan: *const Framework.Plan,
+            rows: []const Framework.Row,
+            log_size: u32,
+            relations: *const universal.UniversalRelations,
+            audit_out: ?*ClosureAudit,
+            component: air.universal_roster.Component,
+        ) !QM31 {
+            const offset = placementOffset(authority, component, 2);
+            const end = try std.math.add(usize, offset, Framework.INTERACTION_COLUMN_COUNT);
+            if (end > tree.columns.len) return error.DestinationColumnCountMismatch;
+            const columns: *[Framework.INTERACTION_COLUMN_COUNT][]M31 = tree.columns[offset..][0..Framework.INTERACTION_COLUMN_COUNT];
+            var workspace = try Framework.Workspace.init(allocator, log_size);
+            defer workspace.deinit();
+            const audit = audit_out orelse return Framework.generatePreparedInto(
+                &workspace,
+                plan,
+                rows,
+                log_size,
+                relations,
+                columns,
+            );
+            const event_terms = try std.math.mul(usize, rows.len, plan.events.len);
+            const generated = try Framework.generatePreparedIntoWithDomainSums(
+                &workspace,
+                plan,
+                rows,
+                log_size,
+                relations,
+                columns,
+            );
+            const domain_audit = air.relation_interaction.DomainAudit{
+                .values = generated.by_domain,
+                .total = generated.claimed_sum,
+                .logical_rows = rows.len,
+                .event_terms = event_terms,
+            };
+            // Keep the independent cold implementation runnable on genuine
+            // prepared rows. This diagnostic never supplies admission authority.
+            if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_INTERACTION_AUDIT")) {
+                const reference = try plan.auditPreparedDomainSums(
+                    allocator,
+                    rows,
+                    relations,
+                    generated.claimed_sum,
+                );
+                if (!std.meta.eql(reference, domain_audit))
+                    return error.NativeInteractionDomainMismatch;
+                std.debug.print("RECURSIVE_INTERACTION_DOMAIN_AUDIT component={d} logical_rows={d} event_terms={d} matched=true\n", .{
+                    @intFromEnum(component), rows.len, event_terms,
+                });
+            }
+            if (audit.tupleLedger()) |ledger|
+                try plan.appendPreparedTupleContributions(
+                    ledger,
+                    @intCast(@intFromEnum(component)),
+                    rows,
+                    air.relation_interaction.allDomainMask(),
+                );
+            audit.rows[@intFromEnum(component)] = domain_audit;
+            return generated.claimed_sum;
+        }
+
+        fn fillInteractionImpl(
+            comptime native_only: bool,
+            allocator: std.mem.Allocator,
+            authority: *const Authority,
+            tree: *TreeStorage,
+            evaluations: if (native_only) []const M31 else input_witness.Evaluations,
+            pcs_inputs: pcs_witness.InputWitness,
+            arithmetic_evaluations: if (native_only) void else lowering.Evaluations,
+            invocations: *const InvocationBuffers,
+            query_witness: query_bits_witness.QueryWitness,
+            root_witness: merkle_root_witness.RootWitness,
+            merkle_paths: *const MerklePathBuffers,
+            poseidon_calls: *const PoseidonCallBuffers,
+            prepared_relation_rows: *const PreparedRelationRows,
+            provider_relations: *const shared_provider.SharedProviderRelations,
+            relations: *const universal.UniversalRelations,
+            closure_audit: ?*ClosureAudit,
+        ) !(if (native_only) NativeInteractionClaims else Claims) {
             const segment_leaf_claims = if (authority.segment_transcript_inputs != null) blk: {
                 const bundle = try admittedSegmentLeafBundle(authority);
                 break :blk try bundle.fillInteractionInto(
@@ -114,29 +233,18 @@ pub fn Namespace(comptime context: type) type {
                 @memcpy(audit.rows[12..18], &bundle_audits.public);
             };
             const vm_input_claim = if (authority.vm_air != null) blk: {
-                var generated = try VmInputFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    VmInputFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.vm_air.?.relation,
                     prepared_relation_rows.vm_input,
                     authority.log_sizes[LogIndex.vm_input],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .vm_air_composition_input, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.vm_air.?.relation,
-                    prepared_relation_rows.vm_input,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .vm_air_composition_input,
                 );
-                break :blk generated.claimed_sum;
             } else QM31.zero();
             const composition_control_claim = blk: {
                 const rows = try allocator.alloc(
@@ -153,29 +261,18 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try CompositionControlFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    CompositionControlFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.composition_control_relation,
                     rows,
                     authority.log_sizes[LogIndex.composition_control],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .vm_air_composition_control, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.composition_control_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .vm_air_composition_control,
                 );
-                break :blk generated.claimed_sum;
             };
             const query_bits_claim = blk: {
                 const query_parameters = try query_bits_witness.parameterValues(
@@ -193,29 +290,18 @@ pub fn Namespace(comptime context: type) type {
                         query_witness,
                         query_parameters,
                     );
-                var generated = try QueryBitsFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    QueryBitsFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.query_bits_relation,
                     rows,
                     authority.log_sizes[LogIndex.query_bits],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .query_bits, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.query_bits_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .query_bits,
                 );
-                break :blk generated.claimed_sum;
             };
             const query_mapping_claim = blk: {
                 const rows = try allocator.alloc(
@@ -225,29 +311,18 @@ pub fn Namespace(comptime context: type) type {
                 defer allocator.free(rows);
                 for (authority.query_mapping_preprocessing.rows, rows) |source, *destination|
                     destination.* = try query_mapping_witness.logicalRow(source, query_witness);
-                var generated = try QueryMappingFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    QueryMappingFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.query_mapping_relation,
                     rows,
                     authority.log_sizes[LogIndex.query_mapping],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .query_mapping, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.query_mapping_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .query_mapping,
                 );
-                break :blk generated.claimed_sum;
             };
             const merkle_root_claim = blk: {
                 const rows = try allocator.alloc(
@@ -257,54 +332,32 @@ pub fn Namespace(comptime context: type) type {
                 defer allocator.free(rows);
                 for (authority.merkle_root_preprocessing.rows, rows) |source, *destination|
                     destination.* = try merkle_root_witness.logicalRow(source, root_witness);
-                var generated = try MerkleRootFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    MerkleRootFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.merkle_root_relation,
                     rows,
                     authority.log_sizes[LogIndex.merkle_root],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .merkle_root, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.merkle_root_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .merkle_root,
                 );
-                break :blk generated.claimed_sum;
             };
             const trace_merkle_claim = blk: {
-                var generated = try TraceMerkleFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    TraceMerkleFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.trace_merkle_relation,
                     prepared_relation_rows.trace_merkle,
                     authority.log_sizes[LogIndex.trace_merkle],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .trace_merkle, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.trace_merkle_relation,
-                    prepared_relation_rows.trace_merkle,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .trace_merkle,
                 );
-                break :blk generated.claimed_sum;
             };
             const pcs_deep_claim = blk: {
                 const rows = try allocator.alloc(
@@ -323,129 +376,74 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try PcsFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    PcsFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.pcs_relation,
                     rows,
                     authority.log_sizes[LogIndex.pcs_deep],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .pcs_deep_input, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.pcs_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .pcs_deep_input,
                 );
-                break :blk generated.claimed_sum;
             };
             const fri_leaf_claim = blk: {
-                var generated = try FriLeafFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    FriLeafFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.fri_leaf_relation,
                     prepared_relation_rows.fri_leaf,
                     authority.log_sizes[LogIndex.fri_leaf],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .fri_merkle_leaf, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.fri_leaf_relation,
-                    prepared_relation_rows.fri_leaf,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .fri_merkle_leaf,
                 );
-                break :blk generated.claimed_sum;
             };
             const fri_node_claim = blk: {
-                var generated = try FriNodeFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    FriNodeFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.fri_node_relation,
                     prepared_relation_rows.fri_node,
                     authority.log_sizes[LogIndex.fri_node],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .fri_merkle_node, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.fri_node_relation,
-                    prepared_relation_rows.fri_node,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .fri_merkle_node,
                 );
-                break :blk generated.claimed_sum;
             };
             const fri_anchor_claim = blk: {
-                var generated = try FriAnchorFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    FriAnchorFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.fri_anchor_relation,
                     prepared_relation_rows.fri_anchor,
                     authority.log_sizes[LogIndex.fri_anchor],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .fri_merkle_anchor, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.fri_anchor_relation,
-                    prepared_relation_rows.fri_anchor,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .fri_merkle_anchor,
                 );
-                break :blk generated.claimed_sum;
             };
             const control_claim = blk: {
-                var generated = try ControlFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    ControlFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.control_relation,
                     prepared_relation_rows.control,
                     authority.log_sizes[LogIndex.fri_control],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .fri_verifier_control, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.control_relation,
-                    prepared_relation_rows.control,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .fri_verifier_control,
                 );
-                break :blk generated.claimed_sum;
             };
             const input_claim = blk: {
                 const rows = try allocator.alloc(
@@ -453,8 +451,8 @@ pub fn Namespace(comptime context: type) type {
                     authority.input_preprocessing.rows.len,
                 );
                 defer allocator.free(rows);
-                for (authority.input_preprocessing.rows, rows) |source, *destination| {
-                    const value = evaluations.at(source.lane).values[source.node_id]
+                for (authority.input_preprocessing.rows, rows, 0..) |source, *destination, row_index| {
+                    const value = if (native_only) evaluations[row_index] else evaluations.at(source.lane).values[source.node_id]
                         .tryIntoM31() catch return error.AuthorityMismatch;
                     destination.* = input_witness.logicalInputs(
                         (input_witness.MainRow{
@@ -465,29 +463,18 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try InputFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    InputFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.input_relation,
                     rows,
                     authority.log_sizes[LogIndex.fri_input],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .fri_verifier_input, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.input_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .fri_verifier_input,
                 );
-                break :blk generated.claimed_sum;
             };
             const multiply_claim = blk: {
                 const rows = try allocator.alloc(MultiplyRelation.Row, invocations.multiply.len);
@@ -501,29 +488,18 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try MultiplyFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    MultiplyFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.multiply_relation,
                     rows,
                     authority.log_sizes[LogIndex.multiply],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .qm31_mul, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.multiply_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .qm31_mul,
                 );
-                break :blk generated.claimed_sum;
             };
             const inverse_claim = blk: {
                 const rows = try allocator.alloc(InverseRelation.Row, invocations.inverse.len);
@@ -537,29 +513,18 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try InverseFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    InverseFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.inverse_relation,
                     rows,
                     authority.log_sizes[LogIndex.inverse],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .qm31_inv, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.inverse_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .qm31_inv,
                 );
-                break :blk generated.claimed_sum;
             };
             const linear_claim = blk: {
                 const rows = try allocator.alloc(LinearRelation.Row, invocations.linear.len);
@@ -573,29 +538,18 @@ pub fn Namespace(comptime context: type) type {
                         .segment_leaf,
                     );
                 }
-                var generated = try LinearFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    LinearFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.linear_relation,
                     rows,
                     authority.log_sizes[LogIndex.linear],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .linear_ops, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.linear_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .linear_ops,
                 );
-                break :blk generated.claimed_sum;
             };
             const merkle_path_claim = blk: {
                 if (!merkle_paths.ready) return error.AuthorityMismatch;
@@ -606,29 +560,18 @@ pub fn Namespace(comptime context: type) type {
                 defer allocator.free(rows);
                 for (merkle_paths.invocations, rows) |invocation, *destination|
                     destination.* = try merkle_path_witness.logicalRow(invocation);
-                var generated = try MerklePathFramework.generatePrepared(
+                break :blk try generateInteractionInto(
+                    MerklePathFramework,
                     allocator,
+                    authority,
+                    tree,
                     &authority.merkle_path_relation,
                     rows,
                     authority.log_sizes[LogIndex.merkle_path],
                     relations,
-                );
-                defer generated.deinit(allocator);
-                copyInteraction(
-                    tree,
-                    placementOffset(authority, .merkle_path, 2),
-                    &generated.columns,
-                );
-                try recordDomainAudit(
-                    allocator,
-                    &authority.merkle_path_relation,
-                    rows,
-                    relations,
-                    generated.claimed_sum,
                     closure_audit,
                     .merkle_path,
                 );
-                break :blk generated.claimed_sum;
             };
             const poseidon2_claims = blk: {
                 const calls = try poseidon_calls.callsView();
@@ -700,6 +643,30 @@ pub fn Namespace(comptime context: type) type {
                     );
                 }
             }
+            if (native_only) return .{
+                // The existing projection remains the single native claim order.
+                .claims = context.d_nativeCoreClaims(.{
+                    .vm_input = vm_input_claim,
+                    .composition_control = composition_control_claim,
+                    .query_bits = query_bits_claim,
+                    .query_mapping = query_mapping_claim,
+                    .merkle_root = merkle_root_claim,
+                    .trace_merkle = trace_merkle_claim,
+                    .pcs_deep = pcs_deep_claim,
+                    .fri_leaf = fri_leaf_claim,
+                    .fri_node = fri_node_claim,
+                    .fri_anchor = fri_anchor_claim,
+                    .control = control_claim,
+                    .input = input_claim,
+                    .multiply = multiply_claim,
+                    .inverse = inverse_claim,
+                    .linear = linear_claim,
+                    .merkle_path = merkle_path_claim,
+                    .poseidon2 = poseidon2_claims,
+                }),
+                .poseidon2_partials = poseidon2_claims,
+                .public_boundaries = public_boundaries,
+            };
             return .{
                 .segment_leaf = segment_leaf_claims,
                 .vm_input = vm_input_claim,

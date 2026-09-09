@@ -1,0 +1,128 @@
+{
+  "passed": true,
+  "reused_keys": 15,
+  "scope": "All fifteen keys unchanged across independently expected memory seeds 13 and 14; every proof and expected statement changed and freshly verified",
+  "production_security_admission_complete": false,
+  "nodes": [
+    {
+      "node": "leaves/child-0",
+      "key_sha256": "f3583bba4c386773c40bd1462ba62ccb1b2dff5f462ac0d5261805bb541e1678",
+      "seed13_proof_sha256": "7bc94650036e221a97b6bde7cd43e5e2662b488b035941c5046c95cbd6284fd0",
+      "seed14_proof_sha256": "03dacca8796928f608b25e7e949cda94ae61743839980e52f22143a7c9a0e3fd",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-1",
+      "key_sha256": "99820d4209b13a30073dbaf4ecd0524b899ce0b343b6c959c5f0bcbfa6cd3153",
+      "seed13_proof_sha256": "179ab8aa921aa5461a1379a4ba2e719c5c5d0b07be5f89158699d122ccbf5f10",
+      "seed14_proof_sha256": "40f1b45d904cf24d85b5f2a39195f0a12610543e2faba137312bea89378d80a5",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-2",
+      "key_sha256": "7c4789d2548af27711311bb082876e0be0121b225e41b701f502be4371b9fe2f",
+      "seed13_proof_sha256": "97314e570d09626e5c6172448a708e0f9787d2c6c3d41fd76be97b353d56d4a4",
+      "seed14_proof_sha256": "a084d4704c665870b1daae75d6adbfdaf35938ee764314d90174fbaef4369a8c",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-3",
+      "key_sha256": "53e549946dc9e1b647d949fbb899e5e18882739dc913675df4cc8304986fe448",
+      "seed13_proof_sha256": "21a25bb64a7ee0239d182e79c39f80cbbef1c2f0777019e248d56686b1237e4f",
+      "seed14_proof_sha256": "23f8922da076b7778bbe1e3933bea6ef333a30cfb8b03a4c0db8e972d929ee18",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-4",
+      "key_sha256": "cc5efb4a6fbf5bd943ad5681c4aedcbb9f144d76969a05c4cf9fb7846a33e48a",
+      "seed13_proof_sha256": "691e92492c8f346dbe3ec314726c356fcb19c5181bc56820f7f388d55724b429",
+      "seed14_proof_sha256": "7fd8430b689f0edb6517d3d0799bac9c8b84feacc15c3cadc52e89c110fb2600",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-5",
+      "key_sha256": "7ba7de3317a93280f5f0fe0d565af62ad28a9a9ec70731a8d3f9cdbaf0415c7f",
+      "seed13_proof_sha256": "8587e12ba7c9f59e07dfa72637cef25d4bb6304498c08a75d564674c14af76c3",
+      "seed14_proof_sha256": "fdde754dd90f6c3e9a7b79fbc60672caca0e92b50939fe8235d9c54ba442819a",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-6",
+      "key_sha256": "bad0d1fd93719f3d7c1cc9ba56f75a66ed9044c1859b8b9239777f6d9929e33e",
+      "seed13_proof_sha256": "4a7fb45986b0b2388ee2dfdf80d02dc8ff7edda4701a0f0aa1b157ba06eda71c",
+      "seed14_proof_sha256": "438c147ffe487e133ef2e3c8047db29b0a873f9676639116bee3e43dca949be1",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "leaves/child-7",
+      "key_sha256": "4ca9fb2639a19a6a4504733f0932930bacdf0731279f6b16f6cfa4b690eac30c",
+      "seed13_proof_sha256": "f6286b34a7458a1e9db71ffea5028aa580806197ca26fc32613a07e0e9a1c455",
+      "seed14_proof_sha256": "7b7a450359cd317cafadfdc205e61bcff4771742432c21e7db5040635c5c9476",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-1-0",
+      "key_sha256": "10262b5554ba7b0f69eee100015cbc28b661c907cf6fe9e3a2c1d7aee728bff0",
+      "seed13_proof_sha256": "06f37b516fde22c2b85ae1fe65f9fa6c685111a37b52867e1ac2b83bef563e49",
+      "seed14_proof_sha256": "ffe4f9baffeb4d0c5fc641264a5255ceabcfa8ff2f395304625ab7199485096c",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-1-1",
+      "key_sha256": "20104a1c6c47a974cd086c6f1d1733a8d948b83b0f0baf03e8e2cf98b5e9533e",
+      "seed13_proof_sha256": "4c25b243677f30a921b72e7217c1318f5bfd3495c8aec2d0053fd3d53bc54194",
+      "seed14_proof_sha256": "fae830652133015d1a5b28945e4a83c36126cf0bf647dfd14294de27b8ac4aa4",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-1-2",
+      "key_sha256": "26a740c0c9033561a1bc95cdce001eb66693d1018a4ec55bdf83acabc20ace7b",
+      "seed13_proof_sha256": "b859a4ba283221005aea57a606e7f650d05d92bb7d96f22eb5e88c90d5ecb215",
+      "seed14_proof_sha256": "e66a71076d7de5f8eded49d69ded501a38eacab5c7ac98232ab4d1d2a7d3c61b",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-1-3",
+      "key_sha256": "195d23d007ccc82e54a184305282d91c1a63cfcd82b81c6b2286001a358e7093",
+      "seed13_proof_sha256": "9e7c43e4495fc5e97396b054cad71663f4a982790f92cd87ca18ee9b226eb24b",
+      "seed14_proof_sha256": "916340fce4aec80a816863187377af992217c270ff93d0f81e608174d2fcfcda",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-2-0",
+      "key_sha256": "128e6b2ce19528caa737b56ab9d16168cf298f38d217dfff712a8b230cf2c2ad",
+      "seed13_proof_sha256": "e267b3edb316d2aaf9cc99043c1529314b624a2414125107cc35320b078252a3",
+      "seed14_proof_sha256": "c91f47ff3c3b36708829bdc56c37baace1a35a323477d4f411523192aabc8a62",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-2-1",
+      "key_sha256": "2efc1b2200879582e225f6ded9f4fc08a68ab4e21c4e86ad9f48bc674573aab4",
+      "seed13_proof_sha256": "3c3cdaf389cafd4b9842403a6108a83c070f5936a89cb83b5b53982cfb01847f",
+      "seed14_proof_sha256": "4776c96a543c600a859831d8637093e17d07660b1091ad257530b27eb8e7e853",
+      "statement_changed": true,
+      "freshly_verified": true
+    },
+    {
+      "node": "parent-3-0",
+      "key_sha256": "4a6617705918b08b18e92484bb2ad6b05c829dadbd40f3aad82f962e765b1d00",
+      "seed13_proof_sha256": "b3c7493432b6cd66c84e027485681ac2717ce030f7332f104cf8c7ef930ef406",
+      "seed14_proof_sha256": "63832db42fc11fb35b6a6322db82ed38327a9259384cd8b86482930d39b0fa3f",
+      "statement_changed": true,
+      "freshly_verified": true
+    }
+  ]
+}

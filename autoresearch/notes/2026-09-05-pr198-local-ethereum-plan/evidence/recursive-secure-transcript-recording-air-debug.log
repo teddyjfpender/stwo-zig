@@ -1,0 +1,14 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test failure
+error: while executing test 'recursive_common_canonical_empty_universal_proof_v2_test.test.canonical-empty q193 proof survives retained cold reopen and rejects mutation', the following command terminated with signal 4 (expected exited with code 0):
+./.zig-cache/o/f314cc801c5bad7a748a607c0f3d6dbd/test --cache-dir=./.zig-cache --seed=0x4a65d580 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/1 tests passed
+test-recursive-common-canonical-empty-universal-v2-proof transitive failure
++- Canonical-empty universal q193 proof identity guard transitive failure
+   +- run test failure
+      +- compile test Debug native success 14s MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e5eb5c7a03a5c1c545c31576e584386a/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x4a65d580 -Z8af9db141efe2369 --maxrss 25769803776 -j1 test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=Debug --summary all

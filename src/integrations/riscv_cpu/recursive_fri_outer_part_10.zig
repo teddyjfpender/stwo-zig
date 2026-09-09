@@ -67,6 +67,7 @@ pub fn Namespace(comptime context: type) type {
         const AssemblyProfile = context.d_AssemblyProfile;
         const Claims = context.d_Claims;
         const initAuthority = context.d_initAuthority;
+        const initAuthorityForLogSizes = context.d_initAuthorityForLogSizes;
 
         pub const ProofBundle = struct {
             proof: recursion.engine.Proof,
@@ -168,15 +169,15 @@ pub fn Namespace(comptime context: type) type {
 
             pub fn init(allocator: std.mem.Allocator, authority: *const Authority) !PreparedRelationRows {
                 const vm_input_count = if (authority.vm_air) |vm_air|
-                    vm_air.prepared.preprocessing.rows.len
+                    vm_air.prepared.view().preprocessing.rows.len
                 else
                     0;
                 const vm_input = try allocator.alloc(VmInputRelation.Row, vm_input_count);
                 errdefer allocator.free(vm_input);
                 if (authority.vm_air) |vm_air| {
                     for (
-                        vm_air.prepared.preprocessing.rows,
-                        vm_air.prepared.schedule_values,
+                        vm_air.prepared.view().preprocessing.rows,
+                        vm_air.prepared.view().schedule_values,
                         vm_input,
                     ) |row, value, *destination| {
                         destination.* = try vm_input_witness.logicalRow(
@@ -279,7 +280,7 @@ pub fn Namespace(comptime context: type) type {
 
         pub fn validatePcsProfile(
             fri_circuit: *const circuit_mod.Circuit,
-            pcs_circuit: *const pcs_circuit_mod.Circuit,
+            pcs_circuit: *const pcs_circuit_mod.Prepared,
             column_log_sizes: []const []const u32,
         ) !void {
             const profile = pcs_circuit.profile();
@@ -297,14 +298,14 @@ pub fn Namespace(comptime context: type) type {
         }
 
         pub const VmAirAuthority = struct {
-            prepared: *const recursion.vm_air_composition_circuit.Prepared,
+            prepared: recursion.vm_composition_preparation.Source,
             definition: vm_input_air.Definition,
             relation: VmInputRelation.Plan,
             executor: vm_input_witness.Executor,
 
             pub fn init(
                 allocator: std.mem.Allocator,
-                prepared: *const recursion.vm_air_composition_circuit.Prepared,
+                prepared: recursion.vm_composition_preparation.Source,
             ) !VmAirAuthority {
                 try prepared.validate();
                 var definition = try vm_input_air.build(allocator);
@@ -411,7 +412,7 @@ pub fn Namespace(comptime context: type) type {
         pub const Authority = struct {
             allocator: std.mem.Allocator,
             circuit: *const circuit_mod.Circuit,
-            pcs_circuit: *const pcs_circuit_mod.Circuit,
+            pcs_circuit: *const pcs_circuit_mod.Prepared,
             query_mapping_reference: query_mapping_witness.Reference,
             query_bits_reference: query_bits_witness.Reference,
             query_mapping_preprocessing: query_mapping_witness.Preprocessed,
@@ -440,6 +441,7 @@ pub fn Namespace(comptime context: type) type {
             lowering_plan: lowering.Plan,
             vm_air: ?VmAirAuthority,
             public_native_sum_lane: ?lowering.Lane,
+            statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
             segment_transcript_inputs: ?SegmentTranscriptInputs,
             segment_transcript: ?SegmentTranscriptSource,
             segment_leaf_admission: ?SegmentLeafAdmission,
@@ -498,11 +500,11 @@ pub fn Namespace(comptime context: type) type {
             pub fn init(
                 allocator: std.mem.Allocator,
                 circuit: *const circuit_mod.Circuit,
-                pcs_circuit: *const pcs_circuit_mod.Circuit,
+                pcs_circuit: *const pcs_circuit_mod.Prepared,
                 trace_tree_heights: []const u32,
                 column_log_sizes: []const []const u32,
                 schedule_facts: ScheduleFacts,
-                vm_air_prepared: ?*const recursion.vm_air_composition_circuit.Prepared,
+                vm_air_prepared: ?recursion.vm_composition_preparation.Source,
                 verifier_plans: ?VerifierPlans,
                 segment_transcript_inputs: ?SegmentTranscriptInputs,
                 public_native_sum_lane: ?lowering.Lane,
@@ -520,6 +522,71 @@ pub fn Namespace(comptime context: type) type {
                     segment_transcript_inputs,
                     public_native_sum_lane,
                     authenticated_poseidon_prefix_count,
+                );
+            }
+
+            /// Rebuilds the same authenticated authority at an explicitly
+            /// padded vector of physical component domains.
+            pub fn initForLogSizes(
+                allocator: std.mem.Allocator,
+                circuit: *const circuit_mod.Circuit,
+                pcs_circuit: *const pcs_circuit_mod.Prepared,
+                trace_tree_heights: []const u32,
+                column_log_sizes: []const []const u32,
+                schedule_facts: ScheduleFacts,
+                vm_air_prepared: ?recursion.vm_composition_preparation.Source,
+                verifier_plans: ?VerifierPlans,
+                segment_transcript_inputs: ?SegmentTranscriptInputs,
+                public_native_sum_lane: ?lowering.Lane,
+                authenticated_poseidon_prefix_count: usize,
+                requested_log_sizes: [LogIndex.count]u32,
+            ) !Authority {
+                return initAuthorityForLogSizes(
+                    allocator,
+                    circuit,
+                    pcs_circuit,
+                    trace_tree_heights,
+                    column_log_sizes,
+                    schedule_facts,
+                    vm_air_prepared,
+                    verifier_plans,
+                    segment_transcript_inputs,
+                    public_native_sum_lane,
+                    authenticated_poseidon_prefix_count,
+                    requested_log_sizes,
+                    null,
+                );
+            }
+
+            pub fn initWithStatementArithmetic(
+                allocator: std.mem.Allocator,
+                circuit: *const circuit_mod.Circuit,
+                pcs_circuit: *const pcs_circuit_mod.Prepared,
+                trace_tree_heights: []const u32,
+                column_log_sizes: []const []const u32,
+                schedule_facts: ScheduleFacts,
+                vm_air_prepared: ?recursion.vm_composition_preparation.Source,
+                verifier_plans: ?VerifierPlans,
+                segment_transcript_inputs: ?SegmentTranscriptInputs,
+                public_native_sum_lane: ?lowering.Lane,
+                authenticated_poseidon_prefix_count: usize,
+                requested_log_sizes: ?[LogIndex.count]u32,
+                statement_arithmetic: ?*const recursion.ethereum_statement_arithmetic_v4.Prepared,
+            ) !Authority {
+                return initAuthorityForLogSizes(
+                    allocator,
+                    circuit,
+                    pcs_circuit,
+                    trace_tree_heights,
+                    column_log_sizes,
+                    schedule_facts,
+                    vm_air_prepared,
+                    verifier_plans,
+                    segment_transcript_inputs,
+                    public_native_sum_lane,
+                    authenticated_poseidon_prefix_count,
+                    requested_log_sizes,
+                    statement_arithmetic,
                 );
             }
 

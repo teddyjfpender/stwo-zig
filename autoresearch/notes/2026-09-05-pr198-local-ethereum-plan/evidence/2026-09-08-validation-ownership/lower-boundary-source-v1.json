@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T05:59:45.208289+00:00",
+  "scope": "lower constructor-only audit deduplication and immutable campaign cloning; no weakened mutable input validation or new authority path",
+  "status": "source_fmt_ast_passed_semantic_tests_not_started",
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_input_v4.zig",
+      "sha256": "906474665709c31cf35eb46b73265bbd8ca0049504118b4131658307a816458f"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_owned_v4.zig",
+      "sha256": "56f06002094692d82d8b21b6bc9e9f9593675450362630aa777945faf38f7a0e"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.zig",
+      "sha256": "3f0939545f0eec6d9bdf5a5928250e62d5f288e3c495629fcfa18098382d2714"
+    }
+  ],
+  "changes": [
+    "Native cold verifier already validates FreshVerifiedCapture immediately before returning; FreshInput.coldOpen no longer repeats that native audit twice before exposing the value. Private metadata finalization preserves its additional stage102 checks.",
+    "FreshInput.validate and validateAgainstArtifact remain full external mutable-ingress audits.",
+    "Opaque campaign clone deep-copies immutable admitted buffers/metadata, preserving identity bytes instead of repeating quadratic mint validation. Existing clone regression now checks every allocation-failure path."
+  ],
+  "structural_cost_change": {
+    "duplicate_full_capture_audits_removed_per_cold_open": 2,
+    "quadratic_campaign_validation_removed_per_immutable_clone": true,
+    "runtime_or_latency_measurements": "not run; no speedup claim"
+  },
+  "ast_commands": [
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_input_v4.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_owned_v4.zig"
+    ],
+    [
+      "zig",
+      "ast-check",
+      "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.zig"
+    ]
+  ],
+  "ast_exit_codes": [
+    0,
+    0,
+    0
+  ],
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_campaign_provider_geometry_v4_test.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "runtime campaign"
+  ],
+  "genuine_custody_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-incremental-leaf-materializer-custody-v4-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "genuine_gate_inputs": "Use independently pinned retained native proof pair and ELF/global metadata from the existing campaign; no proof-generation job is needed.",
+  "preserved_genuine_rejections": [
+    "role_aware_io.active_tuple_count mutation",
+    "schedule.calls[0].input[0] mutation",
+    "campaign authority identity mutation and invalid leaf index",
+    "final materializer allocation failure restores original FreshInput ownership"
+  ],
+  "queue": "No heavy build or test launched per parent instruction; frozen running v7 untouched."
+}

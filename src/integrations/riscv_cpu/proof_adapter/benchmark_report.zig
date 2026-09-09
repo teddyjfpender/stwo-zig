@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const stwo = @import("stwo");
-const resource_usage = @import("../resource_usage.zig");
+const resource_usage = @import("stwo_prover_engine").measurement.resource_report;
 const verified_request_attempt = @import("verified_request_attempt.zig");
 
 pub const UNPROFILED_PROVE_SCHEMA = "riscv_prove_v1";

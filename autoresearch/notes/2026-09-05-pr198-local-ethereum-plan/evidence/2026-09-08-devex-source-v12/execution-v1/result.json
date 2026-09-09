@@ -1,0 +1,22 @@
+{
+  "passed": false,
+  "gates": [
+    {
+      "gate": "lifted-verifier",
+      "exit_code": 0,
+      "wall_ns": 4979017333,
+      "expected_test_count": 5,
+      "exact_test_count_passed": false,
+      "abba_samples_passed": true,
+      "request_manifest_and_inputs_unchanged": true,
+      "log": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/lifted-verifier.log",
+        "bytes": 562,
+        "sha256": "19878b8c1acf2bd5acca84a7b629178772ddd4fefe4ee0b630ca5c29a5338b59"
+      },
+      "passed": false
+    }
+  ],
+  "full_wrapper_launched": false,
+  "native_producer_launched": false
+}

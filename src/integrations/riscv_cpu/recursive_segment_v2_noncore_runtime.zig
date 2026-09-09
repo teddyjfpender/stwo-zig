@@ -11,7 +11,6 @@ const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const transcript_components = recursion.segment_transcript_outer_components_v2;
 const statement_components = recursion.segment_statement_outer_components_v2;
 const statement_source = recursion.segment_statement_outer_source_v2;
-const public_source = recursion.segment_public_outer_source_v2;
 const public_components = recursion.segment_public_outer_components_v2;
 const public_native_sum = recursion.segment_public_native_sum_authority_v2;
 const range_authority = recursion.segment_range_authority_v2;
@@ -29,7 +28,6 @@ const OwnedStatementDestinations = support.OwnedStatementDestinations;
 const OwnedInputProviderTraces = support.OwnedInputProviderTraces;
 const SparseTree = support.SparseTree;
 const initStageFailure = support.initStageFailure;
-const deriveTranscriptPrepared = support.deriveTranscriptPrepared;
 const nativeRelations = support.nativeRelations;
 const publicInputs = support.publicInputs;
 const transcriptNativeInputs = support.transcriptNativeInputs;
@@ -42,27 +40,25 @@ const generatedIdentity = support.generatedIdentity;
 
 pub fn initOwner(
     comptime OwnerType: type,
+    comptime PreflightType: type,
     allocator: std.mem.Allocator,
-    source_preflight: anytype,
     prepared: *const PreparedNativeV2LeafOuter,
     manifest: *const Manifest,
     public_native_sum_source: *const public_native_sum.SourceV2,
 ) !OwnerType {
-    prepared.validate() catch |err|
-        return initStageFailure("prepared_validate", err);
+    const source_preflight = PreflightType.init(prepared) catch |err|
+        return initStageFailure("preflight", err);
     manifest.validateAgainstSources(
         &source_preflight.transcript_manifest,
         &source_preflight.statement_manifest,
         &source_preflight.public_manifest,
         &source_preflight.boundary_manifest,
     ) catch |err| return initStageFailure("manifest_sources", err);
-    const transcript_prepared = deriveTranscriptPrepared(prepared) catch |err|
-        return initStageFailure("transcript_preflight", err);
+    // The local preflight owns these admitted values. No allocation or
+    // callback has occurred since it authenticated their borrowed source.
+    const transcript_prepared = source_preflight.transcript_prepared;
     var native_relations = nativeRelations(prepared);
-    const public_prepared = public_source.preflight(publicInputs(
-        prepared,
-        &native_relations,
-    )) catch |err| return initStageFailure("public_preflight", err);
+    const public_prepared = source_preflight.public_prepared;
 
     var statement_owner = statement_components.AuthorityV2.init(allocator) catch |err|
         return initStageFailure("statement_owner", err);
@@ -168,20 +164,21 @@ pub fn initOwner(
     ) catch |err| return initStageFailure("boundary_staging_traces", err);
     errdefer boundary_staging_traces.deinit();
 
+    const input_provider_shape = try input_provider_authority.Shape.init(prepared.capture.vm_air.detailed_claims.len);
     var input_provider_owner =
         input_provider_authority.AuthorityV2.init(allocator) catch |err|
             return initStageFailure("input_provider_owner", err);
     errdefer input_provider_owner.deinit();
     var input_provider_workspace =
-        input_provider_authority.WorkspaceV2.init(allocator) catch |err|
+        input_provider_authority.WorkspaceV2.initForShape(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_workspace", err);
     errdefer input_provider_workspace.deinit();
     var input_provider_active_traces =
-        OwnedInputProviderTraces.init(allocator) catch |err|
+        OwnedInputProviderTraces.init(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_active_traces", err);
     errdefer input_provider_active_traces.deinit();
     var input_provider_staging_traces =
-        OwnedInputProviderTraces.init(allocator) catch |err|
+        OwnedInputProviderTraces.init(allocator, input_provider_shape) catch |err|
             return initStageFailure("input_provider_staging_traces", err);
     errdefer input_provider_staging_traces.deinit();
     var initial_provider_prepared: input_provider_authority.PreparedAuthorityV2 = undefined;
@@ -569,7 +566,7 @@ pub fn appendTupleContributions(
         .appendPreparedTupleContributions(
         ledger,
         38,
-        &self.input_provider_workspace.logical_rows,
+        self.input_provider_workspace.logical_rows,
         domain_mask,
     );
 }

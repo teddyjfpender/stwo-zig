@@ -1,0 +1,57 @@
+{
+  "real-selected-metal-release-failure-v2-plan.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/plan.json",
+    "bytes": 2573,
+    "sha256": "85874ef36061e80c8fe4516bb2da81e47360f1e1af2f68eca4b594f5d0adc817"
+  },
+  "real-selected-metal-release-failure-v2-receipt.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/receipt.json",
+    "bytes": 824,
+    "sha256": "2e4983e8b5b15c88e54ce4db9dcf0c2010f4f1d6c54db215680f6d6b647b4654"
+  },
+  "real-selected-metal-release-failure-v2-environment.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/environment.json",
+    "bytes": 892,
+    "sha256": "7a0971e8d156174529923b14fdaaba9de4412673532c92293d49ea644e7e84f2"
+  },
+  "real-selected-metal-release-failure-v2-benchmark-admission-v2.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/benchmark-admission-v2.json",
+    "bytes": 373,
+    "sha256": "a48ec48691f5d83d4ac5d769b228d86a83b9a034eb5a83e808e19a93f32f1465"
+  },
+  "real-selected-metal-release-failure-v2-run.py": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/run.py",
+    "bytes": 6967,
+    "sha256": "323afbf51f54e80a02589642d764be800d60270e185c1799bb4c53a472e7bca9"
+  },
+  "real-selected-metal-release-failure-v2-stderr-and-time.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/stderr-and-time.log",
+    "bytes": 6587,
+    "sha256": "54597daddbd0461df697bb305d629eb8f7f2204f5c46a6eb606a736dc35cee82"
+  },
+  "real-selected-metal-release-failure-v2-stdout.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/stdout.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "real-selected-metal-release-failure-v2-process-samples.ndjson": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/process-samples.ndjson",
+    "bytes": 17479,
+    "sha256": "374d209505ee1beddc9ee5b422cb00b872f98fcd1d1ba7f5d468564c8e04f28d"
+  },
+  "real-selected-metal-release-failure-v2-composition-program.sample.txt": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/composition-program.sample.txt",
+    "bytes": 77629,
+    "sha256": "e3462518815c85b9083a004c25b1fa466b1540ae4541f56bb3e1d3c472b4da1f"
+  },
+  "real-selected-metal-release-failure-v2-phase-and-failure-analysis.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v2/phase-and-failure-analysis.json",
+    "bytes": 6083,
+    "sha256": "e292712eb4426f8dbb76aa2aae455eb10bc3a9ae28db2c05af820323660156fc"
+  },
+  "real-selected-metal-v4-build.log": {
+    "source": "/tmp/ethereum-real-metal-product-v4.log",
+    "bytes": 222,
+    "sha256": "c102628460c7f47f86e9d42882525580c79a933c389ba1d68155bc2793b64270"
+  }
+}

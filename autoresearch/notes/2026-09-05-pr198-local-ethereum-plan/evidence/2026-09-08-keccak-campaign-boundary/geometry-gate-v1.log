@@ -1,0 +1,5 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 718s
+1/2 keccakf_precompile_test_root.test_0...OK
+2/2 air.guest_precompile.keccakf_component_test.test.keccakf component: explicit Ethereum log18 admits real campaign geometry while legacy stays log16...OK
+All 2 tests passed.

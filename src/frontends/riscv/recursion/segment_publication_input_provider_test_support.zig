@@ -1,9 +1,6 @@
-//! Reusable exact-21 authenticated fixture for the row-38 publisher.
-//!
-//! Integration tests must not pair the fixed 84-limb provider with the older
-//! one-family public-spine sample. This module owns the smallest valid native
-//! geometry (9 + 8 opcode batches and four program sums), constructs its
-//! verified VM context, and prepares the matching capture-backed boundary.
+//! Matching synthetic ContextV2 and boundary sources for provider tests.
+//! The default is the small 21-claim profile; initWithCore also exercises
+//! retained Ethereum geometry. These fixtures do not contain real proofs.
 
 const std = @import("std");
 const stwo_core = @import("stwo_core");
@@ -17,25 +14,25 @@ const witness = @import("air/segment_publication_input_provider_witness_v2.zig")
 const public_support = @import("segment_public_outer_test_support.zig");
 const public_data_v2 = @import("../air/public_data_v2.zig");
 const native_relations = @import("../air/relation_challenges.zig");
-const opcode_entries = @import("../air/lookups/opcode_entries.zig");
+const lookup = @import("../air/lang/lookup_physical_manifest_v2.zig");
 const statement_v1 = @import("../air/statement.zig");
 const statement_v2 = @import("../air/statement_v2.zig");
 const trace_mod = @import("../runner/trace.zig");
-const vm_air_profile = @import("vm_air_profile.zig");
-const vm_leaf_context = @import("vm_leaf_context.zig");
+const vm_air_profile = @import("vm_air_profile_v2.zig");
+const vm_leaf_context = @import("vm_leaf_context_v2.zig");
 
 pub const component_descs = [_]statement_v1.FamilyComponentDesc{
     .{
-        .family = .base_alu_reg,
-        .log_size = 5,
-        .n_rows = 17,
-        .n_columns = trace_mod.nColumnsForFamily(.base_alu_reg),
-    },
-    .{
         .family = .base_alu_imm,
         .log_size = 5,
-        .n_rows = 19,
+        .n_rows = 17,
         .n_columns = trace_mod.nColumnsForFamily(.base_alu_imm),
+    },
+    .{
+        .family = .base_alu_reg,
+        .log_size = 5,
+        .n_rows = 19,
+        .n_columns = trace_mod.nColumnsForFamily(.base_alu_reg),
     },
 };
 
@@ -43,21 +40,29 @@ pub const infra_descs = [_]statement_v1.InfraComponentDesc{.{
     .kind = .program,
     .log_size = 5,
     .n_rows = 11,
-    .n_columns = 4,
+    .n_columns = @import("../air/program/commitment.zig").N_MAIN_COLUMNS,
 }};
 
 pub const VerifiedSources = struct {
-    vm_context: vm_leaf_context.Context,
+    vm_context: vm_leaf_context.ContextV2,
     receipt: statement_v2.VerifiedReceipt,
 
     pub fn init(
         allocator: std.mem.Allocator,
         data: *const public_data_v2.PublicDataV2,
     ) !VerifiedSources {
-        return .{
-            .vm_context = try verifiedContext(allocator, data),
-            .receipt = try verifiedReceipt(data),
-        };
+        return initWithCore(allocator, data, fixtureCore());
+    }
+
+    pub fn initWithCore(
+        allocator: std.mem.Allocator,
+        data: *const public_data_v2.PublicDataV2,
+        core: statement_v1.RiscVStatement,
+    ) !VerifiedSources {
+        var context = try verifiedContextWithCore(allocator, data, core);
+        errdefer context.deinit();
+        const native = try context.reconstructStatement(data);
+        return .{ .vm_context = context, .receipt = try native.verifiedReceipt() };
     }
 
     pub fn deinit(self: *VerifiedSources) void {
@@ -78,11 +83,16 @@ pub const Fixture = struct {
     outer_relations: universal.UniversalRelations,
 
     pub fn init(allocator: std.mem.Allocator) !Fixture {
+        return initWithCore(allocator, fixtureCore());
+    }
+
+    pub fn initWithCore(allocator: std.mem.Allocator, core: statement_v1.RiscVStatement) !Fixture {
         var public_fixture = try public_support.Fixture.init(allocator);
         errdefer public_fixture.deinit();
-        var sources = try VerifiedSources.init(
+        var sources = try VerifiedSources.initWithCore(
             allocator,
             &public_fixture.owned_public.data,
+            core,
         );
         errdefer sources.deinit();
         const shape = try boundary.preflight(
@@ -113,8 +123,8 @@ pub const Fixture = struct {
             &public_fixture.relations,
             &public_fixture.native_sums,
             &sources.receipt,
-            &component_descs,
-            &infra_descs,
+            sources.vm_context.component_descs,
+            sources.vm_context.infra_descs,
             &outer_relations,
         );
         return .{
@@ -146,76 +156,82 @@ pub const Fixture = struct {
     }
 };
 
-pub fn verifiedReceipt(
-    data: *const public_data_v2.PublicDataV2,
-) !statement_v2.VerifiedReceipt {
-    var components: [statement_v1.MAX_COMPONENTS]statement_v1.FamilyComponentDesc =
-        undefined;
-    @memcpy(components[0..component_descs.len], &component_descs);
-    var infra: [statement_v1.MAX_INFRA_COMPONENTS]statement_v1.InfraComponentDesc =
-        undefined;
-    @memcpy(infra[0..infra_descs.len], &infra_descs);
+pub fn verifiedReceipt(data: *const public_data_v2.PublicDataV2) !statement_v2.VerifiedReceipt {
     const core_public = try statement_v2.canonicalCorePublicData(data);
-    const core = statement_v1.RiscVStatement{
-        .n_components = component_descs.len,
-        .component_descs = components,
-        .initial_pc = core_public.initial_pc,
-        .final_pc = core_public.final_pc,
-        .total_steps = core_public.clock,
-        .public_data = core_public,
-        .n_infra = infra_descs.len,
-        .infra_descs = infra,
-    };
-    const statement = try statement_v2.RiscVStatementV2.init(core, data.*);
-    return statement.verifiedReceipt();
+    var core = fixtureCore();
+    core.initial_pc = core_public.initial_pc;
+    core.final_pc = core_public.final_pc;
+    core.total_steps = core_public.clock;
+    core.public_data = core_public;
+    const native = try statement_v2.RiscVStatementV2.init(core, data.*);
+    return native.verifiedReceipt();
+}
+
+fn fixtureCore() statement_v1.RiscVStatement {
+    var core: statement_v1.RiscVStatement = undefined;
+    core.n_components = component_descs.len;
+    @memcpy(core.component_descs[0..component_descs.len], &component_descs);
+    core.n_infra = infra_descs.len;
+    @memcpy(core.infra_descs[0..infra_descs.len], &infra_descs);
+    return core;
 }
 
 pub fn verifiedContext(
     allocator: std.mem.Allocator,
     data: *const public_data_v2.PublicDataV2,
-) !vm_leaf_context.Context {
-    var statement: statement_v1.RiscVStatement = undefined;
-    statement.n_components = component_descs.len;
-    @memcpy(statement.component_descs[0..component_descs.len], &component_descs);
-    statement.n_infra = infra_descs.len;
-    @memcpy(statement.infra_descs[0..infra_descs.len], &infra_descs);
+) !vm_leaf_context.ContextV2 {
+    return verifiedContextWithCore(allocator, data, fixtureCore());
+}
+
+fn verifiedContextWithCore(
+    allocator: std.mem.Allocator,
+    data: *const public_data_v2.PublicDataV2,
+    core: statement_v1.RiscVStatement,
+) !vm_leaf_context.ContextV2 {
+    var statement = core;
     const core_public = try statement_v2.canonicalCorePublicData(data);
     statement.initial_pc = core_public.initial_pc;
     statement.final_pc = core_public.final_pc;
     statement.total_steps = core_public.clock;
     statement.public_data = core_public;
 
+    const manifest = lookup.Manifest.native();
     var claim: statement_v1.RiscVInteractionClaim = undefined;
     claim.initZeroInto();
-    claim.n_components = component_descs.len;
-    claim.n_infra = infra_descs.len;
+    claim.n_components = statement.n_components;
+    claim.n_infra = statement.n_infra;
     var next: u32 = 1;
-    for (component_descs, 0..) |descriptor, index| {
-        for (claim.opcode_claims[index][0..opcode_entries.batchCount(descriptor.family)]) |*slot| {
+    for (statement.component_descs[0..statement.n_components], 0..) |descriptor, index| {
+        for (claim.opcode_claims[index][0..manifest.entryForFamily(descriptor.family).detailed_claim_count]) |*slot| {
             slot.* = qm31(next);
             next += 4;
         }
     }
-    for (infra_descs, 0..) |descriptor, index| {
+    for (statement.infra_descs[0..statement.n_infra], 0..) |descriptor, index| {
         for (0..statement_v1.nClaimedSumsForInfra(descriptor.kind)) |sum| {
             try claim.setInfraClaim(descriptor.kind, index, sum, qm31(next));
             next += 4;
         }
     }
-    const component_count = 2 * component_descs.len + infra_descs.len;
-    const facts = try allocator.alloc(vm_air_profile.testing.Facts, component_count);
+    const native = try statement_v2.RiscVStatementV2.init(statement, data.*);
+    const authenticated = try lookup.AuthenticatedStatement.init(&native.core, &manifest);
+    const facts = try vm_air_profile.testing.expectedFacts(allocator, &native.core, &manifest);
     defer allocator.free(facts);
-    try vm_air_profile.testing.expectedFacts(&statement, facts);
-    const profile = try vm_air_profile.testing.deriveFromFacts(&statement, facts);
-    if (profile.claimed_sum_count != witness.DETAILED_CLAIM_COUNT)
-        return error.InvalidProviderFixture;
     const relations = native_relations.Relations.dummy();
-    return vm_leaf_context.testing.initFromProfile(
+    const sums = try statement_v2.NativePublicSums.init(data, &relations);
+    const receipt = try native.verifiedReceipt();
+    const sampled_count = try @import("vm_composition_base_geometry_v2.zig").expectedSampledValueCount(&native.core, &manifest);
+    return vm_leaf_context.testing.initFromFacts(
         allocator,
-        &statement,
+        &native,
         &claim,
         &relations,
-        profile,
+        &manifest,
+        &authenticated,
+        facts,
+        .{ .full_sampled_value_count = sampled_count, .sha256 = .{0x5a} ** 32 },
+        &receipt,
+        &sums,
     );
 }
 

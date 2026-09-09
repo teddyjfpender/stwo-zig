@@ -1,0 +1,38 @@
+{
+  "files": {
+    "scripts/riscv_segment_v2_detached_gate.py": "a94b4e00c5f4d52d5ba8144adaca4f8ca154308d94ec84da69ce4ca210287735",
+    "scripts/riscv_segment_v2_detached_parent_gate.py": "c40389008d53cc16ac7ddb01c7716d9221471db4163aef96837328c7fe159ea7",
+    "scripts/test_riscv_segment_v2_aot_profiles.py": "82007a6cde0d5dbbac192e314331dd9040f74d96f01a294efd054302b912f378",
+    "src/backends/metal/runtime/base_polynomial_composition.zig": "9876cb16f68e833a1a21666bf995c8d2f2db22352c15e0dcf8fda3d5ceef12b5",
+    "src/backends/metal/runtime/base_polynomial_host_graph.zig": "4ebe13ee47d764f3ffd17832092da5d0a9312c183abe5d1b0a1abf1b99cbcf6e",
+    "src/backends/metal/runtime/framework_polynomial_codegen.zig": "cf786dff4e5bfd47580bf041c2ff4f9cf17283dd5d15fdbb00e4693097b60d27",
+    "src/backends/metal/runtime/framework_polynomial_device_test.zig": "35320615edaf5e6140bc0fed98d7763286852bebae55d74c455207d60938ba97",
+    "src/backends/metal/runtime/framework_polynomial_jobs.zig": "8c14587c06d354e242360cdd50338ed2d04b2b1dcef4c54f2aebea546ad72511",
+    "src/backends/metal/shaders/aot_profile.zig": "80cf3bc38b24e8015075bb36de8e78fb88053948335f81b3d0e2f6f875cebe55",
+    "src/backends/metal/shaders/recursive_framework_v1.metal": "5bed0928c2e4f1e756f0c3966c7efcf7d9ea582d902ddc8e044abee1bf460ef9",
+    "src/backends/metal/shaders/recursive_framework_v1_coverage.json": "da5bfa1d7cd17873f562109179c9660071d0c96cc48ef71d5d59fa15a3df67df",
+    "src/backends/metal/shaders/recursive_framework_v1_exports.zig": "b24b42d152ff271b4f2d8df39800b5e8354db95af446ef48ec0a72a6b8a2a80c",
+    "src/frontends/riscv/air/memory_commitment/hash_component.zig": "f10bf62978d6310f4af0c4fccf0445273fd451c8695868c08c375ce53d71ba35",
+    "src/frontends/riscv/air/memory_commitment/mod.zig": "f3a18d7750dfb27208bfc403cc8ad2e6636976b06c5264b8a2877d14e4d9e9cf",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_backend_v1.zig": "6329c2031259c44c4a233df8e6380ce37b39f237a921cab1478bcbdbdec6777c",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_backend_v1_test.zig": "6b042f48d5e3ca8d7073fbab95dcdaf01e9b307f22da21f49a1f7981b536e460",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_component_v1.zig": "96d72a53a2b7cce9f478b78c96730105852dd6c72583ea0634212838236e03db",
+    "src/frontends/riscv/poseidon2_universal_degree3_test_root.zig": "ebce3bb920d67f61d94445ba61b151310a2bee3037956940f23c45a06641a643",
+    "src/frontends/riscv/recursion/air/framework_polynomial_export_v1.zig": "f1ffed2ad77fbc0553d1a20fe4e5cf88379a9abddcb4be01d9d0c805e4dc5266",
+    "src/frontends/riscv/recursion/air/range_check_8_8_bridge.zig": "2feb75f6d6fb0d5ea1cbdf627f886c9ac61d7c1dd513fcd844c8c44c624b510c",
+    "src/frontends/riscv/recursion/air/range_check_8_8_bridge_test.zig": "17f186e1820b45b64954e9f9c179af114659a07f40e157dc4701084d43ad0cbb",
+    "src/frontends/riscv/recursion/air/universal_shared_provider.zig": "c33ceeca688305e778ed5eabad0de944f5efc1e494b4d36ae6d1d4ae38d0a5d8",
+    "src/frontends/riscv/recursion_framework_export_test_root.zig": "84c688d0e296ae3897ca0881e84a6c57136018e2b6b8459ab5e58901a981403e",
+    "src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig": "dfdd6c4e414588a325f5072cf59ad2138d647cb0a6db11c73b2caae4296166c1",
+    "src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig": "c3a98d4c33bec247beab918be54c7738113c6ade426f306841afd9387eaa807d",
+    "src/prover/air/component_programs.zig": "058f2cd270699822c06b7653c9a0b39aeb9da1001eb53862a07d722067ddab8b",
+    "src/tests/riscv/recursive_framework_aot_test.zig": "dac3cf2082867fcd26c7fb7071c47de4e5f3b811da3129f5a4f5953ca7a14f55",
+    "src/backends/metal/runtime/composition_domain_scratch.zig": "8401f82b96447f10078ce967762120ccd51fd5609cd477db561f118949a93690",
+    "src/backends/metal/runtime/framework_polynomial_batch.zig": "5c62eb7af5ab5c5f61b2ece0f72e9f003653785d29487c92ef7f181168e5bb96"
+  },
+  "post_producer_changes": {
+    "src/backends/metal/runtime/base_polynomial_composition.zig": "Move host-component accounting after successful AOT admission, avoiding double counting on an early decline; comment cleanup. No field arithmetic, AIR, scheduling or proof output change. Focused backend tests rebuilt and passed.",
+    "src/backends/metal/runtime/composition_domain_scratch.zig": "Move the host coefficient-fill admission to the shared scratch owner so semantic, lookup and framework callers all reject strict mode before allocation; remove the redundant framework caller guard. Existing hybrid arithmetic unchanged. Shared scratch gate passes 20/20 tests including strict rejection before allocation/runtime access.",
+    "src/backends/metal/runtime/framework_polynomial_batch.zig": "Move the host coefficient-fill admission to the shared scratch owner so semantic, lookup and framework callers all reject strict mode before allocation; remove the redundant framework caller guard. Existing hybrid arithmetic unchanged. Shared scratch gate passes 20/20 tests including strict rejection before allocation/runtime access."
+  }
+}

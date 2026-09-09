@@ -1,0 +1,80 @@
+{
+  "status": "admitted_for_measured_real_closure_retry",
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/request.json",
+    "bytes": 7634,
+    "sha256": "be0071a0aabc301df3e2d3340ccccadc2ed4e6102cbc189abde02c920725d6f4"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v19/manifest.json",
+    "bytes": 1103791,
+    "sha256": "e5467995260207c8e168aaf749aec5379fdf2b45ce1c88adf25d5a7688a34499"
+  },
+  "source_files_rehashed": 5781,
+  "input_pins": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/native-inputs-v1.json",
+      "sha256": "689b557a4018bf568e1de5271279dd8220d37c0359d3bc0a77f0621506257216",
+      "bytes": 578
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/global-metadata-v1.json",
+      "sha256": "48dff72af060fb09b0db9e05902563efb0d321792114fed3fcb9fc4f0083ff23",
+      "bytes": 10726
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/program.elf",
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+      "bytes": 3412588
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+      "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+      "bytes": 70206
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+      "sha256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+      "bytes": 53442357
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+      "sha256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e",
+      "bytes": 50730870
+    }
+  ],
+  "gates": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v19/ownership-execution.json",
+      "bytes": 1444,
+      "sha256": "5bd57966114f62347e80591d490be4fb11ba331ad149f917717e68e3b83bf95a"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v19/small-composition-execution.json",
+      "bytes": 1473,
+      "sha256": "cbec8c31a3a7937c97d0cc2cce16072366074adb5d9cd9b91bcd4e2c3fd5f2e5"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v19/complete-compile-execution.json",
+      "bytes": 1437,
+      "sha256": "d4c7b5bdfb38889325e0bf7c6c8b4db448494262b940b226444936053879e640"
+    }
+  ],
+  "accepted_wrapper2": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/acceptance-v1.json",
+    "bytes": 2285,
+    "sha256": "63f8f5122612b4072222391f8b0bef2d3f12012e00d9dd7e481075ecd5c5659c"
+  },
+  "previous_failure": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v7/execution.json",
+    "bytes": 1740,
+    "sha256": "6685fbd6e8f85afcbf841b3c3e4fa219d91234ce7324b9892e99b1aa7d554618"
+  },
+  "environment_delta": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/environment-delta.json",
+    "bytes": 835,
+    "sha256": "ad213f0b7778da79ba1eb2ff6695bc970bbcc1c5928e335e6fcfefb1432919e8"
+  },
+  "repair": "Logical-order snapshot via shared committedRow; actual scatter regression passed. Full source validation retained.",
+  "scope": "Same real pair2/3; complete parity, mutation, serialization/destruction/fresh Generated closure. No STARK reproof."
+}

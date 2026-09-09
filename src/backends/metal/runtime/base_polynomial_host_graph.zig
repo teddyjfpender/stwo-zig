@@ -15,6 +15,99 @@ const Trace = prover.air.component_prover.Trace;
 const Accumulator = prover.air.accumulation.DomainEvaluationAccumulator;
 const Execution = prover.air.composition_execution.Execution;
 
+/// Diagnostic wall accounting for the existing schedule, independent of the
+/// structured task recorder. Worker intervals overlap these caller phases.
+pub const WallTiming = struct {
+    pub const env = "STWO_ZIG_RISCV_METAL_COMPOSITION_TIMING";
+    pub const Phase = enum {
+        preparation,
+        host_launch_or_inline,
+        device_preparation,
+        semantic_dispatch,
+        lookup_dispatch,
+        device_partition_parity,
+        scratch_release,
+        framework_dispatch,
+        host_wait,
+        partition_parity,
+        device_merge,
+        work_receipt,
+        accumulation,
+        full_parity,
+        publication,
+        cleanup,
+    };
+    const count = @typeInfo(Phase).@"enum".fields.len;
+    origin: std.time.Instant,
+    cursor: u64 = 0,
+    phase: Phase = .preparation,
+    durations: [count]u64 = @splat(0),
+    completed: bool = false,
+    scheduler: enum { unresolved, inline_host, pool, structured } = .unresolved,
+
+    pub fn requested() ?WallTiming {
+        const value = std.posix.getenv(env) orelse return null;
+        if (!std.mem.eql(u8, value, "1")) return null;
+        return .{ .origin = std.time.Instant.now() catch return null };
+    }
+
+    fn advanceAt(self: *WallTiming, next: Phase, now: u64) void {
+        std.debug.assert(now >= self.cursor);
+        std.debug.assert(@intFromEnum(next) >= @intFromEnum(self.phase));
+        self.durations[@intFromEnum(self.phase)] += now - self.cursor;
+        self.cursor = now;
+        self.phase = next;
+    }
+
+    pub fn enter(self: *WallTiming, next: Phase) void {
+        const now = std.time.Instant.now() catch return;
+        self.advanceAt(next, now.since(self.origin));
+        const sample = prover.measurement.process_usage.sample() catch return;
+        std.log.info(
+            "metal composition resource: phase={s} elapsed_ns={} process_current_phys_bytes={?} process_lifetime_peak_phys_bytes={?}",
+            .{ @tagName(next), self.cursor, sample.current_physical_footprint_bytes, sample.lifetime_peak_physical_footprint_bytes },
+        );
+    }
+
+    // Registered before resource defers: successful cleanup is included. On
+    // early failure/decline the last active phase also includes its unwind.
+    pub fn finish(self: *WallTiming) void {
+        const now = std.time.Instant.now() catch return;
+        self.advanceAt(.cleanup, now.since(self.origin));
+        var sum: u64 = 0;
+        inline for (@typeInfo(Phase).@"enum".fields) |field| {
+            const elapsed = self.durations[field.value];
+            std.log.info("metal composition phase: phase={s} start_ns={} end_ns={} wall_ns={}", .{ field.name, sum, sum + elapsed, elapsed });
+            sum += elapsed;
+        }
+        std.debug.assert(sum == self.cursor);
+        std.log.info(
+            "metal composition wall: completed={} scheduler={s} wall_ns={} phase_sum_ns={} host_spans_overlap=true device_ms_separate=true",
+            .{ self.completed, @tagName(self.scheduler), self.cursor, sum },
+        );
+    }
+};
+
+pub const WorkerTiming = struct {
+    origin: ?std.time.Instant = null,
+    start_ns: ?u64 = null,
+    end_ns: ?u64 = null,
+    mode: enum { legacy, parallel, prepared } = .legacy,
+
+    fn begin(self: *WorkerTiming, mode: @TypeOf(self.mode)) void {
+        const origin = self.origin orelse return;
+        const now = std.time.Instant.now() catch return;
+        self.mode = mode;
+        self.start_ns = now.since(origin);
+    }
+
+    fn end(self: *WorkerTiming) void {
+        const origin = self.origin orelse return;
+        const now = std.time.Instant.now() catch return;
+        self.end_ns = now.since(origin);
+    }
+};
+
 pub const Worker = struct {
     component: Component,
     trace: *const Trace,
@@ -24,6 +117,7 @@ pub const Worker = struct {
     prepared: prover.air.prepared_domain.PreparedDomainEvaluation = undefined,
     prepared_initialized: bool = false,
     err: ?anyerror = null,
+    timing: WorkerTiming = .{},
 
     pub fn prepare(self: *Worker, allocator: std.mem.Allocator) !void {
         self.prepared = (try self.component.prepareConstraintQuotientsOnDomain(
@@ -38,6 +132,8 @@ pub const Worker = struct {
     }
 
     pub fn runLegacy(self: *Worker) void {
+        self.timing.begin(.legacy);
+        defer self.timing.end();
         self.component.evaluateConstraintQuotientsOnDomain(
             self.trace,
             &self.accumulator,
@@ -47,6 +143,8 @@ pub const Worker = struct {
     }
 
     pub fn runParallel(self: *Worker, pool: *prover.work_pool.WorkPool) void {
+        self.timing.begin(.parallel);
+        defer self.timing.end();
         self.component.evaluateConstraintQuotientsOnDomainParallel(
             self.trace,
             &self.accumulator,
@@ -58,7 +156,12 @@ pub const Worker = struct {
 
     fn runTask(context: *prover.task_graph.TaskContext) anyerror!void {
         const self: *Worker = @ptrCast(@alignCast(context.user_context));
-        try self.prepared.run(context);
+        self.timing.begin(.prepared);
+        defer self.timing.end();
+        self.prepared.run(context) catch |err| {
+            self.err = err;
+            return err;
+        };
     }
 
     fn taskClass(self: *const Worker) prover.task_graph.TaskClass {
@@ -89,6 +192,15 @@ pub const Worker = struct {
         if (self.accumulator.next_power_index != self.expected_next_power_index) {
             return error.InvalidCompositionPowerOrder;
         }
+    }
+
+    pub fn reportTiming(self: *const Worker) void {
+        const start = self.timing.start_ns orelse return;
+        const end = self.timing.end_ns orelse return;
+        std.log.info(
+            "metal composition host: component_index={} constraints={} eval_log={} evaluator=0x{x} mode={s} start_ns={} end_ns={} wall_ns={} failed={}",
+            .{ self.component_registry_index, self.component.nConstraints(), self.component.maxConstraintLogDegreeBound(), @intFromPtr(self.component.vtable.evaluateConstraintQuotientsOnDomain), @tagName(self.timing.mode), start, end, end - start, self.err != null },
+        );
     }
 
     pub fn deinit(self: *Worker) void {
@@ -173,6 +285,69 @@ fn executeTyped(
 }
 
 test "profiled Metal host graph attributes exact 1 2 4 and max worker arms" {
+    // Synthetic monotonic boundaries establish exact accounting even when
+    // overlapping host spans would sum to more than the caller wall time.
+    var timing = WallTiming{ .origin = try std.time.Instant.now() };
+    timing.advanceAt(.host_launch_or_inline, 10);
+    timing.advanceAt(.semantic_dispatch, 20);
+    timing.advanceAt(.host_wait, 70);
+    timing.advanceAt(.cleanup, 100);
+    try std.testing.expectEqual(@as(u64, 10), timing.durations[@intFromEnum(WallTiming.Phase.preparation)]);
+    try std.testing.expectEqual(@as(u64, 50), timing.durations[@intFromEnum(WallTiming.Phase.semantic_dispatch)]);
+    var phase_sum: u64 = 0;
+    for (timing.durations) |elapsed| phase_sum += elapsed;
+    try std.testing.expectEqual(timing.cursor, phase_sum);
+    var disabled = WorkerTiming{};
+    disabled.begin(.legacy);
+    disabled.end();
+    try std.testing.expect(disabled.start_ns == null and disabled.end_ns == null);
+    var enabled = WorkerTiming{ .origin = timing.origin };
+    enabled.begin(.parallel);
+    enabled.end();
+    try std.testing.expect(enabled.end_ns.? >= enabled.start_ns.?);
+    try std.testing.expectEqual(.parallel, enabled.mode);
+
+    const Fixture = struct {
+        calls: usize = 0,
+        fail: bool = false,
+        fn evaluate(ctx: *const anyopaque, _: *const Trace, _: *Accumulator) !void {
+            const self: *@This() = @ptrCast(@alignCast(@constCast(ctx)));
+            self.calls += 1;
+            if (self.fail) return error.TimingFixtureFailure;
+        }
+        fn parallel(ctx: *const anyopaque, trace: *const Trace, accumulator: *Accumulator, _: *prover.work_pool.WorkPool) !void {
+            return evaluate(ctx, trace, accumulator);
+        }
+    };
+    var fixture = Fixture{};
+    // The callbacks deliberately inspect no trace/accumulator data; the test
+    // exercises the unchanged worker's dispatch and error publication itself.
+    var vtable: prover.air.component_prover.ComponentProverVTable = undefined;
+    vtable.evaluateConstraintQuotientsOnDomain = Fixture.evaluate;
+    var trace: Trace = undefined;
+    var fixture_worker = Worker{
+        .component = .{ .ctx = &fixture, .vtable = &vtable, .domain_parallel_evaluator = Fixture.parallel },
+        .trace = &trace,
+        .accumulator = try Accumulator.initForComponent(&.{}, std.testing.allocator, 4, 0),
+        .expected_next_power_index = 0,
+        .component_registry_index = 0,
+    };
+    defer fixture_worker.deinit();
+    Worker.runLegacy(&fixture_worker);
+    try std.testing.expectEqual(@as(usize, 1), fixture.calls);
+    try std.testing.expect(fixture_worker.timing.start_ns == null and fixture_worker.err == null);
+    fixture_worker.timing.origin = timing.origin;
+    Worker.runLegacy(&fixture_worker);
+    try std.testing.expectEqual(@as(usize, 2), fixture.calls);
+    try std.testing.expect(fixture_worker.timing.end_ns.? >= fixture_worker.timing.start_ns.?);
+    fixture.fail = true;
+    var unused_pool: prover.work_pool.WorkPool = undefined;
+    Worker.runParallel(&fixture_worker, &unused_pool);
+    try std.testing.expectEqual(@as(usize, 3), fixture.calls);
+    try std.testing.expectEqual(error.TimingFixtureFailure, fixture_worker.err.?);
+    try std.testing.expect(fixture_worker.timing.end_ns.? >= fixture_worker.timing.start_ns.?);
+    try std.testing.expectEqual(.parallel, fixture_worker.timing.mode);
+
     const AtomicUsize = std.atomic.Value(usize);
     const TestWorker = struct {
         component_registry_index: u32,

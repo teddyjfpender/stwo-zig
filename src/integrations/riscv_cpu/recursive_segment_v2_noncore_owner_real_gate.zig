@@ -36,6 +36,19 @@ pub fn runPrepared(
     const source_preflight = subject.PreflightV2.init(prepared) catch |err| {
         return failStage("preflight", err);
     };
+    var changed_preflight = source_preflight;
+    changed_preflight.transcript_prepared.source_id[0] ^= 1;
+    try std.testing.expectError(error.SourceMismatch, changed_preflight.validateAgainst(prepared));
+    changed_preflight = source_preflight;
+    changed_preflight.input_provider_shape = try @TypeOf(changed_preflight.input_provider_shape).init(
+        @as(usize, changed_preflight.input_provider_shape.claim_count) + 1,
+    );
+    try std.testing.expectError(error.SourceManifestMismatch, changed_preflight.validateAgainst(prepared));
+    // Only the copied header changes; no borrowed trace or source is mutated
+    // or destroyed by this constructor-ingress rejection.
+    var changed_prepared = prepared.*;
+    changed_prepared.format_version +%= 1;
+    try std.testing.expectError(error.IdentityMismatch, subject.PreflightV2.init(&changed_prepared));
     var public_native_relations = subject.nativeRelations(prepared);
     const public_native_inputs = subject.publicInputs(
         prepared,
@@ -67,12 +80,13 @@ pub fn runPrepared(
         @as(usize, 1),
         std.math.log2_int_ceil(usize, complete_poseidon_calls),
     ));
-    const manifest = manifest_mod.build(
+    const manifest = manifest_mod.buildWithProviderShape(
         log_sizes,
         &source_preflight.transcript_manifest,
         &source_preflight.statement_manifest,
         &source_preflight.public_manifest,
         &source_preflight.boundary_manifest,
+        source_preflight.input_provider_shape,
     ) catch |err| return failStage("manifest", err);
 
     var init_timer = try std.time.Timer.start();
