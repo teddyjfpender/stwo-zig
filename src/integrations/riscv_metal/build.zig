@@ -151,6 +151,25 @@ pub fn build(b: *std.Build) void {
     b.step("build-recursive-segment-v2-concrete-outer-proof", "Install the shared small recursive CPU/Metal proof driver")
         .dependOn(&b.addInstallArtifact(small_recursive_executable, .{}).step);
 
+    const detached_parent_runner = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    detached_parent_runner.addImport("stwo_metal_backend", metal_backend);
+    detached_parent_runner.addImport("stwo_riscv_frontend", frontend);
+    detached_parent_runner.addImport("stwo_riscv_cpu_integration", b.dependency(
+        "stwo_riscv_cpu_integration",
+        dependency_options,
+    ).module("stwo_riscv_cpu_integration"));
+    const detached_parent_exe = b.addExecutable(.{
+        .name = "recursive-segment-v2-detached-parent-prove-metal",
+        .root_module = detached_parent_runner,
+    });
+    linkMetalFrameworks(detached_parent_exe);
+    b.step("build-recursive-segment-v2-detached-parent-producer", "Build the shared detached parent transaction on authenticated Metal")
+        .dependOn(&b.addInstallArtifact(detached_parent_exe, .{}).step);
+
     const tests = b.addTest(.{ .root_module = integration });
     const ethereum_node_root = b.createModule(.{
         .root_source_file = b.path("ethereum_node_proof_v1_runner.zig"),

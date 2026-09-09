@@ -78,12 +78,16 @@ pub const CandidateReportV1 = struct {
 };
 
 pub fn run(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
+    return runWithEngine(proof.CpuEngine, allocator, args);
+}
+
+pub fn runWithEngine(comptime Engine: type, allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
     var timer = try std.time.Timer.start();
-    var report = try runInner(allocator, args);
+    var report = try runInner(Engine, allocator, args);
     report.request_ns = timer.read(); // Includes candidate/key/producer cleanup.
     return report;
 }
-fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
+fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
     try requireNewOutput(args.output);
     var admitted_key: ?*command.OwnedKeyV1 = null;
     defer if (admitted_key) |key| key.deinit();
@@ -122,7 +126,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
         expected = prepared.expected;
         child_pins = prepared.child_key_sha256;
         preparation_ns = prepared.preparation_ns;
-        break :blk try proof.produceWithProfile(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
+        break :blk try proof.produceWithEngine(Engine, allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
     };
     // The cohort and every original proof/prover component have been destroyed.
     // Only durable candidate bytes and fixed claims survive this boundary.

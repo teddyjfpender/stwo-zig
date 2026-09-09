@@ -45,10 +45,14 @@ def main() -> None:
     parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
     parser.add_argument("--producer-sha256", type=digest)
+    parser.add_argument("--metal-aot-bundle", type=Path)
+    parser.add_argument("--metal-aot-manifest-sha256", type=digest)
     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     args = parser.parse_args()
+    if bool(args.metal_aot_bundle) != bool(args.metal_aot_manifest_sha256) or (args.metal_aot_bundle and not args.producer):
+        parser.error("Metal production requires producer, AOT bundle and manifest pin")
     strong = args.proof_profile == "recursive_q193_v1"
     suffix = "q193" if strong else "development_q3"
     boundary_errors = ("DetachedParentClaimClosureMismatch", "InvalidDetachedInteractionPow") if strong else "DetachedParentClaimClosureMismatch"
@@ -90,7 +94,8 @@ def main() -> None:
         if unchanged[path] != pin:
             parser.error(f"independent SHA256 pin mismatch: {path}")
     output.parent.mkdir(parents=True, exist_ok=True)
-    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile, "development_only": True,
+    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile,
+              "proving_backend": "metal" if args.metal_aot_bundle else ("cpu" if args.producer else "not_observed"), "development_only": True,
               "verifier_sha256": args.verifier_sha256, "key_sha256": args.key_sha256,
               "expected_root_sha256": args.expected_root_sha256,
               "original_files": {str(path): pin for path, pin in unchanged.items()},
@@ -150,6 +155,9 @@ def main() -> None:
             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
                     "--parent-key-sha256", args.key_sha256, "--proof-profile", args.proof_profile]
+            if args.metal_aot_bundle:
+                argv[1:1] = ["--aot-bundle", str(args.metal_aot_bundle.resolve()),
+                             "--aot-manifest-sha256", args.metal_aot_manifest_sha256]
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
             report["producer"] = production
@@ -171,6 +179,13 @@ def main() -> None:
                 if lifecycle.get(field) != value:
                     raise RuntimeError(f"parent producer lifecycle mismatch: {field}")
             production["lifecycle"] = lifecycle
+            if args.metal_aot_bundle:
+                matches = re.findall(r"^DETACHED_PARENT_METAL dispatches=(\d+) poseidon_commits=(\d+) cpu_fallbacks=(\d+) runtime_released=true manifest_sha256=([0-9a-f]{64})$",
+                                     log.read_text(), re.MULTILINE)
+                if len(matches) != 1 or int(matches[0][0]) == 0 or int(matches[0][1]) == 0 or matches[0][3] != args.metal_aot_manifest_sha256:
+                    raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
+                production["metal"] = dict(dispatches=int(matches[0][0]), poseidon_commits=int(matches[0][1]),
+                                          cpu_fallbacks=int(matches[0][2]), manifest_sha256=matches[0][3], runtime_released=True)
             if sha256(artifacts[0]) != args.key_sha256:
                 raise RuntimeError("produced parent key differs from independent admission")
             unchanged.update({path: sha256(path) for path in artifacts})

@@ -68,6 +68,14 @@ passes its next recursive capture gate, including436 hostile public words.
 Full Metal recursion is the next implementation milestone, followed by stronger
 4/8-segment roots and formal production-security/CSP preservation admission.
 
+Actual parent proving now also works on Metal under the same q3/q193 CPU keys,
+with53 fresh cases and identical artifact bytes. The stronger parent takes23.36s
+in its first Metal observation versus29.05s CPU, with95 dispatches and10 Poseidon
+commitments. Native leaves and parents can use Metal; detached child wrappers
+remain CPU. Passing the engine through that existing wrapper transaction is the
+next critical-path step before claiming a full Metal tree or running its2/4/8
+ladder. See the current `metal-parent-measurements.json` evidence index.
+
 ## Required implementation order
 
 1. Make the current small wrapper independently verifiable. A fresh process

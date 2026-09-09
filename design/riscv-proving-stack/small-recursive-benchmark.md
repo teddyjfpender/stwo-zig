@@ -532,3 +532,37 @@ milestone is full Metal proving of leaves, wrappers and every parent level under
 the same admitted protocol, with fresh independent CPU verification and actual
 per-proof GPU dispatch evidence. Then finish the stronger2/4/8-tree measurements
 and optimize the largest remaining measured costs.
+
+## Actual Metal parent proving
+
+The parent proof transaction now takes an engine at its backend boundary. CPU
+remains the default; the Metal runner uses the same AIR, transcript, parameters,
+key admission and serialization. Its authenticated core AOT runtime must dispatch
+Metal work and Poseidon commitments, release all call leases and shut down before
+reporting success. The independent CPU verifier and admitted CPU keys are reused.
+
+Both q3 and q193 parent proofs pass their fresh-process gates (26+27 cases), with
+all four artifact files byte-identical to their CPU baselines. The q193 parent
+process takes23.36s, versus the earlier29.05s CPU observation, and verifies in
+77.7ms. Its RSS is5.61GiB, separate from device footprint. Telemetry records95
+Metal dispatches and10 Poseidon commitments. No CPU fallback counter is recorded;
+this does not mean scheduled host work disappears. Combined fixed/main/interaction
+commitment phases fall from9.06s to3.66s. Exact closure remains5.02s and composition
+3.69s. These are single observations, not a controlled performance promotion.
+
+The default CPU producer is rebuilt through the same generic transaction, freshly
+verified and byte-identical to its old output; four command checks pass. Metal
+compilation is100s; the CPU producer plus command checks take98s. Evidence is
+indexed in `metal-parent-measurements.json` and the adjacent complete-proof reports.
+The maintained Metal target is `build-recursive-segment-v2-detached-parent-producer`
+in `src/integrations/riscv_metal`. The shared complete-proof gate accepts explicit
+`--metal-aot-bundle` and `--metal-aot-manifest-sha256` with its normal producer/key/
+expected-statement pins, and checks dispatch/shutdown evidence before verification.
+
+Full Metal trees remain unfinished: native children and recursive parents now
+run on Metal, but the detached child wrappers still use CPU. Next pass the same
+backend engine through their existing producer transaction, retain per-wrapper
+GPU evidence, prove and freshly verify a complete two-segment Metal tree, then
+run the actual2/4/8 ladders. Expand telemetry to attribute composition's remaining
+host/device work before claiming further GPU speedups. Production-security
+admission and the formal CSP preservation gate remain open.

@@ -8,9 +8,8 @@ const cohort = @import("recursive_segment_v2_detached_parent_cohort.zig");
 const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
 const verifier = @import("recursive_segment_v2_detached_parent_verifier.zig");
 const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
-const Engine = @import("recursive_segment_v2_outer_engine.zig").Engine;
+pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 const stage_profile = @import("stwo_prover_api").stage_profile;
-const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
 pub const Candidate = struct {
     allocator: std.mem.Allocator,
     key_json: []u8,
@@ -31,9 +30,14 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
 }
 
 pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+    return produceWithEngine(CpuEngine, allocator, prepared, expected, child_key_sha256, mode, admitted_key, profile);
+}
+
+pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+    const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
     try recursion.span_continuation_v1.validate(expected, mode);
     var timer = try std.time.Timer.start();
-    var recorder = stage_profile.Recorder.initWithOptions(allocator, "cpu", "detached-recursive-parent", .{ .capture_tasks = false });
+    var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-parent", .{ .capture_tasks = false });
     defer recorder.deinit();
     const diagnostic: ?*stage_profile.Recorder = if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) &recorder else null;
     var phase = try stage_profile.StageScope.begin(diagnostic, "parent.fixed", "Fixed columns and key admission");
