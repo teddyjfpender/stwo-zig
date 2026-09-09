@@ -470,3 +470,40 @@ Metal-origin inputs, using the existing keys and independent verifier.
 The first two measured optimizations are now implemented. The next critical
 milestones are the separately admitted production-security route and formal CSP
 preservation, before further scale or broad optimization.
+
+## Stronger native profile through the active small ingress
+
+The CPU/Metal driver now accepts an explicit native-ingress-only profile check.
+The existing one-query development selection remains the default for complete
+wrappers. The additive `protocol_v1` selection uses the existing frozen protocol
+parameters at every native boundary: proving, serialized-wire shape preflight,
+fresh CPU verification, captured FRI and owned recursive preparation. It does
+not emit or claim a stronger recursive root.
+
+Both native backends pass on the first64-instruction segment of the same real
+98-instruction one-address memory fixture. Native producer allocations are
+empty before fresh decoding. CPU stronger-profile ingress is4.48s, including
+2.28s proving,0.45s verification and0.99s recursive preparation. Metal is3.38s,
+including1.07s proving,0.47s verification and1.01s preparation. CPU process RSS
+is1008MiB; Metal is531MiB, excluding a separate device-footprint measurement.
+These single observations are not CSP/performance promotion.
+
+The193-query/fold-four native proof is1,323,023bytes and produces58,865
+verifier-core Poseidon calls, compared with29,002bytes and315calls for the
+one-query/fold-two development proof. Recursive preparation therefore scales
+much more than native proving in this small example. Its next complete wrapper
+must authenticate the larger input, with an explicitly versioned stronger outer
+profile, interaction PoW in the AIR and rejection of weaker child admissions.
+Production-security recursion and formal CSP preservation remain open.
+
+Five invalid profile/workload combinations reject before proving. The complete
+existing development route is additionally checked against its retained proof
+bytes and independent admitted keys using the maintained producer-exit gate.
+CPU and Metal builds complete in163s/177s (about7GiB/6GiB compiler RSS). The
+runtime check is small; compilation of the shared full driver remains minutes.
+See `native-security-ingress-measurements.json` and the adjacent source/binary
+pins, proof receipts and logs.
+
+Both complete development replays pass32 fresh cases in total, and all16
+artifact files are byte-identical to the admitted baseline; see
+`native-profile-default-parity.json`.

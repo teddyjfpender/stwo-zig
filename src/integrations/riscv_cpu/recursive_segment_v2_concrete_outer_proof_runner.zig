@@ -48,6 +48,7 @@ fn run(comptime Metal: type) !void {
         try @import("recursive_segment_v2_two_segment_test_support.zig").checkSegmentLadder(allocator);
         return;
     }
+    var native_ingress_profile: ?@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile = null;
     var steps: ?usize = null;
     var memory_addresses: ?usize = null;
     var segment_count: ?usize = null;
@@ -65,7 +66,10 @@ fn run(comptime Metal: type) !void {
         if (at + 1 == args.len) return error.InvalidArguments;
         const key = args[at];
         const value = args[at + 1];
-        if (std.mem.eql(u8, key, "--native-steps")) {
+        if (std.mem.eql(u8, key, "--native-ingress-profile")) {
+            if (native_ingress_profile != null) return error.DuplicateArgument;
+            native_ingress_profile = std.meta.stringToEnum(@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile, value) orelse return error.InvalidNativeProfile;
+        } else if (std.mem.eql(u8, key, "--native-steps")) {
             if (steps != null) return error.DuplicateArgument;
             steps = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNativeStepCount;
         } else if (std.mem.eql(u8, key, "--memory-addresses")) {
@@ -113,10 +117,12 @@ fn run(comptime Metal: type) !void {
             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
             aot_manifest = digest;
         } else {
-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
             return error.InvalidArguments;
         }
     }
+    if (native_ingress_profile != null and (memory_addresses == null or two_segment_output != null or initial_register7 != null or steps != null))
+        return error.ConflictingNativeProfileArguments;
     const selected_segments = segment_count orelse 2;
     if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
     for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
@@ -137,13 +143,15 @@ fn run(comptime Metal: type) !void {
         else => return error.InvalidNativeStepCount,
     }
     std.debug.print(
-        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
-        .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
+        "SEGMENT_V2_LADDER mode={s} requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
+        .{ if (native_ingress_profile != null) "native_ingress_only" else "narrow_complete_proof", selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
     );
     switch (backend) {
         .cpu => {
             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
-            if (two_segment_output) |directory|
+            if (native_ingress_profile) |profile|
+                try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, profile)
+            else if (two_segment_output) |directory|
                 try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
             else if (memory_addresses) |count|
                 try gate.runMemoryProof(allocator, count)
@@ -181,7 +189,13 @@ fn run(comptime Metal: type) !void {
                     .{ std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
                 );
                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
-                if (two_segment_output) |directory| {
+                if (native_ingress_profile) |profile| {
+                    const before = try Backend.telemetrySnapshot();
+                    try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(NativeEngine, allocator, memory_addresses.?, profile);
+                    const delta = (try Backend.telemetrySnapshot()).delta(before);
+                    try delta.requireMetalDispatch();
+                    try Backend.shutdown();
+                } else if (two_segment_output) |directory| {
                     try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
                     try Backend.shutdown();
                 } else if (memory_addresses) |count|
@@ -191,6 +205,10 @@ fn run(comptime Metal: type) !void {
                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.NativeMetalRuntimeNotReleased;
             }
         },
+    }
+    if (native_ingress_profile) |profile| {
+        std.debug.print("SEGMENT_V2_NATIVE_INGRESS status=verified profile={s} native_backend={s} owners_destroyed=true outer_proof_created=false\n", .{ @tagName(profile), @tagName(backend) });
+        return;
     }
     if (two_segment_output != null) {
         std.debug.print("SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend={s} owners_destroyed=true parent_proof_created=false\n", .{@tagName(backend)});

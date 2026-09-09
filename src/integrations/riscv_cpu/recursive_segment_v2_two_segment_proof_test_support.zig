@@ -204,3 +204,24 @@ fn produceChild(
     });
     return candidate_receipt;
 }
+
+/// First native segment of the same memory ladder, crossing the production
+/// profile through serialization, producer destruction and fresh CPU capture.
+/// No outer STARK is constructed: this measures the admitted native input and
+/// recursive geometry before allocating a stronger wrapper.
+pub fn checkNativeProfile(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, profile: ingress.NativeProfile) !void {
+    var segments = try @import("recursive_segment_v2_memory_workload_test_support.zig").materialize(2, allocator, address_count, 13);
+    defer for (&segments) |*segment| segment.deinit();
+    const results = [2]*const frontend.runner.SegmentResult{ &segments[0].base, &segments[1].base };
+    try workload.validateSegments(2, results, address_count, 13);
+    const statements = try workload.fixtureStatementsForSegments(2, allocator, results);
+    const keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+        ingress.digest("recursive-v2-segment-vk"),
+        ingress.digest("recursive-v2-parent-vk"),
+    );
+    var prepared = try ingress.prepareTemporalNativeLeafWithProfile(NativeEngine, allocator, results[0], statements[0], keys, profile);
+    defer prepared.deinit();
+    if (!std.meta.eql(prepared.pcs_config, profile.pcsConfig()) or
+        prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS)
+        return error.NativeSecurityProfileMismatch;
+}

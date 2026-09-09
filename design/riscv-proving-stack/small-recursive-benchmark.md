@@ -411,3 +411,43 @@ Metal-origin inputs, using the existing keys and independent verifier.
 The first two measured optimizations are now implemented. The next critical
 milestones are the separately admitted production-security route and formal CSP
 preservation, before further scale or broad optimization.
+
+## Explicit native security ingress
+
+The existing CPU/Metal small-proof driver also accepts
+`--memory-addresses 1 --native-ingress-profile protocol_v1`. This selects the
+frozen recursion protocol's native PCS parameters (193 queries, fold step 4,
+PCS PoW 16); native interaction PoW remains 10. `development_q1` runs the same
+boundary under the existing one-query/fold-two/PCS-PoW-zero configuration.
+Neither option constructs an outer proof or establishes recursive-root security.
+They reject combination with segment output or instruction-only workloads.
+
+Both selections execute the first 64-instruction segment of the existing
+98-instruction, one-address memory fixture. The shared ingress serializes the
+native proof, destroys its producer allocations, preflights and decodes the wire,
+then independently verifies on CPU and constructs owned recursive preparation.
+`SEGMENT_V2_NATIVE_PROFILE` separates proving, transport, verification and
+preparation; the final status explicitly says `outer_proof_created=false`.
+Existing callers and CSP defaults are unchanged.
+
+Initial CPU observations: protocol V1 takes 4.48s overall (2.28s proving,
+0.45s verification, 0.99s recursive preparation), versus 2.57s for development
+(2.02s, 0.41s, 0.13s respectively). Both peak near 1.0GiB RSS. The stronger
+native proof is 1,323,023 bytes and requires 58,865 verifier-core Poseidon calls;
+development is 29,002 bytes and 315 calls. These are single local measurements,
+not a performance promotion. They identify the input geometry for the next
+wrapper; its complete stronger-profile STARK remains a separate required gate.
+
+Evidence is in `small-detached-recursion-v1/native-{secure,development}-ingress-*`
+under the reset report. The CPU build took 163s/about 7GiB; five invalid
+profile/workload combinations reject before proving. This command narrows the
+runtime feedback loop but does not yet narrow the full driver's compilation.
+
+The same stronger native profile passes with authenticated Metal AOT: 3.38s
+complete ingress, including 1.07s proving, 0.47s fresh CPU verification and 1.01s
+recursive preparation. Process RSS is 531MiB; this does not include a separate
+Metal device-footprint measurement. Metal development ingress takes 1.73s.
+Both backends produce the same native proof length and verifier geometry; byte
+parity of the stronger native proofs is not established by these observations.
+`native-security-ingress-measurements.json` collects all four observations with
+binary pins and explicit endpoint limitations.

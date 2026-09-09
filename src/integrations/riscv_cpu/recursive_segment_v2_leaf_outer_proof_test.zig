@@ -901,6 +901,33 @@ pub fn prepareTemporalNativeLeafWithEngine(
     statement: span.SpanStatement,
     keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
 ) !subject.PreparedNativeV2LeafOuter {
+    return prepareTemporalNativeLeafWithProfile(NativeEngine, allocator, result, statement, keys, .development_q1);
+}
+
+/// Exact native profile selection. The recursive wrapper and its own security
+/// admission are separate; selecting protocol_v1 here does not upgrade them.
+pub const NativeProfile = enum {
+    development_q1,
+    protocol_v1,
+
+    pub fn pcsConfig(self: NativeProfile) stwo_core.pcs.PcsConfig {
+        return switch (self) {
+            .development_q1 => test_config,
+            .protocol_v1 => protocol.PCS_CONFIG,
+        };
+    }
+};
+
+pub fn prepareTemporalNativeLeafWithProfile(
+    comptime NativeEngine: type,
+    allocator: std.mem.Allocator,
+    result: *const runner.SegmentResult,
+    statement: span.SpanStatement,
+    keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+    native_profile: NativeProfile,
+) !subject.PreparedNativeV2LeafOuter {
+    const pcs_config = native_profile.pcsConfig();
+    var phase_timer = try std.time.Timer.start();
     const source = try segment_v2.SourceV2.fromSegmentResult(
         digest("recursive-v2-session"),
         statement,
@@ -918,7 +945,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
     var output = try prover.proveRiscVSegmentV2WithEngine(
         NativeEngine,
         native_allocator,
-        test_config,
+        pcs_config,
         result,
         null,
         public_data,
@@ -926,6 +953,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
     var native_output_owned = true;
     defer if (native_output_owned) output.deinit(native_allocator);
 
+    const prove_ns = phase_timer.lap();
     var proof_bytes: std.ArrayList(u8) = .empty;
     defer proof_bytes.deinit(allocator);
     try postcard.serializeProof(
@@ -953,7 +981,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
     try recursion.proof_ingress.validateV2ForVerifierConfig(
         proof_bytes.items,
         &native_statement,
-        test_config,
+        pcs_config,
         proof_bytes.items.len,
     );
     var proof_stream = std.io.fixedBufferStream(proof_bytes.items);
@@ -967,13 +995,14 @@ pub fn prepareTemporalNativeLeafWithEngine(
     if (proof_stream.pos != proof_bytes.items.len)
         return error.InvalidProofShape;
 
+    const transport_ns = phase_timer.lap();
     var capture: subject.NativeCapture = undefined;
     var verifier_channel = Engine.Channel{};
     decoded_proof_moved = true;
     try prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
         Engine,
         allocator,
-        test_config,
+        pcs_config,
         native_statement,
         decoded_proof,
         native_claim,
@@ -984,9 +1013,10 @@ pub fn prepareTemporalNativeLeafWithEngine(
     defer if (!capture_moved) capture.deinit(allocator);
     try capture.validate();
 
+    const verify_ns = phase_timer.lap();
     var profile = try recursion.captured_fri.Owned.init(
         allocator,
-        recursion.captured_fri.ProfileConfig.fromPcs(test_config),
+        recursion.captured_fri.ProfileConfig.fromPcs(pcs_config),
         &capture.proof,
     );
     defer profile.deinit();
@@ -1022,7 +1052,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
         allocator,
         allocator,
         &capture,
-        test_config,
+        pcs_config,
         native_claim.interaction_pow,
         keys,
         recursion.air.universal_challenges.UniversalRelations.dummy(),
@@ -1031,6 +1061,13 @@ pub fn prepareTemporalNativeLeafWithEngine(
     capture_moved = true;
     errdefer prepared.deinit();
     try prepared.validate();
+    std.debug.print("SEGMENT_V2_NATIVE_PROFILE profile={s} segment={d} queries={d} fold_step={d} pcs_pow_bits={d} interaction_pow_bits={d} prove_ns={d} transport_ns={d} verify_ns={d} recursive_prepare_ns={d} proof_bytes={d} transcript_calls={d} verifier_core_calls={d} outer_proof_created=false\n", .{
+        @tagName(native_profile),                          result.segment_index,  pcs_config.fri_config.n_queries,
+        pcs_config.fri_config.fold_step,                   pcs_config.pow_bits,   profile.interaction_pow_bits,
+        prove_ns,                                          transport_ns,          verify_ns,
+        phase_timer.read(),                                proof_bytes.items.len, prepared.transcript_execution.poseidonCalls().len,
+        prepared.rows_18_34_core.core_poseidon_call_count,
+    });
     return prepared;
 }
 
