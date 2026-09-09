@@ -1,0 +1,9 @@
+{
+  "head": "53dc8d200704cd00ff5191c4c89f58e4f57e6adf",
+  "patch_sha256": "12fd9d3631ecede0a95b0deda5b9c56b45212be234981bed7381ec44f92981d1",
+  "retained_failure": "segment-ladder-materialization-execution-first.log",
+  "fix": "Adjacency joins execution spans; binary alignment remains enforced by recursive SpanStatement.fold.",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-second-cpu-producer",
+  "binary_sha256": "95e3aae9a958ee86f05dad01790be7d4f33522f73f8a850757e0e08db35f4102",
+  "source_unchanged_through_build": true
+}

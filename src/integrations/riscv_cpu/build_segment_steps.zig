@@ -1839,7 +1839,7 @@ pub fn add(ctx: anytype) void {
     const detached_routing_names: []const []const u8 = &.{"SegmentV2 detached routing preserves exact source and graph export multiplicities"};
     const detached_routing_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_routing_names });
     b.step("test-recursive-segment-v2-detached-routing", "Check typed source routing and exact cross-circuit wire counts").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_routing_tests), detached_routing_names, "SegmentV2 detached routing guard"));
-    const detached_parent_prepare_names: []const []const u8 = &.{"detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims"};
+    const detached_parent_prepare_names: []const []const u8 = &.{ "detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims" };
     const detached_parent_prepare_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_prepare_names });
     b.step("test-recursive-segment-v2-detached-parent-prepare", "Admit two genuine children and exact parent rows before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_prepare_tests), detached_parent_prepare_names, "SegmentV2 detached parent preparation guard"));
     const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
@@ -2561,6 +2561,24 @@ pub fn add(ctx: anytype) void {
         "interop_postcard",
         postcard,
     );
+    const segment_workload_root = b.createModule(.{
+        .root_source_file = b.path("recursive_segment_v2_workload_runner.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    segment_workload_root.addImport("stwo_core", core);
+    segment_workload_root.addImport("stwo_riscv_frontend", frontend);
+    const segment_workload = b.addExecutable(.{
+        .name = "recursive-segment-v2-workload",
+        .root_module = segment_workload_root,
+    });
+    b.step("build-recursive-segment-v2-workload", "Install the execution-only segment ladder and expected-input exporter")
+        .dependOn(&b.addInstallArtifact(segment_workload, .{}).step);
+    const run_segment_workload = b.addRunArtifact(segment_workload);
+    run_segment_workload.has_side_effects = true;
+    if (b.args) |args| run_segment_workload.addArgs(args);
+    b.step("run-recursive-segment-v2-workload", "Check 2/4/8 segment execution or export expected inputs without compiling a prover")
+        .dependOn(&run_segment_workload.step);
     const segment_v2_concrete_outer_runner = b.addExecutable(.{
         .name = "recursive-segment-v2-concrete-outer-proof",
         .root_module = segment_v2_concrete_outer_runner_root,

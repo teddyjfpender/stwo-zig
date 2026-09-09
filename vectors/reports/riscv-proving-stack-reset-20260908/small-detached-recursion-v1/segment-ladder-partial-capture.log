@@ -1,0 +1,11 @@
+test-recursive-segment-v2-detached-parent-capture
++- Detached parent recursive capture guard
+   +- run test stderr
+DETACHED_PARENT_CAPTURE active_rows=30 physical_claims=36 sampled_values=2149 graph_nodes=38076 rejected_claims_and_samples=45 input_destroyed=true parent_verified=true consumer_proof_created=false
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-detached-parent-capture success
++- Detached parent recursive capture guard success
+   +- run test 1 passed 994ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 47s MaxRSS:2G
+

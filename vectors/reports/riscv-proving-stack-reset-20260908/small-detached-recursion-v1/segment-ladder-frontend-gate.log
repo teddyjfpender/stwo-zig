@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 23/23 tests passed
+test-segment-statement-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 23 passed 706ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:476M
+

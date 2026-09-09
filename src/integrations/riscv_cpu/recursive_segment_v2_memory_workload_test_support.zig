@@ -15,7 +15,7 @@ pub fn validateSegment(
     cumulative_steps: usize,
     segment_steps: usize,
 ) !void {
-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0);
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0, fixture.recursion_memory_updates);
 }
 
 /// Same independent instruction/memory model with an explicit completed-leaf
@@ -26,7 +26,7 @@ pub fn validateCompletedSegment(
     cumulative_steps: usize,
     segment_steps: usize,
 ) !void {
-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0);
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0, fixture.recursion_memory_updates);
 }
 
 pub fn validateSeededSegment(
@@ -37,7 +37,41 @@ pub fn validateSeededSegment(
     completed: bool,
     initial_word: u32,
 ) !void {
-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word);
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word, fixture.recursion_memory_updates);
+}
+
+pub fn validateSeededSegmentWithUpdates(result: *const runner.SegmentResult, address_count: usize, cumulative_steps: usize, segment_steps: usize, completed: bool, initial_word: u32, updates: usize) !void {
+    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word, updates);
+}
+
+/// All small segmented memory fixtures share one ELF/session ownership route.
+pub fn materialize(comptime count: usize, allocator: std.mem.Allocator, address_count: usize, initial_word: u32) ![count]runner.Poseidon2SegmentResult {
+    const updates = comptime updatesForSegments(count);
+    const elf = try fixture.buildRecursionMemoryWithUpdates(updates, address_count);
+    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+    defer session.deinit();
+    if (initial_word != 0) {
+        var addresses: [16]u32 = undefined;
+        for (addresses[0..address_count], 0..) |*address, index|
+            address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
+        try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
+        for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
+    }
+    var results: [count]runner.Poseidon2SegmentResult = undefined;
+    var initialized: usize = 0;
+    errdefer for (results[0..initialized]) |*result| result.deinit();
+    for (&results, 0..) |*result, index| {
+        const budget = if (index + 1 == count) 2 + 3 * updates - native_steps * (count - 1) + 1 else native_steps;
+        result.* = if (index == 0) try session.startSegment(budget) else try session.resumeSegment(results[index - 1].base.continuation orelse return error.ExpectedMemoryContinuation, budget);
+        initialized += 1;
+    }
+    return results;
+}
+
+pub fn updatesForSegments(comptime count: usize) usize {
+    if (count != 2 and count != 4 and count != 8) @compileError("memory segment ladder is 2,4,8");
+    // Keep full segments at64 instructions and the final segment near34.
+    return (native_steps * (count - 1) + 32 + 2) / 3;
 }
 
 fn validateSegmentWithCompletion(
@@ -47,17 +81,19 @@ fn validateSegmentWithCompletion(
     segment_steps: usize,
     completed: bool,
     initial_word: u32,
+    updates: usize,
 ) !void {
+    if (updates == 0 or updates > 256) return error.InvalidMemoryWorkloadSteps;
     switch (address_count) {
         1, 4, 16 => {},
         else => return error.InvalidMemoryAddressCount,
     }
-    if (segment_steps > cumulative_steps or cumulative_steps > 2 + 3 * fixture.recursion_memory_updates)
+    if (segment_steps > cumulative_steps or cumulative_steps > 2 + 3 * updates)
         return error.InvalidMemoryWorkloadSteps;
     try std.testing.expectEqual(segment_steps, result.cycle_count);
     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
     if (completed) {
-        try std.testing.expectEqual(@as(usize, 2 + 3 * fixture.recursion_memory_updates), cumulative_steps);
+        try std.testing.expectEqual(@as(usize, 2 + 3 * updates), cumulative_steps);
         try std.testing.expect(result.continuation == null);
         try std.testing.expectEqual(runner.CompletionReason.self_loop, result.completion_reason orelse return error.ExpectedMemoryWorkloadCompletion);
         try std.testing.expect(result.segment_role.is_last);

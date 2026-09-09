@@ -38,12 +38,15 @@ def main() -> None:
     parser.add_argument("--expected-root-sha256", type=digest, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
+    parser.add_argument("--memory-profile", choices=("initial", "continuation"), default="initial")
     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
     parser.add_argument("--producer-sha256", type=digest)
     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     args = parser.parse_args()
+    if args.memory_profile == "continuation" and args.publication_mode != "intermediate":
+        parser.error("continuation memory profile requires intermediate publication")
     verifier, bundle, expected, output = (
         path.resolve() for path in (args.verifier, args.bundle, args.expected_root, args.output))
     if output.exists() or output.is_relative_to(bundle):
@@ -86,7 +89,7 @@ def main() -> None:
 
     def invoke(name: str, directory: Path = bundle, pin: str = args.key_sha256,
                root: Path = expected, *, accept: bool = False,
-               error: str | None = None) -> None:
+               error: str | tuple[str, ...] | None = None) -> None:
         # Each call exits before the next starts. No producer owners or in-process
         # verifier caches can cross this boundary. Timings are diagnostics only.
         argv = [str(verifier), str(directory), pin, str(root)]
@@ -123,12 +126,15 @@ def main() -> None:
                     raise RuntimeError(f"{name}: receipt mismatch: {field}")
         elif not re.search(r"(?m)^error: [A-Za-z][A-Za-z0-9_]*\s*$", result.stderr):
             raise RuntimeError(f"{name}: missing explicit verifier error (not a clean rejection)")
-        if error and not re.search(rf"(?m)^error: {re.escape(error)}\s*$", result.stderr):
+        if error and not any(re.search(rf"(?m)^error: {re.escape(value)}\s*$", result.stderr)
+                             for value in ((error,) if isinstance(error, str) else error)):
             raise RuntimeError(f"{name}: did not reach required rejection boundary {error}")
 
     try:
         if args.producer:
             profile = "tiny-memory-root-v2" if args.publication_mode == "root" else "tiny-memory-span-v2"
+            if args.memory_profile == "continuation":
+                profile = "tiny-memory-continuation-span-v2"
             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
                     "--parent-key-sha256", args.key_sha256]
@@ -240,7 +246,8 @@ def main() -> None:
                 changed_key["publication_mode"] = "intermediate" if key["publication_mode"] == "root" else "root"
                 changed_directory = candidate("changed_publication_mode", changed_key=changed_key)
                 invoke("changed_publication_mode", changed_directory, sha256(changed_directory / "key.json"),
-                       error="DetachedParentClaimClosureMismatch")
+                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal")
+                       if args.publication_mode == "intermediate" else "DetachedParentClaimClosureMismatch")
                 for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
                     words = json.loads(expected.read_bytes())
                     words[index] = (words[index] + 1) % MODULUS

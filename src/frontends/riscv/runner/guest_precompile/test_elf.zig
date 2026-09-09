@@ -283,14 +283,19 @@ pub const recursion_memory_elf_size = imageSize(3 + 3 * recursion_memory_updates
 /// an already populated contiguous boundary. The largest offset is 1920,
 /// within the signed 12-bit load/store immediate and the runner's RW range.
 pub fn buildRecursionMemory(address_count: usize) error{InvalidMemoryAddressCount}![recursion_memory_elf_size]u8 {
+    return buildRecursionMemoryWithUpdates(recursion_memory_updates, address_count);
+}
+
+pub fn buildRecursionMemoryWithUpdates(comptime updates: usize, address_count: usize) error{InvalidMemoryAddressCount}![imageSize(3 + 3 * updates, poseidon_data_size)]u8 {
+    if (updates == 0 or updates > 256) @compileError("memory fixture update count is outside the small ladder");
     switch (address_count) {
         1, 4, 16 => {},
         else => return error.InvalidMemoryAddressCount,
     }
-    var instructions: [3 + 3 * recursion_memory_updates]u32 = undefined;
+    var instructions: [3 + 3 * updates]u32 = undefined;
     instructions[0] = 0x0010_02b7; // LUI x5, 0x100.
     instructions[1] = 0x1002_8293; // ADDI x5, x5, 0x100.
-    for (0..recursion_memory_updates) |index| {
+    for (0..updates) |index| {
         const offset: u32 = recursion_memory_stride * @as(u32, @intCast(index % address_count));
         instructions[2 + 3 * index] = (offset << 20) | 0x0002_a303; // LW x6, offset(x5).
         instructions[3 + 3 * index] = 0x0013_0313; // ADDI x6, x6, 1.

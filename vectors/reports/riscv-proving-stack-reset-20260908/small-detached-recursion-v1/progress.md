@@ -319,3 +319,42 @@ Current admission and source/binary pins are in `detached-parent-v2-admission/`
 and `detached-parent-v2-third-binary-pins.json`. Current observations are in
 `detached-parent-v2-measurements.json`. The actual4/8-segment tree, production
 security measurement and formal CSP performance preservation remain open.
+
+## Actual segment ladder and partial recursive layer, 2026-09-09
+
+One shared materializer, statement admission and child prover now handle2/4/8
+segments. The two-segment CLI alias retains the same implementation and all eight
+reference artifact files are byte-identical. Independent expected wires come
+from the execution-only workload runner; review files record explicit development
+key admission plus independently modeled positions, sparse values and clocks.
+
+The first ladder execution failed at the genuine1→2 boundary with SlotsMisaligned.
+Both source and canonical-wire adjacency had incorrectly required binary sibling
+alignment. They now use the existing shared executed-span join; recursive folds
+retain slot alignment. The nine-case2/4/8×1/4/16-address ladder checks both sides
+of this distinction and passes in0.78s/about5MiB RSS. Its separate executable
+compiles in7s/614MiB; the full prover builds still take minutes/about7GiB. Frontend
+V2 checks and identities pass23 cases in706ms after6s compilation.
+
+All14 CPU and14 Metal child wrappers freshly verify through336 mutation/acceptance
+cases. Metal reuses independently pinned CPU keys and produces identical bytes.
+Production observations are7.73/15.24/30.45s CPU and6.95/12.17/24.93s Metal for
+2/4/8 children, excluding aggregation. Native ingress remains the largest portion:
+CPU19.63s of30.45s for eight children, Metal13.92s of24.93s. Child wrapper proving
+adds about7.7–7.8s and preparation about3.1s. Resource and phase details are in
+segment-ladder-measurements.json; these are single development observations.
+
+Six actual partial parents cover the first recursive layer of the4/8-segment jobs.
+An explicit continuation profile admits retained entry clocks on both children
+of later pairs. All150 fresh parent cases pass, including rejection of attempts
+to publish a partial span as a whole root. The maintained producer-exit gate also
+passes25 cases on a Metal-origin later pair under the CPU-origin parent key;
+all four artifact files match. Parent requests are3.85–3.90s, preparation379–388ms,
+RSS655–656MiB and core fresh verification10–11ms. The command/parser gate passes
+four cases. Root proofs consuming these intermediate STARKs, production-security
+measurements and formal CSP preservation remain open.
+
+The genuine later partial parent also passes the next-consumer capture gate:
+994ms/17MiB,38,076 composition nodes,2,149 samples and45 rejected claim/sample
+mutations after input destruction. Compilation took47s/2GiB. This checks the
+consuming arithmetic and PCS replay, not a next-layer STARK.

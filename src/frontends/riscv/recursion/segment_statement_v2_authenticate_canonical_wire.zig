@@ -206,10 +206,9 @@ pub fn requireAdjacentSources(
         left_statement.exit_lineage_id,
         right_statement.entry_lineage_id,
     )) return error.LineageMismatch;
-    _ = try span_statement.SpanStatement.fold(
-        left.base_statement,
-        right.base_statement,
-    );
+    // Consecutive execution segments need not be aligned binary siblings.
+    // The recursive parent separately enforces SpanStatement.fold geometry.
+    _ = try span_statement.foldExecuted(left_span, right_span);
 }
 
 pub fn formatId() Digest {
@@ -356,7 +355,7 @@ pub fn requireAdjacentViews(
         left.statement.exit_lineage_id,
         right.statement.entry_lineage_id,
     )) return error.LineageMismatch;
-    _ = try span_statement.SpanStatement.fold(left_base, right_base);
+    _ = try span_statement.foldExecuted(left_span, right_span);
 }
 
 pub fn sectionsEqualSparse(

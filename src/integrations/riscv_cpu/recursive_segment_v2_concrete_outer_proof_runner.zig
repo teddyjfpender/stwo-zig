@@ -44,13 +44,18 @@ fn run(comptime Metal: type) !void {
         std.debug.print("SEGMENT_V2_TWO_SEGMENT_EXECUTION status=passed\n", .{});
         return;
     }
+    if (args.len == 2 and std.mem.eql(u8, args[1], "--check-segment-ladder")) {
+        try @import("recursive_segment_v2_two_segment_test_support.zig").checkSegmentLadder(allocator);
+        return;
+    }
     var steps: ?usize = null;
     var memory_addresses: ?usize = null;
+    var segment_count: ?usize = null;
     var two_segment_output: ?[]const u8 = null;
     var initial_register7: ?u32 = null;
     var initial_memory_word: ?u32 = null;
-    var child_key_paths: [2]?[]const u8 = .{ null, null };
-    var child_key_pins: [2]?[]const u8 = .{ null, null };
+    var child_key_paths: [8]?[]const u8 = @splat(null);
+    var child_key_pins: [8]?[]const u8 = @splat(null);
     var backend: NativeBackend = .cpu;
     var backend_seen = false;
     var aot_bundle: ?[]const u8 = null;
@@ -69,18 +74,27 @@ fn run(comptime Metal: type) !void {
         } else if (std.mem.eql(u8, key, "--initial-memory-word")) {
             if (initial_memory_word != null) return error.DuplicateArgument;
             initial_memory_word = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialMemoryWord;
-        } else if (std.mem.eql(u8, key, "--child-0-key") or std.mem.eql(u8, key, "--child-1-key")) {
-            const index: usize = if (key[8] == '0') 0 else 1;
-            if (child_key_paths[index] != null or value.len == 0) return error.InvalidArguments;
-            child_key_paths[index] = value;
-        } else if (std.mem.eql(u8, key, "--child-0-key-sha256") or std.mem.eql(u8, key, "--child-1-key-sha256")) {
-            const index: usize = if (key[8] == '0') 0 else 1;
-            if (child_key_pins[index] != null or value.len != 64) return error.InvalidArguments;
-            child_key_pins[index] = value;
+        } else if (std.mem.eql(u8, key, "--segment-count")) {
+            if (segment_count != null) return error.DuplicateArgument;
+            segment_count = std.fmt.parseInt(usize, value, 10) catch return error.InvalidSegmentCount;
+            switch (segment_count.?) {
+                2, 4, 8 => {},
+                else => return error.InvalidSegmentCount,
+            }
+        } else if (std.mem.startsWith(u8, key, "--child-")) {
+            if (key.len < 13 or key[8] < '0' or key[8] > '7') return error.InvalidArguments;
+            const index: usize = key[8] - '0';
+            if (std.mem.eql(u8, key[9..], "-key")) {
+                if (child_key_paths[index] != null or value.len == 0) return error.InvalidArguments;
+                child_key_paths[index] = value;
+            } else if (std.mem.eql(u8, key[9..], "-key-sha256")) {
+                if (child_key_pins[index] != null or value.len != 64) return error.InvalidArguments;
+                child_key_pins[index] = value;
+            } else return error.InvalidArguments;
         } else if (std.mem.eql(u8, key, "--initial-register7")) {
             if (initial_register7 != null) return error.DuplicateArgument;
             initial_register7 = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialRegister7;
-        } else if (std.mem.eql(u8, key, "--two-segment-output")) {
+        } else if (std.mem.eql(u8, key, "--two-segment-output") or std.mem.eql(u8, key, "--segments-output")) {
             if (two_segment_output != null) return error.DuplicateArgument;
             if (value.len == 0) return error.InvalidArguments;
             two_segment_output = value;
@@ -99,12 +113,16 @@ fn run(comptime Metal: type) !void {
             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
             aot_manifest = digest;
         } else {
-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--two-segment-output NEW_DIRECTORY [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
             return error.InvalidArguments;
         }
     }
-    if (two_segment_output == null and (initial_memory_word != null or child_key_paths[0] != null or child_key_paths[1] != null or child_key_pins[0] != null or child_key_pins[1] != null)) return error.TwoSegmentOutputRequired;
-    for (child_key_paths, child_key_pins) |path, pin| if ((path == null) != (pin == null)) return error.MissingDetachedKeyAdmission;
+    const selected_segments = segment_count orelse 2;
+    if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
+    for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
+        if ((path == null) != (pin == null)) return error.MissingDetachedKeyAdmission;
+        if (path != null and (two_segment_output == null or index >= selected_segments)) return error.InvalidArguments;
+    }
     if (two_segment_output != null and memory_addresses == null) return error.MissingMemoryAddressCount;
     if (memory_addresses) |count| {
         if (steps != null or initial_register7 != null) return error.ConflictingWorkloadArguments;
@@ -126,7 +144,7 @@ fn run(comptime Metal: type) !void {
         .cpu => {
             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
             if (two_segment_output) |directory|
-                try producePair(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
+                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
             else if (memory_addresses) |count|
                 try gate.runMemoryProof(allocator, count)
             else
@@ -164,7 +182,7 @@ fn run(comptime Metal: type) !void {
                 );
                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
                 if (two_segment_output) |directory| {
-                    try producePair(NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
+                    try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
                     try Backend.shutdown();
                 } else if (memory_addresses) |count|
                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
@@ -183,14 +201,14 @@ fn run(comptime Metal: type) !void {
     std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
 }
 
-fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [2]?[]const u8, child_key_pins: [2]?[]const u8) !void {
+fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8) !void {
     const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
     const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
     const recursion = @import("stwo_riscv_frontend").recursion;
     const command = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_command;
-    var admitted: [2]?*command.OwnedKeyV1 = .{ null, null };
+    var admitted: [count]?*command.OwnedKeyV1 = @splat(null);
     defer for (admitted) |key| if (key) |owner| owner.deinit();
-    for (child_key_paths, child_key_pins, 0..) |path, pin_text, index| {
+    for (child_key_paths[0..count], child_key_pins[0..count], 0..) |path, pin_text, index| {
         if (path) |key_path| {
             var pin: [32]u8 = undefined;
             _ = try std.fmt.hexToBytes(&pin, pin_text.?);
@@ -200,18 +218,23 @@ fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, addres
         }
     }
     try std.fs.cwd().makeDir(directory);
-    const left = try std.fs.path.join(allocator, &.{ directory, "child-0" });
-    defer allocator.free(left);
-    const right = try std.fs.path.join(allocator, &.{ directory, "child-1" });
-    defer allocator.free(right);
-    const receipt = try pair.producePair(NativeEngine, allocator, address_count, .{
+    var directories: [count][]const u8 = undefined;
+    var initialized: usize = 0;
+    defer for (directories[0..initialized]) |path| allocator.free(path);
+    var keys: [count]?*const @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_verifier.KeyV1 = @splat(null);
+    for (&directories, 0..) |*path, index| {
+        path.* = try std.fmt.allocPrint(allocator, "{s}/child-{d}", .{ directory, index });
+        initialized += 1;
+        keys[index] = if (admitted[index]) |owner| owner.key() else null;
+    }
+    const receipt = try pair.produceSegments(count, NativeEngine, allocator, address_count, .{
         .native_keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
             ingress.digest("recursive-v2-segment-vk"),
             ingress.digest("recursive-v2-parent-vk"),
         ),
-        .child_directories = .{ left, right },
+        .child_directories = directories,
         .initial_memory_word = initial_memory_word,
-        .admitted_outer_keys = .{ if (admitted[0]) |owner| owner.key() else null, if (admitted[1]) |owner| owner.key() else null },
+        .admitted_outer_keys = keys,
     });
     const bytes = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
     defer allocator.free(bytes);
@@ -220,4 +243,11 @@ fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, addres
     var file = try dir.createFile("candidate-receipt.json", .{ .exclusive = true });
     defer file.close();
     try file.writeAll(bytes);
+}
+
+fn produceSelectedSegments(count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8) !void {
+    switch (count) {
+        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, allocator, address_count, seed, directory, paths, pins),
+        else => return error.InvalidSegmentCount,
+    }
 }

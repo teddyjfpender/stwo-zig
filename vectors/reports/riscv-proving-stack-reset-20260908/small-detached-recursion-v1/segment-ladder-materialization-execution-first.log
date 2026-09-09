@@ -1,0 +1,88 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+expected 13, found 12
+SEGMENT_V2_SEEDED_MEMORY_EXECUTION initial_word=13 address_count=1 elf_unchanged=true completed=true canonical_adjacent=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=14 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+expected 14, found 15
+SEGMENT_V2_SEEDED_MEMORY_EXECUTION initial_word=14 address_count=1 elf_unchanged=true completed=true canonical_adjacent=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=269 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+expected 269, found 268
+SEGMENT_V2_SEEDED_MEMORY_EXECUTION initial_word=269 address_count=1 elf_unchanged=true completed=true canonical_adjacent=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+expected 21, found 20
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=1 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+expected 6, found 7
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=4 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+expected 98, found 64
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=0 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+expected 2, found 3
+SEGMENT_V2_TWO_SEGMENT_WORKLOAD address_count=16 first_retired=64 second_retired=34 second_budget=35 completed=true canonical_adjacent=true session_destroyed=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+SEGMENT_V2_SEGMENT_LADDER segments=2 addresses=1 retired=98 session_destroyed=true canonical_root=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1188
+SEGMENT_V2_SEGMENT_LADDER segments=2 addresses=4 retired=98 session_destroyed=true canonical_root=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_SEGMENT_LADDER segments=2 addresses=16 retired=98 session_destroyed=true canonical_root=true proofs_created=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=227 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=138c
+error: SlotsMisaligned
+        0.66 real         0.01 user         0.00 sys
+             4849664  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                2520  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                   4  involuntary context switches
+           400936356  instructions retired
+            88434824  cycles elapsed
+             3588432  peak memory footprint

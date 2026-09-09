@@ -6,8 +6,9 @@ A separate verifier checks both serialized proofs, exact coverage, memory and
 clock continuation using explicit keys and expected public inputs. The two child
 proofs can now be recursively verified in one CPU parent STARK. Its standalone
 verifier needs only the admitted key, expected root, claims and serialized proof.
-This is the q1/native, q3/child-and-parent development profile. The 4/8-segment
-recursive ladder and production-security measurements remain pending.
+This is the q1/native, q3/child-and-parent development profile. Actual4/8-segment
+jobs now produce every child and their first layer of intermediate parent STARKs.
+The remaining recursive layers and production-security measurements are pending.
 
 Current retained evidence and rejection cases are indexed in
 [the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
@@ -233,3 +234,63 @@ The unchanged 16-case CPU/Metal CSP comparison now lives in
 `scripts/riscv_csp_paired_benchmark.py`. Its clean snapshot inputs, workers=16,
 secure protocol, alternating rounds, fresh verification and per-case identity
 checks remain required. A repeated latency or memory regression blocks promotion.
+
+## Actual segmented execution ladder
+
+The same memory fixture and child producer now accept `--segment-count 2|4|8`
+with `--segments-output NEW_DIRECTORY`. Full segments retire64 instructions;
+complete jobs retire98,227,482 instructions respectively. The last segment
+observes the terminal self-loop. This produces individual detached child
+candidates; it does not construct the larger recursive tree.
+
+For the everyday execution and admission check, avoid compiling the prover:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  run-recursive-segment-v2-workload -Doptimize=ReleaseSafe --summary all
+```
+
+This checks all nine combinations of2/4/8 segments and1/4/16 addresses, including
+cross-sibling execution boundaries, canonical wires, mutation rejection and a
+complete balanced host fold. Execution adjacency must accept segments1→2 while
+binary parent folding still rejects that pair as misaligned. The retained first
+ladder failure exposed that distinction in the shared V2 boundary authority.
+
+Independently regenerate expected statements without importing a prover:
+
+```sh
+src/integrations/riscv_cpu/zig-out/bin/recursive-segment-v2-workload \
+  --export-segment-inputs 4 1 13 NEW_EXPECTED_DIRECTORY
+```
+
+Arguments are segment count, distinct addresses, initial memory word and a new
+output directory. These are workload-derived inputs; this command grants no
+verification-key admission. Review and pin each candidate's explicit development
+profile separately, then run `scripts/riscv_segment_v2_detached_gate.py` for each
+child with the independent expected file. Existing `--two-segment-output` remains
+an alias of the same producer, preserving the maintained two-child lifecycle gate.
+
+The initial CPU ladder took7.73/15.24/30.45s for2/4/8 child production, with168
+fresh-process acceptance/mutation cases passing. These individual observations
+include native ingress and child wrapper production, exclude parent aggregation,
+and use the development q1/native and q3/outer profiles. All eight artifacts of
+the two-segment reference are byte-identical after consolidation. The separate
+workload executable compiled in7s/614MiB and its full execution gate ran in less
+than a second. Evidence is retained under `small-detached-recursion-v1/segment-ladder-*`.
+
+Metal native production of the same ladder took6.95/12.17/24.93s, with168 further
+fresh-process cases passing and all child artifacts matching CPU byte for byte.
+CPU process RSS was about1.0GiB across sizes. Metal process RSS was0.55–0.58GiB,
+while its separately reported peak footprint was1.32–1.35GiB; RSS alone does not
+represent its total memory cost. These are initial observations, not repeated
+quiet-host performance admission.
+
+The actual first aggregation layer is also available:2 intermediate STARKs for
+the four-segment job and4 for the eight-segment job. Each parent takes3.85–3.90s,
+about655–656MiB RSS and10–11ms core fresh verification. All150 parent cases pass.
+For pairs after the initial pair, explicitly select producer profile
+`tiny-memory-continuation-span-v2`, which retains entry clocks on both children.
+The maintained parent lifecycle gate accepts `--publication-mode intermediate
+--memory-profile continuation`; a Metal-origin four-segment partial parent passed
+all25 cases under the independently pinned CPU-origin parent key and matches its
+artifact bytes. Intermediate-to-root proving remains required.

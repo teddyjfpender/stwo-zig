@@ -1,0 +1,50 @@
+DETACHED_PARENT_CHILD lane=1 preparation_ns=86243292
+DETACHED_PARENT_CHILD lane=2 preparation_ns=172024042
+DETACHED_PARENT_ROW row=0 rows=428 logical_bytes=20544
+DETACHED_PARENT_ROW row=1 rows=2952 logical_bytes=566784
+DETACHED_PARENT_ROW row=2 rows=2952 logical_bytes=436896
+DETACHED_PARENT_ROW row=3 rows=202 logical_bytes=29088
+DETACHED_PARENT_ROW row=4 rows=22000 logical_bytes=1672000
+DETACHED_PARENT_ROW row=5 rows=20444 logical_bytes=1717296
+DETACHED_PARENT_ROW row=6 rows=2 logical_bytes=544
+DETACHED_PARENT_ROW row=7 rows=2 logical_bytes=120
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=40 logical_bytes=5120
+DETACHED_PARENT_ROW row=10 rows=4 logical_bytes=368
+DETACHED_PARENT_ROW row=11 rows=42769 logical_bytes=3934748
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=43986 logical_bytes=1759440
+DETACHED_PARENT_ROW row=20 rows=6 logical_bytes=1776
+DETACHED_PARENT_ROW row=21 rows=228 logical_bytes=95760
+DETACHED_PARENT_ROW row=22 rows=40 logical_bytes=3040
+DETACHED_PARENT_ROW row=23 rows=1614 logical_bytes=561672
+DETACHED_PARENT_ROW row=24 rows=31292 logical_bytes=3254368
+DETACHED_PARENT_ROW row=25 rows=192 logical_bytes=72192
+DETACHED_PARENT_ROW row=26 rows=96 logical_bytes=16128
+DETACHED_PARENT_ROW row=27 rows=96 logical_bytes=10752
+DETACHED_PARENT_ROW row=28 rows=108 logical_bytes=9504
+DETACHED_PARENT_ROW row=29 rows=1314 logical_bytes=157680
+DETACHED_PARENT_ROW row=30 rows=160081 logical_bytes=25612960
+DETACHED_PARENT_ROW row=31 rows=3214 logical_bytes=411392
+DETACHED_PARENT_ROW row=32 rows=181302 logical_bytes=36985608
+DETACHED_PARENT_ROW row=33 rows=1224 logical_bytes=225216
+DETACHED_PARENT_PREPARATION rows_bytes=77825420 providers=6722 graph_ns=245300750 snapshot_pending=true
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_development_q3","profile":"tiny-memory-continuation-span-v2","publication_mode":"intermediate","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":false,"child_key_sha256":[[30,244,219,7,184,106,143,82,120,87,226,233,55,171,143,37,204,220,91,167,34,127,132,118,58,198,124,4,246,145,87,220],[23,153,221,95,210,75,174,163,66,234,34,172,158,170,40,86,208,146,136,164,2,171,4,45,24,91,139,64,249,130,103,227]],"artifacts":{"key_sha256":[117,54,196,231,224,205,146,116,241,41,211,147,251,114,166,25,218,159,60,145,110,123,46,173,193,138,234,235,164,158,133,192],"claims_sha256":[144,210,32,114,103,12,120,66,169,97,115,153,51,85,216,203,58,215,209,251,178,240,226,117,69,17,105,98,178,123,166,10],"proof_sha256":[35,222,176,32,206,185,253,145,26,76,122,53,115,164,214,110,120,189,74,164,5,252,180,249,171,243,83,204,100,204,156,76],"proof_bytes":96327},"candidate_root_words_sha256":[2,6,81,75,252,43,73,85,78,206,53,57,114,213,103,254,164,177,201,156,230,87,59,225,139,250,124,73,76,78,40,191],"circuit_identity":[49,83,112,222,75,62,131,163,201,243,23,129,126,129,188,45,118,163,218,168,39,166,209,43,119,44,83,120,174,77,211,220],"preparation_ns":381594208,"key_preparation_ns":236404875,"proof_ns":3191397125,"request_ns":3854081291}
+        3.85 real         9.36 user         0.17 sys
+           687046656  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              143658  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                6223  involuntary context switches
+        112604806869  instructions retired
+         36014215853  cycles elapsed
+           681886944  peak memory footprint

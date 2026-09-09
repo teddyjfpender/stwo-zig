@@ -24,6 +24,12 @@ pub const TINY_MEMORY_PROFILE_V1 = ProfileV1{
     .sections = .{ .{ .counts = .{ 1, 1, 0, 1 } }, .{ .counts = .{ 1, 1, 1, 1 } } },
     .memory = .{ .{ .entry_addresses = &.{1048832}, .exit_addresses = &.{1048832} }, .{ .entry_addresses = &.{1048832}, .exit_addresses = &.{1048832} } },
 };
+/// A pair later in the same job has retained entry clocks on both children.
+/// This topology is explicitly admitted, never inferred from candidate words.
+pub const TINY_MEMORY_CONTINUATION_PROFILE_V1 = ProfileV1{
+    .sections = .{ .{ .counts = .{ 1, 1, 1, 1 } }, .{ .counts = .{ 1, 1, 1, 1 } } },
+    .memory = TINY_MEMORY_PROFILE_V1.memory,
+};
 pub const Prepared = struct {
     cohort: *cohort.PreparedV1,
     expected: protocol.ExpectedV1,

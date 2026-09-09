@@ -6,6 +6,25 @@ through this window, followed by the next larger useful proving milestone once
 the initial sequence works. This document records acceptance; a passing subset
 does not close the full goal.
 
+## Current checkpoint, 2026-09-09
+
+Items1 and2 have complete development-proof evidence. The version2 parent binds
+436 public words, including session and endpoint lineage, under explicit root or
+intermediate admission. Item3 is partially complete: actual2/4/8-segment jobs now
+produce freshly verified CPU/Metal native children and detached wrappers; the
+four/eight-segment jobs additionally have2/4 freshly verified intermediate STARKs.
+The next required result is one root proving verification of those intermediate
+proofs, then the complete8→4→2→1 tree. A collection of intermediate proofs does
+not complete that milestone.
+
+The execution-only ladder runs in under a second and compiles in7s. Initial leaf
+production observations are7.73/15.24/30.45s on CPU and6.95/12.17/24.93s with Metal
+native proving, excluding aggregation. Intermediate parents take3.85–3.90s each;
+core verification takes10–11ms. Current evidence includes336 fresh child cases,
+150 partial-parent cases and a25-case Metal-origin partial-parent lifecycle.
+These are development-profile observations; production-security measurement,
+optimization of the measured whole tree and formal CSP promotion remain open.
+
 ## Required implementation order
 
 1. Make the current small wrapper independently verifiable. A fresh process

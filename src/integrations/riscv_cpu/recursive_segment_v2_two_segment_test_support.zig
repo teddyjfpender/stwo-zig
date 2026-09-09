@@ -34,22 +34,10 @@ pub const OwnedPair = struct {
     }
 
     pub fn initWithMemorySeed(allocator: std.mem.Allocator, address_count: usize, initial_word: u32) !OwnedPair {
-        const elf = try fixture.buildRecursionMemory(address_count);
-        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
-        defer session.deinit();
-        // Seed mutable input before the runner captures segment entry. ELF and
-        // program commitment are unchanged; native memory AIR proves all reads.
-        if (initial_word != 0) {
-            var addresses: [16]u32 = undefined;
-            for (addresses[0..address_count], 0..) |*address, index|
-                address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
-            try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
-            for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
-        }
-        var first = try session.startSegment(first_steps);
+        const segments = try model.materialize(2, allocator, address_count, initial_word);
+        var first = segments[0];
         errdefer first.deinit();
-        const continuation = first.base.continuation orelse return error.ExpectedFirstSegmentContinuation;
-        var second = try session.resumeSegment(continuation, second_budget);
+        var second = segments[1];
         errdefer second.deinit();
         var result = OwnedPair{ .first = first, .second = second, .address_count = address_count, .initial_memory_word = initial_word };
         try result.validate();
@@ -67,14 +55,7 @@ pub const OwnedPair = struct {
     }
 
     pub fn validate(self: *const OwnedPair) !void {
-        try model.validateSeededSegment(&self.first.base, self.address_count, first_steps, first_steps, false, self.initial_memory_word);
-        try model.validateSeededSegment(&self.second.base, self.address_count, total_steps, second_steps, true, self.initial_memory_word);
-        try std.testing.expectEqual(@as(u32, 0), self.first.base.segment_index);
-        try std.testing.expectEqual(@as(u32, 1), self.second.base.segment_index);
-        try std.testing.expect(self.first.base.segment_role.is_first);
-        try std.testing.expect(!self.second.base.segment_role.is_first);
-        try std.testing.expectEqualDeep(self.first.base.exit_cpu, self.second.base.entry_cpu);
-        try std.testing.expectEqualDeep(self.first.base.rw_memory.program_words, self.second.base.rw_memory.program_words);
+        try validateSegments(2, .{ &self.first.base, &self.second.base }, self.address_count, self.initial_memory_word);
     }
 
     /// Full mutable-input admission, using the canonical V2 and span owners.
@@ -82,12 +63,8 @@ pub const OwnedPair = struct {
     /// the caller. No cached validation state is published by this helper.
     pub fn admitStatements(self: *const OwnedPair, session_id: span.Digest, statements: [2]span.SpanStatement) !Admission {
         try self.validate();
-        const sources = [2]wire.SourceV2{
-            try wire.SourceV2.fromSegmentResult(session_id, statements[0], &self.first.base),
-            try wire.SourceV2.fromSegmentResult(session_id, statements[1], &self.second.base),
-        };
-        try wire.requireAdjacentSources(&sources[0], &sources[1]);
-        return .{ .sources = sources, .folded = try span.SpanStatement.fold(statements[0], statements[1]) };
+        const admitted = try admitSegments(2, .{ &self.first.base, &self.second.base }, session_id, statements);
+        return .{ .sources = admitted.sources, .folded = admitted.folded };
     }
 };
 
@@ -158,21 +135,97 @@ pub fn checkWorkload(allocator: std.mem.Allocator) !void {
 // Test-only statement construction uses existing canonical identities and
 // constructors. It does not supply an admitted verifier key or a proof.
 pub fn fixtureStatements(allocator: std.mem.Allocator, pair: *const OwnedPair) ![2]span.SpanStatement {
-    var program = try frontend.air.program.commitment.buildDeclared(allocator, pair.first.base.execution_trace.rows.items, pair.first.base.rw_memory.program_words, null);
+    return fixtureStatementsForSegments(2, allocator, .{ &pair.first.base, &pair.second.base });
+}
+
+pub fn validateSegments(comptime count: usize, results: [count]*const runner.SegmentResult, address_count: usize, seed: u32) !void {
+    const updates = model.updatesForSegments(count);
+    var cumulative: usize = 0;
+    for (results, 0..) |result, index| {
+        const steps = if (index + 1 == count) 2 + 3 * updates - model.native_steps * (count - 1) else model.native_steps;
+        cumulative += steps;
+        try model.validateSeededSegmentWithUpdates(result, address_count, cumulative, steps, index + 1 == count, seed, updates);
+        try std.testing.expectEqual(@as(u32, @intCast(index)), result.segment_index);
+        try std.testing.expectEqual(index == 0, result.segment_role.is_first);
+        try std.testing.expectEqualDeep(results[0].rw_memory.program_words, result.rw_memory.program_words);
+        if (index != 0) try std.testing.expectEqualDeep(results[index - 1].exit_cpu, result.entry_cpu);
+    }
+}
+
+pub fn fixtureStatementsForSegments(comptime count: usize, allocator: std.mem.Allocator, results: [count]*const runner.SegmentResult) ![count]span.SpanStatement {
+    var program = try frontend.air.program.commitment.buildDeclared(allocator, results[0].execution_trace.rows.items, results[0].rw_memory.program_words, null);
     defer program.deinit(allocator);
+    // Preserve the original fixture identities, including the two-segment key.
     const io = digest("two-segment-memory-empty-io");
     const input = digest("two-segment-memory-input");
     const output = digest("two-segment-memory-output");
-    const initial = try span.MachineState.init(pair.first.base.entry_cpu.pc, pair.first.base.entry_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .initial_word).id, io);
-    const shared = try span.MachineState.init(pair.first.base.exit_cpu.pc, pair.first.base.exit_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .final_word).id, io);
-    const final = try span.MachineState.init(pair.second.base.exit_cpu.pc, pair.second.base.exit_cpu.regs, wire.snapshotDigest(pair.second.base.rw_memory.words, .final_word).id, io);
+    var states: [count + 1]span.MachineState = undefined;
+    states[0] = try span.MachineState.init(results[0].entry_cpu.pc, results[0].entry_cpu.regs, wire.snapshotDigest(results[0].rw_memory.words, .initial_word).id, io);
+    var cycles: u64 = 0;
+    for (results, 0..) |result, index| {
+        states[index + 1] = try span.MachineState.init(result.exit_cpu.pc, result.exit_cpu.regs, wire.snapshotDigest(result.rw_memory.words, .final_word).id, io);
+        cycles += result.cycle_count;
+    }
     var program_digest: span.Digest = @splat(0);
     program_digest[0] = program.tree.root;
-    const job = try span.JobContext.init(try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, program_digest, initial, final, input, output, total_steps), 2);
-    return .{
-        try span.SpanStatement.segmentLeaf(job, pair.first.base.segment_index, try span.ExecutedSpan.init(pair.first.base.segment_index, 1, pair.first.base.global_first_cycle - 1, first_steps, initial, shared, try span.EdgeClaim.present(input), span.EdgeClaim.absent())),
-        try span.SpanStatement.segmentLeaf(job, pair.second.base.segment_index, try span.ExecutedSpan.init(pair.second.base.segment_index, 1, pair.second.base.global_first_cycle - 1, second_steps, shared, final, span.EdgeClaim.absent(), try span.EdgeClaim.present(output))),
-    };
+    const job = try span.JobContext.init(try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, program_digest, states[0], states[count], input, output, cycles), count);
+    var statements: [count]span.SpanStatement = undefined;
+    for (results, 0..) |result, index| {
+        statements[index] = try span.SpanStatement.segmentLeaf(job, result.segment_index, try span.ExecutedSpan.init(result.segment_index, 1, result.global_first_cycle - 1, result.cycle_count, states[index], states[index + 1], if (index == 0) try span.EdgeClaim.present(input) else span.EdgeClaim.absent(), if (index + 1 == count) try span.EdgeClaim.present(output) else span.EdgeClaim.absent()));
+    }
+    return statements;
+}
+
+pub fn SegmentAdmission(comptime count: usize) type {
+    return struct { sources: [count]wire.SourceV2, folded: span.SpanStatement };
+}
+
+pub fn admitSegments(comptime count: usize, results: [count]*const runner.SegmentResult, session_id: span.Digest, statements: [count]span.SpanStatement) !SegmentAdmission(count) {
+    var sources: [count]wire.SourceV2 = undefined;
+    for (results, statements, 0..) |result, statement, index| {
+        sources[index] = try wire.SourceV2.fromSegmentResult(session_id, statement, result);
+        if (index != 0) try wire.requireAdjacentSources(&sources[index - 1], &sources[index]);
+    }
+    var level = statements;
+    var width: usize = count;
+    while (width > 1) : (width /= 2) {
+        for (0..width / 2) |index| level[index] = try span.SpanStatement.fold(level[2 * index], level[2 * index + 1]);
+    }
+    _ = try span.RootStatement.init(level[0]);
+    return .{ .sources = sources, .folded = level[0] };
+}
+
+pub fn checkSegmentLadder(allocator: std.mem.Allocator) !void {
+    try checkWorkload(allocator);
+    inline for (.{ 2, 4, 8 }) |count| {
+        for ([_]usize{ 1, 4, 16 }) |addresses| {
+            var segments = try model.materialize(count, allocator, addresses, 13);
+            defer for (&segments) |*segment| segment.deinit();
+            var results: [count]*const runner.SegmentResult = undefined;
+            for (&segments, 0..) |*segment, index| results[index] = &segment.base;
+            try validateSegments(count, results, addresses, 13);
+            const statements = try fixtureStatementsForSegments(count, allocator, results);
+            const admitted = try admitSegments(count, results, digest("recursive-v2-session"), statements);
+            for (1..count) |index| {
+                const left_words = try allocator.alloc(@import("stwo_core").fields.m31.M31, try admitted.sources[index - 1].canonicalWordCount());
+                defer allocator.free(left_words);
+                const right_words = try allocator.alloc(@import("stwo_core").fields.m31.M31, try admitted.sources[index].canonicalWordCount());
+                defer allocator.free(right_words);
+                _ = try admitted.sources[index - 1].encodeCanonical(left_words);
+                _ = try admitted.sources[index].encodeCanonical(right_words);
+                _ = try wire.authenticateAdjacentCanonicalWires(left_words, right_words);
+                if (index % 2 == 0) try std.testing.expectError(error.SlotsMisaligned, span.SpanStatement.fold(statements[index - 1], statements[index]));
+                try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[index], &admitted.sources[index - 1]));
+                try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[index], &admitted.sources[index]));
+            }
+            // Change an actual middle segment boundary after session teardown.
+            const saved = segments[count / 2].base.entry_cpu.regs[5];
+            segments[count / 2].base.entry_cpu.regs[5] ^= 1;
+            try std.testing.expectError(error.BaseStatementMismatch, wire.SourceV2.fromSegmentResult(digest("recursive-v2-session"), statements[count / 2], &segments[count / 2].base));
+            segments[count / 2].base.entry_cpu.regs[5] = saved;
+            std.debug.print("SEGMENT_V2_SEGMENT_LADDER segments={d} addresses={d} retired={d} session_destroyed=true canonical_root=true proofs_created=0\n", .{ count, addresses, admitted.folded.body.executed.cycle_count });
+        }
+    }
 }
 
 fn digest(label: []const u8) span.Digest {

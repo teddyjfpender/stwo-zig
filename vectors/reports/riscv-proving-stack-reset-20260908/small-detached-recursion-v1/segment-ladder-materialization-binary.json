@@ -1,0 +1,8 @@
+{
+  "head": "53dc8d200704cd00ff5191c4c89f58e4f57e6adf",
+  "patch_sha256": "82dd6b45c310178b7bf233f6a9e7514041c747a2677c2833b2c09c4d87950d99",
+  "scope": "shared actual 2/4/8 native segment materialization and child candidate production; no larger recursive tree claimed",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-first-cpu-producer",
+  "binary_sha256": "f3c5d5cc258224cbafe2d991d3be7c0848d869e0f19cb585cfa3b856dba17756",
+  "source_unchanged_through_build": true
+}

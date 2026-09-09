@@ -9,19 +9,21 @@ const command = @import("recursive_segment_v2_detached_parent_command.zig");
 const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
 pub const PROFILE = "tiny-memory-root-v2";
 pub const INTERMEDIATE_PROFILE = "tiny-memory-span-v2";
+pub const CONTINUATION_PROFILE = "tiny-memory-continuation-span-v2";
 pub const ArgumentsV1 = struct {
     output: []const u8,
     publication_mode: protocol.PublicationMode = .root,
+    memory_profile: enum { initial, continuation } = .initial,
     children: [2]child_command.ArgumentsV1,
     parent_key: ?struct { path: []const u8, sha256: [32]u8 } = null,
 };
 
-/// Deliberately one reviewed fixture profile and one unambiguous argument order.
+/// Reviewed fixture topologies and one unambiguous argument order.
 pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
     if ((args.len != 9 and args.len != 13) or !std.mem.eql(u8, args[0], "--profile") or
-        (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
+        (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE) and !std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
         return error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren;
-    var result = ArgumentsV1{ .publication_mode = if (std.mem.eql(u8, args[1], PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
+    var result = ArgumentsV1{ .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
     if (args.len == 13) {
         if (!std.mem.eql(u8, args[9], "--parent-key") or args[10].len == 0 or
             !std.mem.eql(u8, args[11], "--parent-key-sha256") or args[12].len != 64)
@@ -77,7 +79,10 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
             defer left.deinit();
             const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
             defer right.deinit();
-            break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, prepare.TINY_MEMORY_PROFILE_V1, args.publication_mode);
+            break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, switch (args.memory_profile) {
+                .initial => prepare.TINY_MEMORY_PROFILE_V1,
+                .continuation => prepare.TINY_MEMORY_CONTINUATION_PROFILE_V1,
+            }, args.publication_mode);
         };
         // Both verified child owners are already destroyed here. Prepared owns
         // copied logical rows, provider calls, and canonical public root words.
@@ -99,7 +104,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
     defer expected_file.close();
     try expected_file.writeAll(expected_json);
     return .{
-        .profile = if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
+        .profile = if (args.memory_profile == .continuation) CONTINUATION_PROFILE else if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
         .publication_mode = args.publication_mode,
         .reused_admitted_parent_key = admitted_key != null,
         .child_key_sha256 = child_pins,
@@ -147,6 +152,11 @@ test "detached parent producer requires explicit profile and independent child a
     try std.testing.expectEqualStrings("parent.json", pinned.parent_key.?.path);
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(valid[2..]));
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(with_parent[0..11]));
+    var continuation = valid;
+    continuation[1] = CONTINUATION_PROFILE;
+    const continued = try parseArguments(&continuation);
+    try std.testing.expectEqual(.intermediate, continued.publication_mode);
+    try std.testing.expectEqual(.continuation, continued.memory_profile);
     var unsupported = valid;
     unsupported[1] = "unreviewed-profile";
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(&unsupported));
