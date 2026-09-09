@@ -185,10 +185,10 @@ fn produceChild(
                 after.initialization_count != outer_lifecycle.initialization_count or
                 after.shutdown_count != outer_lifecycle.shutdown_count or after.active_call_leases != 0)
                 return error.RecursiveMetalRuntimeChanged;
-            std.debug.print("SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment={d} dispatches={d} poseidon_commits={d} composition_dispatches={d} fri_circle_dispatches={d} fri_line_dispatches={d} cpu_fallbacks={d}\n", .{
-                result.segment_index,                             delta.counters.metalDispatchTotal(),             delta.counters.metal_poseidon2_merkle_commits,
-                delta.counters.metal_composition_eval_dispatches, delta.counters.metal_fri_circle_fold_dispatches, delta.counters.metal_fri_line_fold_dispatches,
-                delta.counters.cpuFallbackTotal(),
+            std.debug.print("SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment={d} dispatches={d} poseidon_commits={d} composition_dispatches={d} fri_circle_dispatches={d} fri_line_dispatches={d} cpu_fallbacks={d} framework_dispatches={d} host_composition_components={d}\n", .{
+                result.segment_index,                             delta.counters.metalDispatchTotal(),                  delta.counters.metal_poseidon2_merkle_commits,
+                delta.counters.metal_composition_eval_dispatches, delta.counters.metal_fri_circle_fold_dispatches,      delta.counters.metal_fri_line_fold_dispatches,
+                delta.counters.cpuFallbackTotal(),                delta.counters.metal_framework_polynomial_dispatches, delta.counters.cpu_composition_components,
             });
         }
         const hashes = try command.retainCandidate(

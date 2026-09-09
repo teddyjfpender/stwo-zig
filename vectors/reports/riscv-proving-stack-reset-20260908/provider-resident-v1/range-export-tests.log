@@ -1,0 +1,20 @@
+test-recursion-framework-export
++- run test
+   +- compile test ReleaseFast native 1 errors
+recursion/air/framework_polynomial_export_v1.zig:67:26: error: type 'u1' cannot represent integer value '6'
+        inputs.len != Air.LOGICAL_INPUT_COUNT + @intFromBool(is_first_input != null) or interaction_columns.len != Air.INTERACTION_COLUMN_COUNT)
+                      ~~~^~~~~~~~~~~~~~~~~~~~
+referenced by:
+    exportPrepared__anon_37952: recursion/air/framework_polynomial_export_v1.zig:30:32
+    exercise__anon_37909: recursion/air/framework_polynomial_export_v1_test.zig:33:46
+    2 reference(s) hidden; use '-freference-trace=4' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseFast --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion_framework_export_test_root.zig -OReleaseFast -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseFast --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseFast --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseFast --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseFast --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseFast --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-recursion-framework-export transitive failure
++- run test transitive failure
+   +- compile test ReleaseFast native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/874d1dcd476c2d23766ef606f7c070e7/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x40a0a0a0 -Zfc8dc6750b1cf4d3 --maxrss 25769803776 -j1 test-recursion-framework-export -Doptimize=ReleaseFast

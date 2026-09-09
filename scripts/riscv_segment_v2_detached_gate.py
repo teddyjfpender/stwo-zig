@@ -76,6 +76,13 @@ def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, r
                 int(row.get("dispatches", "0")) <= 0 or int(row.get("poseidon_commits", "0")) <= 0
                 for index, row in enumerate(recursive_device)):
             raise RuntimeError("producer did not use Metal for every recursive wrapper")
+        # New producers report composition coverage explicitly. Preserve unknown
+        # coverage in older pinned receipts; never infer it from zero fallbacks.
+        if aot_profile == "recursive-framework-v1":
+            for row in recursive_device:
+                if "framework_dispatches" in row and (int(row["framework_dispatches"]) <= 0 or
+                        row.get("host_composition_components") != "0"):
+                    raise RuntimeError("recursive provider profile did not complete device composition")
     elif recursive_device:
         raise RuntimeError("unexpected recursive Metal execution")
     if backend == "metal":

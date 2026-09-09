@@ -47,9 +47,9 @@ whole-prover soundness. The existing q193 profile remains experimental.
   and relation plans. Runtime profile words and challenges remain invocation
   inputs; the claim shift derives from the admitted trace size and claim.
 - The recursive framework now executes through an admitted production AOT
-  profile and proof-owned resident buffers. Its 41 generated kernels cover
-  37/39 leaf-wrapper and 29/31 parent components, derived from the same shared
-  AIR catalogs used by native verification. Physical placement remains bound
+  profile and proof-owned resident buffers. Its 51 generated kernels cover
+  all 39 leaf-wrapper and 31 parent composition components, derived from the
+  same shared AIR catalogs and native provider evaluators used by verification. Physical placement remains bound
   by each owned job; equation-identical placements reuse one kernel.
 - The real resident AOT test matches the native arithmetic AIR on all 64
   coordinates and rejects six invalid binding/parameter cases. The complete
@@ -60,28 +60,35 @@ whole-prover soundness. The existing q193 profile remains experimental.
 - Local compact-S-box and recurrence Lean theorems pass with explicit source
   correspondence and axiom checks. Compiler refinement, normalized-denominator
   obligations and protocol security remain open.
-- The current hybrid four-segment tree passes all 136 fresh positive/negative
+- The provider-complete hybrid tree passes all 136 fresh positive/negative
   cases, with all 21 proof/key/claim artifacts identical to the retained baseline.
-  The core-only checkpoint took 65.035 seconds; the new framework AOT route
-  took 71.690 seconds without parity shadows. This is a coverage milestone,
-  not a speedup or default-profile promotion. Strict requests with the new
-  profile still reject known host witness/preparation work.
-- The diagnostic root comparison identifies the mixed-route bottleneck:
-  29 framework components take 125.927 ms enclosing device work (11.367 ms
-  kernels), but the host Poseidon provider takes 2.208 seconds. Composition
-  consequently takes 2.282 seconds versus 0.994 seconds on the retained core
-  route. Finish this provider's GPU coverage next; do not bury the regression
-  beneath faster individual kernels or parallel CPU tuning.
+  Its unshadowed production observation is 61.206 seconds, versus 65.835 seconds
+  on the original core route and 71.690 seconds on the intermediate partial GPU
+  route. These are single observations, not paired medians.
+- Root composition now takes 0.163565 seconds versus the original 0.993760
+  seconds, with zero host composition components. The full root is 10.311
+  seconds; preparation, main filling/closure and interaction filling dominate.
+- Poseidon reuses its native direct/lookup DAGs. Range has an explicit
+  independent-prefix layout, mapped preprocessing/main inputs, zero direct
+  roots and raw per-batch claims. Existing same-row-prefix identities remain
+  unchanged. Actual GPU parity includes multiple distinct claims/previous sums
+  and non-Boolean off-domain selectors.
 
-The next implementation boundary is provider/range coverage and bulk
-witness/lookup work. The two remaining recursive composition providers use
-independent per-batch running sums, unlike the framework's same-row-prefix
-recurrence. Their GPU route must preserve those equations explicitly. Domain
-expansion still fills retained coefficient storage on the host and remains
-guarded in strict mode. The strict complete-tree positive gate is **not
-passed**. The accepted hybrid route and retained negative strict requests are
-separate evidence.
+Next, move bulk witness/lookup work and the remaining native composition onto
+Metal. Native composition still has nine host components (six tables, program,
+Merkle and clock). Domain expansion still fills retained coefficient storage on
+the host, with admission enforced in the shared scratch owner before allocation
+for semantic, lookup and framework callers. The strict complete-tree positive gate is **not passed**; current
+strict tree/parent requests still reject known witness/preparation work.
+
+The immediate interaction opportunity is the parent's serial Poseidon writer:
+the leaf already uses the existing chunked batch-inversion route. Measure that
+replacement independently, then use claims-free admitted lookup programs to
+implement GPU fraction evaluation, inversion, scan and scatter. Preserve raw
+independent claims, framework mean-shift semantics, padding and denominator-zero
+rejection. Reusable preparation must never manufacture admission with dummy
+claims or bypass current input/proof boundaries.
 
 See [the operation inventory and integration map](strict-metal-proving.md),
 [formal scope](recursive-air-formal-checks.md), and
-[resident AOT checkpoint evidence](../../vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/).
+[resident AOT checkpoint evidence](../../vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/).

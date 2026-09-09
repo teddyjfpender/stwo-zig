@@ -828,3 +828,92 @@ comptime {
         @compileError("universal range-check (8,8) geometry drifted");
     }
 }
+
+const backend_programs = @import("stwo_prover_engine").air.component_prover;
+const framework_export = @import("framework_polynomial_export_v1.zig");
+const direct_program = @import("direct_constraint_program.zig");
+
+/// Cold export from the already admitted native range component. Its typed
+/// bridge supplies the relation; the native component supplies exact committed
+/// coordinates. The selector is a framework input, outside the typed tuple.
+pub fn exportFrameworkProgram(
+    allocator: std.mem.Allocator,
+    component: *const lookup_component.LookupTableComponent,
+    tree_column_counts: []const usize,
+) !backend_programs.OwnedFrameworkPolynomialProgramV1 {
+    try validateFrameworkComponent(component);
+    var definition = try build(allocator);
+    defer definition.deinit();
+    const relations = try authenticateRelation(&definition);
+    const constraints = try direct_program.authenticate(&definition.arena, SEMANTIC_DIGEST, LOGICAL_INPUT_COUNT);
+    const inputs = [_]backend_programs.TypedPolynomialInputV1{
+        .{ .trace_column = .{ .tree_index = 1, .column_index = try frameworkColumn(component.main_col_offset) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.tuple_col_indices[0]) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.tuple_col_indices[1]) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.is_first_col_idx) } },
+    };
+    var interaction_columns: [INTERACTION_COLUMN_COUNT]backend_programs.TypedPolynomialColumnV1 = undefined;
+    for (&interaction_columns, 0..) |*column, index| column.* = .{
+        .tree_index = 2,
+        .column_index = try frameworkColumn(try std.math.add(usize, component.interaction_col_offset, index)),
+    };
+    return framework_export.exportIndependentPrepared(@This(), allocator, &constraints, &relations, &inputs, &interaction_columns, tree_column_counts);
+}
+
+pub fn exportFrameworkParameters(
+    allocator: std.mem.Allocator,
+    component: *const lookup_component.LookupTableComponent,
+) !backend_programs.OwnedFrameworkPolynomialParametersV1 {
+    try validateFrameworkComponent(component);
+    const element = component.relations.range_check_8_8;
+    try requireCanonicalFrameworkValue(element.z);
+    try requireCanonicalFrameworkValue(element.alpha);
+    for (element.alpha_powers) |power| try requireCanonicalFrameworkValue(power);
+    const expected = lookup_relations.RelationElements(TUPLE_ARITY).init(element.z, element.alpha);
+    for (element.alpha_powers, expected.alpha_powers) |actual, canonical| {
+        if (!actual.eql(canonical)) return error.AuthorityMismatch;
+    }
+    const profile_values = try allocator.alloc(M31, 0);
+    errdefer allocator.free(profile_values);
+    const relation_values = try allocator.alloc(QM31, 1 + TUPLE_ARITY);
+    errdefer allocator.free(relation_values);
+    relation_values[0] = element.z;
+    @memcpy(relation_values[1..], &element.alpha_powers);
+    const claims = try allocator.dupe(QM31, &.{component.claim});
+    errdefer allocator.free(claims);
+    for (relation_values) |value| try requireCanonicalFrameworkValue(value);
+    try requireCanonicalFrameworkValue(component.claim);
+    return .{ .allocator = allocator, .values = .{
+        .profile_values = profile_values,
+        .relation_values = relation_values,
+        .trace_log_size = LOG_SIZE,
+        .claimed_sum = QM31.zero(),
+        .batch_claims = claims,
+    } };
+}
+
+pub fn frameworkCapability() backend_programs.FrameworkPolynomialCapabilityV1 {
+    const Callbacks = struct {
+        fn program(ctx: *const anyopaque, allocator: std.mem.Allocator, counts: []const usize) !backend_programs.OwnedFrameworkPolynomialProgramV1 {
+            return exportFrameworkProgram(allocator, @ptrCast(@alignCast(ctx)), counts);
+        }
+        fn parameters(ctx: *const anyopaque, allocator: std.mem.Allocator) !backend_programs.OwnedFrameworkPolynomialParametersV1 {
+            return exportFrameworkParameters(allocator, @ptrCast(@alignCast(ctx)));
+        }
+    };
+    return .{ .trace_log_size = LOG_SIZE, .export_program = Callbacks.program, .export_parameters = Callbacks.parameters };
+}
+
+fn validateFrameworkComponent(component: *const lookup_component.LookupTableComponent) !void {
+    if (component.kind != TABLE_KIND or component.tuple_col_indices[0] != try std.math.add(usize, component.is_first_col_idx, 1) or
+        component.tuple_col_indices[1] != try std.math.add(usize, component.is_first_col_idx, 2))
+        return error.AuthorityMismatch;
+    for (component.tuple_col_indices[TUPLE_ARITY..]) |column| if (column != 0) return error.AuthorityMismatch;
+}
+fn frameworkColumn(index: usize) !u32 {
+    return std.math.cast(u32, index) orelse error.InvalidFrameworkPolynomialInput;
+}
+fn requireCanonicalFrameworkValue(value: QM31) !void {
+    for (value.toM31Array()) |coordinate| if (coordinate.toU32() >= m31.Modulus)
+        return error.InvalidFrameworkPolynomialParameters;
+}

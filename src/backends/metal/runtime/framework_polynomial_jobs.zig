@@ -78,7 +78,8 @@ pub const Job = struct {
         errdefer allocator.free(relation_words);
         for (parameters.values.relation_values, 0..) |value, index|
             writeSecure(relation_words[index * 4 ..][0..4], value);
-        writeSecure(relation_words[relation_words.len - 4 ..], try parameters.values.claimedSumShift());
+        for (0..parameters.values.claimPayloadCount(&program)) |index|
+            writeSecure(relation_words[(parameters.values.relation_values.len + index) * 4 ..][0..4], try parameters.values.claimPayload(&program, index));
         return .{
             .allocator = allocator,
             .component = component,
@@ -136,7 +137,7 @@ fn admit(program: *const Program, parameters: component_mod.FrameworkPolynomialP
         constraints != try std.math.add(usize, program.direct.roots.len, program.batches.len))
         return error.InvalidFrameworkPolynomialGeometry;
     const column_count = try std.math.add(usize, program.inputs.len, program.interaction_columns.len);
-    const relation_word_count = try std.math.mul(usize, 4, try std.math.add(usize, parameters.relation_values.len, 1));
+    const relation_word_count = try std.math.mul(usize, 4, try std.math.add(usize, parameters.relation_values.len, parameters.claimPayloadCount(program)));
     const power_end = try std.math.add(usize, power_start, constraints);
     const power_words = try std.math.mul(usize, power_end, 4);
     for ([_]usize{ column_count, parameters.profile_values.len, relation_word_count, power_words }) |count|

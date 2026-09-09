@@ -1,0 +1,26 @@
+{
+  "manifest_sha256": "98703ad708efeb6aee92403f0d818498fb97b91174b3a597b42925d64fd82da7",
+  "bundle": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/provider-aot-m4-v1",
+  "artifacts": {
+    "stwo_zig_core.metallib": {
+      "sha256": "a36ba6be5a9036b09f9833603f33926aa4d4c1317ac1e78f3c2270dde7a9040c",
+      "bytes": 4517672
+    },
+    "stwo_zig_core.metal": {
+      "sha256": "607653b63a82ffe10c243c8823e8199854ed7662e76163673cc7e56256eea6c8",
+      "bytes": 2566623
+    },
+    "stwo_zig_core.manifest.sha256": {
+      "sha256": "26937bcf51230d0119fb4625f61565ff5d46b1406a0aa05a8d5a0b19b125f0b0",
+      "bytes": 94
+    },
+    "stwo_zig_core.manifest.json": {
+      "sha256": "98703ad708efeb6aee92403f0d818498fb97b91174b3a597b42925d64fd82da7",
+      "bytes": 88284
+    },
+    "stwo_zig_core.air": {
+      "sha256": "0ca4badfa90d5a210b6606dd42d8d7ae8e2535f808104fc63bf5bff5ce9048f2",
+      "bytes": 3608944
+    }
+  }
+}

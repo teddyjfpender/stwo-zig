@@ -52,11 +52,11 @@ pub fn main() !void {
     if (delta.counters.metal_poseidon2_merkle_commits == 0) return error.MetalPoseidonDispatchMissing;
     try Backend.shutdown();
     if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeNotReleased;
-    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} host_composition_components={d} pow_dispatches={d} runtime_released=true manifest_sha256={s} profile={s}\n", .{
+    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} host_composition_components={d} pow_dispatches={d} runtime_released=true manifest_sha256={s} profile={s} framework_dispatches={d}\n", .{
         delta.counters.metalDispatchTotal(),           delta.counters.metal_poseidon2_merkle_commits,
         delta.counters.cpuFallbackTotal(),             delta.counters.cpu_composition_components,
         delta.counters.metal_proof_of_work_dispatches, std.fmt.bytesToHex(manifest, .lower),
-        @tagName(selected_aot),
+        @tagName(selected_aot),                        delta.counters.metal_framework_polynomial_dispatches,
     });
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(json);

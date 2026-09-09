@@ -54,6 +54,7 @@ const Shape = enum {
     sole_singleton,
     sole_pair,
     singleton_then_pair,
+    independent_pair_then_singleton,
 
     fn arities(self: Shape) []const u8 {
         return switch (self) {
@@ -61,6 +62,7 @@ const Shape = enum {
             .sole_singleton => &.{33},
             .sole_pair => &.{ 33, 2 },
             .singleton_then_pair => &.{ 1, 33, 2 },
+            .independent_pair_then_singleton => &.{ 33, 2, 1 },
         };
     }
 };
@@ -106,7 +108,12 @@ fn shapeFixture(allocator: std.mem.Allocator, shape: Shape) !component.OwnedFram
         entry.values = @splat(0);
         @memcpy(entry.values[0..arity], tuple_nodes[0..arity]);
     }
-    if (shape == .singleton_then_pair) {
+    if (shape == .independent_pair_then_singleton) {
+        program.layout = .independent_prefix_v1;
+        program.is_first_input = 0;
+        program.direct.nodes = &.{};
+        program.direct.roots = &.{};
+    } else if (shape == .singleton_then_pair) {
         program.batches[0].entry_count = 1;
         program.batches[1].first_entry = 1;
         program.batches[1].entry_count = 2;
@@ -128,7 +135,7 @@ fn shapeExpected(
     pp: M31,
     main: M31,
     current: [2]QM31,
-    previous: QM31,
+    previous: [2]QM31,
     parameters: component.FrameworkPolynomialParametersV1,
     powers: []const QM31,
     inverse: M31,
@@ -137,7 +144,7 @@ fn shapeExpected(
     if (shape == .pair_then_singleton) return reference.expected(
         .{ pp, main, M31.zero() },
         current,
-        previous,
+        previous[1],
         parameters,
         powers[0..3].*,
         inverse,
@@ -146,7 +153,9 @@ fn shapeExpected(
     const profile = parameters.profile_values[0];
     const direct = [_]M31{ pp.add(main), pp.mul(main).sub(profile), main, profile.neg(), pp.mul(main).sub(profile) };
     var folded = QM31.zero();
-    for (direct, 0..) |value, index| folded = folded.add(powers[powers.len - 1 - index].mulM31(value));
+    if (shape != .independent_pair_then_singleton) {
+        for (direct, 0..) |value, index| folded = folded.add(powers[powers.len - 1 - index].mulM31(value));
+    }
     var denominators: [3]QM31 = undefined;
     var fractions: [3]QM31 = undefined;
     var parameter_index: usize = 0;
@@ -167,16 +176,25 @@ fn shapeExpected(
         const reciprocal = try denominator.inv();
         fractions[index] = if (index == 1) QM31.zero().sub(reciprocal) else reciprocal;
     }
+    if (shape == .independent_pair_then_singleton) {
+        // Two independent rational running sums, each with its own previous
+        // row and raw terminal claim. There is no same-row prefix subtraction.
+        const pair = current[0].sub(previous[0]).add(parameters.batch_claims[0].mulM31(pp))
+            .sub(fractions[0]).sub(fractions[1]).mul(denominators[0]).mul(denominators[1]);
+        const singleton = current[1].sub(previous[1]).add(parameters.batch_claims[1].mulM31(pp))
+            .sub(fractions[2]).mul(denominators[2]);
+        return initial.add(powers[1].mul(pair).add(powers[0].mul(singleton)).mulM31(inverse));
+    }
     const shift = try parameters.claimedSumShift();
     if (shape == .sole_singleton) {
-        const residual = current[0].sub(previous).add(shift).sub(fractions[0]);
+        const residual = current[0].sub(previous[0]).add(shift).sub(fractions[0]);
         folded = folded.add(powers[0].mul(residual.mul(denominators[0])));
     } else if (shape == .sole_pair) {
-        const residual = current[0].sub(previous).add(shift).sub(fractions[0]).sub(fractions[1]);
+        const residual = current[0].sub(previous[0]).add(shift).sub(fractions[0]).sub(fractions[1]);
         folded = folded.add(powers[0].mul(residual.mul(denominators[0]).mul(denominators[1])));
     } else {
         const first = current[0].sub(fractions[0]).mul(denominators[0]);
-        const final = current[1].sub(current[0]).sub(previous).add(shift)
+        const final = current[1].sub(current[0]).sub(previous[1]).add(shift)
             .sub(fractions[1]).sub(fractions[2]).mul(denominators[1]).mul(denominators[2]);
         folded = folded.add(powers[1].mul(first)).add(powers[0].mul(final));
     }
@@ -243,19 +261,27 @@ fn runShape(shape: Shape) !void {
                     value.* = QM31.fromU32Unchecked(seed + 5, seed + 11, seed + 41, seed + 67);
                 }
             }
+            const claims = [_]QM31{
+                QM31.fromU32Unchecked(41 + variant, 43, 47, 53),
+                QM31.fromU32Unchecked(59, 61 + variant, 67, 71),
+            };
             const parameters = component.FrameworkPolynomialParametersV1{
                 .profile_values = &profile,
                 .relation_values = relations,
                 .trace_log_size = trace_log,
-                .claimed_sum = if (variant == 0) QM31.zero() else QM31.fromU32Unchecked(41, 43, 47, 53 + variant),
+                .claimed_sum = if (shape == .independent_pair_then_singleton or variant == 0) QM31.zero() else QM31.fromU32Unchecked(41, 43, 47, 53 + variant),
+                .batch_claims = if (shape == .independent_pair_then_singleton) &claims else &.{},
             };
             var profile_words: [1]u32 = .{profile[0].toU32()};
             try parameters.validate(&program);
-            const shift = try parameters.claimedSumShift();
-            try std.testing.expect(shift.mulM31(M31.fromU64(@as(u64, 1) << @intCast(trace_log))).eql(parameters.claimed_sum));
-            const relation_words = try allocator.alloc(u32, (relations.len + 1) * 4);
+            if (shape != .independent_pair_then_singleton) {
+                const shift = try parameters.claimedSumShift();
+                try std.testing.expect(shift.mulM31(M31.fromU64(@as(u64, 1) << @intCast(trace_log))).eql(parameters.claimed_sum));
+            }
+            const claim_count = parameters.claimPayloadCount(&program);
+            const relation_words = try allocator.alloc(u32, (relations.len + claim_count) * 4);
             for (relations, 0..) |value, index| writeSecure(relation_words, index * 4, value);
-            writeSecure(relation_words, relations.len * 4, shift);
+            for (0..claim_count) |index| writeSecure(relation_words, (relations.len + index) * 4, try parameters.claimPayload(&program, index));
             const power_words = try allocator.alloc(u32, powers.len * 4);
             for (powers, 0..) |value, index| writeSecure(power_words, index * 4, value);
 
@@ -286,7 +312,7 @@ fn runShape(shape: Shape) !void {
                 tree0[@as(usize, @intCast(offsets[0])) + row] = pp.toU32();
                 tree1[@as(usize, @intCast(offsets[1])) + row] = main.toU32();
                 const current = [2]QM31{ sample(point, 67), sample(point, 71).square() };
-                const previous = if (program.batches.len == 1) sample(previous_point, 67) else sample(previous_point, 71).square();
+                const previous = [2]QM31{ sample(previous_point, 67), sample(previous_point, 71).square() };
                 for (current[0..program.batches.len], 0..) |value, secure_index| for (value.toM31Array(), 0..) |coordinate, coordinate_index| {
                     const offset: usize = @intCast(offsets[3 + secure_index * 4 + coordinate_index]);
                     tree2[offset + row] = coordinate.toU32();
@@ -357,4 +383,8 @@ test "Metal framework polynomial executes sole pair with mixed arity33 and reord
 
 test "Metal framework polynomial executes final pair with mixed arity33 and reordered direct roots" {
     try runShape(.singleton_then_pair);
+}
+
+test "Metal framework polynomial executes independent prefixes with distinct claims and no direct roots" {
+    try runShape(.independent_pair_then_singleton);
 }

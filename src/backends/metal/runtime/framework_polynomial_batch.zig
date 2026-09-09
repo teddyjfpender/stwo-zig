@@ -10,7 +10,6 @@ const jobs_mod = @import("framework_polynomial_jobs.zig");
 const scratch_mod = @import("composition_domain_scratch.zig");
 const buckets_mod = @import("composition_device_buckets.zig");
 const geometry = @import("polynomial_quotient_geometry.zig");
-const policy = @import("../execution_policy.zig");
 const Trace = prover.air.component_prover.Trace;
 const Column = prover.air.component_prover.TypedPolynomialColumnV1;
 const Twiddles = prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31);
@@ -46,9 +45,6 @@ pub fn evaluate(
             scratch_mod.releaseOwnerWindow();
         };
         if (requests.items.len != 0) {
-            // Coefficient filling in the existing scratch owner still runs
-            // on the host. Do not hide it behind a successful GPU transform.
-            try policy.admitHost(.composition);
             const tower = twiddles orelse return error.MissingCompositionDomainTwiddles;
             const exact = try tower.subtree(@intCast(log - 1));
             scratch_mod.acquireOwnerWindow();

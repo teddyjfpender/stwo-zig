@@ -34,7 +34,8 @@ def require_metal_lifecycle(output: str, manifest_pin: str, aot_profile: str | N
         r"^DETACHED_PARENT_METAL dispatches=(?P<dispatches>\d+) poseidon_commits=(?P<poseidon_commits>\d+) "
         r"cpu_fallbacks=(?P<cpu_fallbacks>\d+)(?: host_composition_components=(?P<host_composition_components>\d+) "
         r"pow_dispatches=(?P<pow_dispatches>\d+))? runtime_released=true manifest_sha256=(?P<manifest_sha256>[0-9a-f]{64})"
-        r"(?: profile=(?P<profile>core_v2|recursive_framework_v1))?$",
+        r"(?: profile=(?P<profile>core_v2|recursive_framework_v1))?"
+        r"(?: framework_dispatches=(?P<framework_dispatches>\d+))?$",
         output, re.MULTILINE))
     if len(matches) != 1:
         raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
@@ -49,6 +50,9 @@ def require_metal_lifecycle(output: str, manifest_pin: str, aot_profile: str | N
         raise RuntimeError("Metal parent did not authenticate the selected AOT profile")
     result = {field: (int(value) if value is not None else None)
               for field, value in metal.items() if field not in ("manifest_sha256", "profile")}
+    if observed == "recursive_framework_v1" and metal["framework_dispatches"] is not None:
+        if int(metal["framework_dispatches"]) == 0 or metal["host_composition_components"] != "0":
+            raise RuntimeError("recursive provider profile did not complete device composition")
     result.update(manifest_sha256=metal["manifest_sha256"], profile=observed,
                   legacy_core_profile=observed is None, runtime_released=True)
     return result

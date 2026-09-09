@@ -13,6 +13,7 @@ const std = @import("std");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const metal_runtime = @import("../runtime.zig");
+const execution_policy = @import("../execution_policy.zig");
 
 const M31 = core.fields.m31.M31;
 const Poly = prover.air.component_prover.Poly;
@@ -157,7 +158,22 @@ pub const OwnedV1 = struct {
         requests: []const RequestV1,
         twiddles: TwiddleTree,
     ) !OwnedV1 {
+        return initWithMode(allocator, runtime, source_trace, requests, twiddles, try execution_policy.requested());
+    }
+
+    fn initWithMode(
+        allocator: std.mem.Allocator,
+        runtime: *metal_runtime.Runtime,
+        source_trace: *const Trace,
+        requests: []const RequestV1,
+        twiddles: TwiddleTree,
+        mode: execution_policy.Mode,
+    ) !OwnedV1 {
         if (requests.len == 0) return error.EmptyCompositionDomainScratch;
+        // The transform runs on Metal, but coefficient filling still uses the
+        // host. Enforce this at the shared owner for every component family,
+        // before allocating storage or touching either runtime or trace.
+        try mode.admitHost(.composition);
 
         const request_storage = try allocator.dupe(RequestV1, requests);
         errdefer allocator.free(request_storage);
@@ -719,6 +735,43 @@ fn cloneAllocationFixture(allocator: std.mem.Allocator) !void {
     defer source.polys.deinit(allocator);
     var clone = try cloneTrace(allocator, &source);
     defer clone.polys.deinitDeep(allocator);
+}
+
+test "strict Metal scratch admission precedes allocation and runtime access" {
+    var storage: [0]u8 = .{};
+    var allocator = std.heap.FixedBufferAllocator.init(&storage);
+    // No runtime is initialized: a rejected owner must never access it.
+    var runtime: metal_runtime.Runtime = undefined;
+    const source = Trace{ .polys = .{ .items = &.{} } };
+    const requests = [_]RequestV1{.{
+        .tree_index = 0,
+        .column_index = 0,
+        .trace_log_size = 2,
+        .evaluation_log_size = 3,
+    }};
+    const twiddles = TwiddleTree{
+        .root_coset = core.poly.circle.canonic.CanonicCoset.new(3).circleDomain().half_coset,
+        .twiddles = &.{},
+        .itwiddles = &.{},
+    };
+    try std.testing.expectError(error.MetalHostCompositionForbidden, OwnedV1.initWithMode(
+        allocator.allocator(),
+        &runtime,
+        &source,
+        &requests,
+        twiddles,
+        .require_gpu,
+    ));
+    // The same nonempty request in hybrid mode reaches the allocation. This
+    // distinguishes the strict boundary from a generic invalid-input failure.
+    try std.testing.expectError(error.OutOfMemory, OwnedV1.initWithMode(
+        allocator.allocator(),
+        &runtime,
+        &source,
+        &requests,
+        twiddles,
+        .hybrid,
+    ));
 }
 
 test "Metal composition domain scratch clone cleans every allocation failure" {

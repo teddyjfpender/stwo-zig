@@ -868,7 +868,12 @@ pub const FrameworkLookupBatchV1 = struct {
 /// batch has a previous-row dependency, and its difference includes one
 /// claimed_sum / trace_size shift. This is not the V1/V2 independent-prefix
 /// recurrence and cannot be dispatched through those capability tags.
-pub const FrameworkLookupLayoutV1 = enum(u16) { same_row_prefix_v1 = 1 };
+pub const FrameworkLookupLayoutV1 = enum(u16) {
+    same_row_prefix_v1 = 1,
+    /// Each batch has its own previous-row sum and public claim. The selector
+    /// multiplies that claim; there is no same-row prefix or average shift.
+    independent_prefix_v1 = 2,
+};
 pub const FRAMEWORK_POLYNOMIAL_PROGRAM_DOMAIN_V1 =
     "stwo/prover/framework-polynomial-program/v1\x00";
 
@@ -885,6 +890,7 @@ pub const OwnedFrameworkPolynomialProgramV1 = struct {
     interaction_columns: []TypedPolynomialColumnV1,
     profile_parameter_count: u32,
     layout: FrameworkLookupLayoutV1 = .same_row_prefix_v1,
+    is_first_input: ?u32 = null,
     identity: [32]u8,
 
     pub fn deinit(self: *OwnedFrameworkPolynomialProgramV1) void {
@@ -911,7 +917,21 @@ pub const OwnedFrameworkPolynomialProgramV1 = struct {
             self.interaction_columns.len != 4 * self.batches.len or
             self.profile_parameter_count > self.inputs.len)
             return error.InvalidFrameworkPolynomialProgram;
-        try self.direct.validate();
+        switch (self.layout) {
+            .same_row_prefix_v1 => {
+                if (self.is_first_input != null) return error.InvalidFrameworkPolynomialInput;
+                try self.direct.validate();
+            },
+            .independent_prefix_v1 => {
+                const selector = self.is_first_input orelse return error.InvalidFrameworkPolynomialInput;
+                if (selector >= self.inputs.len or self.inputs[selector] != .trace_column or
+                    self.inputs[selector].trace_column.tree_index != 0)
+                    return error.InvalidFrameworkPolynomialInput;
+                if (self.direct.roots.len == 0) {
+                    if (self.direct.nodes.len != 0) return error.InvalidFrameworkPolynomialProgram;
+                } else try self.direct.validate();
+            },
+        }
         var lookup_root = [_]u32{self.entries[0].numerator};
         try (OwnedBasePolynomialProgram{ .allocator = self.allocator, .nodes = self.lookup_nodes, .roots = &lookup_root, .column_count = self.inputs.len }).validate();
         for (self.inputs) |input| switch (input) {
@@ -948,6 +968,9 @@ pub const OwnedFrameworkPolynomialProgramV1 = struct {
         hash.update(&self.semantic_digest);
         hash.update(&self.registry_order_digest);
         frameworkHashInt(&hash, u16, @intFromEnum(self.layout));
+        // Append-only encoding: existing layout1 identities stay byte-exact.
+        if (self.layout == .independent_prefix_v1)
+            frameworkHashInt(&hash, u32, self.is_first_input orelse std.math.maxInt(u32));
         frameworkHashInt(&hash, u32, self.profile_parameter_count);
         for ([_][]const BasePolynomialNode{ self.direct.nodes, self.lookup_nodes }) |nodes| {
             frameworkHashInt(&hash, u32, nodes.len);
@@ -1003,6 +1026,23 @@ pub const FrameworkPolynomialParametersV1 = struct {
     /// trace_log_size to the proof's component geometry, never candidate data.
     trace_log_size: u32,
     claimed_sum: QM31,
+    batch_claims: []const QM31 = &.{},
+
+    /// Payload after relation parameters: the legacy average shift, or one
+    /// unscaled public claim per independent batch. Validate at admission.
+    pub fn claimPayloadCount(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1) usize {
+        return switch (program.layout) {
+            .same_row_prefix_v1 => 1,
+            .independent_prefix_v1 => self.batch_claims.len,
+        };
+    }
+
+    pub fn claimPayload(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1, index: usize) !QM31 {
+        return switch (program.layout) {
+            .same_row_prefix_v1 => if (index == 0) self.claimedSumShift() else error.InvalidFrameworkPolynomialParameters,
+            .independent_prefix_v1 => if (index < self.batch_claims.len) self.batch_claims[index] else error.InvalidFrameworkPolynomialParameters,
+        };
+    }
 
     pub fn claimedSumShift(self: FrameworkPolynomialParametersV1) !QM31 {
         if (self.trace_log_size == 0 or self.trace_log_size >= @import("stwo_core").circle.M31_CIRCLE_LOG_ORDER)
@@ -1018,6 +1058,16 @@ pub const FrameworkPolynomialParametersV1 = struct {
             if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
         };
         for (self.claimed_sum.toM31Array()) |coordinate| if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        switch (program.layout) {
+            .same_row_prefix_v1 => if (self.batch_claims.len != 0) return error.InvalidFrameworkPolynomialParameters,
+            .independent_prefix_v1 => {
+                if (!self.claimed_sum.isZero() or self.batch_claims.len != program.batches.len)
+                    return error.InvalidFrameworkPolynomialParameters;
+                for (self.batch_claims) |claim| for (claim.toM31Array()) |coordinate| {
+                    if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+                };
+            },
+        }
         _ = try self.claimedSumShift();
     }
 };
@@ -1047,6 +1097,7 @@ pub const OwnedFrameworkPolynomialParametersV1 = struct {
     pub fn deinit(self: *@This()) void {
         self.allocator.free(self.values.profile_values);
         self.allocator.free(self.values.relation_values);
+        if (self.values.batch_claims.len != 0) self.allocator.free(self.values.batch_claims);
         self.* = undefined;
     }
 };

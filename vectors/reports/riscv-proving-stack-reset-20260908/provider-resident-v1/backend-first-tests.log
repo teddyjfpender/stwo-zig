@@ -1,0 +1,4 @@
+no step named 'test-base-polynomial-composition'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/a9305a4c815a3f7f5f487285b600bc01/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal .zig-cache /Users/theodorepender/.cache/zig --seed 0x5a4915e3 -Zfad142d76542c268 --maxrss 25769803776 -j1 test-framework-polynomial-codegen test-base-polynomial-composition -Doptimize=ReleaseFast --summary all

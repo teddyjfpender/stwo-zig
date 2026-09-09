@@ -106,5 +106,14 @@ test "recursive framework AOT profile preserves core authority and exact declara
     const coverage = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, recursive_coverage_source, .{});
     defer coverage.deinit();
     try std.testing.expect(!coverage.value.object.get("strict_coverage_complete").?.bool);
+    try std.testing.expect(coverage.value.object.get("composition_coverage_complete").?.bool);
     try std.testing.expectEqual(recursive_generated.entries.len, coverage.value.object.get("kernel_count").?.integer);
+    for (coverage.value.object.get("profiles").?.array.items) |profile| {
+        try std.testing.expectEqual(profile.object.get("total_components").?.integer, profile.object.get("covered_components").?.integer);
+        try std.testing.expectEqual(@as(usize, 0), profile.object.get("unsupported").?.array.items.len);
+        const providers = profile.object.get("native_providers").?.array.items;
+        try std.testing.expectEqual(@as(usize, 2), providers.len);
+        for (providers, 34..) |provider, row|
+            try std.testing.expectEqual(row, provider.object.get("row").?.integer);
+    }
 }

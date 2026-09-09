@@ -10,9 +10,9 @@ const field_codegen = @import("lookup_polynomial_codegen.zig");
 const Program = component.OwnedFrameworkPolynomialProgramV1;
 const Node = component.BasePolynomialNode;
 
-pub const codegen_version: u16 = 2;
-pub const identity_domain = "stwo/metal/framework-polynomial-codegen/v2\x00";
-// Codegen v2 retains the v1 buffer ABI. Exact emitter/helper bytes additionally
+pub const codegen_version: u16 = 3;
+pub const identity_domain = "stwo/metal/framework-polynomial-codegen/v3\x00";
+// Codegen v3 retains the v1 buffer ABI; layout selects the claim payload. Exact emitter/helper bytes additionally
 // invalidate cached kernels when a source change accidentally omits a bump.
 const emitter_source = @embedFile("framework_polynomial_codegen.zig");
 
@@ -91,7 +91,8 @@ pub fn generateLibrary(allocator: std.mem.Allocator, entries: []const Entry) ![]
 /// 0..2: already expanded PCS tree arenas; 3: u64 column offsets in program
 /// input order followed by interaction-column order (parameter slots unused);
 /// 4: profile M31 parameters; 5: relation QM31 words, followed by the derived
-/// claimedSumShift(); 6: QM31 coefficient powers for this whole component;
+/// claimedSumShift() for same-row-prefix or per-batch claims for independent
+/// prefixes; 6: QM31 coefficient powers for this whole component;
 /// 7: additive secure output; 8..10: evaluation rows and vanishing inverses.
 ///
 /// Runtime must bind parameters.trace_log_size to admitted geometry, derive the
@@ -138,16 +139,29 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
         try writer.print("    denominator{} = riscv_qm_sub(denominator{}, riscv_load_qm31(relation_parameters, {}u));\n", .{ index, index, 4 * parameter });
         parameter += 1 + relation.arity;
     }
+    if (program.layout == .independent_prefix_v1) {
+        const slot = program.is_first_input.?;
+        const column = program.inputs[slot].trace_column;
+        try writer.print("    uint is_first = tree{}[column_offsets[{}u] + row];\n", .{ column.tree_index, slot });
+    }
     for (program.batches, 0..) |batch, index| {
         try emitSecureLoad(writer, program, "current", index, batch.interaction_column_start, "row");
-        if (index == 0) {
-            try writer.print("    RiscvQm31 delta{} = current{};\n", .{ index, index });
-        } else {
-            try writer.print("    RiscvQm31 delta{} = riscv_qm_sub(current{}, current{});\n", .{ index, index, index - 1 });
-        }
-        if (index + 1 == program.batches.len) {
-            try emitSecureLoad(writer, program, "previous", index, batch.interaction_column_start, "previous_row");
-            try writer.print("    delta{} = riscv_qm_add(riscv_qm_sub(delta{}, previous{}), riscv_load_qm31(relation_parameters, {}u));\n", .{ index, index, index, 4 * parameter });
+        switch (program.layout) {
+            .same_row_prefix_v1 => {
+                if (index == 0) {
+                    try writer.print("    RiscvQm31 delta{} = current{};\n", .{ index, index });
+                } else {
+                    try writer.print("    RiscvQm31 delta{} = riscv_qm_sub(current{}, current{});\n", .{ index, index, index - 1 });
+                }
+                if (index + 1 == program.batches.len) {
+                    try emitSecureLoad(writer, program, "previous", index, batch.interaction_column_start, "previous_row");
+                    try writer.print("    delta{} = riscv_qm_add(riscv_qm_sub(delta{}, previous{}), riscv_load_qm31(relation_parameters, {}u));\n", .{ index, index, index, 4 * parameter });
+                }
+            },
+            .independent_prefix_v1 => {
+                try emitSecureLoad(writer, program, "previous", index, batch.interaction_column_start, "previous_row");
+                try writer.print("    RiscvQm31 delta{} = riscv_qm_add(riscv_qm_sub(current{}, previous{}), riscv_qm_mul_base(riscv_load_qm31(relation_parameters, {}u), is_first));\n", .{ index, index, index, 4 * (parameter + index) });
+            },
         }
         const first: usize = batch.first_entry;
         const numerator = program.entries[first].numerator;

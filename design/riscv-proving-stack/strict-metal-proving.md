@@ -5,8 +5,8 @@ This is a source-derived inventory of the supported four-segment route as of
 experimental profile and use GPU kernels, but substantial prover computation
 still runs on the CPU. Strict execution guards, recursive composition export
 and production AOT/resident execution of the typed recursive framework now
-pass the small complete-tree gate. Provider composition and bulk witness work
-remain on the host; this does not establish full strict execution.
+pass the small complete-tree gate, including recursive providers. Bulk witness
+work and nine native composition components remain on the host; this does not establish full strict execution.
 
 The route contains four native proofs, four detached leaf wrappers, two
 intermediate parents and one root. The controller is
@@ -55,7 +55,7 @@ listed counters by itself establishes full-route device execution.
 | Circle interpolation, evaluation and LDE | `backends/metal/commit_backend.zig`; `runtime/combined_commit.zig`, `runtime/heterogeneous_commit.zig` | GPU supported; domain log-size below 3 has host primitive branches | `metal_circle_transform_dispatch`, `metal_circle_lde_dispatch`; `cpu_small_circle_*` | Device coverage or fail-closed handling for small domains, zero/constant fast paths and all physical slabs. Report host source copies separately. |
 | Merkle commitments, including Poseidon | `backends/metal/commit_backend.zig`, `runtime/circle_commit_epoch.m`, commit runtimes | GPU resident paths; small/streaming/unsupported paths can use host hashing | `metal_poseidon2_merkle_commit`, resident commits, heterogeneous epoch dispatch/wait counts; `host_merkle_commit` | Require exact tree/leaf/parent-row coverage and authenticated hash-family kernel. A Poseidon commitment counter says nothing about Poseidon AIR witness generation or composition. |
 | Native composition | `backends/metal/runtime/base_polynomial_composition.zig`; `prover/air/component_prover.zig` | Mixed: admitted semantic/lookup batches GPU; other components host; cost crossover can retain small components on host | Eligible component counts plus completed `metal_riscv_*_batch_dispatch`; host component accounting | Cover every component and all random-coefficient ranges; strict mode must reject host placement even when it was never considered a fallback. |
-| Leaf/parent recursive composition | Shared AIR catalogs under `frontends/riscv/recursion/air/`; `runtime/framework_polynomial_jobs.zig`, `framework_polynomial_batch.zig` and existing scheduler | Production AOT GPU execution for 37/39 leaf and 29/31 parent components; two providers remain host | `metal_framework_polynomial_dispatch`; resident component/group logs; parent host count is 2 | Compact/legacy universal Poseidon and range providers; GPU coefficient filling during composition-domain expansion. |
+| Leaf/parent recursive composition | Shared AIR catalogs under `frontends/riscv/recursion/air/`; `runtime/framework_polynomial_jobs.zig`, `framework_polynomial_batch.zig` and existing scheduler | Production AOT GPU execution for all 39 leaf and 31 parent components | `metal_framework_polynomial_dispatch`; resident component/group logs; leaf/parent host count is 0 | GPU coefficient filling during composition-domain expansion; bulk closure and interaction construction are separate operations. |
 | OODS sampled evaluation and FRI quotient | `backends/metal/commit_backend.zig`; `runtime/sampled_coefficient_operations.zig`, `runtime/sampled_barycentric_operations.zig`, `runtime/quotients.m` | GPU routes available; host preparation and conditional sampled-value fallback remain | `metal_sampled_value_dispatch`, `metal_quotient_dispatch`, `cpu_sampled_value_evaluation` | Coverage by polynomial/query batch, not one dispatch per proof; distinguish quotient preparation, execution, copies and waits. |
 | FRI folds and fold commitments | `backends/metal/commit_backend_fri.zig`, `runtime/fold_inverses.zig` | Mixed: GPU folds; line-fold path computes inverse arrays on host. Circle folds use resident inverses only above a threshold unless parity checks request host data | Fold dispatches and `FriFoldExecutionLedger.inverse_path`; resident fold/commit receipts | Device inverse preparation for every admitted layer. The cascade fast path admits Blake2s and fold-step 1; it does not cover this Poseidon fold-step 4 profile. Individual fold-and-commit paths must be audited by their actual receipts. |
 | Proof of work | `backends/metal/runtime/proof_of_work.zig`; `integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig`, `recursive_segment_v2_detached_parent_proof.zig` | Backend PCS grinding GPU supported; leaf and parent interaction grinding now use shared `pcs.proof_of_work.grindForBackend` | Backend PoW result includes dispatch count/GPU milliseconds; the checked hybrid root records two PoW dispatches | Preserve backend admission for both grinding sites. Prefix setup and final nonce checking are bounded control; nonce search is computation. |
@@ -172,8 +172,8 @@ recursive proof system.
 
 ## Production framework composition checkpoint
 
-The separate `recursive_framework_v1` AOT profile contains 41 kernels generated
-from the exact shared leaf and parent typed AIR catalogs. Native integration
+The separate `recursive_framework_v1` AOT profile contains 51 kernels generated
+from the exact shared leaf/parent catalogs and native provider evaluators. Native integration
 consumes those same catalogs. The maintained source gate authenticates every
 export, deduplicates equation-identical programs and checks the generated source,
 declaration inventory and explicit coverage file. The original core profile
@@ -197,46 +197,58 @@ over every referenced column in a logical tree, including already-sized columns,
 so one logical tree resolves to one resident buffer. It evaluates retained
 coefficients on the exact domain and borrows the existing twiddle subtree.
 Coefficient filling still performs host work and is guarded in strict mode.
-Simultaneous legacy scratch ownership and new framework expansion currently
-reject with `MixedFrameworkCompositionScratch`; this is an explicit unsupported
-mixed graph, not an alternate evaluation path.
+Legacy device/parity consumers now finish before their scratch is released
+and framework groups acquire the bounded owner window. Both families compose
+without overlapping scratch owners. Cold AOT admission precedes expansion;
+unsupported kernels decline before allocating provider scratch.
 
 ### Passed gates
 
-- Isolated generated-kernel device parity: 108 cases, 144 dispatches and
-  29,568 checked coordinates across four kernel shapes.
+- Isolated generated-kernel device parity: 135 cases, 180 dispatches and
+  36,960 checked coordinates across five kernel shapes, including independent
+  per-batch claims, non-Boolean selectors and zero direct roots.
 - Actual exported arithmetic AIR through production AOT and resident committed
   buffers: two additive dispatches, all 64 coordinates equal native evaluation,
   six invalid binding/parameter cases rejected without output mutation.
 - Full four-segment production with CPU composition parity enabled: 136 fresh
   positive/negative verifier cases pass; all 21 serialized proof/key/claim
-  artifacts equal the retained baseline. Leaf wrappers dispatch 37 framework
-  components; parents dispatch 29, retaining two host provider components.
+  artifacts equal the retained baseline. Leaf wrappers dispatch 38 framework
+  components; parents dispatch 30. Both add four native Poseidon direct
+  partitions and one lookup job, retaining zero host composition components.
 - Mixed-domain scratch, borrowed twiddle views and explicit AOT profile routing
   have focused regression checks. Source regeneration must reproduce the exact
   checked-in extension.
 
-The leaf receipt's legacy `composition_dispatches` counts the old semantic and
-lookup batches only; it can be zero while framework composition runs on Metal.
-The new framework event contributes to total dispatches and has a separate
-telemetry counter and resident component/group log. Until the leaf receipt
-exports that counter explicitly, use these positive framework logs and the
-admitted coverage roster together; the legacy zero is not a coverage verdict.
+Leaf and parent receipts now expose `framework_dispatches` explicitly, alongside
+host-component counts. The legacy `composition_dispatches` field retains its
+old narrower scope and can be zero while framework kernels execute. Gates
+reject new provider-profile receipts reporting host composition or zero
+framework dispatches. Missing fields in older pinned receipts remain unknown.
 
 Commands, executable/bundle pins, retained failures and complete-tree observations
-are recorded in [the resident checkpoint](../../vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/README.md).
+are recorded in [the resident checkpoint](../../vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/README.md).
 The CPU parity run intentionally repeats computation and is not a performance
 measurement. Full strict acceptance still requires every operation in the
 inventory above.
 
-### Next provider boundary
+### Next interaction and native boundaries
 
-The remaining Poseidon and range providers use independent per-batch running
-sums and claims. They cannot consume the framework's same-row-prefix recurrence.
-Legacy universal Poseidon already exports its direct and lookup equations;
-its direct kernels need AOT coverage before enabling that capability. Compact
-universal Poseidon should generalize the existing native-evaluator-backed
-exporter. The range provider needs mapped preprocessing/main inputs and zero
-direct roots, with its exact independent-prefix relation preserved. Reuse the
-existing authenticated range relation plan and native recurrence; do not add
-fake direct constraints or silently reinterpret a lookup layout.
+Root composition is now 0.164 seconds; root preparation, main finalization and
+interaction filling still total about 7.93 seconds. The parent's Poseidon
+interaction writer uses serial per-row inversion, whereas the leaf uses the
+existing chunked batch-inversion writer. This is a concrete first algorithm
+comparison, with exact columns/claims and complete-proof gates.
+
+Device interaction generation should consume claims-free immutable programs
+exported from admitted direct/relation plans, with actual transcript challenges
+supplied at invocation and generated claims returned. Existing Metal block
+scans/scatter can be reused, but independent batches need raw sums and framework
+final columns need mean subtraction. Preserve active-row/padding rules and
+reject zero denominators before publishing any destination. Do not add another
+placeholder-claim component owner.
+
+Native composition still has six fixed tables, program, Merkle and clock update
+on the host. Share native table relation exports in their native AIR owner;
+importing the recursive range adapter into native execution would invert that
+library boundary. The small temporal fixture has no ordinary memory component,
+so broader memory coverage must be admitted and tested separately.

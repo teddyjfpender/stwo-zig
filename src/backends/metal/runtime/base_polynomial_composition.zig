@@ -226,7 +226,7 @@ fn evaluateInternal(
             component.nConstraints(),
         );
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
-        partition.* = try componentPartition(component, execution_mode);
+        partition.* = try componentPartition(component, execution_mode, lease.runtime.admitted_profile == .recursive_framework_v1);
         // Old/core-only bundles retain their existing host route without
         // exporting every recursive program just to discover a missing kernel.
         if (lease.runtime.admitted_profile != .recursive_framework_v1)
@@ -241,7 +241,6 @@ fn evaluateInternal(
     if (host_component_count != 0) {
         // Fail before preparing or launching any host worker in a mixed graph.
         try execution_mode.admitHost(.composition);
-        telemetry.recordN(.cpu_composition_component, @intCast(host_component_count));
     }
     telemetry.recordN(
         .riscv_base_polynomial_eligible_component,
@@ -296,6 +295,38 @@ fn evaluateInternal(
             }
         }
     }
+
+    // Cold program admission precedes bulk scratch allocation. In particular,
+    // core-only bundles may lack newly exported provider kernels; decline that
+    // request before reconstructing expanded provider columns or starting CPU work.
+    var base_programs = std.ArrayList(BaseProgramEntry).empty;
+    defer {
+        for (base_programs.items) |*entry| entry.deinit();
+        base_programs.deinit(allocator);
+    }
+    for (components, partitions) |component, partition| {
+        for (partition.bases[0..partition.base_count]) |base| {
+            if (findBaseProgram(base_programs.items, base.capability.program_id) == null) {
+                var program = try base.capability.export_program(component.ctx, allocator);
+                errdefer program.deinit();
+                try validateBaseProgram(program, base.capability, base.constraints.count);
+                try base_programs.append(allocator, .{
+                    .program_id = base.capability.program_id,
+                    .program = program,
+                });
+            }
+        }
+    }
+    for (base_programs.items) |*entry| {
+        const name = try base_codegen.kernelName(allocator, entry.program);
+        defer allocator.free(name);
+        entry.plan = lease.runtime.prepareBasePolynomialAot(name) catch
+            return declineResidentPolynomial();
+    }
+    for (framework_jobs) |*job| job.prepare(lease.runtime) catch |err| switch (err) {
+        error.FrameworkPolynomialUnavailable => return declineResidentPolynomial(),
+        else => return err,
+    };
 
     const expansion_requests = try collectCompositionDomainRequests(
         allocator,
@@ -357,11 +388,6 @@ fn evaluateInternal(
             power_words[index * 4 + coordinate] = coordinates[coordinate].toU32();
     }
 
-    var base_programs = std.ArrayList(BaseProgramEntry).empty;
-    defer {
-        for (base_programs.items) |*entry| entry.deinit();
-        base_programs.deinit(allocator);
-    }
     var lookup_catalog = lookup_resident.Catalog.init(allocator);
     defer lookup_catalog.deinit();
     const semantic_jobs = try allocator.alloc(SemanticJob, semantic_count);
@@ -417,16 +443,6 @@ fn evaluateInternal(
                 .selector = job.selector,
             };
             semantic_index += 1;
-
-            if (findBaseProgram(base_programs.items, capability.program_id) == null) {
-                var program = try capability.export_program(component.ctx, allocator);
-                errdefer program.deinit();
-                try validateBaseProgram(program, capability, range.count);
-                try base_programs.append(allocator, .{
-                    .program_id = capability.program_id,
-                    .program = program,
-                });
-            }
         }
 
         if (partition.lookup) |capability| {
@@ -474,17 +490,17 @@ fn evaluateInternal(
     std.debug.assert(lookup_index == lookup_jobs.len);
     std.debug.assert(host_index == host_workers.len);
 
-    for (framework_jobs) |*job| job.prepare(lease.runtime) catch |err| switch (err) {
-        error.FrameworkPolynomialUnavailable => return declineResidentPolynomial(),
-        else => return err,
-    };
+    lookup_catalog.prepareAll(lease.runtime) catch return declineResidentPolynomial();
 
-    // Ordinary host-only components start before resident AOT resolution, and
-    // the dominant reviewed splitter may consume the ambient pool while this
+    // All AOT families have resolved before host work starts. A dominant
+    // reviewed splitter may consume the ambient pool while this
     // thread submits device work. Profiled proving deliberately selects the
     // separate prepared graph path: it drains under the explicit request
     // before synchronous device dispatch, so every host worker is attributable
     // and no private thread or ambient-pool work escapes the task receipt.
+    // Count executed host placement, not a tentative partition that may have
+    // declined for a missing AOT kernel. Terminal fallback counts the full roster.
+    telemetry.recordN(.cpu_composition_component, @intCast(host_component_count));
     if (timing) |*clock| clock.enter(.host_launch_or_inline);
     var wait_group = std.Thread.WaitGroup{};
     const pool = if (profiled_execution == null)
@@ -503,7 +519,7 @@ fn evaluateInternal(
     defer if (parallel_thread) |thread| thread.join();
     var parallel_on_caller: ?usize = null;
     if (profiled_execution) |execution| {
-        try host_graph.execute(allocator, host_workers, execution);
+        if (host_workers.len != 0) try host_graph.execute(allocator, host_workers, execution);
     } else if (pool) |active| {
         const parallel_index = dominantParallelHostWorker(host_workers);
         for (host_workers, 0..) |*worker, index| {
@@ -523,13 +539,6 @@ fn evaluateInternal(
     }
 
     if (timing) |*clock| clock.enter(.device_preparation);
-    for (base_programs.items) |*entry| {
-        const name = try base_codegen.kernelName(allocator, entry.program);
-        defer allocator.free(name);
-        entry.plan = lease.runtime.prepareBasePolynomialAot(name) catch
-            return declineResidentPolynomial();
-    }
-    lookup_catalog.prepareAll(lease.runtime) catch return declineResidentPolynomial();
 
     var semantic_buckets = try DeviceBucketSet.init(
         allocator,
@@ -670,6 +679,48 @@ fn evaluateInternal(
         parameter_words,
         lookup_buckets.outputs,
     );
+    const semantic_gpu_ms = if (semantic_gpu_result) |result|
+        result catch return declineResidentPolynomial()
+    else
+        null;
+    const lookup_gpu_ms = if (lookup_gpu_result) |result|
+        result catch return declineResidentPolynomial()
+    else
+        null;
+    const parity_requested = try compositionParityRequested();
+
+    if (timing) |*clock| clock.enter(.device_partition_parity);
+    if (parity_requested) try validateDevicePartitionParity(
+        allocator,
+        components,
+        powers,
+        max_log_size,
+        trace,
+        residency_handles,
+        composition_domain_resident,
+        lease.runtime,
+        semantic_jobs,
+        main_column_ptrs,
+        dispatches,
+        power_words,
+        &semantic_buckets,
+        lookup_jobs,
+        lookup_main_column_ptrs,
+        interaction_column_ptrs,
+        lookup_dispatches,
+        parameter_words,
+        &lookup_buckets,
+    );
+    // Device replay is the final consumer of the old family scratch. Release
+    // it before framework groups acquire the same bounded owner window.
+    if (timing) |*clock| clock.enter(.scratch_release);
+    if (composition_scratch != null) {
+        composition_scratch.?.deinit();
+        composition_scratch = null;
+        composition_domain_resident = null;
+        composition_domain_scratch.releaseOwnerWindow();
+        scratch_lock_held = false;
+    }
     if (timing) |*clock| clock.enter(.framework_dispatch);
     const framework_result = try framework_batch.evaluate(
         allocator,
@@ -687,29 +738,6 @@ fn evaluateInternal(
         std.log.info("resident framework composition: components={} groups={} gpu_ms={d:.3}", .{
             framework_result.dispatches, framework_result.groups, framework_result.gpu_milliseconds,
         });
-    }
-    if (timing) |*clock| clock.enter(.scratch_release);
-    const semantic_gpu_ms = if (semantic_gpu_result) |result|
-        result catch return declineResidentPolynomial()
-    else
-        null;
-    const lookup_gpu_ms = if (lookup_gpu_result) |result|
-        result catch return declineResidentPolynomial()
-    else
-        null;
-    const parity_requested = try compositionParityRequested();
-
-    // Both Metal batch entry points are synchronous.  On the ordinary route,
-    // the five authenticated D5 dispatches have consumed the scratch before
-    // host-only workers are joined, so free its one-gigabyte arena and release
-    // the global one-owner lease immediately.  Diagnostic per-job replay still
-    // needs the exact pointers and therefore retains the lease through parity.
-    if (!parity_requested and composition_scratch != null) {
-        composition_scratch.?.deinit();
-        composition_scratch = null;
-        composition_domain_resident = null;
-        composition_domain_scratch.releaseOwnerWindow();
-        scratch_lock_held = false;
     }
     if (timing) |*clock| clock.enter(.host_wait);
     if (parallel_on_caller) |index| HostWorker.runParallel(&host_workers[index], pool.?);
@@ -740,6 +768,15 @@ fn evaluateInternal(
         );
     }
 
+    if (parity_requested) try validateHostPartitionParity(
+        allocator,
+        components,
+        powers,
+        max_log_size,
+        trace,
+        host_workers,
+    );
+
     if (parity_requested and framework_jobs.len != 0) {
         var reference = try composition_partition_parity.referenceForJobs(
             allocator,
@@ -755,36 +792,6 @@ fn evaluateInternal(
         if (composition_partition_parity.firstMismatch(&reference, &actual) != null)
             return error.MetalCompositionParityMismatch;
         logPartitionParity("framework", &actual, framework_jobs.len);
-    }
-
-    if (parity_requested) try validatePartitionParity(
-        allocator,
-        components,
-        powers,
-        max_log_size,
-        trace,
-        residency_handles,
-        composition_domain_resident,
-        lease.runtime,
-        semantic_jobs,
-        main_column_ptrs,
-        dispatches,
-        power_words,
-        &semantic_buckets,
-        lookup_jobs,
-        lookup_main_column_ptrs,
-        interaction_column_ptrs,
-        lookup_dispatches,
-        parameter_words,
-        &lookup_buckets,
-        host_workers,
-    );
-    if (parity_requested and composition_scratch != null) {
-        composition_scratch.?.deinit();
-        composition_scratch = null;
-        composition_domain_resident = null;
-        composition_domain_scratch.releaseOwnerWindow();
-        scratch_lock_held = false;
     }
 
     // Each batch ABI returns a complete zero-origin device result. Merge only
@@ -855,7 +862,7 @@ fn evaluateInternal(
 /// are compared independently before any merge, so a field-program defect,
 /// an intra-command accumulation hazard, and a host/merge defect have distinct
 /// evidence. Per-job device replay is attempted only after a family mismatch.
-fn validatePartitionParity(
+fn validateDevicePartitionParity(
     allocator: std.mem.Allocator,
     components: []const Component,
     powers: []const QM31,
@@ -875,7 +882,6 @@ fn validatePartitionParity(
     lookup_dispatches: []const metal_runtime.LookupPolynomialDispatch,
     parameter_words: []const u32,
     lookup_buckets: *const DeviceBucketSet,
-    host_workers: []const HostWorker,
 ) !void {
     var timer = try std.time.Timer.start();
     if (semantic_jobs.len != 0) {
@@ -960,6 +966,20 @@ fn validatePartitionParity(
         logPartitionParity("lookup", &actual, lookup_jobs.len);
     }
 
+    std.log.info(
+        "METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns={}",
+        .{timer.read()},
+    );
+}
+
+fn validateHostPartitionParity(
+    allocator: std.mem.Allocator,
+    components: []const Component,
+    powers: []const QM31,
+    max_log_size: u32,
+    trace: *const Trace,
+    host_workers: []const HostWorker,
+) !void {
     if (host_workers.len != 0) {
         var reference = try composition_partition_parity.referenceForHostWorkers(
             allocator,
@@ -993,10 +1013,6 @@ fn validatePartitionParity(
         }
         logPartitionParity("host", &actual, host_workers.len);
     }
-    std.log.info(
-        "METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns={}",
-        .{timer.read()},
-    );
 }
 
 fn diagnoseSemanticJobs(
@@ -1323,7 +1339,7 @@ fn declineResidentPolynomial() ?SecureColumn {
     return null;
 }
 
-fn componentPartition(component: Component, mode: execution_policy.Mode) !ComponentPartition {
+fn componentPartition(component: Component, mode: execution_policy.Mode, recursive_profile: bool) !ComponentPartition {
     const capability = component.backend_composition_capability orelse return .{};
     return switch (capability) {
         .framework_polynomial_v1 => |value| .{ .framework = value },
@@ -1340,7 +1356,7 @@ fn componentPartition(component: Component, mode: execution_policy.Mode) !Compon
             .lookup_constraints = .{ .start = 0, .count = component.nConstraints() },
         },
         .base_lookup_polynomial_v1 => |selected| blk: {
-            if (mode == .hybrid and component.maxConstraintLogDegreeBound() < mixed_component_min_eval_log_size)
+            if (mode == .hybrid and !recursive_profile and component.maxConstraintLogDegreeBound() < mixed_component_min_eval_log_size)
                 break :blk .{};
             const exported = try selected.export_capabilities(component.ctx);
             try exported.validate(component.nConstraints());

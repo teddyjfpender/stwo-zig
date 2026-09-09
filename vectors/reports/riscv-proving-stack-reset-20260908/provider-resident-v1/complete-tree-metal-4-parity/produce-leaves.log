@@ -1,0 +1,99 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=metal memory_addresses=1 initial_register7=0
+SEGMENT_V2_NATIVE_METAL_AOT profile=recursive_framework_v1 manifest_sha256=98703ad708efeb6aee92403f0d818498fb97b91174b3a597b42925d64fd82da7 source_sha256=607653b63a82ffe10c243c8823e8199854ed7662e76163673cc7e56256eea6c8 metallib_sha256=a36ba6be5a9036b09f9833603f33926aa4d4c1317ac1e78f3c2270dde7a9040c initialization_ns=86695750
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=227 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=138c
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=7 rows=2097152 identity_sha256=3b3a74ee1cddf9bf5d6f53e673f786ba3b7b1edc68feeaab8edf12ceac96179a
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=4 rows=2097152 identity_sha256=8767998e14f8bba6f2705d9494ff590bdda5c99f8b37386de6ee8b4389114589
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=206445417
+info: resident RISC-V semantic composition: 7 components, 7 kernels, 0.637 ms GPU
+info: resident RISC-V lookup composition: 4 components, 4 kernels, 0.280 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=host jobs=9 rows=2097152 identity_sha256=beff451220005c068d77d49b68004aae0d727317b4bff17d9944b93d31e2d7c8
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=2097152 constraints=578 elapsed_ns=227785834 identity_sha256=7ff89901eea7edf53eb30570909903dca00d2b56fba5fb395b2f24c0311cb35d
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=587450644 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1333079 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2239474250 transport_ns=12152666 verify_ns=452759625 recursive_prepare_ns=903683917 proof_bytes=1333079 transcript_calls=1164 verifier_core_calls=58865 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=0 dispatches=79 poseidon_commits=9
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1860980333 poseidon_calls=60045 tree0_evaluation_bytes=187176192 tree1_evaluation_bytes=242896640 tree2_evaluation_bytes=110733312 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=4 rows=1048576 identity_sha256=e4099c754a15f4c2efbfa793f9c7ecc14c5c45ccff6bd58c0e0da0cbf1107617
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=1 rows=1048576 identity_sha256=3031c5ad99e9078a43b56a8a4e5efdbb0f2e65d10f4dda46aedd2577563c2971
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=1793637458
+info: resident framework composition: components=38 groups=15 gpu_ms=11.372
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 6.405 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.233 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=framework jobs=38 rows=1048576 identity_sha256=2772f66892e496def21e5b8823b24032214d3ac3807144e12198b64e5d9e626d
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=1048576 constraints=1255 elapsed_ns=742953083 identity_sha256=bc7e63ae5c473d48de9ffa61571e57bb411231e5e60fd89eda01c06e9ebe5c28
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=0 dispatches=132 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-parity/leaves/child-0 native_backend=metal recursive_backend=metal proof_bytes=2483410 native_ingress_ns=3610084750 outer_prepare_ns=2274708041 outer_prove_ns=9604555834 transaction_ns=15520737500 producer_peak_bytes=2241558326 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=6 rows=2097152 identity_sha256=2b3b72ca496a027d34ee383313fe943cbc434d8f71f2e783809ffb900ce607e3
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=3 rows=2097152 identity_sha256=fd0462a89f696c33f2751a969faecbc8a9ca8db752acff60c7058b57b8c9db3a
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=184404958
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.684 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.252 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=host jobs=9 rows=2097152 identity_sha256=143a87bd5f295bbefbf2fe88870e6bb56b6edb5edc754e23a6dff6012afe7bdb
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=2097152 constraints=565 elapsed_ns=212498791 identity_sha256=e38a095dc123544827bc1d6401fc5435f740b28e212817650e31f1a08a0763a4
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=587424316 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1285640 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=1 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2019767167 transport_ns=11649792 verify_ns=456132416 recursive_prepare_ns=896142542 proof_bytes=1285640 transcript_calls=1104 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=1 dispatches=79 poseidon_commits=9
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1806698333 poseidon_calls=59019 tree0_evaluation_bytes=187176192 tree1_evaluation_bytes=242896640 tree2_evaluation_bytes=110733312 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=4 rows=1048576 identity_sha256=7c904ed73be5e713875bc057ac5d0e8b9fa9fb0b96a7d96eba1a77f98b6cc449
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=1 rows=1048576 identity_sha256=ab8a76fd20b072ec1de661287387a4b0fab1d07c20205a55ef42bae803d8b221
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=1796586792
+info: resident framework composition: components=38 groups=15 gpu_ms=9.380
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 6.230 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.231 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=framework jobs=38 rows=1048576 identity_sha256=3f664157849a22bb3e56e1855c6da781181d599b770886c174cb6fd07dd65055
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=1048576 constraints=1255 elapsed_ns=732975875 identity_sha256=eb7d8fa4c7b7c6ee86d594261225a6ce65c5870d8e0d3af82bf4e7c03e0cd25e
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=1 dispatches=132 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=1 first_cycle=64 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-parity/leaves/child-1 native_backend=metal recursive_backend=metal proof_bytes=2485445 native_ingress_ns=3387384625 outer_prepare_ns=2217736291 outer_prove_ns=9614071792 transaction_ns=15247253417 producer_peak_bytes=2232079480 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=6 rows=2097152 identity_sha256=6aa0792ef30af0b900f6c4265d077bd206673c9464b68375296b4b9cfbac4506
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=3 rows=2097152 identity_sha256=492cd008be6d5463f7d7b87782360884bf9af30517dd8dcca421e00a519a53e5
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=178063541
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.633 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.239 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=host jobs=9 rows=2097152 identity_sha256=fb3742f3f459aad199831a2dc6b77cea52782bbc86b9a55c3a7eb50d581d1b5c
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=2097152 constraints=565 elapsed_ns=221108500 identity_sha256=933d8792484335ca01918ad96a30f27760fef8c165efd29382e3ababdacf38c5
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=2 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=587424316 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1293574 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=2 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2042149459 transport_ns=11797291 verify_ns=459711750 recursive_prepare_ns=896459542 proof_bytes=1293574 transcript_calls=1104 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=2 dispatches=79 poseidon_commits=9
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1829780500 poseidon_calls=59019 tree0_evaluation_bytes=187176192 tree1_evaluation_bytes=242896640 tree2_evaluation_bytes=110733312 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=4 rows=1048576 identity_sha256=9e37df72105b812a82451e01a579246b07866b57c42d941c27ae0fb7f32a218a
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=1 rows=1048576 identity_sha256=bd9a94bc4e539882fba423e2ca76663549be1817899af22310d88c9bc9d2e765
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=1785764792
+info: resident framework composition: components=38 groups=15 gpu_ms=8.984
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 6.441 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.223 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=framework jobs=38 rows=1048576 identity_sha256=56cba8f55b4f33ea3c00e2e896d2039e3ee73b59e5c1b72a196cb88c8f33b394
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=1048576 constraints=1255 elapsed_ns=732813000 identity_sha256=608c16e6e2752e251ab3cb460478176a64dd3fa687bef2d43fe85fdcc26a9c26
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=2 dispatches=132 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=2 first_cycle=128 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-parity/leaves/child-2 native_backend=metal recursive_backend=metal proof_bytes=2490707 native_ingress_ns=3414068292 outer_prepare_ns=2248521750 outer_prove_ns=9649803375 transaction_ns=15366125667 producer_peak_bytes=2232079487 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=6 rows=2097152 identity_sha256=6ec30f2d28e94ab8c8c641dac65f07c54208ea7adc0a8a8082c1f853510583d6
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=3 rows=2097152 identity_sha256=d2c241c383e3cc3b417e94d1d75691a939a80cc00f0865ad4e4814e0a3fae26a
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=185847166
+info: resident RISC-V semantic composition: 6 components, 6 kernels, 0.638 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.243 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=host jobs=9 rows=2097152 identity_sha256=2d9bfe70c754f8b0a8b299bdf4fff63187eecd427cbfb589fb77e04d5d1f9813
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=2097152 constraints=565 elapsed_ns=215649917 identity_sha256=3eebf8a1a47d252f137d3a0beb8d0fe46f1bd09d253e0eb259c4211f68f4ac1b
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=3 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=587303644 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1287206 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=3 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2001801625 transport_ns=11846417 verify_ns=461539750 recursive_prepare_ns=896064167 proof_bytes=1287206 transcript_calls=1104 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=3 dispatches=76 poseidon_commits=9
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1846717541 poseidon_calls=59019 tree0_evaluation_bytes=187176192 tree1_evaluation_bytes=242896640 tree2_evaluation_bytes=110733312 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=semantic jobs=4 rows=1048576 identity_sha256=f3f53f54346313d3e1edc330c36c468d4013306477aa9687e5e6a837a8b51031
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=lookup jobs=1 rows=1048576 identity_sha256=eaf75bf368c765a0a1974233fe70989fbe26cedaeea694f2a1a4ddc43cd16193
+info: METAL_RISCV_COMPOSITION_PARTITIONS_V1 elapsed_ns=1791354792
+info: resident framework composition: components=38 groups=15 gpu_ms=9.985
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 6.332 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.303 ms GPU
+info: METAL_RISCV_COMPOSITION_PARTITION_V1 kind=framework jobs=38 rows=1048576 identity_sha256=9f34e0ecb3b4ba0c7dd0a907b035eb75533790c470eb4b91c96dc34d6aa112b5
+info: METAL_RISCV_COMPOSITION_PARITY_V1 rows=1048576 constraints=1255 elapsed_ns=743809208 identity_sha256=b54679662f8fdbde0febd29a3869a46ba74464e3c7851064d2d363b80a297547
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=3 dispatches=132 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=3 first_cycle=192 retired_cycles=35 completed=true directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/provider-resident-v1/complete-tree-metal-4-parity/leaves/child-3 native_backend=metal recursive_backend=metal proof_bytes=2485993 native_ingress_ns=3374912959 outer_prepare_ns=2263785791 outer_prove_ns=9667337417 transaction_ns=15333797125 producer_peak_bytes=2231682858 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=metal recursive_backend=metal owners_destroyed=true parent_proof_created=false

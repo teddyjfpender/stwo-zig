@@ -538,12 +538,14 @@ pub fn RangeCheck8x8AdapterForManifest(comptime manifest_contract: type) type {
             for (self.component.tuple_col_indices[range_bridge.TUPLE_ARITY..]) |index| {
                 if (index != 0) return error.ProviderAuthorityMismatch;
             }
+            var prover = self.component.asProverComponent();
+            prover.backend_composition_capability = .{ .framework_polynomial_v1 = range_bridge.frameworkCapability() };
             return .{
                 .manifest_seal = manifest.seal,
                 .placement = self.placement,
                 .claimed_sum = self.component.claim,
                 .verifier = self.component.asVerifierComponent(),
-                .prover = self.component.asProverComponent(),
+                .prover = prover,
             };
         }
     };

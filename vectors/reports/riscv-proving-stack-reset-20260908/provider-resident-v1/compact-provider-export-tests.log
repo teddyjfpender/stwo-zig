@@ -1,0 +1,15 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 30s
+test-poseidon-universal-degree3
++- run test 230/231 passed, 1 failed
+error: 'air.memory_commitment.poseidon2_narrow_backend_v1_test.test.Ethereum narrow degree3 Poseidon backend DAG preserves direct lookup and capability ordering' failed: expected 5778767244230131712, found 5778767244230131713
+error: while executing test 'air.lookups.tables.schema.test.preprocessed columns use deterministic committed bit-reversed order', the following test command failed:
+./.zig-cache/o/389c68928606d5108586397f15330961/test --cache-dir=./.zig-cache --seed=0xbb04fd09 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 230/231 tests passed; 1 failed
+test-poseidon-universal-degree3 transitive failure
++- run test 230/231 passed, 1 failed
+   +- compile test ReleaseFast native success 56s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/874d1dcd476c2d23766ef606f7c070e7/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xbb04fd09 -Z3567b886d88b7252 --maxrss 25769803776 -j1 test-poseidon-universal-degree3 -Doptimize=ReleaseFast --summary all

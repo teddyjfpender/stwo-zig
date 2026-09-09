@@ -27,6 +27,35 @@ pub fn exportPrepared(
     profile_parameter_count: u32,
     tree_column_counts: []const usize,
 ) !backend.OwnedFrameworkPolynomialProgramV1 {
+    return exportPreparedLayout(Air, allocator, direct, relations, inputs, interaction_columns, profile_parameter_count, tree_column_counts, null);
+}
+
+/// The extra committed selector belongs to the framework, not the typed
+/// relation arena. Keep the arena's input-slot numbering unchanged when
+/// lowering intermediate expressions.
+pub fn exportIndependentPrepared(
+    comptime Air: type,
+    allocator: std.mem.Allocator,
+    direct: *const direct_mod.Program,
+    relations: *const binding_mod.Binding(Air).Plan,
+    inputs: []const backend.TypedPolynomialInputV1,
+    interaction_columns: []const backend.TypedPolynomialColumnV1,
+    tree_column_counts: []const usize,
+) !backend.OwnedFrameworkPolynomialProgramV1 {
+    return exportPreparedLayout(Air, allocator, direct, relations, inputs, interaction_columns, 0, tree_column_counts, Air.LOGICAL_INPUT_COUNT);
+}
+
+fn exportPreparedLayout(
+    comptime Air: type,
+    allocator: std.mem.Allocator,
+    direct: *const direct_mod.Program,
+    relations: *const binding_mod.Binding(Air).Plan,
+    inputs: []const backend.TypedPolynomialInputV1,
+    interaction_columns: []const backend.TypedPolynomialColumnV1,
+    profile_parameter_count: u32,
+    tree_column_counts: []const usize,
+    is_first_input: ?u32,
+) !backend.OwnedFrameworkPolynomialProgramV1 {
     if (direct.input_count != Air.LOGICAL_INPUT_COUNT or direct.constraint_count != Air.DIRECT_CONSTRAINT_COUNT or
         direct.evaluation_node_count > direct.evaluation_nodes.len or direct.constraint_count > direct.constraints.len or
         relations.compiled_node_count > relations.compiled_nodes.len or relations.format_version != relation_mod.FORMAT_VERSION or
@@ -35,9 +64,9 @@ pub fn exportPrepared(
         !std.mem.eql(u8, &direct.semantic_digest, &Air.SEMANTIC_DIGEST) or
         !std.mem.eql(u8, &relations.semantic_digest, &Air.SEMANTIC_DIGEST) or
         !std.mem.eql(u8, &relations.registry_order_digest, &universal.registryOrderDigest()) or
-        inputs.len != Air.LOGICAL_INPUT_COUNT or interaction_columns.len != Air.INTERACTION_COLUMN_COUNT)
+        inputs.len != Air.LOGICAL_INPUT_COUNT + @as(usize, @intFromBool(is_first_input != null)) or interaction_columns.len != Air.INTERACTION_COLUMN_COUNT)
         return error.InvalidPreparedFrameworkProgram;
-    var direct_lowerer = try Lowerer.init(allocator, inputs.len);
+    var direct_lowerer = try Lowerer.init(allocator, Air.LOGICAL_INPUT_COUNT);
     defer direct_lowerer.deinit();
     for (direct.evaluation_nodes[0..direct.evaluation_node_count]) |node| try direct_lowerer.lower(node.destination, node.op);
     const roots = try allocator.alloc(u32, direct.constraint_count);
@@ -50,9 +79,12 @@ pub fn exportPrepared(
             .rhs = try direct_lowerer.slot(constraint.gate),
         });
     }
+    // A relation-only component has no direct graph: do not invent a zero
+    // constraint or retain unreferenced input nodes to fit the base ABI.
+    if (direct.constraint_count == 0) direct_lowerer.nodes.clearRetainingCapacity();
     const direct_nodes = try direct_lowerer.nodes.toOwnedSlice(allocator);
     errdefer allocator.free(direct_nodes);
-    var lookup_lowerer = try Lowerer.init(allocator, inputs.len);
+    var lookup_lowerer = try Lowerer.init(allocator, Air.LOGICAL_INPUT_COUNT);
     defer lookup_lowerer.deinit();
     for (relations.compiled_nodes[0..relations.compiled_node_count]) |node| try lookup_lowerer.lower(node.destination, node.op);
     const entries = try allocator.alloc(backend.FrameworkLookupEntryV1, relations.events.len);
@@ -90,6 +122,8 @@ pub fn exportPrepared(
         .inputs = owned_inputs,
         .interaction_columns = owned_interaction,
         .profile_parameter_count = profile_parameter_count,
+        .layout = if (is_first_input != null) .independent_prefix_v1 else .same_row_prefix_v1,
+        .is_first_input = is_first_input,
         .identity = @splat(0),
     };
     result.identity = result.identityDigest();

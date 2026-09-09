@@ -62,6 +62,24 @@ class AotProfileTests(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 require_metal_lifecycle(receipt, pin, selected)
 
+    def test_provider_profile_reports_device_composition_without_host_work(self):
+        old = parent_receipt("recursive_framework_v1")
+        good = old.replace("host_composition_components=31", "host_composition_components=0") + " framework_dispatches=30"
+        self.assertEqual(30, require_metal_lifecycle(good, PIN, "recursive-framework-v1")["framework_dispatches"])
+        for bad in (old + " framework_dispatches=30", good.replace("framework_dispatches=30", "framework_dispatches=0")):
+            with self.assertRaisesRegex(RuntimeError, "device composition"):
+                require_metal_lifecycle(bad, PIN, "recursive-framework-v1")
+        self.assertIsNone(require_metal_lifecycle(old, PIN, "recursive-framework-v1")["framework_dispatches"])
+
+    def test_leaf_provider_coverage_rejects_host_composition(self):
+        base = leaf_receipt("recursive_framework_v1").replace("native_backend=metal", "native_backend=metal recursive_backend=metal")
+        rows = [f"SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment={index} dispatches=100 poseidon_commits=9 framework_dispatches=38 host_composition_components=0" for index in range(2)]
+        good = base + "\n" + "\n".join(rows)
+        require_producer_lifecycle(good, "metal", PIN, recursive_backend="metal", aot_profile="recursive-framework-v1")
+        for bad in (good.replace("host_composition_components=0", "host_composition_components=1", 1), good.replace("framework_dispatches=38", "framework_dispatches=0", 1)):
+            with self.assertRaisesRegex(RuntimeError, "device composition"):
+                require_producer_lifecycle(bad, "metal", PIN, recursive_backend="metal", aot_profile="recursive-framework-v1")
+
     def test_cpu_clis_reject_even_explicit_core_profile_before_file_access(self):
         tree = ["--admission", "missing", "--admission-sha256", PIN, "--output", "missing", "--backend", "cpu"]
         for role in ("leaf-producer", "parent-producer", "leaf-verifier", "parent-verifier"):
