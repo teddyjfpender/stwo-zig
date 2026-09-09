@@ -12,7 +12,7 @@ comptime {
     _ = @import("ethereum_wrapper_composition_proof_v1_test.zig");
     _ = @import("ethereum_failed_wrapper_replay_v1.zig");
     _ = @import("ethereum_tuple_ledger_reservation_v1.zig");
-    _ = @import("ethereum_compact_tuple_ledger_v1.zig");
+    _ = @import("recursive_compact_tuple_ledger_v1.zig");
     _ = @import("ethereum_wrapper_resources_v1.zig");
     _ = @import("ethereum_typed_air_preflight_v4.zig");
     _ = @import("ethereum_typed_air_point_parity_v4.zig");

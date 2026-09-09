@@ -44,6 +44,14 @@ exact proof/key byte checks pass. These results do not replace production-securi
 or CSP promotion requirements. Exact tuple closure is now the largest measured
 parent phase, around749ms; composition is394ms.
 
+The second measured optimization reuses the shared compact tuple ledger:
+parent median request2.573→2.253s, with identical proof/key bytes and175 fresh
+cases passing. Closure is406ms and peak RSS693MiB. The previously unwired seven
+ledger checks now have a six-second build/267ms execution command. A retained
+failing range-column mutation also closes a finalization-audit gap. The first
+two greedy optimizations are complete; prioritize the production-security route
+and formal CSP preservation over further broad optimization.
+
 ## Required implementation order
 
 1. Make the current small wrapper independently verifiable. A fresh process

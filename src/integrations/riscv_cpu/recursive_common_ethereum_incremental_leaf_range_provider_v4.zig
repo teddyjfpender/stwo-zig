@@ -147,7 +147,7 @@ pub const OwnerV4 = struct {
     /// This consumes source phase even if subsequent provider allocation fails.
     pub fn initFromCompact(
         allocator: std.mem.Allocator,
-        source: *@import("ethereum_compact_tuple_ledger_v1.zig").Owner,
+        source: *@import("recursive_compact_tuple_ledger_v1.zig").Owner,
         initial: ?*const initial_rows.OwnedV1,
     ) !OwnerV4 {
         try source.sealSources(initial);

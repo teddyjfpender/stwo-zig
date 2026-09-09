@@ -1,6 +1,7 @@
-//! Ethereum-only exact tuple aggregation. The ordinary diagnostic ledger and
-//! CSP path retain their original record storage. Range tuples use their exact
-//! table index; other domains retain the existing canonical SHA-256 grouping.
+//! Exact tuple aggregation for integrations with the row35 range provider:
+//! Ethereum cohorts and detached recursive parents. CSP diagnostic storage stays
+//! unchanged. Range tuples use their exact table index; other domains retain the
+//! shared canonical SHA-256 grouping. Initial38 histogram admission is optional.
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");

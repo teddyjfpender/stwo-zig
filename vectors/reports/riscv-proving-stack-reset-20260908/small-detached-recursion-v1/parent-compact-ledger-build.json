@@ -1,0 +1,22 @@
+{
+  "head": "01e496d56b7f3c448d5b553407a8fc0efc3188a1",
+  "source_patch_sha256": "b358218466797084d48c7084d02a459e076491d0e89799644907d2aeb7d8521e",
+  "renamed_sources_sha256": {
+    "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1.zig": "9a718c4bbe7eae1425fa92570e7c16bf994a22df3fde44a0024af206745eb0fd",
+    "src/integrations/riscv_cpu/recursive_compact_tuple_ledger_v1_test_root.zig": "0ace97e27a79a9a97a650ef1ca3be64f97142db8c14ab40ba4a343cdddcf3433"
+  },
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 92560351625,
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-compact-ledger-first-prove",
+  "binary_sha256": "26ef233a390b32c7015f352ec43affb92e20ea13f749421bda4c1a4842e7d620"
+}

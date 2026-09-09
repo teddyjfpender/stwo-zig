@@ -168,5 +168,12 @@ test "detached parent prepares two genuine children with one exact routing plan"
     try prepared.cohort.fillMainInto(main.columns);
     const closure = try prepared.cohort.auditExactTupleClosure(&prepared.expected, main.columns);
     std.debug.print("DETACHED_PARENT_EXACT_CLOSURE {any}\n", .{closure});
+    const range_placement = prepared.cohort.manifest().placements[35].?;
+    const range_row = frontend.recursion.air.range_check_8_8_bridge.committedRow(0);
+    const multiplicity = &main.columns[range_placement.main_offset][range_row];
+    const original = multiplicity.*;
+    defer multiplicity.* = original;
+    multiplicity.* = original.add(core.fields.m31.M31.one());
+    try std.testing.expectError(error.DetachedParentRangeMainChanged, prepared.cohort.auditExactTupleClosure(&prepared.expected, main.columns));
     std.debug.print("DETACHED_PARENT_ACTUAL_PREPARE preparation_ns={d} child_owners_destroyed=true root_words={d} proof_verified=false\n", .{ prepared.preparation_ns, prepared.expected.len });
 }

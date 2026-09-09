@@ -379,8 +379,16 @@ pub const PreparedV1 = opaque {
         try self.preflight(1, main_columns);
         const data = self.storage();
         if (!data.main_generated) return error.DetachedParentMainNotGenerated;
+        try data.range_batch.?.validate();
+        const range_placement = data.manifest.placements[35].?;
+        for (data.range_batch.?.counter.values, 0..) |expected_multiplicity, logical| {
+            const actual = main_columns[range_placement.main_offset][range.committedRow(logical)];
+            if (!actual.eql(expected_multiplicity)) return error.DetachedParentRangeMainChanged;
+        }
         const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
-        var ledger = air.relation_interaction.TupleLedger.init(data.allocator);
+        var compact = try @import("recursive_compact_tuple_ledger_v1.zig").Owner.init(data.allocator, false);
+        defer compact.deinit();
+        var ledger = compact.ledger();
         defer ledger.deinit();
         inline for (LOGICAL_ROWS, 0..) |entry, index| try admitted.logical[index].relation_plan.appendPreparedTupleContributions(&ledger, @intFromEnum(entry.row), data.rows[index], air.relation_interaction.allDomainMask());
         const placement = data.manifest.placements[34].?;
@@ -404,7 +412,7 @@ pub const PreparedV1 = opaque {
                 }, event.numerator, event.values[0..event.arity]);
             }
         }
-        try data.range_batch.?.validate();
+        try compact.sealSourceHistogram(null, 0);
         const range_plan = try range.authenticateRelation(&admitted.range_definition);
         for (0..range.TABLE_SIZE) |row| for (range_plan.preparedEntries(data.range_batch.?.preparedRelationRow(row))) |event|
             try ledger.append(event.domain, 35, event.ordinal, event.role, event.numerator, event.values[0..event.arity]);
@@ -414,7 +422,7 @@ pub const PreparedV1 = opaque {
             for (base, &tuple) |value, *secure| secure.* = QM31.fromBase(value);
             try ledger.append(.recursion_statement_word, 255, 0, .emit, QM31.one(), &tuple);
         }
-        const report = ledger.classify();
+        const report = try compact.classify();
         if (!report.isClosed()) {
             ledger.printUnmatched(8);
             return error.DetachedParentExactTupleClosureMismatch;

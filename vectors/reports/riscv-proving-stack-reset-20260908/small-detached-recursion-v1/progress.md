@@ -433,3 +433,40 @@ and formal CSP promotion are still outstanding.
 The retained-coefficient producer also passes25 fresh cases on the original
 two-native-child parent with Metal-produced inputs, under the original admitted
 key and with byte-identical artifacts (`parent-retained-coefficients-metal-two-accepted.json`).
+
+## Shared compact closure and range-column finalization
+
+The small parent now reuses the existing compact exact tuple ledger. The owner
+is consolidated in `recursive_compact_tuple_ledger_v1.zig`; Ethereum consumers
+use the same implementation. The ordinary diagnostic ledger used by CSP keeps
+its existing behavior. Both ledgers group non-range tuples by the same canonical
+SHA-256 digest; compact range entries use exact canonical table indices and
+preserve malformed-input and allocation-failure rejection before cancellation.
+No protocol, AIR constraint, key identity or worker policy changed.
+
+A focused `test-recursive-compact-tuple-ledger` command now runs all seven existing
+parity/provider-phase/allocation-failure checks, using the previously unwired
+small test root. Initial compilation took6s/538MiB, execution267ms/4MiB; the later
+cached run took23ms. The genuine parent preparation gate retains identical exact
+closure of1,437,799 contributions, while its process peak fell511→356MiB.
+
+Three alternating complete-root A/B rounds show median request2.573→2.253s
+(12.4%); peak RSS703.5→693.0MiB. Closure itself was406ms, down from749ms. Every
+proof/key byte matches the original independently admitted root and all175 fresh
+cases pass. The first compact round was slower at2.838s; subsequent rounds were
+2.243s and2.253s. These local observations are retained in `parent-ledger-ab.json`
+and do not establish quiet-host or CSP performance promotion.
+
+The finalization regression additionally exposed that the old audit read the
+range provider's retained counter without comparing its generated main column.
+Changing the actual multiplicity still reported closure; the failing run is in
+`parent-range-main-regression-first.log`. The fix compares every physical range
+multiplicity with the owned counter before allocating the ledger. The fixed
+regression and all ledger checks pass in `parent-range-main-regression-fixed.log`.
+This is an audit-boundary defect, not evidence of a forged STARK being accepted.
+The final producer is checked with both native-child and recursive-parent-child
+Metal-origin inputs, using the existing keys and independent verifier.
+
+The first two measured optimizations are now implemented. The next critical
+milestones are the separately admitted production-security route and formal CSP
+preservation, before further scale or broad optimization.

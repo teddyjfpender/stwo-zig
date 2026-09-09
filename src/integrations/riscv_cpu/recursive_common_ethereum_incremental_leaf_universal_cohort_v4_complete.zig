@@ -9,7 +9,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const process_usage = @import("stwo_prover_engine").measurement.process_usage;
-const compact_ledger = @import("ethereum_compact_tuple_ledger_v1.zig");
+const compact_ledger = @import("recursive_compact_tuple_ledger_v1.zig");
 
 const statement_boundary = @import("recursive_common_ethereum_incremental_leaf_public_statement_boundary_v4.zig");
 const closure_mod =

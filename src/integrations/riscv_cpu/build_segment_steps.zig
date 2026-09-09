@@ -1099,7 +1099,7 @@ pub fn add(ctx: anytype) void {
         incremental_leaf_field_public_v4_test_names,
         "recursive common Ethereum incremental leaf V4 structural guard",
     ));
-    const validation_ownership_names: []const []const u8 = &.{
+    const compact_ledger_names = [_][]const u8{
         "Ethereum compact tuple ledger cleans up provider failures after source sealing",
         "Ethereum compact tuple ledger keeps map allocation failure sticky through cancellation",
         "Ethereum compact tuple ledger matches canonical records and range provider exactly",
@@ -1107,6 +1107,8 @@ pub fn add(ctx: anytype) void {
         "Ethereum compact tuple ledger rejects malformed range requests before cancellation",
         "Ethereum compact tuple ledger checks initial histogram and source phase exactly",
         "Ethereum compact tuple ledger cleans up every allocation failure",
+    };
+    const validation_ownership_names: []const []const u8 = &(compact_ledger_names ++ [_][]const u8{
         "Ethereum cohort replay publication preserves absent and present initial claims",
         "Ethereum geometry rejects missing source admission before allocating preparation",
         "Ethereum native prepared projection owns inputs and moves buffers across every allocation failure",
@@ -1121,7 +1123,13 @@ pub fn add(ctx: anytype) void {
         "runtime campaign clone owns immutable observations after source destruction",
         "stage102 role0 transcript cohort tree and tuple APIs instantiate",
         "schema3 role0 cohort exposes exact 36-row closure without proof escalation",
-    };
+    });
+    const compact_ledger = support.createHarnessModule(b, "recursive_compact_tuple_ledger_v1_test_root.zig", target, optimize, core, cpu_backend, frontend, integration);
+    compact_ledger.addImport("stwo_prover_engine", prover);
+    compact_ledger.addImport("stwo_prover_api", prover_api);
+    compact_ledger.addImport("interop_postcard", postcard);
+    const compact_ledger_test = b.addTest(.{ .root_module = compact_ledger, .filters = &compact_ledger_names });
+    b.step("test-recursive-compact-tuple-ledger", "Check exact ledger parity, provider phases and allocation failures").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(compact_ledger_test), &compact_ledger_names, "Recursive compact tuple ledger guard"));
     const validation_ownership = b.addTest(.{ .root_module = incremental_leaf_field_public_v4_root, .filters = validation_ownership_names });
     b.step("test-ethereum-validation-ownership", "Check immutable preparation ownership, generated/cold audit parity and allocation rollback").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(validation_ownership), validation_ownership_names, "Ethereum validation ownership guard"));
     const witness_free_names: []const []const u8 = &.{
