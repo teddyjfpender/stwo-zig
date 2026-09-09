@@ -52,6 +52,22 @@ failing range-column mutation also closes a finalization-audit gap. The first
 two greedy optimizations are complete; prioritize the production-security route
 and formal CSP preservation over further broad optimization.
 
+The q193 child checkpoint (`9240965b`) additionally proves two actual adjacent
+stronger-profile wrappers with native CPU and Metal. Both wrappers freshly
+verify after producer exit; a second memory value reuses the same keys. The
+complete two-child producer takes approximately33s and one wrapper verifies in
+83ms. All recursion is currently CPU. The stronger parent now prepares in5.93s
+with13,981,479 exact contributions and no unmatched entries across47 domains;
+that preparation is now followed by a complete q193 two-child root. Three runs
+pass81 fresh cases, reuse the identical key across different initial memory and
+produce byte-identical parent artifacts for CPU/Metal-origin children. Parent
+production is27.7–29.0s; verification73–82ms; RSS6.0–6.4GiB. All aggregation is
+still CPU. The q3 route additionally passes26 cases with identical old bytes;
+weak children reject before parent preparation. The stronger parent itself
+passes its next recursive capture gate, including436 hostile public words.
+Full Metal recursion is the next implementation milestone, followed by stronger
+4/8-segment roots and formal production-security/CSP preservation admission.
+
 ## Required implementation order
 
 1. Make the current small wrapper independently verifiable. A fresh process
@@ -67,7 +83,15 @@ and formal CSP preservation over further broad optimization.
    aggregation, final verification and process-memory costs. Optimize the largest
    measured contributor. Measure an explicitly admitted production-security
    profile separately from the existing development profile.
-4. Continue into larger recursive proving and measured optimization as the
+4. Prove the complete tree on Metal as explicitly requested: native leaves,
+   detached recursive wrappers, every intermediate parent and the final root.
+   Reuse the same admitted AIR, transcript and verification keys across CPU and
+   Metal; retain independent fresh CPU verification as a cross-backend check.
+   Require actual GPU execution evidence for recursion, CPU/Metal proof parity,
+   and separate end-to-end 2/4/8-tree timings, phase costs, RSS and device memory.
+   Native Metal children with CPU aggregation do not satisfy this milestone.
+   Finish the stronger CPU two-child root first, then port that working route.
+5. Continue into larger recursive proving and measured optimization as the
    preceding gates permit. Consolidate shared admission/transcript definitions,
    remove superseded routes after replacement proof gates pass, and reduce
    compilation dependencies where measurements justify it. Preserve one owner

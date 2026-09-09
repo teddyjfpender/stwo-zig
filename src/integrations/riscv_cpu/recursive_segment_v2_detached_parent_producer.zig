@@ -14,6 +14,7 @@ pub const PARENT_ROOT_PROFILE = "tiny-parent-root-v2";
 pub const PARENT_SPAN_PROFILE = "tiny-parent-span-v2";
 pub const ArgumentsV1 = struct {
     output: []const u8,
+    proof_profile: protocol.ProfileV1 = .detached_continuation_development_q3_v2,
     publication_mode: protocol.PublicationMode = .root,
     memory_profile: enum { initial, continuation } = .initial,
     child_family: @import("recursive_segment_v2_detached_child_transcript.zig").Family = .segment,
@@ -23,18 +24,35 @@ pub const ArgumentsV1 = struct {
 
 /// Reviewed fixture topologies and one unambiguous argument order.
 pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
-    if ((args.len != 9 and args.len != 13) or !std.mem.eql(u8, args[0], "--profile") or
+    if ((args.len < 9 or (args.len - 9) % 2 != 0) or !std.mem.eql(u8, args[0], "--profile") or
         (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE) and !std.mem.eql(u8, args[1], CONTINUATION_PROFILE) and !std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) and !std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
         return error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren;
     var result = ArgumentsV1{ .child_family = if (std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) or std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) .parent else .segment, .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE) or std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
-    if (args.len == 13) {
-        if (!std.mem.eql(u8, args[9], "--parent-key") or args[10].len == 0 or
-            !std.mem.eql(u8, args[11], "--parent-key-sha256") or args[12].len != 64)
-            return error.ExpectedIndependentParentKeyAndHash;
-        var pin: [32]u8 = undefined;
-        _ = try std.fmt.hexToBytes(&pin, args[12]);
-        result.parent_key = .{ .path = args[10], .sha256 = pin };
+    var key_path: ?[]const u8 = null;
+    var key_pin: ?[32]u8 = null;
+    var profile_seen = false;
+    var index: usize = 9;
+    while (index < args.len) : (index += 2) {
+        const option = args[index];
+        const value = args[index + 1];
+        if (std.mem.eql(u8, option, "--proof-profile")) {
+            if (profile_seen) return error.DuplicateParentOption;
+            profile_seen = true;
+            result.proof_profile = std.meta.stringToEnum(protocol.ProfileV1, value) orelse return error.DetachedParentProfileMismatch;
+        } else if (std.mem.eql(u8, option, "--parent-key")) {
+            if (key_path != null) return error.DuplicateParentOption;
+            if (value.len == 0 or std.mem.startsWith(u8, value, "--")) return error.ExpectedIndependentParentKeyAndHash;
+            key_path = value;
+        } else if (std.mem.eql(u8, option, "--parent-key-sha256")) {
+            if (key_pin != null) return error.DuplicateParentOption;
+            if (value.len != 64) return error.ExpectedIndependentParentKeyAndHash;
+            var pin: [32]u8 = undefined;
+            _ = try std.fmt.hexToBytes(&pin, value);
+            key_pin = pin;
+        } else return error.UnknownParentOption;
     }
+    if ((key_path == null) != (key_pin == null)) return error.ExpectedIndependentParentKeyAndHash;
+    if (key_path) |path| result.parent_key = .{ .path = path, .sha256 = key_pin.? };
     return result;
 }
 
@@ -42,6 +60,7 @@ pub const CandidateReportV1 = struct {
     endpoint: []const u8 = "segment_v2_detached_two_child_parent_candidate_development_q3",
     profile: []const u8,
     publication_mode: protocol.PublicationMode,
+    proof_profile: protocol.ProfileV1,
     status: []const u8 = "unverified_candidate",
     verified: bool = false,
     development_only: bool = true,
@@ -72,6 +91,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
         const bytes = try std.fs.cwd().readFileAlloc(allocator, input.path, command.MAX_KEY_BYTES);
         defer allocator.free(bytes);
         admitted_key = try command.OwnedKeyV1.admit(allocator, bytes, input.sha256);
+        if (admitted_key.?.key().profile != args.proof_profile) return error.DetachedParentProfileMismatch;
     }
     var expected: protocol.ExpectedV1 = undefined;
     var child_pins: [2][32]u8 = undefined;
@@ -83,12 +103,14 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
                 defer left.deinit();
                 const right = try prepare.loadAdmittedParent(allocator, args.children[1]);
                 defer right.deinit();
+                try requireChildProfiles(args.proof_profile, left, right);
                 break :child_scope try prepare.prepareParents(allocator, .{ left, right }, args.publication_mode);
             }
             const left = try prepare.loadAdmittedChild(allocator, args.children[0]);
             defer left.deinit();
             const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
             defer right.deinit();
+            try requireChildProfiles(args.proof_profile, left, right);
             break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, switch (args.memory_profile) {
                 .initial => prepare.TINY_MEMORY_PROFILE_V1,
                 .continuation => prepare.TINY_MEMORY_CONTINUATION_PROFILE_V1,
@@ -100,7 +122,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
         expected = prepared.expected;
         child_pins = prepared.child_key_sha256;
         preparation_ns = prepared.preparation_ns;
-        break :blk try proof.produce(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null);
+        break :blk try proof.produceWithProfile(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
     };
     // The cohort and every original proof/prover component have been destroyed.
     // Only durable candidate bytes and fixed claims survive this boundary.
@@ -115,6 +137,8 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
     try expected_file.writeAll(expected_json);
     return .{
         .profile = if (args.child_family == .parent) (if (args.publication_mode == .root) PARENT_ROOT_PROFILE else PARENT_SPAN_PROFILE) else if (args.memory_profile == .continuation) CONTINUATION_PROFILE else if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
+        .endpoint = if (args.proof_profile == .recursive_q193_v1) "segment_v2_detached_two_child_parent_candidate_q193" else "segment_v2_detached_two_child_parent_candidate_development_q3",
+        .proof_profile = args.proof_profile,
         .publication_mode = args.publication_mode,
         .reused_admitted_parent_key = admitted_key != null,
         .child_key_sha256 = child_pins,
@@ -126,6 +150,14 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
         .proof_ns = candidate.prove_ns,
         .request_ns = 0,
     };
+}
+
+/// Owners have already verified their child proofs against independent keys.
+/// This policy reads that immutable admission once, before AIR allocation.
+fn requireChildProfiles(profile: protocol.ProfileV1, left: anytype, right: @TypeOf(left)) !void {
+    if (profile == .recursive_q193_v1 and
+        (left.key().profile != .recursive_q193_v1 or right.key().profile != .recursive_q193_v1))
+        return error.DetachedParentChildSecurityMismatch;
 }
 
 fn requireNewOutput(path: []const u8) !void {
@@ -161,7 +193,11 @@ test "detached parent producer requires explicit profile and independent child a
     const pinned = try parseArguments(&with_parent);
     try std.testing.expectEqualStrings("parent.json", pinned.parent_key.?.path);
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(valid[2..]));
-    try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(with_parent[0..11]));
+    try std.testing.expectError(error.ExpectedIndependentParentKeyAndHash, parseArguments(with_parent[0..11]));
+    const strong = try parseArguments(&(valid ++ .{ "--proof-profile", "recursive_q193_v1" }));
+    try std.testing.expectEqual(.recursive_q193_v1, strong.proof_profile);
+    try std.testing.expectError(error.DuplicateParentOption, parseArguments(&(valid ++ .{ "--proof-profile", "recursive_q193_v1", "--proof-profile", "recursive_q193_v1" })));
+    try std.testing.expectError(error.DetachedParentProfileMismatch, parseArguments(&(valid ++ .{ "--proof-profile", "unsupported" })));
     var continuation = valid;
     continuation[1] = CONTINUATION_PROFILE;
     const continued = try parseArguments(&continuation);

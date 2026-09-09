@@ -210,7 +210,7 @@ pub fn OwnedFor(comptime family: Family) type {
             return recursion.captured_fri.Owned.init(allocator, .{
                 .log_blowup_factor = pcs.fri_config.log_blowup_factor,
                 .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
-                .interaction_pow_bits = if (family == .segment) self.key().profile.interactionPowBits() else 0,
+                .interaction_pow_bits = self.key().profile.interactionPowBits(),
                 .pcs_pow_bits = pcs.pow_bits,
                 .claimed_sum_count = @intCast(self.claims().values.len),
             }, &self.storage().capture);
@@ -376,7 +376,7 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
     defer other_expected.deinit();
     try std.testing.expectEqual(expected.words.len, other_expected.words.len);
     try std.testing.expect(!std.meta.eql(expected.data.wireId(), other_expected.data.wireId()));
-    try std.testing.expectError(error.SegmentV2PublicInputClaimMismatch, OwnedV1.init(allocator, key_json, args.independent_key_sha256, &other_expected.data, input.claims, proof_bytes));
+    try std.testing.expectError(if (key.key().profile.interactionPowBits() > 0) error.InvalidDetachedInteractionPow else error.SegmentV2PublicInputClaimMismatch, OwnedV1.init(allocator, key_json, args.independent_key_sha256, &other_expected.data, input.claims, proof_bytes));
 
     // Change an actual sampled opening and canonically serialize it. Decoder
     // shape acceptance must not mask the required cryptographic rejection.

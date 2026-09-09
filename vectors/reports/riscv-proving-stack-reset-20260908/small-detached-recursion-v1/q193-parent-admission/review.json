@@ -1,0 +1,18 @@
+{
+  "scope": "bootstrap admission of the fixed two-child q193 root; not complete production security certification",
+  "key_sha256": "6d1885a89eec10375d57806311c2738c0758dbfc517a0bc8551beda8f098a395",
+  "child_key_sha256": [
+    "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+    "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+  ],
+  "checks": [
+    "explicit q193 PCS at parent and both independently admitted children",
+    "profile-bound interaction work threshold 10 shared by native and AIR transcript emission",
+    "30 active parent components and exact 47-domain closure",
+    "436 expected words from independent execution route, byte-equal candidate publication"
+  ],
+  "cross_statement_key_reuse": "seed13 to seed14, all27 fresh cases pass under identical parent key",
+  "full_metal_recursion": "pending",
+  "formal_csp_preservation": "pending",
+  "metal_origin_parity": "all four parent artifact files equal CPU-origin output;27 fresh cases pass; aggregation remains CPU"
+}

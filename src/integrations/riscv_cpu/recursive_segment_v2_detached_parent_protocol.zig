@@ -1,6 +1,6 @@
 //! Shared native/standalone transcript for the small detached two-child parent.
-//! This is an explicitly admitted development q3 profile, not CSP or production
-//! security. Key hashes authorize nothing unless pinned independently by callers.
+//! Profiles are explicitly admitted separately from CSP. Key hashes authorize
+//! nothing unless pinned independently by callers.
 const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
@@ -18,7 +18,23 @@ pub const PUBLIC_SCOPE: u32 = 3;
 pub const ExpectedV1 = continuation.Words;
 pub const PublicationMode = continuation.Mode;
 pub const ClaimsV1 = cohort.ClaimsV1;
-pub const ProfileV1 = enum(u8) { detached_continuation_development_q3_v2 = 2 };
+pub const ProfileV1 = enum(u8) {
+    detached_continuation_development_q3_v2 = 2,
+    recursive_q193_v1 = 3,
+    pub fn pcsConfig(self: ProfileV1) core.pcs.PcsConfig {
+        return switch (self) {
+            .detached_continuation_development_q3_v2 => PCS_CONFIG,
+            .recursive_q193_v1 => recursion.protocol.PCS_CONFIG,
+        };
+    }
+    pub fn interactionPowBits(self: ProfileV1) u32 {
+        return switch (self) {
+            .detached_continuation_development_q3_v2 => 0,
+            .recursive_q193_v1 => recursion.protocol.INTERACTION_POW_BITS,
+        };
+    }
+};
+pub const mixInteractionPow = @import("recursive_detached_claims_v1.zig").mixInteractionPow;
 
 pub const KeyV1 = struct {
     version: u32 = VERSION,
@@ -35,15 +51,18 @@ pub const KeyV1 = struct {
     }
 
     pub fn identity(self: *const KeyV1) ![32]u8 {
-        if (self.version != VERSION or self.profile != .detached_continuation_development_q3_v2 or
-            !std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.DetachedParentProfileMismatch;
+        if (self.version != VERSION or !std.meta.eql(self.pcs_config, self.profile.pcsConfig())) return error.DetachedParentProfileMismatch;
         try self.parameters.validate(&self.manifest);
         if (std.mem.allEqual(u32, &self.preprocessed_root, 0)) return error.DetachedParentKeyMismatch;
         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus) return error.DetachedParentKeyMismatch;
         for (self.child_key_sha256) |pin| if (std.mem.allEqual(u8, &pin, 0)) return error.DetachedParentKeyMismatch;
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00");
-        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
+        hash.update(switch (self.profile) {
+            .detached_continuation_development_q3_v2 => "stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00",
+            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-two-child-q193-parent/v1\x00",
+        });
+        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step }) |word| hashWord(&hash, word);
+        if (self.profile == .recursive_q193_v1) hashWord(&hash, self.profile.interactionPowBits());
         hash.update(&self.manifest.seal);
         hash.update(&recursion.air.universal_challenges.registryOrderDigest());
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);

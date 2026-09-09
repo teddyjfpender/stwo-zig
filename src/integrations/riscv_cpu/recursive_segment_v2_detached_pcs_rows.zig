@@ -13,7 +13,7 @@ const child_mod = @import("recursive_segment_v2_detached_child_transcript.zig");
 const frame_rows = @import("recursive_transcript_frame_rows_v1.zig");
 const shared_rows = @import("recursive_secure_transcript_rows_v1.zig");
 const M31 = core.fields.m31.M31;
-const NonceRow = [air.field_statement_word_v3.LOGICAL_INPUT_COUNT]M31;
+const NonceRow = frame_rows.NonceRow;
 const STEP_TAG_BASE: u32 = 0x5354_0000;
 
 pub const View = struct {
@@ -111,16 +111,7 @@ pub const OwnedV1 = opaque {
                     word_at += 1;
                 }
                 if (instruction.source == .nonce and part == 0) {
-                    const limbs = frame.words[recording.RATE..];
-                    for (0..2) |half| {
-                        const low = limbs[2 * half].toU32();
-                        const high = limbs[2 * half + 1].toU32();
-                        if (low > 65535 or high > 65535) return error.DetachedPcsNonceMismatch;
-                        const target = &nonce[2 * pow_at + half];
-                        target[0..air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT].* = try air.field_statement_word_v3.nonceRow(low + 65536 * high);
-                        const pp = [_]u32{ 1, lane, step.sequence, step.tag } ++ step.args ++ [_]u32{ @intCast(2 * half), 0, 0, 0, 0 };
-                        for (target[air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT..], pp) |*value, raw| value.* = M31.fromCanonical(raw);
-                    }
+                    nonce[2 * pow_at ..][0..2].* = try frame_rows.nonceRows(step, frame.words[recording.RATE..]);
                 }
                 if (shared_rows.payloadKind(instruction.source)) |kind| {
                     const width: u32 = if (kind == .commitment or kind == .fri_commitment) 8 else 4;

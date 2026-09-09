@@ -73,6 +73,8 @@ pub const ParametersV1 = struct {
 pub const ClaimsV1 = struct {
     values: [manifest_mod.COMPONENT_COUNT]QM31,
     poseidon_partials: [2]QM31,
+    interaction_pow: ?u64 = null,
+    pub const jsonStringify = @import("recursive_detached_claims_v1.zig").jsonStringify;
 
     pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
         var result = try manifest_mod.ClaimVector.init(manifest);

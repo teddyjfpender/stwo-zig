@@ -122,3 +122,21 @@ pub fn providerCall(source: recording.PoseidonCall) rows.ProviderCall {
         .narrow_output = null,
     };
 }
+
+pub const NonceRow = [air.field_statement_word_v3.LOGICAL_INPUT_COUNT]M31;
+
+/// The same two checked u32 words supply nonce payloads in the interaction
+/// prefix and PCS suffix. No statement value or external input claim is emitted.
+pub fn nonceRows(step: Step, limbs: []const M31) ![2]NonceRow {
+    if (limbs.len != 4) return error.InvalidTranscriptNonce;
+    var result: [2]NonceRow = undefined;
+    for (&result, 0..) |*target, half| {
+        const low = limbs[2 * half].toU32();
+        const high = limbs[2 * half + 1].toU32();
+        if (low > 65535 or high > 65535) return error.InvalidTranscriptNonce;
+        target[0..air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT].* = try air.field_statement_word_v3.nonceRow(low + 65536 * high);
+        const pp = [_]u32{ 1, step.verifier_id, step.sequence, step.tag } ++ step.args ++ [_]u32{ @intCast(2 * half), 0, 0, 0, 0 };
+        for (target[air.field_statement_word_v3.PHYSICAL_MAIN_COLUMN_COUNT..], pp) |*value, raw| value.* = M31.fromCanonical(raw);
+    }
+    return result;
+}

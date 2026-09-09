@@ -27,6 +27,10 @@ pub const Candidate = struct {
 };
 
 pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1) !Candidate {
+    return produceWithProfile(allocator, prepared, expected, child_key_sha256, mode, admitted_key, .detached_continuation_development_q3_v2);
+}
+
+pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
     try recursion.span_continuation_v1.validate(expected, mode);
     var timer = try std.time.Timer.start();
     var recorder = stage_profile.Recorder.initWithOptions(allocator, "cpu", "detached-recursive-parent", .{ .capture_tasks = false });
@@ -35,7 +39,7 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
     var phase = try stage_profile.StageScope.begin(diagnostic, "parent.fixed", "Fixed columns and key admission");
     defer phase.end();
     const manifest = prepared.manifest();
-    var scheme = try Engine.init(allocator, protocol.PCS_CONFIG);
+    var scheme = try Engine.init(allocator, profile.pcsConfig());
     // This small admitted cohort reuses coefficients for sampled openings.
     scheme.setCoefficientRetentionPolicy(.always);
     var scheme_moved = false;
@@ -50,6 +54,8 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
     defer roots.deinit(allocator);
     if (roots.items.len != 1) return error.DetachedParentPreprocessedCommitmentMismatch;
     const candidate_key = protocol.KeyV1{
+        .profile = profile,
+        .pcs_config = profile.pcsConfig(),
         .manifest = manifest.*,
         .publication_mode = mode,
         .parameters = prepared.parameters(),
@@ -77,10 +83,13 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
     phase.end();
     phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_fill", "Transcript and interaction columns");
     try protocol.mixAdmission(&channel, key, expected);
+    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
+    try protocol.mixInteractionPow(&channel, key, interaction_pow);
     const relations = try cohort.Relations.draw(allocator, &channel);
     var interaction = try TreeStorage.init(allocator, manifest, 2);
     defer interaction.deinit();
-    const claims = try prepared.fillInteractionInto(&relations, interaction.columns);
+    var claims = try prepared.fillInteractionInto(&relations, interaction.columns);
+    claims.interaction_pow = interaction_pow;
     try protocol.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
     phase.end();
     phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_commit", "Interaction commitment");

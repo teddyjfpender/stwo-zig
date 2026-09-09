@@ -41,6 +41,7 @@ pub const PayloadSource = enum(u8) {
     partials,
     tree2,
     span_u32,
+    interaction_pow,
     pub fn fixed(self: PayloadSource) bool {
         return switch (self) {
             .tree0, .admission_header, .key_identity, .public_frame, .claims_header, .boundary_header => true,
@@ -53,6 +54,7 @@ pub const Operation = struct {
     effect: recording.Effect,
     item: u32 = 0,
     payload_words: u32 = 0,
+    pow_bits: u32 = 0,
     constant_words: [16]u32 = @splat(0),
 };
 pub const InputCoordinate = struct { kind: Kind, item: u32, limb: u32, uses: u32 };
@@ -75,7 +77,7 @@ pub fn inputCoordinateFor(comptime family: child_mod.Family, source: PayloadSour
         .claims => .{ .kind = .claimed_sum, .item = word / 4, .limb = word % 4, .uses = if (family == .segment and word / 4 == 36) 2 else 1 },
         .boundary => .{ .kind = .claimed_sum, .item = BOUNDARY_CLAIM_INDEX, .limb = word, .uses = 2 },
         .partials => .{ .kind = .claimed_sum, .item = @intCast(v3.POSEIDON_AUX_START + word / 4), .limb = word % 4, .uses = 1 },
-        .relations => null,
+        .relations, .interaction_pow => null,
         else => .{ .kind = .protocol, .item = 0, .limb = word, .uses = 0 },
     };
 }
@@ -110,6 +112,9 @@ pub const View = struct {
     word: []const rows.TranscriptWordRowV2,
     payload: []const PayloadRow,
     challenges: []const rows.RelationChallengeRowV2,
+    pow_check: []const air.pow_check_witness.RelationRow,
+    pow_frame: []const air.pow_frame_witness.RelationRow,
+    nonce: []const frame_rows.NonceRow,
     provider: []const rows.ProviderCall,
     next_operation: u32,
     next_hash: u32,
@@ -127,6 +132,9 @@ pub const OwnedV1 = opaque {
         word: []rows.TranscriptWordRowV2,
         payload: []PayloadRow,
         challenges: []rows.RelationChallengeRowV2,
+        pow_check: []air.pow_check_witness.RelationRow,
+        pow_frame: []air.pow_frame_witness.RelationRow,
+        nonce: []frame_rows.NonceRow,
         provider: []rows.ProviderCall,
         fn deinit(self: *Storage) void {
             self.allocator.free(self.operations);
@@ -137,6 +145,9 @@ pub const OwnedV1 = opaque {
             self.allocator.free(self.word);
             self.allocator.free(self.payload);
             self.allocator.free(self.challenges);
+            self.allocator.free(self.pow_check);
+            self.allocator.free(self.pow_frame);
+            self.allocator.free(self.nonce);
             self.allocator.free(self.provider);
         }
     };
@@ -152,6 +163,7 @@ pub const OwnedV1 = opaque {
         try plan.root(.tree0, child.key().preprocessed_root);
         try plan.root(.tree1, captured.commitments[1]);
         try Protocol.mixAdmission(&plan, child.key(), child.expected());
+        try Protocol.mixInteractionPow(&plan, child.key(), child.claims().interaction_pow);
         const relations = try universal.UniversalRelations.draw(allocator, &plan);
         try Protocol.mixClaimsAndBoundary(&plan, child.key(), child.expected(), child.claims(), &relations);
         try plan.root(.tree2, captured.commitments[2]);
@@ -163,7 +175,10 @@ pub const OwnedV1 = opaque {
         const frame_count = @as(usize, last.first_hash_id) + last.hash_count;
         const call_count = @as(usize, last.first_call_id) + last.call_count;
         var payload_count: usize = 0;
-        for (plan.operations.items) |operation| payload_count += operation.payload_words;
+        var pow_count: usize = 0;
+        for (plan.operations.items) |operation| {
+            if (operation.effect == .pow) pow_count += 1 else payload_count += operation.payload_words;
+        }
         const operation_values = try plan.operations.toOwnedSlice(allocator);
         errdefer allocator.free(operation_values);
         const control = try allocator.alloc(air.control_witness.Row, operation_count);
@@ -182,56 +197,89 @@ pub const OwnedV1 = opaque {
         errdefer allocator.free(challenges);
         const provider = try allocator.alloc(rows.ProviderCall, call_count);
         errdefer allocator.free(provider);
+        const pow_check = try allocator.alloc(air.pow_check_witness.RelationRow, pow_count);
+        errdefer allocator.free(pow_check);
+        const pow_frame = try allocator.alloc(air.pow_frame_witness.RelationRow, pow_count);
+        errdefer allocator.free(pow_frame);
+        const nonce = try allocator.alloc(frame_rows.NonceRow, 2 * pow_count);
+        errdefer allocator.free(nonce);
         var mix_ordinal: u32 = 0;
         var draw_count: u32 = 0;
         var word_at: usize = 0;
         var payload_at: usize = 0;
         var challenge_at: usize = 0;
         var call_at: usize = 0;
+        var hash_at: usize = 0;
+        var pow_at: usize = 0;
         for (operation_values, execution.operations[0..operation_count], 0..) |instruction, operation, index| {
-            if (operation.effect != instruction.effect or operation.hash_count != 1 or operation.first_hash_id != index or operation.first_call_id != call_at or operation.pow_check_index != null)
+            const is_pow = instruction.effect == .pow;
+            const hash_count: usize = if (is_pow) 2 else 1;
+            if (operation.effect != instruction.effect or operation.hash_count != hash_count or
+                operation.first_hash_id != hash_at or operation.first_call_id != call_at or
+                (operation.pow_check_index != null) != is_pow)
                 return error.DetachedPrefixScheduleMismatch;
-            const frame = execution.trace.hash_frames[index];
-            const draw = instruction.effect == .draw;
-            const expected_words = recording.RATE + @as(usize, if (draw) 2 else instruction.payload_words);
-            if (frame.words.len != expected_words or frame.call_count != expected_words / recording.RATE + 1 or frame.purpose != @as(recording.HashPurpose, if (draw) .draw else .mix))
-                return error.DetachedPrefixScheduleMismatch;
-            const step = frame_rows.Step{ .verifier_id = lane, .sequence = @intCast(index), .tag = STEP_TAG_BASE + @intFromEnum(instruction.source), .args = .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION } };
+            const step = frame_rows.Step{
+                .verifier_id = lane,
+                .sequence = @intCast(index),
+                .tag = if (is_pow) air.pow_frame.controlTag(.interaction) else STEP_TAG_BASE + @intFromEnum(instruction.source),
+                .args = if (is_pow) .{ instruction.pow_bits, 4, 0, 0 } else .{ @intFromEnum(instruction.effect), instruction.payload_words, instruction.item, VERSION },
+            };
             control[index] = .{ .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .terminal_mask = 0 };
-            state[index] = frame_rows.state(step, execution.trace.hash_frames, index, mix_ordinal, false);
-            mix_ordinal += @intFromBool(!draw);
-            if (draw) {
-                if (frame.words[recording.RATE].toU32() != draw_count or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG or instruction.item != challenge_at)
+            for (0..hash_count) |part| {
+                const frame = execution.trace.hash_frames[hash_at];
+                const pow_draw = is_pow and part == 1;
+                const draw = instruction.effect == .draw;
+                const expected_words = recording.RATE + @as(usize, if (draw or pow_draw) 2 else instruction.payload_words);
+                if (frame.hash_id != hash_at or frame.first_call_id != call_at or frame.words.len != expected_words or
+                    frame.call_count != expected_words / recording.RATE + 1 or
+                    frame.purpose != @as(recording.HashPurpose, if (draw or pow_draw) .draw else .mix))
                     return error.DetachedPrefixScheduleMismatch;
-                draw_count += 1;
-                challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallengeFor(family, challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
-                challenge_at += 1;
-            } else {
-                draw_count = 0;
-                for (frame.words[recording.RATE..], 0..) |value, offset| {
-                    const at: u32 = @intCast(offset);
-                    const coordinate = inputCoordinateFor(family, instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
-                    if (instruction.source.fixed() and value.toU32() != instruction.constant_words[offset]) return error.DetachedPrefixFixedWordMismatch;
-                    payload[payload_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .payload_index = at, .source_kind = coordinate.kind, .item_index = coordinate.item, .limb_index = coordinate.limb, .constant_mask = @intFromBool(instruction.source.fixed()), .input_use_count = coordinate.uses, .constant_value = if (instruction.source.fixed()) instruction.constant_words[offset] else 0, .source_hash_id = @intCast(index), .source_word_index = @intCast(recording.RATE + at) }, .value = value };
-                    payload_at += 1;
+                state[hash_at] = frame_rows.state(step, execution.trace.hash_frames, hash_at, mix_ordinal, pow_draw);
+                mix_ordinal += @intFromBool(frame.purpose == .mix);
+                if (pow_draw) {
+                    if (frame.words[recording.RATE].toU32() != 0 or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG)
+                        return error.DetachedPrefixScheduleMismatch;
+                    const check = execution.trace.pow_checks[operation.pow_check_index.?];
+                    if (check.bits != instruction.pow_bits) return error.DetachedPrefixPowMismatch;
+                    pow_check[pow_at] = try air.pow_check_witness.mainRow(.{ .verifier_id = lane, .kind = .interaction, .check = check });
+                    pow_frame[pow_at] = try air.pow_frame_witness.mainRow(.{ .verifier_id = lane, .sequence = step.sequence, .kind = .interaction, .hash_id = frame.hash_id, .check = check, .words = frame.output[0..recording.RATE].* });
+                    pow_at += 1;
+                } else if (draw) {
+                    if (frame.words[recording.RATE].toU32() != draw_count or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG or instruction.item != challenge_at)
+                        return error.DetachedPrefixScheduleMismatch;
+                    draw_count += 1;
+                    challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallengeFor(family, challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
+                    challenge_at += 1;
+                } else {
+                    draw_count = 0;
+                    if (is_pow) {
+                        nonce[2 * pow_at ..][0..2].* = try frame_rows.nonceRows(step, frame.words[recording.RATE..]);
+                    } else for (frame.words[recording.RATE..], 0..) |value, offset| {
+                        const at: u32 = @intCast(offset);
+                        const coordinate = inputCoordinateFor(family, instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
+                        if (instruction.source.fixed() and value.toU32() != instruction.constant_words[offset]) return error.DetachedPrefixFixedWordMismatch;
+                        payload[payload_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .payload_index = at, .source_kind = coordinate.kind, .item_index = coordinate.item, .limb_index = coordinate.limb, .constant_mask = @intFromBool(instruction.source.fixed()), .input_use_count = coordinate.uses, .constant_value = if (instruction.source.fixed()) instruction.constant_words[offset] else 0, .source_hash_id = @intCast(hash_at), .source_word_index = @intCast(recording.RATE + at) }, .value = value };
+                        payload_at += 1;
+                    }
                 }
+                for (frame.first_call_id..frame.first_call_id + frame.call_count) |call_index| {
+                    const call = execution.trace.poseidon_calls[call_index];
+                    const previous = if (call.id.step == 0) [_]M31{M31.zero()} ** recording.WIDTH else execution.trace.poseidon_calls[call_index - 1].output;
+                    sponge[call_index] = air.transcript_air_witness.rowFromCall(lane, frame, call, previous);
+                    binding[call_index] = frame_rows.binding(step, @intCast(call_index), frame, call, sponge[call_index], part == 0, pow_draw);
+                    provider[call_index] = frame_rows.providerCall(call);
+                }
+                for (recording.RATE..frame.call_count * recording.RATE) |index_in_frame| {
+                    word[word_at] = frame_rows.word(step, frame, @intCast(index_in_frame));
+                    word_at += 1;
+                }
+                call_at += frame.call_count;
+                hash_at += 1;
             }
-            for (frame.first_call_id..frame.first_call_id + frame.call_count) |call_index| {
-                const call = execution.trace.poseidon_calls[call_index];
-                const previous = if (call.id.step == 0) [_]M31{M31.zero()} ** recording.WIDTH else execution.trace.poseidon_calls[call_index - 1].output;
-                sponge[call_index] = air.transcript_air_witness.rowFromCall(lane, frame, call, previous);
-                binding[call_index] = frame_rows.binding(step, @intCast(call_index), frame, call, sponge[call_index], true, false);
-                provider[call_index] = frame_rows.providerCall(call);
-            }
-            for (recording.RATE..frame.call_count * recording.RATE) |index_in_frame| {
-                word[word_at] = frame_rows.word(step, frame, @intCast(index_in_frame));
-                word_at += 1;
-            }
-            call_at += frame.call_count;
         }
-        if (challenge_at != challenges.len or word_at != word.len or payload_at != payload.len or call_at != call_count) return error.DetachedPrefixScheduleMismatch;
+        if (pow_at != pow_count or hash_at != frame_count or challenge_at != challenges.len or word_at != word.len or payload_at != payload.len or call_at != call_count) return error.DetachedPrefixScheduleMismatch;
         const value = try allocator.create(Storage);
-        value.* = .{ .allocator = allocator, .operations = operation_values, .control = control, .sponge = sponge, .binding = binding, .state = state, .word = word, .payload = payload, .challenges = challenges, .provider = provider };
+        value.* = .{ .allocator = allocator, .operations = operation_values, .control = control, .sponge = sponge, .binding = binding, .state = state, .word = word, .payload = payload, .challenges = challenges, .pow_check = pow_check, .pow_frame = pow_frame, .nonce = nonce, .provider = provider };
         return @ptrCast(value);
     }
     fn storage(self: *const OwnedV1) *const Storage {
@@ -239,7 +287,7 @@ pub const OwnedV1 = opaque {
     }
     pub fn view(self: *const OwnedV1) View {
         const value = self.storage();
-        return .{ .operations = value.operations, .control = value.control, .sponge = value.sponge, .binding = value.binding, .state = value.state, .word = value.word, .payload = value.payload, .challenges = value.challenges, .provider = value.provider, .next_operation = @intCast(value.operations.len), .next_hash = @intCast(value.state.len), .next_call = @intCast(value.sponge.len) };
+        return .{ .operations = value.operations, .control = value.control, .sponge = value.sponge, .binding = value.binding, .state = value.state, .word = value.word, .payload = value.payload, .challenges = value.challenges, .pow_check = value.pow_check, .pow_frame = value.pow_frame, .nonce = value.nonce, .provider = value.provider, .next_operation = @intCast(value.operations.len), .next_hash = @intCast(value.state.len), .next_call = @intCast(value.sponge.len) };
     }
     /// This SD-only mapping consumes internally admitted immutable rows. The
     /// legacy witness mapper intentionally keeps its old statement namespace
@@ -264,6 +312,7 @@ const PlanChannel = struct {
     operations: std.ArrayList(Operation) = .empty,
     source: transcript.PayloadSourceV1 = .admission_header,
     failure: ?anyerror = null,
+    pending_pow_bits: ?u32 = null,
     pub fn beginDetachedPayload(self: *PlanChannel, source: transcript.PayloadSourceV1) void {
         self.source = source;
     }
@@ -278,6 +327,22 @@ const PlanChannel = struct {
         if (source.fixed()) @memcpy(operation.constant_words[0..8], &root_value);
         self.append(operation);
         if (self.failure) |err| return err;
+    }
+    pub fn verifyPowNonce(self: *PlanChannel, bits: u32, _: u64) bool {
+        if (self.pending_pow_bits != null) {
+            self.failure = error.DetachedPrefixScheduleMismatch;
+            return false;
+        }
+        self.pending_pow_bits = bits;
+        return true;
+    }
+    pub fn mixU64(self: *PlanChannel, _: u64) void {
+        const bits = self.pending_pow_bits orelse {
+            self.failure = error.DetachedPrefixScheduleMismatch;
+            return;
+        };
+        self.pending_pow_bits = null;
+        self.append(.{ .source = .interaction_pow, .effect = .pow, .payload_words = 4, .pow_bits = bits });
     }
     pub fn mixU32s(self: *PlanChannel, values: []const u32) void {
         const source: PayloadSource = switch (self.source) {
@@ -356,6 +421,22 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
     const owner = try OwnedV1.init(allocator, child, 1);
     defer owner.deinit();
     const view = owner.view();
+    if (child.key().profile.interactionPowBits() > 0) {
+        const check = @import("recursive_segment_v2_detached_pcs_checks.zig").checkLogicalRows;
+        try std.testing.expectEqual(@as(usize, 1), view.pow_check.len);
+        try std.testing.expectEqual(@as(usize, 1), view.pow_frame.len);
+        try std.testing.expectEqual(@as(usize, 2), view.nonce.len);
+        try check(allocator, air.pow_check, view.pow_check);
+        try check(allocator, air.pow_frame, view.pow_frame);
+        try check(allocator, air.field_statement_word_v3, view.nonce);
+        // Keep the word and its bit decomposition consistent while violating
+        // the admitted low-bit work threshold. The AIR itself must reject.
+        var invalid = view.pow_check[0];
+        try std.testing.expect(invalid[6].isZero());
+        invalid[5] = invalid[5].add(M31.one());
+        invalid[6] = M31.one();
+        try std.testing.expectError(error.DetachedPcsConstraintMismatch, check(allocator, air.pow_check, &.{invalid}));
+    }
     var definition = try air.transcript_payload.build(allocator);
     defer definition.deinit();
     const plan = try air.transcript_payload_relation.authenticate(&definition);

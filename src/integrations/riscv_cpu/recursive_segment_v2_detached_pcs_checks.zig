@@ -348,7 +348,7 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void
     }
 }
 
-fn checkLogicalRows(allocator: std.mem.Allocator, comptime Air: type, rows: []const Row(Air)) !void {
+pub fn checkLogicalRows(allocator: std.mem.Allocator, comptime Air: type, rows: []const Row(Air)) !void {
     var definition = try Air.build(allocator);
     defer definition.deinit();
     const direct = air.direct_constraint_program;

@@ -1,0 +1,15 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursive_segment_v2_detached_parent_prepare.test.detached parent prepares two genuine children with one exact routing plan' failed: DETACHED_PARENT_PREPARE_ERROR DetachedPrefixScheduleMismatch
+error: while executing test 'recursive_segment_v2_detached_parent_cohort.test.detached parent snapshots typed rows and rejects mutable ingress and inactive claims', the following test command failed:
+./.zig-cache/o/c65142bb7e62e41d7bd6a3de2f36fb65/test --cache-dir=./.zig-cache --seed=0x5fd685a1 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursive-segment-v2-detached-parent-prepare transitive failure
++- SegmentV2 detached parent preparation guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/dfc3bb49a77e6c88862ecba363c6c4e6/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x5fd685a1 -Z5c5bc8e4d3a9b2d0 --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-parent-prepare -Doptimize=ReleaseSafe --summary all

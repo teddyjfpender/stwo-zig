@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fresh-process acceptance of the tiny detached two-child parent development proof.
+"""Fresh-process acceptance of the tiny detached two-child parent proof.
 
 Requires independently supplied verifier, key and expected-root SHA256 pins.
 Optional production exits before fresh verification; only production takes the
@@ -38,6 +38,8 @@ def main() -> None:
     parser.add_argument("--expected-root", type=Path, required=True)
     parser.add_argument("--expected-root-sha256", type=digest, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--proof-profile", choices=("detached_continuation_development_q3_v2", "recursive_q193_v1"),
+                        default="detached_continuation_development_q3_v2")
     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
     parser.add_argument("--memory-profile", choices=("initial", "continuation"), default="initial")
     parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
@@ -47,6 +49,9 @@ def main() -> None:
     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     args = parser.parse_args()
+    strong = args.proof_profile == "recursive_q193_v1"
+    suffix = "q193" if strong else "development_q3"
+    boundary_errors = ("DetachedParentClaimClosureMismatch", "InvalidDetachedInteractionPow") if strong else "DetachedParentClaimClosureMismatch"
     if args.memory_profile == "continuation" and args.publication_mode != "intermediate":
         parser.error("continuation memory profile requires intermediate publication")
     if args.child_family == "parent" and args.memory_profile != "initial":
@@ -85,7 +90,7 @@ def main() -> None:
         if unchanged[path] != pin:
             parser.error(f"independent SHA256 pin mismatch: {path}")
     output.parent.mkdir(parents=True, exist_ok=True)
-    report = {"gate_sha256": sha256(Path(__file__)), "development_only": True,
+    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile, "development_only": True,
               "verifier_sha256": args.verifier_sha256, "key_sha256": args.key_sha256,
               "expected_root_sha256": args.expected_root_sha256,
               "original_files": {str(path): pin for path, pin in unchanged.items()},
@@ -117,8 +122,9 @@ def main() -> None:
             receipt = json.loads(result.stdout)
             entry["receipt"] = receipt
             for field, value in {
-                "endpoint": ("verified_segment_v2_detached_two_child_parent_development_q3" if args.publication_mode == "root"
-                             else "verified_segment_v2_detached_intermediate_parent_development_q3"),
+                "endpoint": (f"verified_segment_v2_detached_two_child_parent_{suffix}" if args.publication_mode == "root"
+                             else f"verified_segment_v2_detached_intermediate_parent_{suffix}"),
+                "proof_profile": args.proof_profile,
                 "development_only": True, "verified": True, "native_inputs_used": False,
                 "key_sha256": list(bytes.fromhex(pin)),
                 "expected_root_sha256": list(bytes.fromhex(sha256(root))),
@@ -143,7 +149,7 @@ def main() -> None:
                 profile = "tiny-parent-root-v2" if args.publication_mode == "root" else "tiny-parent-span-v2"
             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
-                    "--parent-key-sha256", args.key_sha256]
+                    "--parent-key-sha256", args.key_sha256, "--proof-profile", args.proof_profile]
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
             report["producer"] = production
@@ -178,8 +184,12 @@ def main() -> None:
             raise RuntimeError("unsupported parent transport version/claim inventory")
         if key.get("publication_mode", "root") != args.publication_mode:
             raise RuntimeError("admitted key does not match requested publication mode")
-        if proof[:7] != bytes([0, 1, 3, 0, 1, 0, 4]):
-            raise RuntimeError("unsupported canonical q3 parent proof prefix")
+        if key["profile"] != args.proof_profile:
+            raise RuntimeError("admitted key does not match requested proof profile")
+        prefix = bytes([16, 1, 193, 1, 0, 4, 0, 4] if strong else [0, 1, 3, 0, 1, 0, 4])
+        if proof[:len(prefix)] != prefix:
+            raise RuntimeError("unsupported canonical parent proof prefix")
+        commitment_count = len(prefix) - 1
         with tempfile.TemporaryDirectory(prefix="segment-v2-parent-replay-") as temporary:
             work = Path(temporary)
 
@@ -197,9 +207,9 @@ def main() -> None:
                 return directory
 
             for name, data in {
-                "changed_proof_config": bytes([1]) + proof[1:],
-                "noncanonical_varint": bytes([0x80, 0]) + proof[1:],
-                "forged_commitment_length": proof[:6] + bytes([0xff] * 9 + [1]) + proof[7:],
+                "changed_proof_config": bytes([proof[0] ^ 1]) + proof[1:],
+                "noncanonical_varint": bytes([proof[0] | 0x80, 0]) + proof[1:],
+                "forged_commitment_length": proof[:commitment_count] + bytes([0xff] * 9 + [1]) + proof[commitment_count + 1:],
                 "truncated": proof[:-1], "trailing": proof + b"\x00",
                 "altered_proof_tail": proof[:-1] + bytes([proof[-1] ^ 1]),
             }.items():
@@ -215,6 +225,19 @@ def main() -> None:
                     if name == "balanced_claims":
                         shifted(values["values"][1], -1)
                 invoke(name, candidate(name, changed_claims=changed))
+            if strong:
+                changed = copy.deepcopy(claims)
+                del changed["claims"]["interaction_pow"]
+                invoke("missing_interaction_pow", candidate("missing_interaction_pow", changed_claims=changed),
+                       error="MissingDetachedInteractionPow")
+                changed = copy.deepcopy(claims)
+                changed["claims"]["interaction_pow"] ^= 1
+                invoke("changed_interaction_pow", candidate("changed_interaction_pow", changed_claims=changed))
+            else:
+                changed = copy.deepcopy(claims)
+                changed["claims"]["interaction_pow"] = 0
+                invoke("unexpected_interaction_pow", candidate("unexpected_interaction_pow", changed_claims=changed),
+                       error="UnexpectedDetachedInteractionPow")
             for row in range(14, 20):
                 changed = copy.deepcopy(claims)
                 shifted(changed["claims"]["values"][row], 1)
@@ -246,21 +269,21 @@ def main() -> None:
             changed_root = work / "changed-canonical-root.json"
             changed_root.write_text(json.dumps(words))
             invoke("changed_canonical_expected_root", root=changed_root,
-                   error="DetachedParentClaimClosureMismatch")
+                   error=boundary_errors)
             if key["version"] == 2:
                 changed_key = copy.deepcopy(key)
                 changed_key["publication_mode"] = "intermediate" if key["publication_mode"] == "root" else "root"
                 changed_directory = candidate("changed_publication_mode", changed_key=changed_key)
                 invoke("changed_publication_mode", changed_directory, sha256(changed_directory / "key.json"),
-                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal")
-                       if args.publication_mode == "intermediate" else "DetachedParentClaimClosureMismatch")
+                       error=("DetachedParentClaimClosureMismatch", "RootSlotStartMismatch", "RootHeightNotMinimal", "InvalidDetachedInteractionPow")
+                       if args.publication_mode == "intermediate" else boundary_errors)
                 for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
                     words = json.loads(expected.read_bytes())
                     words[index] = (words[index] + 1) % MODULUS
                     changed_root = work / f"changed-{name}.json"
                     changed_root.write_text(json.dumps(words))
                     invoke(f"changed_published_{name}", root=changed_root,
-                           error="DetachedParentClaimClosureMismatch")
+                           error=boundary_errors)
         report["passed"] = True
     except Exception as error:
         report["failure"] = str(error)

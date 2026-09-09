@@ -56,12 +56,15 @@ pub const OwnedV1 = opaque {
             const head_payload = try reserveAppend(value, 5, head.payload.len);
             for (head_payload, 0..) |*destination, index| destination.* = prefix_owner.payloadLogical(index);
             try appendConverted(value, 5, tail.payload);
+            try appendConverted(value, 6, head.pow_check);
             try appendConverted(value, 6, tail.pow_check);
+            try appendConverted(value, 7, head.pow_frame);
             try appendConverted(value, 7, tail.pow_frame);
             try appendConverted(value, 8, head.challenges);
             try appendConverted(value, 9, tail.randomness);
             // Catalog10 explicitly selects the existing field-statement AIR;
             // this is the same nonce logical row formerly installed at slot12.
+            try appendLogical(value, 10, head.nonce);
             try appendLogical(value, 10, tail.nonce);
             try appendConverted(value, 0, check.control);
             inline for (.{ "query_bits", "query_mapping", "merkle_root", "trace_merkle", "pcs_deep", "fri_leaf", "fri_node", "fri_anchor", "fri_control", "fri_input" }, 20..) |field, row|

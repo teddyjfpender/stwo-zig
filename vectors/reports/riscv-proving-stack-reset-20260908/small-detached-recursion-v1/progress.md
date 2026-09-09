@@ -547,3 +547,47 @@ two-child parent and final root. The current prefix still assumes single-frame
 mix/draw operations, so its q3 success does not establish this q193 consumer.
 Production-security root, larger strong-profile trees and formal CSP preservation
 remain open. Do not replace those gates with these independently verified leaves.
+
+## Independently verified q193 two-child root
+
+The separately admitted `recursive_q193_v1` parent now verifies both real q193
+child wrappers inside its AIR and yields one freshly verified root. Interaction
+PoW shares its claim encoding and transcript step between leaf and parent; the
+prefix carries its temporary draw, work check, frame and nonce through the
+existing typed AIR rows. A genuine invalid-work mutation keeps the word/bit
+decomposition consistent and is rejected by the direct AIR constraints. The
+original prefix failure remains in `q193-parent-prepare-before-pow.log`.
+
+The first parent process takes29.05s, including6.16s preparation,3.69s fixed-key
+preparation and18.15s subsequent proving/serialization. Its2,563,834-byte root
+verifies in73.3ms, with6.24GiB peak producer RSS. These are single local
+observations, not performance promotion. Stage profiling assigns5.09s to exact
+lookup closure,3.29s main commitment,2.01s interaction filling,2.08s interaction
+commitment and3.54s composition. Sampled-value evaluation is246ms; the previous
+coefficient-retention improvement remains active. Preparation and closure are
+separate measured phases; do not conflate either with STARK verification.
+
+A different initial memory value (13→14) produces a different accepted proof
+under the identical complete parent key. Actual Metal-origin native children
+also produce identical parent proof/key/claim/publication bytes, with27.73s
+parent production and79.0ms fresh verification. All aggregation remains CPU.
+These three strong runs pass81 fresh-process cases. The default q3 replay adds
+26 cases and preserves every old artifact byte. A real weak-child invocation
+rejects in41ms before output creation and before parent AIR preparation.
+
+The next recursive consumer also passes its genuine capture, shared prefix,
+composition and PCS checks after input destruction:436 coherent public-word
+mutations, noncanonical zero and45 claim/sample mutations reject. This focused
+check runs in3s, with49s compilation. The combined child/command/producer/verifier
+build takes221s; its real stronger-child replay runs in16s and the four command
+checks in255ms. Four shared transcript checks and the parent capture add five
+more passing focused tests. See `q193-parent-measurements.json`, admission review,
+complete-proof gate reports and retained build/source/binary identities.
+
+This completes the first q193 two-child root, not the whole goal. Formal
+production-security admission and CSP preservation remain open; no stronger
+four/eight-segment root or Ethereum block benchmark is claimed. The next backend
+milestone is full Metal proving of leaves, wrappers and every parent level under
+the same admitted protocol, with fresh independent CPU verification and actual
+per-proof GPU dispatch evidence. Then finish the stronger2/4/8-tree measurements
+and optimize the largest remaining measured costs.

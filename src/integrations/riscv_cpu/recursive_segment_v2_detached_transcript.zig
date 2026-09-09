@@ -162,16 +162,7 @@ pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const 
 
 /// The profile owns the work threshold and its transcript position. A missing
 /// nonce must never silently select the development transcript.
-pub fn mixInteractionPow(channel: anytype, key: *const KeyV1, nonce: ?u64) !void {
-    const bits = key.profile.interactionPowBits();
-    if (bits == 0) {
-        if (nonce != null) return error.UnexpectedDetachedInteractionPow;
-        return;
-    }
-    const value = nonce orelse return error.MissingDetachedInteractionPow;
-    if (!channel.verifyPowNonce(bits, value)) return error.InvalidDetachedInteractionPow;
-    channel.mixU64(value);
-}
+pub const mixInteractionPow = @import("recursive_detached_claims_v1.zig").mixInteractionPow;
 
 /// Claims remain untrusted until STARK verification. The two independent
 /// checks bind row36 to expected public input and all39 rows to fixed lowering

@@ -89,6 +89,7 @@ pub const ReceiptV1 = struct {
     endpoint: []const u8 = "verified_segment_v2_detached_two_child_parent_development_q3",
     development_only: bool = true,
     publication_mode: protocol.PublicationMode,
+    proof_profile: protocol.ProfileV1,
     verified: bool = true,
     native_inputs_used: bool = false,
     key_sha256: [32]u8,
@@ -124,7 +125,7 @@ fn verifyDirectoryInner(allocator: std.mem.Allocator, directory: []const u8, ind
     if (proof.len != claims.proof_bytes or !std.meta.eql(hash(proof), claims.proof_sha256)) return error.DetachedParentProofIdentityMismatch;
     var timer = try std.time.Timer.start();
     const terminal = try verifier.verify(allocator, key.key(), &expected, claims.claims, proof);
-    return .{ .endpoint = if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
+    return .{ .proof_profile = key.key().profile, .endpoint = if (key.key().profile == .recursive_q193_v1) (if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_q193" else "verified_segment_v2_detached_intermediate_parent_q193") else if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
 }
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
