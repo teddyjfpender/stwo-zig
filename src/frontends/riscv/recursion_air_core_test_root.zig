@@ -5,6 +5,8 @@
 //! the complete runner/infra test closure into every recursion iteration.
 
 test {
+    _ = @import("recursion/air/structural_sha256.zig");
+    _ = @import("recursion/air/relation_interaction_tuple_ledger.zig");
     _ = @import("recursion/air/ethereum_transcript_payload_raw_v1_test.zig");
     _ = @import("air/lang/relation_test.zig");
     _ = @import("recursion/fri_profile_frontier_test.zig");

@@ -138,7 +138,7 @@ pub const Binding = struct {
     }
 
     pub fn identityDigest(self: *const Binding) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        var hash = @import("structural_sha256.zig").Hasher.init(.{});
         hash.update(BINDING_DOMAIN);
         hashInt(&hash, u16, self.format_version);
         hashInt(&hash, u16, self.semantic_format_version);
@@ -701,7 +701,7 @@ fn traceLogSize(row_count: usize) Error!u32 {
 }
 
 fn referenceDigest(lanes: [3]Lane, identities: [3]digest.Digest) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u32, lanes.len);
     for (lanes, identities) |lane, identity| {
@@ -713,7 +713,7 @@ fn referenceDigest(lanes: [3]Lane, identities: [3]digest.Digest) digest.Digest {
 }
 
 fn rowsDigest(rows: []const Row) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(ROWS_DOMAIN);
     hashInt(&hash, u32, rows.len);
     for (rows) |row| {

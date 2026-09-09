@@ -500,7 +500,7 @@ pub fn proofMode(kind: ProofKind) ?Mode {
 }
 
 pub fn referenceDigest(lanes: []const Lane) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u16, REFERENCE_FORMAT_VERSION);
     hashInt(&hash, u32, lanes.len);
@@ -536,7 +536,7 @@ pub fn planDigest(
     public_terms: []const PublicWireTerm,
     mode_counts: [2]Counts,
 ) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(DOMAIN);
     hashInt(&hash, u16, FORMAT_VERSION);
     hash.update(&reference_digest);

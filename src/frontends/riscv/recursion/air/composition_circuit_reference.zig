@@ -326,7 +326,7 @@ pub const RecursionInput = struct {
 };
 
 pub fn computeGraphDigest(nodes: []const Node, outputs: []const u32) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(GRAPH_DOMAIN);
     hashInt(&hash, u16, GRAPH_FORMAT_VERSION);
     hashInt(&hash, u32, nodes.len);
@@ -341,7 +341,7 @@ pub fn computeReferenceDigest(
     recursion_lanes: []const RecursionLane,
     additional_anchors: []const AnchorLane,
 ) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u16, REFERENCE_FORMAT_VERSION);
     hashInt(&hash, u32, vm.circuit_id);

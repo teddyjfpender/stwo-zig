@@ -8,6 +8,24 @@ does not close the full goal.
 
 ## Current checkpoint, 2026-09-09
 
+The parent hot-path pass is complete. Three alternating A/B rounds reduce the
+q193 four-segment root median from 26.252 to 21.364s CPU and 20.805 to 15.046s
+Metal. Shared quotient row sharding reduces diagnostic composition time from
+about 3.4s to 1.4–1.5s; canonical hashing and one exact source projection also
+reduce preparation/closure work. All 975 final fresh acceptance/rejection cases
+pass, including newly built complete four-segment CPU/Metal trees and changed
+memory with all seven keys reused. See the
+[measurement index](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-measurements.json).
+CSP benchmarking was explicitly excluded from this pass by the user.
+
+The strongest next GPU opportunity has an explicit boundary in
+[recursive Metal composition admission](recursive-metal-composition.md).
+The current parent catalog declines resident GPU composition and uses the shared
+host evaluator; Metal still performs commitments. A future exporter must preserve
+the authenticated recursive column sources and framework LogUp layout. Do not
+substitute existing narrow-memory capabilities or change protocol parameters.
+Preparation and exact closure remain measured host costs as well.
+
 Items 1 and 2 have complete proof evidence. Actual 2/4/8-segment development jobs
 produce every native child, detached wrapper, intermediate parent and one root
 on CPU or Metal. Each serialized proof verifies in a fresh CPU process after
@@ -127,10 +145,10 @@ additional twelve-hour optimization/cleanup direction.
 - Producer and native-preparation ownership must be destroyed before the fresh
   verifier runs. Retain genuine failure inputs and canonical serialized artifacts
   so the complete proof gate is reproducible outside the producer process.
-- Keep CSP defaults, protocol identities and worker policy unchanged. The
-  existing 16-case CPU/Metal A/B check and per-case latency/memory review remain
-  required for promotion. A repeated regression blocks it. The prior diagnostic
-  passed proof/policy checks but did not meet quiet-host admission.
+- Keep CSP defaults, protocol identities and execution separate. The user
+  explicitly excluded CSP benchmarking from the current parent optimization
+  pass; this pass makes no CSP promotion claim. The historical 16-case
+  preservation evidence and its quiet-host limitation remain recorded above.
 - Keep RV64 a separately admitted future frontend/profile. No shared RV32
   widening or CSP execution-path change is part of this work.
 

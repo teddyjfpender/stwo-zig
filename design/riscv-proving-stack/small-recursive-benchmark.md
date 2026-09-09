@@ -804,3 +804,89 @@ all 436 public-word mutations, 872 transcript limbs and 45 claim/sample controls
 It does not generate the next consumer proof; use the full tree command for that
 gate. Shared-lock waiting is reported separately in the retained log and is not
 included in the three-second test runtime.
+
+## Shared parent execution checks
+
+Run these focused checks before rebuilding a complete parent producer:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-recursion-direct-execution test-recursion-structural-hashes \
+  test-recursion-quotient-domains -Doptimize=ReleaseSafe --summary all
+```
+
+They compare canonical SHA bytes, every active parent AIR's direct roots over
+base and extension fields, packed relation challenges, and serial/parallel
+quotient columns. The parallel check includes additive accumulation, cancellation
+and a genuine row-evaluation failure with all helpers joined. The complete proof
+still supplies the key, transcript and serialization acceptance gate.
+
+Parent main finalization now owns one source projection for both range counting
+and exact lookup closure. It publishes the range batch only after actual provider
+columns and public words close. The retained preparation test compares this with
+cold generation and audit, rejects destination aliases and changed statements,
+checks zeroed failed outputs, and retries successfully.
+
+GPU evaluation of this recursive catalog remains separate work. See
+[the measured Metal composition boundary](recursive-metal-composition.md) for
+why the current request uses host composition and which authenticated layout
+extensions are needed. Metal commitment dispatches alone do not establish GPU
+composition.
+
+CSP benchmarks are excluded from this parent optimization pass at the user's
+request. No CSP performance-preservation result is claimed for this pass.
+
+## Parent preparation, exact closure and composition optimization
+
+Three alternating unprofiled A/B rounds use the same retained q193 four-segment
+root inputs, admitted key, transcript and proof parameters on each backend.
+
+| Complete parent request | Before median | After median | Reduction |
+| --- | ---: | ---: | ---: |
+| CPU | 26.252s | 21.364s | 18.6% |
+| Metal | 20.805s | 15.046s | 27.7% |
+
+Separate diagnostic observations attribute the change: CPU composition falls
+3.362 to 1.423s, Metal 3.433 to 1.534s. Preparation, main generation, exact closure
+and composition together fall 14.970 to 8.723s CPU and 14.711 to 8.926s Metal.
+These phase observations are not paired medians. Main finalization now includes
+range work formerly counted during preparation; the combined group avoids
+claiming moved work as a saving.
+
+Canonical SHA serialization is buffered without changing bytes. FRI parameter
+projection no longer rematerializes a complete tree. One exact tuple projection
+supplies both range counts and closure, with full provider/public-word checks
+before publication. The ledger uses one probe to remove closed tuples. Direct
+execution skips unreachable pure nodes while recursive graph recording retains
+the complete canonical program; relation challenges reuse packed field dot
+products. Large quotient domains share the existing bounded row scheduler.
+Disjoint writes, fresh/additive accumulation and worker joining have focused
+checks. No new AIR equations or backend-specific protocol description were added.
+
+CPU median process RSS is 6.661 to 6.662GiB; Metal is 7.099 to 7.144GiB (maximum
+7.132 to 7.144GiB). This is process RSS, not separate device allocation accounting.
+The composition sample identifies large linear and multiplication components as
+stragglers while other workers wait; sharding removes that scheduling bottleneck.
+Preparation and exact tuple processing remain material measured host costs.
+
+All 975 final fresh acceptance/rejection cases pass. Both four-segment development
+trees and both q193 trees use newly built leaf and parent producers, then fresh
+standalone verifiers. All 28 artifact files match across backends in each profile.
+Changing initial memory from 13 to 14 reuses all seven q193 keys; every changed
+proof and statement freshly verifies. Stronger four-tree production sums are
+103.949s CPU / 82.435s Metal versus the previous 127.641s / 102.940s observations.
+These whole-tree sums are individual runs, not additional paired benchmarks.
+
+The focused quotient suite passes ten tests in about one second after an
+11-second compile. The separate direct/hash suites pass fourteen tests; the
+retained-parent preparation and compact-ledger checks pass nine. Heavy rebuilds
+remain separate: final CPU parent 87s, Metal parent about 94s excluding its lock
+wait, and the shared leaf driver about 169s excluding its lock wait.
+
+Evidence: [measurement index](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-measurements.json),
+[artifact audit](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-artifact-audit.json),
+and [final source pins](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-source.json).
+The index contains exact build/binary references, A/B commands, five full-tree
+commands and retained proof artifacts. The audit rechecks 180 distinct pins.
+CSP benchmarks were excluded at the user's request. Formal q193 production
+security admission and GPU composition admission remain open.

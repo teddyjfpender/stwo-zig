@@ -62,11 +62,17 @@ fn prepareFor(comptime family: child_mod.Family, allocator: std.mem.Allocator, c
     var compositions: [2]*const composition_mod.OwnedV1 = undefined;
     for (children, 0..) |child, i| {
         const lane: u32 = @intCast(i + 1);
+        var phase = try std.time.Timer.start();
         prefixes[i] = try prefix_mod.OwnedV1.init(a, child, lane);
+        const prefix_ns = phase.lap();
         transcripts[i] = try transcript_mod.OwnedV1.init(a, child, prefixes[i], lane);
+        const transcript_ns = phase.lap();
         checks[i] = try pcs_mod.OwnedV1.init(a, child, lane);
+        const pcs_ns = phase.lap();
         boundaries[i] = if (family == .segment) try boundary_mod.OwnedV1.init(a, child, profile.?.sections[i], profile.?.memory[i]) else try boundary_mod.OwnedV1.initParent(a, child);
+        const boundary_ns = phase.lap();
         compositions[i] = try composition_mod.OwnedV1.init(a, child);
+        std.debug.print("DETACHED_PARENT_CHILD_PHASE lane={d} prefix_ns={d} transcript_ns={d} pcs_ns={d} boundary_ns={d} composition_ns={d}\n", .{ lane, prefix_ns, transcript_ns, pcs_ns, boundary_ns, phase.read() });
         std.debug.print("DETACHED_PARENT_CHILD lane={d} preparation_ns={d}\n", .{ lane, timer.read() });
     }
     const statement = if (family == .segment) try statement_mod.OwnedV1.initWithMode(a, boundaries[0], boundaries[1], mode) else try statement_mod.OwnedV1.initParents(a, boundaries[0], boundaries[1], mode);
@@ -167,6 +173,20 @@ test "detached parent prepares two genuine children with one exact routing plan"
     defer main.deinit();
     try prepared.cohort.fillMainInto(main.columns);
     const closure = try prepared.cohort.auditExactTupleClosure(&prepared.expected, main.columns);
+    // Borrowed public inputs must survive destination writes unchanged.
+    const alias_words = main.columns[0][0..prepared.expected.len];
+    const original_words = alias_words.*;
+    @memcpy(alias_words, &prepared.expected);
+    try std.testing.expectError(error.DestinationAlias, prepared.cohort.finalizeMainInto(alias_words, main.columns));
+    try std.testing.expectEqualSlices(core.fields.m31.M31, &prepared.expected, alias_words);
+    alias_words.* = original_words;
+    var cold_main_hash = std.crypto.hash.sha2.Sha256.init(.{});
+    for (main.columns) |column| cold_main_hash.update(std.mem.sliceAsBytes(column));
+    const fused_closure = try prepared.cohort.finalizeMainInto(&prepared.expected, main.columns);
+    try std.testing.expectEqualDeep(closure, fused_closure);
+    var fused_main_hash = std.crypto.hash.sha2.Sha256.init(.{});
+    for (main.columns) |column| fused_main_hash.update(std.mem.sliceAsBytes(column));
+    try std.testing.expectEqual(cold_main_hash.finalResult(), fused_main_hash.finalResult());
     std.debug.print("DETACHED_PARENT_EXACT_CLOSURE {any}\n", .{closure});
     const range_placement = prepared.cohort.manifest().placements[35].?;
     const range_row = frontend.recursion.air.range_check_8_8_bridge.committedRow(0);
@@ -175,5 +195,14 @@ test "detached parent prepares two genuine children with one exact routing plan"
     defer multiplicity.* = original;
     multiplicity.* = original.add(core.fields.m31.M31.one());
     try std.testing.expectError(error.DetachedParentRangeMainChanged, prepared.cohort.auditExactTupleClosure(&prepared.expected, main.columns));
+    multiplicity.* = original;
+    var wrong_expected = prepared.expected;
+    const session_start = frontend.recursion.span_continuation_v1.SESSION_START;
+    wrong_expected[session_start] = wrong_expected[session_start].add(core.fields.m31.M31.one());
+    try std.testing.expectError(error.DetachedParentExactTupleClosureMismatch, prepared.cohort.finalizeMainInto(&wrong_expected, main.columns));
+    for (main.columns) |column| for (column) |word| try std.testing.expect(word.isZero());
+    try std.testing.expectError(error.DetachedParentMainNotGenerated, prepared.cohort.auditExactTupleClosure(&prepared.expected, main.columns));
+    _ = try prepared.cohort.finalizeMainInto(&prepared.expected, main.columns);
+    std.debug.print("DETACHED_PARENT_MAIN_FINALIZATION cold_columns_equal=true exact_closure_equal=true failed_columns_zeroed=true failed_state_unpublished=true retry_closed=true\n", .{});
     std.debug.print("DETACHED_PARENT_ACTUAL_PREPARE preparation_ns={d} child_owners_destroyed=true root_words={d} proof_verified=false\n", .{ prepared.preparation_ns, prepared.expected.len });
 }

@@ -73,13 +73,12 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     errdefer allocator.free(key_json);
     const prepare_ns = timer.lap();
     phase.end();
-    phase = try stage_profile.StageScope.begin(diagnostic, "parent.main_fill", "Main column allocation and filling");
+    phase = try stage_profile.StageScope.begin(diagnostic, "parent.main_fill", "Main column allocation");
     var main = try TreeStorage.init(allocator, manifest, 1);
     defer main.deinit();
-    try prepared.fillMainInto(main.columns);
     phase.end();
-    phase = try stage_profile.StageScope.begin(diagnostic, "parent.closure", "Exact lookup closure");
-    _ = try prepared.auditExactTupleClosure(expected, main.columns);
+    phase = try stage_profile.StageScope.begin(diagnostic, "parent.main_finalize", "Main filling, range construction and exact lookup closure");
+    _ = try prepared.finalizeMainInto(expected, main.columns);
     phase.end();
     phase = try stage_profile.StageScope.begin(diagnostic, "parent.main_commit", "Main commitment");
     try main.commit(&scheme, &channel);

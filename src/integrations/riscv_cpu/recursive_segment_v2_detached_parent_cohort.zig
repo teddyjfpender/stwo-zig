@@ -8,6 +8,7 @@ const air = frontend.recursion.air;
 pub const manifest_mod = air.universal_adapter_manifest;
 const provider = air.universal_shared_provider;
 const range = air.range_check_8_8_bridge;
+const CompactLedger = @import("recursive_compact_tuple_ledger_v1.zig").Owner;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 pub const Relations = air.universal_challenges.UniversalRelations;
@@ -257,19 +258,14 @@ pub const PreparedV1 = opaque {
         const zero_claims = ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
         data.components = try OwnedComponentsV1.init(allocator, &data.manifest, data.parameters, &dummy_relations, zero_claims);
         const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
-        var counter = try frontend.air.lookups.tables.counter.Counter.init(allocator, .range_check_8_8);
-        defer counter.deinit(allocator);
         inline for (LOGICAL_ROWS, 0..) |entry, index| {
             var scratch: [air.direct_constraint_program.MAX_NODES]M31 = undefined;
             var roots: [entry.Air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
             for (data.rows[index]) |row| {
                 try admitted.logical[index].direct.evaluateBaseInto(&row, &scratch, &roots);
                 for (roots) |root| if (!root.isZero()) return error.DetachedParentConstraintViolation;
-                for (admitted.logical[index].relation_plan.preparedEntries(row)) |event| if (event.domain == .range_check_8_8)
-                    try counter.registerRaw(event.numerator, event.values[0..event.arity]);
             }
         }
-        data.range_batch = try range.PreparedBatch.init(allocator, &counter);
         return self;
     }
     pub fn deinit(self: *Self) void {
@@ -321,8 +317,8 @@ pub const PreparedV1 = opaque {
             inline for (0..LOGICAL_ROWS.len) |slot| if (overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(data.rows[slot]))) return error.DestinationAlias;
             if (overlapBytes(std.mem.sliceAsBytes(column), std.mem.asBytes(data)) or
                 overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(data.calls)) or
-                overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(data.outputs)) or
-                overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(data.range_batch.?.counter.values))) return error.DestinationAlias;
+                overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(data.outputs))) return error.DestinationAlias;
+            if (data.range_batch) |batch| if (overlapBytes(std.mem.sliceAsBytes(column), std.mem.sliceAsBytes(batch.counter.values))) return error.DestinationAlias;
         }
     }
     fn fillLogical(self: *const Self, tree: usize, destination: [][]M31) void {
@@ -353,12 +349,9 @@ pub const PreparedV1 = opaque {
             destination[placement.preprocessed_offset + 2][row] = M31.fromCanonical(@intCast(logical >> 8));
         }
     }
-    pub fn fillMainInto(self: *Self, destination: [][]M31) !void {
-        try self.preflight(1, destination);
+    fn fillMainBody(self: *Self, destination: [][]M31) !void {
         const data: *Storage = @ptrCast(@alignCast(self));
-        data.main_generated = false;
         self.fillLogical(1, destination);
-        errdefer for (destination) |column| @memset(column, M31.zero());
         const placement = data.manifest.placements[34].?;
         var columns = destination[placement.main_offset..][0..poseidon_air.N_MAIN_COLUMNS].*;
         try poseidon_air.generateMainInto(data.allocator, &columns, data.calls, placement.geometry.log_size);
@@ -366,11 +359,64 @@ pub const PreparedV1 = opaque {
             const row = air.framework_interaction.committedRow(logical, placement.geometry.log_size);
             for (output, 0..) |*word, column| word.* = columns[provider.POSEIDON_OUTPUT_COLUMN_START + column][row].toU32();
         }
-        const range_placement = data.manifest.placements[35].?;
-        var range_columns = destination[range_placement.main_offset..][0..range.PHYSICAL_MAIN_COLUMN_COUNT].*;
+    }
+    fn fillRangeInto(self: *const Self, batch: *const range.PreparedBatch, destination: [][]M31) !void {
+        const data = self.storage();
+        const placement = data.manifest.placements[35].?;
+        var columns = destination[placement.main_offset..][0..range.PHYSICAL_MAIN_COLUMN_COUNT].*;
         const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
-        try admitted.range_executor.generateMainInto(&data.range_batch.?, &range_columns);
+        try admitted.range_executor.generateMainInto(batch, &columns);
+    }
+    fn appendSourceTuples(self: *const Self, ledger: *air.relation_interaction.TupleLedger) !void {
+        const data = self.storage();
+        const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
+        inline for (LOGICAL_ROWS, 0..) |entry, index| try admitted.logical[index].relation_plan.appendPreparedTupleContributions(ledger, @intFromEnum(entry.row), data.rows[index], air.relation_interaction.allDomainMask());
+    }
+    /// Cold generation for independent audits/tests. Production finalizes once
+    /// below, sharing the source projection with exact closure.
+    pub fn fillMainInto(self: *Self, destination: [][]M31) !void {
+        try self.preflight(1, destination);
+        const data: *Storage = @ptrCast(@alignCast(self));
+        data.main_generated = false;
+        errdefer for (destination) |column| @memset(column, M31.zero());
+        if (data.range_batch == null) {
+            var counter = try frontend.air.lookups.tables.counter.Counter.init(data.allocator, .range_check_8_8);
+            defer counter.deinit(data.allocator);
+            const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
+            inline for (LOGICAL_ROWS, 0..) |_, index| for (data.rows[index]) |row| {
+                for (admitted.logical[index].relation_plan.preparedEntries(row)) |event| if (event.domain == .range_check_8_8)
+                    try counter.registerRaw(event.numerator, event.values[0..event.arity]);
+            };
+            data.range_batch = try range.PreparedBatch.init(data.allocator, &counter);
+        }
+        try self.fillMainBody(destination);
+        try self.fillRangeInto(&data.range_batch.?, destination);
         data.main_generated = true;
+    }
+    /// Source tuples are projected once into the existing exact ledger. Its
+    /// range counter supplies row35; actual provider/public tuples close before
+    /// any mutable state is published to interaction generation or commitment.
+    pub fn finalizeMainInto(self: *Self, expected: *const @import("recursive_segment_v2_detached_parent_protocol.zig").ExpectedV1, destination: [][]M31) !air.relation_interaction.TupleClosureReport {
+        try @import("recursive_segment_v2_detached_parent_protocol.zig").validateExpected(expected);
+        try self.preflight(1, destination);
+        for (destination) |column| if (overlapBytes(std.mem.asBytes(expected), std.mem.sliceAsBytes(column))) return error.DestinationAlias;
+        const data: *Storage = @ptrCast(@alignCast(self));
+        data.main_generated = false;
+        errdefer for (destination) |column| @memset(column, M31.zero());
+        try self.fillMainBody(destination);
+        var compact = try CompactLedger.init(data.allocator, false);
+        defer compact.deinit();
+        var ledger = compact.ledger();
+        defer ledger.deinit();
+        try self.appendSourceTuples(&ledger);
+        var batch = try range.PreparedBatch.init(data.allocator, &compact.source_counter);
+        errdefer batch.deinit();
+        try self.fillRangeInto(&batch, destination);
+        const report = try self.closeProviderTuples(expected, destination, &batch, &compact, &ledger);
+        if (data.range_batch) |*previous| previous.deinit();
+        data.range_batch = batch;
+        data.main_generated = true;
+        return report;
     }
     /// Challenge-independent diagnostic over exact typed/native relation entries.
     /// This never supplies a residual to the proof; a nonzero tuple aborts before
@@ -381,18 +427,23 @@ pub const PreparedV1 = opaque {
         try self.preflight(1, main_columns);
         const data = self.storage();
         if (!data.main_generated) return error.DetachedParentMainNotGenerated;
-        try data.range_batch.?.validate();
-        const range_placement = data.manifest.placements[35].?;
-        for (data.range_batch.?.counter.values, 0..) |expected_multiplicity, logical| {
-            const actual = main_columns[range_placement.main_offset][range.committedRow(logical)];
-            if (!actual.eql(expected_multiplicity)) return error.DetachedParentRangeMainChanged;
-        }
-        const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
-        var compact = try @import("recursive_compact_tuple_ledger_v1.zig").Owner.init(data.allocator, false);
+        var compact = try CompactLedger.init(data.allocator, false);
         defer compact.deinit();
         var ledger = compact.ledger();
         defer ledger.deinit();
-        inline for (LOGICAL_ROWS, 0..) |entry, index| try admitted.logical[index].relation_plan.appendPreparedTupleContributions(&ledger, @intFromEnum(entry.row), data.rows[index], air.relation_interaction.allDomainMask());
+        try self.appendSourceTuples(&ledger);
+        return self.closeProviderTuples(expected, main_columns, &data.range_batch.?, &compact, &ledger);
+    }
+    fn closeProviderTuples(self: *const Self, expected: *const @import("recursive_segment_v2_detached_parent_protocol.zig").ExpectedV1, main_columns: [][]M31, batch: *const range.PreparedBatch, compact: *CompactLedger, ledger: *air.relation_interaction.TupleLedger) !air.relation_interaction.TupleClosureReport {
+        const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
+        const data = self.storage();
+        const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
+        try batch.validate();
+        const range_placement = data.manifest.placements[35].?;
+        for (batch.counter.values, 0..) |expected_multiplicity, logical| {
+            const actual = main_columns[range_placement.main_offset][range.committedRow(logical)];
+            if (!actual.eql(expected_multiplicity)) return error.DetachedParentRangeMainChanged;
+        }
         const placement = data.manifest.placements[34].?;
         for (data.calls, data.outputs, 0..) |call, output, logical| {
             const physical = air.framework_interaction.committedRow(logical, placement.geometry.log_size);
@@ -416,7 +467,7 @@ pub const PreparedV1 = opaque {
         }
         try compact.sealSourceHistogram(null, 0);
         const range_plan = try range.authenticateRelation(&admitted.range_definition);
-        for (0..range.TABLE_SIZE) |row| for (range_plan.preparedEntries(data.range_batch.?.preparedRelationRow(row))) |event|
+        for (0..range.TABLE_SIZE) |row| for (range_plan.preparedEntries(batch.preparedRelationRow(row))) |event|
             try ledger.append(event.domain, 35, event.ordinal, event.role, event.numerator, event.values[0..event.arity]);
         for (expected, 0..) |word, index| {
             const base = protocol.publicTuple(index, word);

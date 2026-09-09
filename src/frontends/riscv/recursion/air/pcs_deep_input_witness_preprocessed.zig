@@ -291,7 +291,7 @@ pub fn preflightMain(
 }
 
 pub fn scheduleDigest(reference_digest: digest.Digest, rows: []const Row) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(SCHEDULE_DOMAIN);
     hashInt(&hash, u16, SCHEDULE_FORMAT_VERSION);
     hash.update(&reference_digest);

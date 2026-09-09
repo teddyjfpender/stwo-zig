@@ -468,7 +468,7 @@ pub fn traceLogSize(row_count: usize) Error!u32 {
 }
 
 pub fn rowsDigest(rows: []const Row) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update("stwo-zig/typed-air/recursion-trace-merkle-rows/v1\x00");
     hashInt(&hash, u32, rows.len);
     for (rows) |row| {

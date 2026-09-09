@@ -221,6 +221,13 @@ test "R-012 FRI Merkle node writers are allocation-free padded and atomic" {
     const before_main = measured.alloc_index;
     try executor.generateMainInto(&preprocessing, reference, &columns, opening);
     try std.testing.expectEqual(before_main, measured.alloc_index);
+    for (preprocessing.rows, 0..) |row, index| {
+        var main: [component.PHYSICAL_MAIN_COLUMN_COUNT]M31 = undefined;
+        for (&main, columns) |*value, column| value.* = column[index];
+        const assembled = witness.logicalInputs(main, row.values(), opening.proofKind());
+        const independently_materialized = try witness.logicalRow(reference, &preprocessing, index, opening);
+        try std.testing.expectEqualSlices(M31, &independently_materialized, &assembled);
+    }
     for (columns) |column| for (column[preprocessing.rows.len..]) |value|
         try std.testing.expect(value.isZero());
 

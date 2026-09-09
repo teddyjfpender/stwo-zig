@@ -266,14 +266,25 @@ pub fn canonicalTupleHash(
     domain: relation.Domain,
     values: []const QM31,
 ) [32]u8 {
+    // Emit the existing little-endian stream in complete SHA blocks. A buffer
+    // sized for maximum u8 arity would be poisoned on every ReleaseSafe call,
+    // even for the small tuples that dominate exact closure.
+    const arity: u8 = @intCast(values.len);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
-    hashInt(&hash, u16, FORMAT_VERSION);
-    hashInt(&hash, u8, @intFromEnum(domain));
-    hashInt(&hash, u8, values.len);
-    for (values) |value| {
-        for (value.toM31Array()) |coordinate|
-            hashInt(&hash, u32, coordinate.toU32());
-    }
+    var encoded: [64]u8 = undefined;
+    std.mem.writeInt(u16, encoded[0..2], FORMAT_VERSION, .little);
+    encoded[2] = @intFromEnum(domain);
+    encoded[3] = arity;
+    var cursor: usize = 4;
+    for (values) |value| for (value.toM31Array()) |coordinate| {
+        std.mem.writeInt(u32, encoded[cursor..][0..4], coordinate.toU32(), .little);
+        cursor += 4;
+        if (cursor == encoded.len) {
+            hash.update(&encoded);
+            cursor = 0;
+        }
+    };
+    hash.update(encoded[0..cursor]);
     return hash.finalResult();
 }
 
@@ -382,4 +393,19 @@ pub fn pairSum(pair: logup.RowPair) QM31.Error!QM31 {
 pub fn traceSize(log_size: u32) Error!usize {
     if (log_size >= @bitSizeOf(usize)) return error.InvalidTraceShape;
     return @as(usize, 1) << @intCast(log_size);
+}
+
+test "R-012 canonical tuple hash batches exactly the existing byte stream" {
+    var values: [255]QM31 = undefined;
+    for (&values, 0..) |*value, i| value.* = QM31.fromU32Unchecked(@intCast(i), 2147483646, @intCast(i * 17), @intCast(255 - i));
+    for (std.enums.values(relation.Domain)) |domain| {
+        for ([_]usize{ 0, 1, 2, 3, 4, 15, 16, 17, 63, 64, 65, 255 }) |length| {
+            var reference = std.crypto.hash.sha2.Sha256.init(.{});
+            hashInt(&reference, u16, FORMAT_VERSION);
+            hashInt(&reference, u8, @intFromEnum(domain));
+            hashInt(&reference, u8, length);
+            for (values[0..length]) |value| for (value.toM31Array()) |coordinate| hashInt(&reference, u32, coordinate.toU32());
+            try std.testing.expectEqual(reference.finalResult(), canonicalTupleHash(domain, values[0..length]));
+        }
+    }
 }

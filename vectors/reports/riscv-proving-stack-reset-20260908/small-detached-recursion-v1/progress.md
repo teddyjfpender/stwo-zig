@@ -730,3 +730,24 @@ retained input/artifact pins and 1,278 fresh-case records. Bootstrap proofs add 
 fresh cases and the root diagnostics add 54; the two genuine weak-family failures
 and focused consuming-AIR checks are recorded separately. Production security,
 formal CSP preservation and separate device-memory accounting remain open.
+
+## 2026-09-09: parent hot-path pass complete
+
+Three alternating A/B rounds: CPU q193 root 26.252 -> 21.364s (18.6% lower);
+Metal 20.805 -> 15.046s (27.7% lower). Diagnostic composition 3.362 -> 1.423s CPU
+and 3.433 -> 1.534s Metal after shared row sharding. Preparation/main/closure/
+composition together 14.970 -> 8.723s CPU and 14.711 -> 8.926s Metal. The latter
+are single diagnostic observations and include work moved between stages.
+
+Final validation passes 975 fresh acceptance/rejection cases, five complete
+four-segment trees, 56 direct CPU/Metal artifact comparisons, and changed memory
+under all seven existing q193 keys. Stronger tree production is 103.949s CPU and
+82.435s Metal; every node uses newly built producers. Semantic, hashing, ledger,
+error atomicity and bounded-worker checks pass. See `parent-hotpath-measurements.json`
+and `parent-hotpath-final-artifact-audit.json` (180 pins freshly checked).
+
+CSP benchmarks were explicitly excluded. GPU composition is not yet implemented
+for this recursive catalog: the measured resident decline and required column/
+LogUp admission extension are documented in
+`design/riscv-proving-stack/recursive-metal-composition.md`. Production-security
+admission remains open. No Ethereum-sized replay was used as a development gate.

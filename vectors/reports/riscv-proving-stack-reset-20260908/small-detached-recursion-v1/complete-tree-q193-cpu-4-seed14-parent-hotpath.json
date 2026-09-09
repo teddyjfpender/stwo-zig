@@ -1,0 +1,73 @@
+{
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "scripts/riscv_segment_v2_detached_tree_gate.py",
+    "--admission",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/q193-4-seed14.json",
+    "--admission-sha256",
+    "0b34a8b2125f9b57d2630b3f39d56d86102dc70d0ecf424338de163f1eae58a0",
+    "--output",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-parent-hotpath",
+    "--backend",
+    "cpu",
+    "--leaf-producer",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-hotpath-final-leaf-prove",
+    "--leaf-producer-sha256",
+    "c31eab892dbfc0c68290d0272dd905e90528b9ce02a858c38371e51869571003",
+    "--parent-producer",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-hotpath-final-cpu-prove",
+    "--parent-producer-sha256",
+    "6943f04e3443aaf4ccb6dcefc2a955a2a6deda662c861f3dc8133d7001973e63",
+    "--leaf-verifier",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+    "--leaf-verifier-sha256",
+    "0720755fb784af9bd18f003453440c4c8d4a4d87fe02ff115ba0c373709079a9",
+    "--parent-verifier",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/q193-parent-first-verify",
+    "--parent-verifier-sha256",
+    "38175995f7e7396ac4a1e06bab9c9bd14436e9ecc6bc30e8a85b89ed3e4b7d2c"
+  ],
+  "report_sha256": "ae48acdfcbc19cb89ddb5f1d5808fcbb05b90319e769098fe24db9e859b9d7ec",
+  "log_sha256": "bafb3f4e15d237af6a3ec550d245b03516b368b5b7002d71a432d1d7e441956c",
+  "maximum_process_rss_bytes": 7153057792,
+  "all_retained_stark_proofs_equal_previous": [
+    {
+      "relative_path": "parent-2-0/proof.bin",
+      "sha256": "f9f75f721d65fea5d11d769f6426522a3d141a0dbba3fed64561672c5bcc25fd",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "parent-1-0/proof.bin",
+      "sha256": "98f9cf9193e59e579837f9066616d6555aa0d85563e02a5ce4c59e20a4ea693c",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "parent-1-1/proof.bin",
+      "sha256": "122e0a908fa1e7b276334ab6086966ef5e2d3712c9b50fd1f196f917b4360c5f",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "leaves/child-3/proof.bin",
+      "sha256": "5584a1c0c8b144e41043ae70db1be46fb2a11b24a8a478fbad36ee010ab370f6",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "leaves/child-2/proof.bin",
+      "sha256": "d8bafd641434ffd40d3c0e72297df30e1c12d4ee0f4e6a5025d4aaf6ec0141a2",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "leaves/child-0/proof.bin",
+      "sha256": "a826d4daf3039b6b49c7375117895f514044cde6dc53cab20f524b6a6d06c081",
+      "key_claims_expected_bytes_equal": true
+    },
+    {
+      "relative_path": "leaves/child-1/proof.bin",
+      "sha256": "7da9f7be75d5168f548e5cb7bfdc5b12e25c09667faabf2a9ccb6c9cea9e7a25",
+      "key_claims_expected_bytes_equal": true
+    }
+  ],
+  "previous_tree": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first",
+  "leaf_production_ns": 40105912875,
+  "parent_production_ns": 63156455125
+}

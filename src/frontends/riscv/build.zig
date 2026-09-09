@@ -1045,6 +1045,22 @@ pub fn build(b: *std.Build) void {
         .minimum = 2,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-direct-execution",
+        .description = "Compare pruned direct execution with canonical parent AIR programs",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 direct", "R-012 universal challenge" },
+        .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-structural-hashes",
+        .description = "Check canonical hash byte parity and FRI parameter extraction",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 canonical tuple hash", "structural SHA256", "R-012 FRI Merkle node writers" },
+        .minimum = 3,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-air-core",
         .description = "Run recursion-local typed-AIR tests without shared VM-provider bridges",
         .root = "recursion_air_core_test_root.zig",

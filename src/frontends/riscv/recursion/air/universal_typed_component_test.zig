@@ -887,3 +887,118 @@ test "Ethereum typed quotient domains route owned values and preserve mapped quo
     try std.testing.checkAllAllocationFailures(allocator, failRawQuotientValues, .{ &component, &trace });
     try std.testing.checkAllAllocationFailures(allocator, failRawQuotientMetadata, .{ &component, &trace });
 }
+
+test "R-012 generic adapter shards exact quotient rows with bounded workers and joins failures" {
+    const allocator = std.testing.allocator;
+    var definition = try merkle.build(allocator);
+    defer definition.deinit();
+    const relation_plan = try merkle_relation.authenticate(&definition);
+    var relations = universal.UniversalRelations.dummy();
+    const log_size: u32 = 17;
+    var builder = manifest_mod.Builder{};
+    _ = try builder.append(merkleGeometry(log_size));
+    const manifest = try builder.seal();
+    const component = try MerkleAdapter.init(&definition, relation_plan, &manifest, .merkle_path, log_size, .{}, &relations, QM31.zero());
+    const eval_log = component.maxConstraintLogDegreeBound();
+    const size = @as(usize, 1) << @intCast(eval_log);
+    const values = try allocator.alloc(M31, size);
+    defer allocator.free(values);
+    for (values, 0..) |*value, row| value.* = M31.fromU64(row * 7919 + 17);
+    const poly = prover_component.Poly{ .log_size = eval_log, .values = values };
+    var main = [_]prover_component.Poly{poly} ** merkle.PHYSICAL_MAIN_COLUMN_COUNT;
+    var interaction = [_]prover_component.Poly{poly} ** merkle.INTERACTION_COLUMN_COUNT;
+    var trees = [_][]const prover_component.Poly{ &.{}, &main, &interaction };
+    const trace = prover_component.Trace{ .polys = pcs.TreeVec([]const prover_component.Poly).initOwned(&trees) };
+    var expected: [4][]M31 = undefined;
+    var expected_initialized: usize = 0;
+    defer for (expected[0..expected_initialized]) |column| allocator.free(column);
+    for ([_]usize{ 1, 2, 4 }) |workers| {
+        var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(allocator, QM31.fromU32Unchecked(3, 1, 4, 1), eval_log, 2 * component.nConstraints());
+        defer accumulator.deinit();
+        const prover = component.asProverComponent();
+        var fresh = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &accumulator)).?;
+        defer fresh.deinit();
+        var additive = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &accumulator)).?;
+        defer additive.deinit();
+        try std.testing.expectEqual(prover_task_graph.TaskClass.pool_exclusive, fresh.task_class);
+        for ([_]*prepared_domain.PreparedDomainEvaluation{ &fresh, &additive }) |prepared| {
+            const before = MerkleAdapter.preparedParallelTelemetrySnapshot();
+            try runTypedPreparedWithWorkers(prepared, workers, false);
+            const after = MerkleAdapter.preparedParallelTelemetrySnapshot();
+            try std.testing.expectEqual(@as(u64, @intCast(workers - 1)), after.child_submissions - before.child_submissions);
+            try std.testing.expectEqual(after.child_submissions - before.child_submissions, after.child_completions - before.child_completions);
+            try std.testing.expectEqual(before.range_failures, after.range_failures);
+        }
+        var result = try accumulator.finalize();
+        defer result.deinit(allocator);
+        for (result.columns, 0..) |column, coordinate| {
+            if (workers == 1) {
+                expected[coordinate] = try allocator.dupe(M31, column);
+                expected_initialized += 1;
+            } else try std.testing.expectEqualSlices(M31, expected[coordinate], column);
+        }
+    }
+
+    var accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(allocator, QM31.one(), eval_log, component.nConstraints());
+    defer accumulator.deinit();
+    const prover = component.asProverComponent();
+    var prepared = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &accumulator)).?;
+    defer prepared.deinit();
+    // Exercise cancellation on the actual four-worker path, before any row
+    // writes. Every submitted range must still join before producer teardown.
+    const before = MerkleAdapter.preparedParallelTelemetrySnapshot();
+    try runTypedPreparedWithWorkers(&prepared, 4, true);
+    const after = MerkleAdapter.preparedParallelTelemetrySnapshot();
+    try std.testing.expectEqual(@as(u64, 3), after.child_submissions - before.child_submissions);
+    try std.testing.expectEqual(@as(u64, 3), after.child_completions - before.child_completions);
+    const column = accumulator.sub_accumulations[eval_log].?;
+    for (0..column.len()) |row| try std.testing.expect(column.at(row).isZero());
+
+    // An invalid borrowed challenge arity induces a real row-evaluation error
+    // after admission. A failing helper cannot outlive the prepared owner.
+    var failure_accumulator = try prover_accumulation.DomainEvaluationAccumulator.init(allocator, QM31.one(), eval_log, component.nConstraints());
+    defer failure_accumulator.deinit();
+    var failure_prepared = (try prover.prepareConstraintQuotientsOnDomain(allocator, &trace, &failure_accumulator)).?;
+    defer failure_prepared.deinit();
+    relations.elements[@intFromEnum(relation_plan.events[0].domain)].arity = 0;
+    const failure_before = MerkleAdapter.preparedParallelTelemetrySnapshot();
+    try std.testing.expectError(error.InvalidArity, runTypedPreparedWithWorkers(&failure_prepared, 4, false));
+    const failure_after = MerkleAdapter.preparedParallelTelemetrySnapshot();
+    try std.testing.expectEqual(@as(u64, 3), failure_after.child_submissions - failure_before.child_submissions);
+    try std.testing.expectEqual(@as(u64, 3), failure_after.child_completions - failure_before.child_completions);
+    try std.testing.expect(failure_after.range_failures > failure_before.range_failures);
+}
+
+fn runTypedPreparedWithWorkers(prepared: *prepared_domain.PreparedDomainEvaluation, workers: usize, cancel: bool) !void {
+    const Runner = struct {
+        prepared: *prepared_domain.PreparedDomainEvaluation,
+        cancel: bool,
+        fn run(context: *prover_task_graph.TaskContext) !void {
+            const self: *@This() = @ptrCast(@alignCast(context.user_context));
+            if (self.cancel) {
+                var token = prover_task_graph.CancellationToken{};
+                _ = token.request();
+                const prior = context.cancellation;
+                context.cancellation = &token;
+                defer context.cancellation = prior;
+                try self.prepared.run(context);
+            } else try self.prepared.run(context);
+        }
+    };
+    var runner = Runner{ .prepared = prepared, .cancel = cancel };
+    var graph = try prover_task_graph.ComponentTaskGraph.init(std.testing.allocator, 1);
+    defer graph.deinit();
+    _ = try graph.addTask(.{
+        .key = .{ .epoch = 0, .stage_rank = 0, .component_registry_index = 0, .shard_or_chunk_index = 0 },
+        .name = "typed-quotient-domain",
+        .func = Runner.run,
+        .context = &runner,
+        .class = prepared.task_class,
+        .resources = prepared.resources,
+        .work_estimate = 1,
+    });
+    var pool: prover_work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = workers, .stack_size = prepared_domain.ROW_EVALUATOR_STACK_BYTES });
+    defer pool.deinit();
+    _ = try graph.execute(.{ .worker_budget = try prover_work_pool.WorkerBudget.init(workers), .pool = &pool });
+}

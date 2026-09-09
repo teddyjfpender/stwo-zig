@@ -34,6 +34,8 @@ const serialTaskContext = dependency_0.serialTaskContext;
 const secureAt = dependency_0.secureAt;
 const sourceNeedsExtension = dependency_0.sourceNeedsExtension;
 const std = dependency_0.std;
+const work_pool = dependency_0.prover_work_pool;
+const prepared_parallel = @import("../../air/prepared_parallel.zig");
 const types = dependency_0.types;
 const universal = dependency_0.universal;
 const utils = dependency_0.utils;
@@ -115,6 +117,12 @@ pub fn ComponentForManifest(
         pub const PARAMETER_COLUMN_COUNT = PARAMETER_COUNT;
         pub const PROTOCOL_CONSTRAINT_DEGREE = PROTOCOL_MAXIMUM_DEGREE;
         pub const PROFILED_CONSTRAINT_DEGREE = Air.MAXIMUM_CONSTRAINT_DEGREE;
+        pub const PARALLEL_DOMAIN_ROWS: usize = 1 << 18;
+        var parallel_telemetry: prepared_parallel.Telemetry = .{};
+
+        pub fn preparedParallelTelemetrySnapshot() prepared_parallel.TelemetrySnapshot {
+            return parallel_telemetry.snapshot();
+        }
 
         /// The component factory, rather than an assembly-site transcription,
         /// owns the equation-free manifest geometry.
@@ -562,11 +570,12 @@ pub fn ComponentForManifest(
                 .denominator_inverse = denominator_inverse,
                 .column_accumulator = accumulator_columns[0],
                 .eval_size = eval_size,
+                .direct_store = accumulator_columns[0].next_fresh_index == 0,
             };
             return .{
                 .context = state,
                 .vtable = &PreparedDomainState.vtable,
-                .task_class = .leaf,
+                .task_class = if (eval_size >= PARALLEL_DOMAIN_ROWS) .pool_exclusive else .leaf,
                 .resources = try preparedResources(
                     eval_size,
                     owned_count,
@@ -575,19 +584,22 @@ pub fn ComponentForManifest(
             };
         }
 
-        fn runPreparedDomain(
+        fn runPreparedRange(
             self: *const Self,
             state: *PreparedDomainState,
-            task_context: *prover_task_graph.TaskContext,
-        ) !void {
+            cancellation: *const prover_task_graph.CancellationToken,
+            range_index: usize,
+            row_start: usize,
+            row_end: usize,
+        ) !bool {
             const evaluations = &state.evaluations;
             const interaction_start = MAIN_COUNT + PP_COUNT;
             const denominator_shift: std.math.Log2Int(usize) = @intCast(self.log_size);
             const powers = state.column_accumulator.random_coeff_powers;
             if (powers.len < CONSTRAINT_COUNT) return error.InvalidProofShape;
-            for (0..state.eval_size) |row_index| {
+            for (row_start..row_end) |row_index| {
                 if ((row_index & (PreparedDomainState.CANCELLATION_POLL_ROWS - 1)) == 0 and
-                    task_context.isCancelled()) return;
+                    (cancellation.isCancelled() or state.failure_boundary.shouldCancel(range_index))) return false;
                 const previous_row = utils.previousBitReversedCircleDomainIndex(
                     row_index,
                     self.log_size,
@@ -642,13 +654,15 @@ pub fn ComponentForManifest(
                         powers.len - 1 - constraint
                     ].mul(root));
                 }
-                state.column_accumulator.accumulate(
-                    row_index,
-                    folded.mulM31(state.denominator_inverse[
-                        row_index >> denominator_shift
-                    ]),
-                );
+                const contribution = folded.mulM31(state.denominator_inverse[row_index >> denominator_shift]);
+                const output = state.column_accumulator.col;
+                if (state.direct_store) {
+                    output.set(row_index, contribution);
+                } else {
+                    output.set(row_index, output.at(row_index).add(contribution));
+                }
             }
+            return true;
         }
 
         const PreparedDomainState = struct {
@@ -669,6 +683,9 @@ pub fn ComponentForManifest(
             denominator_inverse: [DENOMINATOR_COUNT]M31,
             column_accumulator: prover_air_accumulation.ColumnAccumulator,
             eval_size: usize,
+            direct_store: bool,
+            failure_boundary: prepared_parallel.FailureBoundary = .{},
+            range_workers: [work_pool.MAX_WORKERS]RangeWorker = undefined,
 
             const vtable = prepared_domain.VTable{
                 .run = runErased,
@@ -680,7 +697,46 @@ pub fn ComponentForManifest(
                 task_context: *prover_task_graph.TaskContext,
             ) anyerror!void {
                 const self: *PreparedDomainState = @ptrCast(@alignCast(context));
-                try self.component.runPreparedDomain(self, task_context);
+                const count = self.prepareRanges(task_context.cancellation, task_context.worker_budget.count);
+                // Keep the same prepared state alive until every submitted
+                // child joins, including partial-submission failures.
+                defer task_context.joinChildren();
+                for (self.range_workers[1..count]) |*worker| {
+                    try task_context.spawnChild(RangeWorker.run, .{worker});
+                    parallel_telemetry.recordChildSubmission();
+                }
+                self.range_workers[0].run();
+                if (count > 1) try task_context.waitForChildren();
+                try self.finishRanges(count);
+            }
+
+            fn prepareRanges(self: *PreparedDomainState, cancellation: *const prover_task_graph.CancellationToken, budget: usize) usize {
+                self.failure_boundary.reset();
+                const tiles = (self.eval_size + CANCELLATION_POLL_ROWS - 1) / CANCELLATION_POLL_ROWS;
+                const count = @min(budget, tiles);
+                std.debug.assert(count != 0 and count <= self.range_workers.len);
+                var start_tile: usize = 0;
+                for (self.range_workers[0..count], 0..) |*worker, index| {
+                    const end_tile = start_tile + tiles / count + @intFromBool(index < tiles % count);
+                    worker.* = .{
+                        .state = self,
+                        .cancellation = cancellation,
+                        .range_index = index,
+                        .row_start = start_tile * CANCELLATION_POLL_ROWS,
+                        .row_end = @min(self.eval_size, end_tile * CANCELLATION_POLL_ROWS),
+                    };
+                    start_tile = end_tile;
+                }
+                std.debug.assert(start_tile == tiles);
+                return count;
+            }
+
+            fn finishRanges(self: *PreparedDomainState, count: usize) !void {
+                // Deterministic failure selection follows ascending row order,
+                // never worker completion order.
+                for (self.range_workers[0..count]) |worker| if (worker.failure) |failure| return failure;
+                for (self.range_workers[0..count]) |worker| if (!worker.completed) return;
+                self.column_accumulator.next_fresh_index = if (self.direct_store) self.eval_size else null;
             }
 
             fn deinitErased(context: *anyopaque) void {
@@ -689,6 +745,35 @@ pub fn ComponentForManifest(
                 for (self.owned_buffers) |values| self.values_allocator.free(values);
                 allocator.free(self.owned_buffers);
                 allocator.destroy(self);
+            }
+        };
+
+        const RangeWorker = struct {
+            state: *PreparedDomainState,
+            cancellation: *const prover_task_graph.CancellationToken,
+            range_index: usize,
+            row_start: usize,
+            row_end: usize,
+            completed: bool = false,
+            failure: ?anyerror = null,
+
+            fn run(self: *RangeWorker) void {
+                defer if (self.range_index != 0) {
+                    parallel_telemetry.recordChildCompletion();
+                };
+                self.completed = self.state.component.runPreparedRange(
+                    self.state,
+                    self.cancellation,
+                    self.range_index,
+                    self.row_start,
+                    self.row_end,
+                ) catch |failure| {
+                    self.failure = failure;
+                    parallel_telemetry.recordRangeFailure();
+                    if (self.state.failure_boundary.recordFailure(self.range_index))
+                        parallel_telemetry.recordLocalCancellation();
+                    return;
+                };
             }
         };
 

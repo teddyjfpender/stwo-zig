@@ -208,7 +208,7 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype) !void {
     value.view_value.fri_leaf = try selectRows(A.fri_leaf, allocator, value.lane, prepared.fri_leaf_preprocessing.rows, fri_leaf.columns, try W.fri_leaf.logicalRow(prepared.fri_reference, &prepared.fri_leaf_preprocessing, 0, fri));
     var fri_node = try Columns(W.fri_node).init(scratch, prepared.fri_node_preprocessing.log_size);
     try prepared.fri_node_executor.generateMainInto(&prepared.fri_node_preprocessing, prepared.fri_reference, &fri_node.columns, fri);
-    value.view_value.fri_node = try selectRows(A.fri_node, allocator, value.lane, prepared.fri_node_preprocessing.rows, fri_node.columns, try W.fri_node.logicalRow(prepared.fri_reference, &prepared.fri_node_preprocessing, 0, fri));
+    value.view_value.fri_node = try selectRows(A.fri_node, allocator, value.lane, prepared.fri_node_preprocessing.rows, fri_node.columns, W.fri_node.logicalInputs(@splat(M31.zero()), @splat(M31.zero()), .binary_node));
     var fri_anchor = try Columns(W.fri_anchor).init(scratch, prepared.fri_anchor_preprocessing.log_size);
     try prepared.fri_anchor_executor.generateMainInto(&prepared.fri_anchor_preprocessing, prepared.fri_reference, &value.vm_plan, &value.recursion_plan, &fri_anchor.columns, fri);
     value.view_value.fri_anchor = try selectRows(A.fri_anchor, allocator, value.lane, prepared.fri_anchor_preprocessing.rows, fri_anchor.columns, try W.fri_anchor.logicalRow(prepared.fri_reference, &prepared.fri_anchor_preprocessing, &value.vm_plan, &value.recursion_plan, 0, fri));

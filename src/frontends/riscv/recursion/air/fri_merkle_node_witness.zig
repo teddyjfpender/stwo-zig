@@ -337,11 +337,18 @@ pub fn logicalRow(
     try validateWitness(reference, opening_witness);
     if (row_index >= preprocessing.rows.len) return error.InvalidWitness;
     const main = try materializeAll(reference, preprocessing, opening_witness, null, row_index);
-    const selectors = opening_witness.proofKind().selectors();
-    return main.values() ++ preprocessing.rows[row_index].values() ++ .{
-        selectors[0],
-        selectors[1],
-    };
+    return logicalInputs(main.values(), preprocessing.rows[row_index].values(), opening_witness.proofKind());
+}
+
+/// Assemble a row after the bulk generator has admitted the complete witness.
+/// Parameter projection must not regenerate every packed Merkle subtree.
+pub fn logicalInputs(
+    main: [MAIN_COLUMN_COUNT]M31,
+    preprocessed: [PREPROCESSED_COLUMN_COUNT]M31,
+    kind: ProofKind,
+) [component.LOGICAL_INPUT_COUNT]M31 {
+    const selectors = kind.selectors();
+    return main ++ preprocessed ++ .{ selectors[0], selectors[1] };
 }
 
 fn materializeAll(

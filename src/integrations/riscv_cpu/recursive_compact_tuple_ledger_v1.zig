@@ -115,13 +115,14 @@ pub const Owner = struct {
         }
         const key = relation.TupleLedger.canonicalHash(domain, values);
         const map = &self.maps[@intFromEnum(domain)];
-        if (map.getPtr(key)) |retained| {
-            const next = retained.add(weight);
+        if (map.getEntry(key)) |retained| {
+            const next = retained.value_ptr.add(weight);
             if (next.isZero()) {
-                const removed = map.remove(key);
-                std.debug.assert(removed);
+                // The matching entry is already located; do not hash/probe it
+                // a second time just to remove a closed tuple.
+                map.removeByPtr(retained.key_ptr);
                 self.live_entries -= 1;
-            } else retained.* = next;
+            } else retained.value_ptr.* = next;
         } else {
             map.put(self.allocator, key, weight) catch |err| {
                 self.first_error = err;

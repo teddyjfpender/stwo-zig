@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 111237163333,
+  "log_sha256": "4008b41b2269c4ed919e67c154396fa604eed09afcf3928c99051512ebb22c7b",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-hotpath-final-metal-prove",
+  "binary_sha256": "469add16c6a760d548ce554f018f5cec73eb8e7cf79ae1a4f87c92d6a31913fd"
+}

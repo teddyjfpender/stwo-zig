@@ -1,0 +1,19 @@
+passed complete 4-segment metal tree; report=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-seed13-parent-hotpath/report.json
+       16.75 real        31.36 user         1.47 sys
+           762937344  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              785977  page reclaims
+                 352  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 174  voluntary context switches
+               15373  involuntary context switches
+           674158489  instructions retired
+           329489605  cycles elapsed
+            41026040  peak memory footprint
