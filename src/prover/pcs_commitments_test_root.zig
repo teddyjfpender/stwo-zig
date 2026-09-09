@@ -1,4 +1,5 @@
 test {
+    _ = @import("fri_work_test.zig");
     _ = @import("pcs/retained_column_storage_test.zig");
     _ = @import("pcs/owned_source_admission_test.zig");
     _ = @import("pcs/columns/circle_transforms.zig");

@@ -7,6 +7,7 @@ pub const recovery = @import("recovery.zig");
 pub const protocol_recipes = @import("protocol_recipes.zig");
 pub const shared_runtime = @import("shared_runtime.zig");
 pub const telemetry = @import("telemetry.zig");
+pub const execution_policy = @import("execution_policy.zig");
 pub const hash_domain = @import("hash_domain.zig");
 pub const commit_policy = @import("commit_policy.zig");
 pub const source_contract = @import("source_contract.zig");

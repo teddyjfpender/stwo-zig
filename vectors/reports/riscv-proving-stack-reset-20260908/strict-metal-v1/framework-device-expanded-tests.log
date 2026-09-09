@@ -1,0 +1,12 @@
+test-framework-polynomial-device
++- run test stderr
+framework_polynomial_device: pair_then_singleton, 27 cases, 36 completed GPU dispatches, 1848 rows, all four coordinates matched
+framework_polynomial_device: sole_singleton, 27 cases, 36 completed GPU dispatches, 1848 rows, all four coordinates matched
+framework_polynomial_device: sole_pair, 27 cases, 36 completed GPU dispatches, 1848 rows, all four coordinates matched
+framework_polynomial_device: singleton_then_pair, 27 cases, 36 completed GPU dispatches, 1848 rows, all four coordinates matched
+
+Build Summary: 3/3 steps succeeded; 10/10 tests passed
+test-framework-polynomial-device success
++- run test 10 passed 1s MaxRSS:13M
+   +- compile test ReleaseFast native success 4s MaxRSS:444M
+

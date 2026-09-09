@@ -9,6 +9,7 @@
 //! buckets are merged normally.
 
 const std = @import("std");
+const execution_policy = @import("../execution_policy.zig");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const base_codegen = @import("base_polynomial_codegen.zig");
@@ -200,6 +201,7 @@ fn evaluateInternal(
     work_capture: ?*composition_work.Capture,
     profiled_execution: ?prover.air.composition_execution.Execution,
 ) !?SecureColumn {
+    const execution_mode = try execution_policy.requested();
     var timing = host_graph.WallTiming.requested();
     defer if (timing) |*clock| clock.finish();
     if (components.len == 0) return null;
@@ -218,12 +220,18 @@ fn evaluateInternal(
             component.nConstraints(),
         );
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
-        partition.* = try componentPartition(component);
+        partition.* = try componentPartition(component, execution_mode);
         semantic_count += partition.base_count;
         if (partition.lookup != null) lookup_count += 1;
         if (partition.accelerated()) accelerated_component_count += 1;
     }
     if (semantic_count + lookup_count == 0) return null;
+    const host_component_count = components.len - accelerated_component_count;
+    if (host_component_count != 0) {
+        // Fail before preparing or launching any host worker in a mixed graph.
+        try execution_mode.admitHost(.composition);
+        telemetry.recordN(.cpu_composition_component, @intCast(host_component_count));
+    }
     telemetry.recordN(
         .riscv_base_polynomial_eligible_component,
         @intCast(semantic_count),
@@ -1233,7 +1241,7 @@ fn declineResidentPolynomial() ?SecureColumn {
     return null;
 }
 
-fn componentPartition(component: Component) !ComponentPartition {
+fn componentPartition(component: Component, mode: execution_policy.Mode) !ComponentPartition {
     const capability = component.backend_composition_capability orelse return .{};
     return switch (capability) {
         .base_polynomial_v1 => |value| singleBasePartition(
@@ -1249,7 +1257,7 @@ fn componentPartition(component: Component) !ComponentPartition {
             .lookup_constraints = .{ .start = 0, .count = component.nConstraints() },
         },
         .base_lookup_polynomial_v1 => |selected| blk: {
-            if (component.maxConstraintLogDegreeBound() < mixed_component_min_eval_log_size)
+            if (mode == .hybrid and component.maxConstraintLogDegreeBound() < mixed_component_min_eval_log_size)
                 break :blk .{};
             const exported = try selected.export_capabilities(component.ctx);
             try exported.validate(component.nConstraints());

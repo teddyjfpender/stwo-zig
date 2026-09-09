@@ -755,5 +755,6 @@ const Root = @This();
 
 pub const testing = if (@import("builtin").is_test) struct {
     pub const deriveFriFoldWork = Root.deriveFriFoldWork;
+    pub const deriveFriMerkleWork = Root.deriveFriMerkleWork;
     pub const recordFriProtocolWork = Root.recordFriProtocolWork;
 } else struct {};

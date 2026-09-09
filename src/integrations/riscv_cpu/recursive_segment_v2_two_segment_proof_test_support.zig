@@ -86,6 +86,10 @@ pub fn produceSegmentsWithEngines(comptime count: usize, comptime NativeEngine: 
             if (std.mem.eql(u8, directory, previous)) return error.InvalidTwoSegmentCandidateDirectories;
     }
     try options.native_keys.validate();
+    inline for (.{ NativeEngine, OuterEngine }) |Engine| {
+        if (@hasDecl(Engine.Backend, "admitHostProving"))
+            try Engine.Backend.admitHostProving(.witness_generation);
+    }
     var timer = try std.time.Timer.start();
     var segments = try @import("recursive_segment_v2_memory_workload_test_support.zig").materialize(count, allocator, address_count, options.initial_memory_word);
     var owned = true;

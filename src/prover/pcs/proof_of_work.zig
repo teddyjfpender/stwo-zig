@@ -41,7 +41,7 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
         const nonce = if (comptime @hasDecl(Backend, "grindBlake2sProofOfWork"))
             try Backend.grindBlake2sProofOfWork(prefix, pow_bits)
         else
-            grind(channel, pow_bits);
+            try grindOnHost(Backend, channel, pow_bits);
         if (!channel.verifyPowNonce(pow_bits, nonce))
             return error.InvalidBackendProofOfWorkNonce;
         return nonce;
@@ -58,7 +58,33 @@ pub fn grindForBackend(comptime Backend: type, channel: anytype, pow_bits: u32) 
             return error.InvalidBackendProofOfWorkNonce;
         return nonce;
     }
+    return grindOnHost(Backend, channel, pow_bits);
+}
+
+fn grindOnHost(comptime Backend: type, channel: anytype, pow_bits: u32) !u64 {
+    if (comptime Backend != void and @hasDecl(Backend, "admitHostProving"))
+        try Backend.admitHostProving(.proof_of_work);
     return grind(channel, pow_bits);
+}
+
+test "proof of work backend rejects forbidden host search before channel work" {
+    const Backend = struct {
+        pub fn admitHostProving(_: enum { proof_of_work }) !void {
+            return error.MetalHostProofOfWorkForbidden;
+        }
+    };
+    const Channel = struct {
+        calls: usize = 0,
+        pub fn grind(self: *@This(), _: u32) u64 {
+            self.calls += 1;
+            return 0;
+        }
+    };
+    var channel = Channel{};
+    try std.testing.expectError(error.MetalHostProofOfWorkForbidden, grindForBackend(Backend, &channel, 10));
+    try std.testing.expectEqual(@as(usize, 0), channel.calls);
+    try std.testing.expectEqual(@as(u64, 0), try grindForBackend(Backend, &channel, 0));
+    try std.testing.expectEqual(@as(usize, 0), channel.calls);
 }
 
 const PowWork = struct {

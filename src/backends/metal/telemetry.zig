@@ -10,6 +10,8 @@ pub const Event = enum {
     /// the exact Poseidon2-M31 commitment family rather than the BLAKE2s ABI.
     metal_poseidon2_merkle_commit,
     metal_quotient_dispatch,
+    /// Actual device nonce-search dispatches, including interaction PoW.
+    metal_proof_of_work_dispatch,
     metal_sampled_value_dispatch,
     metal_circle_transform_dispatch,
     metal_circle_lde_dispatch,
@@ -50,6 +52,9 @@ pub const Event = enum {
     /// would make every hybrid Metal proof report a fallback and would destroy
     /// the meaning of `accelerated_without_fallbacks`.
     cpu_composition_evaluation,
+    /// Components selected for host composition, including components which
+    /// never advertised a GPU capability. Separate from fallback accounting.
+    cpu_composition_component,
     /// A composition containing resident-eligible RISC-V semantic or lookup
     /// components declined that route and therefore continued on the generic
     /// host evaluator. Counted once per composition, never per component.
@@ -94,6 +99,7 @@ pub const CounterValues = struct {
     resident_merkle_commits: u64 = 0,
     metal_poseidon2_merkle_commits: u64 = 0,
     metal_quotient_dispatches: u64 = 0,
+    metal_proof_of_work_dispatches: u64 = 0,
     metal_sampled_value_dispatches: u64 = 0,
     metal_circle_transform_dispatches: u64 = 0,
     metal_circle_lde_dispatches: u64 = 0,
@@ -117,6 +123,7 @@ pub const CounterValues = struct {
     cpu_small_circle_evaluations: u64 = 0,
     cpu_small_circle_ldes: u64 = 0,
     cpu_composition_evaluations: u64 = 0,
+    cpu_composition_components: u64 = 0,
     cpu_riscv_polynomial_composition_declines: u64 = 0,
     metal_commit_source_arena_aliases: u64 = 0,
     metal_commit_source_arena_memcpys: u64 = 0,
@@ -143,6 +150,7 @@ pub const CounterValues = struct {
             self.resident_merkle_commits,
             self.metal_poseidon2_merkle_commits,
             self.metal_quotient_dispatches,
+            self.metal_proof_of_work_dispatches,
             self.metal_sampled_value_dispatches,
             self.metal_circle_transform_dispatches,
             self.metal_circle_lde_dispatches,
@@ -417,6 +425,7 @@ const CounterBank = struct {
     resident_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     metal_poseidon2_merkle_commits: AtomicCounter = AtomicCounter.init(0),
     metal_quotient_dispatches: AtomicCounter = AtomicCounter.init(0),
+    metal_proof_of_work_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_sampled_value_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_circle_transform_dispatches: AtomicCounter = AtomicCounter.init(0),
     metal_circle_lde_dispatches: AtomicCounter = AtomicCounter.init(0),
@@ -440,6 +449,7 @@ const CounterBank = struct {
     cpu_small_circle_evaluations: AtomicCounter = AtomicCounter.init(0),
     cpu_small_circle_ldes: AtomicCounter = AtomicCounter.init(0),
     cpu_composition_evaluations: AtomicCounter = AtomicCounter.init(0),
+    cpu_composition_components: AtomicCounter = AtomicCounter.init(0),
     cpu_riscv_polynomial_composition_declines: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_arena_aliases: AtomicCounter = AtomicCounter.init(0),
     metal_commit_source_arena_memcpys: AtomicCounter = AtomicCounter.init(0),
@@ -466,6 +476,7 @@ pub fn recordN(event: Event, count: u64) void {
         .resident_merkle_commit => &counter_bank.resident_merkle_commits,
         .metal_poseidon2_merkle_commit => &counter_bank.metal_poseidon2_merkle_commits,
         .metal_quotient_dispatch => &counter_bank.metal_quotient_dispatches,
+        .metal_proof_of_work_dispatch => &counter_bank.metal_proof_of_work_dispatches,
         .metal_sampled_value_dispatch => &counter_bank.metal_sampled_value_dispatches,
         .metal_circle_transform_dispatch => &counter_bank.metal_circle_transform_dispatches,
         .metal_circle_lde_dispatch => &counter_bank.metal_circle_lde_dispatches,
@@ -489,6 +500,7 @@ pub fn recordN(event: Event, count: u64) void {
         .cpu_small_circle_evaluation => &counter_bank.cpu_small_circle_evaluations,
         .cpu_small_circle_lde => &counter_bank.cpu_small_circle_ldes,
         .cpu_composition_evaluation => &counter_bank.cpu_composition_evaluations,
+        .cpu_composition_component => &counter_bank.cpu_composition_components,
         .cpu_riscv_polynomial_composition_decline => &counter_bank.cpu_riscv_polynomial_composition_declines,
         .metal_commit_source_arena_alias => &counter_bank.metal_commit_source_arena_aliases,
         .metal_commit_source_arena_memcpy => &counter_bank.metal_commit_source_arena_memcpys,

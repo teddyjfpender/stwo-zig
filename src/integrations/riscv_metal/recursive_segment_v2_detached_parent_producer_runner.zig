@@ -14,6 +14,7 @@ pub fn main() !void {
         !std.mem.eql(u8, args[3], "--aot-manifest-sha256") or args[4].len != 64)
         return error.ExpectedAotBundleAndManifestSha256;
     const input = try producer.parseArguments(args[5..]);
+    try Backend.admitHostProving(.recursive_preparation);
     var manifest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&manifest, args[4]);
     try @import("aot_bundle_admission.zig").validate(allocator, args[2], manifest);
@@ -43,9 +44,10 @@ pub fn main() !void {
     if (delta.counters.metal_poseidon2_merkle_commits == 0) return error.MetalPoseidonDispatchMissing;
     try Backend.shutdown();
     if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeNotReleased;
-    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} runtime_released=true manifest_sha256={s}\n", .{
-        delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits,
-        delta.counters.cpuFallbackTotal(),   std.fmt.bytesToHex(manifest, .lower),
+    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} host_composition_components={d} pow_dispatches={d} runtime_released=true manifest_sha256={s}\n", .{
+        delta.counters.metalDispatchTotal(),           delta.counters.metal_poseidon2_merkle_commits,
+        delta.counters.cpuFallbackTotal(),             delta.counters.cpu_composition_components,
+        delta.counters.metal_proof_of_work_dispatches, std.fmt.bytesToHex(manifest, .lower),
     });
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(json);

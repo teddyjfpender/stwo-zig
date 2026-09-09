@@ -835,4 +835,218 @@ pub const BackendCompositionCapability = union(enum) {
     /// direct and LogUp sub-programs. Backends that do not implement the split
     /// decline it and retain the reference whole-component evaluator.
     base_lookup_polynomial_v1: BaseLookupPolynomialCapabilityV1,
+    /// Complete typed recursive AIR, including same-row framework LogUp prefixes.
+    /// Backends must explicitly implement this distinct recurrence or decline.
+    framework_polynomial_v1: FrameworkPolynomialCapabilityV1,
+};
+
+/// Arbitrary admitted PCS input coordinates. Unlike the legacy resident
+/// contracts, preprocessing need not be one selector beside a main slab.
+pub const TypedPolynomialColumnV1 = struct { tree_index: u8, column_index: u32 };
+pub const TypedPolynomialInputV1 = union(enum) {
+    trace_column: TypedPolynomialColumnV1,
+    profile_parameter: u32,
+};
+
+/// Recursive framework relations include the 33-word atomic Poseidon tuple.
+/// Keep this geometry separate from the already admitted V1/V2 lookup ABI.
+pub const FRAMEWORK_LOOKUP_MAX_ARITY_V1: usize = 33;
+pub const FrameworkLookupEntryV1 = struct {
+    domain: u16,
+    schema_version: u16,
+    numerator: u32,
+    values: [FRAMEWORK_LOOKUP_MAX_ARITY_V1]u32 = @splat(0),
+    arity: u8,
+};
+pub const FrameworkLookupBatchV1 = struct {
+    first_entry: u32,
+    entry_count: u8,
+    interaction_column_start: u32,
+};
+
+/// Each non-final batch stores a same-row cumulative sum. Only the final
+/// batch has a previous-row dependency, and its difference includes one
+/// claimed_sum / trace_size shift. This is not the V1/V2 independent-prefix
+/// recurrence and cannot be dispatched through those capability tags.
+pub const FrameworkLookupLayoutV1 = enum(u16) { same_row_prefix_v1 = 1 };
+pub const FRAMEWORK_POLYNOMIAL_PROGRAM_DOMAIN_V1 =
+    "stwo/prover/framework-polynomial-program/v1\x00";
+
+pub const OwnedFrameworkPolynomialProgramV1 = struct {
+    allocator: std.mem.Allocator,
+    format_version: u16 = 1,
+    semantic_digest: [32]u8,
+    registry_order_digest: [32]u8,
+    direct: OwnedBasePolynomialProgram,
+    lookup_nodes: []BasePolynomialNode,
+    entries: []FrameworkLookupEntryV1,
+    batches: []FrameworkLookupBatchV1,
+    inputs: []TypedPolynomialInputV1,
+    interaction_columns: []TypedPolynomialColumnV1,
+    profile_parameter_count: u32,
+    layout: FrameworkLookupLayoutV1 = .same_row_prefix_v1,
+    identity: [32]u8,
+
+    pub fn deinit(self: *OwnedFrameworkPolynomialProgramV1) void {
+        self.direct.deinit();
+        self.allocator.free(self.lookup_nodes);
+        self.allocator.free(self.entries);
+        self.allocator.free(self.batches);
+        self.allocator.free(self.inputs);
+        self.allocator.free(self.interaction_columns);
+        self.* = undefined;
+    }
+
+    pub fn lookupParameterCount(self: *const OwnedFrameworkPolynomialProgramV1) usize {
+        var count: usize = 0;
+        for (self.entries) |entry| count += 1 + @as(usize, entry.arity);
+        return count;
+    }
+
+    /// Cold backend admission. Column bounds are the proof's actual tree
+    /// geometry, not capacities supplied by a producer-generated program.
+    pub fn validate(self: *const OwnedFrameworkPolynomialProgramV1, tree_column_counts: []const usize) !void {
+        if (self.format_version != 1 or self.direct.column_count != self.inputs.len or
+            self.entries.len == 0 or self.batches.len == 0 or
+            self.interaction_columns.len != 4 * self.batches.len or
+            self.profile_parameter_count > self.inputs.len)
+            return error.InvalidFrameworkPolynomialProgram;
+        try self.direct.validate();
+        var lookup_root = [_]u32{self.entries[0].numerator};
+        try (OwnedBasePolynomialProgram{ .allocator = self.allocator, .nodes = self.lookup_nodes, .roots = &lookup_root, .column_count = self.inputs.len }).validate();
+        for (self.inputs) |input| switch (input) {
+            .trace_column => |column| try validateTypedColumn(column, tree_column_counts),
+            .profile_parameter => |index| if (index >= self.profile_parameter_count) return error.InvalidFrameworkPolynomialInput,
+        };
+        for (self.interaction_columns) |column| try validateTypedColumn(column, tree_column_counts);
+        for (self.entries) |entry| {
+            if (entry.arity == 0 or entry.arity > FRAMEWORK_LOOKUP_MAX_ARITY_V1 or entry.numerator >= self.lookup_nodes.len)
+                return error.InvalidFrameworkPolynomialEntry;
+            for (entry.values[0..entry.arity]) |value| if (value >= self.lookup_nodes.len) return error.InvalidFrameworkPolynomialEntry;
+            for (entry.values[entry.arity..]) |value| if (value != 0) return error.InvalidFrameworkPolynomialEntry;
+        }
+        var next_entry: usize = 0;
+        for (self.batches, 0..) |batch, index| {
+            if (batch.first_entry != next_entry or batch.entry_count == 0 or batch.entry_count > 2 or
+                batch.interaction_column_start != 4 * index) return error.InvalidFrameworkPolynomialBatch;
+            next_entry += batch.entry_count;
+        }
+        if (next_entry != self.entries.len) return error.InvalidFrameworkPolynomialBatch;
+        for ([_][]const BasePolynomialNode{ self.direct.nodes, self.lookup_nodes }) |nodes| for (nodes) |node| {
+            if (node.op == .constant and node.value >= m31.Modulus) return error.InvalidFrameworkPolynomialConstant;
+        };
+        if (!std.mem.eql(u8, &self.identity, &self.identityDigest())) return error.InvalidFrameworkPolynomialIdentity;
+    }
+
+    /// Program identity binds equations, order, layout and source coordinates.
+    /// Runtime profile words, relation challenges and claimed sums stay outside
+    /// this identity: they are authenticated invocation inputs, not constants.
+    pub fn identityDigest(self: *const OwnedFrameworkPolynomialProgramV1) [32]u8 {
+        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        hash.update(FRAMEWORK_POLYNOMIAL_PROGRAM_DOMAIN_V1);
+        frameworkHashInt(&hash, u16, self.format_version);
+        hash.update(&self.semantic_digest);
+        hash.update(&self.registry_order_digest);
+        frameworkHashInt(&hash, u16, @intFromEnum(self.layout));
+        frameworkHashInt(&hash, u32, self.profile_parameter_count);
+        for ([_][]const BasePolynomialNode{ self.direct.nodes, self.lookup_nodes }) |nodes| {
+            frameworkHashInt(&hash, u32, nodes.len);
+            for (nodes) |node| {
+                frameworkHashInt(&hash, u8, @intFromEnum(node.op));
+                frameworkHashInt(&hash, u32, node.lhs);
+                frameworkHashInt(&hash, u32, node.rhs);
+                frameworkHashInt(&hash, u32, node.value);
+            }
+        }
+        frameworkHashInt(&hash, u32, self.direct.roots.len);
+        for (self.direct.roots) |root| frameworkHashInt(&hash, u32, root);
+        frameworkHashInt(&hash, u32, self.inputs.len);
+        for (self.inputs) |input| switch (input) {
+            .trace_column => |column| {
+                frameworkHashInt(&hash, u8, 0);
+                frameworkHashInt(&hash, u8, column.tree_index);
+                frameworkHashInt(&hash, u32, column.column_index);
+            },
+            .profile_parameter => |index| {
+                frameworkHashInt(&hash, u8, 1);
+                frameworkHashInt(&hash, u32, index);
+            },
+        };
+        frameworkHashInt(&hash, u32, self.interaction_columns.len);
+        for (self.interaction_columns) |column| {
+            frameworkHashInt(&hash, u8, column.tree_index);
+            frameworkHashInt(&hash, u32, column.column_index);
+        }
+        frameworkHashInt(&hash, u32, self.entries.len);
+        for (self.entries) |entry| {
+            frameworkHashInt(&hash, u16, entry.domain);
+            frameworkHashInt(&hash, u16, entry.schema_version);
+            frameworkHashInt(&hash, u32, entry.numerator);
+            frameworkHashInt(&hash, u8, entry.arity);
+            for (entry.values[0..entry.arity]) |value| frameworkHashInt(&hash, u32, value);
+        }
+        frameworkHashInt(&hash, u32, self.batches.len);
+        for (self.batches) |batch| {
+            frameworkHashInt(&hash, u32, batch.first_entry);
+            frameworkHashInt(&hash, u8, batch.entry_count);
+            frameworkHashInt(&hash, u32, batch.interaction_column_start);
+        }
+        return hash.finalResult();
+    }
+};
+
+pub const FrameworkPolynomialParametersV1 = struct {
+    profile_values: []const M31,
+    /// Canonical per-entry (z, alpha^0, ..., alpha^(arity-1)).
+    relation_values: []const QM31,
+    /// These are admitted component invocation inputs. The backend must match
+    /// trace_log_size to the proof's component geometry, never candidate data.
+    trace_log_size: u32,
+    claimed_sum: QM31,
+
+    pub fn claimedSumShift(self: FrameworkPolynomialParametersV1) !QM31 {
+        if (self.trace_log_size == 0 or self.trace_log_size >= @import("stwo_core").circle.M31_CIRCLE_LOG_ORDER)
+            return error.InvalidFrameworkPolynomialParameters;
+        return self.claimed_sum.divM31(M31.fromU64(@as(u64, 1) << @intCast(self.trace_log_size)));
+    }
+
+    pub fn validate(self: FrameworkPolynomialParametersV1, program: *const OwnedFrameworkPolynomialProgramV1) !void {
+        if (self.profile_values.len != program.profile_parameter_count or self.relation_values.len != program.lookupParameterCount())
+            return error.InvalidFrameworkPolynomialParameters;
+        for (self.profile_values) |value| if (value.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        for (self.relation_values) |value| for (value.toM31Array()) |coordinate| {
+            if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        };
+        for (self.claimed_sum.toM31Array()) |coordinate| if (coordinate.toU32() >= m31.Modulus) return error.InvalidFrameworkPolynomialParameters;
+        _ = try self.claimedSumShift();
+    }
+};
+
+fn validateTypedColumn(column: TypedPolynomialColumnV1, counts: []const usize) !void {
+    if (column.tree_index >= counts.len or column.column_index >= counts[column.tree_index]) return error.InvalidFrameworkPolynomialInput;
+}
+fn frameworkHashInt(hash: anytype, comptime T: type, value: anytype) void {
+    var bytes: [@sizeOf(T)]u8 = undefined;
+    std.mem.writeInt(T, &bytes, @intCast(value), .little);
+    hash.update(&bytes);
+}
+
+/// Cold export callbacks from one admitted immutable component. Runtime values
+/// stay outside program identity; the backend binds the invocation log size to
+/// this admitted trace geometry before dispatch, and owns exports for the job.
+pub const FrameworkPolynomialCapabilityV1 = struct {
+    trace_log_size: u32,
+    export_program: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator, tree_column_counts: []const usize) anyerror!OwnedFrameworkPolynomialProgramV1,
+    export_parameters: *const fn (ctx: *const anyopaque, allocator: std.mem.Allocator) anyerror!OwnedFrameworkPolynomialParametersV1,
+};
+
+pub const OwnedFrameworkPolynomialParametersV1 = struct {
+    allocator: std.mem.Allocator,
+    values: FrameworkPolynomialParametersV1,
+
+    pub fn deinit(self: *@This()) void {
+        self.allocator.free(self.values.profile_values);
+        self.allocator.free(self.values.relation_values);
+        self.* = undefined;
+    }
 };

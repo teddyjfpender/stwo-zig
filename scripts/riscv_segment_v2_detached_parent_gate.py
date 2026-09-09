@@ -180,12 +180,20 @@ def main() -> None:
                     raise RuntimeError(f"parent producer lifecycle mismatch: {field}")
             production["lifecycle"] = lifecycle
             if args.metal_aot_bundle:
-                matches = re.findall(r"^DETACHED_PARENT_METAL dispatches=(\d+) poseidon_commits=(\d+) cpu_fallbacks=(\d+) runtime_released=true manifest_sha256=([0-9a-f]{64})$",
-                                     log.read_text(), re.MULTILINE)
-                if len(matches) != 1 or int(matches[0][0]) == 0 or int(matches[0][1]) == 0 or matches[0][3] != args.metal_aot_manifest_sha256:
+                matches = list(re.finditer(
+                    r"^DETACHED_PARENT_METAL dispatches=(?P<dispatches>\d+) poseidon_commits=(?P<poseidon_commits>\d+) "
+                    r"cpu_fallbacks=(?P<cpu_fallbacks>\d+)(?: host_composition_components=(?P<host_composition_components>\d+) "
+                    r"pow_dispatches=(?P<pow_dispatches>\d+))? runtime_released=true manifest_sha256=(?P<manifest_sha256>[0-9a-f]{64})$",
+                    log.read_text(), re.MULTILINE))
+                if len(matches) != 1:
                     raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
-                production["metal"] = dict(dispatches=int(matches[0][0]), poseidon_commits=int(matches[0][1]),
-                                          cpu_fallbacks=int(matches[0][2]), manifest_sha256=matches[0][3], runtime_released=True)
+                metal = matches[0].groupdict()
+                if int(metal["dispatches"]) == 0 or int(metal["poseidon_commits"]) == 0 or metal["manifest_sha256"] != args.metal_aot_manifest_sha256:
+                    raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
+                # Absence in retained legacy receipts means unknown, never zero.
+                production["metal"] = {field: (int(value) if value is not None else None)
+                                       for field, value in metal.items() if field != "manifest_sha256"}
+                production["metal"].update(manifest_sha256=metal["manifest_sha256"], runtime_released=True)
             if sha256(artifacts[0]) != args.key_sha256:
                 raise RuntimeError("produced parent key differs from independent admission")
             unchanged.update({path: sha256(path) for path in artifacts})

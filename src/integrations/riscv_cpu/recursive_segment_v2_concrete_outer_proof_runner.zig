@@ -176,6 +176,7 @@ fn run(comptime Metal: type) !void {
                 return error.MetalBackendUnavailable;
             } else {
                 const Backend = Metal.MetalCommitBackend;
+                try Backend.admitHostProving(.witness_generation);
                 const bundle = aot_bundle orelse return error.MissingAotBundle;
                 const manifest = aot_manifest orelse return error.MissingAotManifestSha256;
                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeAlreadyInitialized;

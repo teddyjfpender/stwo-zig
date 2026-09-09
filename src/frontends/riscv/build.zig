@@ -1053,6 +1053,12 @@ pub fn build(b: *std.Build) void {
         .minimum = 6,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-framework-export",
+        .description = "Compare backend polynomial export with authenticated recursive AIR plans",
+        .root = "recursion_framework_export_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-arithmetic-fusion",
         .description = "Check fused verifier arithmetic and authenticated graph lowering",
         .root = "recursion_arithmetic_fusion_test_root.zig",

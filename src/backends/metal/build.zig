@@ -40,6 +40,16 @@ pub fn build(b: *std.Build) void {
         "Regenerate shaders/abi_declaration_digests.zig natively after a kernel declaration change",
     ).dependOn(&run_abi_digests_update.step);
 
+    const framework_codegen_root = b.createModule(.{
+        .root_source_file = b.path("framework_polynomial_codegen_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(framework_codegen_root, core, backend_contracts, prover_api, prover);
+    const framework_codegen_tests = b.addTest(.{ .root_module = framework_codegen_root });
+    b.step("test-framework-polynomial-codegen", "Check authenticated recursive Metal polynomial generation without a device")
+        .dependOn(&b.addRunArtifact(framework_codegen_tests).step);
+
     const test_step = b.step(
         "test",
         "Compile the stwo_metal_backend package tests",
@@ -118,6 +128,26 @@ pub fn build(b: *std.Build) void {
         circle_lde_output_parity_step.dependOn(&unsupported.step);
         return;
     }
+    const framework_device_root = b.createModule(.{
+        .root_source_file = b.path("framework_polynomial_device_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(framework_device_root, core, backend_contracts, prover_api, prover);
+    const framework_device_tests = b.addTest(.{ .root_module = framework_device_root });
+    framework_device_tests.addCSourceFile(.{
+        .file = b.path("runtime/framework_polynomial_device_test.m"),
+        .flags = &.{ "-fobjc-arc", "-fblocks" },
+    });
+    framework_device_tests.linkLibC();
+    framework_device_tests.linkFramework("Foundation");
+    framework_device_tests.linkFramework("Metal");
+    framework_device_tests.linkSystemLibrary("objc");
+    const run_framework_device = b.addRunArtifact(framework_device_tests);
+    run_framework_device.has_side_effects = true;
+    b.step("test-framework-polynomial-device", "Execute generated recursive framework constraints on Metal and compare CPU values")
+        .dependOn(&run_framework_device.step);
+
     const tests = b.addTest(.{ .root_module = backend });
     linkRuntime(b, tests);
     const composition_profile_root = b.createModule(.{
@@ -135,6 +165,9 @@ pub fn build(b: *std.Build) void {
     const composition_profile_tests = b.addTest(.{
         .root_module = composition_profile_root,
         .filters = &.{
+            "strict Metal",
+            "every Event maps to a distinct counter",
+            "proof of work backend rejects forbidden host search",
             "profiled Metal host graph attributes exact 1 2 4 and max worker arms",
             "profiled Metal composition fails closed when the resident route declines",
             "Metal composition keeps retained semantic and lookup roster outputs disjoint then merges",

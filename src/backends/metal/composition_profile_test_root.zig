@@ -1,6 +1,9 @@
 //! Focused tests for the profiled Metal composition authority.
 
 test {
+    _ = @import("execution_policy.zig");
+    _ = @import("telemetry.zig");
+    _ = @import("stwo_prover_engine").pcs.proof_of_work;
     _ = @import("runtime/base_polynomial_host_graph.zig");
     _ = @import("runtime/backend_composition.zig");
     _ = @import("runtime/composition_device_buckets.zig");

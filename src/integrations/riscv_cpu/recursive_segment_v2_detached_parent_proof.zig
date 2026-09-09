@@ -34,6 +34,8 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.Prepar
 }
 
 pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
+    if (@hasDecl(Engine.Backend, "admitHostProving"))
+        try Engine.Backend.admitHostProving(.witness_generation);
     const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
     try recursion.span_continuation_v1.validate(expected, mode);
     var timer = try std.time.Timer.start();
@@ -86,7 +88,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     phase.end();
     phase = try stage_profile.StageScope.begin(diagnostic, "parent.interaction_fill", "Transcript and interaction columns");
     try protocol.mixAdmission(&channel, key, expected);
-    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
+    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else try @import("stwo_prover_engine").pcs.proof_of_work.grindForBackend(Engine.Backend, &channel, profile.interactionPowBits());
     try protocol.mixInteractionPow(&channel, key, interaction_pow);
     const relations = try cohort.Relations.draw(allocator, &channel);
     var interaction = try TreeStorage.init(allocator, manifest, 2);

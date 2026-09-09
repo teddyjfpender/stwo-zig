@@ -1,0 +1,28 @@
+test-pcs-commitments
++- run test 155/156 passed, 1 failed
+thread 45733522 panic: integer overflow
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/expand.zig:117:67: 0x100d9ea03 in test.run-broadcast replication equals the scalar lifting gather (test)
+    for (&src_buf, 0..) |*value, index| value.* = @as(u64, index) * 0x9e3779b97f4a7c15;
+                                                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x100c7c5df in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x100c7b0b7 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x100c78887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xd478ffffffffffff in ??? (???)
+error: 'pcs.scheme.test.FRI Merkle work follows packed-leaf and constant-parent execution' failed: expected 0, found 1
+error: while executing test 'vcs_lifted.expand.test.run-broadcast replication equals the scalar lifting gather', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/66195fa3b6ed40601941525a5b24f297/test --cache-dir=./.zig-cache --seed=0xc1d9c0e7 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 155/156 tests passed; 1 failed
+test-pcs-commitments transitive failure
++- run test 155/156 passed, 1 failed
+   +- compile test ReleaseSafe native success 40s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a0d042829db08b3ae57a3f688277abb3/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover .zig-cache /Users/theodorepender/.cache/zig --seed 0xc1d9c0e7 -Zc0408078d212fa2a --maxrss 25769803776 -j1 test-pcs-commitments -Doptimize=ReleaseSafe --summary all

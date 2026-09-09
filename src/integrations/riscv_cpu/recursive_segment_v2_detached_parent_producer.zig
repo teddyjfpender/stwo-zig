@@ -89,6 +89,8 @@ pub fn runWithEngine(comptime Engine: type, allocator: std.mem.Allocator, args: 
 }
 fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
     try requireNewOutput(args.output);
+    if (@hasDecl(Engine.Backend, "admitHostProving"))
+        try Engine.Backend.admitHostProving(.recursive_preparation);
     var admitted_key: ?*command.OwnedKeyV1 = null;
     defer if (admitted_key) |key| key.deinit();
     if (args.parent_key) |input| {

@@ -175,7 +175,7 @@ pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, pr
     phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.interaction_fill", "Interaction transcript and filling");
     const expected = &prepared.capture.public_data.data;
     try transcript.mixAdmission(&channel, key, expected);
-    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
+    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else try @import("stwo_prover_engine").pcs.proof_of_work.grindForBackend(Engine.Backend, &channel, profile.interactionPowBits());
     try transcript.mixInteractionPow(&channel, key, interaction_pow);
     const relations = try recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
     const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);

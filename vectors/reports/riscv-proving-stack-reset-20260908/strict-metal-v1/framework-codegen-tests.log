@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 6/6 tests passed
+test-framework-polynomial-codegen success
++- run test 6 passed 282ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 4s MaxRSS:350M
+

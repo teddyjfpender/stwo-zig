@@ -2,6 +2,8 @@
 
 const scheme = @import("scheme.zig");
 const deferred_commit = @import("deferred_commit.zig");
+/// Shared backend-aware nonce search for PCS and interaction transcripts.
+pub const proof_of_work = @import("proof_of_work.zig");
 
 pub const quotient_ops = scheme.quotient_ops;
 /// Diagnostic/backend parity owners. These are additive exports of the exact

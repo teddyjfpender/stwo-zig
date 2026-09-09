@@ -218,6 +218,7 @@ pub fn ComponentForManifest(
         pub fn asProverComponent(self: *const Self) prover_component.ComponentProver {
             var result = Adapter.asProverComponent(self);
             result.prepare_domain_evaluator = prepareDomainEvaluatorErased;
+            result.backend_composition_capability = .{ .framework_polynomial_v1 = @import("framework_polynomial_export_v1.zig").capability(Air, Self, self.log_size) };
             return result;
         }
 

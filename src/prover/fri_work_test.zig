@@ -270,3 +270,54 @@ test "FRI work audit fails closed instead of truncating excess layers" {
     try std.testing.expect(!audit.complete);
     try std.testing.expectEqual(@as(usize, 0), audit.merkle_path_count);
 }
+
+test "FRI Merkle accounting follows packed-leaf boundaries and constant-parent reuse" {
+    const Backend = struct {
+        pub const reuses_constant_merkle_parents = true;
+        pub const lazy_merkle_reuses_constant_parents = false;
+        pub const fri_fused_merkle_reuses_constant_parents = false;
+    };
+    const constant_values = [_]M31{M31.fromCanonical(7)} ** 16;
+    var varying_values: [16]M31 = undefined;
+    for (&varying_values, 0..) |*value, index| value.* = M31.fromU64(index + 1);
+    const config = core_fri.FriConfig{
+        .log_blowup_factor = 1,
+        .log_last_layer_degree_bound = 1,
+        .n_queries = 1,
+        .fold_step = 2,
+    };
+    // Four rows per packed leaf: one leaf has no parent, two leaves have
+    // one parent even when equal, and four equal leaves reuse one parent per
+    // level. Changing one coordinate must disable that reuse.
+    for ([_]usize{ 4, 8, 16 }, [_]u64{ 0, 1, 2 }, [_]u64{ 0, 1, 3 }) |rows, constant_expected, varying_expected| {
+        const constant = FriWorkTestColumn{ .columns = .{ constant_values[0..rows], constant_values[0..rows], constant_values[0..rows], constant_values[0..rows] } };
+        const varying = FriWorkTestColumn{ .columns = .{ varying_values[0..rows], constant_values[0..rows], constant_values[0..rows], constant_values[0..rows] } };
+        for ([_]FriWorkTestColumn{ constant, varying }, [_]u64{ constant_expected, varying_expected }) |column, expected| {
+            const prover = .{
+                .first_layer = .{ .column = column },
+                .inner_layers = &[_]FriWorkTestLayer{},
+            };
+            var audit: FriProtocolWorkAudit = .{};
+            audit.observeGenericMerkle();
+            try std.testing.expectEqual(expected, try owner.testing.deriveFriMerkleWork(Backend, &audit, &prover, config));
+            // The same constant data on a path without parent reuse must
+            // retain every internal compression, including the root.
+            audit = .{};
+            audit.observeLazyMerkle();
+            try std.testing.expectEqual(varying_expected, try owner.testing.deriveFriMerkleWork(Backend, &audit, &prover, config));
+        }
+    }
+    // Disabling packing on eight rows restores eight leaves: three constant
+    // levels or all seven varying parents, preserving the old unpacked gate.
+    var unpacked = config;
+    unpacked.fold_step = 1;
+    for ([_][]const M31{ constant_values[0..8], varying_values[0..8] }, [_]u64{ 3, 7 }) |first_coordinate, expected| {
+        const prover = .{
+            .first_layer = .{ .column = FriWorkTestColumn{ .columns = .{ first_coordinate, constant_values[0..8], constant_values[0..8], constant_values[0..8] } } },
+            .inner_layers = &[_]FriWorkTestLayer{},
+        };
+        var audit: FriProtocolWorkAudit = .{};
+        audit.observeGenericMerkle();
+        try std.testing.expectEqual(expected, try owner.testing.deriveFriMerkleWork(Backend, &audit, &prover, unpacked));
+    }
+}

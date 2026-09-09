@@ -366,7 +366,14 @@ test "sampled-value overlap: exact normalized keys expose within and cross-tree 
 
     var receipt = try derive(allocator, &trees, &all_points, 6);
     defer receipt.deinit();
-    try std.testing.expectEqual(@as(u64, 3), receipt.value.current_plan_count);
+    // Plans are keyed by an entire ordered point list within each tree:
+    // tree 0 shares one [p1,p2] plan, tree 1 has one [p1,p3] plan, and
+    // tree 2 needs separate [p1,p2] and [p1] plans. Thus three trees own four
+    // plans; their seven weights contain only three globally unique keys.
+    try std.testing.expectEqual(@as(u32, 3), receipt.value.barycentric_tree_count);
+    try std.testing.expectEqual(@as(u64, 4), receipt.value.current_plan_count);
+    try std.testing.expectEqualSlices(u64, &.{ 2, 2, 3 }, receipt.value.per_tree_current_weight_vector_count);
+    try std.testing.expectEqualSlices(u64, &.{ 2, 2, 2 }, receipt.value.per_tree_unique_weight_vector_count_values);
     try std.testing.expectEqual(@as(u64, 7), receipt.value.current_weight_vector_count);
     try std.testing.expectEqual(@as(u64, 6), receipt.value.per_tree_unique_weight_vector_count);
     try std.testing.expectEqual(@as(u64, 3), receipt.value.global_unique_weight_vector_count);

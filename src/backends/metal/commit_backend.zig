@@ -40,6 +40,7 @@ pub fn shutdown() MetalCommitBackend.ShutdownError!void {
 }
 
 pub const MetalCommitBackend = struct {
+    pub const admitHostProving = @import("execution_policy.zig").admitHost;
     pub const capabilities: @import("stwo_backend_contracts").Capabilities = .{
         .host_batch_inverse = true,
         .fri_folding = true,
@@ -226,7 +227,9 @@ pub const MetalCommitBackend = struct {
         }
         var lease = try shared_runtime.acquire();
         defer lease.deinit();
-        return (try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits)).nonce;
+        const result = try lease.runtime.grindBlake2sProofOfWork(&prefix_words, pow_bits);
+        telemetry.recordN(.metal_proof_of_work_dispatch, result.dispatch_count);
+        return result.nonce;
     }
 
     /// Device search for the Poseidon2-M31 recursion channel; the generic
@@ -234,7 +237,9 @@ pub const MetalCommitBackend = struct {
     pub fn grindPoseidon2ChannelProofOfWork(prefix_state: [16]u32, pow_bits: u32) !u64 {
         var lease = try shared_runtime.acquire();
         defer lease.deinit();
-        return (try lease.runtime.grindPoseidon2ChannelProofOfWork(&prefix_state, pow_bits)).nonce;
+        const result = try lease.runtime.grindPoseidon2ChannelProofOfWork(&prefix_state, pow_bits);
+        telemetry.recordN(.metal_proof_of_work_dispatch, result.dispatch_count);
+        return result.nonce;
     }
 
     pub fn initializeRuntime(
@@ -393,6 +398,7 @@ pub const MetalCommitBackend = struct {
             return MerkleTree(H).fromHost(empty_tree);
         }
         if (!commit_policy.usesResidentMerkle(cells) or !resident_hash_supported) {
+            try admitHostProving(.merkle_commit);
             const host_tree = try merkle.MerkleProverLifted(H).commit(allocator, columns);
             telemetry.record(.host_merkle_commit);
             telemetry.record(if (commit_policy.usesResidentMerkle(cells))
@@ -710,6 +716,7 @@ pub const MetalCommitBackend = struct {
     ) !work_profile.M31InterpolationExecution {
         if (values.len == 0) return error.InvalidColumns;
         if (domain.logSize() < 3) {
+            try admitHostProving(.circle_interpolation);
             try @import("stwo_prover_engine").poly.circle.poly.interpolateBuffersWithTwiddles(values, domain, twiddle_tree);
             telemetry.record(.cpu_small_circle_interpolation);
             const execution = work_profile.M31InterpolationExecution{
@@ -749,6 +756,7 @@ pub const MetalCommitBackend = struct {
     ) !work_profile.M31ForwardFftExecution {
         if (values.len == 0) return error.InvalidColumns;
         if (domain.logSize() < 3) {
+            try admitHostProving(.circle_evaluation);
             try @import("stwo_prover_engine").poly.circle.poly.evaluateBuffersWithTwiddles(values, domain, twiddle_tree);
             telemetry.record(.cpu_small_circle_evaluation);
             const execution = work_profile.M31ForwardFftExecution{
@@ -857,6 +865,7 @@ pub const MetalCommitBackend = struct {
             return error.InvalidColumns;
         }
         if (base_domain.logSize() < 3) {
+            try admitHostProving(.circle_lde);
             for (source_values, base_values, extended_values) |source, base, extended| {
                 if (source.len != base_domain.size() or base.len != base_domain.size() or
                     extended.len != extended_domain.size() or extended.len < base.len)
