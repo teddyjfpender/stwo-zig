@@ -625,3 +625,37 @@ GPU evidence, prove and freshly verify a complete two-segment Metal tree, then
 run the actual2/4/8 ladders. Expand telemetry to attribute composition's remaining
 host/device work before claiming further GPU speedups. Production-security
 admission and the formal CSP preservation gate remain open.
+
+## Complete CPU and Metal tree checkpoint
+
+The earlier CPU-wrapper limitation is now closed: actual 2/4/8 development trees
+prove native children, wrappers and all recursive parents with the selected
+backend. Every root freshly verifies on CPU; artifact bytes match across
+backends. The separately admitted q193 two-segment full Metal route also passes.
+These remain tiny RISC-V fixtures, not Ethereum blocks or production-security
+certification. See the [current command and measurements](../../../../design/riscv-proving-stack/small-recursive-benchmark.md#complete-cpu-and-metal-tree-controller).
+
+The next user-requested bounded pass targets repeated sampled-opening work in
+wrappers on both CPU and Metal, with alternating measurements, memory accounting,
+unchanged proof bytes and fresh verification. Stronger 4/8 admission and formal
+CSP preservation remain open.
+
+## Wrapper opening optimization and final Metal tree gate
+
+Three alternating rounds on CPU/Metal, under both development and experimental
+q193 parameters, pass all 560 fresh cases and preserve every artifact byte.
+CPU wrapper median improves 0.978→0.619s (development) and 9.999→6.396s (q193).
+The q193 two-child producer improves 32.554→25.364s, with 2.426→2.696GiB RSS.
+Metal coefficient retention adds memory without speeding the wrapper and is
+rejected. `wrapper-retention-measurements.json` and `wrapper-retention-ab/`
+retain exact evidence, including that rejected candidate.
+
+The final CPU-retain/Metal-discard policy passes eight complete-tree runs and
+1,014 fresh cases: both backends at development 2/4/8 and q193 2. The final tree
+commands, binary/source pins, resource measurements and parity results are in
+`wrapper-retention-final-trees.json` and
+`wrapper-retention-final-tree-measurements.json`. Final build: 174s. The retained
+phase report and Metal interaction sample identify repeated row-pair evaluation
+and batch inversion in per-domain auditing as the next shared optimization
+candidate. It must preserve exact domain audits and fresh verification.
+Formal quiet-host CSP promotion and stronger 4/8 admission remain open.

@@ -38,19 +38,24 @@ def records(output: str, prefix: str) -> list[dict[str, str]]:
             for line in output.splitlines() if line.startswith(prefix + " ")]
 
 
-def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None) -> dict:
+def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, recursive_backend: str = "cpu", segment_count: int = 2) -> dict:
+    if segment_count not in (2, 4, 8):
+        raise ValueError("unsupported small-tree segment count")
     native = records(output, "SEGMENT_V2_NATIVE_MEMORY")
     children = records(output, "SEGMENT_V2_TWO_CHILD_CANDIDATE")
     final = records(output, "SEGMENT_V2_TWO_CHILD_PRODUCER")
-    if len(native) != 2 or len(children) != 2 or len(final) != 1:
-        raise RuntimeError("producer did not report exactly two destroyed child owners")
+    if len(native) != segment_count or len(children) != segment_count or len(final) != 1:
+        raise RuntimeError("producer did not report every destroyed child owner")
     for index, (native_child, child) in enumerate(zip(native, children)):
         expected_native = {"path": "temporal", "segment": str(index), "backend": backend,
                            "producer_live_bytes_after_destroy": "0", "before_fresh_decode": "true"}
-        expected_child = {"segment": str(index), "first_cycle": str((0, 64)[index]),
-                          "retired_cycles": str((64, 34)[index]), "completed": ("false", "true")[index],
+        expected_child = {"segment": str(index), "completed": "true" if index == segment_count - 1 else "false",
                           "native_backend": backend, "producer_live_bytes_after_destroy": "0",
                           "status": "unverified_candidate", "parent_proof_created": "false"}
+        # Keep the original two-segment fixture checks. Larger trees authenticate
+        # clocks against their independently admitted statements in the verifier.
+        if segment_count == 2:
+            expected_child.update(first_cycle=str((0, 64)[index]), retired_cycles=str((64, 34)[index]))
         if any(native_child.get(k) != v for k, v in expected_native.items()) or any(
                 child.get(k) != v for k, v in expected_child.items()):
             raise RuntimeError(f"child {index}: missing destruction or exact execution coverage")
@@ -60,16 +65,26 @@ def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None) -
                       "owners_destroyed": "true", "parent_proof_created": "false"}
     if any(final[0].get(k) != v for k, v in expected_final.items()):
         raise RuntimeError("producer did not finish the complete destruction lifecycle")
+    if any(child.get("recursive_backend", "cpu") != recursive_backend for child in children) or final[0].get("recursive_backend", "cpu") != recursive_backend:
+        raise RuntimeError("producer used a different recursive backend")
+    recursive_device = records(output, "SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL")
+    if recursive_backend == "metal":
+        if len(recursive_device) != segment_count or any(row.get("segment") != str(index) or
+                int(row.get("dispatches", "0")) <= 0 or int(row.get("poseidon_commits", "0")) <= 0
+                for index, row in enumerate(recursive_device)):
+            raise RuntimeError("producer did not use Metal for every recursive wrapper")
+    elif recursive_device:
+        raise RuntimeError("unexpected recursive Metal execution")
     if backend == "metal":
         aot = records(output, "SEGMENT_V2_NATIVE_METAL_AOT")
         device = records(output, "SEGMENT_V2_TWO_CHILD_NATIVE_METAL")
         if len(aot) != 1 or aot[0].get("manifest_sha256") != aot_pin or aot[0].get("profile") != "core_v2":
             raise RuntimeError("producer did not authenticate the selected Metal AOT profile")
-        if len(device) != 2 or any(row.get("segment") != str(index) or
+        if len(device) != segment_count or any(row.get("segment") != str(index) or
                 int(row.get("dispatches", "0")) <= 0 or int(row.get("poseidon_commits", "0")) <= 0
                 for index, row in enumerate(device)):
-            raise RuntimeError("producer did not use Metal for both native children")
-    return {"native": native, "children": children, "final": final[0]}
+            raise RuntimeError("producer did not use Metal for every native child")
+    return {"native": native, "children": children, "final": final[0], "recursive_metal": recursive_device}
 
 
 def run_producer(args: argparse.Namespace, report: dict) -> None:
@@ -77,6 +92,8 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     directory = args.bundle.resolve().parent
     argv = [str(producer), "--memory-addresses", "1", "--two-segment-output", str(directory),
             "--native-backend", args.native_backend]
+    if args.recursive_backend != "cpu":
+        argv += ["--recursive-backend", args.recursive_backend]
     if args.proof_profile != "development_q3_v1":
         argv += ["--proof-profile", args.proof_profile]
     if args.initial_memory_word:
@@ -113,7 +130,7 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     if result.returncode != 0:
         raise RuntimeError(f"producer exited {result.returncode}; retained log: {log}")
     record["lifecycle"] = require_producer_lifecycle(log.read_text(), args.native_backend,
-                                                   args.aot_manifest_sha256)
+                                                   args.aot_manifest_sha256, args.recursive_backend)
 
 
 def main() -> None:
@@ -130,11 +147,14 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--producer", type=Path, help="already-built shared two-segment producer")
     parser.add_argument("--native-backend", choices=("cpu", "metal"), default="cpu")
+    parser.add_argument("--recursive-backend", choices=("cpu", "metal"), default="cpu")
     parser.add_argument("--initial-memory-word", type=lambda value: int(value, 0), default=0,
                         help="unsigned initial word for the one-address memory fixture")
     parser.add_argument("--aot-bundle", type=Path)
     parser.add_argument("--aot-manifest-sha256")
     args = parser.parse_args()
+    if args.recursive_backend == "metal" and (not args.producer or args.native_backend != "metal"):
+        parser.error("recursive Metal requires a complete Metal producer run")
     if not 0 <= args.initial_memory_word <= 0xffffffff:
         parser.error("initial memory word must fit in u32")
     adjacent_options = (args.adjacent_bundle, args.adjacent_key_sha256, args.adjacent_expected_wire)

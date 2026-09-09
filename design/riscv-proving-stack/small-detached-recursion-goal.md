@@ -8,73 +8,43 @@ does not close the full goal.
 
 ## Current checkpoint, 2026-09-09
 
-Items1 and2 have complete development-proof evidence. The version2 parent binds
-436 public words, including session and endpoint lineage, under explicit root or
-intermediate admission. Actual2/4/8-segment jobs now have complete recursive trees
-with one freshly verified root per job. The four/eight-segment trees recursively
-verify their intermediate STARKs, including the complete8→4→2→1 route. This is
-still the development profile; item3 remains open for production-security
-measurement, optimization of the measured tree and formal CSP preservation.
+Items 1 and 2 have complete proof evidence. Actual 2/4/8-segment development jobs
+produce every native child, detached wrapper, intermediate parent and one root
+on CPU or Metal. Each serialized proof verifies in a fresh CPU process after
+producer exit. All artifact bytes match across backends. These are small RISC-V
+memory workloads; Ethereum block proving has not resumed.
 
-The four-segment tree additionally passes with a different initial memory value
-under all seven unchanged admitted keys. Parent capture now shares immutable
-ownership, transcript payload definitions, composition and PCS preparation with
-leaf capture. The parent boundary constrains all872 transcript limbs, canonical
-field encoding and all436 public words. Its focused genuine-proof check rejects
-436 coherent public-word mutations plus the noncanonical encoding of zero.
+The separately admitted experimental q193 profile also completes a two-segment
+full Metal tree. Here q193 means 193 FRI queries. A stronger profile is not itself
+production-security certification. Stronger 4/8 trees and formal production
+admission remain open. The shared parent statement authenticates 436 public
+words, session and endpoint lineage; existing changed-memory runs reuse complete
+admitted keys. Focused capture checks cover all 872 transcript limbs, canonical
+field encoding and coherent public-word mutations.
 
-The execution-only ladder runs in under a second and compiles in7s. Initial leaf
-production observations are7.73/15.24/30.45s on CPU and6.95/12.17/24.93s with Metal
-native proving, excluding aggregation. Intermediate parents take3.85–3.90s each;
-core verification takes10–11ms. Current evidence includes336 fresh child cases,
-150 partial-parent cases and a25-case Metal-origin partial-parent lifecycle.
-These are development-profile observations; production-security measurement,
-optimization of the measured whole tree and formal CSP promotion remain open.
-The new four/eight-segment final aggregation requests take3.91/3.92s, with
-90,169/85,923-byte root proofs and12.38/9.78ms core fresh verification. Preparation
-is378/384ms; peak parent RSS remains about656MiB. The observed stage sums are
-26.91/57.75s for CPU leaves plus aggregation. These sums combine separate runs
-and are not a single end-to-end controller wall-time measurement.
+The maintained small-tree controller and exact pinned commands are documented in
+[the benchmark guide](small-recursive-benchmark.md#complete-cpu-and-metal-tree-controller).
+The first complete development gate takes 10.59/23.69/49.76s on CPU and
+7.82/17.81/38.05s on Metal for 2/4/8 segments, including hostile cases.
+Native production, wrapper preparation/proving, parent production, root
+verification and RSS are recorded separately.
 
-The first measured whole-tree bottleneck has a working optimization: retaining
-parent polynomial coefficients reduces sampled-value evaluation from1.373s to
-17ms. Three alternating local A/B rounds reduce final-aggregation median request
-from3.875s to2.553s (34.1%) for about48MiB additional RSS. All175 fresh cases and
-exact proof/key byte checks pass. These results do not replace production-security
-or CSP promotion requirements. Exact tuple closure is now the largest measured
-parent phase, around749ms; composition is394ms.
+A focused wrapper optimization now has three alternating A/B rounds on both
+backends and profiles. Reusing CPU commitment coefficients removes about 98.6%
+of sampled-opening time. Median CPU wrapper proving falls 0.978 to 0.619s in the
+development profile and 9.999 to 6.396s in q193. The stronger two-child producer
+falls 32.554 to 25.364s. All 560 fresh cases pass with unchanged artifact bytes.
+Metal already evaluates these openings efficiently on the GPU; retention adds
+memory without a wrapper improvement, so its existing policy is preserved.
 
-The second measured optimization reuses the shared compact tuple ledger:
-parent median request2.573→2.253s, with identical proof/key bytes and175 fresh
-cases passing. Closure is406ms and peak RSS693MiB. The previously unwired seven
-ledger checks now have a six-second build/267ms execution command. A retained
-failing range-column mutation also closes a finalization-audit gap. The first
-two greedy optimizations are complete; prioritize the production-security route
-and formal CSP preservation over further broad optimization.
-
-The q193 child checkpoint (`9240965b`) additionally proves two actual adjacent
-stronger-profile wrappers with native CPU and Metal. Both wrappers freshly
-verify after producer exit; a second memory value reuses the same keys. The
-complete two-child producer takes approximately33s and one wrapper verifies in
-83ms. All recursion is currently CPU. The stronger parent now prepares in5.93s
-with13,981,479 exact contributions and no unmatched entries across47 domains;
-that preparation is now followed by a complete q193 two-child root. Three runs
-pass81 fresh cases, reuse the identical key across different initial memory and
-produce byte-identical parent artifacts for CPU/Metal-origin children. Parent
-production is27.7–29.0s; verification73–82ms; RSS6.0–6.4GiB. All aggregation is
-still CPU. The q3 route additionally passes26 cases with identical old bytes;
-weak children reject before parent preparation. The stronger parent itself
-passes its next recursive capture gate, including436 hostile public words.
-Full Metal recursion is the next implementation milestone, followed by stronger
-4/8-segment roots and formal production-security/CSP preservation admission.
-
-Actual parent proving now also works on Metal under the same q3/q193 CPU keys,
-with53 fresh cases and identical artifact bytes. The stronger parent takes23.36s
-in its first Metal observation versus29.05s CPU, with95 dispatches and10 Poseidon
-commitments. Native leaves and parents can use Metal; detached child wrappers
-remain CPU. Passing the engine through that existing wrapper transaction is the
-next critical-path step before claiming a full Metal tree or running its2/4/8
-ladder. See the current `metal-parent-measurements.json` evidence index.
+Earlier parent optimizations retain coefficients and use the shared compact
+tuple ledger. The final policy passes all eight complete-tree runs and 1,014 fresh cases.
+Expanded phase attribution identifies repeated domain-audit row-pair evaluation
+and batch inversion in interaction generation as the next bounded CPU/Metal
+optimization candidate. Maintain the
+small complete-proof loop; do not use an Ethereum-sized replay as the development
+gate. Formal quiet-host CSP preservation remains open; no CSP default, worker
+policy or shared RV32 execution path changes in this wrapper optimization.
 
 ## Required implementation order
 
@@ -215,3 +185,17 @@ parent proofs using the shared transcript and PCS/composition machinery. Prove
 4→2→1 and8→4→2→1 trees; do not count flat bundles or repeated two-child examples
 as that ladder. Measure the production-security profile separately and complete
 the unchanged CSP preservation gate before performance promotion.
+
+## Complete CPU and Metal tree checkpoint
+
+The earlier CPU-wrapper limitation is now closed: actual 2/4/8 development trees
+prove native children, wrappers and all recursive parents with the selected
+backend. Every root freshly verifies on CPU; artifact bytes match across
+backends. The separately admitted q193 two-segment full Metal route also passes.
+These remain tiny RISC-V fixtures, not Ethereum blocks or production-security
+certification. See the [current command and measurements](small-recursive-benchmark.md#complete-cpu-and-metal-tree-controller).
+
+The sampled-opening pass is complete: CPU wrappers improve about 36%, while
+Metal retains its lower-memory existing policy. The next measured target is
+repeated domain-audit arithmetic during interaction generation. Stronger 4/8
+admission and formal CSP preservation remain open.

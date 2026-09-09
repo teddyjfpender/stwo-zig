@@ -8,6 +8,7 @@ const std = @import("std");
 const gate = @import("recursive_segment_v2_concrete_outer_proof_test.zig");
 
 const NativeBackend = enum { cpu, metal };
+const CpuOuterEngine = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_proof.CpuEngine;
 const ProofProfile = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_proof.Profile;
 
 pub fn main() !void {
@@ -61,6 +62,7 @@ fn run(comptime Metal: type) !void {
     var child_key_pins: [8]?[]const u8 = @splat(null);
     var backend: NativeBackend = .cpu;
     var backend_seen = false;
+    var recursive_backend: ?NativeBackend = null;
     var aot_bundle: ?[]const u8 = null;
     var aot_manifest: ?[32]u8 = null;
     var at: usize = 1;
@@ -111,6 +113,9 @@ fn run(comptime Metal: type) !void {
             if (backend_seen) return error.DuplicateArgument;
             backend_seen = true;
             backend = std.meta.stringToEnum(NativeBackend, value) orelse return error.InvalidNativeBackend;
+        } else if (std.mem.eql(u8, key, "--recursive-backend")) {
+            if (recursive_backend != null) return error.DuplicateArgument;
+            recursive_backend = std.meta.stringToEnum(NativeBackend, value) orelse return error.InvalidRecursiveBackend;
         } else if (std.mem.eql(u8, key, "--aot-bundle")) {
             if (aot_bundle != null) return error.DuplicateArgument;
             if (value.len == 0) return error.InvalidArguments;
@@ -122,13 +127,15 @@ fn run(comptime Metal: type) !void {
             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
             aot_manifest = digest;
         } else {
-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--proof-profile development_q3_v1|recursive_q193_v1 (segment output only)] [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--proof-profile development_q3_v1|recursive_q193_v1 (segment output only)] [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--recursive-backend cpu|metal (segment output only)] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
             return error.InvalidArguments;
         }
     }
     if (native_ingress_profile != null and (memory_addresses == null or two_segment_output != null or initial_register7 != null or steps != null))
         return error.ConflictingNativeProfileArguments;
     if (proof_profile != null and (two_segment_output == null or native_ingress_profile != null)) return error.ProofProfileRequiresSegmentOutput;
+    if (recursive_backend != null and two_segment_output == null) return error.RecursiveBackendRequiresSegmentOutput;
+    if (recursive_backend == .metal and backend != .metal) return error.RecursiveMetalRequiresNativeMetal;
     const selected_segments = segment_count orelse 2;
     if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
     for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
@@ -158,7 +165,7 @@ fn run(comptime Metal: type) !void {
             if (native_ingress_profile) |profile|
                 try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, profile)
             else if (two_segment_output) |directory|
-                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1)
+                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, CpuOuterEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1)
             else if (memory_addresses) |count|
                 try gate.runMemoryProof(allocator, count)
             else
@@ -202,7 +209,10 @@ fn run(comptime Metal: type) !void {
                     try delta.requireMetalDispatch();
                     try Backend.shutdown();
                 } else if (two_segment_output) |directory| {
-                    try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1);
+                    if (recursive_backend == .metal)
+                        try produceSelectedSegments(selected_segments, NativeEngine, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1)
+                    else
+                        try produceSelectedSegments(selected_segments, NativeEngine, CpuOuterEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins, proof_profile orelse .development_q3_v1);
                     try Backend.shutdown();
                 } else if (memory_addresses) |count|
                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
@@ -217,7 +227,7 @@ fn run(comptime Metal: type) !void {
         return;
     }
     if (two_segment_output != null) {
-        std.debug.print("SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend={s} owners_destroyed=true parent_proof_created=false\n", .{@tagName(backend)});
+        std.debug.print("SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend={s} recursive_backend={s} owners_destroyed=true parent_proof_created=false\n", .{ @tagName(backend), @tagName(recursive_backend orelse .cpu) });
         return;
     }
     // Native admission, producer/cohort and returned verifier capture owners
@@ -225,7 +235,7 @@ fn run(comptime Metal: type) !void {
     std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
 }
 
-fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8, proof_profile: ProofProfile) !void {
+fn produceSegments(comptime count: usize, comptime NativeEngine: type, comptime OuterEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8, proof_profile: ProofProfile) !void {
     const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
     const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
     const recursion = @import("stwo_riscv_frontend").recursion;
@@ -251,7 +261,7 @@ fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator
         initialized += 1;
         keys[index] = if (admitted[index]) |owner| owner.key() else null;
     }
-    const receipt = try pair.produceSegments(count, NativeEngine, allocator, address_count, .{
+    const receipt = try pair.produceSegmentsWithEngines(count, NativeEngine, OuterEngine, allocator, address_count, .{
         .native_keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
             ingress.digest("recursive-v2-segment-vk"),
             ingress.digest("recursive-v2-parent-vk"),
@@ -270,9 +280,9 @@ fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator
     try file.writeAll(bytes);
 }
 
-fn produceSelectedSegments(count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8, profile: ProofProfile) !void {
+fn produceSelectedSegments(count: usize, comptime NativeEngine: type, comptime OuterEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8, profile: ProofProfile) !void {
     switch (count) {
-        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, allocator, address_count, seed, directory, paths, pins, profile),
+        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, OuterEngine, allocator, address_count, seed, directory, paths, pins, profile),
         else => return error.InvalidSegmentCount,
     }
 }

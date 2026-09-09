@@ -1,0 +1,148 @@
+{
+  "scope": "tiny two-segment native-plus-wrapper production and fresh verification; parent excluded",
+  "comparison": "three alternating unprofiled rounds, both backends and profiles; all proof artifacts identical to pre-change references",
+  "formal_csp_promotion": false,
+  "fresh_cases": 560,
+  "cells": [
+    {
+      "profile": "development",
+      "backend": "cpu",
+      "variants": {
+        "never": {
+          "producer_median_s": 7.833897792,
+          "wrapper_median_s": 0.9783958745000001,
+          "per_child_median_s": [
+            0.9882005,
+            0.972595541
+          ],
+          "rss_median_bytes": 1072480256,
+          "opening_diagnostic_s": [
+            0.373854,
+            0.375321
+          ]
+        },
+        "always": {
+          "producer_median_s": 7.170333667,
+          "wrapper_median_s": 0.6192064585,
+          "per_child_median_s": [
+            0.631237625,
+            0.596834166
+          ],
+          "rss_median_bytes": 1074069504,
+          "opening_diagnostic_s": [
+            0.005116,
+            0.005235
+          ]
+        }
+      },
+      "wrapper_reduction_percent": 36.7120738508388,
+      "producer_reduction_percent": 8.47042101669533,
+      "selected_policy": "always"
+    },
+    {
+      "profile": "development",
+      "backend": "metal",
+      "variants": {
+        "never": {
+          "producer_median_s": 5.691325625,
+          "wrapper_median_s": 0.5799488749999999,
+          "per_child_median_s": [
+            0.582361708,
+            0.577891708
+          ],
+          "rss_median_bytes": 573194240,
+          "opening_diagnostic_s": [
+            0.003392,
+            0.004017
+          ]
+        },
+        "always": {
+          "producer_median_s": 5.261540292,
+          "wrapper_median_s": 0.571887562,
+          "per_child_median_s": [
+            0.584079042,
+            0.566811417
+          ],
+          "rss_median_bytes": 573079552,
+          "opening_diagnostic_s": [
+            0.00373,
+            0.004527
+          ]
+        }
+      },
+      "wrapper_reduction_percent": 1.3900040757902854,
+      "producer_reduction_percent": 7.551585716904041,
+      "selected_policy": "never"
+    },
+    {
+      "profile": "q193",
+      "backend": "cpu",
+      "variants": {
+        "never": {
+          "producer_median_s": 32.5543665,
+          "wrapper_median_s": 9.999149728999999,
+          "per_child_median_s": [
+            9.832977625,
+            10.130905334
+          ],
+          "rss_median_bytes": 2605105152,
+          "opening_diagnostic_s": [
+            3.667156,
+            3.704211
+          ]
+        },
+        "always": {
+          "producer_median_s": 25.36402525,
+          "wrapper_median_s": 6.396216229,
+          "per_child_median_s": [
+            6.19580075,
+            6.525853708
+          ],
+          "rss_median_bytes": 2894561280,
+          "opening_diagnostic_s": [
+            0.052605,
+            0.052949
+          ]
+        }
+      },
+      "wrapper_reduction_percent": 36.032398730370076,
+      "producer_reduction_percent": 22.087179149992053,
+      "selected_policy": "always"
+    },
+    {
+      "profile": "q193",
+      "backend": "metal",
+      "variants": {
+        "never": {
+          "producer_median_s": 20.263645,
+          "wrapper_median_s": 5.1261864995,
+          "per_child_median_s": [
+            5.189402292,
+            5.086187959
+          ],
+          "rss_median_bytes": 2540503040,
+          "opening_diagnostic_s": [
+            0.031289,
+            0.027507
+          ]
+        },
+        "always": {
+          "producer_median_s": 20.549709791,
+          "wrapper_median_s": 5.248180438,
+          "per_child_median_s": [
+            5.273912167,
+            5.194268
+          ],
+          "rss_median_bytes": 3185426432,
+          "opening_diagnostic_s": [
+            0.034444,
+            0.030456
+          ]
+        }
+      },
+      "wrapper_reduction_percent": -2.379818574917225,
+      "producer_reduction_percent": -1.4117143830737255,
+      "selected_policy": "never"
+    }
+  ]
+}

@@ -4,15 +4,14 @@ const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
 const recursion = frontend.recursion;
 const postcard = @import("interop_postcard");
-const engine = @import("recursive_segment_v2_outer_engine.zig");
 const cohort_mod = @import("recursive_segment_v2_outer_cohort.zig");
 const leaf = @import("recursive_segment_v2_leaf_outer.zig");
 const transcript = @import("recursive_segment_v2_detached_transcript.zig");
 const verifier = @import("recursive_segment_v2_detached_verifier.zig");
 const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
-const Engine = engine.Engine;
-const TreeStorage = storage.TreeStorageFor(Engine);
+const stage_profile = @import("stwo_prover_api").stage_profile;
+pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
 pub const Profile = transcript.ProfileV1;
 
 pub const Candidate = struct {
@@ -93,6 +92,11 @@ pub fn produce(
 }
 
 pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
+    return produceWithEngine(CpuEngine, allocator, prepared, admitted_key, profile);
+}
+
+pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
+    const TreeStorage = storage.TreeStorageFor(Engine);
     // A stronger outer proof cannot repair a weak native child. This check is
     // before cohort allocation, and the resulting fixed AIR is independently
     // admitted through the same pinned-key transaction as development.
@@ -102,18 +106,29 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
         return error.DetachedNativeSecurityProfileMismatch;
     if (admitted_key) |key| if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
     var timer = try std.time.Timer.start();
+    var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-wrapper", .{ .capture_tasks = false });
+    defer recorder.deinit();
+    const diagnostic: ?*stage_profile.Recorder = if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_WRAPPER_PROFILE")) &recorder else null;
+    var phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.cohort", "Admitted wrapper cohort");
+    defer phase.end();
     var cohort = try cohort_mod.Cohort.init(allocator, prepared);
     defer cohort.deinit();
+    phase.end();
     const manifest = cohort.manifest();
     std.debug.print("SEGMENT_V2_DETACHED_GEOMETRY profile={s} cohort_ns={d} poseidon_calls={d} tree0_evaluation_bytes={d} tree1_evaluation_bytes={d} tree2_evaluation_bytes={d} excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true\n", .{
         @tagName(profile),                            timer.read(),                                 cohort.core.poseidonCallCount(),
         try TreeStorage.evaluationBytes(manifest, 0), try TreeStorage.evaluationBytes(manifest, 1), try TreeStorage.evaluationBytes(manifest, 2),
     });
     var scheme = try Engine.init(allocator, profile.pcsConfig());
-    scheme.setCoefficientRetentionPolicy(.never);
+    // CPU reuses commitment coefficients for sampled openings; PCS releases
+    // them after evaluation. Metal already evaluates the committed columns on
+    // device: retention measured no speedup and increased peak RSS. This local
+    // storage choice changes neither admission nor the serialized proof.
+    scheme.setCoefficientRetentionPolicy(if (Engine == CpuEngine) .always else .never);
     var scheme_moved = false;
     defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
     var channel = Engine.Channel{};
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.fixed", "Fixed columns and key admission");
     var preprocessed = try TreeStorage.init(allocator, manifest, 0);
     defer preprocessed.deinit();
     try cohort.fillPreprocessedInto(manifest, preprocessed.columns);
@@ -147,11 +162,17 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
     const key_json = try std.json.Stringify.valueAlloc(allocator, key.*, .{});
     errdefer allocator.free(key_json);
     const prepare_ns = timer.lap();
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.main_fill", "Main column allocation and filling");
     var main = try TreeStorage.init(allocator, manifest, 1);
     defer main.deinit();
     try cohort.fillMainInto(manifest, main.columns);
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.main_commit", "Main commitment");
     try main.commit(&scheme, &channel);
     try Engine.flushPendingCommit(&scheme, allocator, &channel);
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.interaction_fill", "Interaction transcript and filling");
     const expected = &prepared.capture.public_data.data;
     try transcript.mixAdmission(&channel, key, expected);
     const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
@@ -162,23 +183,40 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
     defer interaction.deinit();
     const generated = try cohort.fillInteractionInto(manifest, &relations, &providers, interaction.columns);
     var claim_vector = try cohort.claimVector(&generated);
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.closure", "Global lookup closure");
     _ = try cohort.auditGlobalClosure(&generated, &claim_vector, &relations, &providers);
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.interaction_commit", "Interaction transcript and commitment");
     const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials, .interaction_pow = interaction_pow };
     try transcript.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
     try interaction.commit(&scheme, &channel);
+    phase.end();
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.components", "Typed component assembly");
     var components = try cohort.initComponents(&generated, &relations, &providers);
     defer components.deinit();
     var gate = try manifest_mod.ProofGate.init(manifest);
     try components.appendToGate(manifest, &gate);
     try gate.sealGate(manifest);
+    phase.end();
     scheme_moved = true;
-    var extended = try Engine.prove(allocator, try gate.proverSlice(), &channel, scheme, .{});
+    var extended = try Engine.prove(allocator, try gate.proverSlice(), &channel, scheme, .{ .recorder = diagnostic });
     defer extended.deinit(allocator);
+    phase = try stage_profile.StageScope.begin(diagnostic, "wrapper.serialize", "Canonical proof serialization");
     var encoded: std.ArrayList(u8) = .empty;
     defer encoded.deinit(allocator);
     try postcard.serializeProof(recursion.engine.Hasher, encoded.writer(allocator), extended.proof);
     if (encoded.items.len == 0 or encoded.items.len > verifier.MAX_PROOF_BYTES)
         return error.SegmentDetachedProofSizeMismatch;
+    phase.end();
+    const prove_ns = timer.read();
+    if (diagnostic != null) {
+        var snapshot = try recorder.snapshot(allocator);
+        defer snapshot.deinit(allocator);
+        const json = try std.json.Stringify.valueAlloc(allocator, snapshot, .{});
+        defer allocator.free(json);
+        std.debug.print("DETACHED_WRAPPER_STAGE_PROFILE {s}\n", .{json});
+    }
     return .{
         .allocator = allocator,
         .key_json = key_json,
@@ -186,6 +224,6 @@ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.Pr
         .claims = claims,
         .circuit_identity = identity,
         .prepare_ns = prepare_ns,
-        .prove_ns = timer.read(),
+        .prove_ns = prove_ns,
     };
 }

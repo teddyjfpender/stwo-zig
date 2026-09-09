@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "initial_memory_word": 13,
+  "leaves": [
+    {
+      "key": {
+        "path": "../q193-child-admission/child-0-key.json",
+        "sha256": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14"
+      },
+      "expected": {
+        "path": "../q193-child-admission/child-0-expected-wire.json",
+        "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+      }
+    },
+    {
+      "key": {
+        "path": "../q193-child-admission/child-1-key.json",
+        "sha256": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+      },
+      "expected": {
+        "path": "../q193-child-admission/child-1-expected-wire.json",
+        "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      }
+    }
+  ],
+  "parents": [
+    [
+      {
+        "key": {
+          "path": "../q193-parent-admission/parent-key.json",
+          "sha256": "6d1885a89eec10375d57806311c2738c0758dbfc517a0bc8551beda8f098a395"
+        },
+        "expected": {
+          "path": "../q193-parent-admission/seed13-expected-root.json",
+          "sha256": "2a307683be2012d18456bfc050dbf450e91a0fc22da8c4c26f95a4bdc6586724"
+        }
+      }
+    ]
+  ]
+}

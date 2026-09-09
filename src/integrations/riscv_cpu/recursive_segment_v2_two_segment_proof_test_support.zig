@@ -62,9 +62,9 @@ pub fn ReceiptFor(comptime count: usize) type {
     };
 }
 
-/// NativeEngine selects only native proving. Existing shared ingress freshly
-/// decodes/verifies native proofs on CPU; detached outer proving remains the
-/// existing CPU route. The caller owns Metal initialization/shutdown policy.
+/// Default entry points retain CPU outer proving. The explicit engine pair
+/// selects native and recursive proving independently; fresh native verification
+/// stays on CPU. The caller owns Metal initialization/shutdown policy.
 /// No producer capture, native proof, cohort, trace or candidate buffer escapes.
 pub fn producePair(
     comptime NativeEngine: type,
@@ -76,6 +76,10 @@ pub fn producePair(
 }
 
 pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, options: OptionsFor(count)) !ReceiptFor(count) {
+    return produceSegmentsWithEngines(count, NativeEngine, detached.CpuEngine, allocator, address_count, options);
+}
+
+pub fn produceSegmentsWithEngines(comptime count: usize, comptime NativeEngine: type, comptime OuterEngine: type, allocator: std.mem.Allocator, address_count: usize, options: OptionsFor(count)) !ReceiptFor(count) {
     for (options.child_directories, 0..) |directory, index| {
         if (directory.len == 0) return error.InvalidTwoSegmentCandidateDirectories;
         for (options.child_directories[0..index]) |previous|
@@ -93,7 +97,7 @@ pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, alloc
     const admission = try workload.admitSegments(count, results, ingress.digest("recursive-v2-session"), statements);
     var children: [count]ChildCandidate = undefined;
     for (results, statements, admission.sources, 0..) |result, statement, source, index| {
-        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index], options.proof_profile);
+        children[index] = try produceChild(NativeEngine, OuterEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index], options.proof_profile);
     }
     for (&segments) |*segment| segment.deinit();
     owned = false;
@@ -108,6 +112,7 @@ pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, alloc
 
 fn produceChild(
     comptime NativeEngine: type,
+    comptime OuterEngine: type,
     allocator: std.mem.Allocator,
     result: *const frontend.runner.SegmentResult,
     statement: span.SpanStatement,
@@ -163,8 +168,25 @@ fn produceChild(
             return error.TwoSegmentExpectedStatementMismatch;
         for (captured_words, expected.words()) |actual, wanted|
             if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
-        var candidate = try detached.produceWithProfile(producer_allocator, &prepared, admitted_key, proof_profile);
+        const outer_lifecycle = if (comptime OuterEngine != detached.CpuEngine) OuterEngine.Backend.runtimeLifecycleSnapshot() else {};
+        const outer_before = if (comptime OuterEngine != detached.CpuEngine) try OuterEngine.Backend.telemetrySnapshot() else {};
+        var candidate = try detached.produceWithEngine(OuterEngine, producer_allocator, &prepared, admitted_key, proof_profile);
         defer candidate.deinit();
+        if (comptime OuterEngine != detached.CpuEngine) {
+            const delta = (try OuterEngine.Backend.telemetrySnapshot()).delta(outer_before);
+            try delta.requireMetalDispatch();
+            if (delta.counters.metal_poseidon2_merkle_commits == 0) return error.RecursiveMetalPoseidonDispatchMissing;
+            const after = OuterEngine.Backend.runtimeLifecycleSnapshot();
+            if (!after.initialized or !std.meta.eql(after.identity, outer_lifecycle.identity) or
+                after.initialization_count != outer_lifecycle.initialization_count or
+                after.shutdown_count != outer_lifecycle.shutdown_count or after.active_call_leases != 0)
+                return error.RecursiveMetalRuntimeChanged;
+            std.debug.print("SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment={d} dispatches={d} poseidon_commits={d} composition_dispatches={d} fri_circle_dispatches={d} fri_line_dispatches={d} cpu_fallbacks={d}\n", .{
+                result.segment_index,                             delta.counters.metalDispatchTotal(),             delta.counters.metal_poseidon2_merkle_commits,
+                delta.counters.metal_composition_eval_dispatches, delta.counters.metal_fri_circle_fold_dispatches, delta.counters.metal_fri_line_fold_dispatches,
+                delta.counters.cpuFallbackTotal(),
+            });
+        }
         const hashes = try command.retainCandidate(
             allocator,
             directory_path,
@@ -198,12 +220,12 @@ fn produceChild(
     try memory.requireEmpty();
     candidate_receipt.producer_peak_bytes = memory.peakBytes();
     candidate_receipt.transaction_ns = timer.read();
-    std.debug.print("SEGMENT_V2_TWO_CHILD_CANDIDATE segment={d} first_cycle={d} retired_cycles={d} completed={} directory={s} native_backend={s} proof_bytes={d} native_ingress_ns={d} outer_prepare_ns={d} outer_prove_ns={d} transaction_ns={d} producer_peak_bytes={d} producer_live_bytes_after_destroy={d} status=unverified_candidate parent_proof_created=false\n", .{
-        candidate_receipt.segment_index,      candidate_receipt.first_cycle,       candidate_receipt.retired_cycles,
-        candidate_receipt.completed,          directory_path,                      if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
-        candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns, candidate_receipt.detached_prepare_ns,
-        candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,    candidate_receipt.producer_peak_bytes,
-        memory.snapshot().active_bytes,
+    std.debug.print("SEGMENT_V2_TWO_CHILD_CANDIDATE segment={d} first_cycle={d} retired_cycles={d} completed={} directory={s} native_backend={s} recursive_backend={s} proof_bytes={d} native_ingress_ns={d} outer_prepare_ns={d} outer_prove_ns={d} transaction_ns={d} producer_peak_bytes={d} producer_live_bytes_after_destroy={d} status=unverified_candidate parent_proof_created=false\n", .{
+        candidate_receipt.segment_index,                                    candidate_receipt.first_cycle,        candidate_receipt.retired_cycles,
+        candidate_receipt.completed,                                        directory_path,                       if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
+        if (comptime OuterEngine == detached.CpuEngine) "cpu" else "metal", candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns,
+        candidate_receipt.detached_prepare_ns,                              candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,
+        candidate_receipt.producer_peak_bytes,                              memory.snapshot().active_bytes,
     });
     return candidate_receipt;
 }

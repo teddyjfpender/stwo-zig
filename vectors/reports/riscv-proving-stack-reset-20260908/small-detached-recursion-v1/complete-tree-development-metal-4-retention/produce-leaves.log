@@ -1,0 +1,47 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=metal memory_addresses=1 initial_register7=0
+SEGMENT_V2_NATIVE_METAL_AOT profile=core_v2 manifest_sha256=21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5 source_sha256=c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786 metallib_sha256=9b1327752224ccd8837063f29c9e5112efac8f6746050f8ff5dc9c2fb23ce8a7 initialization_ns=60795084
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=227 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=138c
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: resident RISC-V semantic composition: 3 components, 3 kernels, 0.079 ms GPU
+info: resident RISC-V lookup composition: 3 components, 3 kernels, 0.235 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=476548844 producer_live_bytes_after_destroy=0 canonical_proof_bytes=29061 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=development_q1 segment=0 queries=1 fold_step=2 pcs_pow_bits=0 interaction_pow_bits=10 prove_ns=1361573125 transport_ns=1173000 verify_ns=412659875 recursive_prepare_ns=137104208 proof_bytes=29061 transcript_calls=1141 verifier_core_calls=315 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=0 dispatches=93 poseidon_commits=14
+SEGMENT_V2_DETACHED_GEOMETRY profile=development_q3_v1 cohort_ns=314156958 poseidon_calls=1472 tree0_evaluation_bytes=9101504 tree1_evaluation_bytes=9084864 tree2_evaluation_bytes=5395712 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=0 dispatches=96 poseidon_commits=20 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=1 cpu_fallbacks=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-retention/leaves/child-0 native_backend=metal recursive_backend=metal proof_bytes=93651 native_ingress_ns=1912578584 outer_prepare_ns=382317041 outer_prove_ns=586563875 transaction_ns=2884839083 producer_peak_bytes=130693499 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: resident RISC-V semantic composition: 2 components, 2 kernels, 0.071 ms GPU
+info: resident RISC-V lookup composition: 2 components, 2 kernels, 0.214 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=476532300 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28067 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=development_q1 segment=1 queries=1 fold_step=2 pcs_pow_bits=0 interaction_pow_bits=10 prove_ns=1294745541 transport_ns=1172584 verify_ns=403578375 recursive_prepare_ns=131424500 proof_bytes=28067 transcript_calls=1081 verifier_core_calls=310 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=1 dispatches=93 poseidon_commits=14
+SEGMENT_V2_DETACHED_GEOMETRY profile=development_q3_v1 cohort_ns=309112583 poseidon_calls=1406 tree0_evaluation_bytes=9101504 tree1_evaluation_bytes=9084864 tree2_evaluation_bytes=5395712 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=1 dispatches=96 poseidon_commits=20 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=1 cpu_fallbacks=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=1 first_cycle=64 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-retention/leaves/child-1 native_backend=metal recursive_backend=metal proof_bytes=93313 native_ingress_ns=1831042375 outer_prepare_ns=372190333 outer_prove_ns=565858542 transaction_ns=2772088708 producer_peak_bytes=130690363 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: resident RISC-V semantic composition: 2 components, 2 kernels, 0.071 ms GPU
+info: resident RISC-V lookup composition: 2 components, 2 kernels, 0.216 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=2 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=476532300 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28009 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=development_q1 segment=2 queries=1 fold_step=2 pcs_pow_bits=0 interaction_pow_bits=10 prove_ns=1286242750 transport_ns=1241958 verify_ns=414022542 recursive_prepare_ns=128602958 proof_bytes=28009 transcript_calls=1081 verifier_core_calls=310 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=2 dispatches=93 poseidon_commits=14
+SEGMENT_V2_DETACHED_GEOMETRY profile=development_q3_v1 cohort_ns=300552583 poseidon_calls=1406 tree0_evaluation_bytes=9101504 tree1_evaluation_bytes=9084864 tree2_evaluation_bytes=5395712 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=2 dispatches=96 poseidon_commits=20 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=1 cpu_fallbacks=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=2 first_cycle=128 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-retention/leaves/child-2 native_backend=metal recursive_backend=metal proof_bytes=93682 native_ingress_ns=1830177125 outer_prepare_ns=366697333 outer_prove_ns=565548209 transaction_ns=2765467166 producer_peak_bytes=130690363 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 994 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+info: resident RISC-V semantic composition: 2 components, 2 kernels, 0.074 ms GPU
+info: resident RISC-V lookup composition: 2 components, 2 kernels, 0.218 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=3 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=476417620 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28049 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=development_q1 segment=3 queries=1 fold_step=2 pcs_pow_bits=0 interaction_pow_bits=10 prove_ns=1273140083 transport_ns=1354125 verify_ns=415110584 recursive_prepare_ns=130453916 proof_bytes=28049 transcript_calls=1081 verifier_core_calls=310 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=3 dispatches=90 poseidon_commits=14
+SEGMENT_V2_DETACHED_GEOMETRY profile=development_q3_v1 cohort_ns=301911791 poseidon_calls=1406 tree0_evaluation_bytes=9101504 tree1_evaluation_bytes=9084864 tree2_evaluation_bytes=5395712 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=3 dispatches=96 poseidon_commits=20 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=1 cpu_fallbacks=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=3 first_cycle=192 retired_cycles=35 completed=true directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-retention/leaves/child-3 native_backend=metal recursive_backend=metal proof_bytes=91674 native_ingress_ns=1820128875 outer_prepare_ns=369082666 outer_prove_ns=580106584 transaction_ns=2772378333 producer_peak_bytes=130688699 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=metal recursive_backend=metal owners_destroyed=true parent_proof_created=false

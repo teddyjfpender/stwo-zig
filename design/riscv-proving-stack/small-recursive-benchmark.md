@@ -1,14 +1,12 @@
 # Small native and recursive proof loop
 
-The small detached route now proves both segments of a completed memory
-workload using CPU or Metal native proving, followed by CPU outer proving.
-A separate verifier checks both serialized proofs, exact coverage, memory and
-clock continuation using explicit keys and expected public inputs. The two child
-proofs can now be recursively verified in one CPU parent STARK. Its standalone
-verifier needs only the admitted key, expected root, claims and serialized proof.
-This is the q1/native, q3/child-and-parent development profile. Actual4/8-segment
-jobs now produce every child, intermediate parent and one freshly verified root.
-Production-security measurements and CSP performance promotion remain pending.
+The small detached route now proves complete 2/4/8-segment recursive trees
+on CPU or Metal: native children, detached wrappers, every intermediate parent
+and one root. Fresh CPU verification runs after producer exit with independently
+pinned keys and expected statements. The development profile and stronger q193
+two-segment route have separate evidence; production-security admission and formal
+CSP performance promotion remain pending. These are tiny RISC-V memory workloads,
+not Ethereum blocks. q193 names the FRI query count.
 
 Current retained evidence and rejection cases are indexed in
 [the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
@@ -54,7 +52,8 @@ and selectors were added. Seeds13/14/269 have fresh CPU proof evidence under
 the same per-child keys; arbitrary address topology is a separate admission.
 
 For Metal, build the same producer target under `src/integrations/riscv_metal`,
-use that directory's installed producer with `--native-backend metal`, and add
+use that directory's installed producer with `--native-backend metal` and
+`--recursive-backend metal`, and add
 `--aot-bundle PATH --aot-manifest-sha256 SHA256`. Keep the CPU verifier and the
 same independent pins and expected statements. The gate checks real Metal
 dispatch for both children. AOT generation is described below.
@@ -70,7 +69,7 @@ excluding compilation, and do not establish a production-security benchmark.
 Build `build-recursive-segment-v2-detached-parent-producer` and
 `build-recursive-segment-v2-detached-parent-verifier` under the CPU integration
 with the serial build command above. Both CPU- and Metal-produced child bundles
-use this same CPU parent route. Metal parent proving is not claimed.
+can use the shared CPU parent route or the Metal parent producer described below.
 
 Derive expected root words from the independently retained child public inputs,
 without reading any candidate proof or producer-generated root:
@@ -566,3 +565,97 @@ GPU evidence, prove and freshly verify a complete two-segment Metal tree, then
 run the actual2/4/8 ladders. Expand telemetry to attribute composition's remaining
 host/device work before claiming further GPU speedups. Production-security
 admission and the formal CSP preservation gate remain open.
+
+## Complete CPU and Metal tree controller
+
+`scripts/riscv_segment_v2_detached_tree_gate.py` is the maintained serial command
+for the small 2/4/8 fixtures. `--admission` and `--admission-sha256` select a pinned
+manifest in `tree-admissions/`; it contains every key and independently expected
+statement. Supply explicit paths and SHA256 pins for `--leaf-producer`,
+`--parent-producer`, `--leaf-verifier` and `--parent-verifier`, plus a new `--output`
+and `--backend cpu|metal`. Metal also requires the admitted AOT bundle and pin.
+The executable command lines are retained in
+`complete-tree-development-ladder-first.json`. No key is admitted from a newly
+produced proof. Wrong admission or binary pins reject before creating output.
+
+Each producer exits before independent verification. The controller reuses the
+existing child/parent gates, including their hostile cases; all protocol meaning
+remains in the shared Zig implementation. Metal runtime telemetry must show GPU
+and Poseidon commitment dispatch for every native child, wrapper and parent.
+Host preparation and planned host composition remain: this is end-to-end Metal
+backend selection, not a claim that all operations run on the GPU.
+
+The first complete development ladder passes on both backends with identical
+key, claims, proof and publication bytes across CPU/Metal. Complete gate times
+(including hostile cases) for 2/4/8 segments are 10.592/23.693/49.762s on CPU and
+7.823/17.806/38.055s on Metal. Leaf production is 7.696/15.375/30.833s versus
+5.189/10.301/20.774s; parent production sums are 2.297/6.918/15.987s versus
+2.030/6.105/14.258s. Peak process RSS stays below 1.03GiB CPU and 0.72GiB Metal;
+these measurements do not separately account for GPU allocation.
+
+The separate `q193-two-full-metal-first.json` records a complete stronger
+98-instruction tree: both native proofs, both wrappers and the root use Metal,
+then independent CPU verification passes all 45 acceptance/rejection cases.
+It takes 44.54s including those cases, with 6.59GiB peak process RSS. Artifact
+bytes match the CPU route. Stronger 4/8 trees, production-security admission and
+formal CSP promotion are still open. The next user-requested pass targets
+sampled opening work in the wrappers on both CPU and Metal.
+
+## Wrapper coefficient retention comparison
+
+`wrapper-retention-measurements.json` indexes three alternating unprofiled A/B
+rounds for both profiles and backends, plus separate diagnostic phase runs.
+`wrapper-retention-ab/report.json` retains all commands, binary pins, timings,
+RSS, byte hashes and 560 fresh acceptance/rejection cases. Both binaries include
+the same opt-in profiler; the experimental difference is coefficient retention.
+Every proof, key, claim and expected statement matches its pre-change reference.
+
+| Profile | CPU wrapper median, before → after | CPU two-child producer, before → after |
+| --- | ---: | ---: |
+| Development | 0.978 → 0.619s (36.7% lower) | 7.834 → 7.170s |
+| q193 | 9.999 → 6.396s (36.0% lower) | 32.554 → 25.364s |
+
+CPU opening evaluation changes from barycentric evaluation over the committed
+columns to direct evaluation of already-computed coefficients. Its diagnostic
+phase falls from 374–375ms to 5.1–5.2ms in development, and 3.67–3.70s to
+52.6–52.9ms in q193. PCS releases the coefficients after evaluation; this is not
+a cross-request cache. Stronger CPU process RSS rises from 2.426 to 2.696GiB.
+
+Metal's existing GPU evaluation takes only 28–31ms for stronger openings. Keeping
+coefficients does not improve it: wrapper median rises 5.126 to 5.248s and RSS
+rises 2.366 to 2.967GiB. That candidate is rejected for Metal. Development Metal
+request variation occurs primarily outside the modified wrapper and is not
+claimed as a retention speedup. The final shared transaction selects retention
+for CPU and preserves Metal's existing policy; admission and transcript remain
+identical. These local observations do not replace formal CSP preservation.
+
+Set `STWO_RISCV_RECURSIVE_WRAPPER_PROFILE=1` for the existing complete-proof
+commands to record cohort construction, fixed/main/interaction phases, closure,
+component assembly, composition, openings, FRI and serialization. Leave it unset
+for timing comparisons. The complete native-plus-wrapper producer also records
+native ingress, outer preparation and producer destruction independently.
+
+The final backend policy passes all eight complete-tree runs: CPU/Metal 2/4/8
+in development and CPU/Metal 2 in q193. Their 1,014 fresh acceptance/rejection
+cases pass, as do all artifact parity and immutable-input checks. Exact commands
+and the final source/binary pins are in `wrapper-retention-final-trees.json`;
+`wrapper-retention-final-tree-measurements.json` collects endpoint measurements.
+Final development complete gates take 9.805/21.916/46.895s on CPU and
+7.770/18.727/38.060s on Metal. These single reruns include hostile cases and are
+correctness/scaling observations, not additional paired performance claims.
+The q193 final trees take 55.709s CPU and 43.594s Metal, including fresh cases.
+
+`wrapper-retention-final-phases.json` attributes the remaining stronger wrapper:
+cohort construction about 1.9s, interaction generation 2.6–2.8s, and composition
+about 1.1s. A one-second sample during the first Metal wrapper locates interaction
+work in `NativeSegmentCoreV2.prepareInteractions`, then `fillInteractionImpl`
+and `auditPreparedDomainSums`: row-pair evaluation and batch inversion are
+repeated for domain audits after interaction-column generation. Sampling overlaps
+the diagnostic Metal run, which is excluded from the alternating comparison.
+
+The next bounded optimization candidate is this repeated interaction arithmetic
+on both backends. Preserve the audit's per-domain values, total, logical-row and
+event counts, zero-denominator rejection, and independent cold diagnostic.
+Compare a shared generation/audit implementation against the existing audit on
+real prepared rows, then require the same complete-proof and artifact-parity
+gates. Do not substitute a cached validation flag or remove boundary checks.
