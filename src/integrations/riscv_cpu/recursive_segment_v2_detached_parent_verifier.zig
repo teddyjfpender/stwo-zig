@@ -8,6 +8,8 @@ const transcript = @import("recursive_segment_v2_detached_parent_protocol.zig");
 const components = @import("recursive_segment_v2_detached_parent_cohort.zig");
 const support = @import("recursive_binary_outer_support.zig");
 const manifest_mod = components.manifest_mod;
+const recording = recursion.recording_poseidon_channel_v4;
+pub const ProofCapture = core.pcs.verifier.VerifiedProofCapture(recursion.engine.Hasher);
 pub const KeyV1 = transcript.KeyV1;
 pub const ClaimsV1 = transcript.ClaimsV1;
 pub const ExpectedV1 = transcript.ExpectedV1;
@@ -28,7 +30,19 @@ pub fn proofPreflightShape(allocator: std.mem.Allocator, key: *const KeyV1) !pos
 
 pub fn verify(allocator: std.mem.Allocator, key: *const KeyV1, expected: *const ExpectedV1, claims: ClaimsV1, proof_bytes: []const u8) !recursion.poseidon2_channel.Digest {
     var native_channel = recursion.poseidon2_channel.Channel{};
-    const channel = &native_channel;
+    return (try verifyImpl(recursion.engine.MerkleChannel, allocator, key, expected, claims, proof_bytes, &native_channel, null)).terminal;
+}
+
+pub const RecordingResultV1 = struct { terminal: recursion.poseidon2_channel.Digest, relations: components.Relations };
+
+/// The next recursive producer captures this same verifier execution. The
+/// recording and openings are witnesses; they confer no circuit admission.
+pub fn verifyWithCaptureRecording(allocator: std.mem.Allocator, key: *const KeyV1, expected: *const ExpectedV1, claims: ClaimsV1, proof_bytes: []const u8, channel: *recording.Channel, capture: *ProofCapture) !RecordingResultV1 {
+    if (!channel.isFresh()) return error.SegmentDetachedRecordingNotFresh;
+    return verifyImpl(recording.MerkleChannel, allocator, key, expected, claims, proof_bytes, channel, capture);
+}
+
+fn verifyImpl(comptime MerkleChannel: type, allocator: std.mem.Allocator, key: *const KeyV1, expected: *const ExpectedV1, claims: ClaimsV1, proof_bytes: []const u8, channel: anytype, capture: ?*ProofCapture) !RecordingResultV1 {
     try key.validate();
     try transcript.validateExpected(expected);
     _ = try claims.vector(&key.manifest);
@@ -45,7 +59,7 @@ pub fn verify(allocator: std.mem.Allocator, key: *const KeyV1, expected: *const 
     const commitments = proof.commitment_scheme_proof.commitments.items;
     if (commitments.len != manifest_mod.TREE_COUNT + 1 or !std.meta.eql(commitments[0], key.preprocessed_root))
         return error.SegmentDetachedPreprocessedCommitmentMismatch;
-    const Scheme = core.pcs.verifier.CommitmentSchemeVerifier(recursion.engine.Hasher, recursion.engine.MerkleChannel);
+    const Scheme = core.pcs.verifier.CommitmentSchemeVerifier(recursion.engine.Hasher, MerkleChannel);
     var scheme = try Scheme.init(allocator, key.pcs_config);
     defer scheme.deinit(allocator);
     for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], channel);
@@ -56,6 +70,10 @@ pub fn verify(allocator: std.mem.Allocator, key: *const KeyV1, expected: *const 
     const owned_components = try components.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, &relations, claims);
     defer owned_components.deinit();
     const moved = support.moveOwnedForVerifier(recursion.engine.Proof, &proof, &proof_owned);
-    try core.verifier.verify(recursion.engine.Hasher, recursion.engine.MerkleChannel, allocator, try owned_components.verifierComponents(), channel, &scheme, moved);
-    return recursion.protocol.transcriptId(channel.digestWords(), channel.n_draws);
+    if (capture) |output|
+        try core.verifier.verifyWithProofCapture(recursion.engine.Hasher, MerkleChannel, allocator, try owned_components.verifierComponents(), channel, &scheme, moved, output)
+    else
+        try core.verifier.verify(recursion.engine.Hasher, MerkleChannel, allocator, try owned_components.verifierComponents(), channel, &scheme, moved);
+    const draws = if (@TypeOf(channel.*) == recording.Channel) channel.inner.n_draws else channel.n_draws;
+    return .{ .terminal = recursion.protocol.transcriptId(channel.digestWords(), draws), .relations = relations };
 }

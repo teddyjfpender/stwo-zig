@@ -185,6 +185,13 @@ pub const Channel = struct {
         return .{ .allocator = allocator };
     }
 
+    pub fn isFresh(self: *const Self) bool {
+        return std.meta.eql(self.inner, native_channel.Channel{}) and
+            self.context_tag == 0 and self.first_fault == null and self.pending_pow == null and
+            self.calls.items.len == 0 and self.frames.items.len == 0 and
+            self.checks.items.len == 0 and self.words.items.len == 0 and self.operations.items.len == 0;
+    }
+
     pub fn deinit(self: *Self) void {
         self.operations.deinit(self.allocator);
         self.words.deinit(self.allocator);

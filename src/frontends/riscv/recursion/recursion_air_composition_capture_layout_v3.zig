@@ -120,6 +120,7 @@ pub const ManifestFamily = enum(u8) {
     canonical_empty_field_v2 = 5,
     common_fold_field_v2 = 6,
     ethereum_incremental_leaf_wrapper_v4 = 7,
+    detached_segment_parent_v1 = 8,
 };
 
 /// Owned, verifier-derived offset table.  `offsets[tree][column]` indexes the
@@ -216,9 +217,10 @@ pub const CaptureLayoutV3 = struct {
         if (family == .universal_v1 or family == .segment_v2)
             return error.InvalidProofKind;
         try manifest.validate();
-        if (poseidon_roster_row >= @as(usize, manifest.roster_count) or
-            manifest.roster_rows[poseidon_roster_row] !=
-                @as(u8, @intCast(poseidon_roster_row)))
+        if (poseidon_roster_row >= manifest.placements.len or
+            manifest.placements[poseidon_roster_row] == null or
+            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count],
+                @as(u8, @intCast(poseidon_roster_row))) == null)
         {
             return error.ManifestAuthorityMismatch;
         }

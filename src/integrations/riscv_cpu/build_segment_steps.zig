@@ -1825,6 +1825,9 @@ pub fn add(ctx: anytype) void {
     const detached_command_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_command_names });
     b.step("test-recursive-segment-v2-detached-command", "Check bounded detached transport and independent public-input admission").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_command_tests), detached_command_names, "SegmentV2 detached transport guard"));
     const detached_child_names: []const []const u8 = &.{"SegmentV2 detached child owns genuine capture and exact recorded transcript"};
+    const detached_parent_capture_names: []const []const u8 = &.{"detached parent capture replays genuine sparse cohort after input destruction"};
+    const detached_parent_capture_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_capture_names });
+    b.step("test-recursive-segment-v2-detached-parent-capture", "Verify a retained parent and replay its recorded composition and PCS for the next recursive consumer").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_capture_tests), detached_parent_capture_names, "Detached parent recursive capture guard"));
     const detached_child_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_child_names });
     b.step("test-recursive-segment-v2-detached-child", "Replay a pinned real child proof for recursion after caller input destruction").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_child_tests), detached_child_names, "SegmentV2 detached child guard"));
     const detached_boundary_names: []const []const u8 = &.{"SegmentV2 expected boundary shares native hashes and keeps dynamic values out of graph"};

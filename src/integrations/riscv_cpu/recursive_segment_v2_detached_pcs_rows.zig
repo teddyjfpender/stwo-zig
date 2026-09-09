@@ -242,7 +242,7 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
         sampled_words += 1;
     };
     try std.testing.expectEqual(4 * child.captureView().sampled_values.len, sampled_words);
-    std.debug.print("SEGMENT_V2_DETACHED_PCS_ROWS operations={d} provider_calls={d} sampled_words={d} randomness_rows={d} pow_rows={d} parent_profile_active=false\n", .{
+    std.debug.print("SEGMENT_V2_DETACHED_PCS_ROWS operations={d} provider_calls={d} sampled_words={d} randomness_rows={d} pow_rows={d} parent_proof_verified=false\n", .{
         view.control.len, view.provider.len, sampled_words, view.randomness.len, view.pow_check.len,
     });
 }

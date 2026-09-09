@@ -34,7 +34,6 @@ const BASE = wire_layout.base_statement;
 const Domain = frontend.air.relation.Domain;
 
 pub const VERSION: u16 = 1;
-pub const PARENT_PROFILE_ACTIVE = false;
 pub const InputSource = union(enum) {
     transcript: prefix.InputCoordinate,
     challenge: struct { domain: Domain, draw: u1, limb: u2, scope: u32 = prefix.BOUNDARY_CHALLENGE_SCOPE },

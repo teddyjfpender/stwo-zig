@@ -19,7 +19,6 @@ const Kind = air.transcript_payload.VerifierInputKind;
 const universal = air.universal_challenges;
 const v3 = recursion.recursion_air_composition_circuit_v3;
 pub const VERSION: u16 = 1;
-pub const PARENT_PROFILE_ACTIVE = false;
 pub const RAW_WIRE_BASE: u32 = 0x10000;
 pub const WIRE_ID_BASE: u32 = 0x20000;
 pub const BOUNDARY_CLAIM_INDEX: u32 = v3.COMPOSITION_CLAIM_INPUT_COUNT;
@@ -427,6 +426,6 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
     }
     try std.testing.expectEqual(recording_view.trace.hash_frames.len, hash_at);
     try std.testing.expectEqual(recording_view.trace.poseidon_calls.len, call_at);
-    std.debug.print("SEGMENT_V2_DETACHED_PREFIX operations={d} calls={d} payload_fixed={d} payload_dynamic={d} input_uses={d} boundary_challenges={d} parent_profile_active=false\n", .{ view.operations.len, view.provider.len, fixed, dynamic, uses, public_challenges });
+    std.debug.print("SEGMENT_V2_DETACHED_PREFIX operations={d} calls={d} payload_fixed={d} payload_dynamic={d} input_uses={d} boundary_challenges={d} parent_proof_verified=false\n", .{ view.operations.len, view.provider.len, fixed, dynamic, uses, public_challenges });
     std.debug.print("SEGMENT_V2_DETACHED_PCS_SCHEDULE operations={d} shared_secure_emitter=true\n", .{suffix.len});
 }

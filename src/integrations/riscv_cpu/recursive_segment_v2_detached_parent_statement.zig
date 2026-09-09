@@ -17,7 +17,6 @@ const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
 const Words = span.StatementWords;
 const WORD_COUNT = span.SPAN_STATEMENT_CANONICAL_WORDS;
-pub const PARENT_PROFILE_ACTIVE = false;
 pub const InputSource = union(enum) {
     child: struct { child: u1, boundary_node: u32, word: u32, projection: enum { span, raw } = .span },
     parent_word: u16,

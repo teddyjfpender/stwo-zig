@@ -1,0 +1,35 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "build-recursive-segment-v2-detached-parent-verifier",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 137268969209,
+  "head": "c69f770e32d4f38af7192a0f15ca3d4b0a8fdb9e",
+  "changed_source_sha256_before_build": {
+    "src/frontends/riscv/recursion/recording_poseidon_channel_v4.zig": "82b499e700bc5565302a6fa99d8063146ae80bb59f38938ce5e15e50edb2c035",
+    "src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig": "4040b53a4b2d91e0234d17ff495f153b5cfd59e5aeee153f0504030360a5d4ce",
+    "src/frontends/riscv/recursion/recursion_air_composition_segment_recorder_v3_program_recorder_for_manifest.zig": "23615ec9ae2834ef093a5d374ebb84a8c7e02707d55a0b31f0ac1c11d08bfd6a",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "744ae26f575585c95e79727cb80ee22ddfb7b9b62935dc317db83d80e742455d",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_boundary.zig": "b4b6860d1b7ecce4500e8c4090a55dd4a604d2376d7bd73908d298e797455548",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig": "631a24d27df3444139a43d79bd78b46cca4ef206a5b939f90c2903a5f91c1d7f",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_composition.zig": "887f9ef1cf8c3e275587115565e4c48c291f21f28b92e54ac6c8ac4b1a1f9756",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig": "479c1d55844b5cbf0b0326afd0b504550b653a4105aed84d9dc82899d631e12f",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_statement.zig": "f99a2ad2c2a8d892404396b5ef821be083a9a4e2efc2b06f1b3a66c33a0a6c53",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig": "7b61d45e4d929fba7034feceab4e5fc08bdb3e126eaa54ff423012c9062f9e46",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_pcs_rows.zig": "db1b0b86226fb71d50a2d4aae4d914ab1496f282a70b4bbfb5eb8780b97d989b",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig": "6ccf78b4960f9e50ef08cd7ffcd2c724ad56655cae8f49e220d4c25c930808f1",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig": "e20add8defe80d57f24bfa3bb7871774ced42147bfb7d4aa6f6172c77bfa4dc3",
+    "src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig": "c05890ba4c242352fed8789647f034472a6f4bfbe9683c694d40db7ad9365345",
+    "src/integrations/riscv_cpu/recursive_detached_recording_draws.zig": "310b336ec519d5dad74bb46a61e54892d52203fde6483a8257dfcf3d416be60d",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_capture_test.zig": "3a6195ece0342d8bf32c5de5206a322ca1f6fe0640181fb793ced67129eb83ef"
+  },
+  "sources_unchanged": true
+}

@@ -168,6 +168,15 @@ pub const OwnedComponentsV1 = opaque {
         return storage.gate.verifierSlice();
     }
 
+    pub fn recordCompositionV3(self: *const Self, program: anytype) !frontend.recursion.recursion_air_composition_circuit_v3.segment_recorder_v3.ProgramResultV3 {
+        const storage: *const Storage = @ptrCast(@alignCast(self));
+        inline for (LOGICAL_ROWS, 0..) |entry, index|
+            _ = try program.recordTypedComponent(entry.row, &storage.logical[index]);
+        _ = try program.recordPoseidonProvider(&storage.poseidon);
+        _ = try program.recordRangeCheck8x8Provider(&storage.range_component);
+        return program.finishProgram();
+    }
+
     pub fn appendToGate(self: *const Self, manifest: *const manifest_mod.Manifest, gate: *manifest_mod.ProofGate) !void {
         if (gate.count != 0 or gate.sealed) return error.DetachedParentManifestMismatch;
         const storage: *const Storage = @ptrCast(@alignCast(self));

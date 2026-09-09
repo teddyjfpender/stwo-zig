@@ -257,3 +257,33 @@ Additional explicit clock and command checks are recorded separately. The full
 4/8-segment recursive tree, production-security profile and quiet-host16-case CSP
 performance admission remain open. The next tree needs authenticated intermediate
 endpoint lineage and a parent-proof capture consumer; a flat bundle is not that tree.
+
+
+## Parent proof as the next recursive input, 2026-09-09
+
+The ordinary parent verifier and its recording/capture variant now execute one
+shared implementation. Leaf and parent capture share the draw-to-capture mapping;
+recording freshness belongs to the channel. No parent witness reconstruction is
+used to obtain native verification acceptance.
+
+The shared composition recorder now advances through the manifest's active roster,
+while retaining physical claim/sample coordinates. The previous contiguous-row
+assumption could not consume this parent (30 active rows,36 physical claim slots).
+Capture geometry likewise checks provider membership rather than treating physical
+row34 as active ordinal34. A distinct detached-parent manifest family prevents
+substitution with the legacy universal or Ethereum family.
+
+`detached-parent-capture-first.log` passes the genuine parent and original child
+replays. The parent check destroys its input arena, authenticates the complete
+recording, records38,076 composition graph nodes from2,149 sampled values, rejects
+all45 claim/sample mutations, and checks the shared PCS/FRI circuit. Runtime882ms,
+17MiB RSS; compilation46s. The original child remains1s/30MiB after a1min build.
+This is a verified parent and checked consuming arithmetic, not another parent
+STARK or a4/8-segment tree.
+
+Rebuilt standalone producers/verifiers then passed both maintained complete gates
+(`detached-parent-capture-lifecycle-{cpu,metal}.json`,42 fresh-process cases).
+All four resulting artifact files match the earlier seed13 parent byte for byte,
+including the key and proof. Build receipts record unchanged source through the
+build and binary hashes. Unused parent-inactive flags were removed; semantic-only
+checks now correctly report that they did not verify a parent proof themselves.

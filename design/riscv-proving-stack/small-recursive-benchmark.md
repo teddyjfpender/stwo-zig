@@ -125,6 +125,15 @@ remaining proving phase is3.19–3.37s; further attribution is needed before nam
 its dominant operation. Compilation remains separate (producer about1min,
 verifier44s in the retained builds).
 
+For the next recursive consumer, run
+`test-recursive-segment-v2-detached-parent-capture` under the CPU integration.
+Set `STWO_DETACHED_PARENT_BUNDLE`, `STWO_DETACHED_PARENT_KEY_SHA256` and
+`STWO_DETACHED_PARENT_EXPECTED_ROOT` to the retained bundle, independent pin and
+expected-root path. Missing inputs fail the gate. It verifies the actual parent,
+destroys the caller inputs, then replays its recorded composition and PCS/FRI
+arithmetic with45 claim/sample mutations. The retained run takes882ms at17MiB
+RSS after compilation. It does not generate a next-layer proof.
+
 ## Retained native-assisted benchmark route
 
 The earlier CPU and Metal measurements below use one guest fixture, native Poseidon protocol,

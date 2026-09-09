@@ -89,7 +89,7 @@ pub const OwnedV1 = opaque {
         var execution = try channel.finish();
         errdefer execution.deinit();
         if (!std.meta.eql(result.terminal, recursion.protocol.transcriptId(execution.final_digest, execution.final_draw_count))) return error.DetachedChildTerminalMismatch;
-        try validateDraws(&execution, &capture, &result.relations, owned_key.key().pcs_config.fri_config.n_queries);
+        try @import("recursive_detached_recording_draws.zig").validate(&execution, &capture, &result.relations, owned_key.key().pcs_config.fri_config.n_queries);
         const owned_storage = try allocator.create(Storage);
         owned_storage.* = .{ .allocator = allocator, .key = owned_key, .expected = owned_expected, .claims = input_claims, .capture = capture, .execution = execution, .relations = result.relations, .terminal = result.terminal, .key_sha256 = independent_key_sha256, .proof_sha256 = command.hash(proof_bytes) };
         return @ptrCast(owned_storage);
@@ -190,55 +190,6 @@ pub const OwnedV1 = opaque {
         return self.storage().capture.sampled_points[tree][column];
     }
 };
-
-/// Independently map retained draw operations to the verifier-minted fields.
-/// This checks ownership associations, not a second description of mix order.
-fn validateDraws(execution: *const recording.ExecutionV4, capture: *const verifier.ProofCapture, relations: *const components.Relations, query_count: usize) !void {
-    if (capture.queries.raw.len != query_count) return error.DetachedChildQueryMismatch;
-    const query_log = try @import("recursive_common_wrapper_authority_v2.zig").queryLogSizeFromCapture(capture);
-    if (query_log >= 32) return error.DetachedChildQueryMismatch;
-    const query_mask = (@as(u32, 1) << @intCast(query_log)) - 1;
-    var draw_at: usize = 0;
-    var query_at: usize = 0;
-    for (execution.operations) |operation| {
-        if (operation.effect != .draw) continue;
-        if (operation.hash_count != 1) return error.DetachedChildDrawMismatch;
-        const frame = execution.hash_frames[operation.first_hash_id];
-        if (frame.purpose != .draw) return error.DetachedChildDrawMismatch;
-        const words = frame.output[0..recording.RATE].*;
-        if (draw_at < universal.RELATION_COUNT) {
-            const element = relations.elements[draw_at];
-            try same(secure(words[0..4].*), element.z);
-            try same(secure(words[4..8].*), element.alpha);
-        } else switch (draw_at - universal.RELATION_COUNT) {
-            0 => try same(secure(words[0..4].*), capture.composition_randomness),
-            1 => try same(secure(words[0..4].*), capture.oods_seed),
-            2 => try same(secure(words[0..4].*), capture.deep_randomness),
-            else => |suffix_at| {
-                const fri_at = suffix_at - 3;
-                if (fri_at < capture.fri.layers.len) {
-                    try same(secure(words[0..4].*), capture.fri.layers[fri_at].folding_alpha);
-                } else {
-                    if (query_at >= query_count) return error.DetachedChildDrawMismatch;
-                    for (words[0..@min(recording.RATE, query_count - query_at)]) |word| {
-                        if (capture.queries.raw[query_at] != @as(usize, word.toU32() & query_mask)) return error.DetachedChildQueryMismatch;
-                        query_at += 1;
-                    }
-                }
-            },
-        }
-        draw_at += 1;
-    }
-    const query_draws = std.math.divCeil(usize, query_count, recording.RATE) catch unreachable;
-    if (query_at != query_count or draw_at != universal.RELATION_COUNT + 3 + capture.fri.layers.len + query_draws) return error.DetachedChildDrawMismatch;
-}
-
-fn secure(words: [4]M31) QM31 {
-    return QM31.fromU32Unchecked(words[0].toU32(), words[1].toU32(), words[2].toU32(), words[3].toU32());
-}
-fn same(actual: QM31, expected_value: QM31) !void {
-    if (!actual.eql(expected_value)) return error.DetachedChildDrawMismatch;
-}
 
 // Required real inputs; absence is a gate failure, never a skipped test.
 // The key pin is supplied independently, not read from the candidate bundle.
@@ -343,7 +294,7 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
             }));
             changed_answers[query] = original;
         }
-        std.debug.print("SEGMENT_V2_DETACHED_PCS samples={d} queried_values={d} layers={d} rejected_deep_answers={d} parent_profile_active=false\n", .{
+        std.debug.print("SEGMENT_V2_DETACHED_PCS samples={d} queried_values={d} layers={d} rejected_deep_answers={d} parent_proof_verified=false\n", .{
             pcs.sampled_values.len, pcs.queried_values.len, pcs.fold_widths.len, changed_answers.len,
         });
     }

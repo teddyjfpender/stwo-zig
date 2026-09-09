@@ -74,11 +74,7 @@ pub fn verifyWithCaptureRecording(
     channel: *recording.Channel,
     capture: *ProofCapture,
 ) !RecordingResultV1 {
-    if (!std.meta.eql(channel.inner, recursion.poseidon2_channel.Channel{}) or
-        channel.first_fault != null or channel.pending_pow != null or
-        channel.calls.items.len != 0 or channel.frames.items.len != 0 or
-        channel.checks.items.len != 0 or channel.words.items.len != 0 or
-        channel.operations.items.len != 0)
+    if (!channel.isFresh())
         return error.SegmentDetachedRecordingNotFresh;
     return verifyImpl(recording.MerkleChannel, allocator, key, expected, claims, proof_bytes, channel, capture);
 }

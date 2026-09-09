@@ -35,7 +35,7 @@ pub const OwnedV1 = opaque {
         const claims = child.claims();
         const components = try factory.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, child.relations(), claims);
         defer components.deinit();
-        var program = try record(allocator, &key.manifest, &layout, profile, components);
+        var program = try recordDetached(.segment_leaf, allocator, &key.manifest, &layout, profile, components);
         errdefer program.circuit.deinit();
         errdefer allocator.free(program.bindings);
         const inputs = try allocator.alloc(QM31, try composition.recursionInputCount(profile.graphProfile()));
@@ -101,14 +101,22 @@ pub const OwnedV1 = opaque {
     }
 };
 
-fn record(
+/// Shared symbolic OODS equation for the admitted detached leaf and parent
+/// cohorts. Their concrete adapters own constraints; this layer routes inputs.
+pub fn recordDetached(
+    comptime kind: composition.ProofKind,
     allocator: std.mem.Allocator,
-    manifest: *const recursion.air.segment_outer_adapter_manifest_v2.Manifest,
+    manifest: anytype,
     layout: *const v3.capture_layout_v3.CaptureLayoutV3,
     profile: v3.InputProfileV3,
-    components: *const factory.OwnedComponentsV1,
+    components: anytype,
 ) !struct { circuit: recorder.Circuit, bindings: []composition.RecursionInputBinding } {
-    try layout.validateAgainstSegment(manifest);
+    if (comptime kind == .segment_leaf)
+        try layout.validateAgainstSegment(manifest)
+    else if (comptime kind == .binary_node)
+        try layout.validateAgainstAuthenticatedBinary(.detached_segment_parent_v1, manifest)
+    else
+        @compileError("detached composition requires an actual child proof");
     const graph_profile = profile.graphProfile();
     const count = try composition.recursionInputCount(graph_profile);
     const bindings = try allocator.alloc(composition.RecursionInputBinding, count);
@@ -150,15 +158,22 @@ fn record(
     const expected_composition = try v3.reconstructSplitCompositionForLayout(layout, samples, point);
     const one = recorder.Scalar.one();
     try builder.constrainZero(parent_binary_selector.sub(one));
-    for (kinds, 0..) |kind, index|
-        try builder.constrainZero(kind.sub(if (index == v3.proofKindIndex(.segment_leaf)) one else recorder.Scalar.zero()));
+    for (kinds, 0..) |selector, index|
+        try builder.constrainZero(selector.sub(if (index == v3.proofKindIndex(kind)) one else recorder.Scalar.zero()));
     _ = try v3.recordClaimPolicyConstraints(&builder, &kinds, &claims);
-    try builder.constrainZero(claims[10]); // Existing inactive SegmentV2 row.
+    if (comptime kind == .segment_leaf)
+        try builder.constrainZero(claims[10]) // Existing inactive SegmentV2 row.
+    else
+        for (claims[14..20]) |claim| try builder.constrainZero(claim);
     var total = wire_boundary;
     for (claims[0..39]) |claim| total = total.add(claim);
     try builder.constrainZero(total);
     var denominators: recorder.DenominatorCache = .{null} ** core.circle.M31_CIRCLE_LOG_ORDER;
-    var program = try v3.segment_recorder_v3.SegmentProgramRecorderV3.init(&builder, manifest, layout, samples, &claims, &challenges, alpha, point, &denominators);
+    const ParentRecorder = v3.segment_recorder_v3.ProgramRecorderForManifest(recursion.air.universal_adapter_manifest, .binary_node, @import("recursive_segment_v2_detached_parent_cohort.zig").LOGICAL_ROWS.len + 2);
+    var program = if (comptime kind == .segment_leaf)
+        try v3.segment_recorder_v3.SegmentProgramRecorderV3.init(&builder, manifest, layout, samples, &claims, &challenges, alpha, point, &denominators)
+    else
+        try ParentRecorder.initAuthenticatedBinary(&builder, manifest, .detached_segment_parent_v1, layout, samples, &claims, &challenges, alpha, point, &denominators);
     const result = try components.recordCompositionV3(&program);
     try builder.constrainZero(expected_composition.sub(result.accumulation));
     builder.deactivate();

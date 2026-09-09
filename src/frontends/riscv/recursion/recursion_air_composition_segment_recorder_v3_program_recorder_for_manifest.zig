@@ -179,7 +179,7 @@ pub fn ProgramRecorderForManifest(
         ) Error!usize {
             try self.requireActive();
             const row_index: u8 = @intFromEnum(row);
-            if (self.next_row != row_index) return error.ComponentOrderMismatch;
+            if (!self.isNextRow(row_index)) return error.ComponentOrderMismatch;
             if (row_index == POSEIDON_ROW or row_index == RANGE_ROW)
                 return error.ProviderRequiresExactRecorder;
 
@@ -519,12 +519,19 @@ pub fn ProgramRecorderForManifest(
             return self.finishProgram();
         }
 
+        /// Cursor order follows the admitted active roster; claim/sample
+        /// coordinates continue to use physical rows, including sparse gaps.
+        fn isNextRow(self: *const Self, row: u8) bool {
+            return self.next_row < self.manifest.roster_count and
+                self.manifest.roster_rows[self.next_row] == row;
+        }
+
         fn recordCanonicalEmptyPoseidonShell(
             self: *Self,
             adapter: *const PoseidonAdapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != POSEIDON_ROW or
+            if (!self.isNextRow(POSEIDON_ROW) or
                 self.canonical_empty_layout_identity == null)
             {
                 return error.ComponentOrderMismatch;
@@ -555,7 +562,7 @@ pub fn ProgramRecorderForManifest(
             adapter: *const RangeCheck8x8Adapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != RANGE_ROW or
+            if (!self.isNextRow(RANGE_ROW) or
                 self.canonical_empty_layout_identity == null)
             {
                 return error.ComponentOrderMismatch;
@@ -607,7 +614,7 @@ pub fn ProgramRecorderForManifest(
         ) Error!usize {
             try self.requireActive();
             const row_index: u8 = @intFromEnum(row);
-            if (self.next_row != row_index or
+            if (!self.isNextRow(row_index) or
                 partial_start + poseidon_air.N_SUMS >
                     COMPOSITION_CLAIM_INPUT_COUNT)
             {
@@ -679,7 +686,7 @@ pub fn ProgramRecorderForManifest(
             adapter: *const RangeCheck8x8Adapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != RANGE_ROW) return error.ComponentOrderMismatch;
+            if (!self.isNextRow(RANGE_ROW)) return error.ComponentOrderMismatch;
             _ = adapter.binding(self.manifest) catch
                 return error.ManifestAuthorityMismatch;
 
