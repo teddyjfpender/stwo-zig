@@ -10,12 +10,18 @@ does not close the full goal.
 
 Items1 and2 have complete development-proof evidence. The version2 parent binds
 436 public words, including session and endpoint lineage, under explicit root or
-intermediate admission. Item3 is partially complete: actual2/4/8-segment jobs now
-produce freshly verified CPU/Metal native children and detached wrappers; the
-four/eight-segment jobs additionally have2/4 freshly verified intermediate STARKs.
-The next required result is one root proving verification of those intermediate
-proofs, then the complete8→4→2→1 tree. A collection of intermediate proofs does
-not complete that milestone.
+intermediate admission. Actual2/4/8-segment jobs now have complete recursive trees
+with one freshly verified root per job. The four/eight-segment trees recursively
+verify their intermediate STARKs, including the complete8→4→2→1 route. This is
+still the development profile; item3 remains open for production-security
+measurement, optimization of the measured tree and formal CSP preservation.
+
+The four-segment tree additionally passes with a different initial memory value
+under all seven unchanged admitted keys. Parent capture now shares immutable
+ownership, transcript payload definitions, composition and PCS preparation with
+leaf capture. The parent boundary constrains all872 transcript limbs, canonical
+field encoding and all436 public words. Its focused genuine-proof check rejects
+436 coherent public-word mutations plus the noncanonical encoding of zero.
 
 The execution-only ladder runs in under a second and compiles in7s. Initial leaf
 production observations are7.73/15.24/30.45s on CPU and6.95/12.17/24.93s with Metal
@@ -24,6 +30,11 @@ core verification takes10–11ms. Current evidence includes336 fresh child cases
 150 partial-parent cases and a25-case Metal-origin partial-parent lifecycle.
 These are development-profile observations; production-security measurement,
 optimization of the measured whole tree and formal CSP promotion remain open.
+The new four/eight-segment final aggregation requests take3.91/3.92s, with
+90,169/85,923-byte root proofs and12.38/9.78ms core fresh verification. Preparation
+is378/384ms; peak parent RSS remains about656MiB. The observed stage sums are
+26.91/57.75s for CPU leaves plus aggregation. These sums combine separate runs
+and are not a single end-to-end controller wall-time measurement.
 
 ## Required implementation order
 

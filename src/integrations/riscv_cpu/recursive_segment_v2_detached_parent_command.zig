@@ -130,8 +130,9 @@ pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len == 5 and (std.mem.eql(u8, args[1], "--derive-expected") or std.mem.eql(u8, args[1], "--derive-span"))) {
-        const expected = try deriveExpected(allocator, .{ args[2], args[3] }, if (std.mem.eql(u8, args[1], "--derive-expected")) .root else .intermediate);
+    if (args.len == 5 and (std.mem.eql(u8, args[1], "--derive-expected") or std.mem.eql(u8, args[1], "--derive-span") or std.mem.eql(u8, args[1], "--fold-root") or std.mem.eql(u8, args[1], "--fold-span"))) {
+        const mode: protocol.PublicationMode = if (std.mem.eql(u8, args[1], "--derive-expected") or std.mem.eql(u8, args[1], "--fold-root")) .root else .intermediate;
+        const expected = if (std.mem.startsWith(u8, args[1], "--fold-")) try foldExpected(allocator, .{ args[2], args[3] }, mode) else try deriveExpected(allocator, .{ args[2], args[3] }, mode);
         const json = try encodeExpected(allocator, &expected);
         defer allocator.free(json);
         var file = try std.fs.cwd().createFile(args[4], .{ .exclusive = true });
@@ -170,4 +171,16 @@ pub fn deriveExpected(allocator: std.mem.Allocator, paths: [2][]const u8, mode: 
     const left_words = try continuation.fromSegment(&left.statement);
     const right_words = try continuation.fromSegment(&right.statement);
     return continuation.fold(&left_words, &right_words, mode);
+}
+
+/// Fold independently supplied publications from already admitted subtree jobs.
+/// This computes expected words only; it does not verify either child proof.
+pub fn foldExpected(allocator: std.mem.Allocator, paths: [2][]const u8, mode: protocol.PublicationMode) !verifier.ExpectedV1 {
+    var inputs: [2]verifier.ExpectedV1 = undefined;
+    for (paths, &inputs) |path, *input| {
+        const bytes = try std.fs.cwd().readFileAlloc(allocator, path, MAX_INPUT_BYTES);
+        defer allocator.free(bytes);
+        input.* = try decodeExpected(allocator, bytes);
+    }
+    return @import("stwo_riscv_frontend").recursion.span_continuation_v1.fold(&inputs[0], &inputs[1], mode);
 }

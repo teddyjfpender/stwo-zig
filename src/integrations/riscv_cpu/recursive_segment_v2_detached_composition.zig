@@ -10,8 +10,6 @@ const composition = recursion.air.composition_circuit;
 const v3 = recursion.recursion_air_composition_circuit_v3;
 const recorder = v3.segment_recorder_v3.graph_recorder;
 const child_mod = @import("recursive_segment_v2_detached_child_transcript.zig");
-const factory = @import("recursive_segment_v2_verifier_components.zig");
-const boundary = @import("recursive_segment_v2_authority_boundary.zig");
 const QM31 = core.fields.qm31.QM31;
 
 pub const OwnedV1 = opaque {
@@ -25,7 +23,10 @@ pub const OwnedV1 = opaque {
         values: []QM31,
     };
 
-    pub fn init(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) !*OwnedV1 {
+    pub fn init(allocator: std.mem.Allocator, child: anytype) !*OwnedV1 {
+        const family = @typeInfo(@TypeOf(child)).pointer.child.FAMILY;
+        const kind: composition.ProofKind = if (family == .segment) .segment_leaf else .binary_node;
+        const Factory = if (family == .segment) @import("recursive_segment_v2_verifier_components.zig") else @import("recursive_segment_v2_detached_parent_cohort.zig");
         const key = child.key();
         try key.validate();
         var layout = try child.compositionLayout(allocator);
@@ -33,30 +34,14 @@ pub const OwnedV1 = opaque {
         const profile = v3.InputProfileV3{ .sampled_value_count = layout.sampled_value_count };
         try profile.validate();
         const claims = child.claims();
-        const components = try factory.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, child.relations(), claims);
+        const components = try Factory.OwnedComponentsV1.init(allocator, &key.manifest, key.parameters, child.relations(), claims);
         defer components.deinit();
-        var program = try recordDetached(.segment_leaf, allocator, &key.manifest, &layout, profile, components);
+        var program = try recordDetached(kind, allocator, &key.manifest, &layout, profile, components);
         errdefer program.circuit.deinit();
         errdefer allocator.free(program.bindings);
         const inputs = try allocator.alloc(QM31, try composition.recursionInputCount(profile.graphProfile()));
         errdefer allocator.free(inputs);
-        const capture = child.captureView();
-        const view = try child.expected().authenticatedView();
-        var claim_inputs: [v3.COMPOSITION_CLAIM_INPUT_COUNT]QM31 = undefined;
-        try v3.writeClaimInputs(.segment_leaf, &claims.values, &claims.poseidon_partials, &claim_inputs);
-        const hash_boundary = try boundary.derive(child.expected(), key.native_descriptors, child.relations());
-        const wire_boundary = (try key.wireClaim(child.relations())).add(hash_boundary.claimed_sum);
-        try v3.writeInputsFromValidatedProfile(profile, .{
-            .parent_binary_selector = true,
-            .proof_kind = .segment_leaf,
-            .statement_words = &view.statement.base_statement_words,
-            .sampled_values = capture.sampled_values,
-            .claim_inputs = &claim_inputs,
-            .public_wire_boundary = wire_boundary,
-            .relations = child.relations(),
-            .composition_randomness = capture.composition_randomness,
-            .oods_seed = capture.oods_seed,
-        }, inputs);
+        try child.writeCompositionInputs(profile, inputs);
         const values = try allocator.alloc(QM31, program.circuit.nodes.len);
         errdefer allocator.free(values);
         try program.circuit.evaluateInto(inputs, values);
@@ -163,8 +148,7 @@ pub fn recordDetached(
     _ = try v3.recordClaimPolicyConstraints(&builder, &kinds, &claims);
     if (comptime kind == .segment_leaf)
         try builder.constrainZero(claims[10]) // Existing inactive SegmentV2 row.
-    else
-        for (claims[14..20]) |claim| try builder.constrainZero(claim);
+    else for (claims[14..20]) |claim| try builder.constrainZero(claim);
     var total = wire_boundary;
     for (claims[0..39]) |claim| total = total.add(claim);
     try builder.constrainZero(total);

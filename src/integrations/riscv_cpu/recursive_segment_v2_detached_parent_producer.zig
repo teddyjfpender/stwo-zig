@@ -10,10 +10,13 @@ const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
 pub const PROFILE = "tiny-memory-root-v2";
 pub const INTERMEDIATE_PROFILE = "tiny-memory-span-v2";
 pub const CONTINUATION_PROFILE = "tiny-memory-continuation-span-v2";
+pub const PARENT_ROOT_PROFILE = "tiny-parent-root-v2";
+pub const PARENT_SPAN_PROFILE = "tiny-parent-span-v2";
 pub const ArgumentsV1 = struct {
     output: []const u8,
     publication_mode: protocol.PublicationMode = .root,
     memory_profile: enum { initial, continuation } = .initial,
+    child_family: @import("recursive_segment_v2_detached_child_transcript.zig").Family = .segment,
     children: [2]child_command.ArgumentsV1,
     parent_key: ?struct { path: []const u8, sha256: [32]u8 } = null,
 };
@@ -21,9 +24,9 @@ pub const ArgumentsV1 = struct {
 /// Reviewed fixture topologies and one unambiguous argument order.
 pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
     if ((args.len != 9 and args.len != 13) or !std.mem.eql(u8, args[0], "--profile") or
-        (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE) and !std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
+        (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE) and !std.mem.eql(u8, args[1], CONTINUATION_PROFILE) and !std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) and !std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
         return error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren;
-    var result = ArgumentsV1{ .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
+    var result = ArgumentsV1{ .child_family = if (std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE) or std.mem.eql(u8, args[1], PARENT_SPAN_PROFILE)) .parent else .segment, .memory_profile = if (std.mem.eql(u8, args[1], CONTINUATION_PROFILE)) .continuation else .initial, .publication_mode = if (std.mem.eql(u8, args[1], PROFILE) or std.mem.eql(u8, args[1], PARENT_ROOT_PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
     if (args.len == 13) {
         if (!std.mem.eql(u8, args[9], "--parent-key") or args[10].len == 0 or
             !std.mem.eql(u8, args[11], "--parent-key-sha256") or args[12].len != 64)
@@ -75,6 +78,13 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
     var preparation_ns: u64 = undefined;
     var candidate = blk: {
         var prepared = child_scope: {
+            if (args.child_family == .parent) {
+                const left = try prepare.loadAdmittedParent(allocator, args.children[0]);
+                defer left.deinit();
+                const right = try prepare.loadAdmittedParent(allocator, args.children[1]);
+                defer right.deinit();
+                break :child_scope try prepare.prepareParents(allocator, .{ left, right }, args.publication_mode);
+            }
             const left = try prepare.loadAdmittedChild(allocator, args.children[0]);
             defer left.deinit();
             const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
@@ -104,7 +114,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
     defer expected_file.close();
     try expected_file.writeAll(expected_json);
     return .{
-        .profile = if (args.memory_profile == .continuation) CONTINUATION_PROFILE else if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
+        .profile = if (args.child_family == .parent) (if (args.publication_mode == .root) PARENT_ROOT_PROFILE else PARENT_SPAN_PROFILE) else if (args.memory_profile == .continuation) CONTINUATION_PROFILE else if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
         .publication_mode = args.publication_mode,
         .reused_admitted_parent_key = admitted_key != null,
         .child_key_sha256 = child_pins,
@@ -157,6 +167,11 @@ test "detached parent producer requires explicit profile and independent child a
     const continued = try parseArguments(&continuation);
     try std.testing.expectEqual(.intermediate, continued.publication_mode);
     try std.testing.expectEqual(.continuation, continued.memory_profile);
+    var recursive = valid;
+    recursive[1] = PARENT_ROOT_PROFILE;
+    const parent_inputs = try parseArguments(&recursive);
+    try std.testing.expectEqual(.parent, parent_inputs.child_family);
+    try std.testing.expectEqual(.root, parent_inputs.publication_mode);
     var unsupported = valid;
     unsupported[1] = "unreviewed-profile";
     try std.testing.expectError(error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren, parseArguments(&unsupported));

@@ -10,6 +10,7 @@ const cohort = @import("recursive_segment_v2_detached_parent_cohort.zig");
 const manifest_mod = cohort.manifest_mod;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
+const payload = @import("recursive_detached_payload_v1.zig");
 pub const VERSION: u32 = 2;
 pub const DEVELOPMENT_ONLY = true;
 pub const PCS_CONFIG = recursion.outer_parent_child_admission.OUTER_PCS_CONFIG;
@@ -83,12 +84,15 @@ pub fn publicBoundary(expected: *const ExpectedV1, relations: *const cohort.Rela
 pub fn mixAdmission(channel: anytype, key: *const KeyV1, expected: *const ExpectedV1) !void {
     const identity = try key.identity();
     try continuation.validate(expected, key.publication_mode);
+    payload.begin(channel, .admission_header);
     channel.mixU32s(&.{ 0x4450_4131, VERSION, manifest_mod.COMPONENT_COUNT, PUBLIC_SCOPE, expected.len });
     var pin_words: [8]u32 = undefined;
     for (&pin_words, 0..) |*word, index| word.* = std.mem.readInt(u32, identity[index * 4 ..][0..4], .little);
+    payload.begin(channel, .key_identity);
     channel.mixU32s(&pin_words);
     var words: [continuation.WORD_COUNT]u32 = undefined;
     for (&words, expected) |*word, value| word.* = value.toU32();
+    payload.begin(channel, .expected_u32);
     channel.mixU32s(&words);
 }
 
@@ -101,10 +105,15 @@ pub fn mixClaimsAndBoundary(channel: anytype, key: *const KeyV1, expected: *cons
     var total = boundary;
     for (claims.values) |claim| total = total.add(claim);
     if (!total.isZero()) return error.DetachedParentClaimClosureMismatch;
+    payload.begin(channel, .claims_header);
     channel.mixU32s(&.{ 0x4450_4331, VERSION, manifest_mod.COMPONENT_COUNT });
+    payload.begin(channel, .claims);
     channel.mixFelts(&claims.values);
+    payload.begin(channel, .boundary_header);
     channel.mixU32s(&.{ 0x4450_4231, VERSION, PUBLIC_SCOPE, expected.len, 2 });
+    payload.begin(channel, .boundary);
     channel.mixFelts(&.{boundary});
+    payload.begin(channel, .partials);
     channel.mixFelts(&claims.poseidon_partials);
 }
 

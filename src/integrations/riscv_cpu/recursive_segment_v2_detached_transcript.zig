@@ -107,19 +107,9 @@ pub const FixedAdmissionV1 = KeyV1;
 /// Optional semantic annotations consumed by the parent AIR schedule builder.
 /// These do not alter transcript bytes or admit any payload value as constant.
 /// The native and recorded verifier channels intentionally have no callback.
-pub const PayloadSourceV1 = enum {
-    admission_header,
-    key_identity,
-    expected,
-    claims_header,
-    claims,
-    boundary_header,
-    boundary,
-    partials,
-};
-fn beginPayload(channel: anytype, source_kind: PayloadSourceV1) void {
-    if (@hasDecl(@TypeOf(channel.*), "beginDetachedPayload")) channel.beginDetachedPayload(source_kind);
-}
+const payload = @import("recursive_detached_payload_v1.zig");
+pub const PayloadSourceV1 = payload.Source;
+const beginPayload = payload.begin;
 
 /// Called after Tree0/Tree1 commitments and before relation draws. The wire
 /// uses the existing canonical PublicDataV2 frame; fixed identity has its own

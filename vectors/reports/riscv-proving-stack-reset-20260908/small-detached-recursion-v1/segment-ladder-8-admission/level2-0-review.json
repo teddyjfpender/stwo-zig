@@ -1,0 +1,12 @@
+{
+  "scope": "Explicit reviewed bootstrap admission for an actual eight-segment recursive subtree; development only. Independent expected span folded before production.",
+  "segments": 8,
+  "subtree": "level2-0",
+  "publication_mode": "intermediate",
+  "key_sha256": "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+  "expected_span_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+  "child_keys": [
+    "892ade6f9cc77e3dab885afd8717c248062b1d5e27c47cdc62ba18d0c5d3c5c7",
+    "a6d7a6d41a155e6ba5c8fd2406a80afa3c1dc43f5a27f31076ed43c12df3c468"
+  ]
+}

@@ -182,10 +182,13 @@ fn addExport(counts: []u32, node: u32) !void {
 fn compositionSource(source: air.composition_circuit.RecursionSource, verifier: u32, boundary: *const boundary_mod.OwnedV1) !bridge.Source {
     return switch (source) {
         .parent_binary_selector => .{ .fixed = QM31.one() },
-        .child_kind_selector => |kind| .{ .fixed = if (kind == .segment_leaf) QM31.one() else QM31.zero() },
+        .child_kind_selector => |kind| .{ .fixed = if (kind == (if (boundary.family() == .segment) @as(air.composition_circuit.ProofKind, .segment_leaf) else .binary_node)) QM31.one() else QM31.zero() },
         .statement_word => |word| .{ .wire = .{ .circuit = BOUNDARY_IDS[verifier - 1], .node = boundary.spanNodes()[word] } },
         .sampled_value => |coordinate| .{ .verifier_input = .{ verifier, @intFromEnum(INPUT_KIND.sampled_value), coordinate.item_index, coordinate.word_index } },
-        .claimed_sum, .transcript_claimed_sum => |coordinate| .{ .verifier_input = .{ verifier, @intFromEnum(INPUT_KIND.claimed_sum), coordinate.item_index, coordinate.word_index } },
+        .claimed_sum, .transcript_claimed_sum => |coordinate| if (boundary.family() == .parent and coordinate.item_index >= 36 and coordinate.item_index < 39)
+            .{ .fixed = QM31.zero() }
+        else
+            .{ .verifier_input = .{ verifier, @intFromEnum(INPUT_KIND.claimed_sum), coordinate.item_index, coordinate.word_index } },
         .public_wire_boundary => |coordinate| .{ .verifier_input = .{ verifier, @intFromEnum(INPUT_KIND.claimed_sum), prefix.BOUNDARY_CLAIM_INDEX, coordinate.word_index } },
         .relation_challenge => |coordinate| .{ .challenge = .{ verifier, air.relation_challenge_witness.AIR_EVALUATION_CHALLENGE_SCOPE, coordinate.challenge, coordinate.word_index } },
         .composition_randomness => |word| .{ .randomness = .{ verifier, @intFromEnum(RANDOM_KIND.composition_randomness), 0, word } },

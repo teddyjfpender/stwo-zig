@@ -2,7 +2,8 @@
 """Fresh-process acceptance of the tiny detached two-child parent development proof.
 
 Requires independently supplied verifier, key and expected-root SHA256 pins.
-Only verification runs here: no native inputs, production, or global build lock.
+Optional production exits before fresh verification; only production takes the
+shared build lock. Verification needs no native inputs or producer state.
 Every hostile case uses a temporary copy; proof mutations reseal transport hashes.
 """
 
@@ -39,6 +40,7 @@ def main() -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
     parser.add_argument("--memory-profile", choices=("initial", "continuation"), default="initial")
+    parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
     parser.add_argument("--producer-sha256", type=digest)
     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
@@ -47,6 +49,8 @@ def main() -> None:
     args = parser.parse_args()
     if args.memory_profile == "continuation" and args.publication_mode != "intermediate":
         parser.error("continuation memory profile requires intermediate publication")
+    if args.child_family == "parent" and args.memory_profile != "initial":
+        parser.error("parent children do not accept a native memory profile")
     verifier, bundle, expected, output = (
         path.resolve() for path in (args.verifier, args.bundle, args.expected_root, args.output))
     if output.exists() or output.is_relative_to(bundle):
@@ -135,6 +139,8 @@ def main() -> None:
             profile = "tiny-memory-root-v2" if args.publication_mode == "root" else "tiny-memory-span-v2"
             if args.memory_profile == "continuation":
                 profile = "tiny-memory-continuation-span-v2"
+            if args.child_family == "parent":
+                profile = "tiny-parent-root-v2" if args.publication_mode == "root" else "tiny-parent-span-v2"
             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
                     "--parent-key-sha256", args.key_sha256]

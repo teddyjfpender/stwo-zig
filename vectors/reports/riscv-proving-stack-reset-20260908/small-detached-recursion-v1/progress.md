@@ -358,3 +358,47 @@ The genuine later partial parent also passes the next-consumer capture gate:
 994ms/17MiB,38,076 composition nodes,2,149 samples and45 rejected claim/sample
 mutations after input destruction. Compilation took47s/2GiB. This checks the
 consuming arithmetic and PCS replay, not a next-layer STARK.
+
+## Complete four/eight-segment recursive roots
+
+Actual4→2→1 and8→4→2→1 trees now have one independently verified root each.
+The parent consumer uses the shared immutable capture owner, composition and PCS
+path. Transcript payload markers originate in the same admitted protocol used
+by the standalone verifier. Its active boundary reconstructs436 public words
+from872 split-u16 transcript limbs, proves canonical encoding and derives the
+complete public lookup claim. Shared continuation checks authenticate span,
+session and endpoint lineage at every recursive level.
+
+The four-segment final assembly closes1,437,799 tuple contributions with no
+unmatched tuples in any of47 domains. Its first loader compile failure is retained
+in `parent-consumer-assembly-first.log`; the repaired assembly passes in
+`parent-consumer-assembly-second.log`. The final preparation/statement checks
+also reject45 coherent mutations against the same parent-of-parent AIR, including
+swaps, duplication, gaps, incomplete root coverage and state drift, bypassing
+host admission. Native first-layer statement checks still pass228 raw-boundary
+mutations and the same45 shared statement mutations.
+
+`parent-consumer-final-checks-first.log` covers the actual eight-segment root:
+436 coherent public-word changes, the noncanonical encoding of zero,45
+composition mutations, all872 dynamic transcript limbs, PCS and caller input
+destruction. The capture check runs in1s/36MiB after50s/2GiB compilation. Existing
+leaf capture still passes, and all four transport checks pass.
+
+The four/eight-segment roots take3.91/3.92s for final aggregation, produce
+90,169/85,923-byte proofs and freshly verify in12.38/9.78ms. Peak parent RSS stays
+about656MiB. See `segment-ladder-root-measurements.json`; its stage sums combine
+separate observations and are not single end-to-end controller measurements.
+
+The seed14 four-segment job reuses every seed13 key: four native-child wrappers,
+two intermediate parents and the final root. All48 child and75 parent fresh
+cases pass with changed public memory values. The full eight-segment tree also
+replays from actual Metal-origin children through seven CPU parent producers;
+all175 cases pass under the CPU-admitted keys and all parent artifact bytes are
+identical. Each maintained gate waits for producer exit before verification.
+The four initial new parent proofs add100 fresh acceptance/rejection cases.
+
+Keys in `segment-ladder-{4,8}-admission/` remain explicitly reviewed bootstrap
+development admissions. No candidate self-admits in the pinned lifecycle runs.
+Production-security measurements, formal quiet-host CSP preservation and
+optimization of the measured whole tree remain open. The new route does not
+change shared RV32 types, CSP protocol identities or backend worker policy.

@@ -1,0 +1,27 @@
+test-recursive-segment-v2-detached-parent-capture
++- Detached parent recursive capture guard
+   +- run test stderr
+DETACHED_PARENT_CAPTURE active_rows=30 physical_claims=36 sampled_values=2149 graph_nodes=38076 rejected_claims_and_samples=45 public_transcript_limbs=872 input_destroyed=true parent_verified=true consumer_proof_created=false
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test stderr
+detached composition: samples=2287 inputs=10116 nodes=39951 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=60 calls=233 payload_fixed=54 payload_dynamic=876 input_uses=892 boundary_challenges=2 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=40 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=40 provider_calls=1242 sampled_words=9148 randomness_rows=20 pow_rows=1 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=3 trace_rows=807 fri_leaf_rows=96 path_rows=612 provider_calls=1563 pcs_inputs=15646 fri_inputs=657 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=3 trace_rows=807 fri_leaf_rows=96 path_rows=612 provider_calls=1563 pcs_inputs=15646 fri_inputs=657 parent_proof_verified=false
+detached expected boundary: inputs=13960 nodes=69409 outputs=8537 provider_calls=322 rejected=37
+SEGMENT_V2_DETACHED_PCS samples=2287 queried_values=6381 layers=16 rejected_deep_answers=3 parent_proof_verified=false
+SEGMENT_V2_DETACHED_CHILD transcript_operations=100 poseidon_calls=1475 sampled_values=2287 queried_values=6381 fri_layers=16 raw_queries=3 input_bytes=92732 caller_destroyed=true
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-recursive-segment-v2-detached-parent-capture success
++- Detached parent recursive capture guard success
+   +- run test 1 passed 1s MaxRSS:36M
+      +- compile test ReleaseSafe native success 49s MaxRSS:2G
+test-recursive-segment-v2-detached-child success
++- SegmentV2 detached child guard success
+   +- run test 1 passed 1s MaxRSS:30M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

@@ -40,6 +40,7 @@ pub const PayloadSource = enum(u8) {
     boundary,
     partials,
     tree2,
+    span_u32,
     pub fn fixed(self: PayloadSource) bool {
         return switch (self) {
             .tree0, .admission_header, .key_identity, .public_frame, .claims_header, .boundary_header => true,
@@ -59,6 +60,9 @@ pub const InputCoordinate = struct { kind: Kind, item: u32, limb: u32, uses: u32
 /// One authority for transcript payload fan-out. The boundary graph consumes
 /// wire/digest exports once and emits its canonical Span projection separately.
 pub fn inputCoordinate(source: PayloadSource, word: u32) ?InputCoordinate {
+    return inputCoordinateFor(.segment, source, word);
+}
+pub fn inputCoordinateFor(comptime family: child_mod.Family, source: PayloadSource, word: u32) ?InputCoordinate {
     return switch (source) {
         .tree0, .tree1, .tree2 => .{ .kind = .commitment, .item = switch (source) {
             .tree0 => 0,
@@ -66,8 +70,9 @@ pub fn inputCoordinate(source: PayloadSource, word: u32) ?InputCoordinate {
             else => 2,
         }, .limb = word, .uses = 1 },
         .wire => .{ .kind = .statement, .item = RAW_WIRE_BASE + word, .limb = 0, .uses = 1 },
+        .span_u32 => .{ .kind = .statement, .item = RAW_WIRE_BASE + word / 2, .limb = word % 2, .uses = 1 },
         .wire_id => .{ .kind = .statement, .item = WIRE_ID_BASE + word / 2, .limb = word % 2, .uses = 1 },
-        .claims => .{ .kind = .claimed_sum, .item = word / 4, .limb = word % 4, .uses = if (word / 4 == 36) 2 else 1 },
+        .claims => .{ .kind = .claimed_sum, .item = word / 4, .limb = word % 4, .uses = if (family == .segment and word / 4 == 36) 2 else 1 },
         .boundary => .{ .kind = .claimed_sum, .item = BOUNDARY_CLAIM_INDEX, .limb = word, .uses = 2 },
         .partials => .{ .kind = .claimed_sum, .item = @intCast(v3.POSEIDON_AUX_START + word / 4), .limb = word % 4, .uses = 1 },
         .relations => null,
@@ -75,12 +80,16 @@ pub fn inputCoordinate(source: PayloadSource, word: u32) ?InputCoordinate {
     };
 }
 pub fn boundaryChallenge(challenge: usize) bool {
+    return boundaryChallengeFor(.segment, challenge);
+}
+pub fn boundaryChallengeFor(comptime family: child_mod.Family, challenge: usize) bool {
+    if (family == .parent) return challenge == @intFromEnum(frontend.air.relation.Domain.recursion_statement_word);
     return challenge == @intFromEnum(recursion.segment_leaf_authority_v2.STATEMENT_RELATION_DOMAIN) or challenge == @intFromEnum(frontend.air.relation.Domain.recursion_wire);
 }
 
 /// The admitted child owns verified geometry. Reuse the secure recursive
 /// program's PCS emitter so the detached suffix cannot grow a parallel order.
-pub fn initPcsOperations(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) ![]@import("recursive_secure_transcript_program_v1.zig").Operation {
+pub fn initPcsOperations(allocator: std.mem.Allocator, child: anytype) ![]@import("recursive_secure_transcript_program_v1.zig").Operation {
     const captured = child.captureView();
     return @import("recursive_secure_transcript_program_v1.zig").initPcsOperations(allocator, .{
         .sampled_value_count = captured.sampled_values.len,
@@ -132,17 +141,19 @@ pub const OwnedV1 = opaque {
         }
     };
 
-    pub fn init(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, lane: u32) !*OwnedV1 {
+    pub fn init(allocator: std.mem.Allocator, child: anytype, lane: u32) !*OwnedV1 {
         if (lane != 1 and lane != 2) return error.InvalidDetachedPrefixLane;
-        if (child.expected().words().len >= WIRE_ID_BASE - RAW_WIRE_BASE) return error.DetachedPrefixWireGeometryOutOfRange;
+        const family = @typeInfo(@TypeOf(child)).pointer.child.FAMILY;
+        const Protocol = if (family == .segment) transcript else @import("recursive_segment_v2_detached_parent_protocol.zig");
+        if (child.expectedWords().len >= WIRE_ID_BASE - RAW_WIRE_BASE) return error.DetachedPrefixWireGeometryOutOfRange;
         var plan = PlanChannel{ .allocator = allocator, .relations = child.relations() };
         defer plan.operations.deinit(allocator);
         const captured = child.captureView();
         try plan.root(.tree0, child.key().preprocessed_root);
         try plan.root(.tree1, captured.commitments[1]);
-        try transcript.mixAdmission(&plan, child.key(), child.expected());
+        try Protocol.mixAdmission(&plan, child.key(), child.expected());
         const relations = try universal.UniversalRelations.draw(allocator, &plan);
-        try transcript.mixClaimsAndBoundary(&plan, child.key(), child.expected(), child.claims(), &relations);
+        try Protocol.mixClaimsAndBoundary(&plan, child.key(), child.expected(), child.claims(), &relations);
         try plan.root(.tree2, captured.commitments[2]);
         if (plan.failure) |err| return err;
         const execution = child.recordingView();
@@ -193,13 +204,13 @@ pub const OwnedV1 = opaque {
                 if (frame.words[recording.RATE].toU32() != draw_count or frame.words[recording.RATE + 1].toU32() != recursion.poseidon2_channel.DRAW_TAG or instruction.item != challenge_at)
                     return error.DetachedPrefixScheduleMismatch;
                 draw_count += 1;
-                challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallenge(challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
+                challenges[challenge_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .public_logup_mask = @intFromBool(boundaryChallengeFor(family, challenge_at)), .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .challenge = @intCast(challenge_at) }, .main = .{ .enabler = 1, .outputs = frame.output[0..recording.RATE].* } };
                 challenge_at += 1;
             } else {
                 draw_count = 0;
                 for (frame.words[recording.RATE..], 0..) |value, offset| {
                     const at: u32 = @intCast(offset);
-                    const coordinate = inputCoordinate(instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
+                    const coordinate = inputCoordinateFor(family, instruction.source, at) orelse return error.DetachedPrefixScheduleMismatch;
                     if (instruction.source.fixed() and value.toU32() != instruction.constant_words[offset]) return error.DetachedPrefixFixedWordMismatch;
                     payload[payload_at] = .{ .preprocessing = .{ .row_mask = 1, .segment_mask = 0, .binary_mask = 1, .verifier_id = lane, .sequence = step.sequence, .tag = step.tag, .args = step.args, .payload_index = at, .source_kind = coordinate.kind, .item_index = coordinate.item, .limb_index = coordinate.limb, .constant_mask = @intFromBool(instruction.source.fixed()), .input_use_count = coordinate.uses, .constant_value = if (instruction.source.fixed()) instruction.constant_words[offset] else 0, .source_hash_id = @intCast(index), .source_word_index = @intCast(recording.RATE + at) }, .value = value };
                     payload_at += 1;
@@ -276,6 +287,7 @@ const PlanChannel = struct {
                 self.failure = error.DetachedPrefixScheduleMismatch;
                 return;
             },
+            .expected_u32 => .span_u32,
             .claims_header => .claims_header,
             .boundary_header => .boundary_header,
             else => {

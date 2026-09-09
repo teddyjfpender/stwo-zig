@@ -45,6 +45,12 @@ pub fn prepare(allocator: std.mem.Allocator, children: [2]*const child_mod.Owned
     return prepareWithMode(allocator, children, profile, .root);
 }
 pub fn prepareWithMode(allocator: std.mem.Allocator, children: [2]*const child_mod.OwnedV1, profile: ProfileV1, mode: protocol.PublicationMode) !Prepared {
+    return prepareFor(.segment, allocator, children, profile, mode);
+}
+pub fn prepareParents(allocator: std.mem.Allocator, children: [2]*const child_mod.ParentOwnedV1, mode: protocol.PublicationMode) !Prepared {
+    return prepareFor(.parent, allocator, children, null, mode);
+}
+fn prepareFor(comptime family: child_mod.Family, allocator: std.mem.Allocator, children: [2]*const child_mod.OwnedFor(family), profile: ?ProfileV1, mode: protocol.PublicationMode) !Prepared {
     var timer = try std.time.Timer.start();
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
@@ -59,11 +65,15 @@ pub fn prepareWithMode(allocator: std.mem.Allocator, children: [2]*const child_m
         prefixes[i] = try prefix_mod.OwnedV1.init(a, child, lane);
         transcripts[i] = try transcript_mod.OwnedV1.init(a, child, prefixes[i], lane);
         checks[i] = try pcs_mod.OwnedV1.init(a, child, lane);
-        boundaries[i] = try boundary_mod.OwnedV1.init(a, child, profile.sections[i], profile.memory[i]);
+        boundaries[i] = if (family == .segment) try boundary_mod.OwnedV1.init(a, child, profile.?.sections[i], profile.?.memory[i]) else try boundary_mod.OwnedV1.initParent(a, child);
         compositions[i] = try composition_mod.OwnedV1.init(a, child);
         std.debug.print("DETACHED_PARENT_CHILD lane={d} preparation_ns={d}\n", .{ lane, timer.read() });
     }
-    const statement = try statement_mod.OwnedV1.initWithMode(a, boundaries[0], boundaries[1], mode);
+    const statement = if (family == .segment) try statement_mod.OwnedV1.initWithMode(a, boundaries[0], boundaries[1], mode) else try statement_mod.OwnedV1.initParents(a, boundaries[0], boundaries[1], mode);
+    if (@import("builtin").is_test and family == .parent) {
+        const rejected = try statement_mod.testStatementRejections(statement);
+        std.debug.print("DETACHED_PARENT_RECURSIVE_STATEMENT rejected={d} host_admission_bypassed=true\n", .{rejected});
+    }
     const arithmetic = try arithmetic_mod.OwnedV1.init(a, .{ .composition = compositions, .boundary = boundaries, .pcs = checks }, statement);
     const base = try base_mod.OwnedV1.init(a, prefixes, transcripts, checks);
     var logical = base.logicalRows();
@@ -90,7 +100,7 @@ pub fn prepareWithMode(allocator: std.mem.Allocator, children: [2]*const child_m
 
 /// Repository fixture ingress keeps independent expected inputs/key pins outside
 /// producer directories. It checks bytes before any recursive preparation.
-fn loadChild(allocator: std.mem.Allocator, comptime side: []const u8) !*child_mod.OwnedV1 {
+fn loadFixture(comptime family: child_mod.Family, allocator: std.mem.Allocator, comptime side: []const u8) !*child_mod.OwnedFor(family) {
     const dir_name = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_PARENT_" ++ side ++ "_BUNDLE");
     defer allocator.free(dir_name);
     const pin = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_PARENT_" ++ side ++ "_KEY_SHA256");
@@ -98,31 +108,50 @@ fn loadChild(allocator: std.mem.Allocator, comptime side: []const u8) !*child_mo
     const expected_path = try std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_PARENT_" ++ side ++ "_EXPECTED_WIRE");
     defer allocator.free(expected_path);
     const args = try command.parseArguments(&.{ dir_name, pin, expected_path });
-    return loadAdmittedChild(allocator, args);
+    return loadAdmitted(family, allocator, args);
 }
 pub fn loadAdmittedChild(allocator: std.mem.Allocator, args: command.ArgumentsV1) !*child_mod.OwnedV1 {
+    return loadAdmitted(.segment, allocator, args);
+}
+pub fn loadAdmittedParent(allocator: std.mem.Allocator, args: command.ArgumentsV1) !*child_mod.ParentOwnedV1 {
+    return loadAdmitted(.parent, allocator, args);
+}
+fn loadAdmitted(comptime family: child_mod.Family, allocator: std.mem.Allocator, args: command.ArgumentsV1) !*child_mod.OwnedFor(family) {
+    const Command = if (family == .segment) command else @import("recursive_segment_v2_detached_parent_command.zig");
+    var arena = std.heap.ArenaAllocator.init(allocator);
+    defer arena.deinit();
+    const a = arena.allocator();
     var dir = try std.fs.cwd().openDir(args.directory, .{});
     defer dir.close();
-    const key = try dir.readFileAlloc(allocator, "key.json", command.MAX_KEY_BYTES);
-    defer allocator.free(key);
-    const expected_bytes = try std.fs.cwd().readFileAlloc(allocator, args.expected_wire_path, command.MAX_INPUT_BYTES);
-    defer allocator.free(expected_bytes);
-    var expected = try command.OwnedExpectedV1.decode(allocator, expected_bytes);
-    defer expected.deinit();
-    const claims_bytes = try dir.readFileAlloc(allocator, "claims.json", command.MAX_INPUT_BYTES);
-    defer allocator.free(claims_bytes);
-    const claims = try command.decodeClaims(allocator, claims_bytes);
-    const proof = try dir.readFileAlloc(allocator, "proof.bin", claims.proof_bytes);
-    defer allocator.free(proof);
-    if (proof.len != claims.proof_bytes or !std.meta.eql(command.hash(proof), claims.proof_sha256)) return error.DetachedParentFixtureBytesChanged;
-    return child_mod.OwnedV1.init(allocator, key, args.independent_key_sha256, &expected.data, claims.claims, proof);
+    const key = try dir.readFileAlloc(a, "key.json", Command.MAX_KEY_BYTES);
+    const expected_bytes = try std.fs.cwd().readFileAlloc(a, args.expected_wire_path, Command.MAX_INPUT_BYTES);
+    const expected = if (family == .segment) try command.OwnedExpectedV1.decode(a, expected_bytes) else try Command.decodeExpected(a, expected_bytes);
+    const claims_bytes = try dir.readFileAlloc(a, "claims.json", Command.MAX_INPUT_BYTES);
+    const claims = try Command.decodeClaims(a, claims_bytes);
+    const proof = try dir.readFileAlloc(a, "proof.bin", claims.proof_bytes);
+    if (proof.len != claims.proof_bytes or !std.meta.eql(Command.hash(proof), claims.proof_sha256)) return error.DetachedParentFixtureBytesChanged;
+    return child_mod.OwnedFor(family).init(allocator, key, args.independent_key_sha256, if (family == .segment) &expected.data else &expected, claims.claims, proof);
 }
+
 test "detached parent prepares two genuine children with one exact routing plan" {
     const allocator = std.testing.allocator;
+    const family_text = std.process.getEnvVarOwned(allocator, "STWO_SEGMENT_V2_PARENT_INPUT_FAMILY") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => try allocator.dupe(u8, "segment"),
+        else => return err,
+    };
+    defer allocator.free(family_text);
+    const family = std.meta.stringToEnum(child_mod.Family, family_text) orelse return error.InvalidDetachedChildFamily;
     var prepared = blk: {
-        const left = try loadChild(allocator, "LEFT");
+        if (family == .parent) {
+            const left = try loadFixture(.parent, allocator, "LEFT");
+            defer left.deinit();
+            const right = try loadFixture(.parent, allocator, "RIGHT");
+            defer right.deinit();
+            break :blk try prepareParents(allocator, .{ left, right }, .root);
+        }
+        const left = try loadFixture(.segment, allocator, "LEFT");
         defer left.deinit();
-        const right = try loadChild(allocator, "RIGHT");
+        const right = try loadFixture(.segment, allocator, "RIGHT");
         defer right.deinit();
         break :blk prepare(allocator, .{ left, right }, TINY_MEMORY_PROFILE_V1) catch |err| {
             std.debug.print("DETACHED_PARENT_PREPARE_ERROR {s}\n", .{@errorName(err)});

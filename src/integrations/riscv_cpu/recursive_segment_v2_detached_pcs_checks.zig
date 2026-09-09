@@ -73,7 +73,7 @@ pub const OwnedV1 = opaque {
     fn storage(self: *const OwnedV1) *const Storage {
         return @ptrCast(@alignCast(self));
     }
-    pub fn init(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, lane: u32) !*OwnedV1 {
+    pub fn init(allocator: std.mem.Allocator, child: anytype, lane: u32) !*OwnedV1 {
         if (lane != 1 and lane != 2) return error.InvalidDetachedPcsLane;
         const value = try allocator.create(Storage);
         errdefer allocator.destroy(value);
@@ -121,7 +121,7 @@ pub const OwnedV1 = opaque {
     }
 };
 
-fn makePlan(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, capture: *const recursion.captured_fri.Owned, schema: schedule.Schema) !schedule.Plan {
+fn makePlan(allocator: std.mem.Allocator, child: anytype, capture: *const recursion.captured_fri.Owned, schema: schedule.Schema) !schedule.Plan {
     const key = child.key();
     if (capture.trace_tree_heights.len != fixed.TREE_COUNT) return error.DetachedPcsTreeCount;
     var heights: [fixed.TREE_COUNT]u32 = undefined;
@@ -174,7 +174,7 @@ fn selectedMetadata(comptime T: type, allocator: std.mem.Allocator, lane: u32, r
     for (rows) |row| if (row.verifier_id == lane) try result.append(allocator, row);
     return result.toOwnedSlice(allocator);
 }
-fn buildRows(value: *OwnedV1.Storage, child: *const child_mod.OwnedV1) !void {
+fn buildRows(value: *OwnedV1.Storage, child: anytype) !void {
     const allocator = value.arena.allocator();
     var scratch_arena = std.heap.ArenaAllocator.init(value.allocator);
     defer scratch_arena.deinit();
@@ -311,7 +311,7 @@ fn appendProvider(allocator: std.mem.Allocator, calls: *std.ArrayList(ProviderCa
     };
 }
 
-pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) !void {
+pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
     for ([_]u32{ 1, 2 }) |lane| {
         const owner = try OwnedV1.init(allocator, child, lane);
         defer owner.deinit();

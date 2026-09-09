@@ -45,21 +45,26 @@ pub const OwnedV1 = opaque {
         return initWithMode(allocator, left, right, .root);
     }
     pub fn initWithMode(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
+        return initFor(.segment, allocator, left, right, mode);
+    }
+    pub fn initParents(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
+        return initFor(.parent, allocator, left, right, mode);
+    }
+    fn initFor(comptime family: @import("recursive_segment_v2_detached_child_transcript.zig").Family, allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
         const children = [_]*const boundary.OwnedV1{ left, right };
+        for (children) |child| if (child.family() != family) return error.DetachedParentBoundaryFamilyMismatch;
         var words: [3]Words = undefined;
         for (children, 0..) |child, index| for (&words[index], child.spanNodes()) |*word, node| {
             if (node >= child.evaluatedValues().len) return error.InvalidParentProjection;
             word.* = try child.evaluatedValues()[node].tryIntoM31();
         };
         var publications: [3]continuation.Words = undefined;
-        const fixed_layout = recursion.segment_statement_v2.fixed_layout;
-        const extra_starts = [_]usize{ fixed_layout.session_id, fixed_layout.entry_lineage_id, fixed_layout.exit_lineage_id };
         for (children, 0..) |child, index| {
             publications[index][0..WORD_COUNT].* = words[index];
-            for (extra_starts, 0..) |start, field| for (0..8) |limb| {
-                const node = try child.rawWireNode(start + limb);
-                publications[index][WORD_COUNT + field * 8 + limb] = try child.evaluatedValues()[node].tryIntoM31();
-            };
+            for (WORD_COUNT..continuation.WORD_COUNT) |word| {
+                const node = try child.rawWireNode(try child.publicationRawWord(word));
+                publications[index][word] = try child.evaluatedValues()[node].tryIntoM31();
+            }
         }
         publications[2] = try continuation.fold(&publications[0], &publications[1], mode);
         words[2] = publications[2][0..WORD_COUNT].*;
@@ -91,11 +96,11 @@ pub const OwnedV1 = opaque {
                 const input = try builder.input();
                 nodes[word] = input.value;
                 try inputs.append(allocator, QM31.fromBase(publications[index][word]));
-                const extra = word - WORD_COUNT;
-                const raw_word = extra_starts[extra / 8] + extra % 8;
+                const raw_word = if (index < 2) try children[index].publicationRawWord(word) else 0;
                 try bindings.append(allocator, .{ .node_id = input.node_id, .source = if (index < 2)
                     .{ .child = .{ .child = @intCast(index), .boundary_node = try children[index].rawWireNode(raw_word), .word = @intCast(raw_word), .projection = .raw } }
-                else .{ .parent_word = @intCast(word) } });
+                else
+                    .{ .parent_word = @intCast(word) } });
             }
         }
         // Complete the native V2 adjacency predicate outside the412-word
@@ -103,36 +108,38 @@ pub const OwnedV1 = opaque {
         // Position, cycle and machine-state adjacency use the shared Span AIR.
         var adjacency_pairs: std.ArrayList([2]S) = .empty;
         defer adjacency_pairs.deinit(allocator);
-        const fixed = recursion.segment_statement_v2.fixed_layout;
-        const left_clocks = left.retainedSections()[3];
-        const right_clocks = right.retainedSections()[2];
-        const left_snapshot = left.retainedSections()[1];
-        const right_snapshot = right.retainedSections()[0];
-        if (left_clocks.count != right_clocks.count) return error.InvalidParentClockProfile;
-        if (left_snapshot.count != right_snapshot.count) return error.InvalidParentMemoryProfile;
-        const regions = [_]struct { left: usize, right: usize, count: usize }{
-            .{ .left = fixed.job_id, .right = fixed.job_id, .count = 8 },
-            .{ .left = left_snapshot.payload_start, .right = right_snapshot.payload_start, .count = left_snapshot.payloadWords() },
-            .{ .left = fixed.exit_register_clocks, .right = fixed.entry_register_clocks, .count = 64 },
-            .{ .left = fixed.exit_memory_clock_id, .right = fixed.entry_memory_clock_id, .count = 10 },
-            .{ .left = left_clocks.payload_start, .right = right_clocks.payload_start, .count = left_clocks.payloadWords() },
-        };
-        for (regions) |region| for (0..region.count) |word| {
-            var pair: [2]S = undefined;
-            for (children, [_]usize{ region.left + word, region.right + word }, &pair, 0..) |child, raw_word, *symbol, index| {
-                const boundary_node = try child.rawWireNode(raw_word);
-                const input = try builder.input();
-                symbol.* = input.value;
-                try inputs.append(allocator, child.evaluatedValues()[boundary_node]);
-                try bindings.append(allocator, .{ .node_id = input.node_id, .source = .{ .child = .{
-                    .child = @intCast(index),
-                    .boundary_node = boundary_node,
-                    .word = @intCast(raw_word),
-                    .projection = .raw,
-                } } });
-            }
-            try adjacency_pairs.append(allocator, pair);
-        };
+        if (family == .segment) {
+            const fixed = recursion.segment_statement_v2.fixed_layout;
+            const left_clocks = (try left.retainedSections())[3];
+            const right_clocks = (try right.retainedSections())[2];
+            const left_snapshot = (try left.retainedSections())[1];
+            const right_snapshot = (try right.retainedSections())[0];
+            if (left_clocks.count != right_clocks.count) return error.InvalidParentClockProfile;
+            if (left_snapshot.count != right_snapshot.count) return error.InvalidParentMemoryProfile;
+            const regions = [_]struct { left: usize, right: usize, count: usize }{
+                .{ .left = fixed.job_id, .right = fixed.job_id, .count = 8 },
+                .{ .left = left_snapshot.payload_start, .right = right_snapshot.payload_start, .count = left_snapshot.payloadWords() },
+                .{ .left = fixed.exit_register_clocks, .right = fixed.entry_register_clocks, .count = 64 },
+                .{ .left = fixed.exit_memory_clock_id, .right = fixed.entry_memory_clock_id, .count = 10 },
+                .{ .left = left_clocks.payload_start, .right = right_clocks.payload_start, .count = left_clocks.payloadWords() },
+            };
+            for (regions) |region| for (0..region.count) |word| {
+                var pair: [2]S = undefined;
+                for (children, [_]usize{ region.left + word, region.right + word }, &pair, 0..) |child, raw_word, *symbol, index| {
+                    const boundary_node = try child.rawWireNode(raw_word);
+                    const input = try builder.input();
+                    symbol.* = input.value;
+                    try inputs.append(allocator, child.evaluatedValues()[boundary_node]);
+                    try bindings.append(allocator, .{ .node_id = input.node_id, .source = .{ .child = .{
+                        .child = @intCast(index),
+                        .boundary_node = boundary_node,
+                        .word = @intCast(raw_word),
+                        .projection = .raw,
+                    } } });
+                }
+                try adjacency_pairs.append(allocator, pair);
+            };
+        }
         // Close the shared typed statement-input u16 contract for each unique
         // child/parent word, without relying on external child admission.
         for (words, word_nodes, 0..) |word_values, nodes, instance| for (word_values, nodes, 0..) |value, node, word| {
@@ -149,6 +156,10 @@ pub const OwnedV1 = opaque {
         var instance_inputs: [3][semantics.INPUT_COUNT]S = undefined;
         var prepared: [semantics.INPUT_COUNT]QM31 = undefined;
         for (&instance_inputs, 0..) |*symbols, instance| {
+            if (family == .parent and instance < 2) {
+                @memset(symbols, S.zero());
+                continue; // These child statements are authenticated by child proofs.
+            }
             try semantic.prepareInputsInto(witness(&words, instance), &prepared);
             for (symbols, semantic.inputBindings(), prepared, 0..) |*symbol, binding, value, index| {
                 symbol.* = switch (binding.source) {
@@ -182,7 +193,8 @@ pub const OwnedV1 = opaque {
             }
             try builder.constrainZero(range.value.sub(reconstructed));
         }
-        for (&instance_inputs) |symbols| {
+        for (&instance_inputs, 0..) |symbols, instance| {
+            if (family == .parent and instance < 2) continue;
             var input_at: usize = 0;
             for (semantic.graph().nodes(), values_by_node) |node, *value| {
                 value.* = switch (node.op) {
@@ -345,11 +357,25 @@ pub fn testFromExpectedFiles(allocator: std.mem.Allocator, left_path: []const u8
     try std.testing.expectEqual(raw_boundary_words[0], raw_boundary_words[1]);
     try std.testing.expect(raw_boundary_words[0] >= 74);
     try testRawBoundaryRejections(owner);
+    const rejected = try testStatementRejections(owner);
+    std.debug.print("detached-parent-statement child_words={d}/{d} published_words={d} nodes={d} outputs={d} arithmetic_mutations={d} boundary_producers_destroyed=true proof_verified=false\n", .{ projected_words[0], projected_words[1], published_words, saved.circuit.nodes.len, saved.circuit.outputs.len, rejected });
+}
+
+/// Shared adversarial AIR checks for segment and parent children. Hints are
+/// recomputed from each mutation so host admission cannot supply rejection.
+pub fn testStatementRejections(owner: *const OwnedV1) !usize {
+    const saved = owner.storage();
+    const allocator = saved.allocator;
+    const scratch = try allocator.alloc(QM31, saved.values.len);
+    defer allocator.free(scratch);
     const changed_publication = try allocator.dupe(QM31, owner.inputValues());
     defer allocator.free(changed_publication);
     var publication_mutations: usize = 0;
     for (owner.inputBindings(), 0..) |binding, index| {
-        const word = switch (binding.source) { .parent_word => |word| word, else => continue };
+        const word = switch (binding.source) {
+            .parent_word => |word| word,
+            else => continue,
+        };
         if (word < WORD_COUNT) continue;
         const original = changed_publication[index];
         defer changed_publication[index] = original;
@@ -402,7 +428,7 @@ pub fn testFromExpectedFiles(allocator: std.mem.Allocator, left_path: []const u8
         words[start + layout.machine_state_registers_start_offset + 14] = M31.fromCanonical(65536);
     };
     try expectArithmeticRejection(owner, &non_u16);
-    std.debug.print("detached-parent-statement child_words={d}/{d} published_words={d} nodes={d} outputs={d} arithmetic_mutations={d} boundary_producers_destroyed=true proof_verified=false\n", .{ projected_words[0], projected_words[1], published_words, saved.circuit.nodes.len, saved.circuit.outputs.len, mutations.len + 4 });
+    return publication_mutations + mutations.len + 4;
 }
 
 test "SegmentV2 detached parent folds actual child projections and constrains complete root" {

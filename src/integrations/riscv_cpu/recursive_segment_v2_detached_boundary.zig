@@ -62,7 +62,9 @@ pub const OwnedV1 = opaque {
         provider_bindings: []ProviderBinding,
         span_nodes: [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32,
         raw_wire_count: usize,
-        sections: [4]SectionV1,
+        sections: ?[4]SectionV1,
+        raw_nodes: ?[]u32 = null,
+        family: child_mod.Family = .segment,
     };
     pub fn init(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, profile: SectionProfileV1, memory_profile: MemoryProfileV1) !*OwnedV1 {
         return initExpected(allocator, child.key(), child.expected(), child.relations(), child.claims().values[36], profile, memory_profile);
@@ -79,6 +81,7 @@ pub const OwnedV1 = opaque {
         allocator.free(value.values);
         allocator.free(value.calls);
         allocator.free(value.provider_bindings);
+        if (value.raw_nodes) |nodes| allocator.free(nodes);
         allocator.destroy(value);
     }
     pub fn graph(self: *const OwnedV1) composition.CircuitGraph {
@@ -101,10 +104,23 @@ pub const OwnedV1 = opaque {
     }
     pub fn rawWireNode(self: *const OwnedV1, word: usize) !u32 {
         if (word >= self.storage().raw_wire_count) return error.InvalidBoundaryProjection;
-        return self.storage().bindings[word].node_id;
+        return if (self.storage().raw_nodes) |nodes| nodes[word] else self.storage().bindings[word].node_id;
     }
-    pub fn retainedSections(self: *const OwnedV1) [4]SectionV1 {
-        return self.storage().sections;
+    pub fn retainedSections(self: *const OwnedV1) ![4]SectionV1 {
+        return self.storage().sections orelse error.DetachedParentHasNoNativeSections;
+    }
+    pub fn family(self: *const OwnedV1) child_mod.Family {
+        return self.storage().family;
+    }
+    pub fn publicationRawWord(self: *const OwnedV1, word: usize) !usize {
+        if (word < recursion.span_continuation_v1.SPAN_WORDS or word >= recursion.span_continuation_v1.WORD_COUNT) return error.InvalidBoundaryProjection;
+        if (self.family() == .parent) return word;
+        const starts = [_]usize{ wire_layout.session_id, wire_layout.entry_lineage_id, wire_layout.exit_lineage_id };
+        const extra = word - recursion.span_continuation_v1.SPAN_WORDS;
+        return starts[extra / 8] + extra % 8;
+    }
+    pub fn initParent(allocator: std.mem.Allocator, child: *const child_mod.ParentOwnedV1) !*OwnedV1 {
+        return initParentExpected(allocator, child);
     }
     pub fn spanNodes(self: *const OwnedV1) *const [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32 {
         return &self.storage().span_nodes;
@@ -624,6 +640,67 @@ fn initExpected(
     return @ptrCast(value);
 }
 
+/// The parent protocol publishes canonical M31 words via split-u16 transcript
+/// encoding. Constrain both limbs, exclude p as an alias of zero, and derive
+/// the complete public lookup claim from the reconstructed words.
+fn initParentExpected(allocator: std.mem.Allocator, child: *const child_mod.ParentOwnedV1) !*OwnedV1 {
+    const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
+    const expected = child.expected();
+    var builder = recorder.Builder.init(allocator);
+    defer builder.deinit();
+    var inputs = Inputs{ .allocator = allocator, .builder = &builder };
+    defer inputs.deinit();
+    for (expected, 0..) |word, index| for (0..2) |limb| {
+        _ = try inputs.add(M31.fromCanonical((word.toU32() >> @as(u5, @intCast(limb * 16))) & 65535), .{
+            .transcript = prefix.inputCoordinateFor(.parent, .span_u32, @intCast(index * 2 + limb)).?,
+        });
+    };
+    var claim: [4]S = undefined;
+    const native_claim = try protocol.publicBoundary(expected, child.relations());
+    for (&claim, native_claim.toM31Array(), 0..) |*limb, word, index|
+        limb.* = try inputs.add(word, .{ .transcript = prefix.inputCoordinateFor(.parent, .boundary, @intCast(index)).? });
+    const native_challenge = try child.relations().getExact(.recursion_statement_word);
+    var draws: [2][4]S = undefined;
+    for (&draws, [_]QM31{ native_challenge.z, native_challenge.alpha }, 0..) |*limbs, draw, index| {
+        for (limbs, draw.toM31Array(), 0..) |*limb, word, part|
+            limb.* = try inputs.add(word, .{ .challenge = .{ .domain = .recursion_statement_word, .draw = @intCast(index), .limb = @intCast(part) } });
+    }
+    for (0..expected.len) |word| {
+        try inputs.addRange(word * 2, 16);
+        try inputs.addRange(word * 2 + 1, 15);
+    }
+    const nodes = try allocator.alloc(u32, expected.len);
+    errdefer allocator.free(nodes);
+    try builder.activate();
+    try inputs.constrainRanges();
+    const challenge = try recorder.ChallengeSet.Element.init(3, recorder.fromPartialEvals(draws[0]), recorder.fromPartialEvals(draws[1]));
+    var sink = StatementSink{ .challenge = &challenge };
+    for (nodes, 0..) |*node, index| {
+        try constrainCanonicalPair(&builder, &inputs, index * 2);
+        const word = (U32{ .limbs = inputs.scalars.items[index * 2 ..][0..2].* }).value();
+        node.* = switch (word.handle) {
+            .node => |id| id,
+            .constant => return error.InvalidBoundaryProjection,
+        };
+        try sink.term(protocol.PUBLIC_SCOPE, index, word);
+    }
+    try builder.constrainZero(sink.claim.sub(recorder.fromPartialEvals(claim)));
+    builder.deactivate();
+    var circuit = try builder.finish();
+    errdefer circuit.deinit();
+    const values = try allocator.alloc(QM31, circuit.nodes.len);
+    errdefer allocator.free(values);
+    try circuit.evaluateInto(inputs.values.items, values);
+    const value = try allocator.create(OwnedV1.Storage);
+    errdefer allocator.destroy(value);
+    const input_values = try inputs.values.toOwnedSlice(allocator);
+    errdefer allocator.free(input_values);
+    const bindings = try inputs.bindings.toOwnedSlice(allocator);
+    errdefer allocator.free(bindings);
+    value.* = .{ .allocator = allocator, .circuit = circuit, .inputs = input_values, .bindings = bindings, .values = values, .calls = &.{}, .provider_bindings = &.{}, .span_nodes = nodes[0..recursion.span_continuation_v1.SPAN_WORDS].*, .raw_wire_count = expected.len, .raw_nodes = nodes, .sections = null, .family = .parent };
+    return @ptrCast(value);
+}
+
 fn constrainCanonicalPair(builder: *recorder.Builder, inputs: *const Inputs, low_index: usize) !void {
     var all_ones = S.one();
     for (inputs.ranges.items) |range| if (range.input == low_index or range.input == low_index + 1) {
@@ -902,6 +979,44 @@ fn constrainSegmentIndexBound(builder: *recorder.Builder, next: U32, count: U32,
 }
 
 pub const testing = if (@import("builtin").is_test) struct {
+    /// Mutate every reconstructed public word with coherent range witnesses.
+    /// The public claim must reject these independently of range constraints.
+    pub fn parentBoundary(allocator: std.mem.Allocator, child: *const child_mod.ParentOwnedV1) !void {
+        const owner = try OwnedV1.initParent(allocator, child);
+        defer owner.deinit();
+        const value = owner.storage();
+        const changed = try allocator.dupe(QM31, value.inputs);
+        defer allocator.free(changed);
+        const scratch = try allocator.alloc(QM31, value.values.len);
+        defer allocator.free(scratch);
+        for (child.expected(), 0..) |word, index| {
+            @memcpy(changed, value.inputs);
+            const replacement = word.add(M31.one()).toU32();
+            setParentWord(value.bindings, changed, index, replacement);
+            try std.testing.expectError(error.UnsatisfiedCircuit, value.circuit.evaluateInto(changed, scratch));
+        }
+        // p has the same field value as zero. Coherently changing all 31 bits
+        // must still fail the canonical encoding constraint.
+        const zero = for (child.expected(), 0..) |word, index| {
+            if (word.toU32() == 0) break index;
+        } else return error.TestExpectedZeroPublicWord;
+        @memcpy(changed, value.inputs);
+        setParentWord(value.bindings, changed, zero, 0x7fff_ffff);
+        try std.testing.expectError(error.UnsatisfiedCircuit, value.circuit.evaluateInto(changed, scratch));
+        try value.circuit.evaluateInto(value.inputs, scratch);
+        std.debug.print("DETACHED_PARENT_BOUNDARY rejected_public_words={d} rejected_noncanonical_zero=true\n", .{child.expected().len});
+    }
+    fn setParentWord(bindings: []const InputBinding, values: []QM31, word: usize, replacement: u32) void {
+        values[word * 2] = QM31.fromBase(M31.fromCanonical(replacement & 65535));
+        values[word * 2 + 1] = QM31.fromBase(M31.fromCanonical(replacement >> 16));
+        for (bindings, 0..) |binding, index| switch (binding.source) {
+            .range_bit => |bit| if (bit.input == word * 2 or bit.input == word * 2 + 1) {
+                const limb = values[bit.input].toM31Array()[0].toU32();
+                values[index] = QM31.fromBase(M31.fromCanonical((limb >> @as(u5, @intCast(bit.bit))) & 1));
+            },
+            else => {},
+        };
+    }
     /// Synthetic fixture profile only; production must independently admit it.
     pub fn profileFromExpected(expected: *const frontend.air.public_data_v2.PublicDataV2) !SectionProfileV1 {
         const view = try expected.authenticatedView();

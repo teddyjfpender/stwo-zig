@@ -54,142 +54,196 @@ pub const RecordingViewV1 = struct {
     identity_sha256: [32]u8,
 };
 
-pub const OwnedV1 = opaque {
-    const Storage = struct {
-        allocator: std.mem.Allocator,
-        key: *command.OwnedKeyV1,
-        expected: command.OwnedExpectedV1,
-        claims: verifier.ClaimsV1,
-        capture: verifier.ProofCapture,
-        execution: recording.ExecutionV4,
-        relations: components.Relations,
-        terminal: Digest,
-        key_sha256: [32]u8,
-        proof_sha256: [32]u8,
-    };
+pub const Family = enum { segment, parent };
+pub const OwnedV1 = OwnedFor(.segment);
+pub const ParentOwnedV1 = OwnedFor(.parent);
 
-    /// Independently supplied key hash is mandatory. No pointer into caller
-    /// key, statement, claims or serialized proof survives this transaction.
-    pub fn init(allocator: std.mem.Allocator, key_json: []const u8, independent_key_sha256: [32]u8, expected_input: *const PublicData, input_claims: verifier.ClaimsV1, proof_bytes: []const u8) !*OwnedV1 {
-        const owned_key = try command.OwnedKeyV1.admit(allocator, key_json, independent_key_sha256);
-        errdefer owned_key.deinit();
-        _ = try expected_input.metadata();
-        const words = try allocator.dupe(M31, expected_input.words());
-        errdefer allocator.free(words);
-        const admitted_expected = try PublicData.authenticate(words);
-        if (!std.meta.eql(admitted_expected.wireId(), expected_input.wireId())) return error.DetachedChildExpectedWireChanged;
-        const owned_expected = command.OwnedExpectedV1{ .allocator = allocator, .words = words, .data = admitted_expected };
-        var channel = recording.Channel.init(allocator);
-        defer channel.deinit();
-        var capture: verifier.ProofCapture = undefined;
-        const result = try verifier.verifyWithCaptureRecording(allocator, owned_key.key(), &owned_expected.data, input_claims, proof_bytes, &channel, &capture);
-        errdefer capture.deinit(allocator);
-        // finish validates every recorded hash, PoW and draw against the native
-        // channel, including the whole PCS/FRI suffix used by the real verifier.
-        var execution = try channel.finish();
-        errdefer execution.deinit();
-        if (!std.meta.eql(result.terminal, recursion.protocol.transcriptId(execution.final_digest, execution.final_draw_count))) return error.DetachedChildTerminalMismatch;
-        try @import("recursive_detached_recording_draws.zig").validate(&execution, &capture, &result.relations, owned_key.key().pcs_config.fri_config.n_queries);
-        const owned_storage = try allocator.create(Storage);
-        owned_storage.* = .{ .allocator = allocator, .key = owned_key, .expected = owned_expected, .claims = input_claims, .capture = capture, .execution = execution, .relations = result.relations, .terminal = result.terminal, .key_sha256 = independent_key_sha256, .proof_sha256 = command.hash(proof_bytes) };
-        return @ptrCast(owned_storage);
-    }
+/// Capture ownership is shared; key, public statement and verifier stay typed.
+pub fn OwnedFor(comptime family: Family) type {
+    const Verifier = if (family == .segment) verifier else @import("recursive_segment_v2_detached_parent_verifier.zig");
+    const Command = if (family == .segment) command else @import("recursive_segment_v2_detached_parent_command.zig");
+    const Expected = if (family == .segment) PublicData else Verifier.ExpectedV1;
+    const OwnedExpected = if (family == .segment) command.OwnedExpectedV1 else Expected;
+    return opaque {
+        const Self = @This();
+        pub const FAMILY = family;
+        const Storage = struct {
+            allocator: std.mem.Allocator,
+            key: *Command.OwnedKeyV1,
+            expected: OwnedExpected,
+            claims: Verifier.ClaimsV1,
+            capture: Verifier.ProofCapture,
+            execution: recording.ExecutionV4,
+            relations: components.Relations,
+            terminal: Digest,
+            key_sha256: [32]u8,
+            proof_sha256: [32]u8,
+        };
 
-    pub fn deinit(self: *OwnedV1) void {
-        const value: *Storage = @ptrCast(@alignCast(self));
-        const allocator = value.allocator;
-        value.execution.deinit();
-        value.capture.deinit(allocator);
-        value.expected.deinit();
-        value.key.deinit();
-        allocator.destroy(value);
-    }
-    fn storage(self: *const OwnedV1) *const Storage {
-        return @ptrCast(@alignCast(self));
-    }
-    pub fn key(self: *const OwnedV1) *const verifier.KeyV1 {
-        return self.storage().key.key();
-    }
-    pub fn expected(self: *const OwnedV1) *const PublicData {
-        return &self.storage().expected.data;
-    }
-    pub fn claims(self: *const OwnedV1) verifier.ClaimsV1 {
-        return self.storage().claims;
-    }
-    pub fn relations(self: *const OwnedV1) *const components.Relations {
-        return &self.storage().relations;
-    }
-    pub fn terminal(self: *const OwnedV1) Digest {
-        return self.storage().terminal;
-    }
-    pub fn keySha256(self: *const OwnedV1) [32]u8 {
-        return self.storage().key_sha256;
-    }
-    pub fn proofSha256(self: *const OwnedV1) [32]u8 {
-        return self.storage().proof_sha256;
-    }
-    pub fn recordingView(self: *const OwnedV1) RecordingViewV1 {
-        const execution = &self.storage().execution;
-        return .{ .trace = execution.trace(), .operations = execution.operations, .final_digest = execution.final_digest, .final_draw_count = execution.final_draw_count, .identity_sha256 = execution.identity_sha256 };
-    }
-    pub fn captureView(self: *const OwnedV1) CaptureViewV1 {
-        const value = &self.storage().capture;
-        return .{ .commitments = value.commitments, .sampled_values = value.sampled_values, .queried_values = value.queried_values, .deep_answers = value.deep_answers, .raw_queries = value.queries.raw, .unique_queries = value.queries.unique, .last_layer_coefficients = value.last_layer_coefficients, .proof_of_work = value.proof_of_work, .composition_randomness = value.composition_randomness, .oods_seed = value.oods_seed, .deep_randomness = value.deep_randomness, .trace_count = value.trace_paths.len, .fri_layer_count = value.fri.layers.len };
-    }
-    pub fn friLayer(self: *const OwnedV1, index: usize) FriLayerViewV1 {
-        const value = &self.storage().capture.fri.layers[index];
-        return .{ .commitment = value.commitment, .folding_alpha = value.folding_alpha, .fold_step = value.fold_step, .fold_width = value.fold_width, .path_depth = value.path_depth, .query_count = value.query_count, .positions = value.positions, .values = value.values, .siblings = value.siblings };
-    }
-    pub fn tracePath(self: *const OwnedV1, index: usize) TracePathViewV1 {
-        const value = &self.storage().capture.trace_paths[index];
-        return .{ .positions = value.positions, .path_depth = value.path_depth, .siblings = value.siblings };
-    }
-    /// Build the canonical composition projection without exposing mutable
-    /// nested capture storage. The returned layout owns its allocations.
-    pub fn compositionLayout(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3 {
-        return recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3.initSegment(allocator, &self.key().manifest, &self.storage().capture);
-    }
-    /// Explicit preparation of the shared PCS/FRI arithmetic. This copies the
-    /// admitted capture once into caller-owned storage and evaluates both
-    /// circuits. Cheap capture reads above never initiate this construction.
-    pub fn preparePcs(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.captured_fri.Owned {
-        const pcs = self.key().pcs_config;
-        return recursion.captured_fri.Owned.init(allocator, .{
-            .log_blowup_factor = pcs.fri_config.log_blowup_factor,
-            .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
-            .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
-            .pcs_pow_bits = pcs.pow_bits,
-            .claimed_sum_count = @intCast(self.claims().values.len),
-        }, &self.storage().capture);
-    }
-    /// Copy the full canonical transcript draws, before the native query mask.
-    /// Query-bit AIR must prove that reduction; a masked index is insufficient
-    /// to authenticate the original randomness word. No replay or hashing here.
-    pub fn writeRawQueryDraws(self: *const OwnedV1, destination: []M31) !void {
-        const value = self.storage();
-        if (destination.len != value.capture.queries.raw.len) return error.DetachedChildQueryMismatch;
-        const first_query_draw = universal.RELATION_COUNT + 3 + value.capture.fri.layers.len;
-        var draw: usize = 0;
-        var cursor: usize = 0;
-        for (value.execution.operations) |operation| {
-            if (operation.effect != .draw) continue;
-            if (draw >= first_query_draw) {
-                const count = @min(recording.RATE, destination.len - cursor);
-                const frame = value.execution.hash_frames[operation.first_hash_id];
-                @memcpy(destination[cursor..][0..count], frame.output[0..count]);
-                cursor += count;
-            }
-            draw += 1;
+        /// Independently supplied key hash is mandatory. No pointer into caller
+        /// key, statement, claims or serialized proof survives this transaction.
+        pub fn init(allocator: std.mem.Allocator, key_json: []const u8, independent_key_sha256: [32]u8, expected_input: *const Expected, input_claims: Verifier.ClaimsV1, proof_bytes: []const u8) !*Self {
+            const owned_key = try Command.OwnedKeyV1.admit(allocator, key_json, independent_key_sha256);
+            errdefer owned_key.deinit();
+            const owned_expected: OwnedExpected = if (family == .segment) blk: {
+                _ = try expected_input.metadata();
+                const words = try allocator.dupe(M31, expected_input.words());
+                errdefer allocator.free(words);
+                const admitted_expected = try PublicData.authenticate(words);
+                if (!std.meta.eql(admitted_expected.wireId(), expected_input.wireId())) return error.DetachedChildExpectedWireChanged;
+                break :blk .{ .allocator = allocator, .words = words, .data = admitted_expected };
+            } else expected_input.*;
+            errdefer if (family == .segment) allocator.free(owned_expected.words);
+            var channel = recording.Channel.init(allocator);
+            defer channel.deinit();
+            var capture: Verifier.ProofCapture = undefined;
+            const result = try Verifier.verifyWithCaptureRecording(allocator, owned_key.key(), expectedData(&owned_expected), input_claims, proof_bytes, &channel, &capture);
+            errdefer capture.deinit(allocator);
+            // finish validates every recorded hash, PoW and draw against the native
+            // channel, including the whole PCS/FRI suffix used by the real verifier.
+            var execution = try channel.finish();
+            errdefer execution.deinit();
+            if (!std.meta.eql(result.terminal, recursion.protocol.transcriptId(execution.final_digest, execution.final_draw_count))) return error.DetachedChildTerminalMismatch;
+            try @import("recursive_detached_recording_draws.zig").validate(&execution, &capture, &result.relations, owned_key.key().pcs_config.fri_config.n_queries);
+            const owned_storage = try allocator.create(Storage);
+            owned_storage.* = .{ .allocator = allocator, .key = owned_key, .expected = owned_expected, .claims = input_claims, .capture = capture, .execution = execution, .relations = result.relations, .terminal = result.terminal, .key_sha256 = independent_key_sha256, .proof_sha256 = command.hash(proof_bytes) };
+            return @ptrCast(owned_storage);
         }
-        if (cursor != destination.len) return error.DetachedChildQueryMismatch;
-    }
-    pub fn columnLogSizes(self: *const OwnedV1, tree: usize) []const u32 {
-        return self.storage().capture.column_log_sizes[tree];
-    }
-    pub fn sampledPoints(self: *const OwnedV1, tree: usize, column: usize) []const CirclePoint {
-        return self.storage().capture.sampled_points[tree][column];
-    }
-};
+
+        pub fn deinit(self: *Self) void {
+            const value: *Storage = @ptrCast(@alignCast(self));
+            const allocator = value.allocator;
+            value.execution.deinit();
+            value.capture.deinit(allocator);
+            if (family == .segment) value.expected.deinit();
+            value.key.deinit();
+            allocator.destroy(value);
+        }
+        fn storage(self: *const Self) *const Storage {
+            return @ptrCast(@alignCast(self));
+        }
+        pub fn key(self: *const Self) *const Verifier.KeyV1 {
+            return self.storage().key.key();
+        }
+        fn expectedData(value: *const OwnedExpected) *const Expected {
+            return if (family == .segment) &value.data else value;
+        }
+        pub fn expected(self: *const Self) *const Expected {
+            return expectedData(&self.storage().expected);
+        }
+        pub fn expectedWords(self: *const Self) []const M31 {
+            return if (family == .segment) self.expected().words() else self.expected();
+        }
+        pub fn claims(self: *const Self) Verifier.ClaimsV1 {
+            return self.storage().claims;
+        }
+        pub fn relations(self: *const Self) *const components.Relations {
+            return &self.storage().relations;
+        }
+        pub fn terminal(self: *const Self) Digest {
+            return self.storage().terminal;
+        }
+        pub fn keySha256(self: *const Self) [32]u8 {
+            return self.storage().key_sha256;
+        }
+        pub fn proofSha256(self: *const Self) [32]u8 {
+            return self.storage().proof_sha256;
+        }
+        pub fn recordingView(self: *const Self) RecordingViewV1 {
+            const execution = &self.storage().execution;
+            return .{ .trace = execution.trace(), .operations = execution.operations, .final_digest = execution.final_digest, .final_draw_count = execution.final_draw_count, .identity_sha256 = execution.identity_sha256 };
+        }
+        pub fn captureView(self: *const Self) CaptureViewV1 {
+            const value = &self.storage().capture;
+            return .{ .commitments = value.commitments, .sampled_values = value.sampled_values, .queried_values = value.queried_values, .deep_answers = value.deep_answers, .raw_queries = value.queries.raw, .unique_queries = value.queries.unique, .last_layer_coefficients = value.last_layer_coefficients, .proof_of_work = value.proof_of_work, .composition_randomness = value.composition_randomness, .oods_seed = value.oods_seed, .deep_randomness = value.deep_randomness, .trace_count = value.trace_paths.len, .fri_layer_count = value.fri.layers.len };
+        }
+        pub fn friLayer(self: *const Self, index: usize) FriLayerViewV1 {
+            const value = &self.storage().capture.fri.layers[index];
+            return .{ .commitment = value.commitment, .folding_alpha = value.folding_alpha, .fold_step = value.fold_step, .fold_width = value.fold_width, .path_depth = value.path_depth, .query_count = value.query_count, .positions = value.positions, .values = value.values, .siblings = value.siblings };
+        }
+        pub fn tracePath(self: *const Self, index: usize) TracePathViewV1 {
+            const value = &self.storage().capture.trace_paths[index];
+            return .{ .positions = value.positions, .path_depth = value.path_depth, .siblings = value.siblings };
+        }
+        /// Build the canonical composition projection without exposing mutable
+        /// nested capture storage. The returned layout owns its allocations.
+        pub fn compositionLayout(self: *const Self, allocator: std.mem.Allocator) !recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3 {
+            const Layout = recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3;
+            return if (family == .segment)
+                Layout.initSegment(allocator, &self.key().manifest, &self.storage().capture)
+            else
+                Layout.initAuthenticatedBinaryWithProviderRow(allocator, .detached_segment_parent_v1, 34, &self.key().manifest, &self.storage().capture);
+        }
+        pub fn writeCompositionInputs(self: *const Self, profile: recursion.recursion_air_composition_circuit_v3.InputProfileV3, destination: []QM31) !void {
+            const v3 = recursion.recursion_air_composition_circuit_v3;
+            const kind: recursion.air.composition_circuit.ProofKind = if (family == .segment) .segment_leaf else .binary_node;
+            const key_value = self.key();
+            const claims_value = self.claims();
+            var claim_inputs: [v3.COMPOSITION_CLAIM_INPUT_COUNT]QM31 = undefined;
+            try v3.writeClaimInputs(kind, &claims_value.values, &claims_value.poseidon_partials, &claim_inputs);
+            const words: recursion.span_statement.StatementWords = if (family == .segment)
+                (try self.expected().authenticatedView()).statement.base_statement_words
+            else
+                self.expected()[0..recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS].*;
+            const boundary = if (family == .segment) blk: {
+                const hash_boundary = try @import("recursive_segment_v2_authority_boundary.zig").derive(self.expected(), key_value.native_descriptors, self.relations());
+                break :blk (try key_value.wireClaim(self.relations())).add(hash_boundary.claimed_sum);
+            } else try @import("recursive_segment_v2_detached_parent_protocol.zig").publicBoundary(self.expected(), self.relations());
+            const capture = self.captureView();
+            try v3.writeInputsFromValidatedProfile(profile, .{
+                .parent_binary_selector = true,
+                .proof_kind = kind,
+                .statement_words = &words,
+                .sampled_values = capture.sampled_values,
+                .claim_inputs = &claim_inputs,
+                .public_wire_boundary = boundary,
+                .relations = self.relations(),
+                .composition_randomness = capture.composition_randomness,
+                .oods_seed = capture.oods_seed,
+            }, destination);
+        }
+        /// Explicit preparation of the shared PCS/FRI arithmetic. This copies the
+        /// admitted capture once into caller-owned storage and evaluates both
+        /// circuits. Cheap capture reads above never initiate this construction.
+        pub fn preparePcs(self: *const Self, allocator: std.mem.Allocator) !recursion.captured_fri.Owned {
+            const pcs = self.key().pcs_config;
+            return recursion.captured_fri.Owned.init(allocator, .{
+                .log_blowup_factor = pcs.fri_config.log_blowup_factor,
+                .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
+                .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
+                .pcs_pow_bits = pcs.pow_bits,
+                .claimed_sum_count = @intCast(self.claims().values.len),
+            }, &self.storage().capture);
+        }
+        /// Copy the full canonical transcript draws, before the native query mask.
+        /// Query-bit AIR must prove that reduction; a masked index is insufficient
+        /// to authenticate the original randomness word. No replay or hashing here.
+        pub fn writeRawQueryDraws(self: *const Self, destination: []M31) !void {
+            const value = self.storage();
+            if (destination.len != value.capture.queries.raw.len) return error.DetachedChildQueryMismatch;
+            const first_query_draw = universal.RELATION_COUNT + 3 + value.capture.fri.layers.len;
+            var draw: usize = 0;
+            var cursor: usize = 0;
+            for (value.execution.operations) |operation| {
+                if (operation.effect != .draw) continue;
+                if (draw >= first_query_draw) {
+                    const count = @min(recording.RATE, destination.len - cursor);
+                    const frame = value.execution.hash_frames[operation.first_hash_id];
+                    @memcpy(destination[cursor..][0..count], frame.output[0..count]);
+                    cursor += count;
+                }
+                draw += 1;
+            }
+            if (cursor != destination.len) return error.DetachedChildQueryMismatch;
+        }
+        pub fn columnLogSizes(self: *const Self, tree: usize) []const u32 {
+            return self.storage().capture.column_log_sizes[tree];
+        }
+        pub fn sampledPoints(self: *const Self, tree: usize, column: usize) []const CirclePoint {
+            return self.storage().capture.sampled_points[tree][column];
+        }
+    };
+}
 
 // Required real inputs; absence is a gate failure, never a skipped test.
 // The key pin is supplied independently, not read from the candidate bundle.

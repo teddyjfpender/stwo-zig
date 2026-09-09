@@ -33,7 +33,7 @@ pub const View = struct {
 pub const OwnedV1 = opaque {
     const Storage = struct { arena: std.heap.ArenaAllocator, rows: View };
 
-    pub fn init(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1, prefix: *const prefix_mod.OwnedV1, lane: u32) !*OwnedV1 {
+    pub fn init(allocator: std.mem.Allocator, child: anytype, prefix: *const prefix_mod.OwnedV1, lane: u32) !*OwnedV1 {
         if (lane != 1 and lane != 2) return error.InvalidDetachedPcsLane;
         const start = prefix.view();
         const execution = child.recordingView();
@@ -216,7 +216,7 @@ pub const OwnedV1 = opaque {
 /// Evaluates the real suffix's direct constraints and records its exact lookup
 /// obligations. Closure with the prefix, arithmetic and provider is a separate
 /// parent gate; this test does not supply cancelling residual tuples.
-pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) !void {
+pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void {
     const prefix = try prefix_mod.OwnedV1.init(allocator, child, 1);
     defer prefix.deinit();
     const owner = try OwnedV1.init(allocator, child, prefix, 1);

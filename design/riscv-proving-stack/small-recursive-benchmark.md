@@ -7,8 +7,8 @@ clock continuation using explicit keys and expected public inputs. The two child
 proofs can now be recursively verified in one CPU parent STARK. Its standalone
 verifier needs only the admitted key, expected root, claims and serialized proof.
 This is the q1/native, q3/child-and-parent development profile. Actual4/8-segment
-jobs now produce every child and their first layer of intermediate parent STARKs.
-The remaining recursive layers and production-security measurements are pending.
+jobs now produce every child, intermediate parent and one freshly verified root.
+Production-security measurements and CSP performance promotion remain pending.
 
 Current retained evidence and rejection cases are indexed in
 [the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
@@ -293,4 +293,57 @@ For pairs after the initial pair, explicitly select producer profile
 The maintained parent lifecycle gate accepts `--publication-mode intermediate
 --memory-profile continuation`; a Metal-origin four-segment partial parent passed
 all25 cases under the independently pinned CPU-origin parent key and matches its
-artifact bytes. Intermediate-to-root proving remains required.
+artifact bytes.
+
+## Recursive parents and complete small trees
+
+The shared capture owner now supports both segment proofs and parent proofs.
+Transcript ordering still comes from each admitted protocol; shared payload
+markers allow the recursive consumer to authenticate dynamic words without
+maintaining a parallel transcript description. Parent public inputs retain their
+existing split-u16 encoding. The active boundary AIR reconstructs all436 words,
+range-checks both limbs and rejects the modulus as an alternative encoding of
+zero. Shared span/session/lineage constraints compose these words into the next
+parent. Native-only boundary expansion applies only at the first layer.
+
+For two admitted intermediate parents, derive the expected statement from their
+independent public inputs, before producing any candidate:
+
+```sh
+"$proof_bins/recursive-segment-v2-detached-parent-verify" --fold-root \
+  LEFT_EXPECTED_SPAN.json RIGHT_EXPECTED_SPAN.json NEW_EXPECTED_ROOT.json
+```
+
+Use `--fold-span` for another intermediate layer. The maintained complete-proof
+command above accepts `--child-family parent` and the same independently pinned
+child/key/expected arguments. It selects `tiny-parent-root-v2`, or
+`tiny-parent-span-v2` with `--publication-mode intermediate`. Both require the
+producer to exit before standalone verification and run the same25-case gate.
+Keys and expected inputs must be admitted outside the new output directory.
+
+Actual four/eight-segment trees now have three/seven parent STARKs, respectively,
+and one standalone root. Final aggregation observations:
+
+| Segments | Preparation | Root request | Root verification | Proof bytes | Peak RSS |
+|---|---:|---:|---:|---:|---:|
+|4|378ms|3.91s|12.38ms|90,169|656MiB|
+|8|384ms|3.92s|9.78ms|85,923|656MiB|
+
+These are development-profile observations. Root request means only the final
+aggregation, excluding its already-proved children. The sum of separately
+observed CPU leaf and aggregation stages is26.91s for four segments and57.75s
+for eight; it is not a single controller wall-time measurement. See
+`small-detached-recursion-v1/segment-ladder-root-measurements.json` for stage
+counts, preparation/key/proof costs, verifier receipts and memory measurements.
+
+The four-segment seed14 run reuses all seven seed13 verification keys, changes
+memory/public statements and passes all48 child and75 parent fresh-process cases.
+The focused parent capture gate checks the actual eight-segment root after input
+destruction, including436 coherent public-word mutations, the noncanonical zero
+case,45 composition mutations and all872 dynamic public transcript limbs. It
+runs in one second with36MiB RSS; optimized compilation still takes50s.
+The complete eight-segment Metal-origin replay passes175 parent cases under the
+same admitted CPU keys; all seven parent artifacts match byte for byte. A shared
+statement gate additionally rejects45 coherent mutations directly in the
+parent-of-parent AIR, bypassing host admission, including swaps, duplicates,
+coverage, clocks and machine state. These gates retain actual proof inputs.
