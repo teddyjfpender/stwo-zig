@@ -144,7 +144,8 @@ static void *create_runtime_from_metallib_data_on_device(
                                                     length:extra_name_lengths[index]
                                                   encoding:NSUTF8StringEncoding];
             if (name == nil || !([name hasPrefix:@"stwo_zig_base_poly_"] ||
-                                [name hasPrefix:@"stwo_zig_lookup_poly_"]) ||
+                                [name hasPrefix:@"stwo_zig_lookup_poly_"] ||
+                                [name hasPrefix:@"stwo_zig_framework_poly_v1_"]) ||
                 runtime.riscvPolynomialPipelines[name] != nil) {
                 write_error(error_message, error_message_len, @"Invalid additional admitted polynomial export");
                 return NULL;

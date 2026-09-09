@@ -409,9 +409,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--repo", type=Path, default=Path.cwd())
     parser.add_argument(
+        "--configure-only",
+        action="store_true",
+        help="Check build graphs and install ownership without building or exercising aggregate binaries",
+    )
+    parser.add_argument(
         "--receipt",
         type=Path,
-        default=Path("zig-out/build-graph/configure-closure.json"),
+        help="Receipt path (defaults to a separate path for configure-only checks)",
     )
     arguments = parser.parse_args()
     repository = arguments.repo.resolve()
@@ -425,9 +430,11 @@ def main() -> int:
     ]
     check_unknown_scope(repository)
     check_install_ownership(repository)
-    installs = [exercise_install(repository, metal=False)]
-    if sys.platform == "darwin":
-        installs.append(exercise_install(repository, metal=True))
+    installs = []
+    if not arguments.configure_only:
+        installs.append(exercise_install(repository, metal=False))
+        if sys.platform == "darwin":
+            installs.append(exercise_install(repository, metal=True))
     if not nested_cache_preexisting and nested_cache.exists():
         raise SystemExit("internal build invocation leaked a build_support/.zig-cache")
     payload = {
@@ -446,12 +453,21 @@ def main() -> int:
             "internal-cache-placement",
         ],
     }
-    receipt = arguments.receipt
+    if arguments.configure_only:
+        payload["schema"] = "stwo-build-configure-only-closure-v1"
+        payload["installs_exercised"] = False
+    receipt = arguments.receipt or Path(
+        "zig-out/build-graph/configure-only-closure.json"
+        if arguments.configure_only
+        else "zig-out/build-graph/configure-closure.json"
+    )
     if not receipt.is_absolute():
         receipt = repository / receipt
     receipt.parent.mkdir(parents=True, exist_ok=True)
     receipt.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
-    print(f"build configure closure: PASS ({len(receipts)} catalog scopes)")
+    label = "build configure-only closure" if arguments.configure_only else "build configure closure"
+    suffix = "; installs not exercised" if arguments.configure_only else ""
+    print(f"{label}: PASS ({len(receipts)} catalog scopes{suffix})")
     return 0
 
 

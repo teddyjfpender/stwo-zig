@@ -4,20 +4,27 @@ const std = @import("std");
 const manifest = @import("manifest.zig");
 const abi = @import("abi_contract.zig");
 const generated = @import("ethereum_fixed_program_narrow_v1_exports.zig");
-pub const maximum_additional_exports = generated.entries.len;
+const recursive_generated = @import("recursive_framework_v1_exports.zig");
+pub const maximum_additional_exports = @max(generated.entries.len, recursive_generated.entries.len);
+pub const recursive_inventory_source = @embedFile("recursive_framework_v1_exports.zig");
+pub const recursive_extension_source = @embedFile("recursive_framework_v1.metal");
+pub const recursive_coverage_source = @embedFile("recursive_framework_v1_coverage.json");
 pub const ethereum_inventory_source = @embedFile("ethereum_fixed_program_narrow_v1_exports.zig");
 pub const ethereum_extension_source = @embedFile("ethereum_fixed_program_narrow_v1.metal");
 const core_source = manifest.native_amalgamated_source[0 .. manifest.native_amalgamated_source.len - 1];
 const ethereum_source = core_source ++ "\n" ++ ethereum_extension_source;
+const recursive_source = core_source ++ "\n" ++ recursive_extension_source;
 
 pub const Profile = enum(u16) {
     core_v2 = 0,
     ethereum_fixed_program_narrow_v1 = 1,
+    recursive_framework_v1 = 2,
 
     pub fn source(self: Profile) []const u8 {
         return switch (self) {
             .core_v2 => core_source,
             .ethereum_fixed_program_narrow_v1 => ethereum_source,
+            .recursive_framework_v1 => recursive_source,
         };
     }
     pub fn sourceDigest(self: Profile) [32]u8 {
@@ -29,6 +36,7 @@ pub const Profile = enum(u16) {
         return switch (self) {
             .core_v2 => &manifest.native_exports,
             .ethereum_fixed_program_narrow_v1 => &ethereum_exports,
+            .recursive_framework_v1 => &recursive_exports,
         };
     }
     pub fn additionalPolynomialExports(self: Profile) []const manifest.Export {
@@ -38,6 +46,7 @@ pub const Profile = enum(u16) {
         return switch (self) {
             .core_v2 => &abi.native_kernel_abi,
             .ethereum_fixed_program_narrow_v1 => &ethereum_abi,
+            .recursive_framework_v1 => &recursive_abi,
         };
     }
 };
@@ -70,4 +79,32 @@ test "Ethereum AOT profile preserves exact core authority and admits five separa
         try std.testing.expectEqualStrings(entry.declaration_sha256, &digest);
         for (manifest.native_exports) |old| try std.testing.expect(!std.mem.eql(u8, old.name, entry.name));
     }
+}
+
+const recursive_exports = build: {
+    var result: [manifest.native_exports.len + recursive_generated.entries.len]manifest.Export = undefined;
+    @memcpy(result[0..manifest.native_exports.len], &manifest.native_exports);
+    for (recursive_generated.entries, manifest.native_exports.len..) |entry, index| result[index] = .{ .name = entry.name, .owner = .riscv_polynomials };
+    break :build result;
+};
+const recursive_abi = build: {
+    var result: [abi.native_kernel_abi.len + recursive_generated.entries.len]abi.KernelAbi = undefined;
+    @memcpy(result[0..abi.native_kernel_abi.len], &abi.native_kernel_abi);
+    for (recursive_generated.entries, abi.native_kernel_abi.len..) |entry, index| result[index] = .{ .name = entry.name, .owner = .riscv_polynomials, .minimum_core_shader_abi = manifest.core_shader_abi, .declaration_sha256 = entry.declaration_sha256, .function_constants = &.{} };
+    break :build result;
+};
+
+test "recursive framework AOT profile preserves core authority and exact declaration coverage" {
+    try std.testing.expectEqualDeep(manifest.native_exports[0..], Profile.recursive_framework_v1.exports()[0..manifest.native_exports.len]);
+    try std.testing.expectEqualDeep(abi.native_kernel_abi[0..], Profile.recursive_framework_v1.kernelAbi()[0..abi.native_kernel_abi.len]);
+    try std.testing.expect(recursive_generated.entries.len > 0);
+    inline for (recursive_generated.entries) |entry| {
+        const digest = try @import("abi_declaration_digest.zig").declarationDigestHex(recursive_extension_source, entry.name);
+        try std.testing.expectEqualStrings(entry.declaration_sha256, &digest);
+        for (manifest.native_exports) |old| try std.testing.expect(!std.mem.eql(u8, old.name, entry.name));
+    }
+    const coverage = try std.json.parseFromSlice(std.json.Value, std.testing.allocator, recursive_coverage_source, .{});
+    defer coverage.deinit();
+    try std.testing.expect(!coverage.value.object.get("strict_coverage_complete").?.bool);
+    try std.testing.expectEqual(recursive_generated.entries.len, coverage.value.object.get("kernel_count").?.integer);
 }

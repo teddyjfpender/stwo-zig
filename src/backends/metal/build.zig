@@ -178,6 +178,7 @@ pub fn build(b: *std.Build) void {
             "base polynomial codegen widens retained column offsets before multiplication",
             "lookup polynomial codegen widens main and secure-column offsets",
             "Metal composition domain scratch exact byte count is degree aware",
+            "Metal composition domain scratch unifies short and current domains from retained coefficients",
             "Metal composition domain scratch evaluates retained coefficients in one exact resident owner",
             "Metal composition domain scratch clone cleans every allocation failure",
         },

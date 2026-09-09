@@ -64,6 +64,7 @@ fn run(comptime Metal: type) !void {
     var backend_seen = false;
     var recursive_backend: ?NativeBackend = null;
     var aot_bundle: ?[]const u8 = null;
+    var aot_profile: ?[]const u8 = null;
     var aot_manifest: ?[32]u8 = null;
     var at: usize = 1;
     while (at < args.len) : (at += 2) {
@@ -116,6 +117,10 @@ fn run(comptime Metal: type) !void {
         } else if (std.mem.eql(u8, key, "--recursive-backend")) {
             if (recursive_backend != null) return error.DuplicateArgument;
             recursive_backend = std.meta.stringToEnum(NativeBackend, value) orelse return error.InvalidRecursiveBackend;
+        } else if (std.mem.eql(u8, key, "--aot-profile")) {
+            if (aot_profile != null) return error.DuplicateArgument;
+            if (!std.mem.eql(u8, value, "core-v2") and !std.mem.eql(u8, value, "recursive-framework-v1")) return error.InvalidAotProfile;
+            aot_profile = value;
         } else if (std.mem.eql(u8, key, "--aot-bundle")) {
             if (aot_bundle != null) return error.DuplicateArgument;
             if (value.len == 0) return error.InvalidArguments;
@@ -127,7 +132,7 @@ fn run(comptime Metal: type) !void {
             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
             aot_manifest = digest;
         } else {
-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--proof-profile development_q3_v1|recursive_q193_v1 (segment output only)] [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--recursive-backend cpu|metal (segment output only)] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--proof-profile development_q3_v1|recursive_q193_v1 (segment output only)] [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--recursive-backend cpu|metal (segment output only)] [--aot-bundle PATH --aot-manifest-sha256 SHA256 [--aot-profile core-v2|recursive-framework-v1]]]\n", .{args[0]});
             return error.InvalidArguments;
         }
     }
@@ -161,7 +166,7 @@ fn run(comptime Metal: type) !void {
     );
     switch (backend) {
         .cpu => {
-            if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
+            if (aot_bundle != null or aot_manifest != null or aot_profile != null) return error.UnexpectedAotArguments;
             if (native_ingress_profile) |profile|
                 try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, profile)
             else if (two_segment_output) |directory|
@@ -179,12 +184,13 @@ fn run(comptime Metal: type) !void {
                 try Backend.admitHostProving(.witness_generation);
                 const bundle = aot_bundle orelse return error.MissingAotBundle;
                 const manifest = aot_manifest orelse return error.MissingAotManifestSha256;
+                const selected_aot: Metal.shaders.aot_profile.Profile = if (std.mem.eql(u8, aot_profile orelse "core-v2", "recursive-framework-v1")) .recursive_framework_v1 else .core_v2;
                 if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeAlreadyInitialized;
                 var timer = try std.time.Timer.start();
                 try Backend.initializeRuntime(allocator, .{ .authenticated_aot = .{
                     .bundle_path = bundle,
                     .manifest_sha256 = manifest,
-                    .profile = .core_v2,
+                    .profile = selected_aot,
                 } });
                 // The shared native boundary normally shuts down first; this
                 // also cleans initialization/proving failure paths.
@@ -196,11 +202,11 @@ fn run(comptime Metal: type) !void {
                 if (!lifecycle.initialized or identity.origin != .authenticated_core_aot or
                     identity.manifest_sha256 == null or !std.meta.eql(identity.manifest_sha256.?, manifest) or
                     identity.metallib_sha256 == null or identity.metallib_bytes == null or identity.metallib_bytes.? == 0 or
-                    !std.meta.eql(identity.source_sha256, Metal.shaders.aot_profile.Profile.core_v2.sourceDigest()))
+                    !std.meta.eql(identity.source_sha256, selected_aot.sourceDigest()))
                     return error.AuthenticatedMetalRuntimeMismatch;
                 std.debug.print(
-                    "SEGMENT_V2_NATIVE_METAL_AOT profile=core_v2 manifest_sha256={s} source_sha256={s} metallib_sha256={s} initialization_ns={d}\n",
-                    .{ std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
+                    "SEGMENT_V2_NATIVE_METAL_AOT profile={s} manifest_sha256={s} source_sha256={s} metallib_sha256={s} initialization_ns={d}\n",
+                    .{ @tagName(selected_aot), std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
                 );
                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
                 if (native_ingress_profile) |profile| {

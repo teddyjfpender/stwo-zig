@@ -25,6 +25,7 @@ extern fn stwo_zig_metal_eval_library_serialize(
 ) bool;
 extern fn stwo_zig_metal_eval_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_base_polynomial_plan_destroy(plan: ?*anyopaque) void;
+extern fn stwo_zig_metal_framework_polynomial_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_lookup_polynomial_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_witness_plan_destroy(plan: ?*anyopaque) void;
 extern fn stwo_zig_metal_eval_batch_destroy(batch: ?*anyopaque) void;
@@ -262,6 +263,34 @@ pub fn ResourcePlans(comptime MetalError: type) type {
             power_word_offset: u32,
             power_word_count: u32,
             output_index: u32,
+            denominator_count: u32,
+            denominator_inverses: [MAX_POLYNOMIAL_DENOMINATORS]u32,
+        };
+
+        /// Metadata is derived from the admitted shared program by the job
+        /// owner; a kernel name or these raw fields alone is not authorization.
+        pub const FrameworkPolynomialPlan = extern struct {
+            handle: *anyopaque,
+
+            pub fn deinit(self: *FrameworkPolynomialPlan) void {
+                stwo_zig_metal_framework_polynomial_plan_destroy(self.handle);
+                self.* = undefined;
+            }
+        };
+
+        pub const FrameworkPolynomialDispatch = extern struct {
+            plan: *anyopaque,
+            column_offset: u32,
+            column_count: u32,
+            profile_word_offset: u32,
+            profile_word_count: u32,
+            relation_word_offset: u32,
+            relation_word_count: u32,
+            power_word_offset: u32,
+            power_word_count: u32,
+            output_index: u32,
+            row_count: u32,
+            trace_log_size: u32,
             denominator_count: u32,
             denominator_inverses: [MAX_POLYNOMIAL_DENOMINATORS]u32,
         };

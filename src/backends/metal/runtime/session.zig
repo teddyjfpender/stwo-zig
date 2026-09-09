@@ -89,7 +89,7 @@ pub fn initFromAotBundle(
 /// Constructs a runtime from bytes already admitted by the process owner.
 pub fn initFromAotAdmission(admission: *const core_aot.Admission) MetalError!Runtime {
     const additional = admission.profile.additionalPolynomialExports();
-    if (additional.len == 0) return .{ .handle = try runtime_initialization.fromMetallibData(admission.metallib_bytes) };
+    if (additional.len == 0) return .{ .handle = try runtime_initialization.fromMetallibData(admission.metallib_bytes), .admitted_profile = admission.profile };
     const capacity = @import("../shaders/aot_profile.zig").maximum_additional_exports;
     var names: [capacity][*]const u8 = undefined;
     var lengths: [capacity]usize = undefined;
@@ -98,7 +98,7 @@ pub fn initFromAotAdmission(admission: *const core_aot.Admission) MetalError!Run
         names[index] = entry.name.ptr;
         lengths[index] = entry.name.len;
     }
-    return .{ .handle = try runtime_initialization.fromMetallibDataWithPolynomialExports(admission.metallib_bytes, names[0..additional.len], lengths[0..additional.len]) };
+    return .{ .handle = try runtime_initialization.fromMetallibDataWithPolynomialExports(admission.metallib_bytes, names[0..additional.len], lengths[0..additional.len]), .admitted_profile = admission.profile };
 }
 
 /// Constructs from admitted bytes on an explicitly selected device.

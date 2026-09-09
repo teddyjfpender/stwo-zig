@@ -18,6 +18,8 @@ const composition_domain_scratch = @import("composition_domain_scratch.zig");
 const composition_device_buckets = @import("composition_device_buckets.zig");
 const composition_partition_parity = @import("composition_partition_parity.zig");
 const lookup_resident = @import("base_polynomial_lookup_jobs.zig");
+const framework_jobs_mod = @import("framework_polynomial_jobs.zig");
+const framework_batch = @import("framework_polynomial_batch.zig");
 const quotient_geometry = @import("polynomial_quotient_geometry.zig");
 const metal_runtime = @import("../runtime.zig");
 const shared_runtime = @import("../shared_runtime.zig");
@@ -83,10 +85,11 @@ const ComponentPartition = struct {
     } = undefined,
     base_count: usize = 0,
     lookup: ?lookup_resident.Capability = null,
+    framework: ?prover.air.component_prover.FrameworkPolynomialCapabilityV1 = null,
     lookup_constraints: ConstraintRange = .{ .start = 0, .count = 0 },
 
     fn accelerated(self: @This()) bool {
-        return self.base_count != 0 or self.lookup != null;
+        return self.base_count != 0 or self.lookup != null or self.framework != null;
     }
 };
 
@@ -205,11 +208,14 @@ fn evaluateInternal(
     var timing = host_graph.WallTiming.requested();
     defer if (timing) |*clock| clock.finish();
     if (components.len == 0) return null;
+    var lease = shared_runtime.acquireExisting() catch return declineResidentPolynomial();
+    defer lease.deinit();
 
     var total_constraints: usize = 0;
     var max_log_size: u32 = 0;
     var semantic_count: usize = 0;
     var lookup_count: usize = 0;
+    var framework_count: usize = 0;
     var accelerated_component_count: usize = 0;
     const partitions = try allocator.alloc(ComponentPartition, components.len);
     defer allocator.free(partitions);
@@ -221,11 +227,16 @@ fn evaluateInternal(
         );
         max_log_size = @max(max_log_size, component.maxConstraintLogDegreeBound());
         partition.* = try componentPartition(component, execution_mode);
+        // Old/core-only bundles retain their existing host route without
+        // exporting every recursive program just to discover a missing kernel.
+        if (lease.runtime.admitted_profile != .recursive_framework_v1)
+            partition.framework = null;
         semantic_count += partition.base_count;
         if (partition.lookup != null) lookup_count += 1;
+        if (partition.framework != null) framework_count += 1;
         if (partition.accelerated()) accelerated_component_count += 1;
     }
-    if (semantic_count + lookup_count == 0) return null;
+    if (semantic_count + lookup_count + framework_count == 0) return null;
     const host_component_count = components.len - accelerated_component_count;
     if (host_component_count != 0) {
         // Fail before preparing or launching any host worker in a mixed graph.
@@ -259,6 +270,33 @@ fn evaluateInternal(
         }
     }
 
+    const framework_jobs = try allocator.alloc(framework_jobs_mod.Job, framework_count);
+    defer allocator.free(framework_jobs);
+    var initialized_framework: usize = 0;
+    defer for (framework_jobs[0..initialized_framework]) |*job| job.deinit();
+    if (framework_count != 0) {
+        const tree_counts = try allocator.alloc(usize, trace.polys.items.len);
+        defer allocator.free(tree_counts);
+        for (trace.polys.items, tree_counts) |tree, *count| count.* = tree.len;
+        var cursor = total_constraints;
+        for (components, partitions) |component, partition| {
+            cursor -= component.nConstraints();
+            const capability = partition.framework orelse continue;
+            framework_jobs[initialized_framework] = try framework_jobs_mod.Job.init(
+                allocator,
+                component,
+                capability,
+                tree_counts,
+                cursor,
+            );
+            initialized_framework += 1;
+            for (framework_jobs[initialized_framework - 1].column_trees) |tree| {
+                if (tree == std.math.maxInt(u32)) continue;
+                if (!hasTreeResidency(residency_handles, &.{tree})) return declineResidentPolynomial();
+            }
+        }
+    }
+
     const expansion_requests = try collectCompositionDomainRequests(
         allocator,
         components,
@@ -273,8 +311,6 @@ fn evaluateInternal(
     }
     defer if (scratch_lock_held) composition_domain_scratch.releaseOwnerWindow();
 
-    var lease = shared_runtime.acquireExisting() catch return declineResidentPolynomial();
-    defer lease.deinit();
     var composition_scratch: ?composition_domain_scratch.OwnedV1 = null;
     defer if (composition_scratch) |*owned| owned.deinit();
     var accelerated_trace = trace;
@@ -438,6 +474,11 @@ fn evaluateInternal(
     std.debug.assert(lookup_index == lookup_jobs.len);
     std.debug.assert(host_index == host_workers.len);
 
+    for (framework_jobs) |*job| job.prepare(lease.runtime) catch |err| switch (err) {
+        error.FrameworkPolynomialUnavailable => return declineResidentPolynomial(),
+        else => return err,
+    };
+
     // Ordinary host-only components start before resident AOT resolution, and
     // the dominant reviewed splitter may consume the ambient pool while this
     // thread submits device work. Profiled proving deliberately selects the
@@ -502,6 +543,9 @@ fn evaluateInternal(
         lookup_jobs,
     );
     defer lookup_buckets.deinit();
+
+    var framework_buckets = try DeviceBucketSet.init(allocator, max_log_size, framework_jobs);
+    defer framework_buckets.deinit();
 
     var total_main_columns: usize = 0;
     for (semantic_jobs) |job| total_main_columns = try std.math.add(
@@ -626,6 +670,24 @@ fn evaluateInternal(
         parameter_words,
         lookup_buckets.outputs,
     );
+    if (timing) |*clock| clock.enter(.framework_dispatch);
+    const framework_result = try framework_batch.evaluate(
+        allocator,
+        lease.runtime,
+        framework_jobs,
+        trace,
+        residency_handles,
+        composition_twiddles,
+        power_words,
+        &framework_buckets,
+        scratch_lock_held,
+    );
+    if (framework_result.dispatches != 0) {
+        telemetry.recordN(.metal_framework_polynomial_dispatch, @intCast(framework_result.dispatches));
+        std.log.info("resident framework composition: components={} groups={} gpu_ms={d:.3}", .{
+            framework_result.dispatches, framework_result.groups, framework_result.gpu_milliseconds,
+        });
+    }
     if (timing) |*clock| clock.enter(.scratch_release);
     const semantic_gpu_ms = if (semantic_gpu_result) |result|
         result catch return declineResidentPolynomial()
@@ -678,6 +740,23 @@ fn evaluateInternal(
         );
     }
 
+    if (parity_requested and framework_jobs.len != 0) {
+        var reference = try composition_partition_parity.referenceForJobs(
+            allocator,
+            components,
+            powers,
+            max_log_size,
+            trace,
+            framework_jobs,
+        );
+        defer reference.deinit(allocator);
+        var actual = try composition_partition_parity.finalizeBucketClone(allocator, framework_buckets.buckets, max_log_size);
+        defer actual.deinit(allocator);
+        if (composition_partition_parity.firstMismatch(&reference, &actual) != null)
+            return error.MetalCompositionParityMismatch;
+        logPartitionParity("framework", &actual, framework_jobs.len);
+    }
+
     if (parity_requested) try validatePartitionParity(
         allocator,
         components,
@@ -717,6 +796,8 @@ fn evaluateInternal(
         &lookup_buckets,
     );
 
+    try composition_device_buckets.mergeCompleted(&semantic_buckets, &framework_buckets);
+
     if (timing) |*clock| clock.enter(.work_receipt);
     const work_receipt = if (work_capture != null)
         try base_composition_work.build(
@@ -726,6 +807,7 @@ fn evaluateInternal(
             max_log_size,
             semantic_jobs,
             lookup_jobs,
+            framework_jobs,
             host_workers,
             semantic_buckets.buckets,
         )
@@ -1244,6 +1326,7 @@ fn declineResidentPolynomial() ?SecureColumn {
 fn componentPartition(component: Component, mode: execution_policy.Mode) !ComponentPartition {
     const capability = component.backend_composition_capability orelse return .{};
     return switch (capability) {
+        .framework_polynomial_v1 => |value| .{ .framework = value },
         .base_polynomial_v1 => |value| singleBasePartition(
             value,
             .{ .start = 0, .count = component.nConstraints() },

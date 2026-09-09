@@ -1,0 +1,331 @@
+{
+  "scope": "Single diagnostic root comparison, same frozen producer and retained children; neither paired medians nor complete-tree speedup evidence",
+  "records": [
+    {
+      "profile": "recursive-framework-v1",
+      "gate_passed": true,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/root-diagnostic-recursive-framework-v1.json",
+      "report_sha256": "1f665ace0a605f9345ef7925d3e82ed398b8a5eadfd55b15e2fbb145dd5b1582",
+      "producer_request_ns": 12220026792,
+      "producer_process_ns": 12352297958,
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 0.585439,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation",
+          "seconds": 0.03763,
+          "children": null
+        },
+        {
+          "id": "parent.main_finalize",
+          "label": "Main filling, range construction and exact lookup closure",
+          "seconds": 2.463901,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 0.692844,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.603297,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.358433,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.003317,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 2e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 1e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 2.281791,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.01249,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.035675,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.00013,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.065352,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000771,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.152614,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.005386,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.005085,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.008226,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.00034,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.009903,
+          "children": null
+        }
+      ],
+      "metal": {
+        "dispatches": 116,
+        "poseidon_commits": 9,
+        "cpu_fallbacks": 0,
+        "host_composition_components": 2,
+        "pow_dispatches": 2,
+        "manifest_sha256": "0e8b67dc70c8d699ba155f16a6fedcd8541c4615326796c7c120c62a64646403",
+        "profile": "recursive_framework_v1",
+        "legacy_core_profile": false,
+        "runtime_released": true
+      },
+      "host_spans": [
+        "info: metal composition host: component_index=29 constraints=290 eval_log=19 evaluator=0x102bda850 mode=legacy start_ns=3795250 end_ns=2212145667 wall_ns=2208350417 failed=false",
+        "info: metal composition host: component_index=30 constraints=1 eval_log=17 evaluator=0x102bdc8a0 mode=legacy start_ns=3795209 end_ns=16990584 wall_ns=13195375 failed=false"
+      ],
+      "framework_dispatch": [
+        "info: resident framework composition: components=29 groups=13 gpu_ms=11.367",
+        "info: metal composition phase: phase=framework_dispatch start_ns=7821542 end_ns=133748584 wall_ns=125927042"
+      ]
+    },
+    {
+      "profile": "core-v2",
+      "gate_passed": true,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/root-diagnostic-core-v2.json",
+      "report_sha256": "36db17534e6bdd36d5fbd029ad88b93469e0293bf5d99212fd819c3375ae7eca",
+      "producer_request_ns": 10953807667,
+      "producer_process_ns": 11077421500,
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 0.587912,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation",
+          "seconds": 0.037819,
+          "children": null
+        },
+        {
+          "id": "parent.main_finalize",
+          "label": "Main filling, range construction and exact lookup closure",
+          "seconds": 2.520016,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 0.677252,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.641102,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.349307,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.003174,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 2e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 1.1e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 0.99376,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.004046,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.026702,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.000148,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.052689,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000689,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.125628,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.005188,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.004038,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.007933,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.000305,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.010009,
+          "children": null
+        }
+      ],
+      "metal": {
+        "dispatches": 87,
+        "poseidon_commits": 9,
+        "cpu_fallbacks": 0,
+        "host_composition_components": 31,
+        "pow_dispatches": 2,
+        "manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+        "profile": "core_v2",
+        "legacy_core_profile": false,
+        "runtime_released": true
+      },
+      "host_spans": [],
+      "framework_dispatch": [
+        "info: metal composition phase: phase=framework_dispatch start_ns=4083 end_ns=4083 wall_ns=0"
+      ]
+    }
+  ],
+  "complete_tree": {
+    "parity": {
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/complete-tree-metal-4-parity.json",
+      "receipt_sha256": "a78caa4be58b2aa94724bbbc5f5f5c636cc979801fcfc920250880382e532a0b",
+      "passed": true,
+      "production_ns": 118775199709,
+      "gate_ns": 122353277125,
+      "maximum_rss_bytes": 4431773696,
+      "baseline_identical_artifact_count": 21
+    },
+    "timing": {
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/complete-tree-metal-4-timing.json",
+      "receipt_sha256": "aff77a67d14e4cf1d74b982d6ba7b5a5bfb37bb058e25094a16f8d07017f6814",
+      "passed": true,
+      "production_ns": 71689658166,
+      "gate_ns": 75593434750,
+      "maximum_rss_bytes": 4377559040,
+      "baseline_identical_artifact_count": 21
+    }
+  }
+}

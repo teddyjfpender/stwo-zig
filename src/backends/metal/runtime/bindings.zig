@@ -10,6 +10,7 @@ const CommandEpochStats = runtime.CommandEpochStats;
 const PreparedStateRange = runtime.PreparedStateRange;
 const WitnessLayout = runtime.WitnessLayout;
 const BasePolynomialDispatch = runtime.BasePolynomialDispatch;
+const FrameworkPolynomialDispatch = runtime.FrameworkPolynomialDispatch;
 const BasePolynomialOutput = runtime.BasePolynomialOutput;
 const LookupPolynomialDispatch = runtime.LookupPolynomialDispatch;
 const quotient_internal_parity_abi = @import("quotient_internal_parity_abi.zig");
@@ -541,6 +542,41 @@ pub extern fn stwo_zig_metal_eval_prepare_library(
     error_message: [*]u8,
     error_message_len: usize,
 ) ?*anyopaque;
+pub extern fn stwo_zig_metal_framework_polynomial_prepare_aot(
+    runtime: *anyopaque,
+    name: [*]const u8,
+    name_len: usize,
+    column_trees: [*]const u32,
+    column_count: u32,
+    profile_word_count: u32,
+    relation_word_count: u32,
+    power_word_count: u32,
+    error_message: [*]u8,
+    error_message_len: usize,
+) ?*anyopaque;
+pub extern fn stwo_zig_metal_framework_polynomial_batch(
+    runtime: *anyopaque,
+    trees: [*]const ?*anyopaque,
+    tree_count: u32,
+    composition_domain_buffer: ?*anyopaque,
+    composition_domain_host_begin: ?[*]const u32,
+    composition_domain_word_count: usize,
+    columns: [*]const ?[*]const u32,
+    column_count: u32,
+    dispatches: [*]const FrameworkPolynomialDispatch,
+    dispatch_count: u32,
+    profile_words: [*]const u32,
+    profile_word_count: u32,
+    relation_words: [*]const u32,
+    relation_word_count: u32,
+    power_words: [*]const u32,
+    power_word_count: u32,
+    outputs: [*]const BasePolynomialOutput,
+    output_count: u32,
+    gpu_milliseconds: *f64,
+    error_message: [*]u8,
+    error_message_len: usize,
+) u32;
 pub extern fn stwo_zig_metal_base_polynomial_prepare_aot(
     runtime: *anyopaque,
     name: [*]const u8,

@@ -836,6 +836,7 @@ static void encode_fri_inverse_domain(
 #import "runtime/archive_store.m"
 #import "runtime/dynamic_evaluation.m"
 #import "runtime/base_polynomial.m"
+#import "runtime/framework_polynomial.m"
 #import "runtime/lookup_polynomial.m"
 #import "runtime/composition.m"
 #import "runtime/composition_recurrence.m"

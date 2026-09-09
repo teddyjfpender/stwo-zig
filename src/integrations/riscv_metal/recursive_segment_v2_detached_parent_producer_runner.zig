@@ -13,7 +13,15 @@ pub fn main() !void {
     if (args.len < 5 or !std.mem.eql(u8, args[1], "--aot-bundle") or
         !std.mem.eql(u8, args[3], "--aot-manifest-sha256") or args[4].len != 64)
         return error.ExpectedAotBundleAndManifestSha256;
-    const input = try producer.parseArguments(args[5..]);
+    var tail: usize = 5;
+    var selected_aot: metal.shaders.aot_profile.Profile = .core_v2;
+    if (args.len > tail and std.mem.eql(u8, args[tail], "--aot-profile")) {
+        if (args.len <= tail + 1) return error.MissingAotProfile;
+        const value = args[tail + 1];
+        selected_aot = if (std.mem.eql(u8, value, "core-v2")) .core_v2 else if (std.mem.eql(u8, value, "recursive-framework-v1")) .recursive_framework_v1 else return error.InvalidAotProfile;
+        tail += 2;
+    }
+    const input = try producer.parseArguments(args[tail..]);
     try Backend.admitHostProving(.recursive_preparation);
     var manifest: [32]u8 = undefined;
     _ = try std.fmt.hexToBytes(&manifest, args[4]);
@@ -22,7 +30,7 @@ pub fn main() !void {
     try Backend.initializeRuntime(allocator, .{ .authenticated_aot = .{
         .bundle_path = args[2],
         .manifest_sha256 = manifest,
-        .profile = .core_v2,
+        .profile = selected_aot,
     } });
     defer if (Backend.runtimeLifecycleSnapshot().initialized) {
         Backend.shutdown() catch unreachable;
@@ -32,7 +40,7 @@ pub fn main() !void {
     const identity = lifecycle.identity orelse return error.AuthenticatedMetalRuntimeMissing;
     if (identity.origin != .authenticated_core_aot or identity.manifest_sha256 == null or
         !std.meta.eql(identity.manifest_sha256.?, manifest) or
-        !std.meta.eql(identity.source_sha256, metal.shaders.aot_profile.Profile.core_v2.sourceDigest()))
+        !std.meta.eql(identity.source_sha256, selected_aot.sourceDigest()))
         return error.AuthenticatedMetalRuntimeMismatch;
     const report = try producer.runWithEngine(Engine, allocator, input);
     const after = Backend.runtimeLifecycleSnapshot();
@@ -44,10 +52,11 @@ pub fn main() !void {
     if (delta.counters.metal_poseidon2_merkle_commits == 0) return error.MetalPoseidonDispatchMissing;
     try Backend.shutdown();
     if (Backend.runtimeLifecycleSnapshot().initialized) return error.MetalRuntimeNotReleased;
-    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} host_composition_components={d} pow_dispatches={d} runtime_released=true manifest_sha256={s}\n", .{
+    std.debug.print("DETACHED_PARENT_METAL dispatches={d} poseidon_commits={d} cpu_fallbacks={d} host_composition_components={d} pow_dispatches={d} runtime_released=true manifest_sha256={s} profile={s}\n", .{
         delta.counters.metalDispatchTotal(),           delta.counters.metal_poseidon2_merkle_commits,
         delta.counters.cpuFallbackTotal(),             delta.counters.cpu_composition_components,
         delta.counters.metal_proof_of_work_dispatches, std.fmt.bytesToHex(manifest, .lower),
+        @tagName(selected_aot),
     });
     const json = try std.json.Stringify.valueAlloc(allocator, report, .{});
     defer allocator.free(json);

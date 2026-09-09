@@ -36,6 +36,9 @@ pub const MetalError = error{
     PolynomialEvaluationFailed,
     CircleTransformFailed,
     CompositionEvaluationFailed,
+    FrameworkPolynomialUnavailable,
+    FrameworkPolynomialUnsupported,
+    InvalidFrameworkPolynomialDispatch,
     WitnessFeedFailed,
     TraceGenerationFailed,
     CommandEpochFailed,
@@ -64,6 +67,8 @@ pub const WitnessLayout = resource_plans.WitnessLayout;
 pub const EvalLibrary = resource_plans.EvalLibrary;
 pub const EvalPlan = resource_plans.EvalPlan;
 pub const BasePolynomialPlan = resource_plans.BasePolynomialPlan;
+pub const FrameworkPolynomialPlan = resource_plans.FrameworkPolynomialPlan;
+pub const FrameworkPolynomialDispatch = resource_plans.FrameworkPolynomialDispatch;
 pub const BasePolynomialDispatch = resource_plans.BasePolynomialDispatch;
 pub const BasePolynomialOutput = resource_plans.BasePolynomialOutput;
 pub const LookupPolynomialPlan = resource_plans.LookupPolynomialPlan;
@@ -147,6 +152,7 @@ const session_ops = @import("runtime/session.zig");
 const prepared_ops = @import("runtime/prepared_execution.zig");
 const composition_ops = @import("runtime/composition_operations.zig");
 const base_polynomial_ops = @import("runtime/base_polynomial_operations.zig");
+const framework_polynomial_ops = @import("runtime/framework_polynomial_operations.zig");
 const lookup_polynomial_ops = @import("runtime/lookup_polynomial_operations.zig");
 const fri_cascade_ops = @import("runtime/fri_cascade_operations.zig");
 const opening_ops = @import("runtime/opening_operations.zig");
@@ -157,6 +163,7 @@ const proof_of_work_ops = @import("runtime/proof_of_work.zig");
 
 pub const Runtime = struct {
     handle: *anyopaque,
+    admitted_profile: ?@import("shaders/aot_profile.zig").Profile = null,
 
     pub const init = session_ops.init;
     pub const initFull = session_ops.initFull;
@@ -214,6 +221,8 @@ pub const Runtime = struct {
     pub const prepareEvalBatch = prepared_ops.prepareEvalBatch;
     pub const evalBatchPrepared = prepared_ops.evalBatchPrepared;
     pub const prepareBasePolynomialAot = base_polynomial_ops.prepareBasePolynomialAot;
+    pub const prepareFrameworkPolynomialAot = framework_polynomial_ops.prepareFrameworkPolynomialAot;
+    pub const evaluateFrameworkPolynomialBatch = framework_polynomial_ops.evaluateFrameworkPolynomialBatch;
     pub const prepareBasePolynomialFromLibrary = base_polynomial_ops.prepareBasePolynomialFromLibrary;
     pub const evaluateBasePolynomialBatch = base_polynomial_ops.evaluateBasePolynomialBatch;
     pub const prepareLookupPolynomialAot = lookup_polynomial_ops.prepareLookupPolynomialAot;

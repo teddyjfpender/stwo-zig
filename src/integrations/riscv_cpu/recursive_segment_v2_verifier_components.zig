@@ -16,30 +16,7 @@ const composition_v3 = frontend.recursion.recursion_air_composition_circuit_v3;
 const segment_recorder = composition_v3.segment_recorder_v3;
 pub const Relations = air.universal_challenges.UniversalRelations;
 
-const Entry = struct { Air: type, row: manifest_mod.ComponentKey, requires_location: bool = false };
-// Reuse the universal roster, replacing only the admitted V2 overrides. Each
-// adapter authenticates its geometry against the canonical V2 typed catalog.
-const logical_rows = rows: {
-    var result: [manifest_mod.COMPONENT_COUNT - 2]Entry = undefined;
-    for (air.universal_catalog.LOGICAL_ROWS, 0..) |entry, index| result[index] = .{
-        .Air = switch (index) {
-            11 => frontend.recursion.segment_statement_outer_source_v2.Air,
-            12 => air.segment_public_outer_air_v2.PublicationHeader,
-            13 => air.segment_public_outer_air_v2.NativePublicSums,
-            14 => air.segment_public_outer_air_v2.PublicationSeal,
-            15 => air.segment_public_outer_air_v2.StatementBoundary,
-            16 => air.segment_public_outer_air_v2.NativeChallenges,
-            17 => air.segment_public_outer_air_v2.ControlRelay,
-            else => entry.Air,
-        },
-        .row = @enumFromInt(@intFromEnum(entry.row)),
-        .requires_location = entry.requires_location,
-    };
-    result[34] = .{ .Air = frontend.recursion.segment_leaf_outer_air_v2.Statement, .row = .statement_source_v2 };
-    result[35] = .{ .Air = frontend.recursion.segment_leaf_outer_air_v2.PublicLogUp, .row = .public_logup_source_v2 };
-    result[36] = .{ .Air = air.segment_publication_input_provider_v2, .row = .segment_publication_input_provider_v2 };
-    break :rows result;
-};
+const logical_rows = air.segment_leaf_catalog_v2.LOGICAL_ROWS;
 
 pub const AdmissionParametersV1 = struct {
     query_reference: air.query_bits_witness.Reference,

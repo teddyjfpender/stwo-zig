@@ -1,4 +1,5 @@
 pub const runtime = @import("runtime.zig");
+pub const core_aot = @import("core_aot.zig");
 pub const arena_plan = @import("arena_plan.zig");
 pub const commit_backend = @import("commit_backend.zig");
 pub const merkle_tree = @import("merkle_tree.zig");
@@ -12,6 +13,7 @@ pub const hash_domain = @import("hash_domain.zig");
 pub const commit_policy = @import("commit_policy.zig");
 pub const source_contract = @import("source_contract.zig");
 pub const riscv_polynomial_codegen = struct {
+    pub const framework = @import("runtime/framework_polynomial_codegen.zig");
     pub const base = @import("runtime/base_polynomial_codegen.zig");
     pub const lookup = @import("runtime/lookup_polynomial_codegen.zig");
     pub const lookup_v2 = @import("runtime/lookup_polynomial_v2_codegen.zig");

@@ -439,7 +439,7 @@ fn compactAndValidateRequests(
         }
         const source = trace.polys.items[request.tree_index][request.column_index];
         try source.validate();
-        if (source.log_size >= request.evaluation_log_size)
+        if (source.log_size > request.evaluation_log_size)
             return error.InvalidCompositionDomainScratchRequest;
         if (unique_count != 0) {
             const previous = storage[unique_count - 1];
@@ -638,6 +638,74 @@ test "Metal composition domain scratch evaluates retained coefficients in one ex
         expected.values,
         scratch.trace.polys.items[0][0].values,
     );
+    try scratch.validateBorrowed(&source);
+}
+
+test "Metal composition domain scratch unifies short and current domains from retained coefficients" {
+    const allocator = std.testing.allocator;
+    const coefficient_log: u32 = 2;
+    const short_log: u32 = 3;
+    const target_log: u32 = 4;
+    const a = [_]M31{ M31.fromU64(3), M31.fromU64(5), M31.fromU64(7), M31.fromU64(9) };
+    const b = [_]M31{ M31.fromU64(11), M31.fromU64(13), M31.fromU64(17), M31.fromU64(19) };
+    const coefficients = [_]prover.poly.circle.CircleCoefficients{
+        try prover.poly.circle.CircleCoefficients.initBorrowed(&a),
+        try prover.poly.circle.CircleCoefficients.initBorrowed(&b),
+    };
+    const short_domain = core.poly.circle.canonic.CanonicCoset.new(short_log).circleDomain();
+    const target_domain = core.poly.circle.canonic.CanonicCoset.new(target_log).circleDomain();
+    const short = try coefficients[0].evaluate(allocator, short_domain);
+    defer allocator.free(@constCast(short.values));
+    const expected_a = try coefficients[0].evaluate(allocator, target_domain);
+    defer allocator.free(@constCast(expected_a.values));
+    const expected_b = try coefficients[1].evaluate(allocator, target_domain);
+    defer allocator.free(@constCast(expected_b.values));
+    var columns = [_]Poly{
+        .{ .log_size = short_log, .values = short.values, .coefficients = coefficients[0] },
+        .{ .log_size = target_log, .values = expected_b.values, .coefficients = coefficients[1] },
+    };
+    var trees = [_][]const Poly{&columns};
+    var source = Trace{ .polys = .{ .items = &trees } };
+    const requests = [_]RequestV1{
+        .{ .tree_index = 0, .column_index = 1, .trace_log_size = coefficient_log, .evaluation_log_size = target_log },
+        .{ .tree_index = 0, .column_index = 0, .trace_log_size = coefficient_log, .evaluation_log_size = target_log },
+        // Shared references across jobs compact to one physical evaluation.
+        .{ .tree_index = 0, .column_index = 1, .trace_log_size = coefficient_log, .evaluation_log_size = target_log },
+    };
+    var twiddles = try prover.poly.twiddles.precomputeM31(allocator, target_domain.half_coset);
+    defer prover.poly.twiddles.deinitM31(allocator, &twiddles);
+    const exact = TwiddleTree{ .root_coset = twiddles.root_coset, .twiddles = twiddles.twiddles, .itwiddles = twiddles.itwiddles };
+    var runtime = try metal_runtime.Runtime.init();
+    defer runtime.deinit();
+    defer releasePooledResidents();
+    acquireOwnerWindow();
+    defer releaseOwnerWindow();
+
+    // Even the already-sized column must come from its retained polynomial;
+    // the new admission is not permission to relabel/copy arbitrary values.
+    columns[1].coefficients = null;
+    try std.testing.expectError(error.MissingCompositionDomainCoefficients, OwnedV1.init(allocator, &runtime, &source, &requests, exact));
+    columns[1].coefficients = coefficients[1];
+    var scratch = try OwnedV1.init(allocator, &runtime, &source, &requests, exact);
+    defer scratch.deinit();
+    try scratch.validateBorrowed(&source);
+    try std.testing.expect(scratch.exact_resident_source);
+    try std.testing.expectEqual(@as(usize, 2), scratch.entries.len);
+    try std.testing.expectEqual(@as(usize, 2 * 16 * @sizeOf(M31)), scratch.resident.byte_length);
+    const resident_begin = @intFromPtr(scratch.resident.contents);
+    for (scratch.trace.polys.items[0], 0..) |column, index| {
+        try std.testing.expectEqual(target_log, column.log_size);
+        try std.testing.expectEqual(resident_begin + index * 16 * @sizeOf(M31), @intFromPtr(column.values.ptr));
+        try std.testing.expect(@intFromPtr(column.values.ptr) != @intFromPtr(columns[index].values.ptr));
+    }
+    try std.testing.expectEqualSlices(M31, expected_a.values, scratch.trace.polys.items[0][0].values);
+    try std.testing.expectEqualSlices(M31, expected_b.values, scratch.trace.polys.items[0][1].values);
+    // Returning the already-sized original pointer would break the one-buffer
+    // binding even though its field values happen to be correct.
+    const owned_values = scratch.trace.polys.items[0][1].values;
+    @constCast(scratch.trace.polys.items[0])[1].values = expected_b.values;
+    try std.testing.expectError(error.InvalidCompositionDomainScratch, scratch.validateBorrowed(&source));
+    @constCast(scratch.trace.polys.items[0])[1].values = owned_values;
     try scratch.validateBorrowed(&source);
 }
 

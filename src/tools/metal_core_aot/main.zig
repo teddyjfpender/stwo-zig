@@ -3,7 +3,7 @@ const artifact = @import("artifact.zig");
 const toolchain = @import("toolchain.zig");
 
 const usage =
-    \\usage: metal-core-aot <emit|build> --output-dir <path> [--profile ethereum-fixed-program-narrow-v1]
+    \\usage: metal-core-aot <emit|build> --output-dir <path> [--profile ethereum-fixed-program-narrow-v1|recursive-framework-v1]
     \\
     \\  emit   Write the canonical core MSL and authenticated JSON manifest.
     \\  build  Require full Xcode, emit the inputs, and run metal + metallib.
@@ -29,7 +29,7 @@ fn run() !void {
         std.debug.print("{s}", .{usage});
         return error.InvalidArguments;
     }
-    const profile: artifact.Profile = if (args.len == 4) .core_v2 else if (std.mem.eql(u8, args[4], "--profile") and std.mem.eql(u8, args[5], "ethereum-fixed-program-narrow-v1")) .ethereum_fixed_program_narrow_v1 else return error.InvalidArguments;
+    const profile: artifact.Profile = if (args.len == 4) .core_v2 else if (std.mem.eql(u8, args[4], "--profile") and std.mem.eql(u8, args[5], "ethereum-fixed-program-narrow-v1")) .ethereum_fixed_program_narrow_v1 else if (std.mem.eql(u8, args[4], "--profile") and std.mem.eql(u8, args[5], "recursive-framework-v1")) .recursive_framework_v1 else return error.InvalidArguments;
     if (std.mem.eql(u8, args[1], "emit")) {
         try artifact.emitForProfile(allocator, args[3], profile);
     } else if (std.mem.eql(u8, args[1], "build")) {

@@ -25,6 +25,7 @@ pub const WallTiming = struct {
         device_preparation,
         semantic_dispatch,
         lookup_dispatch,
+        framework_dispatch,
         scratch_release,
         host_wait,
         partition_parity,

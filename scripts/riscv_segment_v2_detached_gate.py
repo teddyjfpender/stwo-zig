@@ -38,7 +38,10 @@ def records(output: str, prefix: str) -> list[dict[str, str]]:
             for line in output.splitlines() if line.startswith(prefix + " ")]
 
 
-def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, recursive_backend: str = "cpu", segment_count: int = 2) -> dict:
+AOT_PROFILES = {"core-v2": "core_v2", "recursive-framework-v1": "recursive_framework_v1"}
+
+
+def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, recursive_backend: str = "cpu", segment_count: int = 2, aot_profile: str | None = None) -> dict:
     if segment_count not in (2, 4, 8):
         raise ValueError("unsupported small-tree segment count")
     native = records(output, "SEGMENT_V2_NATIVE_MEMORY")
@@ -78,7 +81,7 @@ def require_producer_lifecycle(output: str, backend: str, aot_pin: str | None, r
     if backend == "metal":
         aot = records(output, "SEGMENT_V2_NATIVE_METAL_AOT")
         device = records(output, "SEGMENT_V2_TWO_CHILD_NATIVE_METAL")
-        if len(aot) != 1 or aot[0].get("manifest_sha256") != aot_pin or aot[0].get("profile") != "core_v2":
+        if len(aot) != 1 or aot[0].get("manifest_sha256") != aot_pin or aot[0].get("profile") != AOT_PROFILES[aot_profile or "core-v2"]:
             raise RuntimeError("producer did not authenticate the selected Metal AOT profile")
         if len(device) != segment_count or any(row.get("segment") != str(index) or
                 int(row.get("dispatches", "0")) <= 0 or int(row.get("poseidon_commits", "0")) <= 0
@@ -101,6 +104,8 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     if args.native_backend == "metal":
         argv += ["--aot-bundle", str(args.aot_bundle.resolve()),
                  "--aot-manifest-sha256", args.aot_manifest_sha256]
+        if args.aot_profile is not None:
+            argv += ["--aot-profile", args.aot_profile]
     log = args.output.with_name(args.output.name + ".producer.log")
     record = {"argv": argv, "binary_sha256": sha256(producer), "log": str(log.resolve()),
               "exited_before_verification": False}
@@ -130,7 +135,7 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     if result.returncode != 0:
         raise RuntimeError(f"producer exited {result.returncode}; retained log: {log}")
     record["lifecycle"] = require_producer_lifecycle(log.read_text(), args.native_backend,
-                                                   args.aot_manifest_sha256, args.recursive_backend)
+                                                   args.aot_manifest_sha256, args.recursive_backend, aot_profile=args.aot_profile)
 
 
 def main() -> None:
@@ -152,7 +157,10 @@ def main() -> None:
                         help="unsigned initial word for the one-address memory fixture")
     parser.add_argument("--aot-bundle", type=Path)
     parser.add_argument("--aot-manifest-sha256")
+    parser.add_argument("--aot-profile", choices=tuple(AOT_PROFILES))
     args = parser.parse_args()
+    if args.aot_profile is not None and (not args.producer or args.native_backend != "metal"):
+        parser.error("AOT profile selection requires a Metal producer")
     if args.recursive_backend == "metal" and (not args.producer or args.native_backend != "metal"):
         parser.error("recursive Metal requires a complete Metal producer run")
     if not 0 <= args.initial_memory_word <= 0xffffffff:

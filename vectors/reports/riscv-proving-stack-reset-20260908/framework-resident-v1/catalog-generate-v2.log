@@ -1,0 +1,8 @@
+test-riscv-metal-recursive-aot
++- run test stderr
+RECURSIVE_FRAMEWORK_AOT typed_leaf=37/39 typed_parent=29/31 strict_coverage_complete=false bytes=685045
+
+Build Summary: 2/2 steps succeeded
+test-riscv-metal-recursive-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 33s MaxRSS:1G
+

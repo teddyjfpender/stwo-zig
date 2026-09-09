@@ -1,0 +1,35 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 237s
+test-riscv-metal-recursive-resident
++- run test
+   +- compile test ReleaseSafe native 1 errors
+src/tests/riscv/recursive_framework_resident_test.zig:63:9: error: expected type '[*]const runtime.resource_plans.ResourcePlans(error{CircleTransformFailed,ColumnTooLarge,CommandEpochFailed,CommitmentFailed,CompositionEvaluationFailed,FrameworkPolynomialUnavailable,FrameworkPolynomialUnsupported,InvalidColumns,InvalidFrameworkPolynomialDispatch,PolynomialEvaluationFailed,ProofOfWorkFailed,QuotientFailed,RootReadFailed,RuntimeIdentityFailed,RuntimeInitializationFailed,TimerUnsupported,TraceGenerationFailed,WitnessFeedFailed}).FrameworkPolynomialDispatch', found '*const runtime.resource_plans.ResourcePlans(error{CircleTransformFailed,ColumnTooLarge,CommandEpochFailed,CommitmentFailed,CompositionEvaluationFailed,FrameworkPolynomialUnavailable,FrameworkPolynomialUnsupported,InvalidColumns,InvalidFrameworkPolynomialDispatch,PolynomialEvaluationFailed,ProofOfWorkFailed,QuotientFailed,RootReadFailed,RuntimeIdentityFailed,RuntimeInitializationFailed,TimerUnsupported,TraceGenerationFailed,WitnessFeedFailed}).FrameworkPolynomialDispatch'
+        &dispatch,
+        ^~~~~~~~~
+src/tests/riscv/recursive_framework_resident_test.zig:63:9: note: a single pointer cannot cast into a many pointer
+src/tests/riscv/recursive_framework_resident_test.zig:27:5: note: parameter type declared here
+    [*]const Dispatch,
+    ^~~~~~~~~~~~~~~~~
+referenced by:
+    test.recursive framework AOT executes exported typed AIR on resident trees with native parity and rejection controls: src/tests/riscv/recursive_framework_resident_test.zig:209:15
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -cflags -fobjc-arc -fblocks -- /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal/runtime.m -lobjc -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_proof_wire --dep stwo_metal_backend --dep stwo_riscv_frontend --dep stwo_riscv_metal_integration -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/tests/riscv/recursive_framework_resident_test.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine -Mstwo_metal_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/metal/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_metal_backend --dep stwo_riscv_frontend -Mstwo_riscv_metal_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_metal/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -framework Foundation -framework Metal -lc --test-filter "recursive framework AOT executes" --cache-dir .zig-cache/products/riscv_metal --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/3 steps succeeded; 1 failed
+test-riscv-metal-recursive-resident transitive failure
++- run test transitive failure
+   +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_metal/o/cd252f3a102fa6ec8a319c0aaa77ceac/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/build_support .zig-cache/products/riscv_metal /Users/theodorepender/.cache/zig --seed 0x7e0cbd1a -Z771064306d8f24ff test-riscv-metal-recursive-resident -p /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig -Dproduct-scope=riscv_metal -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Dmetal-core-aot-bundle=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4 -Dimplementation-commit=5385283a0139ef4e6c1ea7e2b8e6739660cce19c -Dimplementation-dirty=true -Dimplementation-tree=7d4c1617267f9c751bd7e1c9756337fba2a62931 -Dimplementation-dirty-content-sha256=65b016e77874fa3312ac559a91153043078d1b3d790d66384c688d75f84e95f9
+test-riscv-metal-recursive-resident
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig build test-riscv-metal-recursive-resident --build-file /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_metal -p /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig -Dproduct-scope=riscv_metal -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Dmetal-core-aot-bundle=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4 -Dimplementation-commit=5385283a0139ef4e6c1ea7e2b8e6739660cce19c -Dimplementation-dirty=true -Dimplementation-tree=7d4c1617267f9c751bd7e1c9756337fba2a62931 -Dimplementation-dirty-content-sha256=65b016e77874fa3312ac559a91153043078d1b3d790d66384c688d75f84e95f9
+
+Build Summary: 0/2 steps succeeded; 1 failed
+test-riscv-metal-recursive-resident transitive failure
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig failure
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/87b771ebcfbf6d95ba046dcd5360f490/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x9cea78e8 -Z271cc582a6607e68 --maxrss 25769803776 -j1 test-riscv-metal-recursive-resident -Doptimize=ReleaseSafe -Dmetal-core-aot-bundle=.git/local-ethereum/aot-m4 --summary all

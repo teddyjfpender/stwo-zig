@@ -19,7 +19,7 @@ import subprocess
 import tempfile
 import time
 
-from riscv_segment_v2_detached_gate import MODULUS, sha256, shifted
+from riscv_segment_v2_detached_gate import AOT_PROFILES, MODULUS, sha256, shifted
 from zig_serial_build import build_lock
 
 
@@ -27,6 +27,31 @@ def digest(value: str) -> str:
     if not re.fullmatch(r"[0-9a-fA-F]{64}", value):
         raise argparse.ArgumentTypeError("expected a 32-byte SHA256 hex digest")
     return value.lower()
+
+
+def require_metal_lifecycle(output: str, manifest_pin: str, aot_profile: str | None = None) -> dict:
+    matches = list(re.finditer(
+        r"^DETACHED_PARENT_METAL dispatches=(?P<dispatches>\d+) poseidon_commits=(?P<poseidon_commits>\d+) "
+        r"cpu_fallbacks=(?P<cpu_fallbacks>\d+)(?: host_composition_components=(?P<host_composition_components>\d+) "
+        r"pow_dispatches=(?P<pow_dispatches>\d+))? runtime_released=true manifest_sha256=(?P<manifest_sha256>[0-9a-f]{64})"
+        r"(?: profile=(?P<profile>core_v2|recursive_framework_v1))?$",
+        output, re.MULTILINE))
+    if len(matches) != 1:
+        raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
+    metal = matches[0].groupdict()
+    # Old pinned producers reported no profile and only supported core_v2.
+    # Accept that legacy shape only when the caller made no explicit selection.
+    expected = AOT_PROFILES[aot_profile or "core-v2"]
+    observed = metal["profile"]
+    if (int(metal["dispatches"]) == 0 or int(metal["poseidon_commits"]) == 0 or
+            metal["manifest_sha256"] != manifest_pin or
+            (observed != expected and not (observed is None and aot_profile is None))):
+        raise RuntimeError("Metal parent did not authenticate the selected AOT profile")
+    result = {field: (int(value) if value is not None else None)
+              for field, value in metal.items() if field not in ("manifest_sha256", "profile")}
+    result.update(manifest_sha256=metal["manifest_sha256"], profile=observed,
+                  legacy_core_profile=observed is None, runtime_released=True)
+    return result
 
 
 def main() -> None:
@@ -47,10 +72,13 @@ def main() -> None:
     parser.add_argument("--producer-sha256", type=digest)
     parser.add_argument("--metal-aot-bundle", type=Path)
     parser.add_argument("--metal-aot-manifest-sha256", type=digest)
+    parser.add_argument("--metal-aot-profile", choices=tuple(AOT_PROFILES))
     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
     args = parser.parse_args()
+    if args.metal_aot_profile is not None and not args.metal_aot_bundle:
+        parser.error("AOT profile selection requires a Metal producer and bundle")
     if bool(args.metal_aot_bundle) != bool(args.metal_aot_manifest_sha256) or (args.metal_aot_bundle and not args.producer):
         parser.error("Metal production requires producer, AOT bundle and manifest pin")
     strong = args.proof_profile == "recursive_q193_v1"
@@ -158,6 +186,8 @@ def main() -> None:
             if args.metal_aot_bundle:
                 argv[1:1] = ["--aot-bundle", str(args.metal_aot_bundle.resolve()),
                              "--aot-manifest-sha256", args.metal_aot_manifest_sha256]
+                if args.metal_aot_profile is not None:
+                    argv[5:5] = ["--aot-profile", args.metal_aot_profile]
             log = output.with_name(output.name + ".producer.log")
             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
             report["producer"] = production
@@ -180,20 +210,8 @@ def main() -> None:
                     raise RuntimeError(f"parent producer lifecycle mismatch: {field}")
             production["lifecycle"] = lifecycle
             if args.metal_aot_bundle:
-                matches = list(re.finditer(
-                    r"^DETACHED_PARENT_METAL dispatches=(?P<dispatches>\d+) poseidon_commits=(?P<poseidon_commits>\d+) "
-                    r"cpu_fallbacks=(?P<cpu_fallbacks>\d+)(?: host_composition_components=(?P<host_composition_components>\d+) "
-                    r"pow_dispatches=(?P<pow_dispatches>\d+))? runtime_released=true manifest_sha256=(?P<manifest_sha256>[0-9a-f]{64})$",
-                    log.read_text(), re.MULTILINE))
-                if len(matches) != 1:
-                    raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
-                metal = matches[0].groupdict()
-                if int(metal["dispatches"]) == 0 or int(metal["poseidon_commits"]) == 0 or metal["manifest_sha256"] != args.metal_aot_manifest_sha256:
-                    raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
-                # Absence in retained legacy receipts means unknown, never zero.
-                production["metal"] = {field: (int(value) if value is not None else None)
-                                       for field, value in metal.items() if field != "manifest_sha256"}
-                production["metal"].update(manifest_sha256=metal["manifest_sha256"], runtime_released=True)
+                production["metal"] = require_metal_lifecycle(
+                    log.read_text(), args.metal_aot_manifest_sha256, args.metal_aot_profile)
             if sha256(artifacts[0]) != args.key_sha256:
                 raise RuntimeError("produced parent key differs from independent admission")
             unchanged.update({path: sha256(path) for path in artifacts})

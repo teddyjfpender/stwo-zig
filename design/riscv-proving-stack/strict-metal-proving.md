@@ -4,9 +4,9 @@ This is a source-derived inventory of the supported four-segment route as of
 2026-09-09. The existing Metal proofs are correct under their admitted
 experimental profile and use GPU kernels, but substantial prover computation
 still runs on the CPU. Strict execution guards, recursive composition export
-and a small generated-kernel device parity gate now exist. Production AOT and
-resident composition integration remain incomplete; these individual gates do
-not establish full strict execution.
+and production AOT/resident execution of the typed recursive framework now
+pass the small complete-tree gate. Provider composition and bulk witness work
+remain on the host; this does not establish full strict execution.
 
 The route contains four native proofs, four detached leaf wrappers, two
 intermediate parents and one root. The controller is
@@ -49,13 +49,13 @@ listed counters by itself establishes full-route device execution.
 | Native execution materialization and witness construction | `integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig`; `frontends/riscv/prover.zig` → orchestration; `prover/main_trace.zig`, `prover/main_trace_support.zig` | Host construction remains; some backend-specific witness generation support exists elsewhere | Native ingress timer; `metal_trace_generation_dispatch`, synchronization and copyback counters when actually used | Account for all opcode, memory, fixed-program and provider columns in the active SegmentV2 route. Existing trace dispatch elsewhere is insufficient. |
 | Leaf verifier graph preparation, main witness and closure | `integrations/riscv_cpu/recursive_segment_v2_leaf_outer.zig`, `recursive_segment_v2_outer_cohort.zig`, `recursive_segment_v2_detached_proof.zig` | CPU: preparation, `fillMainInto`, `auditGlobalClosure` | `detached_prepare_ns`, main/closure phase timing; no complete device witness receipt | Admit immutable graph/layout once, provide device row projection and provider witness generation, and cover the exact closure operation. |
 | Parent graph preparation and arithmetic lowering | `integrations/riscv_cpu/recursive_segment_v2_detached_parent_prepare.zig`, `recursive_segment_v2_detached_parent_arithmetic.zig` | CPU graph capture, evaluation, lowering and row construction | Request preparation timing; lane/fusion row counts | Separate immutable schedules from proof-dependent values, reuse admitted schedules, move bulk evaluation/projection behind explicit backend ownership. |
-| Parent main rows, compact Poseidon and exact tuple closure | `integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig`, `recursive_compact_tuple_ledger_v1.zig`; `frontends/riscv/recursion/air/poseidon2_universal_degree3_v1.zig` | CPU in `finalizeMainInto`, including provider rows, range multiplicities and ledger | `parent.main_finalize`; logical-row and provider geometry | Device witness generation and an exact closure implementation with authenticated row/use counts. Avoid repeating the closure ledger upstream. |
+| Parent main rows, compact Poseidon and exact tuple closure | `integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig`, `recursive_compact_tuple_ledger_v1.zig`; `frontends/riscv/air/memory_commitment/poseidon2_universal_degree3_v1.zig` | CPU in `finalizeMainInto`, including provider rows, range multiplicities and ledger | `parent.main_finalize`; logical-row and provider geometry | Device witness generation and an exact closure implementation with authenticated row/use counts. Avoid repeating the closure ledger upstream. |
 | Recursive lookup interactions | `frontends/riscv/recursion/air/framework_interaction.zig`; leaf/parent cohort `fillInteractionInto` | CPU relation evaluation, batch inversion, cumulative scan and bit-reversed scatter | `parent.interaction_fill`; `metal_relation_epoch` exists for other clients | Export this framework's exact equations and parameter bindings; device relation evaluation, inversion and scan. Existing generic LogUp kernels are not proof of matching recurrence. |
 | Preprocessed rows and trace storage | Leaf/parent cohort; `integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig` | CPU filling; backend storage/commit mixed | Fixed/preprocessed timings, allocator counters, commit arena alias/upload counters | Immutable prepared/preprocessed ownership and reuse; account for every expanded column, allocation and upload. Cache keys must bind exact admitted profile and geometry. |
 | Circle interpolation, evaluation and LDE | `backends/metal/commit_backend.zig`; `runtime/combined_commit.zig`, `runtime/heterogeneous_commit.zig` | GPU supported; domain log-size below 3 has host primitive branches | `metal_circle_transform_dispatch`, `metal_circle_lde_dispatch`; `cpu_small_circle_*` | Device coverage or fail-closed handling for small domains, zero/constant fast paths and all physical slabs. Report host source copies separately. |
 | Merkle commitments, including Poseidon | `backends/metal/commit_backend.zig`, `runtime/circle_commit_epoch.m`, commit runtimes | GPU resident paths; small/streaming/unsupported paths can use host hashing | `metal_poseidon2_merkle_commit`, resident commits, heterogeneous epoch dispatch/wait counts; `host_merkle_commit` | Require exact tree/leaf/parent-row coverage and authenticated hash-family kernel. A Poseidon commitment counter says nothing about Poseidon AIR witness generation or composition. |
 | Native composition | `backends/metal/runtime/base_polynomial_composition.zig`; `prover/air/component_prover.zig` | Mixed: admitted semantic/lookup batches GPU; other components host; cost crossover can retain small components on host | Eligible component counts plus completed `metal_riscv_*_batch_dispatch`; host component accounting | Cover every component and all random-coefficient ranges; strict mode must reject host placement even when it was never considered a fallback. |
-| Leaf/parent recursive composition | Typed component adapters under `frontends/riscv/recursion/air/`; same backend scheduler | Current measured route uses prepared host evaluation | `composition_evaluation`; component-level export/admission and dispatch receipts are being added | Authenticated arbitrary preprocessed bindings, direct constraints, relation parameters, exact framework recurrence, compact Poseidon and range-table coverage. |
+| Leaf/parent recursive composition | Shared AIR catalogs under `frontends/riscv/recursion/air/`; `runtime/framework_polynomial_jobs.zig`, `framework_polynomial_batch.zig` and existing scheduler | Production AOT GPU execution for 37/39 leaf and 29/31 parent components; two providers remain host | `metal_framework_polynomial_dispatch`; resident component/group logs; parent host count is 2 | Compact/legacy universal Poseidon and range providers; GPU coefficient filling during composition-domain expansion. |
 | OODS sampled evaluation and FRI quotient | `backends/metal/commit_backend.zig`; `runtime/sampled_coefficient_operations.zig`, `runtime/sampled_barycentric_operations.zig`, `runtime/quotients.m` | GPU routes available; host preparation and conditional sampled-value fallback remain | `metal_sampled_value_dispatch`, `metal_quotient_dispatch`, `cpu_sampled_value_evaluation` | Coverage by polynomial/query batch, not one dispatch per proof; distinguish quotient preparation, execution, copies and waits. |
 | FRI folds and fold commitments | `backends/metal/commit_backend_fri.zig`, `runtime/fold_inverses.zig` | Mixed: GPU folds; line-fold path computes inverse arrays on host. Circle folds use resident inverses only above a threshold unless parity checks request host data | Fold dispatches and `FriFoldExecutionLedger.inverse_path`; resident fold/commit receipts | Device inverse preparation for every admitted layer. The cascade fast path admits Blake2s and fold-step 1; it does not cover this Poseidon fold-step 4 profile. Individual fold-and-commit paths must be audited by their actual receipts. |
 | Proof of work | `backends/metal/runtime/proof_of_work.zig`; `integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig`, `recursive_segment_v2_detached_parent_proof.zig` | Backend PCS grinding GPU supported; leaf and parent interaction grinding now use shared `pcs.proof_of_work.grindForBackend` | Backend PoW result includes dispatch count/GPU milliseconds; the checked hybrid root records two PoW dispatches | Preserve backend admission for both grinding sites. Prefix setup and final nonce checking are bounded control; nonce search is computation. |
@@ -170,85 +170,73 @@ results complement fresh proof verification. They do not certify commitment
 security, the experimental q193 profile, Fiat–Shamir soundness or the whole
 recursive proof system.
 
-## Minimal production composition integration
+## Production framework composition checkpoint
 
-The source-only generator gate passed 6/6. The subsequent device gate passed
-7/7, including 27 cases, 36 completed GPU dispatches and 7,392 checked
-coordinates across 1,848 rows. It reused one generated kernel across three
-trace sizes, three extension sizes and three profile/challenge/claim variants,
-including repeated additive dispatches with a buffer barrier. CPU expected
-values use an independent rational oracle, core circle-point shifts and exact
-vanishing denominators. The focused run took 454 ms after a roughly four-second
-build; these are test timings, not proof timings.
+The separate `recursive_framework_v1` AOT profile contains 41 kernels generated
+from the exact shared leaf and parent typed AIR catalogs. Native integration
+consumes those same catalogs. The maintained source gate authenticates every
+export, deduplicates equation-identical programs and checks the generated source,
+declaration inventory and explicit coverage file. The original core profile
+remains unchanged.
 
-The expanded gate now passes 10/10 tests: four kernel shapes, 108 cases,
-144 completed dispatches and 29,568 coordinates across 7,392 rows. It adds
-sole singleton/final-pair layouts, mixed arities including 33-word tuples and
-five reordered/repeated direct roots. Each shape uses explicit scalar tuple
-expressions and rational lookup residuals as its reference. This expanded run
-took about one second after a four-second build; production AOT integration
-and actual exported-component proof parity remain separate requirements.
+`framework_polynomial_jobs.Job` owns the exported program, invocation parameters,
+physical column bindings and random-coefficient window. Kernel identity hashes
+canonical executable equations plus emitter/helper identity; relocating columns
+changes admission identity without needlessly generating another kernel. Runtime
+parameters and statement-dependent values remain checked invocation inputs.
 
-```sh
-python3 scripts/zig_serial_build.py --cwd src/backends/metal \
-  test-framework-polynomial-device -Doptimize=ReleaseFast
-```
+Production dispatch resolves pipelines only from the admitted AOT roster. It
+checks runtime ownership, exact logical tree selection, resident extents and
+parameter windows before submission, binding existing tree buffers directly.
+Small offset/parameter tables are uploaded; trace columns are not repacked by
+this dispatch. Additive writers use barriers and existing per-domain buckets.
 
-This device test deliberately compiles generated source in an isolated test
-runtime. It does not establish production AOT admission, proof-owned input
-residency or complete component coverage. A checked hybrid root retained exact
-proof-byte parity while recording 31 host composition components and two device
-PoW dispatches. That is useful correctness evidence, not strict success.
+The active geometry needs composition domains larger than some commitments.
+`framework_polynomial_batch` groups work by evaluation size and closes expansion
+over every referenced column in a logical tree, including already-sized columns,
+so one logical tree resolves to one resident buffer. It evaluates retained
+coefficients on the exact domain and borrows the existing twiddle subtree.
+Coefficient filling still performs host work and is guarded in strict mode.
+Simultaneous legacy scratch ownership and new framework expansion currently
+reject with `MixedFrameworkCompositionScratch`; this is an explicit unsupported
+mixed graph, not an alternate evaluation path.
 
-The next implementation should extend the existing resident composition route:
+### Passed gates
 
-| Change / owner | Smallest concrete integration |
-| --- | --- |
-| `prover/air/component_programs.zig` and typed component callback | The new `framework_polynomial_v1` capability already exports an owned program and owned invocation parameters. Export once per component during cold admission, before collecting residency requests; retain that immutable owner for dispatch and receipts. Check `nConstraints == direct.roots.len + batches.len`, trace geometry, actual tree bounds and canonical parameter lengths. Do not export again to count columns or dispatch rows. |
-| `backends/metal/runtime/framework_polynomial_codegen.zig` | Keep full placement-bound program identity for job admission. Before growing the AOT roster, separate kernel equation identity from physical placement: current identity includes absolute column indices even though the emitted code uses an offset table. Hash the canonical emitted kernel with a fixed placeholder name, plus emitter/helper/version identity, or an equivalent exact structural projection. Relocating columns should change the job identity but reuse identical kernel code; changing source tree, equations, input-slot order or coefficient order must change kernel identity. Never normalize the admitted program in place or discard its full seal. |
-| New framework program/job owner beside `runtime/lookup_polynomial_v2_owner.zig` | Follow its ownership-transfer/error cleanup pattern, but avoid invoking full program validation through every getter. Seal the admitted program plus physical bindings, trace/evaluation logs, constraint count and code identity once. Resolve profile words, canonical per-entry relation challenges and `claimedSumShift()` from the component callback; match its trace log to the admitted component. Values are invocation inputs, not AOT constants. |
-| `runtime/base_polynomial_composition.zig`, `composition_device_buckets.zig` | Add a whole-component framework partition and job list. Consume the existing global random-power window in direct-root order followed by one secure residual per batch. Include every exported PP/main/interaction coordinate in residency/expansion planning. Dispatch into the existing per-log output buckets with barriers between additive writers, then merge once. Strict mode rejects an unsupported component before launching host workers; hybrid mode can still use its explicitly measured host path. |
-| `runtime/resource_plans.zig`, `runtime/bindings.zig`, `runtime.zig`, new framework `.zig`/`.m` operations | Add the existing 11-buffer kernel ABI as a distinct dispatch type; reuse resident resolution and pipeline ownership rather than pretending it is the old selector/main ABI. A dedicated AOT prepare operation should only resolve the admitted framework prefix. Validate buffer ownership, all descriptor extents, coefficient/parameter windows and denominator geometry before encoding. Do not call source-library preparation in production. |
-| `shaders/aot_profile.zig`, generated recursive shader/export roster, `runtime/initialization.m` | Reuse the explicit extension-profile mechanism already used for Ethereum: append a recursive framework source/ABI roster to core in a separate admitted profile. Generate from actual active typed AIR exports and deduplicate by kernel identity. The runtime's additional-name whitelist currently accepts only base/lookup prefixes; add the framework prefix deliberately. Load through `core_aot.admitForProfile` and `Runtime.initFromAotAdmission`, preserving manifest, source, metallib and declaration-digest checks. |
-| `runtime/riscv_polynomial_aot_codegen.zig` and maintained export gate | Reuse the existing common preamble and per-program emission pattern for a recursive extension; avoid inserting a second copy of field helpers into one library. Require source regeneration to equal the checked-in extension and its exact exported name/ABI inventory. Enumerate active leaf and parent AIRs, including provider/range components, rather than assuming six exporter fixtures cover the whole tree. |
+- Isolated generated-kernel device parity: 108 cases, 144 dispatches and
+  29,568 checked coordinates across four kernel shapes.
+- Actual exported arithmetic AIR through production AOT and resident committed
+  buffers: two additive dispatches, all 64 coordinates equal native evaluation,
+  six invalid binding/parameter cases rejected without output mutation.
+- Full four-segment production with CPU composition parity enabled: 136 fresh
+  positive/negative verifier cases pass; all 21 serialized proof/key/claim
+  artifacts equal the retained baseline. Leaf wrappers dispatch 37 framework
+  components; parents dispatch 29, retaining two host provider components.
+- Mixed-domain scratch, borrowed twiddle views and explicit AOT profile routing
+  have focused regression checks. Source regeneration must reproduce the exact
+  checked-in extension.
 
-**Current resident shape supports the three-tree-buffer ABI.**
-`TreeStorageForManifest` allocates one backing buffer per tree and transfers it
-through `commitWithBacking`. The uniform commit publishes `@[extended]`
-(`runtime/circle_commit_epoch.m`), heterogeneous commit publishes `@[arena]`
-(`runtime/merkle_epochs.m`), and generic Poseidon commitment publishes
-`@[staging]` (`runtime/lifecycle_and_tree.m`). Their per-column maps retain
-actual offsets, including the wide offset format; columns need not be packed
-contiguously. The typed adapter references placement-local PP/main/interaction
-columns. There is no demonstrated need to replace this with a per-column Metal
-argument buffer for the current route.
+The leaf receipt's legacy `composition_dispatches` counts the old semantic and
+lookup batches only; it can be zero while framework composition runs on Metal.
+The new framework event contributes to total dispatches and has a separate
+telemetry counter and resident component/group log. Until the leaf receipt
+exports that counter explicitly, use these positive framework logs and the
+admitted coverage roster together; the legacy zero is not a coverage verdict.
 
-This is a source-derived property, not a license to assume that a logical tree
-always means one physical buffer. Reuse
-`runtime.m:stwo_zig_polynomial_input_column`, which returns the actual resident
-buffer and word offset without uploading a host slice. For each dispatch,
-require all coordinates selecting the same shader tree to resolve to the same
-`MTLBuffer`; check runtime ownership, source-coordinate association and
-`offset + evaluation_rows` within that buffer using checked wide arithmetic.
-Reject a mismatch before dispatch. Uploading the small offset/parameter tables
-is sufficient; do not repack trace columns.
+Commands, executable/bundle pins, retained failures and complete-tree observations
+are recorded in [the resident checkpoint](../../vectors/reports/riscv-proving-stack-reset-20260908/framework-resident-v1/README.md).
+The CPU parity run intentionally repeats computation and is not a performance
+measurement. Full strict acceptance still requires every operation in the
+inventory above.
 
-**Degree expansion is a separate boundary.** The q193 PCS blowup is one bit;
-a component's quotient may require more. Existing
-`composition_domain_scratch.OwnedV1` evaluates retained coefficients onto the
-exact wider domain and admits one evaluation log per owner. It rejects mixed
-logs with `MixedCompositionDomainScratchLogSizes`. Group genuine expansion
-requests by evaluation log and retain those owners through their dispatches;
-do not relabel committed evaluations, enlarge every component to the largest
-domain, or repeat expansion merely to force a convenient buffer shape. If a
-component's references within one logical tree mix original resident and
-scratch buffers, the initial ABI must reject it. Only a demonstrated active
-case should trigger an argument-buffer extension. The existing scratch owner
-also fills coefficient/zero ranges on the host before its GPU transform; this
-remains visible bulk work for the later full strict gate.
+### Next provider boundary
 
-Production acceptance for this integration is an authenticated AOT kernel
-executing actual exported leaf/parent components against their proof-owned
-resident columns, matching the original CPU component evaluator and completing
-fresh verification. The following full strict gate must still cover the
-separate witness, closure, interaction and FRI obligations listed above.
+The remaining Poseidon and range providers use independent per-batch running
+sums and claims. They cannot consume the framework's same-row-prefix recurrence.
+Legacy universal Poseidon already exports its direct and lookup equations;
+its direct kernels need AOT coverage before enabling that capability. Compact
+universal Poseidon should generalize the existing native-evaluator-backed
+exporter. The range provider needs mapped preprocessing/main inputs and zero
+direct roots, with its exact independent-prefix relation preserved. Reuse the
+existing authenticated range relation plan and native recurrence; do not add
+fake direct constraints or silently reinterpret a lookup layout.

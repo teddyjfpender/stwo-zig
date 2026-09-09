@@ -113,17 +113,117 @@ test "framework codegen rejects stale identity, bad geometry and unsupported tre
     defer arena.deinit();
     var program = try fixture(arena.allocator());
     const entry = subject.Entry{ .program = &program, .tree_column_counts = &.{ 3, 5, 18, 3 } };
-    const original = try subject.codegenIdentity(entry);
+    const original = try subject.codegenIdentity(arena.allocator(), entry);
     program.inputs[0].trace_column.column_index = 1;
-    try std.testing.expectError(error.InvalidFrameworkPolynomialIdentity, subject.codegenIdentity(entry));
+    try std.testing.expectError(error.InvalidFrameworkPolynomialIdentity, subject.codegenIdentity(arena.allocator(), entry));
     program.identity = program.identityDigest();
-    try std.testing.expect(!std.mem.eql(u8, &original, &try subject.codegenIdentity(entry)));
+    try std.testing.expectEqual(original, try subject.codegenIdentity(arena.allocator(), entry));
     program.inputs[0].trace_column.tree_index = 3;
     program.identity = program.identityDigest();
-    try std.testing.expectError(error.UnsupportedFrameworkPolynomialTree, subject.codegenIdentity(entry));
+    try std.testing.expectError(error.UnsupportedFrameworkPolynomialTree, subject.codegenIdentity(arena.allocator(), entry));
     program.inputs[0].trace_column.tree_index = 0;
     program.identity = program.identityDigest();
     try std.testing.expectError(error.InvalidFrameworkPolynomialInput, subject.validate(.{ .program = &program, .tree_column_counts = &.{ 3, 5, 17 } }));
+}
+
+fn relocate(program: *Program) void {
+    program.inputs[0].trace_column.column_index = 1;
+    program.inputs[1].trace_column.column_index = 2;
+    for (program.interaction_columns, 0..) |*column, index|
+        column.column_index = @intCast(index);
+    program.identity = program.identityDigest();
+}
+
+test "framework kernel relocation retains full admission identities and deduplicates declarations" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    var original = try fixture(allocator);
+    var moved = try fixture(allocator);
+    relocate(&moved);
+    const original_seal = original.identity;
+    const moved_seal = moved.identity;
+    try std.testing.expect(!std.mem.eql(u8, &original_seal, &moved_seal));
+    const first = subject.Entry{ .program = &original, .tree_column_counts = &TREE_COUNTS };
+    const second = subject.Entry{ .program = &moved, .tree_column_counts = &TREE_COUNTS };
+    try std.testing.expectEqual(try subject.codegenIdentity(allocator, first), try subject.codegenIdentity(allocator, second));
+    try std.testing.expectEqualStrings(try subject.kernelName(allocator, first), try subject.kernelName(allocator, second));
+    const one = try subject.generateLibrary(allocator, &.{first});
+    try std.testing.expectEqualStrings(one, try subject.generateLibrary(allocator, &.{second}));
+    try std.testing.expectEqualStrings(one, try subject.generateLibrary(allocator, &.{ first, second, first }));
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, one, "kernel void "));
+    // Kernel generation never rewrites or substitutes the full program seal.
+    try std.testing.expectEqual(original_seal, original.identity);
+    try std.testing.expectEqual(moved_seal, moved.identity);
+    try subject.validate(first);
+    try subject.validate(second);
+}
+
+test "framework duplicate kernel entries still require full valid admission" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+    var original = try fixture(allocator);
+    var moved = try fixture(allocator);
+    relocate(&moved);
+    const entries = [_]subject.Entry{
+        .{ .program = &original, .tree_column_counts = &TREE_COUNTS },
+        .{ .program = &moved, .tree_column_counts = &TREE_COUNTS },
+    };
+    moved.identity[0] ^= 1;
+    try std.testing.expectError(error.InvalidFrameworkPolynomialIdentity, subject.generateLibrary(allocator, &entries));
+    moved.inputs[0].trace_column.column_index = 999;
+    moved.identity = moved.identityDigest();
+    try std.testing.expectError(error.InvalidFrameworkPolynomialInput, subject.generateLibrary(allocator, &entries));
+}
+
+test "framework kernel identity changes with executable bindings equations and constraint order" {
+    const Mutation = enum { input_tree, input_slot, interaction_tree, direct_equation, root_order, batch_partition };
+    inline for (std.meta.tags(Mutation)) |mutation| {
+        var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+        defer arena.deinit();
+        const allocator = arena.allocator();
+        var program = try fixture(allocator);
+        program.direct.roots = try allocator.dupe(u32, &.{ 4, 3 });
+        program.identity = program.identityDigest();
+        const entry = subject.Entry{ .program = &program, .tree_column_counts = &.{ 32, 32, 32 } };
+        const original_seal = program.identity;
+        const original_kernel = try subject.codegenIdentity(allocator, entry);
+        switch (mutation) {
+            .input_tree => program.inputs[0].trace_column.tree_index = 1,
+            .input_slot => program.direct.nodes[0].value = 1,
+            .interaction_tree => program.interaction_columns[0].tree_index = 1,
+            .direct_equation => program.direct.nodes[4].op = .add,
+            .root_order => std.mem.swap(u32, &program.direct.roots[0], &program.direct.roots[1]),
+            .batch_partition => {
+                program.batches[0].entry_count = 1;
+                program.batches[1].first_entry = 1;
+                program.batches[1].entry_count = 2;
+            },
+        }
+        program.identity = program.identityDigest();
+        try std.testing.expect(!std.mem.eql(u8, &original_seal, &program.identity));
+        try std.testing.expect(!std.mem.eql(u8, &original_kernel, &try subject.codegenIdentity(allocator, entry)));
+    }
+}
+
+fn generateAllocationChecked(allocator: std.mem.Allocator, entries: []const subject.Entry) !void {
+    const source = try subject.generateLibrary(allocator, entries);
+    defer allocator.free(source);
+    try std.testing.expectEqual(@as(usize, 1), std.mem.count(u8, source, "kernel void "));
+}
+
+test "framework kernel canonical source and deduplication release every failed allocation" {
+    var arena = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer arena.deinit();
+    var original = try fixture(arena.allocator());
+    var moved = try fixture(arena.allocator());
+    relocate(&moved);
+    const entries = [_]subject.Entry{
+        .{ .program = &original, .tree_column_counts = &TREE_COUNTS },
+        .{ .program = &moved, .tree_column_counts = &TREE_COUNTS },
+    };
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, generateAllocationChecked, .{@as([]const subject.Entry, &entries)});
 }
 
 /// Scalar translation of the reused MSL address helper, tested against the

@@ -10,9 +10,9 @@ const field_codegen = @import("lookup_polynomial_codegen.zig");
 const Program = component.OwnedFrameworkPolynomialProgramV1;
 const Node = component.BasePolynomialNode;
 
-pub const codegen_version: u16 = 1;
-pub const identity_domain = "stwo/metal/framework-polynomial-codegen/v1\x00";
-// Version records the reviewed ABI. Exact emitter/helper bytes additionally
+pub const codegen_version: u16 = 2;
+pub const identity_domain = "stwo/metal/framework-polynomial-codegen/v2\x00";
+// Codegen v2 retains the v1 buffer ABI. Exact emitter/helper bytes additionally
 // invalidate cached kernels when a source change accidentally omits a bump.
 const emitter_source = @embedFile("framework_polynomial_codegen.zig");
 
@@ -33,8 +33,14 @@ pub fn validate(entry: Entry) !void {
         if (column.tree_index > 2) return error.UnsupportedFrameworkPolynomialTree;
 }
 
-pub fn codegenIdentity(entry: Entry) ![32]u8 {
-    try validate(entry);
+/// Kernel identity binds executable equations, not their physical placement.
+/// emitKernel still validates the complete placement-bound program before
+/// producing the canonical body. The original program seal remains unchanged
+/// and must be retained separately by runtime job admission.
+pub fn codegenIdentity(allocator: std.mem.Allocator, entry: Entry) ![32]u8 {
+    var canonical = std.ArrayList(u8).empty;
+    defer canonical.deinit(allocator);
+    try emitKernel(allocator, canonical.writer(allocator), "stwo_framework_canonical", entry);
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(identity_domain);
     var version: [2]u8 = undefined;
@@ -45,13 +51,18 @@ pub fn codegenIdentity(entry: Entry) ![32]u8 {
     hash.update(&source_digest);
     std.crypto.hash.sha2.Sha256.hash(field_codegen.preamble, &source_digest, .{});
     hash.update(&source_digest);
-    hash.update(&entry.program.identity);
+    std.crypto.hash.sha2.Sha256.hash(canonical.items, &source_digest, .{});
+    hash.update(&source_digest);
     return hash.finalResult();
 }
 
 pub fn kernelName(allocator: std.mem.Allocator, entry: Entry) ![]u8 {
+    return nameForIdentity(allocator, try codegenIdentity(allocator, entry));
+}
+
+fn nameForIdentity(allocator: std.mem.Allocator, identity: [32]u8) ![]u8 {
     return std.fmt.allocPrint(allocator, "stwo_zig_framework_poly_v1_{s}", .{
-        std.fmt.bytesToHex(try codegenIdentity(entry), .lower),
+        std.fmt.bytesToHex(identity, .lower),
     });
 }
 
@@ -59,10 +70,17 @@ pub fn generateLibrary(allocator: std.mem.Allocator, entries: []const Entry) ![]
     if (entries.len == 0) return error.InvalidFrameworkPolynomialProgram;
     var source = std.ArrayList(u8).empty;
     errdefer source.deinit(allocator);
+    var emitted = std.AutoHashMap([32]u8, void).init(allocator);
+    defer emitted.deinit();
     const writer = source.writer(allocator);
     try writer.writeAll(field_codegen.preamble);
     for (entries) |entry| {
-        const name = try kernelName(allocator, entry);
+        // Admission precedes deduplication: an invalid relocated entry cannot
+        // borrow admission from another job with the same executable body.
+        const identity = try codegenIdentity(allocator, entry);
+        const slot = try emitted.getOrPut(identity);
+        if (slot.found_existing) continue;
+        const name = try nameForIdentity(allocator, identity);
         defer allocator.free(name);
         try emitKernel(allocator, writer, name, entry);
     }

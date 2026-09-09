@@ -1,0 +1,11 @@
+{
+  "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/recursive-framework-aot-m4-v1",
+  "profile": "recursive_framework_v1",
+  "files": {
+    "stwo_zig_core.metallib": "160b11d22a969930177fd2176cb2a6cc0106b6a3fba142e44020f522d379238a",
+    "stwo_zig_core.metal": "8abeae5bd453f40f8ff2395ec5d9cb7cef9808643c40ed71e6c3c23a0d74f8b1",
+    "stwo_zig_core.manifest.sha256": "2ab9ad2c50bfbaf2eccf5ebede18705b887df005f1c37bab46280fbca7a2d7d5",
+    "stwo_zig_core.manifest.json": "0e8b67dc70c8d699ba155f16a6fedcd8541c4615326796c7c120c62a64646403",
+    "stwo_zig_core.air": "5ec196573848d809af5006ec0d2b998d48f09ceca1f48a579fd2ff199b045ad0"
+  }
+}

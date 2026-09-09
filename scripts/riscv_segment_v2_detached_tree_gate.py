@@ -16,7 +16,7 @@ import subprocess
 import sys
 import time
 
-from riscv_segment_v2_detached_gate import require_producer_lifecycle, sha256
+from riscv_segment_v2_detached_gate import AOT_PROFILES, require_producer_lifecycle, sha256
 from riscv_segment_v2_detached_parent_gate import digest
 from zig_serial_build import build_lock
 
@@ -32,7 +32,10 @@ def main() -> None:
         parser.add_argument("--" + role + "-sha256", type=digest, required=True)
     parser.add_argument("--aot-bundle", type=Path)
     parser.add_argument("--aot-manifest-sha256", type=digest)
+    parser.add_argument("--aot-profile", choices=tuple(AOT_PROFILES))
     args = parser.parse_args()
+    if args.aot_profile is not None and args.backend != "metal":
+        parser.error("CPU proving does not accept an AOT profile")
     if (args.backend == "metal") != bool(args.aot_bundle and args.aot_manifest_sha256) or bool(args.aot_bundle) != bool(args.aot_manifest_sha256):
         parser.error("only Metal requires both AOT bundle and manifest pin")
     output = args.output.resolve()
@@ -69,7 +72,7 @@ def main() -> None:
         admit(args.aot_bundle / "stwo_zig_core.manifest.json", args.aot_manifest_sha256)
     output.mkdir(parents=True)
     report = {"gate_sha256": sha256(Path(__file__)), "admission_sha256": args.admission_sha256,
-              "backend": args.backend, "segments": count, "profile": manifest["profile"],
+              "backend": args.backend, "aot_profile": AOT_PROFILES[args.aot_profile or "core-v2"] if args.backend == "metal" else None, "segments": count, "profile": manifest["profile"],
               "inputs": {str(p): pin for p, pin in inputs.items()}, "steps": [], "passed": False,
               "timing_scope": "complete gate includes hostile cases; production sums are separate measurements"}
     scripts = Path(__file__).resolve().parent
@@ -116,10 +119,12 @@ def main() -> None:
                      f"--child-{index}-key-sha256", node["key"]["sha256"]]
         if args.backend == "metal":
             argv += ["--aot-bundle", str(args.aot_bundle.resolve()), "--aot-manifest-sha256", args.aot_manifest_sha256]
+            if args.aot_profile is not None:
+                argv += ["--aot-profile", args.aot_profile]
         batch = run("produce-leaves", argv, heavy=True)
         text = Path(batch["log"]).read_text()
         batch["lifecycle"] = require_producer_lifecycle(
-            text, args.backend, args.aot_manifest_sha256, args.backend, count)
+            text, args.backend, args.aot_manifest_sha256, args.backend, count, args.aot_profile)
         previous_dirs = [leaf_dir / f"child-{index}" for index in range(count)]
         for index, (directory, node) in enumerate(zip(previous_dirs, leaves)):
             gate = output / f"leaf-{index}-accepted.json"
@@ -149,6 +154,8 @@ def main() -> None:
                     argv += ["--" + side, *child_args(previous_dirs[child_index], previous_nodes[child_index])]
                 if args.backend == "metal":
                     argv += ["--metal-aot-bundle", str(args.aot_bundle.resolve()), "--metal-aot-manifest-sha256", args.aot_manifest_sha256]
+                    if args.aot_profile is not None:
+                        argv += ["--metal-aot-profile", args.aot_profile]
                 run(name, argv)
                 accepted = json.loads(gate.read_bytes())
                 if not accepted["passed"] or not accepted["producer"]["exited_before_verification"]:

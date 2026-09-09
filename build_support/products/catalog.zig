@@ -155,6 +155,8 @@ pub const steps = [_]Step{
     .{ .name = "riscv-recursion-shape-inspector", .description = "Build the proof-independent canonical workload shape inspector", .scope = .riscv_cpu },
     .{ .name = "stwo-ethereum-block-proof", .description = "Build the streamed Ethereum segment proof producer/verifier", .scope = .riscv_cpu },
     .{ .name = "riscv-csp-bench-metal", .description = "Run the pinned EthProofs CSP benchmark matrix on Metal", .scope = .riscv_metal },
+    .{ .name = "test-riscv-metal-recursive-aot", .description = "Check or regenerate the exact recursive typed AIR AOT catalog without proving", .scope = .riscv_metal },
+    .{ .name = "test-riscv-metal-recursive-resident", .description = "Check admitted recursive AOT dispatch against native AIR and hostile bindings", .scope = .riscv_metal },
     .{ .name = "test-riscv-metal-guest-poseidon2-aot", .description = "Prove and independently verify the exact guest Poseidon2 profile on authenticated Metal AOT", .scope = .riscv_metal },
     .{ .name = "metal-arena-plan", .description = "Build sparse Metal arena planner", .scope = .metal_tools },
     .{ .name = "metal-arena-session", .description = "Build persistent Metal SN PIE prover session", .scope = .metal_tools },
@@ -226,6 +228,8 @@ pub const configure = [_]Configure{
             "src/products/riscv_metal/root.zig",
             "src/integrations/riscv_metal/mod.zig",
             "src/tests/riscv/metal_backend_test.zig",
+            "src/tests/riscv/recursive_framework_aot_test.zig",
+            "src/tests/riscv/recursive_framework_resident_test.zig",
             "src/frontends/riscv/mod.zig",
         },
         // The production CLI carries `build_identity` and `product_identity`
