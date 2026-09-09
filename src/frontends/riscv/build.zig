@@ -855,8 +855,8 @@ pub fn build(b: *std.Build) void {
         .step = "test-segment-statement-v2",
         .description = "Run only SegmentV2 boundary and continuation-root tests",
         .root = "segment_statement_v2_test_root.zig",
-        .filters = &.{ "segment statement V2", "V2 transcript layout", "native authority preimage" },
-        .minimum = 20,
+        .filters = &.{ "segment statement V2", "V2 transcript layout", "native authority preimage", "access clock:" },
+        .minimum = 23,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-segment-statement-source-v2",

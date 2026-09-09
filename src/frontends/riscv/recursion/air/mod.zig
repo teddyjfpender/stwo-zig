@@ -212,3 +212,6 @@ pub const ethereum_initial_input_lane_v1 = @import("ethereum_initial_input_lane_
 // Opt-in companion bridge; no selected manifest/default changes.
 pub const ethereum_initial_input_packet_v1 = @import("ethereum_initial_input_packet_v1.zig");
 pub const ethereum_initial_input_manifest_v1 = @import("ethereum_initial_input_manifest_v1.zig");
+
+pub const detached_graph_input_v1 = @import("detached_graph_input_v1.zig");
+pub const detached_poseidon_graph_v1 = @import("detached_poseidon_graph_v1.zig");

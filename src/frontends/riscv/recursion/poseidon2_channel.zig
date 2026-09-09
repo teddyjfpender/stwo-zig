@@ -19,6 +19,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const permutation = @import("../air/memory_commitment/poseidon2.zig");
 const permutation_constants = @import("../air/memory_commitment/poseidon2_constants.zig");
+pub const canonical_word_sponge = @import("poseidon2_canonical_word_sponge.zig");
 
 const m31 = stwo_core.fields.m31;
 const qm31 = stwo_core.fields.qm31;
@@ -53,29 +54,21 @@ const Sponge = struct {
 
     fn init(capacity_tag: u32) Sponge {
         std.debug.assert(capacity_tag < m31.Modulus);
-        var state = [_]M31{M31.zero()} ** permutation.WIDTH;
-        state[permutation.WIDTH - 1] = M31.fromCanonical(capacity_tag);
+        const state = canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(capacity_tag));
         return .{ .state = state, .filled = 0 };
     }
 
     fn absorbCanonical(self: *Sponge, word: u32) void {
         std.debug.assert(word < m31.Modulus);
-        self.state[self.filled] = self.state[self.filled].add(
-            M31.fromCanonical(word),
-        );
-        self.filled += 1;
-        if (self.filled == RATE) {
-            permutation.permute(&self.state);
-            self.filled = 0;
-        }
+        canonical_word_sponge.absorb(self, M31.fromCanonical(word));
+    }
+
+    pub fn permute(self: *Sponge) void {
+        permutation.permute(&self.state);
     }
 
     fn finish(self: *Sponge) Hash {
-        self.absorbCanonical(1);
-        if (self.filled != 0) {
-            permutation.permute(&self.state);
-            self.filled = 0;
-        }
+        canonical_word_sponge.finish(self, M31.one());
         return stateDigest(self.state);
     }
 };

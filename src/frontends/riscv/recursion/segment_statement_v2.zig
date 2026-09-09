@@ -103,3 +103,6 @@ pub const authenticateAdjacentCanonicalWires = shard_3.authenticateAdjacentCanon
 /// exact retained slices.
 pub const requireAdjacentSources = shard_3.requireAdjacentSources;
 pub const formatId = shard_3.formatId;
+
+/// Shared native/recursive traversal; caller authenticates address topology.
+pub const continuationSubtreeRootWithHasher = shard_1.continuationSubtreeRootWithHasher;

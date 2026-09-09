@@ -68,11 +68,15 @@ pub const Counts = struct {
 /// Borrowed graph authority. `circuit_identity` is the producer's complete
 /// profile/graph/input seal; `graph.identity_digest` independently seals the
 /// operation DAG lowered here.
+pub const Export = struct { node_id: u32, uses: u32 };
+
 pub const Lane = struct {
     circuit_id: u32,
     active_in: Mode,
     circuit_identity: digest.Digest,
     graph: graph_mod.CircuitGraph,
+    /// Sorted, unique reads by other admitted circuit lanes. Empty preserves V1.
+    exports: []const Export = &.{},
 };
 
 pub const Reference = struct {
@@ -165,6 +169,26 @@ pub fn computeUseCountsInto(
     };
     for (graph.outputs) |output| try incrementUse(&uses[output]);
     return uses;
+}
+
+/// Internal operations, zero-output anchors and admitted cross-circuit reads
+/// share one multiplicity calculation. Input routing must use this exact plan.
+pub fn computeLaneUseCountsInto(lane: Lane, scratch: []u32) Error![]u32 {
+    const uses = try computeUseCountsInto(lane.graph, scratch);
+    try validateExports(lane);
+    for (lane.exports) |item| {
+        uses[item.node_id] = std.math.add(u32, uses[item.node_id], item.uses) catch return error.ArithmeticOverflow;
+        if (uses[item.node_id] >= m31.Modulus) return error.CircuitCoordinateNotCanonical;
+    }
+    return uses;
+}
+
+fn validateExports(lane: Lane) Error!void {
+    for (lane.exports, 0..) |item, index| {
+        if (item.node_id >= lane.graph.nodes.len or item.uses == 0 or item.uses >= m31.Modulus or
+            (index != 0 and lane.exports[index - 1].node_id >= item.node_id))
+            return error.InvalidPublicAnchor;
+    }
 }
 
 pub fn incrementUse(value: *u32) Error!void {
@@ -363,10 +387,9 @@ pub fn metadataMatches(
         metadata.rhs_id.toU32() == rhs_id;
 }
 
-pub fn publicTermClaim(
-    challenge: *const universal.Elements,
-    term: PublicWireTerm,
-) PublicClaimError!QM31 {
+pub const PublicTermParts = struct { tuple: [6]QM31, numerator: QM31 };
+/// One native/recursive authority for fixed public-anchor tuple order and sign.
+pub fn publicTermParts(term: PublicWireTerm) PublicClaimError!PublicTermParts {
     if (term.circuit_id >= m31.Modulus or term.node_id >= m31.Modulus or
         term.multiplicity == 0 or term.multiplicity >= m31.Modulus or
         term.role == .request)
@@ -374,18 +397,24 @@ pub fn publicTermClaim(
         return error.InvalidPublicAnchor;
     }
     const words = term.value.toM31Array();
-    const denominator = challenge.combineSecure(&.{
+    const tuple = [6]QM31{
         QM31.fromBase(M31.fromCanonical(term.circuit_id)),
         QM31.fromBase(M31.fromCanonical(term.node_id)),
         QM31.fromBase(words[0]),
         QM31.fromBase(words[1]),
         QM31.fromBase(words[2]),
         QM31.fromBase(words[3]),
-    }) catch return error.InvalidPublicAnchor;
-    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
+    };
     var numerator = QM31.fromBase(M31.fromCanonical(term.multiplicity));
     if (term.role == .consume) numerator = numerator.neg();
-    return numerator.mul(inverse_value);
+    return .{ .tuple = tuple, .numerator = numerator };
+}
+
+pub fn publicTermClaim(challenge: *const universal.Elements, term: PublicWireTerm) PublicClaimError!QM31 {
+    const parts = try publicTermParts(term);
+    const denominator = challenge.combineSecure(&parts.tuple) catch return error.InvalidPublicAnchor;
+    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
+    return parts.numerator.mul(inverse_value);
 }
 
 pub fn inputTermClaim(
@@ -441,6 +470,7 @@ pub fn validateLanesHot(lanes: []const Lane) Error!void {
     for (lanes, 0..) |lane, lane_index| {
         if (lane.circuit_id >= m31.Modulus)
             return error.CircuitIdNotCanonical;
+        try validateExports(lane);
         seen_modes[@intFromEnum(lane.active_in)] = true;
         for (lanes[0..lane_index]) |previous| {
             if (previous.circuit_id == lane.circuit_id)
@@ -479,6 +509,21 @@ pub fn referenceDigest(lanes: []const Lane) digest.Digest {
         hashInt(&hash, u8, @intFromEnum(lane.active_in));
         hash.update(&lane.circuit_identity);
         hash.update(&lane.graph.identity_digest);
+    }
+    // Append a domain-separated extension only when exports exist. Existing
+    // CSP and frozen recursion references retain byte-for-byte identities.
+    const has_exports = for (lanes) |lane| {
+        if (lane.exports.len != 0) break true;
+    } else false;
+    if (has_exports) {
+        hash.update("/cross-circuit-exports/v1\x00");
+        for (lanes) |lane| {
+            hashInt(&hash, u32, lane.exports.len);
+            for (lane.exports) |item| {
+                hashInt(&hash, u32, item.node_id);
+                hashInt(&hash, u32, item.uses);
+            }
+        }
     }
     return hash.finalResult();
 }

@@ -95,6 +95,8 @@ pub const ManifestV2 = shard_0.ManifestV2;
 /// Native temporal preimage retained separately from every SHA closure ID.
 pub const NativeTemporalContextV2 = shard_0.NativeTemporalContextV2;
 pub const nativeContext = shard_0.nativeContext;
+pub const emitContextIdentity = shard_0.emitContextIdentity;
+pub const emitContextWords = shard_0.emitContextWords;
 pub const PerformanceV2 = shard_0.PerformanceV2;
 /// SHA identities consumed by global-closure plumbing.  These byte values are
 /// never accepted where a native temporal `Digest` is required.
@@ -122,6 +124,7 @@ pub const writeTraceInto = shard_1.writeTraceInto;
 pub const writeStatementRelationEventsInto = shard_1.writeStatementRelationEventsInto;
 /// Canonical statement tuple shared by source writers and detached verifiers.
 pub const statementEvent = shard_1.statementEvent;
+pub const statementTupleGeneric = shard_1.statementTupleGeneric;
 /// Allocation-free source preflight over the uncompensated public boundary.
 ///
 /// This value is useful for typed-AIR authoring and trace-shape validation,

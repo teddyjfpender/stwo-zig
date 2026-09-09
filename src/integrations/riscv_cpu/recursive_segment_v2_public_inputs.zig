@@ -28,18 +28,25 @@ pub fn statementClaim(
     const context = try source.nativeContext(&metadata, admitted_keys, admitted_source_manifest);
     const context_words = try context.canonicalWords();
     try relations.validate();
-    const challenge = relations.get(source.STATEMENT_RELATION_DOMAIN);
-    var claim = QM31.zero();
-    for (expected.words(), 0..) |word, index| {
-        const event = source.statementEvent(source.WIRE_SCOPE, index, word);
-        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
-    }
-    for (context_words, 0..) |word, index| {
-        const event = source.statementEvent(source.CONTEXT_SCOPE, index, word);
-        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
-    }
-    return claim;
+    var sink = NativeStatementSink{ .challenge = relations.get(source.STATEMENT_RELATION_DOMAIN) };
+    try emitStatementTerms(expected.words(), &context_words, &sink);
+    return sink.claim;
 }
+
+/// Canonical expected-public multiset order. The sink decides whether each
+/// inverse is evaluated natively or recorded as an authenticated AIR equation.
+pub fn emitStatementTerms(wire: anytype, context: anytype, sink: anytype) !void {
+    for (wire, 0..) |word, index| try sink.term(source.WIRE_SCOPE, index, word);
+    for (context, 0..) |word, index| try sink.term(source.CONTEXT_SCOPE, index, word);
+}
+const NativeStatementSink = struct {
+    challenge: *const universal.Elements,
+    claim: QM31 = QM31.zero(),
+    pub fn term(self: *NativeStatementSink, scope: u32, index: usize, value: core.fields.m31.M31) !void {
+        const event = source.statementEvent(scope, index, value);
+        self.claim = self.claim.add(try (try self.challenge.combineBase(&event.tuple)).inv());
+    }
+};
 
 /// Checks public-input equality; it does not verify the STARK. The caller must
 /// also verify the same row36 claim through the canonical component adapter.

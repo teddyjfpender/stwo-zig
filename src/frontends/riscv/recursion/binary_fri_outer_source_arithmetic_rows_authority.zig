@@ -140,6 +140,7 @@ pub const ArithmeticRowsAuthority = struct {
             return error.SourceAuthorityMismatch;
         for (self.lanes, program_lanes) |actual, expected| {
             if (!std.meta.eql(actual.active_in, expected.active_in) or
+                !exportsEqual(actual.exports, expected.exports) or
                 actual.circuit_id != expected.circuit_id or
                 !std.mem.eql(
                     u8,
@@ -602,4 +603,10 @@ pub fn merkleRowsAuthorityDigest(rows: *const MerkleRowsAuthority) air_digest.Di
     hash.update(&rows.relation.registry_order_digest);
     hashInt(&hash, u16, rows.relation.compiled_node_count);
     return hash.finalResult();
+}
+
+fn exportsEqual(left: []const lowering.Export, right: []const lowering.Export) bool {
+    if (left.len != right.len) return false;
+    for (left, right) |a, b| if (!std.meta.eql(a, b)) return false;
+    return true;
 }

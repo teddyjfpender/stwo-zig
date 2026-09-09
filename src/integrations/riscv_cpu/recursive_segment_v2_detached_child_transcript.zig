@@ -149,6 +149,40 @@ pub const OwnedV1 = opaque {
     pub fn compositionLayout(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3 {
         return recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3.initSegment(allocator, &self.key().manifest, &self.storage().capture);
     }
+    /// Explicit preparation of the shared PCS/FRI arithmetic. This copies the
+    /// admitted capture once into caller-owned storage and evaluates both
+    /// circuits. Cheap capture reads above never initiate this construction.
+    pub fn preparePcs(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.captured_fri.Owned {
+        const pcs = self.key().pcs_config;
+        return recursion.captured_fri.Owned.init(allocator, .{
+            .log_blowup_factor = pcs.fri_config.log_blowup_factor,
+            .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
+            .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
+            .pcs_pow_bits = pcs.pow_bits,
+            .claimed_sum_count = @intCast(self.claims().values.len),
+        }, &self.storage().capture);
+    }
+    /// Copy the full canonical transcript draws, before the native query mask.
+    /// Query-bit AIR must prove that reduction; a masked index is insufficient
+    /// to authenticate the original randomness word. No replay or hashing here.
+    pub fn writeRawQueryDraws(self: *const OwnedV1, destination: []M31) !void {
+        const value = self.storage();
+        if (destination.len != value.capture.queries.raw.len) return error.DetachedChildQueryMismatch;
+        const first_query_draw = universal.RELATION_COUNT + 3 + value.capture.fri.layers.len;
+        var draw: usize = 0;
+        var cursor: usize = 0;
+        for (value.execution.operations) |operation| {
+            if (operation.effect != .draw) continue;
+            if (draw >= first_query_draw) {
+                const count = @min(recording.RATE, destination.len - cursor);
+                const frame = value.execution.hash_frames[operation.first_hash_id];
+                @memcpy(destination[cursor..][0..count], frame.output[0..count]);
+                cursor += count;
+            }
+            draw += 1;
+        }
+        if (cursor != destination.len) return error.DetachedChildQueryMismatch;
+    }
     pub fn columnLogSizes(self: *const OwnedV1, tree: usize) []const u32 {
         return self.storage().capture.column_log_sizes[tree];
     }
@@ -282,6 +316,37 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
     try std.testing.expectEqual(before.identity_sha256, owner.recordingView().identity_sha256);
     try @import("recursive_segment_v2_detached_composition.zig").testFromVerifiedChild(allocator, owner);
     try @import("recursive_segment_v2_detached_prefix.zig").testFromVerifiedChild(allocator, owner);
+    try @import("recursive_segment_v2_detached_pcs_rows.zig").testFromVerifiedChild(allocator, owner);
+    try @import("recursive_segment_v2_detached_pcs_checks.zig").testFromVerifiedChild(allocator, owner);
+    // Independently reviewed one-address seed13 first-child profile. This is
+    // fixture admission, not a section layout inferred from a candidate proof.
+    try @import("recursive_segment_v2_detached_boundary.zig").testFromVerifiedChild(allocator, owner, .{ .counts = .{ 1, 1, 0, 1 } }, .{ .entry_addresses = &.{1048832}, .exit_addresses = &.{1048832} });
+    {
+        var pcs = try owner.preparePcs(allocator);
+        defer pcs.deinit();
+        try std.testing.expectEqualSlices(QM31, ordinary_capture.deep_answers, pcs.deep_answers);
+        const changed_answers = try allocator.dupe(QM31, pcs.deep_answers);
+        defer allocator.free(changed_answers);
+        for (changed_answers, 0..) |original, query| {
+            changed_answers[query] = original.add(QM31.one());
+            var witness = pcs.witness();
+            witness.deep_answers = changed_answers;
+            try std.testing.expectError(error.UnsatisfiedCircuit, pcs.circuit.evaluate(allocator, witness));
+            try std.testing.expectError(error.UnsatisfiedCircuit, pcs.pcs_circuit.evaluateFrozen(allocator, .{
+                .active = true,
+                .sampled_values = pcs.sampled_values,
+                .queried_values = pcs.queried_values,
+                .oods_seed = pcs.oods_seed,
+                .deep_randomness = pcs.deep_randomness,
+                .raw_queries = pcs.raw_queries,
+                .answers = changed_answers,
+            }));
+            changed_answers[query] = original;
+        }
+        std.debug.print("SEGMENT_V2_DETACHED_PCS samples={d} queried_values={d} layers={d} rejected_deep_answers={d} parent_profile_active=false\n", .{
+            pcs.sampled_values.len, pcs.queried_values.len, pcs.fold_widths.len, changed_answers.len,
+        });
+    }
 
     var wrong_pin = args.independent_key_sha256;
     wrong_pin[0] ^= 1;

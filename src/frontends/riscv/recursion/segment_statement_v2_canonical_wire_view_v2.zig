@@ -281,25 +281,38 @@ pub fn continuationRoot(iterator: anytype) u32 {
     return root;
 }
 
-pub fn continuationSubtreeRoot(
-    iterator: anytype,
-    depth: u32,
-    start: u32,
-    width: u32,
-) u32 {
-    const leaf = iterator.current orelse
+pub fn continuationSubtreeRoot(iterator: anytype, depth: u32, start: u32, width: u32) u32 {
+    return continuationSubtreeRootWithHasher(iterator, depth, start, width, NativeContinuationHasher{});
+}
+const NativeContinuationHasher = struct {
+    pub fn emptyRoot(_: NativeContinuationHasher, depth: u32) u32 {
         return memory_poseidon2.DEFAULT_HASHES[depth];
+    }
+    pub fn leaf(_: NativeContinuationHasher, value: u32) u32 {
+        return value;
+    }
+    pub fn pair(_: NativeContinuationHasher, left: u32, right: u32) u32 {
+        return memory_poseidon2.hashPair(left, right);
+    }
+};
+
+/// Canonical byte-tree topology and default-subtree semantics. A recursive
+/// caller supplies an independently admitted address iterator and a hasher
+/// that records authenticated provider requests, retaining zero-byte leaves.
+pub fn continuationSubtreeRootWithHasher(iterator: anytype, depth: u32, start: u32, width: u32, hasher: anytype) @TypeOf(hasher.emptyRoot(0)) {
+    const leaf = iterator.current orelse
+        return hasher.emptyRoot(depth);
     std.debug.assert(leaf.index >= start);
     const end = @as(u64, start) + width;
-    if (leaf.index >= end) return memory_poseidon2.DEFAULT_HASHES[depth];
+    if (leaf.index >= end) return hasher.emptyRoot(depth);
     if (depth == 30) {
         std.debug.assert(width == 1 and leaf.index == start);
-        return iterator.consume().value;
+        return hasher.leaf(iterator.consume().value);
     }
     const half = width / 2;
-    const left = continuationSubtreeRoot(iterator, depth + 1, start, half);
-    const right = continuationSubtreeRoot(iterator, depth + 1, start + half, half);
-    return memory_poseidon2.hashPair(left, right);
+    const left = continuationSubtreeRootWithHasher(iterator, depth + 1, start, half, hasher);
+    const right = continuationSubtreeRootWithHasher(iterator, depth + 1, start + half, half, hasher);
+    return hasher.pair(left, right);
 }
 
 pub fn memoryClockIdentity(entries: []const runner_result.MemoryAccessClock) Digest {

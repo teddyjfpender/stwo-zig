@@ -67,9 +67,17 @@ pub fn wordCount(phase: Phase) usize {
 /// callers cannot accidentally hash unrestricted u32 values as field words.
 pub fn emit(sink: anytype, input: Input) void {
     switch (input) {
-        .job => |words| fields(sink, words[span.canonical_layout.job_start..span.canonical_layout.slot_start]),
-        .base_statement => |words| fields(sink, words),
-        .position => |value| {
+        inline else => |value, phase| emitPhase(phase, sink, value),
+    }
+}
+
+/// Shared native/symbolic field order. Symbolic u32 values expose two limbs;
+/// symbolic slot integers expose four limbs. The sink owns authentication.
+pub fn emitPhase(comptime phase: Phase, sink: anytype, value: anytype) void {
+    switch (phase) {
+        .job => fields(sink, value[span.canonical_layout.job_start..span.canonical_layout.slot_start]),
+        .base_statement => fields(sink, value),
+        .position => {
             sink.scalar(contract.FORMAT_VERSION);
             digest(sink, value.session_id);
             digest(sink, value.job_id);
@@ -81,7 +89,7 @@ pub fn emit(sink: anytype, input: Input) void {
             sink.scalar(value.slots.height);
             u64Words(sink, value.slots.nodeIndex());
         },
-        .entry_lineage, .exit_lineage => |value| {
+        .entry_lineage, .exit_lineage => {
             sink.scalar(contract.FORMAT_VERSION);
             digest(sink, value.session_id);
             digest(sink, value.job_id);
@@ -95,7 +103,7 @@ pub fn emit(sink: anytype, input: Input) void {
             digest(sink, value.memory_clock_id);
             u32Words(sink, value.memory_clock_count);
         },
-        .lineage => |value| {
+        .lineage => {
             sink.scalar(contract.FORMAT_VERSION);
             digest(sink, value.session_id);
             digest(sink, value.job_id);
@@ -105,6 +113,17 @@ pub fn emit(sink: anytype, input: Input) void {
             digest(sink, value.base_statement_id);
         },
     }
+}
+
+/// Canonical retained-section framing. Callers admit section geometry and
+/// canonical u16 payload words before using this identity-only emitter.
+pub fn retainedWordCount(entry_count: usize) usize {
+    return 3 + contract.RETAINED_ENTRY_WORDS * entry_count;
+}
+pub fn emitRetainedSection(sink: anytype, count: anytype, payload: anytype) void {
+    sink.scalar(contract.FORMAT_VERSION);
+    u32Words(sink, count);
+    fields(sink, payload);
 }
 
 /// A caller-owned exact-size buffer is convenient for the existing recursive
@@ -126,18 +145,24 @@ const WordWriter = struct {
         self.at += 1;
     }
 };
-fn fields(sink: anytype, words: []const M31) void {
-    for (words) |word| sink.scalar(word.toU32());
+fn fields(sink: anytype, words: anytype) void {
+    for (words) |word| sink.scalar(if (@TypeOf(word) == M31) word.toU32() else word);
 }
-fn digest(sink: anytype, words: Digest) void {
+fn digest(sink: anytype, words: anytype) void {
     for (words) |word| sink.scalar(word);
 }
-fn u32Words(sink: anytype, value: u32) void {
-    sink.scalar(value & 0xffff);
-    sink.scalar(value >> 16);
+fn u32Words(sink: anytype, value: anytype) void {
+    if (@typeInfo(@TypeOf(value)) == .int or @typeInfo(@TypeOf(value)) == .comptime_int) {
+        const integer: u32 = value;
+        sink.scalar(integer & 0xffff);
+        sink.scalar(integer >> 16);
+    } else for (value.limbs) |limb| sink.scalar(limb);
 }
-fn u64Words(sink: anytype, value: u64) void {
-    inline for (0..4) |limb| sink.scalar(@as(u32, @intCast((value >> (16 * limb)) & 0xffff)));
+fn u64Words(sink: anytype, value: anytype) void {
+    if (@typeInfo(@TypeOf(value)) == .int or @typeInfo(@TypeOf(value)) == .comptime_int) {
+        const integer: u64 = value;
+        inline for (0..4) |limb| sink.scalar(@as(u32, @intCast((integer >> (16 * limb)) & 0xffff)));
+    } else for (value) |limb| sink.scalar(limb);
 }
 
 test "segment statement V2 shared identity preimages preserve native job base and position digests" {
@@ -166,9 +191,8 @@ test "segment statement V2 shared identity preimages preserve native job base an
         .slots = try span.SlotSpan.init(0x1000_0040, 4),
     };
     const expected = [_]u32{
-        2, 10, 11, 12, 13, 14, 15, 16, 17, 20, 21, 22, 23, 24, 25, 26, 27,
-        0x5678, 0x1234, 0x3210, 0x7654, 0x2222, 0x1111, 0x4444, 0x3333,
-        0x0040, 0x1000, 0, 0, 4, 4, 0x0100, 0, 0,
+        2,      10,     11,     12,     13,     14,     15,     16,     17,     20,     21, 22, 23, 24, 25,     26, 27,
+        0x5678, 0x1234, 0x3210, 0x7654, 0x2222, 0x1111, 0x4444, 0x3333, 0x0040, 0x1000, 0,  0,  4,  4,  0x0100, 0,  0,
     };
     var position_words: [wordCount(.position)]u32 = undefined;
     try write(.{ .position = position }, &position_words);
@@ -215,8 +239,15 @@ test "segment statement V2 shared identity preimages preserve boundary and segme
     try std.testing.expectEqual(domain(.entry_lineage), domain(.exit_lineage));
     const expected_digest = contract.channel.hashCanonicalU32s(&expected, contract.BOUNDARY_LINEAGE_ID_DOMAIN);
     try std.testing.expectEqual(expected_digest, contract.deriveBoundaryLineageId(
-        boundary.session_id, boundary.job_id, boundary.boundary_index, boundary.cycle,
-        &machine, boundary.snapshot, clocks, boundary.memory_clock_id, boundary.memory_clock_count,
+        boundary.session_id,
+        boundary.job_id,
+        boundary.boundary_index,
+        boundary.cycle,
+        &machine,
+        boundary.snapshot,
+        clocks,
+        boundary.memory_clock_id,
+        boundary.memory_clock_count,
     ));
     const lineage = Lineage{
         .session_id = boundary.session_id,

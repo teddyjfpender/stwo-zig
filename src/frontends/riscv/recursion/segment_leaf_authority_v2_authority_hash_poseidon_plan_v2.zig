@@ -606,27 +606,20 @@ pub const AuthorityHashCallRecorder = struct {
     call_at: usize = 0,
 
     fn init(calls: []poseidon2_air.Call) AuthorityHashCallRecorder {
-        var state = [_]M31{M31.zero()} ** poseidon2_air.WIDTH;
-        state[poseidon2_air.WIDTH - 1] = M31.fromCanonical(
-            statement_v2.AUTHORITY_ID_DOMAIN,
-        );
+        const state = channel.canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(statement_v2.AUTHORITY_ID_DOMAIN));
         return .{ .state = state, .calls = calls };
     }
 
     fn canonical(self: *AuthorityHashCallRecorder, value: u32) void {
         std.debug.assert(value < m31.Modulus);
-        self.state[self.filled] = self.state[self.filled].add(
-            M31.fromCanonical(value),
-        );
-        self.filled += 1;
-        if (self.filled == channel.RATE) self.permute();
+        channel.canonical_word_sponge.absorb(self, M31.fromCanonical(value));
     }
 
     pub fn word(self: *AuthorityHashCallRecorder, _: statement_v2.authority_preimage.Source, value: u32) void {
         self.canonical(value);
     }
 
-    fn permute(self: *AuthorityHashCallRecorder) void {
+    pub fn permute(self: *AuthorityHashCallRecorder) void {
         std.debug.assert(self.call_at < self.calls.len);
         var input: [poseidon2_air.WIDTH]u32 = undefined;
         for (&input, self.state) |*destination, field_word|
@@ -643,8 +636,7 @@ pub const AuthorityHashCallRecorder = struct {
     }
 
     fn finalize(self: *AuthorityHashCallRecorder) Digest {
-        self.canonical(1);
-        if (self.filled != 0) self.permute();
+        channel.canonical_word_sponge.finish(self, M31.one());
         var result: Digest = undefined;
         for (&result, self.state[0..channel.RATE]) |*destination, field_word|
             destination.* = field_word.toU32();

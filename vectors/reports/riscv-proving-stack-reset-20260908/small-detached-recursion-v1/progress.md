@@ -146,8 +146,8 @@ values 13 and 14 have identical address topology and 2,255 graph nodes but
 different constant anchors; value 269 adds a seventh continuation term and
 changes the graph to 2,263 nodes. The 12-test gate takes 450 ms after seven
 seconds of compilation. Its exact pre-fix test is retained in
-`sparse-specialization-before.patch`; this is evidence of the remaining defect,
-not acceptance of dynamic memory admission.
+`sparse-specialization-before.patch`; this is the retained pre-fix defect. The dynamic-memory results below establish
+the subsequent fix for an explicitly admitted address topology.
 
 The single-command lifecycle gate now also passes 17 fresh-process cases on
 both backends. `lifecycle-cpu-1-process.json` and
@@ -165,11 +165,95 @@ transcript definition. A candidate is not a verifier receipt. The corrected
 same-key check has fresh-process evidence. Its fixed projection includes the exact Tree0
 root and active lowering anchors; dimension equality alone is insufficient.
 
-Sparse-memory values and zero-byte elision remain a separate dynamic-circuit
-admission issue. The next milestone is the actual recursive parent: bind the
+The next milestone is the actual recursive parent: bind the
 detached transcript's dynamic public inputs, context/hash boundaries, claims and
 captured openings into its active AIR. No recursive parent, 2/4/8-segment ladder,
 or production-security result is claimed yet.
 
 The earlier CSP diagnostic's quiet-host admission remains unmet. New outer
 admission changes do not establish CSP performance promotion.
+
+
+## Dynamic memory and parent preparation, 2026-09-08
+
+The row11 memory source now exports constrained bytes and nonzero selectors;
+row15 relays them into the shared native-sum graph. All scheduled continuation
+terms remain in the graph, including zero-byte slots. Values13,14,269 under the
+same address topology now share one graph and per-child key. The focused
+row11/native-sum/public-source gates passed23 tests. The pre-fix reproducer is
+retained above; no CSP execution or protocol default was changed by this fix.
+
+The real98-instruction memory fixture executes64+34 instructions, starting with
+13,14 or269 at address1048832. Every seed produced two CPU and two Metal child
+proofs; corresponding proof, key, claim and expected-input bytes agree across
+backends. Each of the six pairs passed17 fresh-process acceptance/rejection
+cases, including adjacent coverage and continuation. Independently reviewed
+expected wires and key pins live in `dynamic-memory-v3-admission/`; the
+`dynamic-memory-v3[-metal]-seed*-accepted.json` files contain fresh receipts.
+Those results cover changing values within the admitted topology, not arbitrary
+memory membership or an independently proved recursive parent.
+
+The maintained lifecycle command was also rerun with seed13 on both backends:
+`dynamic-memory-v3-lifecycle-cpu-1.json` and
+`dynamic-memory-v3-lifecycle-metal-1.json` both pass17 cases, including producer
+process exit before fresh verification. Producer wall time was7.747s CPU and
+6.031s Metal; individual detached wrapper verification was15.4/15.1ms. These are
+single development-profile observations, not production-security benchmarks.
+
+`dynamic-memory-v3-child-pcs-first.log` passed the genuine child gate with shared
+PCS transcript scheduling, actual PCS/FRI arithmetic and altered DEEP-answer
+rejection. Runtime was about1s at27MiB RSS after a61s compilation. The shared PCS
+suffix has40 operations,1,242 Poseidon calls and9,148 sampled field words. This
+check precedes the subsequent full Merkle/query row assembly and continuation
+root changes; those require their own acceptance records.
+
+`dynamic-memory-v3-parent-boundary-first.log` passed both focused arithmetic
+gates: canonical boundary hashes/identities/sections rejected34 mutations per
+fixture; the parent folds the two actual seed13 child projections, publishes412
+words, and rejects21 arithmetic mutations. Boundary owners were destroyed before
+parent checks. Runtime was352/315ms; compilation6/7s. Native identity golden
+checks then passed21/21 (`segment-statement-identity-goldens-v2.log`). These are
+preparation checks, explicitly not a parent STARK proof.
+
+The active work is exact cross-circuit input routing, provider closure and one
+parent STARK with a fresh independent verifier. The2/4/8 ladder and separately
+admitted production-security profile remain pending.
+
+
+## First independently verified two-child parent, 2026-09-09
+
+The actual parent now proves the child transcript, composition, PCS/FRI openings,
+boundary hashes, sparse memory and clocks, and complete root statement in its
+active typed AIR. Producer state is destroyed before serialized artifact custody;
+the standalone verifier consumes only the admitted key, expected root, claims and
+proof. Expected roots are separately derived from reviewed child public wires.
+
+The first full-row closure exposed a real query-randomness mismatch: the transcript
+published full field draws while query mapping consumed masked indices. The shared
+owned transcript now projects the original draw words; the existing query AIR
+proves reduction to indices. The failing sixth assembly log remains retained.
+The seventh gate closes1,383,808 contributions across47 domains with no residuals,
+preparing in388ms (2s complete check,507MiB RSS).
+
+`detached-parent-v1-{cpu,metal}-seed{13,14,269}-first-accepted.json` all pass21
+fresh-process cases (126 total), including altered canonical root, balanced claims,
+balanced provider partials, inactive claims, malformed proof and key/profile changes.
+All runs share the independently retained tiny-memory-v1 parent key; corresponding
+CPU/Metal-origin parent artifacts match exactly. The parent backend is CPU in all
+six runs. The producer's initial key is explicitly recorded as bootstrap fixture
+admission, then independently pinned for all subsequent changing-value runs.
+No general circuit admission or production security is implied.
+
+`detached-parent-v1-measurements.json` records3.87–4.06s parent request,
+9.7–11.8ms core fresh verification, roughly655–656MiB maximum RSS, and
+92,779–96,390 proof bytes. Native child production is outside those timings.
+`detached-parent-v1-lifecycle-cpu-seed13.json` exercises the maintained one-command
+producer-destruction/fresh-verification gate. Five additional ingress cases reject
+swapped/duplicate children and swapped/duplicate expected inputs before proof output.
+
+Current shared semantic checks pass: genuine child PCS replay, boundary arithmetic,
+parent arithmetic, routing/export compatibility, and21 native identity goldens.
+Additional explicit clock and command checks are recorded separately. The full
+4/8-segment recursive tree, production-security profile and quiet-host16-case CSP
+performance admission remain open. The next tree needs authenticated intermediate
+endpoint lineage and a parent-proof capture consumer; a flat bundle is not that tree.

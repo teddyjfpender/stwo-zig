@@ -3,9 +3,11 @@
 The small detached route now proves both segments of a completed memory
 workload using CPU or Metal native proving, followed by CPU outer proving.
 A separate verifier checks both serialized proofs, exact coverage, memory and
-clock continuation using explicit keys and expected public inputs. This is a
-verified proof bundle in the q1/native, q3/outer development profile; succinct
-parent recursion and production-security measurements remain pending.
+clock continuation using explicit keys and expected public inputs. The two child
+proofs can now be recursively verified in one CPU parent STARK. Its standalone
+verifier needs only the admitted key, expected root, claims and serialized proof.
+This is the q1/native, q3/child-and-parent development profile. The 4/8-segment
+recursive ladder and production-security measurements remain pending.
 
 Current retained evidence and rejection cases are indexed in
 [the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
@@ -61,6 +63,67 @@ lock. This keeps the small verification loop usable during a separate build.
 The retained complete commands passed all 17 cases in 8.076 seconds on CPU and
 6.282 seconds with Metal native proving. These are development observations,
 excluding compilation, and do not establish a production-security benchmark.
+
+## One independently verified recursive parent
+
+Build `build-recursive-segment-v2-detached-parent-producer` and
+`build-recursive-segment-v2-detached-parent-verifier` under the CPU integration
+with the serial build command above. Both CPU- and Metal-produced child bundles
+use this same CPU parent route. Metal parent proving is not claimed.
+
+Derive expected root words from the independently retained child public inputs,
+without reading any candidate proof or producer-generated root:
+
+```sh
+"$proof_bins/recursive-segment-v2-detached-parent-verify" --derive-expected \
+  "$proof_evidence/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json" \
+  "$proof_evidence/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json" \
+  /absolute/new/expected-root.json
+```
+
+The retained independent fixture admission is `detached-parent-v1-admission/`.
+The parent key pin is
+`269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84`.
+It covers exactly `tiny-memory-v1`, including address membership and child keys;
+it does not authorize arbitrary circuits of the same dimensions.
+
+One command then produces, destroys the producer process, and runs all 21
+fresh-process acceptance/rejection cases:
+
+```sh
+python3 scripts/riscv_segment_v2_detached_parent_gate.py \
+  --producer "$proof_bins/recursive-segment-v2-detached-parent-prove" \
+  --producer-sha256 REVIEWED_PRODUCER_BINARY_SHA256 \
+  --verifier "$proof_bins/recursive-segment-v2-detached-parent-verify" \
+  --verifier-sha256 REVIEWED_VERIFIER_BINARY_SHA256 \
+  --parent-key "$proof_evidence/detached-parent-v1-admission/parent-key.json" \
+  --key-sha256 269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84 \
+  --expected-root /absolute/path/to/expected-root.json \
+  --expected-root-sha256 REVIEWED_EXPECTED_ROOT_SHA256 \
+  --left "$proof_output/child-0" \
+    a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa \
+    "$proof_evidence/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json" \
+  --right "$proof_output/child-1" \
+    02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517 \
+    "$proof_evidence/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json" \
+  --bundle /absolute/new/parent-bundle --output /absolute/new/parent-report.json
+```
+
+Omit the producer options, parent-key path and child arguments to replay an
+existing bundle without the heavy-job lock. Review binary hashes against the
+build/source receipt; a freshly hashed arbitrary executable is not admission.
+The lifecycle starts from saved child proofs; it does not include native proving.
+
+Six retained runs (seeds13/14/269, both child backends) share the exact parent key
+and pass 126 fresh-process cases. Corresponding parent artifacts match byte for
+byte across child backends. Parent requests took 3.87–4.06s, fresh verification
+9.7–11.8ms, and maximum RSS about655–656MiB. Proofs are92,779–96,390bytes.
+These are individual development observations, not production benchmarks.
+`detached-parent-v1-measurements.json` separates preparation, fixed-key commitment,
+remaining proving/serialization, process wall time and verification. The
+remaining proving phase is3.19–3.37s; further attribution is needed before naming
+its dominant operation. Compilation remains separate (producer about1min,
+verifier44s in the retained builds).
 
 ## Retained native-assisted benchmark route
 

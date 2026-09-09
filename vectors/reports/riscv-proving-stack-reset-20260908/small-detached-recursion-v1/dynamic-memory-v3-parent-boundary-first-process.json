@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-recursive-segment-v2-detached-boundary",
+    "test-recursive-segment-v2-detached-parent-statement",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 18273515041,
+  "fixture_environment": {
+    "STWO_SEGMENT_V2_PARENT_LEFT_EXPECTED_WIRE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+    "STWO_SEGMENT_V2_PARENT_RIGHT_EXPECTED_WIRE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json"
+  }
+}

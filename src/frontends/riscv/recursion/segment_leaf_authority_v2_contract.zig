@@ -470,33 +470,72 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
     return hash.finalize();
 }
 
+/// Canonical context identity preimage. The sink owns scalar representation;
+/// native hashing and recursive provider recording consume this same order.
+pub fn emitContextIdentity(context: anytype, sink: anytype) void {
+    sink.scalar(context.format_version);
+    sink.scalar(context.schema_version);
+    sink.scalar(context.statement_version);
+    sink.u32Value(context.segment_index);
+    sink.u32Value(context.segment_count);
+    sink.u32Value(context.global_cycle_start);
+    sink.u32Value(context.global_cycle_end);
+    sink.boolean(context.is_first);
+    sink.boolean(context.is_final);
+    sink.u32Value(context.entry_continuation_root);
+    sink.u32Value(context.exit_continuation_root);
+    sink.digest(context.segment_format_id);
+    sink.digest(context.protocol_id);
+    sink.digest(context.manifest_id);
+    sink.digest(context.statement_id);
+    sink.digest(context.segment_wire_id);
+    sink.digest(context.session_id);
+    sink.digest(context.job_id);
+    sink.digest(context.position_id);
+    sink.digest(context.entry_lineage_id);
+    sink.digest(context.exit_lineage_id);
+    sink.digest(context.lineage_id);
+    sink.digest(context.verifier_key_authority_id);
+    sink.digest(context.segment_leaf_vk_id);
+    sink.digest(context.recursive_parent_vk_id);
+}
+
+/// Canonical row36 context words, including the authenticated identity. Roots
+/// are scalar words here and split-u16 values in the identity preimage above.
+pub fn emitContextWords(context: anytype, sink: anytype) void {
+    sink.scalar(CONTEXT_TAG);
+    sink.scalar(context.format_version);
+    sink.scalar(context.schema_version);
+    sink.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
+    sink.scalar(context.statement_version);
+    sink.u32Value(context.segment_index);
+    sink.u32Value(context.segment_count);
+    sink.u32Value(context.global_cycle_start);
+    sink.u32Value(context.global_cycle_end);
+    sink.boolean(context.is_first);
+    sink.boolean(context.is_final);
+    sink.scalar(context.entry_continuation_root);
+    sink.scalar(context.exit_continuation_root);
+    sink.digest(context.segment_format_id);
+    sink.digest(context.protocol_id);
+    sink.digest(context.manifest_id);
+    sink.digest(context.statement_id);
+    sink.digest(context.segment_wire_id);
+    sink.digest(context.session_id);
+    sink.digest(context.job_id);
+    sink.digest(context.position_id);
+    sink.digest(context.entry_lineage_id);
+    sink.digest(context.exit_lineage_id);
+    sink.digest(context.lineage_id);
+    sink.digest(context.verifier_key_authority_id);
+    sink.digest(context.segment_leaf_vk_id);
+    sink.digest(context.recursive_parent_vk_id);
+    sink.digest(context.authenticated_context_id);
+}
+
 pub fn contextId(context: *const NativeTemporalContextV2) Digest {
     var hash = IdentityHasher.init(CONTEXT_ID_DOMAIN);
-    hash.scalar(context.format_version);
-    hash.scalar(context.schema_version);
-    hash.scalar(context.statement_version);
-    hash.u32Value(context.segment_index);
-    hash.u32Value(context.segment_count);
-    hash.u32Value(context.global_cycle_start);
-    hash.u32Value(context.global_cycle_end);
-    hash.scalar(@intFromBool(context.is_first));
-    hash.scalar(@intFromBool(context.is_final));
-    hash.u32Value(context.entry_continuation_root);
-    hash.u32Value(context.exit_continuation_root);
-    hash.digest(context.segment_format_id);
-    hash.digest(context.protocol_id);
-    hash.digest(context.manifest_id);
-    hash.digest(context.statement_id);
-    hash.digest(context.segment_wire_id);
-    hash.digest(context.session_id);
-    hash.digest(context.job_id);
-    hash.digest(context.position_id);
-    hash.digest(context.entry_lineage_id);
-    hash.digest(context.exit_lineage_id);
-    hash.digest(context.lineage_id);
-    hash.digest(context.verifier_key_authority_id);
-    hash.digest(context.segment_leaf_vk_id);
-    hash.digest(context.recursive_parent_vk_id);
+    emitContextIdentity(context, &hash);
     return hash.finalize();
 }
 
@@ -505,34 +544,7 @@ pub fn writeContextWordsAssumeValid(
     destination: *[CONTEXT_WORD_COUNT]M31,
 ) void {
     var writer = WordWriter{ .words = destination };
-    writer.scalar(CONTEXT_TAG);
-    writer.scalar(context.format_version);
-    writer.scalar(context.schema_version);
-    writer.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
-    writer.scalar(context.statement_version);
-    writer.u32Value(context.segment_index);
-    writer.u32Value(context.segment_count);
-    writer.u32Value(context.global_cycle_start);
-    writer.u32Value(context.global_cycle_end);
-    writer.scalar(@intFromBool(context.is_first));
-    writer.scalar(@intFromBool(context.is_final));
-    writer.scalar(context.entry_continuation_root);
-    writer.scalar(context.exit_continuation_root);
-    writer.digest(context.segment_format_id);
-    writer.digest(context.protocol_id);
-    writer.digest(context.manifest_id);
-    writer.digest(context.statement_id);
-    writer.digest(context.segment_wire_id);
-    writer.digest(context.session_id);
-    writer.digest(context.job_id);
-    writer.digest(context.position_id);
-    writer.digest(context.entry_lineage_id);
-    writer.digest(context.exit_lineage_id);
-    writer.digest(context.lineage_id);
-    writer.digest(context.verifier_key_authority_id);
-    writer.digest(context.segment_leaf_vk_id);
-    writer.digest(context.recursive_parent_vk_id);
-    writer.digest(context.authenticated_context_id);
+    emitContextWords(context, &writer);
     std.debug.assert(writer.at == destination.len);
 }
 
@@ -568,6 +580,10 @@ pub const WordWriter = struct {
         self.at += 1;
     }
 
+    pub fn boolean(self: *WordWriter, value: bool) void {
+        self.scalar(@intFromBool(value));
+    }
+
     pub fn u32Value(self: *WordWriter, value: u32) void {
         self.scalar(value & 0xffff);
         self.scalar(value >> 16);
@@ -597,6 +613,10 @@ pub const IdentityHasher = struct {
         std.debug.assert(canonical < m31.Modulus);
         const words = [_]M31{M31.fromCanonical(canonical)};
         self.inner.update(&words);
+    }
+
+    pub fn boolean(self: *IdentityHasher, value: bool) void {
+        self.scalar(@intFromBool(value));
     }
 
     pub fn u32Value(self: *IdentityHasher, value: u32) void {

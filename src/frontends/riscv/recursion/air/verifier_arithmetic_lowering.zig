@@ -31,6 +31,10 @@ pub const Evaluations = shard_0.Evaluations;
 pub const PublicWireTerm = shard_0.PublicWireTerm;
 /// Same tuple ordering and signs for an explicitly admitted detached key.
 pub const publicTermClaim = shard_0.publicTermClaim;
+pub const publicTermParts = shard_0.publicTermParts;
 pub const InvocationBuffers = shard_0.InvocationBuffers;
 pub const Plan = shard_1.Plan;
 pub const computeUseCountsInto = shard_0.computeUseCountsInto;
+
+pub const Export = shard_0.Export;
+pub const computeLaneUseCountsInto = shard_0.computeLaneUseCountsInto;

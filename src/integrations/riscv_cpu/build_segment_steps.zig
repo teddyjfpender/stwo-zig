@@ -1817,6 +1817,7 @@ pub fn add(ctx: anytype) void {
     detached_command.addImport("stwo_prover_api", prover_api);
     detached_command.addImport("interop_postcard", postcard);
     const detached_command_names: []const []const u8 = &.{
+        "detached parent producer requires explicit profile and independent child and parent pins",
         "SegmentV2 detached command requires separate circuit and statement authority",
         "SegmentV2 detached command owns and canonically admits expected wire",
         "SegmentV2 detached command rejects unsupported claims version and empty proof",
@@ -1826,6 +1827,18 @@ pub fn add(ctx: anytype) void {
     const detached_child_names: []const []const u8 = &.{"SegmentV2 detached child owns genuine capture and exact recorded transcript"};
     const detached_child_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_child_names });
     b.step("test-recursive-segment-v2-detached-child", "Replay a pinned real child proof for recursion after caller input destruction").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_child_tests), detached_child_names, "SegmentV2 detached child guard"));
+    const detached_boundary_names: []const []const u8 = &.{"SegmentV2 expected boundary shares native hashes and keeps dynamic values out of graph"};
+    const detached_boundary_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_boundary_names });
+    b.step("test-recursive-segment-v2-detached-boundary", "Check authenticated expected-boundary arithmetic before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_boundary_tests), detached_boundary_names, "SegmentV2 detached boundary guard"));
+    const detached_parent_statement_names: []const []const u8 = &.{"SegmentV2 detached parent folds actual child projections and constrains complete root"};
+    const detached_parent_statement_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_statement_names });
+    b.step("test-recursive-segment-v2-detached-parent-statement", "Check actual child projections, continuation and complete root arithmetic").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_statement_tests), detached_parent_statement_names, "SegmentV2 detached parent statement guard"));
+    const detached_routing_names: []const []const u8 = &.{"SegmentV2 detached routing preserves exact source and graph export multiplicities"};
+    const detached_routing_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_routing_names });
+    b.step("test-recursive-segment-v2-detached-routing", "Check typed source routing and exact cross-circuit wire counts").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_routing_tests), detached_routing_names, "SegmentV2 detached routing guard"));
+    const detached_parent_prepare_names: []const []const u8 = &.{"detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims"};
+    const detached_parent_prepare_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_prepare_names });
+    b.step("test-recursive-segment-v2-detached-parent-prepare", "Admit two genuine children and exact parent rows before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_prepare_tests), detached_parent_prepare_names, "SegmentV2 detached parent preparation guard"));
     const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
     detached_runner.addImport("stwo_prover_engine", prover);
     detached_runner.addImport("stwo_prover_api", prover_api);
@@ -1835,6 +1848,12 @@ pub fn add(ctx: anytype) void {
     const detached_run = b.addRunArtifact(detached_exe);
     if (b.args) |args| detached_run.addArgs(args);
     b.step("run-recursive-segment-v2-detached-verifier", "Verify DIRECTORY KEY_SHA256 EXPECTED_WIRE_JSON").dependOn(&detached_run.step);
+    const detached_parent_producer = support.createHarnessModule(b, "recursive_segment_v2_detached_parent_producer_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const detached_parent_producer_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-parent-prove", .root_module = detached_parent_producer });
+    b.step("build-recursive-segment-v2-detached-parent-producer", "Build the explicit tiny two-child parent producer").dependOn(&b.addInstallArtifact(detached_parent_producer_exe, .{}).step);
+    const detached_parent_verifier = support.createHarnessModule(b, "recursive_segment_v2_detached_parent_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+    const detached_parent_verifier_exe = b.addExecutable(.{ .name = "recursive-segment-v2-detached-parent-verify", .root_module = detached_parent_verifier });
+    b.step("build-recursive-segment-v2-detached-parent-verifier", "Build independent detached parent verification").dependOn(&b.addInstallArtifact(detached_parent_verifier_exe, .{}).step);
     const ethereum_root_verifier = support.createHarnessModule(b, "ethereum_wrapper_root_command_v1.zig", target, optimize, core, cpu_backend, frontend, integration);
     ethereum_root_verifier.addImport("stwo_prover_engine", prover);
     ethereum_root_verifier.addImport("stwo_prover_api", prover_api);

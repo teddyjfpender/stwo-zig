@@ -1,0 +1,43 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test stderr
+DETACHED_PARENT_CHILD lane=1 preparation_ns=84730667
+DETACHED_PARENT_CHILD lane=2 preparation_ns=169533417
+DETACHED_PARENT_ROW row=0 rows=428 logical_bytes=20544
+DETACHED_PARENT_ROW row=1 rows=2951 logical_bytes=566592
+DETACHED_PARENT_ROW row=2 rows=2951 logical_bytes=436748
+DETACHED_PARENT_ROW row=3 rows=202 logical_bytes=29088
+DETACHED_PARENT_ROW row=4 rows=21992 logical_bytes=1671392
+DETACHED_PARENT_ROW row=5 rows=20440 logical_bytes=1716960
+DETACHED_PARENT_ROW row=6 rows=2 logical_bytes=544
+DETACHED_PARENT_ROW row=7 rows=2 logical_bytes=120
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=40 logical_bytes=5120
+DETACHED_PARENT_ROW row=10 rows=4 logical_bytes=368
+DETACHED_PARENT_ROW row=11 rows=42661 logical_bytes=3924812
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=44091 logical_bytes=1763640
+DETACHED_PARENT_ROW row=20 rows=6 logical_bytes=1776
+DETACHED_PARENT_ROW row=21 rows=228 logical_bytes=95760
+DETACHED_PARENT_ROW row=22 rows=40 logical_bytes=3040
+DETACHED_PARENT_ROW row=23 rows=1614 logical_bytes=561672
+DETACHED_PARENT_ROW row=24 rows=31292 logical_bytes=3254368
+DETACHED_PARENT_ROW row=25 rows=192 logical_bytes=72192
+DETACHED_PARENT_ROW row=26 rows=96 logical_bytes=16128
+DETACHED_PARENT_ROW row=27 rows=96 logical_bytes=10752
+DETACHED_PARENT_ROW row=28 rows=108 logical_bytes=9504
+DETACHED_PARENT_ROW row=29 rows=1314 logical_bytes=157680
+DETACHED_PARENT_ROW row=30 rows=159752 logical_bytes=25560320
+DETACHED_PARENT_ROW row=31 rows=3221 logical_bytes=412288
+DETACHED_PARENT_ROW row=32 rows=180931 logical_bytes=36909924
+DETACHED_PARENT_ROW row=33 rows=1224 logical_bytes=225216
+DETACHED_PARENT_PREPARATION rows_bytes=77690972 providers=6721 graph_ns=240935584 snapshot_pending=true
+DETACHED_PARENT_EXACT_CLOSURE .{ .contribution_count = 1383808, .unmatched_tuple_count = 0, .unmatched_by_domain = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }
+DETACHED_PARENT_ACTUAL_PREPARE preparation_ns=387995792 child_owners_destroyed=true root_words=412 proof_verified=false
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-recursive-segment-v2-detached-parent-prepare success
++- SegmentV2 detached parent preparation guard success
+   +- run test 2 passed 2s MaxRSS:507M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

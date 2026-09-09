@@ -231,6 +231,10 @@ pub const recursive_segment_v2_detached_proof = @import("recursive_segment_v2_de
 pub const recursive_segment_v2_detached_command = @import("recursive_segment_v2_detached_command.zig");
 pub const recursive_segment_v2_detached_child_transcript = @import("recursive_segment_v2_detached_child_transcript.zig");
 pub const recursive_segment_v2_detached_composition = @import("recursive_segment_v2_detached_composition.zig");
+pub const recursive_segment_v2_detached_prefix = @import("recursive_segment_v2_detached_prefix.zig");
+pub const recursive_segment_v2_detached_pcs_rows = @import("recursive_segment_v2_detached_pcs_rows.zig");
+pub const recursive_segment_v2_detached_boundary = @import("recursive_segment_v2_detached_boundary.zig");
+pub const recursive_segment_v2_detached_parent_statement = @import("recursive_segment_v2_detached_parent_statement.zig");
 pub const recursive_segment_v2_tuple_closure_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
 pub const recursive_segment_v2_verified_artifact = @import("recursive_segment_v2_verified_artifact.zig");
 pub const recursive_segment_v2_verified_publication = @import("recursive_segment_v2_verified_publication.zig");
@@ -542,3 +546,6 @@ test {
     _ = @import("guest_precompile_proof_test.zig");
     _ = @import("split_pcs_prepare_test.zig");
 }
+
+pub const recursive_segment_v2_detached_parent_producer = @import("recursive_segment_v2_detached_parent_producer.zig");
+pub const recursive_segment_v2_detached_parent_command = @import("recursive_segment_v2_detached_parent_command.zig");

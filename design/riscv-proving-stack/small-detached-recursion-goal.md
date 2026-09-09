@@ -112,3 +112,28 @@ boundaries, claims and openings. That is the next critical-path step. The
 2/4/8-segment recursive ladder, production-security profile and formal quiet-host
 CSP promotion remain outstanding. Detailed evidence:
 [detached-child progress](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
+
+## Verified two-child parent checkpoint, 2026-09-09
+
+The next checkpoint now supersedes the outstanding item2 statement above: two
+actual children are verified inside the parent AIR, including transcript,
+composition, PCS/FRI, dynamic expected wire, sparse memory and clocks. One
+serialized parent STARK is independently verified from its admitted key and
+expected root. The child retains its existing39-component protocol; the parent
+uses its separately versioned30-active-component cohort and47 relation domains.
+Six runs cover three memory values and both CPU/Metal native child backends under
+one unchanged parent key. All126 fresh-process parent cases pass. The parent
+itself is CPU-proved. The maintained parent gate also exercises producer exit
+before verification, with independently pinned inputs and retained negative cases.
+
+Parent requests are3.87–4.06s, verification9.7–11.8ms, with roughly655–656MiB RSS
+in these development observations. The complete small route is now the boundary
+for further changes; a passing preparation check alone no longer replaces it.
+
+Item3 remains open. The immediate larger-tree seam is an authenticated
+intermediate statement retaining session and entry/exit lineage, with explicit
+non-root versus whole-root admission. Then capture and recursively verify actual
+parent proofs using the shared transcript and PCS/composition machinery. Prove
+4→2→1 and8→4→2→1 trees; do not count flat bundles or repeated two-child examples
+as that ladder. Measure the production-security profile separately and complete
+the unchanged CSP preservation gate before performance promotion.

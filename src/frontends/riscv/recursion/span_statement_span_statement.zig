@@ -123,27 +123,35 @@ pub const RootStatement = struct {
     statement: SpanStatement,
 
     pub fn init(statement: SpanStatement) Error!RootStatement {
-        try statement.validate();
-        const job = statement.job;
-        if (statement.slots.first != 0) return error.RootSlotStartMismatch;
-        if (statement.slots.height != job.slot_height) return error.RootHeightNotMinimal;
-        const span = switch (statement.body) {
-            .empty => return error.RootIsEmpty,
-            .executed => |value| value,
-        };
-        if (span.first_segment != 0) return error.RootSegmentStartMismatch;
-        if (span.segment_count != job.segment_count) return error.RootSegmentCountMismatch;
-        if (span.first_cycle != 0) return error.RootCycleStartMismatch;
-        if (span.cycle_count != job.complete.total_cycles) return error.RootCycleCountMismatch;
-        if (!std.meta.eql(span.entry, job.complete.initial_state))
-            return error.RootInitialStateMismatch;
-        if (!std.meta.eql(span.exit, job.complete.final_state))
-            return error.RootFinalStateMismatch;
-        if (!std.meta.eql(span.input.digest, @as(?Digest, job.complete.public_input)))
-            return error.RootInputMismatch;
-        if (!std.meta.eql(span.output.digest, @as(?Digest, job.complete.public_output)))
-            return error.RootOutputMismatch;
+        // canonicalWords performs the same complete statement admission before
+        // the root-specific checks; native and arithmetic consumers then use
+        // one exact coverage rule and preserve its error ordering.
+        const words = try statement.canonicalWords();
+        var sink: NativeRootChecks = .{};
+        try emitCanonicalChecks(words, &sink);
         return .{ .statement = statement };
+    }
+
+    /// Root coverage over already admitted canonical Span words. This does not
+    /// replace Span validity: arithmetic callers must also constrain the shared
+    /// statement-semantics circuit and authenticate every published input word.
+    /// A sink implements equal(same-length words, words, error) and
+    /// constant(words, expected scalar, error).
+    pub fn emitCanonicalChecks(words: anytype, sink: anytype) !void {
+        const layout = canonical_layout;
+        try sink.constant(words[layout.slot_node_index_start..][0..4], 0, error.RootSlotStartMismatch);
+        try sink.equal(words[layout.slot_height..][0..1], words[layout.job_slot_height..][0..1], error.RootHeightNotMinimal);
+        try sink.constant(words[layout.body_tag..][0..1], @intFromEnum(dependency_0.Tag.executed_body), error.RootIsEmpty);
+        try sink.constant(words[layout.first_segment_start..][0..2], 0, error.RootSegmentStartMismatch);
+        try sink.equal(words[layout.executed_segment_count_start..][0..2], words[layout.job_segment_count_start..][0..2], error.RootSegmentCountMismatch);
+        try sink.constant(words[layout.first_cycle_start..][0..4], 0, error.RootCycleStartMismatch);
+        try sink.equal(words[layout.executed_cycle_count_start..][0..4], words[layout.total_cycles_start..][0..4], error.RootCycleCountMismatch);
+        try sink.equal(words[layout.entry_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], words[layout.initial_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], error.RootInitialStateMismatch);
+        try sink.equal(words[layout.exit_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], words[layout.final_state_start..][0..dependency_0.MACHINE_STATE_CANONICAL_WORDS], error.RootFinalStateMismatch);
+        try sink.constant(words[layout.input_edge_tag..][0..1], @intFromEnum(dependency_0.Tag.present_edge), error.RootInputMismatch);
+        try sink.equal(words[layout.input_edge_digest_start..][0..8], words[layout.public_input_start..][0..8], error.RootInputMismatch);
+        try sink.constant(words[layout.output_edge_tag..][0..1], @intFromEnum(dependency_0.Tag.present_edge), error.RootOutputMismatch);
+        try sink.equal(words[layout.output_edge_digest_start..][0..8], words[layout.public_output_start..][0..8], error.RootOutputMismatch);
     }
 };
 
@@ -284,3 +292,12 @@ pub fn appendBody(writer: *Writer, body: SpanBody) void {
         },
     }
 }
+
+const NativeRootChecks = struct {
+    pub fn equal(_: *NativeRootChecks, left: anytype, right: @TypeOf(left), failure: Error) Error!void {
+        for (left, right) |a, b| if (!a.eql(b)) return failure;
+    }
+    pub fn constant(_: *NativeRootChecks, words: anytype, expected: u32, failure: Error) Error!void {
+        for (words) |word| if (word.toU32() != expected) return failure;
+    }
+};

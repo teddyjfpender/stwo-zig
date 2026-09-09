@@ -79,6 +79,19 @@ pub fn boundaryChallenge(challenge: usize) bool {
     return challenge == @intFromEnum(recursion.segment_leaf_authority_v2.STATEMENT_RELATION_DOMAIN) or challenge == @intFromEnum(frontend.air.relation.Domain.recursion_wire);
 }
 
+/// The admitted child owns verified geometry. Reuse the secure recursive
+/// program's PCS emitter so the detached suffix cannot grow a parallel order.
+pub fn initPcsOperations(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) ![]@import("recursive_secure_transcript_program_v1.zig").Operation {
+    const captured = child.captureView();
+    return @import("recursive_secure_transcript_program_v1.zig").initPcsOperations(allocator, .{
+        .sampled_value_count = captured.sampled_values.len,
+        .fri_layer_count = captured.fri_layer_count,
+        .last_layer_coefficient_count = captured.last_layer_coefficients.len,
+        .query_count = child.key().pcs_config.fri_config.n_queries,
+        .pow_bits = child.key().pcs_config.pow_bits,
+    });
+}
+
 pub const PayloadRow = struct { preprocessing: air.transcript_payload_witness.Row, value: M31 };
 pub const View = struct {
     operations: []const Operation,
@@ -387,5 +400,33 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
     try std.testing.expectEqual(@as(u32, @intCast(view.operations.len)), view.next_operation);
     try std.testing.expectEqual(recording_view.operations[view.next_operation].first_hash_id, view.next_hash);
     try std.testing.expectEqual(recording_view.operations[view.next_operation].first_call_id, view.next_call);
+    const suffix = try initPcsOperations(allocator, child);
+    defer allocator.free(suffix);
+    const suffix_capture = recording_view.operations[view.next_operation..];
+    try std.testing.expectEqual(suffix_capture.len, suffix.len);
+    var hash_at: usize = view.next_hash;
+    var call_at: usize = view.next_call;
+    for (suffix, suffix_capture) |expected, actual| {
+        try std.testing.expectEqual(expected.effect, actual.effect);
+        try std.testing.expectEqual(hash_at, actual.first_hash_id);
+        try std.testing.expectEqual(call_at, actual.first_call_id);
+        const is_pow = expected.effect == .pow;
+        const hash_count: usize = if (is_pow) 2 else 1;
+        try std.testing.expectEqual(hash_count, actual.hash_count);
+        for (0..hash_count) |part| {
+            const draw = expected.effect == .draw or (is_pow and part == 1);
+            const word_count = recording.RATE + @as(usize, if (draw) 2 else expected.payload_words);
+            const frame = recording_view.trace.hash_frames[hash_at];
+            try std.testing.expectEqual(word_count, frame.words.len);
+            try std.testing.expectEqual(word_count / recording.RATE + 1, frame.call_count);
+            try std.testing.expectEqual(@as(recording.HashPurpose, if (draw) .draw else .mix), frame.purpose);
+            try std.testing.expect(std.mem.allEqual(u32, &expected.constant_words, 0));
+            call_at += frame.call_count;
+            hash_at += 1;
+        }
+    }
+    try std.testing.expectEqual(recording_view.trace.hash_frames.len, hash_at);
+    try std.testing.expectEqual(recording_view.trace.poseidon_calls.len, call_at);
     std.debug.print("SEGMENT_V2_DETACHED_PREFIX operations={d} calls={d} payload_fixed={d} payload_dynamic={d} input_uses={d} boundary_challenges={d} parent_profile_active=false\n", .{ view.operations.len, view.provider.len, fixed, dynamic, uses, public_challenges });
+    std.debug.print("SEGMENT_V2_DETACHED_PCS_SCHEDULE operations={d} shared_secure_emitter=true\n", .{suffix.len});
 }

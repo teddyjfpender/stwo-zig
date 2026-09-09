@@ -255,20 +255,13 @@ pub const Program = struct {
         }
         try writer.mix(.boundary, .provider_partial, recursion.recursion_air_composition_circuit_v3.POSEIDON_AUX_START, 8);
         try writer.mix(.tree2, .commitment, 2, 8);
-        try writer.draw(.composition, .composition, 0, 4);
-        try writer.mix(.tree3, .commitment, 3, 8);
-        try writer.draw(.oods, .oods, 0, 4);
-        try writer.mix(.samples, .sampled_values, 0, try words(capture.sampled_values.len));
-        try writer.draw(.deep, .deep, 0, 4);
-        for (0..capture.fri.layers.len) |i| {
-            try writer.mix(.fri, .fri_commitment, i, 8);
-            try writer.draw(.fri, .fri_alpha, i, 4);
-        }
-        try writer.mix(.last_layer, .last_layer, 0, try words(capture.last_layer_coefficients.len));
-        try writer.pow(.pcs_pow, 1, protocol.pcs_pow_bits);
-        var query: usize = 0;
-        while (query < protocol.fri_query_count) : (query += recording.RATE)
-            try writer.draw(.queries, .queries, query, @min(recording.RATE, protocol.fri_query_count - query));
+        try appendPcsTranscript(writer, .{
+            .sampled_value_count = capture.sampled_values.len,
+            .fri_layer_count = capture.fri.layers.len,
+            .last_layer_coefficient_count = capture.last_layer_coefficients.len,
+            .query_count = protocol.fri_query_count,
+            .pow_bits = protocol.pcs_pow_bits,
+        });
         const operations = try list.toOwnedSlice(allocator);
         var result = Program{
             .allocator = allocator,
@@ -364,6 +357,44 @@ pub const Program = struct {
         return hash.finalResult();
     }
 };
+
+/// The shared PCS suffix begins after the interaction commitment. Its shape
+/// comes from an admitted profile; captured values are never program constants.
+pub const PcsShape = struct {
+    sampled_value_count: usize,
+    fri_layer_count: usize,
+    last_layer_coefficient_count: usize,
+    query_count: usize,
+    pow_bits: u32,
+};
+
+pub fn initPcsOperations(allocator: std.mem.Allocator, shape: PcsShape) ![]Operation {
+    var list: std.ArrayList(Operation) = .empty;
+    errdefer list.deinit(allocator);
+    try appendPcsTranscript(Writer{ .allocator = allocator, .list = &list }, shape);
+    return list.toOwnedSlice(allocator);
+}
+
+pub fn appendPcsTranscript(writer: anytype, shape: PcsShape) !void {
+    if (shape.sampled_value_count == 0 or shape.fri_layer_count == 0 or
+        shape.fri_layer_count > 30 or shape.last_layer_coefficient_count == 0 or
+        shape.query_count == 0) return error.InvalidRecursiveTranscriptProgram;
+    _ = try checked(shape.query_count);
+    try writer.draw(.composition, .composition, 0, 4);
+    try writer.mix(.tree3, .commitment, 3, 8);
+    try writer.draw(.oods, .oods, 0, 4);
+    try writer.mix(.samples, .sampled_values, 0, try words(shape.sampled_value_count));
+    try writer.draw(.deep, .deep, 0, 4);
+    for (0..shape.fri_layer_count) |i| {
+        try writer.mix(.fri, .fri_commitment, i, 8);
+        try writer.draw(.fri, .fri_alpha, i, 4);
+    }
+    try writer.mix(.last_layer, .last_layer, 0, try words(shape.last_layer_coefficient_count));
+    try writer.pow(.pcs_pow, 1, shape.pow_bits);
+    var query: usize = 0;
+    while (query < shape.query_count) : (query += recording.RATE)
+        try writer.draw(.queries, .queries, query, @min(recording.RATE, shape.query_count - query));
+}
 
 const Writer = struct {
     allocator: std.mem.Allocator,

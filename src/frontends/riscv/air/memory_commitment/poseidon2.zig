@@ -15,11 +15,17 @@ pub const State4 = [WIDTH]m31.Vec4u32;
 pub const DEFAULT_HASHES = constants.DEFAULT_HASHES;
 
 pub fn hashPair(left: u32, right: u32) u32 {
-    var state: State = .{M31.zero()} ** WIDTH;
-    state[0] = M31.fromU64(left);
-    state[1] = M31.fromU64(right);
+    var state = pairState(M31, M31.zero(), M31.fromU64(left), M31.fromU64(right));
     permute(&state);
     return state[0].v;
+}
+
+/// Memory-tree pair framing shared by native hashing and provider-backed AIR.
+pub fn pairState(comptime F: type, zero: F, left: F, right: F) [WIDTH]F {
+    var state: [WIDTH]F = @splat(zero);
+    state[0] = left;
+    state[1] = right;
+    return state;
 }
 
 /// Four independent memory-tree node hashes evaluated in AArch64 AdvSIMD

@@ -372,9 +372,17 @@ pub fn callWireTuple(call_index: usize, group: usize, call: poseidon2_air.Call) 
 }
 
 fn callWireTupleFromWords(call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]M31) [6]M31 {
+    return callWireTupleGeneric(M31, identityBase, call_index, group, words);
+}
+fn identityBase(value: M31) M31 {
+    return value;
+}
+/// Canonical circuit/node/word projection, shared by native public boundary
+/// calculation and the parent's provider-authenticated symbolic call words.
+pub fn callWireTupleGeneric(comptime S: type, from_base: anytype, call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]S) [6]S {
     std.debug.assert(group < CALL_WIRE_GROUP_COUNT);
     std.debug.assert(call_index <= (m31.Modulus - 1 - group) / CALL_WIRE_GROUP_COUNT);
-    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group))) } ++ words[group * 4 ..][0..4].*;
+    return .{ from_base(felt(CALL_WIRE_CIRCUIT_ID)), from_base(felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group)))) } ++ words[group * 4 ..][0..4].*;
 }
 
 fn tupleForCall(call: poseidon2_air.Call) [air.POSEIDON_TUPLE_WIDTH]M31 {

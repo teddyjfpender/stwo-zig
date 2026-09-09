@@ -187,7 +187,7 @@ pub fn validate(rows: *const Rows, program: *const Program, execution: *const re
     if (!ledger.classify().isClosed()) return error.TranscriptLookupMismatch;
 }
 
-fn checkRows(comptime component: u8, comptime Air: type, rows: anytype, ledger: *Ledger) !void {
+pub fn checkRows(comptime component: u8, comptime Air: type, rows: anytype, ledger: *Ledger) !void {
     var definition = try Air.build(std.testing.allocator);
     defer definition.deinit();
     const compiled = try direct.authenticate(&definition.arena, Air.SEMANTIC_DIGEST, Air.LOGICAL_INPUT_COUNT);

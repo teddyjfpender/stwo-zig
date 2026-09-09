@@ -1,0 +1,50 @@
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+test-recursive-segment-v2-detached-parent-statement
++- SegmentV2 detached parent statement guard
+   +- run test stderr
+detached-parent-v2-adjacency raw_word_mutations=212 unequal_word_swap=true decrement=true host_admission_bypassed=true
+detached-parent-statement child_words=412/412 published_words=412 nodes=80741 outputs=22244 arithmetic_mutations=21 boundary_producers_destroyed=true proof_verified=false
+test-recursive-segment-v2-detached-routing
++- SegmentV2 detached routing guard
+   +- run test stderr
+detached routing input=c73a0e906b7cc3c4bc01d0211ed1dbafffee16a548276c5e543b327aa61f5d27 poseidon=7ea0b8e40c8b757e94023b2e407a2baf303d10cf133b1cfdc0b1c667ef24f46e
+detached routing source_kinds=7 changed_value_rejected=true scalar_extension_rejected=true exact_exports=true poseidon_words=32 changed_provider_output_rejected=true changed_fanout_rejected=true
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test stderr
+detached composition: samples=2287 inputs=10116 nodes=39951 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=60 calls=233 payload_fixed=54 payload_dynamic=876 input_uses=892 boundary_challenges=2 parent_profile_active=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=40 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=40 provider_calls=1242 sampled_words=9148 randomness_rows=20 pow_rows=1 parent_profile_active=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=1 query_rows=3 trace_rows=807 fri_leaf_rows=96 path_rows=612 provider_calls=1563 pcs_inputs=15646 fri_inputs=657 parent_proof_verified=false
+SEGMENT_V2_DETACHED_PCS_CHECKS lane=2 query_rows=3 trace_rows=807 fri_leaf_rows=96 path_rows=612 provider_calls=1563 pcs_inputs=15646 fri_inputs=657 parent_proof_verified=false
+detached expected boundary: inputs=13960 nodes=69409 outputs=8537 provider_calls=322 rejected=37
+SEGMENT_V2_DETACHED_PCS samples=2287 queried_values=6381 layers=16 rejected_deep_answers=3 parent_profile_active=false
+SEGMENT_V2_DETACHED_CHILD transcript_operations=100 poseidon_calls=1475 sampled_values=2287 queried_values=6381 fri_layers=16 raw_queries=3 input_bytes=92732 caller_destroyed=true
+
+Build Summary: 16/16 steps succeeded; 4/4 tests passed
+test-recursive-segment-v2-detached-child success
++- SegmentV2 detached child guard success
+   +- run test 1 passed 1s MaxRSS:30M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 1s MaxRSS:17M
+      +- compile test ReleaseSafe native success 6s MaxRSS:618M
+test-recursive-segment-v2-detached-parent-statement success
++- SegmentV2 detached parent statement guard success
+   +- run test 1 passed 576ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 7s MaxRSS:660M
+test-recursive-segment-v2-detached-routing success
++- SegmentV2 detached routing guard success
+   +- run test 1 passed 278ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:603M
+

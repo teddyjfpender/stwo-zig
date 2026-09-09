@@ -190,6 +190,10 @@ const test_terms = [_]lowering.PublicWireTerm{
 
 // Structural fixture only: the pin in these tests is not a compiled-circuit
 // admission or evidence that a production lowering is statement-independent.
+pub const testing = if (@import("builtin").is_test) struct {
+    pub const key = testKey;
+} else struct {};
+
 fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
     const source_manifest = try source.ManifestV2.init(word_count);
     const boundary = try recursion.segment_leaf_outer_authority_v2.OuterManifestV2.init(source_manifest);

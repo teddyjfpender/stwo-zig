@@ -635,13 +635,11 @@ pub fn snapshotSectionIdentity(
     section: RetainedSectionV2,
 ) Digest {
     var hasher = IdentityHasher.init(MEMORY_STATE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.u32Value(section.count);
-    for (0..section.count) |index| {
-        const entry = view.sparseEntry(section, index);
-        hasher.u32Value(entry.address);
-        hasher.u32Value(entry.value);
-    }
+    @import("segment_statement_v2_identity_preimage.zig").emitRetainedSection(
+        &hasher,
+        section.count,
+        view.words[section.payload_start..][0 .. @as(usize, section.count) * 4],
+    );
     return hasher.finalize();
 }
 
