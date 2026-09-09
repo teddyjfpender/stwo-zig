@@ -1011,6 +1011,13 @@ pub fn build(b: *std.Build) void {
         .minimum = 1,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-framework-interaction",
+        .description = "Run interaction column/domain parity, workspace and failure-atomicity checks",
+        .root = "framework_interaction_test_root.zig",
+        .filters = &.{"R-012 framework"},
+        .minimum = 2,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-air-row18",
         .description = "Run only row-18 VM AIR composition-input identity and witness tests",
         .root = "recursion_air_core_test_root.zig",

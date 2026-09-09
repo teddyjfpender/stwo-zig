@@ -39,12 +39,25 @@ memory without a wrapper improvement, so its existing policy is preserved.
 
 Earlier parent optimizations retain coefficients and use the shared compact
 tuple ledger. The final policy passes all eight complete-tree runs and 1,014 fresh cases.
-Expanded phase attribution identifies repeated domain-audit row-pair evaluation
-and batch inversion in interaction generation as the next bounded CPU/Metal
-optimization candidate. Maintain the
+Expanded phase attribution identified repeated domain-audit arithmetic, addressed
+by the shared direct-writer pass below. Maintain the
 small complete-proof loop; do not use an Ethereum-sized replay as the development
 gate. Formal quiet-host CSP preservation remains open; no CSP default, worker
 policy or shared RV32 execution path changes in this wrapper optimization.
+
+The next interaction pass now also has measured savings on both backends.
+All 16 native-core components consume the existing typed-AIR direct writer and
+its per-domain results. Independent cold replay agrees on all 128 component
+comparisons; 560 alternating proof checks preserve exact artifacts. Stronger
+wrapper medians improve another 11.4% CPU and 15.7% Metal, with stable memory.
+Complete two-child medians are 23.896s CPU and 18.671s Metal. The focused
+framework gate runs in 272ms after a six-second compile.
+
+All eight full-tree reruns now pass 1,014 fresh cases with identical artifacts.
+Return to the stronger 4/8-segment milestone and
+formal CSP preservation. Keep the existing per-segment workload small. Do not
+extend leaf optimization indefinitely or substitute development-profile trees
+for the separately admitted stronger route.
 
 ## Required implementation order
 
@@ -196,6 +209,6 @@ These remain tiny RISC-V fixtures, not Ethereum blocks or production-security
 certification. See the [current command and measurements](small-recursive-benchmark.md#complete-cpu-and-metal-tree-controller).
 
 The sampled-opening pass is complete: CPU wrappers improve about 36%, while
-Metal retains its lower-memory existing policy. The next measured target is
-repeated domain-audit arithmetic during interaction generation. Stronger 4/8
-admission and formal CSP preservation remain open.
+Metal retains its lower-memory existing policy. The direct-writer pass also removes a repeated batch inversion from domain
+auditing, improving both backends. Stronger 4/8 admission and formal CSP
+preservation remain open.

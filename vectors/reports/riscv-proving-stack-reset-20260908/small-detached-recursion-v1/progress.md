@@ -659,3 +659,22 @@ phase report and Metal interaction sample identify repeated row-pair evaluation
 and batch inversion in per-domain auditing as the next shared optimization
 candidate. It must preserve exact domain audits and fresh verification.
 Formal quiet-host CSP promotion and stronger 4/8 admission remain open.
+
+## Shared direct interaction writer
+
+All 16 native-core components now use the existing typed-AIR writer's per-domain
+results and write directly into admitted columns. This removes duplicate batch
+inversion and temporary column copies without changing constraints or claims.
+Independent cold replay agrees on 128 component comparisons; 70 fresh cold-mode
+proof cases and 560 alternating A/B cases pass with unchanged artifacts.
+Stronger median wrapper proving improves 6.393→5.666s CPU and 5.156→4.348s Metal;
+complete two-child production improves 25.422→23.896s and 20.348→18.671s.
+Memory is stable. Development full CPU request change is within variation and
+is not claimed as a speedup. Evidence: `wrapper-interaction-direct-measurements.json`.
+
+The focused framework command now runs three checks in 272ms after six seconds
+of compilation, including audited-column parity and zero-denominator atomicity.
+All eight complete-tree reruns pass 1,014 fresh cases and exact artifact parity;
+commands and resource data are in `wrapper-interaction-direct-trees.json` and
+`wrapper-interaction-direct-tree-measurements.json`. The next critical-path work
+is stronger 4/8 admission plus formal quiet-host CSP preservation.

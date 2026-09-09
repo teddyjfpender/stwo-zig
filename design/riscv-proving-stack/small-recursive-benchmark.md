@@ -659,3 +659,58 @@ event counts, zero-denominator rejection, and independent cold diagnostic.
 Compare a shared generation/audit implementation against the existing audit on
 real prepared rows, then require the same complete-proof and artifact-parity
 gates. Do not substitute a cached validation flag or remove boundary checks.
+
+## Shared interaction generation and domain claims
+
+The wrapper now uses `Framework.generatePreparedIntoWithDomainSums` for all
+16 native-core components. That existing typed-AIR operation writes directly to
+the admitted Tree2 columns and derives domain claims from its retained inverse
+plane. It replaces 16 allocating generate/copy/cold-audit sequences with one
+internal helper. The separate cold audit stays available; exact tuple-ledger
+contributions and domain/row/event counts are preserved. No frontend production
+algorithm, protocol parameter, CSP default or worker policy changes.
+
+The diagnostic `STWO_RISCV_RECURSIVE_INTERACTION_AUDIT=1` compares every domain
+value, total, logical-row count and event count against independently recomputed
+cold results on genuine prepared rows. CPU/Metal and both profiles pass 128 such
+component comparisons and 70 fresh proof cases, with identical artifact bytes.
+The stronger fixture's two wrappers cover 1,815,246/1,760,907 logical rows and
+10,200,101/9,896,712 event terms in these components. These are recursive verifier
+relations, not counts of executed RISC-V instructions.
+
+The focused workspace check is now directly runnable:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/frontends/riscv \
+  test-recursion-framework-interaction -Doptimize=ReleaseSafe --summary all
+```
+
+It checks column/domain parity, no additional workspace allocation, alias
+rejection and unchanged destination bytes on zero-denominator failure. Three
+checks pass in 272ms after a six-second compile. This previously inventoried
+focused root now has its own maintained build step and test-count floor.
+
+Three alternating, unprofiled A/B rounds pass another 560 fresh cases. Stronger
+CPU wrapper median improves 6.393→5.666s (11.4%), and the complete two-child
+producer improves 25.422→23.896s (6.0%). Metal wrapper median improves
+5.156→4.348s (15.7%), and its producer improves 20.348→18.671s (8.2%). Peak RSS
+is stable at about 2.70GiB CPU and 2.37GiB Metal. Separate diagnostic runs locate
+the saving in interaction generation: approximately 2.6–2.7→1.9s per wrapper.
+
+Development wrapper medians improve by 3–4%, but the complete CPU request is
+7.117→7.138s, within local variation; no whole-request development CPU speedup is
+claimed. These are local measurements, not formal quiet-host CSP promotion.
+Evidence: `wrapper-interaction-direct-measurements.json`,
+`wrapper-interaction-ab/`, `wrapper-interaction-direct-cold/`, and
+`wrapper-interaction-framework-checks-first.{json,log}`. Producer compilation
+is 181s; source/binary pins are retained with its build report. Later frontend
+changes are test-only plus the focused build-step wiring.
+
+All eight complete trees also pass 1,014 fresh cases after this change:
+CPU/Metal development 2/4/8 and stronger 2-segment trees. Every key, claim, proof,
+expected statement and parent publication matches the preceding checkpoint.
+`wrapper-interaction-direct-trees.json` contains the commands and binary pin;
+`wrapper-interaction-direct-tree-measurements.json` records endpoint timing,
+root verification and memory. These reruns establish complete-route correctness
+and scaling observations, not additional paired timing claims. The next milestone
+is the separately admitted stronger 4/8 route and formal CSP preservation.

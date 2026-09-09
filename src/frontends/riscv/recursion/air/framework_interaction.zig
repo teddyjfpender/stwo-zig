@@ -653,9 +653,10 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
     try std_testing.expect(actual_claim.eql(expected.claimed_sum));
     try std_testing.expectEqualSlices(M31, expected.storage, &output);
 
-    // A second proof reuses the same scratch without growing the allocator.
+    // Domain decomposition reuses the same scratch and matches the independent
+    // cold audit, including padding, without changing any committed column.
     @memset(&output, sentinel);
-    const second_claim = try Framework.generatePreparedInto(
+    const second_claim = try Framework.generatePreparedIntoWithDomainSums(
         &workspace,
         &plan,
         &rows,
@@ -664,7 +665,14 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
         &columns,
     );
     try std_testing.expectEqual(allocation_cursor, fixed.end_index);
-    try std_testing.expect(second_claim.eql(expected.claimed_sum));
+    try std_testing.expect(second_claim.claimed_sum.eql(expected.claimed_sum));
+    const domain_audit = try plan.auditPreparedDomainSums(
+        std_testing.allocator,
+        &rows,
+        &relations,
+        expected.claimed_sum,
+    );
+    try std_testing.expectEqualDeep(domain_audit.values, second_claim.by_domain);
     try std_testing.expectEqualSlices(M31, expected.storage, &output);
 
     // Force a denominator to zero only after row evaluation has begun. The
@@ -678,6 +686,22 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
     try std_testing.expectError(
         error.ZeroDenominator,
         Framework.generatePreparedInto(
+            &workspace,
+            &plan,
+            &rows,
+            log_size,
+            &relations,
+            &columns,
+        ),
+    );
+    try std_testing.expectEqualSlices(
+        M31,
+        &([_]M31{sentinel} ** output.len),
+        &output,
+    );
+    try std_testing.expectError(
+        error.ZeroDenominator,
+        Framework.generatePreparedIntoWithDomainSums(
             &workspace,
             &plan,
             &rows,
