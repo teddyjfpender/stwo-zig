@@ -77,6 +77,8 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
     directory = args.bundle.resolve().parent
     argv = [str(producer), "--memory-addresses", "1", "--two-segment-output", str(directory),
             "--native-backend", args.native_backend]
+    if args.proof_profile != "development_q3_v1":
+        argv += ["--proof-profile", args.proof_profile]
     if args.initial_memory_word:
         argv += ["--initial-memory-word", str(args.initial_memory_word)]
     if args.native_backend == "metal":
@@ -116,6 +118,7 @@ def run_producer(args: argparse.Namespace, report: dict) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--proof-profile", choices=("development_q3_v1", "recursive_q193_v1"), default="development_q3_v1")
     parser.add_argument("--verifier", type=Path, required=True)
     parser.add_argument("--bundle", type=Path, required=True)
     parser.add_argument("--key-sha256", required=True)
@@ -202,7 +205,7 @@ def main() -> None:
               "verifier_sha256": hashlib.sha256(verifier.read_bytes()).hexdigest(),
               "key_sha256": args.key_sha256,
               "expected_wire_sha256": sha256(expected),
-              "development_only": True, "cases": results, "passed": False}
+              "development_only": True, "proof_profile": args.proof_profile, "cases": results, "passed": False}
     trusted_paths = [verifier, expected]
     if args.adjacent_expected_wire:
         trusted_paths.append(args.adjacent_expected_wire.resolve())
@@ -225,6 +228,8 @@ def main() -> None:
         claims = json.loads(claims_bytes)
         if hashlib.sha256(key).hexdigest() != args.key_sha256:
             raise RuntimeError("the supplied independent key pin does not match key.json")
+        if json.loads(key).get("profile") != args.proof_profile:
+            raise RuntimeError("admitted key does not match the selected proof profile")
         report["proof_sha256"] = hashlib.sha256(proof).hexdigest()
         for artifact_bundle in (bundle, args.adjacent_bundle):
             if artifact_bundle:
@@ -237,14 +242,17 @@ def main() -> None:
         with tempfile.TemporaryDirectory(prefix="segment-v2-replay-") as temporary:
             work = Path(temporary)
             run("genuine", bundle, args.key_sha256, expected, True)
-            # This is an exact admitted q3 fixture, not an arbitrary postcard
-            # editor: refuse to mutate offsets under a different wire profile.
-            if proof[:7] != bytes([0, 1, 3, 0, 1, 0, 4]):
-                raise RuntimeError("unsupported genuine proof prefix for this development replay")
+            # Exact admitted encodings, not offsets inferred from untrusted
+            # proof bytes. Query193 uses a two-byte canonical varint.
+            prefix = {"development_q3_v1": bytes([0, 1, 3, 0, 1, 0, 4]),
+                      "recursive_q193_v1": bytes([16, 1, 193, 1, 0, 4, 0, 4])}[args.proof_profile]
+            if not proof.startswith(prefix):
+                raise RuntimeError("unsupported genuine proof prefix for the selected profile")
+            count_at = len(prefix) - 1
             mutations = {
-                "changed_pcs_config": bytes([1]) + proof[1:],
-                "noncanonical_varint": bytes([0x80, 0]) + proof[1:],
-                "forged_commitment_length": proof[:6] + bytes([0xff] * 9 + [1]) + proof[7:],
+                "changed_pcs_config": bytes([proof[0] ^ 1]) + proof[1:],
+                "noncanonical_varint": bytes([proof[0] | 0x80, 0]) + proof[1:],
+                "forged_commitment_length": proof[:count_at] + bytes([0xff] * 9 + [1]) + proof[count_at + 1:],
                 "truncated": proof[:-1],
                 "trailing": proof + b"\x00",
                 "altered_proof_tail": proof[:-1] + bytes([proof[-1] ^ 1]),
@@ -259,12 +267,23 @@ def main() -> None:
                 (directory / "claims.json").write_text(json.dumps(changed_claims))
                 (directory / "proof.bin").write_bytes(changed_proof)
                 run(name, directory, args.key_sha256, expected, False)
-            for name in ("changed_claim", "balanced_claims", "balanced_poseidon_partials"):
+            claim_cases = ["changed_claim", "balanced_claims", "balanced_poseidon_partials"]
+            if args.proof_profile == "recursive_q193_v1":
+                claim_cases += ["missing_interaction_pow", "changed_interaction_pow"]
+            else:
+                claim_cases += ["unexpected_interaction_pow"]
+            for name in claim_cases:
                 directory = work / name
                 directory.mkdir()
                 changed_claims = copy.deepcopy(claims)
                 values = changed_claims["claims"]
-                if name == "balanced_poseidon_partials":
+                if name == "missing_interaction_pow":
+                    del values["interaction_pow"]
+                elif name == "changed_interaction_pow":
+                    values["interaction_pow"] ^= 1
+                elif name == "unexpected_interaction_pow":
+                    values["interaction_pow"] = 0
+                elif name == "balanced_poseidon_partials":
                     shifted(values["poseidon_partials"][0], 1)
                     shifted(values["poseidon_partials"][1], -1)
                 else:

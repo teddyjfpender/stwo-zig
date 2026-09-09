@@ -62,6 +62,22 @@ pub const AdmissionParametersV1 = struct {
 pub const ClaimsV1 = struct {
     values: [manifest_mod.COMPONENT_COUNT]QM31,
     poseidon_partials: [2]QM31,
+    /// Required by the separately admitted q193 transcript. Absence preserves
+    /// the original development wire; nonce zero is still a present nonce.
+    interaction_pow: ?u64 = null,
+
+    pub fn jsonStringify(self: ClaimsV1, writer: anytype) !void {
+        try writer.beginObject();
+        try writer.objectField("values");
+        try writer.write(self.values);
+        try writer.objectField("poseidon_partials");
+        try writer.write(self.poseidon_partials);
+        if (self.interaction_pow) |nonce| {
+            try writer.objectField("interaction_pow");
+            try writer.write(nonce);
+        }
+        try writer.endObject();
+    }
 
     pub fn vector(self: ClaimsV1, manifest: *const manifest_mod.Manifest) !manifest_mod.ClaimVector {
         var result = try manifest_mod.ClaimVector.init(manifest);

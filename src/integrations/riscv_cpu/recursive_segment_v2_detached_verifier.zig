@@ -110,6 +110,7 @@ fn verifyImpl(
     defer scheme.deinit(allocator);
     for (0..2) |tree| try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, tree, commitments[tree], channel);
     try transcript.mixAdmission(channel, key, expected);
+    try transcript.mixInteractionPow(channel, key, claims.interaction_pow);
     const relations = try components.Relations.draw(allocator, channel);
     try transcript.mixClaimsAndBoundary(channel, key, expected, claims, &relations);
     try support.commitVerifierTreeForManifest(manifest_mod, allocator, &scheme, &key.manifest, 2, commitments[2], channel);

@@ -1,4 +1,4 @@
-//! Explicit development transcript for detached SegmentV2 verification.
+//! Explicit versioned transcript for detached SegmentV2 verification.
 //! Structural validation and a caller-supplied independent pin do not establish
 //! that a compiler emitted a fixed circuit. Admission policy must additionally
 //! establish that Tree0 and all constant/output anchors are statement-independent.
@@ -25,7 +25,24 @@ pub const INTERACTION_POW_BITS = recursion.outer_parent_child_admission.INTERACT
 /// are template bookkeeping: only canonical program geometry enters this key
 /// identity. No capture, source receipt, observed claim, or call-buffer digest
 /// belongs here. Constant terms must come from independently admitted lowering.
-pub const ProfileV1 = enum(u8) { development_q3_v1 = 1 };
+pub const ProfileV1 = enum(u8) {
+    development_q3_v1 = 1,
+    recursive_q193_v1 = 2,
+
+    pub fn pcsConfig(self: ProfileV1) core.pcs.PcsConfig {
+        return switch (self) {
+            .development_q3_v1 => PCS_CONFIG,
+            .recursive_q193_v1 => recursion.protocol.PCS_CONFIG,
+        };
+    }
+
+    pub fn interactionPowBits(self: ProfileV1) u32 {
+        return switch (self) {
+            .development_q3_v1 => INTERACTION_POW_BITS,
+            .recursive_q193_v1 => recursion.protocol.INTERACTION_POW_BITS,
+        };
+    }
+};
 
 pub const KeyV1 = struct {
     profile: ProfileV1 = .development_q3_v1,
@@ -40,8 +57,18 @@ pub const KeyV1 = struct {
     wire_terms: []const lowering.PublicWireTerm,
 
     pub fn identity(self: *const KeyV1) ![32]u8 {
-        if (self.version != VERSION or self.profile != .development_q3_v1) return error.InvalidSegmentDetachedVersion;
-        if (!std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.InvalidSegmentDetachedProfile;
+        if (self.version != VERSION) return error.InvalidSegmentDetachedVersion;
+        if (!std.meta.eql(self.pcs_config, self.profile.pcsConfig())) return error.InvalidSegmentDetachedProfile;
+        if (self.profile == .recursive_q193_v1) {
+            for ([_]air.query_bits_witness.LaneProfile{ self.parameters.query_reference.vm, self.parameters.query_reference.recursion }) |lane| {
+                if (lane.query_count != recursion.protocol.FRI_QUERY_COUNT or
+                    lane.trace_tree_count != recursion.protocol.COMMITMENT_TREE_COUNT or
+                    lane.lifting_log_size <= recursion.protocol.FRI_LOG_BLOWUP_FACTOR)
+                    return error.DetachedNativeSecurityProfileMismatch;
+                const fri = try recursion.fixed_profile.FriSchedule.init(lane.lifting_log_size - recursion.protocol.FRI_LOG_BLOWUP_FACTOR, recursion.protocol.PCS_CONFIG.fri_config);
+                if (lane.fri_layer_count != fri.count) return error.DetachedNativeSecurityProfileMismatch;
+            }
+        }
         _ = try self.parameters.validate(&self.manifest);
         if (try self.native_descriptors.callCount() > (@as(u64, 1) << @intCast(self.manifest.placements[13].?.geometry.log_size)))
             return error.InvalidSegmentDetachedCircuit;
@@ -54,8 +81,11 @@ pub const KeyV1 = struct {
         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus)
             return error.InvalidSegmentDetachedCircuit;
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-zig/segment-v2-detached-development-circuit/v2\x00");
-        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, manifest_mod.TRANSCRIPT_FORMAT_VERSION, INTERACTION_POW_BITS, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
+        hash.update(switch (self.profile) {
+            .development_q3_v1 => "stwo-zig/segment-v2-detached-development-circuit/v2\x00",
+            .recursive_q193_v1 => "stwo-zig/segment-v2-detached-q193-circuit/v1\x00",
+        });
+        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, manifest_mod.TRANSCRIPT_FORMAT_VERSION, self.profile.interactionPowBits(), self.pcs_config.pow_bits, self.pcs_config.fri_config.log_blowup_factor, self.pcs_config.fri_config.log_last_layer_degree_bound, @intCast(self.pcs_config.fri_config.n_queries), self.pcs_config.fri_config.fold_step }) |word| hashWord(&hash, word);
         hash.update(&manifest_mod.programGeometryShaId(&self.manifest));
         hash.update(&air.universal_challenges.registryOrderDigest());
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
@@ -128,6 +158,19 @@ pub fn mixAdmission(channel: anytype, admission: *const KeyV1, expected: *const 
     channel.mixU32s(&pin_words);
     beginPayload(channel, .expected);
     try expected.mixInto(channel);
+}
+
+/// The profile owns the work threshold and its transcript position. A missing
+/// nonce must never silently select the development transcript.
+pub fn mixInteractionPow(channel: anytype, key: *const KeyV1, nonce: ?u64) !void {
+    const bits = key.profile.interactionPowBits();
+    if (bits == 0) {
+        if (nonce != null) return error.UnexpectedDetachedInteractionPow;
+        return;
+    }
+    const value = nonce orelse return error.MissingDetachedInteractionPow;
+    if (!channel.verifyPowNonce(bits, value)) return error.InvalidDetachedInteractionPow;
+    channel.mixU64(value);
 }
 
 /// Claims remain untrusted until STARK verification. The two independent
@@ -289,4 +332,43 @@ test "SegmentV2 detached claims share fixed lowering and expected row36 closure"
     claims.values[0] = claims.values[0].add(QM31.one());
     try std.testing.expectError(error.SegmentDetachedClaimClosureMismatch, mixClaimsAndBoundary(&channel, &key, &data, claims, &relations));
     try std.testing.expectEqualDeep(before, channel);
+}
+
+test "SegmentV2 detached profiles bind security and interaction work" {
+    const allocator = std.testing.allocator;
+    const legacy = try testKey(1000, 1);
+    var strong = legacy;
+    strong.profile = .recursive_q193_v1;
+    try std.testing.expectError(error.InvalidSegmentDetachedProfile, strong.validate());
+    strong.pcs_config = strong.profile.pcsConfig();
+    try std.testing.expectError(error.DetachedNativeSecurityProfileMismatch, strong.validate());
+    var channel = recursion.poseidon2_channel.Channel{};
+    channel.mixU32s(&.{ 71, 93 });
+    const before = channel;
+    try mixInteractionPow(&channel, &legacy, null);
+    try std.testing.expectEqualDeep(before, channel);
+    try std.testing.expectError(error.UnexpectedDetachedInteractionPow, mixInteractionPow(&channel, &legacy, 0));
+    try std.testing.expectError(error.MissingDetachedInteractionPow, mixInteractionPow(&channel, &strong, null));
+    var invalid: u64 = 0;
+    while (channel.verifyPowNonce(strong.profile.interactionPowBits(), invalid)) invalid += 1;
+    try std.testing.expectError(error.InvalidDetachedInteractionPow, mixInteractionPow(&channel, &strong, invalid));
+    try std.testing.expectEqualDeep(before, channel);
+    const valid = channel.grind(strong.profile.interactionPowBits());
+    var expected = before;
+    expected.mixU64(valid);
+    try mixInteractionPow(&channel, &strong, valid);
+    try std.testing.expectEqualDeep(expected, channel);
+
+    var claims = components.ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
+    const old_json = try std.json.Stringify.valueAlloc(allocator, .{ .values = claims.values, .poseidon_partials = claims.poseidon_partials }, .{});
+    defer allocator.free(old_json);
+    const compatible_json = try std.json.Stringify.valueAlloc(allocator, claims, .{});
+    defer allocator.free(compatible_json);
+    try std.testing.expectEqualStrings(old_json, compatible_json);
+    claims.interaction_pow = 0;
+    const nonce_json = try std.json.Stringify.valueAlloc(allocator, claims, .{});
+    defer allocator.free(nonce_json);
+    var decoded = try std.json.parseFromSlice(components.ClaimsV1, allocator, nonce_json, .{});
+    defer decoded.deinit();
+    try std.testing.expectEqual(@as(?u64, 0), decoded.value.interaction_pow);
 }

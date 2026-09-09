@@ -80,11 +80,24 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
         storage: []M31,
         backing: [][]M31,
 
+        /// Exact evaluation payload, excluding column metadata and the PCS's
+        /// later expansion/commitment buffers. Reads admitted geometry only.
+        pub fn evaluationBytes(manifest: *const Manifest.Manifest, tree: usize) !usize {
+            var cells: usize = 0;
+            for (manifest.roster_rows[0..manifest.roster_count]) |row| {
+                const geometry = manifest.placements[row].?.geometry;
+                const count = treeGeometryColumns(Manifest, geometry, tree);
+                cells = try std.math.add(usize, cells, try std.math.mul(usize, count, @as(usize, 1) << @intCast(geometry.log_size)));
+            }
+            return std.math.mul(usize, cells, @sizeOf(M31));
+        }
+
         pub fn init(
             allocator: std.mem.Allocator,
             manifest: *const Manifest.Manifest,
             tree: usize,
         ) !@This() {
+            const cells = try evaluationBytes(manifest, tree) / @sizeOf(M31);
             const count = treeColumnCount(Manifest, manifest, tree);
             const evaluations = try allocator.alloc(prover_pcs.ColumnEvaluation, count);
             errdefer allocator.free(evaluations);
@@ -95,13 +108,6 @@ pub fn TreeStorageForManifest(comptime Engine: type, comptime Manifest: type) ty
                 for (evaluations[offset..][0..local_count]) |*evaluation|
                     evaluation.log_size = placement.geometry.log_size;
             }
-            var cells: usize = 0;
-            for (evaluations) |evaluation|
-                cells = std.math.add(
-                    usize,
-                    cells,
-                    @as(usize, 1) << @intCast(evaluation.log_size),
-                ) catch return error.ArithmeticOverflow;
             const storage = try allocator.alloc(M31, cells);
             errdefer allocator.free(storage);
             @memset(storage, M31.zero());

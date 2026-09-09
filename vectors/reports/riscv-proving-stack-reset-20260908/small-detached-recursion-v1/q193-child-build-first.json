@@ -1,0 +1,29 @@
+{
+  "base_commit": "6943889c15f2c765a69d524fcfa0c289d1a5a48b",
+  "source_sha256": {
+    "scripts/riscv_segment_v2_detached_gate.py": "fe2ef6332a63a9c74d39abccd72ee70a126194674da4964cf79ccf3444397250",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "735bc908345af2089c250045824dcf3235b6d3682619aa6b72b32c13be924968",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "5ab4df19e8e0f006f1a32ea251e06176b3319fa119e04db3319832f870857f8a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig": "917ad049f467d175c7ae2aa6b19071a567bce7a90f991ef485995b7062128545",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig": "b0f66049224a63715e7425083f8a3d63be66079fbe53a477e38aa78f605cb133",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig": "9fea851a2c20d4680e388723cad8f52108e6e4bc568375a95cc2e6ddc1ac9ead",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig": "4725c62b2c1ff4b4e33d693ebd1d7d8e64e238e32e1f65a644419bb3c34c03c1",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig": "b872666b892df9ed6a712ce5a1f8b111e7a65e8faac8a3af49a02c004dc566e5",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine_storage.zig": "db8451d68ac0363cc3b6434681bc9415b218766abefa0bc2773da29f623d0016",
+    "src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig": "0e5d73c9d457918ff1772d2170fcd1712f4acea4f148b6b447fb9bc1569587d8",
+    "src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig": "1280aeecc4efb269c1ea765dff0acd9ce1c7544a9e621561c473f4f76ad858ee"
+  },
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "build-recursive-segment-v2-detached-verifier",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 218.0326180420816
+}

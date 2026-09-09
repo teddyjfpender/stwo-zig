@@ -1,0 +1,440 @@
+{
+  "scope": "two actual adjacent native proofs and independently verified 39-row detached child wrappers; no q193 parent/root yet",
+  "profile": "recursive_q193_v1",
+  "production_security_admission_complete": false,
+  "limitations": [
+    "single local observations, not performance promotion",
+    "native CPU/Metal; all outer proving and fresh verification on CPU",
+    "evaluation-byte estimates exclude PCS expansion/commitments and metadata",
+    "process RSS does not separately measure Metal device footprint"
+  ],
+  "rows": [
+    {
+      "backend": "cpu",
+      "seed": 13,
+      "producer_process_ns": 33125381916,
+      "process_receipt": "q193-child-cpu-seed13-first.json",
+      "maximum_rss_bytes": 2604367872,
+      "phases": [
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 0,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 2295920833,
+          "transport_ns": 9264584,
+          "verify_ns": 457777125,
+          "recursive_prepare_ns": 990468041,
+          "proof_bytes": 1323023,
+          "transcript_calls": 1164,
+          "verifier_core_calls": 58865,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 2001421750,
+          "poseidon_calls": 60045,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 0,
+          "first_cycle": 0,
+          "retired_cycles": 64,
+          "completed": "false",
+          "directory": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed13-first/child-0",
+          "native_backend": "cpu",
+          "proof_bytes": 2487266,
+          "native_ingress_ns": 3754898875,
+          "outer_prepare_ns": 2658447125,
+          "outer_prove_ns": 9727320708,
+          "transaction_ns": 16165086916,
+          "producer_peak_bytes": 2139109000,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 1,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 2028516625,
+          "transport_ns": 9097917,
+          "verify_ns": 447700500,
+          "recursive_prepare_ns": 977014208,
+          "proof_bytes": 1291699,
+          "transcript_calls": 1104,
+          "verifier_core_calls": 57900,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 1957486208,
+          "poseidon_calls": 59019,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 1,
+          "first_cycle": 64,
+          "retired_cycles": 34,
+          "completed": "true",
+          "directory": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed13-first/child-1",
+          "native_backend": "cpu",
+          "proof_bytes": 2491187,
+          "native_ingress_ns": 3463783083,
+          "outer_prepare_ns": 2615443791,
+          "outer_prove_ns": 10190110292,
+          "transaction_ns": 16293523375,
+          "producer_peak_bytes": 2118757152,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ]
+    },
+    {
+      "backend": "cpu",
+      "seed": 14,
+      "producer_process_ns": 32488873459,
+      "process_receipt": "q193-child-cpu-seed14-reuse.json",
+      "maximum_rss_bytes": 2604351488,
+      "phases": [
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 0,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 2039883250,
+          "transport_ns": 9127833,
+          "verify_ns": 461288958,
+          "recursive_prepare_ns": 999203625,
+          "proof_bytes": 1309137,
+          "transcript_calls": 1164,
+          "verifier_core_calls": 58865,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 2195621833,
+          "poseidon_calls": 60045,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 0,
+          "first_cycle": 0,
+          "retired_cycles": 64,
+          "completed": "false",
+          "directory": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed14-reuse/child-0",
+          "native_backend": "cpu",
+          "proof_bytes": 2486420,
+          "native_ingress_ns": 3511005750,
+          "outer_prepare_ns": 2865927000,
+          "outer_prove_ns": 9416946916,
+          "transaction_ns": 15819556875,
+          "producer_peak_bytes": 2139109000,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 1,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 2355546750,
+          "transport_ns": 9015167,
+          "verify_ns": 484901916,
+          "recursive_prepare_ns": 1010259125,
+          "proof_bytes": 1290868,
+          "transcript_calls": 1104,
+          "verifier_core_calls": 57900,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 2039354834,
+          "poseidon_calls": 59019,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 1,
+          "first_cycle": 64,
+          "retired_cycles": 34,
+          "completed": "true",
+          "directory": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed14-reuse/child-1",
+          "native_backend": "cpu",
+          "proof_bytes": 2490658,
+          "native_ingress_ns": 3861513833,
+          "outer_prepare_ns": 2748530542,
+          "outer_prove_ns": 9976997708,
+          "transaction_ns": 16639094584,
+          "producer_peak_bytes": 2118757152,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ]
+    },
+    {
+      "backend": "metal",
+      "seed": 13,
+      "producer_process_ns": 32881644292,
+      "process_receipt": "q193-child-metal-seed13-lifecycle.json",
+      "maximum_rss_bytes": 2631958528,
+      "phases": [
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 0,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 1314873209,
+          "transport_ns": 10614583,
+          "verify_ns": 458184958,
+          "recursive_prepare_ns": 991755542,
+          "proof_bytes": 1323023,
+          "transcript_calls": 1164,
+          "verifier_core_calls": 58865,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 2007417167,
+          "poseidon_calls": 60045,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 0,
+          "first_cycle": 0,
+          "retired_cycles": 64,
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-metal-seed13-lifecycle/child-0",
+          "native_backend": "metal",
+          "proof_bytes": 2487266,
+          "native_ingress_ns": 2776908708,
+          "outer_prepare_ns": 2698256584,
+          "outer_prove_ns": 10013313041,
+          "transaction_ns": 15514970042,
+          "producer_peak_bytes": 2139109000,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_NATIVE_PROFILE",
+          "profile": "protocol_v1",
+          "segment": 1,
+          "queries": 193,
+          "fold_step": 4,
+          "pcs_pow_bits": 16,
+          "interaction_pow_bits": 10,
+          "prove_ns": 1464446958,
+          "transport_ns": 10094625,
+          "verify_ns": 776559000,
+          "recursive_prepare_ns": 1300961084,
+          "proof_bytes": 1291699,
+          "transcript_calls": 1104,
+          "verifier_core_calls": 57900,
+          "outer_proof_created": "false"
+        },
+        {
+          "stage": "SEGMENT_V2_DETACHED_GEOMETRY",
+          "profile": "recursive_q193_v1",
+          "cohort_ns": 2017054042,
+          "poseidon_calls": 59019,
+          "tree0_evaluation_bytes": 187176192,
+          "tree1_evaluation_bytes": 242896640,
+          "tree2_evaluation_bytes": 110733312,
+          "excludes": "pcs_expansion_commitments_and_metadata",
+          "before_tree_allocation": "true"
+        },
+        {
+          "stage": "SEGMENT_V2_TWO_CHILD_CANDIDATE",
+          "segment": 1,
+          "first_cycle": 64,
+          "retired_cycles": 34,
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-metal-seed13-lifecycle/child-1",
+          "native_backend": "metal",
+          "proof_bytes": 2491187,
+          "native_ingress_ns": 3553694042,
+          "outer_prepare_ns": 2729054000,
+          "outer_prove_ns": 10304354625,
+          "transaction_ns": 16613588584,
+          "producer_peak_bytes": 2118757152,
+          "producer_live_bytes_after_destroy": 0,
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ]
+    }
+  ],
+  "byte_parity": [
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-0/key.json",
+      "baseline": "q193-child-cpu-seed13-first/child-0/key.json",
+      "sha256": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-0/claims.json",
+      "baseline": "q193-child-cpu-seed13-first/child-0/claims.json",
+      "sha256": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-0/proof.bin",
+      "baseline": "q193-child-cpu-seed13-first/child-0/proof.bin",
+      "sha256": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-0/expected-wire.json",
+      "baseline": "q193-child-cpu-seed13-first/child-0/expected-wire.json",
+      "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-1/key.json",
+      "baseline": "q193-child-cpu-seed13-first/child-1/key.json",
+      "sha256": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-1/claims.json",
+      "baseline": "q193-child-cpu-seed13-first/child-1/claims.json",
+      "sha256": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-1/proof.bin",
+      "baseline": "q193-child-cpu-seed13-first/child-1/proof.bin",
+      "sha256": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c"
+    },
+    {
+      "candidate": "q193-child-metal-seed13-lifecycle/child-1/expected-wire.json",
+      "baseline": "q193-child-cpu-seed13-first/child-1/expected-wire.json",
+      "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-0/key.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/key.json",
+      "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-0/claims.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/claims.json",
+      "sha256": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-0/proof.bin",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/proof.bin",
+      "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-0/expected-wire.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/expected-wire.json",
+      "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-1/key.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/key.json",
+      "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-1/claims.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/claims.json",
+      "sha256": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-1/proof.bin",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/proof.bin",
+      "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a"
+    },
+    {
+      "candidate": "q193-profile-default-cpu-parity/child-1/expected-wire.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/expected-wire.json",
+      "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-0/key.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/key.json",
+      "sha256": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-0/claims.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/claims.json",
+      "sha256": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-0/proof.bin",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/proof.bin",
+      "sha256": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-0/expected-wire.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-0/expected-wire.json",
+      "sha256": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-1/key.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/key.json",
+      "sha256": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-1/claims.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/claims.json",
+      "sha256": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-1/proof.bin",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/proof.bin",
+      "sha256": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a"
+    },
+    {
+      "candidate": "q193-profile-default-metal-parity/child-1/expected-wire.json",
+      "baseline": "segment-ladder-cpu-2-seed13-first/child-1/expected-wire.json",
+      "sha256": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+    }
+  ],
+  "stronger_profile_fresh_cases": 92,
+  "development_profile_fresh_cases": 34
+}

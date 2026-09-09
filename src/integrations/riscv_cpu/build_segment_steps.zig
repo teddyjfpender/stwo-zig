@@ -99,6 +99,7 @@ pub fn add(ctx: anytype) void {
         "SegmentV2 detached fixed projection excludes source seals and pins circuit facts",
         "SegmentV2 detached transcript binds dynamic expected wire without specializing the key",
         "SegmentV2 detached claims share fixed lowering and expected row36 closure",
+        "SegmentV2 detached profiles bind security and interaction work",
     };
     const segment_v2_detached_transcript_compile = b.addTest(.{
         .root_module = segment_v2_verifier_components_root,

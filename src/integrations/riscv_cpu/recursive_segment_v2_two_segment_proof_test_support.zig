@@ -21,6 +21,7 @@ pub const Options = OptionsFor(2);
 pub fn OptionsFor(comptime count: usize) type {
     return struct {
         initial_memory_word: u32 = 0,
+        proof_profile: detached.Profile = .development_q3_v1,
         native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
         /// Each directory must be new. Neither child may overwrite prior evidence.
         child_directories: [count][]const u8,
@@ -92,7 +93,7 @@ pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, alloc
     const admission = try workload.admitSegments(count, results, ingress.digest("recursive-v2-session"), statements);
     var children: [count]ChildCandidate = undefined;
     for (results, statements, admission.sources, 0..) |result, statement, source, index| {
-        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index]);
+        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index], options.proof_profile);
     }
     for (&segments) |*segment| segment.deinit();
     owned = false;
@@ -114,6 +115,7 @@ fn produceChild(
     native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
     directory_path: []const u8,
     admitted_key: ?*const verifier.KeyV1,
+    proof_profile: detached.Profile,
 ) !ChildCandidate {
     var timer = try std.time.Timer.start();
     // Expected public input comes from independently checked execution/source
@@ -132,12 +134,13 @@ fn produceChild(
         const lifecycle_before = if (comptime NativeEngine != leaf.Engine) NativeEngine.Backend.runtimeLifecycleSnapshot() else {};
         const telemetry_before = if (comptime NativeEngine != leaf.Engine) try NativeEngine.Backend.telemetrySnapshot() else {};
         var native_timer = try std.time.Timer.start();
-        var prepared = try ingress.prepareTemporalNativeLeafWithEngine(
+        var prepared = try ingress.prepareTemporalNativeLeafWithProfile(
             NativeEngine,
             producer_allocator,
             result,
             statement,
             native_keys,
+            if (proof_profile == .recursive_q193_v1) .protocol_v1 else .development_q1,
         );
         defer prepared.deinit();
         const native_ingress_ns = native_timer.read();
@@ -160,7 +163,7 @@ fn produceChild(
             return error.TwoSegmentExpectedStatementMismatch;
         for (captured_words, expected.words()) |actual, wanted|
             if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
-        var candidate = try detached.produce(producer_allocator, &prepared, admitted_key);
+        var candidate = try detached.produceWithProfile(producer_allocator, &prepared, admitted_key, proof_profile);
         defer candidate.deinit();
         const hashes = try command.retainCandidate(
             allocator,

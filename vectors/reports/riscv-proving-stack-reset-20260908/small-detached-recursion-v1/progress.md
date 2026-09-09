@@ -507,3 +507,43 @@ pins, proof receipts and logs.
 Both complete development replays pass32 fresh cases in total, and all16
 artifact files are byte-identical to the admitted baseline; see
 `native-profile-default-parity.json`.
+
+## Complete q193 child wrappers on CPU and Metal
+
+A separate `recursive_q193_v1` key profile now admits the existing frozen PCS
+parameters for both native child and detached wrapper: 193 queries, fold four,
+PCS PoW 16 and interaction PoW 10. The native producer rejects weaker PCS input
+before cohort allocation. Key validation rejects a weaker native query schedule.
+The shared detached transcript requires and checks its interaction nonce before
+relation draws. Default q3 keys, claims and proof bytes remain unchanged.
+The q193 profile remains experimental pending its consuming parent AIR and root.
+
+Two actual adjacent CPU-origin child wrappers freshly verify after producer
+exit. Their 98-instruction memory job takes 33.13s to produce: 9.73/10.19s outer
+proving, plus 2.66/2.62s cohort/key preparation and native ingress. The first
+2,487,266-byte wrapper verifies in 83.6ms. Peak RSS is 2.43GiB. Input-column
+estimates report 540,806,144 bytes before the three tree allocations and explicitly
+exclude expansion, commitments and metadata. Sampling found the known discarded-
+coefficient opening path; it does not yet give a whole-phase time attribution.
+
+Changing initial memory from 13 to 14 reuses both complete key files and freshly
+verifies against independent expected wires. Actual Metal native proofs also
+produce identical wrapper/key/claim/statement bytes under the same keys, with
+32.88s production and approximately 83.3ms first-wrapper verification. Outer
+proving and fresh verification remain CPU operations. RSS is separate from any
+Metal device footprint; these runs are not quiet-host performance promotion.
+
+The stronger runs pass 92 fresh acceptance/rejection cases; the development
+CPU/Metal replays add 34 cases and preserve every baseline artifact byte. Eight
+focused protocol/transport checks pass, including legacy claim encoding, nonce
+zero versus absence, profile drift, invalid/missing work and unexpected work on
+the development transcript. Evidence and parity hashes are indexed in
+`q193-child-measurements.json`; `q193-child-admission/review.json` records the
+bootstrap pins, cross-statement reuse and remaining admission requirements.
+
+Next: extend the shared detached prefix to carry the interaction PoW through
+its existing typed pow-check/frame/nonce rows, then admit and prove the stronger
+two-child parent and final root. The current prefix still assumes single-frame
+mix/draw operations, so its q3 success does not establish this q193 consumer.
+Production-security root, larger strong-profile trees and formal CSP preservation
+remain open. Do not replace those gates with these independently verified leaves.

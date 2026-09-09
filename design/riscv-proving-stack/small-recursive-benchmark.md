@@ -451,3 +451,40 @@ Both backends produce the same native proof length and verifier geometry; byte
 parity of the stronger native proofs is not established by these observations.
 `native-security-ingress-measurements.json` collects all four observations with
 binary pins and explicit endpoint limitations.
+
+## First complete q193 child wrappers
+
+`--memory-addresses 1 --segments-output NEW_DIRECTORY --initial-memory-word 13
+--proof-profile recursive_q193_v1` selects the frozen stronger parameters for
+both native input and detached outer proof. The producer rejects weaker native
+PCS input before allocating the cohort. The independently pinned key admits the
+native query schedule and outer PCS configuration; the shared transcript requires
+interaction PoW 10 before drawing lookup relations. Legacy q3 keys and claims keep
+their original byte encoding. This q193 route remains experimental until stronger
+recursive-parent consumption, final root and preservation admission pass.
+
+Two adjacent CPU-origin child wrappers now freshly verify. Production takes 33.13s
+for the pair; outer proving is 9.73/10.19s, after 2.66/2.62s cohort and fixed-key
+preparation. Peak process RSS is 2.43GiB. The admitted input columns require exactly
+540,806,144 bytes before PCS expansion and commitment buffers. The first wrapper
+is 2,487,266 bytes and freshly verifies in 83.6ms. These are local observations.
+
+Both keys are reused byte-for-byte for initial memory 14; both changed proofs
+freshly verify against independently retained expected statements. The four
+individual child gates pass 56 cases and the initial pair gate passes 18, including
+missing/changed interaction nonce and malformed PCS input. The measured producer
+has exited before every standalone acceptance gate.
+
+A retained one-second sample catches sampled-value evaluation reconstructing
+openings under the leaf's existing coefficient-discard policy. This is the same
+class of work already removed from the small parent, but the sample does not
+measure its whole-phase share. Prioritize the stronger recursive root before
+another optimization round. Full proof artifacts, build/source pins and the
+sample live beside `q193-child-cpu-seed13-first-accepted.json` in the report.
+
+The same two stronger wrappers also pass with Metal-produced native inputs:
+32.88s production, then 18 fresh-process cases after producer exit. Both keys,
+claims, statements and proof bytes match CPU exactly. Initial memory 14 reuses
+both CPU-admitted keys. The existing development route additionally passes
+34 fresh cases across CPU and Metal, retaining exact baseline artifact bytes.
+All measurements and parity hashes are in `q193-child-measurements.json`.

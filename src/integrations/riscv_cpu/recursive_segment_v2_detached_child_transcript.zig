@@ -210,7 +210,7 @@ pub fn OwnedFor(comptime family: Family) type {
             return recursion.captured_fri.Owned.init(allocator, .{
                 .log_blowup_factor = pcs.fri_config.log_blowup_factor,
                 .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
-                .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
+                .interaction_pow_bits = if (family == .segment) self.key().profile.interactionPowBits() else 0,
                 .pcs_pow_bits = pcs.pow_bits,
                 .claimed_sum_count = @intCast(self.claims().values.len),
             }, &self.storage().capture);

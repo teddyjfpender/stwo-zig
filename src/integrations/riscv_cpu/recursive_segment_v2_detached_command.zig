@@ -158,7 +158,10 @@ pub fn verifyDirectory(allocator: std.mem.Allocator, directory: []const u8, inde
     var timer = try std.time.Timer.start();
     const terminal = try verifier.verify(allocator, key.key(), &expected.data, input.claims, proof);
     const verify_ns = timer.read();
-    return .{ .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
+    return .{ .endpoint = switch (key.key().profile) {
+        .development_q3_v1 => "verified_segment_v2_detached_development_q3",
+        .recursive_q193_v1 => "verified_segment_v2_detached_q193",
+    }, .key_sha256 = independent_key_sha256, .expected_wire_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = input.proof_sha256, .proof_bytes = proof.len, .request_ns = request_timer.read(), .verify_ns = verify_ns, .transcript_digest = terminal };
 }
 
 pub const ArgumentsV1 = struct { directory: []const u8, independent_key_sha256: [32]u8, expected_wire_path: []const u8 };

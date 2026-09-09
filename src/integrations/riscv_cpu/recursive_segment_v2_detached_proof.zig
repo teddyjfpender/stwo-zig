@@ -13,6 +13,7 @@ const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
 const manifest_mod = recursion.air.segment_outer_adapter_manifest_v2;
 const Engine = engine.Engine;
 const TreeStorage = storage.TreeStorageFor(Engine);
+pub const Profile = transcript.ProfileV1;
 
 pub const Candidate = struct {
     allocator: std.mem.Allocator,
@@ -88,11 +89,27 @@ pub fn produce(
     prepared: *const leaf.PreparedNativeV2LeafOuter,
     admitted_key: ?*const verifier.KeyV1,
 ) !Candidate {
+    return produceWithProfile(allocator, prepared, admitted_key, .development_q3_v1);
+}
+
+pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *const leaf.PreparedNativeV2LeafOuter, admitted_key: ?*const verifier.KeyV1, profile: Profile) !Candidate {
+    // A stronger outer proof cannot repair a weak native child. This check is
+    // before cohort allocation, and the resulting fixed AIR is independently
+    // admitted through the same pinned-key transaction as development.
+    if (profile == .recursive_q193_v1 and
+        (!std.meta.eql(prepared.pcs_config, recursion.protocol.PCS_CONFIG) or
+            prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS))
+        return error.DetachedNativeSecurityProfileMismatch;
+    if (admitted_key) |key| if (key.profile != profile) return error.InvalidSegmentDetachedProfile;
     var timer = try std.time.Timer.start();
     var cohort = try cohort_mod.Cohort.init(allocator, prepared);
     defer cohort.deinit();
     const manifest = cohort.manifest();
-    var scheme = try Engine.init(allocator, transcript.PCS_CONFIG);
+    std.debug.print("SEGMENT_V2_DETACHED_GEOMETRY profile={s} cohort_ns={d} poseidon_calls={d} tree0_evaluation_bytes={d} tree1_evaluation_bytes={d} tree2_evaluation_bytes={d} excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true\n", .{
+        @tagName(profile),                            timer.read(),                                 cohort.core.poseidonCallCount(),
+        try TreeStorage.evaluationBytes(manifest, 0), try TreeStorage.evaluationBytes(manifest, 1), try TreeStorage.evaluationBytes(manifest, 2),
+    });
+    var scheme = try Engine.init(allocator, profile.pcsConfig());
     scheme.setCoefficientRetentionPolicy(.never);
     var scheme_moved = false;
     defer if (!scheme_moved) Engine.deinit(&scheme, allocator);
@@ -110,6 +127,8 @@ pub fn produce(
     for (cohort.core.authority.lowering_plan.public_terms) |term|
         if (term.active_in == .segment) try wire_terms.append(allocator, term);
     const candidate_key = verifier.KeyV1{
+        .profile = profile,
+        .pcs_config = profile.pcsConfig(),
         .manifest = manifest.*,
         .preprocessed_root = roots.items[0],
         .parameters = .{
@@ -135,6 +154,8 @@ pub fn produce(
     try Engine.flushPendingCommit(&scheme, allocator, &channel);
     const expected = &prepared.capture.public_data.data;
     try transcript.mixAdmission(&channel, key, expected);
+    const interaction_pow: ?u64 = if (profile.interactionPowBits() == 0) null else channel.grind(profile.interactionPowBits());
+    try transcript.mixInteractionPow(&channel, key, interaction_pow);
     const relations = try recursion.air.universal_challenges.UniversalRelations.draw(allocator, &channel);
     const providers = try recursion.air.universal_shared_provider.SharedProviderRelations.init(&relations);
     var interaction = try TreeStorage.init(allocator, manifest, 2);
@@ -142,7 +163,7 @@ pub fn produce(
     const generated = try cohort.fillInteractionInto(manifest, &relations, &providers, interaction.columns);
     var claim_vector = try cohort.claimVector(&generated);
     _ = try cohort.auditGlobalClosure(&generated, &claim_vector, &relations, &providers);
-    const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials };
+    const claims = verifier.ClaimsV1{ .values = claim_vector.values, .poseidon_partials = generated.core.poseidon2_partials, .interaction_pow = interaction_pow };
     try transcript.mixClaimsAndBoundary(&channel, key, expected, claims, &relations);
     try interaction.commit(&scheme, &channel);
     var components = try cohort.initComponents(&generated, &relations, &providers);
