@@ -256,8 +256,16 @@ def main() -> None:
             for row in range(14, 20):
                 changed = copy.deepcopy(claims)
                 shifted(changed["claims"]["values"][row], 1)
-                name = f"inactive_claim_{row}"
-                invoke(name, candidate(name, changed_claims=changed), error="DetachedParentInactiveClaim")
+                active = key["manifest"]["placements"][row] is not None
+                name = f"{'active' if active else 'inactive'}_claim_{row}"
+                invoke(name, candidate(name, changed_claims=changed),
+                       error="DetachedParentClaimClosureMismatch" if active else "DetachedParentInactiveClaim")
+                if active:
+                    # Balance the global sum so the newly admitted component's
+                    # claim must still be authenticated by the proof transcript.
+                    shifted(changed["claims"]["values"][0], -1)
+                    name = f"balanced_active_claim_{row}"
+                    invoke(name, candidate(name, changed_claims=changed))
             changed = copy.deepcopy(claims)
             changed["version"] += 1
             invoke("claims_version", candidate("claims_version", changed_claims=changed),

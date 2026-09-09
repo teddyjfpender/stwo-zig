@@ -291,3 +291,47 @@ The sampled-opening pass is complete: CPU wrappers improve about 36%, while
 Metal retains its lower-memory existing policy. The direct-writer pass also removes a repeated batch inversion from domain
 auditing, improving both backends. Stronger 4/8 admission and formal CSP
 preservation remain open.
+
+## Recursive AIR specialization pass
+
+Starting checkpoint: `ee7de71f`. The user authorized three parallel candidates:
+fused verifier arithmetic, specialized opening/FRI arithmetic, and compact
+Poseidon AIR. Opening accumulation takes priority over a separate FRI-fold
+component because its repeated arithmetic population is substantially larger.
+
+Implementation order and promotion gates:
+
+1. Check each AIR against independent field/permutation operations and the
+   original external lookup multiset, including changed outputs, shared nodes,
+   exported intermediate values, padding and authenticated geometry.
+2. Integrate the candidates in one parent route. Existing child keys retain
+   their original verifier components; exact versioned semantic geometry selects
+   adapters for native verification and symbolic recursive recording alike.
+   New keys require separately reviewed admission. No proof may admit its own
+   key or expected statement.
+3. Produce a root from retained genuine children, serialize, destroy producer
+   state, and freshly verify with the admitted key and independently derived
+   statement. Require exact lookup closure before proving.
+4. Repeat on CPU and Metal, then consume optimized parents at the next level.
+   Check changed memory inputs under the same circuit admission and all existing
+   proof/boundary rejection cases.
+5. Compare complete requests, phase timings, padded trace cells, logical witness
+   storage and process peak RSS against the frozen checkpoint. Report individual
+   candidate costs and combined measurements without adding overlapping savings.
+   A failed complete proof or reproducible slowdown blocks promotion.
+
+The existing proof parameters stay fixed. These q193 fixtures are development
+benchmarks, not production-security certification or Ethereum-sized blocks.
+The user excluded CSP performance runs from this pass. Frontend semantic checks
+remain small; heavy builds and proofs are serialized. Structural tests alone
+do not complete this pass.
+
+### Specialization completion evidence
+
+All five gates above passed for this bounded pass. The combined AIR reduces paired
+root median request time 41.8% CPU and 34.1% Metal. Three complete four-segment
+trees cover CPU, Metal and changed memory under unchanged per-node keys; optimized
+parents are consumed by the next recursive level. See
+[the measured specialization report](recursive-air-specialization.md) and its
+source/artifact audit. This closes this optimization pass, not production-security
+admission or the broader Ethereum goal.

@@ -1,0 +1,213 @@
+{
+  "evidence": {
+    "preparation_log": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-integration-cpu-third.log",
+    "baseline_admission": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-4-admission/root-key.json"
+  },
+  "interpretation": "Static trace storage from actual retained q193 preparation row counts plus authenticated/pinned component widths. Not runtime, RSS, polynomial expansion or device memory measurements. MAC-only counterfactual replaces every dot4 by its four MAC rows and uses power-of-two trace padding; no runtime experiment claimed.",
+  "lanes": [
+    {
+      "lane": 501,
+      "dot4_rows": 378,
+      "remaining_multiply_add_rows": 9142
+    },
+    {
+      "lane": 511,
+      "dot4_rows": 2616,
+      "remaining_multiply_add_rows": 3495
+    },
+    {
+      "lane": 412,
+      "dot4_rows": 109377,
+      "remaining_multiply_add_rows": 33400
+    },
+    {
+      "lane": 402,
+      "dot4_rows": 5790,
+      "remaining_multiply_add_rows": 110031
+    },
+    {
+      "lane": 502,
+      "dot4_rows": 378,
+      "remaining_multiply_add_rows": 9142
+    },
+    {
+      "lane": 512,
+      "dot4_rows": 2616,
+      "remaining_multiply_add_rows": 3495
+    },
+    {
+      "lane": 413,
+      "dot4_rows": 109377,
+      "remaining_multiply_add_rows": 33400
+    },
+    {
+      "lane": 403,
+      "dot4_rows": 5790,
+      "remaining_multiply_add_rows": 110031
+    },
+    {
+      "lane": 521,
+      "dot4_rows": 2592,
+      "remaining_multiply_add_rows": 2612
+    }
+  ],
+  "dot4_rows": 238914,
+  "remaining_multiply_add_rows": 314748,
+  "dot4_pcs_rows": 218754,
+  "dot4_pcs_share": 0.9156181722293377,
+  "row_counts": {
+    "0": {
+      "rows": 7154,
+      "logical_bytes": 343392
+    },
+    "1": {
+      "rows": 2852,
+      "logical_bytes": 547584
+    },
+    "2": {
+      "rows": 2852,
+      "logical_bytes": 422096
+    },
+    "3": {
+      "rows": 210,
+      "logical_bytes": 30240
+    },
+    "4": {
+      "rows": 21136,
+      "logical_bytes": 1606336
+    },
+    "5": {
+      "rows": 19500,
+      "logical_bytes": 1638000
+    },
+    "6": {
+      "rows": 4,
+      "logical_bytes": 1088
+    },
+    "7": {
+      "rows": 4,
+      "logical_bytes": 240
+    },
+    "8": {
+      "rows": 94,
+      "logical_bytes": 9400
+    },
+    "9": {
+      "rows": 68,
+      "logical_bytes": 8704
+    },
+    "10": {
+      "rows": 8,
+      "logical_bytes": 736
+    },
+    "11": {
+      "rows": 62261,
+      "logical_bytes": 5728012
+    },
+    "12": {
+      "rows": 0,
+      "logical_bytes": 0
+    },
+    "13": {
+      "rows": 81313,
+      "logical_bytes": 3252520
+    },
+    "14": {
+      "rows": 238914,
+      "logical_bytes": 51605424
+    },
+    "20": {
+      "rows": 386,
+      "logical_bytes": 114256
+    },
+    "21": {
+      "rows": 6948,
+      "logical_bytes": 2918160
+    },
+    "22": {
+      "rows": 20,
+      "logical_bytes": 1520
+    },
+    "23": {
+      "rows": 98816,
+      "logical_bytes": 34387968
+    },
+    "24": {
+      "rows": 812756,
+      "logical_bytes": 84526624
+    },
+    "25": {
+      "rows": 23932,
+      "logical_bytes": 8998432
+    },
+    "26": {
+      "rows": 6176,
+      "logical_bytes": 1037568
+    },
+    "27": {
+      "rows": 2316,
+      "logical_bytes": 259392
+    },
+    "28": {
+      "rows": 3088,
+      "logical_bytes": 271744
+    },
+    "29": {
+      "rows": 145194,
+      "logical_bytes": 17423280
+    },
+    "30": {
+      "rows": 708693,
+      "logical_bytes": 76538844
+    },
+    "31": {
+      "rows": 36806,
+      "logical_bytes": 4711168
+    },
+    "32": {
+      "rows": 222970,
+      "logical_bytes": 45485880
+    },
+    "33": {
+      "rows": 53654,
+      "logical_bytes": 9872336
+    }
+  },
+  "scenarios": {
+    "old": {
+      "main_interaction_bytes": 1123757056,
+      "preprocessed_bytes": 524766656,
+      "total_trace_bytes": 1648523712
+    },
+    "new": {
+      "main_interaction_bytes": 704326656,
+      "preprocessed_bytes": 231165376,
+      "total_trace_bytes": 935492032
+    },
+    "mac_only_with_new_poseidon": {
+      "main_interaction_bytes": 745221120,
+      "preprocessed_bytes": 259476928,
+      "total_trace_bytes": 1004698048
+    }
+  },
+  "dot4_marginal_main_interaction_bytes_saved": 40894464,
+  "dot4_marginal_preprocessed_bytes_saved": 28311552,
+  "all_changes_main_interaction_bytes_saved": 419430400,
+  "all_changes_preprocessed_bytes_saved": 293601280,
+  "sequential_attribution_bytes": {
+    "multiply_add_and_smaller_arithmetic_layout": {
+      "main_interaction": 229638144,
+      "preprocessed": 265289728
+    },
+    "opening_dot4_beyond_multiply_add": {
+      "main_interaction": 40894464,
+      "preprocessed": 28311552
+    },
+    "compact_poseidon_provider": {
+      "main_interaction": 148897792,
+      "preprocessed": 0
+    }
+  },
+  "all_changes_total_trace_reduction_fraction": 0.4325274030392594,
+  "geometry_note": "Legacy multiplication main19+interaction8/log21 -> MAC main17+interaction8/log21 -> combined MAC/log20 plus dot4 main41+interaction20/log18. Legacy linear main21+interaction8/log21 -> log18. Poseidon main445+interaction8/log18 -> main303+interaction8/log18. Each entry counts 4 bytes per M31 cell."
+}

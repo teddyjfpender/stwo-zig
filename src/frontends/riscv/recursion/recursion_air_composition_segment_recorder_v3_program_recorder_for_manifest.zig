@@ -592,7 +592,7 @@ pub fn ProgramRecorderForManifest(
         /// policy and is intentionally not duplicated here.
         pub fn recordPoseidonProvider(
             self: *Self,
-            adapter: *const PoseidonAdapter,
+            adapter: anytype,
         ) Error!usize {
             return self.recordPoseidonProviderAt(
                 @enumFromInt(POSEIDON_ROW),
@@ -610,12 +610,14 @@ pub fn ProgramRecorderForManifest(
             self: *Self,
             comptime row: manifest_contract.ComponentKey,
             comptime partial_start: usize,
-            adapter: *const PoseidonAdapter,
+            adapter: anytype,
         ) Error!usize {
+            const SelectedAdapter = @typeInfo(@TypeOf(adapter)).pointer.child;
+            const Air = SelectedAdapter.Air;
             try self.requireActive();
             const row_index: u8 = @intFromEnum(row);
             if (!self.isNextRow(row_index) or
-                partial_start + poseidon_air.N_SUMS >
+                partial_start + Air.N_SUMS >
                     COMPOSITION_CLAIM_INPUT_COUNT)
             {
                 return error.ComponentOrderMismatch;
@@ -628,7 +630,7 @@ pub fn ProgramRecorderForManifest(
             if (!adapter.placement.eql(placement) or
                 !std.meta.eql(
                     placement.geometry,
-                    PoseidonAdapter.manifestGeometry(
+                    SelectedAdapter.manifestGeometry(
                         placement.geometry.log_size,
                     ),
                 ))
@@ -636,7 +638,7 @@ pub fn ProgramRecorderForManifest(
                 return error.ComponentGeometryMismatch;
             }
 
-            var main: [poseidon_air.N_MAIN_COLUMNS]recorder.Scalar = undefined;
+            var main: [Air.N_MAIN_COLUMNS]recorder.Scalar = undefined;
             for (&main, 0..) |*value, column| value.* = try self.layout.at(
                 self.sampled_values,
                 capture_layout.MAIN_TREE_INDEX,
@@ -649,22 +651,23 @@ pub fn ProgramRecorderForManifest(
                 placement.preprocessed_offset,
                 0,
             );
-            var current: [poseidon_air.N_SUMS]recorder.Scalar = undefined;
-            var previous: [poseidon_air.N_SUMS]recorder.Scalar = undefined;
+            var current: [Air.N_SUMS]recorder.Scalar = undefined;
+            var previous: [Air.N_SUMS]recorder.Scalar = undefined;
             for (&current, &previous, 0..) |*current_value, *previous_value, batch| {
                 const offset = @as(usize, placement.interaction_offset) +
                     qm31.SECURE_EXTENSION_DEGREE * batch;
                 current_value.* = try self.sampledInteraction(offset, 0);
                 previous_value.* = try self.sampledInteraction(offset, 1);
             }
-            const partial_claims = self.claim_inputs[partial_start .. partial_start + poseidon_air.N_SUMS].*;
+            const partial_claims = self.claim_inputs[partial_start .. partial_start + Air.N_SUMS].*;
             const denominator = try recorder.quotientDenominator(
                 placement.geometry.log_size,
                 self.layout.quotient_max_log_degree_bound,
                 self.oods_point,
                 self.denominator_cache,
             );
-            const recorded_count = try shared_provider_composition.recordPoseidon2(
+            const recorded_count = try shared_provider_composition.recordPoseidon2ForAir(
+                Air,
                 main,
                 is_first,
                 current,

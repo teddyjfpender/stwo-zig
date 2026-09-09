@@ -146,36 +146,13 @@ fn initialState(comptime S: type, left: S, right: S) [WIDTH]S {
     return result;
 }
 
-fn base(comptime S: type, word: u32) S {
-    if (S == M31) return M31.fromCanonical(word);
-    return S.fromBase(M31.fromCanonical(word));
-}
-
-fn external(comptime S: type, state: *[WIDTH]S) void {
-    if (S == M31) return legacy.externalMatrixM31(state);
-    legacy.externalMatrixSecure(S, state);
-}
-
-/// One round schedule shared by witness construction and polynomial replay.
-fn walk(comptime S: type, state: *[WIDTH]S, context: anytype) void {
-    external(S, state);
-    for (constants.EXTERNAL_ROUND[0..4]) |round| fullRound(S, state, context, round);
-    for (constants.INTERNAL_ROUND) |constant| {
-        state[0] = context.sbox(state[0].add(base(S, constant)));
-        if (S == M31) legacy.internalMatrixM31(state, constants.INTERNAL_MATRIX) else legacy.internalMatrixSecure(S, state, constants.INTERNAL_MATRIX);
-    }
-    for (constants.EXTERNAL_ROUND[4..8]) |round| fullRound(S, state, context, round);
-}
-
-fn fullRound(comptime S: type, state: *[WIDTH]S, context: anytype, round: [WIDTH]u32) void {
-    for (state, round) |*value, constant| value.* = context.sbox(value.add(base(S, constant)));
-    external(S, state);
-}
+const walk = @import("poseidon2_degree3_schedule.zig").walk;
+const external = @import("poseidon2_degree3_schedule.zig").external;
 
 const Fill = struct {
     row: *Row,
     cursor: usize = 3,
-    fn sbox(self: *@This(), x: M31) M31 {
+    pub fn sbox(self: *@This(), x: M31) M31 {
         const square = x.square();
         const fifth = x.mul(square.square());
         self.row[self.cursor] = square;
@@ -191,7 +168,7 @@ fn Evaluate(comptime S: type) type {
         constraints: *[N_CONSTRAINTS]S,
         cursor: usize = 3,
         constraint: usize = 2,
-        fn sbox(self: *@This(), x: S) S {
+        pub fn sbox(self: *@This(), x: S) S {
             const square = self.main[self.cursor];
             const fifth = self.main[self.cursor + 1];
             self.constraints[self.constraint] = square.sub(x.square());

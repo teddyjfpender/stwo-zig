@@ -38,6 +38,14 @@
 //! always collected.
 
 test {
+    // Detached recursive verifier arithmetic and Poseidon specialization gates.
+    _ = @import("air/memory_commitment/poseidon2_narrow_degree3_v1_test.zig");
+    _ = @import("recursion/air/detached_opening_accumulate4_v1_test.zig");
+    _ = @import("recursion/air/qm31_mul_add_v1_test.zig");
+    _ = @import("air/memory_commitment/poseidon2_universal_degree3_v1_test.zig");
+    _ = @import("poseidon2_universal_degree3_test_root.zig");
+    _ = @import("recursion_arithmetic_fusion_test_root.zig");
+    _ = @import("recursion_opening_accumulation_test_root.zig");
     _ = @import("air/guest_precompile/keccakf_row.zig");
     // Package root.
     _ = @import("access_clock.zig");

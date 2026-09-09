@@ -1,15 +1,116 @@
 # Small native and recursive proof loop
 
-The small detached route now proves complete 2/4/8-segment recursive trees
-on CPU or Metal: native children, detached wrappers, every intermediate parent
-and one root. Fresh CPU verification runs after producer exit with independently
-pinned keys and expected statements. The development and stronger q193 profiles
-each have complete 2/4/8-tree evidence; production-security admission and formal
-CSP performance promotion remain pending. These are tiny RISC-V memory workloads,
-not Ethereum blocks. q193 names the FRI query count.
+The supported optimized route is the four-segment q193 tree described below:
+four native proofs, four detached wrappers, two intermediate parents and one
+root, with CPU or Metal proving and fresh independent CPU verification. It uses
+newly admitted recursive arithmetic and Poseidon AIRs. Earlier 2/4/8-tree results
+remain historical evidence; their parent keys require their matching frozen
+producers. The standalone leaf route remains valid.
 
-Current retained evidence and rejection cases are indexed in
-[the detached-route progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md).
+These are tiny RISC-V memory workloads, not Ethereum blocks. q193 names the FRI
+query count and remains an experimental security profile. See the
+[specialization results](recursive-air-specialization.md),
+[current measurement index](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-measurements.json)
+and [progress report](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/progress.md)
+for gate status and measured timings.
+
+## Current four-segment CPU and Metal tree
+
+Run the maintained controller from the repository root. The reviewed seed13
+manifest is `tree-admissions/air-fusion-q193-4.json`, SHA256
+`91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a`.
+It retains the existing four leaf keys and independently expected statements,
+and selects the new `air-fusion-admission/{pair-0,pair-1,root}-key.json` parent
+keys. This complete-tree root key differs from `root-from-legacy-key.json`,
+which is only for the paired root benchmark consuming older parent proofs.
+
+The complete-tree root key SHA256 is
+`9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9`.
+The CPU and Metal seed13 trees each pass 136 fresh acceptance/rejection cases.
+Their native-plus-wrapper and parent production sums are 79.768 and 65.835
+seconds; complete gates including hostile cases take 83.351 and 69.507 seconds.
+These are individual full-tree observations, not paired timing medians. Reports:
+[CPU tree](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-air-fusion/report.json),
+[Metal tree](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-air-fusion/report.json).
+
+The commands below use the reviewed local frozen binaries. Their SHA256 pins
+are checked before producing output. Each output directory must be new.
+
+```sh
+tree_bins="$PWD/.git/local-riscv-proving-stack/small-detached-recursion-v1"
+tree_evidence="$PWD/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1"
+python3 scripts/riscv_segment_v2_detached_tree_gate.py \
+  --backend cpu \
+  --admission "$tree_evidence/tree-admissions/air-fusion-q193-4.json" \
+  --admission-sha256 91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a \
+  --leaf-producer "$tree_bins/air-fusion-final-leaf-prove" \
+  --leaf-producer-sha256 4657c1219b634dfb659d63e1059c94a959963dad52e6e1eb7a5055425c32cce2 \
+  --parent-producer "$tree_bins/air-fusion-final-cpu-prove" \
+  --parent-producer-sha256 54934a68624af972f81645726eb68d2328255ee129ed5f5c09a7c5638d542dbc \
+  --leaf-verifier "$tree_bins/q193-child-first-verify" \
+  --leaf-verifier-sha256 0720755fb784af9bd18f003453440c4c8d4a4d87fe02ff115ba0c373709079a9 \
+  --parent-verifier "$tree_bins/air-fusion-final-cpu-verify" \
+  --parent-verifier-sha256 9e0b05c7709133f75419a581c15ebcef3a49334c3c2a08f0b44f3a0c754b1223 \
+  --output "$PWD/.git/local-riscv-proving-stack/air-fusion-tree-cpu-4"
+```
+
+The same leaf producer supports both backends. Metal changes the parent producer
+and supplies the admitted AOT bundle; every native, wrapper and parent proof
+selects Metal, while fresh verification stays on CPU:
+
+```sh
+python3 scripts/riscv_segment_v2_detached_tree_gate.py \
+  --backend metal \
+  --admission "$tree_evidence/tree-admissions/air-fusion-q193-4.json" \
+  --admission-sha256 91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a \
+  --leaf-producer "$tree_bins/air-fusion-final-leaf-prove" \
+  --leaf-producer-sha256 4657c1219b634dfb659d63e1059c94a959963dad52e6e1eb7a5055425c32cce2 \
+  --parent-producer "$tree_bins/air-fusion-final-metal-prove" \
+  --parent-producer-sha256 cbb776e999a266a6d6c1310627cf59f46a9343478c8381adbb980cb8fb84958f \
+  --leaf-verifier "$tree_bins/q193-child-first-verify" \
+  --leaf-verifier-sha256 0720755fb784af9bd18f003453440c4c8d4a4d87fe02ff115ba0c373709079a9 \
+  --parent-verifier "$tree_bins/air-fusion-final-cpu-verify" \
+  --parent-verifier-sha256 9e0b05c7709133f75419a581c15ebcef3a49334c3c2a08f0b44f3a0c754b1223 \
+  --aot-bundle "$PWD/.git/local-ethereum/aot-m4" \
+  --aot-manifest-sha256 21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5 \
+  --output "$PWD/.git/local-riscv-proving-stack/air-fusion-tree-metal-4"
+```
+
+For changed-memory admission with the same seven keys, replace the manifest with
+`tree-admissions/air-fusion-q193-4-seed14.json` and pin
+`c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07`,
+then choose another new output directory. The retained CPU seed14 tree passes
+all 136 cases under the same seven keys, with all seven proof bytes changed.
+The controller derives the seed from the admitted manifest; no producer-created
+key or expected statement is trusted.
+Each run retains `report.json`, per-node lifecycle receipts, fresh acceptance and
+mutation cases, timings and memory. Metal dispatch is required at each proving
+stage, but recursive composition still uses its admitted host evaluator.
+
+Build provenance for the frozen binaries is retained in the
+[CPU parent receipt](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-integration-cpu-final.json),
+[Metal parent receipt](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-integration-metal-final.json),
+[shared leaf receipt](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-leaf-build.json)
+and [source pins](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-source.json).
+The leaf verifier keeps its preceding independently reviewed binary pin.
+Frozen executables and AOT directories are local artifacts, not portable source
+dependencies. On another laptop, rebuild the maintained targets:
+
+```sh
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  build-recursive-segment-v2-detached-parent-producer \
+  build-recursive-segment-v2-detached-parent-verifier \
+  build-recursive-segment-v2-detached-verifier -Doptimize=ReleaseSafe --summary all
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_metal \
+  build-recursive-segment-v2-concrete-outer-proof \
+  build-recursive-segment-v2-detached-parent-producer -Doptimize=ReleaseSafe --summary all
+```
+
+Use those build receipts to review the installed executable paths and replacement
+binary pins before invoking the same controller. Keep the admitted key/statement
+manifest unchanged for equivalent source and protocol. Generate and pin the
+Metal AOT bundle with the maintained commands below. A hash of an unrelated
+executable is not a substitute for its build provenance.
 
 ## Complete detached proof gate
 
@@ -64,7 +165,13 @@ The retained complete commands passed all 17 cases in 8.076 seconds on CPU and
 6.282 seconds with Metal native proving. These are development observations,
 excluding compilation, and do not establish a production-security benchmark.
 
-## One independently verified recursive parent
+## Historical parent command: legacy AIR admission
+
+The commands and parent key below describe the pre-specialization producer.
+Use its matching frozen producer to reproduce them; a newly built parent
+producer uses the specialized AIR and rejects this old admission. The current
+four-segment commands above select the new parent keys. Existing legacy proofs
+remain independently verifiable, and the leaf command above is unchanged.
 
 Build `build-recursive-segment-v2-detached-parent-producer` and
 `build-recursive-segment-v2-detached-parent-verifier` under the CPU integration
@@ -488,7 +595,7 @@ both CPU-admitted keys. The existing development route additionally passes
 34 fresh cases across CPU and Metal, retaining exact baseline artifact bytes.
 All measurements and parity hashes are in `q193-child-measurements.json`.
 
-## Independently verified q193 two-child root
+## Historical q193 two-child root
 
 The separately admitted `recursive_q193_v1` parent now verifies both real q193
 child wrappers inside its AIR and yields one freshly verified root. Interaction
@@ -532,7 +639,7 @@ the same admitted protocol, with fresh independent CPU verification and actual
 per-proof GPU dispatch evidence. Then finish the stronger2/4/8-tree measurements
 and optimize the largest remaining measured costs.
 
-## Actual Metal parent proving
+## Historical first Metal parent proving
 
 The parent proof transaction now takes an engine at its backend boundary. CPU
 remains the default; the Metal runner uses the same AIR, transcript, parameters,
@@ -562,7 +669,11 @@ The complete controller below supersedes this initial parent-only checkpoint:
 native children, detached wrappers and every parent now select Metal together.
 Production-security admission and formal CSP preservation remain open.
 
-## Complete CPU and Metal tree controller
+## Tree controller and historical development admissions
+
+For current producer binaries, use the four-segment specialized admission and
+exact commands at the top of this document. The earlier development manifests
+and binary receipts described in this section remain historical reproductions.
 
 `scripts/riscv_segment_v2_detached_tree_gate.py` is the maintained serial command
 for the small 2/4/8 fixtures. `--admission` and `--admission-sha256` select a pinned
@@ -710,7 +821,11 @@ root verification and memory. These reruns establish complete-route correctness
 and scaling observations, not additional paired timing claims. The subsequent
 stronger 4/8 route is recorded below; formal CSP preservation remains open.
 
-## Complete stronger ladder
+## Historical stronger ladder
+
+These 2/4/8 results and admissions predate AIR specialization. Reproducing them
+requires their matching frozen parent producers; the current parent producer
+must use newly reviewed admissions such as `air-fusion-q193-4.json` above.
 
 The same tree controller completes the experimental q193 profile at 2/4/8
 segments on both backends. Each N-segment run generates N native proofs, N
@@ -733,7 +848,7 @@ a separate device allocation measurement. The four/eight-segment final proofs
 remain approximately 2.43MB. This ladder demonstrates bounded scaling at these
 small geometries, not Ethereum-block performance or production security.
 
-Use the existing tree command with the newly pinned manifests:
+Historical tree commands used these manifest pins:
 
 - `tree-admissions/q193-4.json`:
   `ea8ba2941e859af36d516c62adc1c33b38835874688973015cade10dea201fad`.
@@ -752,7 +867,7 @@ and [eight-tree summary](../../vectors/reports/riscv-proving-stack-reset-2026090
 The [ladder measurements](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-complete-ladder-measurements.json)
 link the six exact reports and distinguish native, wrapper and parent counts.
 
-## Stronger parent-of-parent cost attribution
+## Historical stronger parent-of-parent cost attribution
 
 The four-segment q193 root now consumes two genuine intermediate parent proofs.
 Separate diagnostic runs reproduce identical CPU/Metal artifacts and pass all
@@ -836,7 +951,7 @@ composition.
 CSP benchmarks are excluded from this parent optimization pass at the user's
 request. No CSP performance-preservation result is claimed for this pass.
 
-## Parent preparation, exact closure and composition optimization
+## Historical parent execution optimization before AIR specialization
 
 Three alternating unprofiled A/B rounds use the same retained q193 four-segment
 root inputs, admitted key, transcript and proof parameters on each backend.

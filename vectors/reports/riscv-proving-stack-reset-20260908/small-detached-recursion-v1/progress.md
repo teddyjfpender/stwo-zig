@@ -751,3 +751,27 @@ for this recursive catalog: the measured resident decline and required column/
 LogUp admission extension are documented in
 `design/riscv-proving-stack/recursive-metal-composition.md`. Production-security
 admission remains open. No Ethereum-sized replay was used as a development gate.
+
+## 2026-09-09: three recursive AIR specializations complete
+
+Fused signed multiply-add, four-term opening accumulation and compact degree-three
+Poseidon now compose in one admitted parent route. Three alternating paired root
+rounds reduce CPU median 22.770 -> 13.244s (41.8%) and Metal 16.519 -> 10.886s
+(34.1%). Peak RSS medians fall 5.664 -> 3.643GiB CPU and 7.035 -> 4.085GiB Metal.
+These are complete parent requests; fresh standalone STARK verification is about
+70ms. Main/interaction plus fixed trace cells decline 43.25%, with unchanged
+q193 proof parameters and exact wire closure.
+
+New parents are recursively consumed by a freshly verified root. Complete CPU
+and Metal four-segment trees pass, with 79.768s/65.835s total production and 21
+identical proof/key/claim files across backends. Changed memory passes under the
+same seven keys. Final gates count 878 acceptance/rejection cases; focused AIR
+checks pass 17 arithmetic, 89 opening and 12 Poseidon tests. Retained old leaf
+artifacts remain identical. See `air-fusion-measurements.json`,
+`air-fusion-final-artifact-audit.json` and the maintained proof guide.
+
+This pass changes the recursive parent AIR and its admission keys. Legacy verifier
+adapters remain only to consume retained child keys. The new provider shares its
+schedule/equations with native and symbolic verification. CSP performance runs
+were explicitly excluded. q193 remains experimental; Metal composition still
+executes on the host. No Ethereum-size run or production-security claim is made.

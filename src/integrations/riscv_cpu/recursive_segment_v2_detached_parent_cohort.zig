@@ -7,6 +7,7 @@ const frontend = @import("stwo_riscv_frontend");
 const air = frontend.recursion.air;
 pub const manifest_mod = air.universal_adapter_manifest;
 const provider = air.universal_shared_provider;
+const PoseidonAdapter = provider.Poseidon2Degree3AdapterForManifest(manifest_mod);
 const range = air.range_check_8_8_bridge;
 const CompactLedger = @import("recursive_compact_tuple_ledger_v1.zig").Owner;
 const M31 = core.fields.m31.M31;
@@ -14,20 +15,24 @@ const QM31 = core.fields.qm31.QM31;
 pub const Relations = air.universal_challenges.UniversalRelations;
 
 pub const LOGICAL_ROWS = rows: {
-    var result: [28]air.universal_catalog.Entry = undefined;
+    var result: [29]air.universal_catalog.Entry = undefined;
     var count: usize = 0;
     for (air.universal_catalog.LOGICAL_ROWS, 0..) |entry, index| {
-        if (index >= 14 and index < 20) continue;
+        if (index >= 15 and index < 20) continue;
         result[count] = .{
             .Air = switch (index) {
                 10 => air.field_statement_word_v3,
                 11 => air.detached_graph_input_v1,
                 12 => air.detached_poseidon_graph_v1,
                 13 => air.fixed_wire_v3,
+                // This VM-only slot is unused by legacy detached parents.
+                // The versioned semantic digest admits its detached meaning.
+                14 => air.detached_opening_accumulate4_v1,
+                30 => air.qm31_mul_add_v1,
                 else => entry.Air,
             },
             .row = entry.row,
-            .requires_location = entry.requires_location,
+            .requires_location = entry.requires_location and index != 30,
         };
         count += 1;
     }
@@ -40,30 +45,51 @@ pub fn Component(comptime entry: air.universal_catalog.Entry) type {
     return air.universal_typed_component.Component(entry.Air, air.universal_relation_binding.Binding(entry.Air));
 }
 
+// Retained proofs keep their original AIR. Only the authenticated geometry
+// selects this verifier adapter; new witness production uses LOGICAL_ROWS.
+const legacy_mul_entry = air.universal_catalog.Entry{ .Air = air.qm31_mul_full, .row = .qm31_mul, .requires_location = true };
+fn usesLegacyMul(manifest: *const manifest_mod.Manifest) bool {
+    const placement = manifest.placements[30] orelse return false;
+    return std.meta.eql(placement.geometry, Component(legacy_mul_entry).manifestGeometry(.qm31_mul, placement.geometry.log_size));
+}
+fn usesLegacyPoseidon(manifest: *const manifest_mod.Manifest) bool {
+    const placement = manifest.placements[34] orelse return false;
+    return std.meta.eql(placement.geometry, provider.Poseidon2Adapter.manifestGeometry(placement.geometry.log_size));
+}
+
 pub const ParametersV1 = struct {
     words: [manifest_mod.COMPONENT_COUNT][]const M31,
     poseidon_active_rows: u32,
 
     pub fn validate(self: ParametersV1, manifest: *const manifest_mod.Manifest) !void {
         try manifest.validate();
-        if (manifest.roster_count != LOGICAL_ROWS.len + 2) return error.DetachedParentManifestMismatch;
-        inline for (LOGICAL_ROWS) |entry| {
-            const row = @intFromEnum(entry.row);
-            const placement = manifest.placements[row] orelse return error.DetachedParentManifestMismatch;
-            if (!std.meta.eql(placement.geometry, Component(entry).manifestGeometry(entry.row, placement.geometry.log_size)) or
-                self.words[row].len != Component(entry).PARAMETER_COLUMN_COUNT)
-                return error.DetachedParentManifestMismatch;
-            for (self.words[row]) |word| try canonicalBase(word);
-        }
-        for (14..20) |row| if (manifest.placements[row] != null or self.words[row].len != 0)
+        const expected_count = LOGICAL_ROWS.len + 2 - @as(usize, @intFromBool(manifest.placements[14] == null));
+        if (manifest.roster_count != expected_count) return error.DetachedParentManifestMismatch;
+        inline for (LOGICAL_ROWS) |entry| try self.validateRow(entry, manifest);
+        for (15..20) |row| if (manifest.placements[row] != null or self.words[row].len != 0)
             return error.DetachedParentManifestMismatch;
         const poseidon = manifest.placements[34] orelse return error.DetachedParentManifestMismatch;
         const range_placement = manifest.placements[35] orelse return error.DetachedParentManifestMismatch;
-        if (!std.meta.eql(poseidon.geometry, provider.Poseidon2Adapter.manifestGeometry(poseidon.geometry.log_size)) or
+        if ((!usesLegacyPoseidon(manifest) and !std.meta.eql(poseidon.geometry, PoseidonAdapter.manifestGeometry(poseidon.geometry.log_size))) or
             !std.meta.eql(range_placement.geometry, provider.RangeCheck8x8Adapter.manifestGeometry()) or
             self.words[34].len != 0 or self.words[35].len != 0 or
             self.poseidon_active_rows > (@as(u64, 1) << @intCast(poseidon.geometry.log_size)))
             return error.DetachedParentManifestMismatch;
+    }
+
+    fn validateRow(self: ParametersV1, comptime entry: air.universal_catalog.Entry, manifest: *const manifest_mod.Manifest) !void {
+        const row = @intFromEnum(entry.row);
+        if (row == 14 and manifest.placements[row] == null) {
+            if (self.words[row].len != 0) return error.DetachedParentManifestMismatch;
+            return;
+        }
+        const placement = manifest.placements[row] orelse return error.DetachedParentManifestMismatch;
+        const legacy = row == 30 and usesLegacyMul(manifest);
+        const expected = if (legacy) Component(legacy_mul_entry).manifestGeometry(.qm31_mul, placement.geometry.log_size) else Component(entry).manifestGeometry(entry.row, placement.geometry.log_size);
+        const parameter_count = if (legacy) Component(legacy_mul_entry).PARAMETER_COLUMN_COUNT else Component(entry).PARAMETER_COLUMN_COUNT;
+        if (!std.meta.eql(placement.geometry, expected) or self.words[row].len != parameter_count)
+            return error.DetachedParentManifestMismatch;
+        for (self.words[row]) |word| try canonicalBase(word);
     }
 
     pub fn forRow(self: ParametersV1, comptime entry: air.universal_catalog.Entry) [Component(entry).PARAMETER_COLUMN_COUNT]M31 {
@@ -110,10 +136,14 @@ pub const OwnedComponentsV1 = opaque {
         definitions: Tuple(true),
         initialized: usize = 0,
         logical: Tuple(false),
+        legacy_mul_definition: air.qm31_mul_full.Definition,
+        legacy_mul_initialized: bool = false,
+        legacy_mul: Component(legacy_mul_entry),
         range_definition: range.Definition,
         range_initialized: bool = false,
         range_executor: range.Executor,
-        poseidon: provider.Poseidon2Adapter,
+        poseidon: PoseidonAdapter,
+        legacy_poseidon: provider.Poseidon2Adapter,
         range_component: provider.RangeCheck8x8Adapter,
         gate: manifest_mod.ProofGate,
     };
@@ -131,25 +161,26 @@ pub const OwnedComponentsV1 = opaque {
             .providers = undefined,
             .definitions = undefined,
             .logical = undefined,
+            .legacy_mul_definition = undefined,
+            .legacy_mul = undefined,
             .range_definition = undefined,
             .range_executor = undefined,
             .poseidon = undefined,
+            .legacy_poseidon = undefined,
             .range_component = undefined,
             .gate = gate,
         };
         const self: *Self = @ptrCast(storage);
         errdefer self.deinit();
         storage.providers = try provider.SharedProviderRelations.init(&storage.relations);
-        inline for (LOGICAL_ROWS, 0..) |entry, index| {
-            const row = @intFromEnum(entry.row);
-            storage.definitions[index] = if (entry.requires_location) try entry.Air.build(allocator, .generated) else try entry.Air.build(allocator);
-            storage.initialized += 1;
-            const relation = try air.universal_relation_binding.Binding(entry.Air).authenticate(&storage.definitions[index]);
-            storage.logical[index] = try Component(entry).init(&storage.definitions[index], relation, &storage.manifest, entry.row, storage.manifest.placements[row].?.geometry.log_size, parameters.forRow(entry), &storage.relations, claims.values[row]);
-            try storage.gate.append(&storage.manifest, try storage.logical[index].binding(&storage.manifest));
+        inline for (LOGICAL_ROWS, 0..) |entry, index| try initLogical(storage, entry, index, parameters, claims);
+        if (usesLegacyPoseidon(manifest)) {
+            storage.legacy_poseidon = try provider.Poseidon2Adapter.init(&storage.manifest, storage.manifest.placements[34].?.geometry.log_size, parameters.poseidon_active_rows, &storage.providers, &storage.relations, claims.poseidon_partials);
+            try storage.gate.append(&storage.manifest, try storage.legacy_poseidon.binding(&storage.manifest));
+        } else {
+            storage.poseidon = try PoseidonAdapter.init(&storage.manifest, storage.manifest.placements[34].?.geometry.log_size, parameters.poseidon_active_rows, &storage.providers, &storage.relations, claims.poseidon_partials);
+            try storage.gate.append(&storage.manifest, try storage.poseidon.binding(&storage.manifest));
         }
-        storage.poseidon = try provider.Poseidon2Adapter.init(&storage.manifest, storage.manifest.placements[34].?.geometry.log_size, parameters.poseidon_active_rows, &storage.providers, &storage.relations, claims.poseidon_partials);
-        try storage.gate.append(&storage.manifest, try storage.poseidon.binding(&storage.manifest));
         storage.range_definition = try range.build(allocator);
         storage.range_initialized = true;
         storage.range_executor = try range.Executor.init(&storage.range_definition, &try range.Binding.canonical(&storage.range_definition));
@@ -159,9 +190,42 @@ pub const OwnedComponentsV1 = opaque {
         return self;
     }
 
+    fn initLogical(storage: *Storage, comptime entry: air.universal_catalog.Entry, comptime index: usize, parameters: ParametersV1, claims: ClaimsV1) !void {
+        const allocator = storage.allocator;
+        const manifest = &storage.manifest;
+        const row = @intFromEnum(entry.row);
+        if (comptime row == 14) {
+            if (manifest.placements[row] == null) {
+                storage.initialized += 1;
+                return;
+            }
+        }
+        if (comptime row == 30) {
+            if (usesLegacyMul(manifest)) {
+                storage.legacy_mul_definition = try air.qm31_mul_full.build(allocator, .generated);
+                storage.legacy_mul_initialized = true;
+                const relation = try air.universal_relation_binding.Binding(air.qm31_mul_full).authenticate(&storage.legacy_mul_definition);
+                storage.legacy_mul = try Component(legacy_mul_entry).init(&storage.legacy_mul_definition, relation, &storage.manifest, .qm31_mul, storage.manifest.placements[30].?.geometry.log_size, parameters.forRow(legacy_mul_entry), &storage.relations, claims.values[30]);
+                try storage.gate.append(&storage.manifest, try storage.legacy_mul.binding(&storage.manifest));
+                storage.initialized += 1;
+                return;
+            }
+        }
+        storage.definitions[index] = if (entry.requires_location) try entry.Air.build(allocator, .generated) else try entry.Air.build(allocator);
+        storage.initialized += 1;
+        const relation = try air.universal_relation_binding.Binding(entry.Air).authenticate(&storage.definitions[index]);
+        storage.logical[index] = try Component(entry).init(&storage.definitions[index], relation, &storage.manifest, entry.row, storage.manifest.placements[row].?.geometry.log_size, parameters.forRow(entry), &storage.relations, claims.values[row]);
+        try storage.gate.append(&storage.manifest, try storage.logical[index].binding(&storage.manifest));
+    }
+
     pub fn deinit(self: *Self) void {
         const storage: *Storage = @ptrCast(@alignCast(self));
-        inline for (0..LOGICAL_ROWS.len) |index| if (index < storage.initialized) storage.definitions[index].deinit();
+        inline for (0..LOGICAL_ROWS.len) |index| {
+            if (index < storage.initialized and storage.manifest.placements[@intFromEnum(LOGICAL_ROWS[index].row)] != null and
+                !(index == logicalIndex(30) and storage.legacy_mul_initialized))
+                storage.definitions[index].deinit();
+        }
+        if (storage.legacy_mul_initialized) storage.legacy_mul_definition.deinit();
         if (storage.range_initialized) storage.range_definition.deinit();
         storage.allocator.destroy(storage);
     }
@@ -173,9 +237,20 @@ pub const OwnedComponentsV1 = opaque {
 
     pub fn recordCompositionV3(self: *const Self, program: anytype) !frontend.recursion.recursion_air_composition_circuit_v3.segment_recorder_v3.ProgramResultV3 {
         const storage: *const Storage = @ptrCast(@alignCast(self));
-        inline for (LOGICAL_ROWS, 0..) |entry, index|
-            _ = try program.recordTypedComponent(entry.row, &storage.logical[index]);
-        _ = try program.recordPoseidonProvider(&storage.poseidon);
+        inline for (LOGICAL_ROWS, 0..) |entry, index| {
+            if (storage.manifest.placements[@intFromEnum(entry.row)] != null) {
+                if (@intFromEnum(entry.row) == 30 and storage.legacy_mul_initialized) {
+                    _ = try program.recordTypedComponent(entry.row, &storage.legacy_mul);
+                } else {
+                    _ = try program.recordTypedComponent(entry.row, &storage.logical[index]);
+                }
+            }
+        }
+        if (usesLegacyPoseidon(&storage.manifest)) {
+            _ = try program.recordPoseidonProvider(&storage.legacy_poseidon);
+        } else {
+            _ = try program.recordPoseidonProvider(&storage.poseidon);
+        }
         _ = try program.recordRangeCheck8x8Provider(&storage.range_component);
         return program.finishProgram();
     }
@@ -201,7 +276,7 @@ pub const LogicalRowsV1 = blk: {
     for (LOGICAL_ROWS, 0..) |entry, index| types[index] = []const [entry.Air.LOGICAL_INPUT_COUNT]M31;
     break :blk std.meta.Tuple(&types);
 };
-const poseidon_air = frontend.air.memory_commitment.poseidon2_air;
+const poseidon_air = frontend.air.memory_commitment.poseidon2_universal_degree3_v1;
 pub const ProviderCall = poseidon_air.Call;
 
 /// A private snapshot, admitted once at construction. The caller may destroy
@@ -251,7 +326,7 @@ pub const PreparedV1 = opaque {
         }
         data.calls = try allocator.dupe(ProviderCall, calls);
         data.outputs = try allocator.alloc([16]u32, calls.len);
-        _ = try builder.append(provider.Poseidon2Adapter.manifestGeometry(try traceLogSize(calls.len)));
+        _ = try builder.append(PoseidonAdapter.manifestGeometry(try traceLogSize(calls.len)));
         _ = try builder.append(provider.RangeCheck8x8Adapter.manifestGeometry());
         data.manifest = try builder.seal();
         const dummy_relations = Relations.dummy();
@@ -357,7 +432,7 @@ pub const PreparedV1 = opaque {
         try poseidon_air.generateMainInto(data.allocator, &columns, data.calls, placement.geometry.log_size);
         for (data.outputs, 0..) |*output, logical| {
             const row = air.framework_interaction.committedRow(logical, placement.geometry.log_size);
-            for (output, 0..) |*word, column| word.* = columns[provider.POSEIDON_OUTPUT_COLUMN_START + column][row].toU32();
+            for (output, poseidon_air.outputFromColumns(M31, columns, row)) |*word, field| word.* = field.toU32();
         }
     }
     fn fillRangeInto(self: *const Self, batch: *const range.PreparedBatch, destination: [][]M31) !void {
@@ -447,11 +522,10 @@ pub const PreparedV1 = opaque {
         const placement = data.manifest.placements[34].?;
         for (data.calls, data.outputs, 0..) |call, output, logical| {
             const physical = air.framework_interaction.committedRow(logical, placement.geometry.log_size);
-            var main: [poseidon_air.N_MAIN_COLUMNS]QM31 = undefined;
-            for (&main, 0..) |*word, column| word.* = QM31.fromBase(main_columns[placement.main_offset + column][physical]);
-            for (call.input, 0..) |word, column| if (!main[1 + column].eql(QM31.fromU32Unchecked(word, 0, 0, 0))) return error.DetachedParentProviderMainChanged;
-            for (output, 0..) |word, column| if (!main[provider.POSEIDON_OUTPUT_COLUMN_START + column].eql(QM31.fromU32Unchecked(word, 0, 0, 0))) return error.DetachedParentProviderMainChanged;
-            const entries = poseidon_air.entries(main);
+            const columns = main_columns[placement.main_offset..][0..poseidon_air.N_MAIN_COLUMNS];
+            for (call.input, 0..) |word, column| if (columns[1 + column][physical].toU32() != word) return error.DetachedParentProviderMainChanged;
+            for (output, poseidon_air.outputFromColumns(M31, columns, physical)) |word, field| if (field.toU32() != word) return error.DetachedParentProviderMainChanged;
+            const entries = poseidon_air.entriesFromColumns(QM31, columns, physical);
             for (entries.entries[0..entries.len], 0..) |event, ordinal| {
                 const domain: @FieldType(air.relation_interaction.TupleContribution, "domain") = switch (event.domain) {
                     .poseidon2 => .poseidon2,
@@ -552,9 +626,9 @@ test "detached parent snapshots typed rows and rejects mutable ingress and inact
     try std.testing.expectError(error.DetachedParentConstraintViolation, PreparedV1.init(allocator, rows, &.{}));
     var claims = ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = @splat(QM31.zero()) };
     _ = try claims.vector(prepared.manifest());
-    claims.values[14] = QM31.one();
+    claims.values[15] = QM31.one();
     try std.testing.expectError(error.DetachedParentInactiveClaim, claims.vector(prepared.manifest()));
-    claims.values[14] = QM31.zero();
+    claims.values[15] = QM31.zero();
     claims.poseidon_partials[0] = QM31.one();
     try std.testing.expectError(error.DetachedParentProviderClaimMismatch, claims.vector(prepared.manifest()));
     var changed_manifest = prepared.manifest().*;

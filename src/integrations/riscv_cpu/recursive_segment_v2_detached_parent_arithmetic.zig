@@ -94,7 +94,11 @@ pub const OwnedV1 = opaque {
             lanes[i + 1].exports = try exports.toOwnedSlice(a);
         }
         const reference = try lowering.Reference.seal(&lanes);
-        var plan = try lowering.Plan.init(a, reference);
+        // Admission/materialization scratch is not part of the immutable
+        // prepared witness. Retain only the final logical rows and routing.
+        var preparation = std.heap.ArenaAllocator.init(allocator);
+        defer preparation.deinit();
+        var plan = try lowering.Plan.init(preparation.allocator(), reference);
         var input_rows: std.ArrayList(bridge.Row) = .empty;
         var poseidon_rows: std.ArrayList(poseidon.Row) = .empty;
         var provider: std.ArrayList(recursion.segment_transcript_outer_source_v2.ProviderCall) = .empty;
@@ -153,7 +157,7 @@ pub const OwnedV1 = opaque {
         var fixed_rows: std.ArrayList(air.fixed_wire_v3.Row) = .empty;
         for (plan.public_terms) |term| if (term.active_in == .binary) try fixed_rows.append(a, try air.fixed_wire_v3.logicalRow(term));
         logical[cohort.logicalIndex(13)] = try fixed_rows.toOwnedSlice(a);
-        try arithmeticRows(a, &plan, reference, .{ .lanes = &evaluations }, &logical);
+        try arithmeticRows(a, preparation.allocator(), &plan, reference, .{ .lanes = &evaluations }, &logical);
         const provider_calls = try provider.toOwnedSlice(a);
         const value = try allocator.create(Storage);
         value.* = .{ .arena = arena, .view_value = .{ .logical = logical, .provider = provider_calls, .parent_words = parent.parentWords(), .lowering_identity = reference.authority_digest } };
@@ -196,20 +200,93 @@ fn compositionSource(source: air.composition_circuit.RecursionSource, verifier: 
         .field_public_word => error.UnsupportedDetachedCompositionSource,
     };
 }
-fn arithmeticRows(a: std.mem.Allocator, plan: *const lowering.Plan, reference: lowering.Reference, evaluations: lowering.Evaluations, logical: *cohort.LogicalRowsV1) !void {
+fn arithmeticRows(a: std.mem.Allocator, temporary: std.mem.Allocator, plan: *const lowering.Plan, reference: lowering.Reference, evaluations: lowering.Evaluations, logical: *cohort.LogicalRowsV1) !void {
     const counts = plan.counts(.binary_node);
     const mul = air.qm31_mul_full_witness;
     const inv = air.qm31_inv_witness;
     const lin = air.linear_ops_witness;
-    const buffers = lowering.InvocationBuffers{ .multiply = try a.alloc(mul.Invocation, counts.multiply), .inverse = try a.alloc(inv.Invocation, counts.inverse), .linear = try a.alloc(lin.Invocation, counts.linear) };
+    const buffers = lowering.InvocationBuffers{ .multiply = try temporary.alloc(mul.Invocation, counts.multiply), .inverse = try temporary.alloc(inv.Invocation, counts.inverse), .linear = try temporary.alloc(lin.Invocation, counts.linear) };
     try plan.materializeInto(reference, evaluations, .binary_node, buffers);
-    const mul_rows = try a.alloc([air.qm31_mul_full.LOGICAL_INPUT_COUNT]M31, counts.multiply);
-    for (mul_rows, buffers.multiply, plan.multiply_rows[0..counts.multiply]) |*row, invocation, pp| row.* = mul.logicalInputs(mul.mainRow(invocation), mul.preprocessedRow(pp), .binary_node);
+    // The original admitted graph remains the routing authority. Only a
+    // product with one consumer can disappear inside the new row-30 AIR.
+    const fused = air.qm31_mul_add_v1;
+    const fusion = air.detached_arithmetic_fusion_plan;
+    const opening = air.detached_opening_accumulate4_v1;
+    const opening_plan = air.detached_opening_accumulation_plan;
+    var opening_rows: std.ArrayList(opening.Row) = .empty;
+    var mul_rows: std.ArrayList(fused.Row) = .empty;
+    var lin_rows: std.ArrayList([air.linear_ops.LOGICAL_INPUT_COUNT]M31) = .empty;
+    var mul_cursor: usize = 0;
+    var lin_cursor: usize = 0;
+    for (reference.lanes, evaluations.lanes) |item, values| {
+        if (item.active_in != .binary) continue;
+        var lane_scratch = std.heap.ArenaAllocator.init(temporary);
+        defer lane_scratch.deinit();
+        const scratch = lane_scratch.allocator();
+        const uses = try scratch.alloc(u32, item.graph.nodes.len);
+        _ = try lowering.computeLaneUseCountsInto(item, uses);
+        const reserved = try scratch.alloc(bool, item.graph.nodes.len);
+        @memset(reserved, false);
+        var opening_matches: std.ArrayList(opening_plan.Match) = .empty;
+        try opening_plan.reserve(&opening_matches, scratch, item.graph, uses, reserved);
+        for (opening_matches.items) |match| {
+            var lhs: [4]u32 = undefined;
+            var rhs: [4]u32 = undefined;
+            var lhs_values: [4]QM31 = undefined;
+            var rhs_values: [4]QM31 = undefined;
+            for (match.multiply_nodes, 0..) |node_id, index| {
+                const operands = item.graph.nodes[node_id].op.mul;
+                lhs[index] = operands.lhs;
+                rhs[index] = operands.rhs;
+                lhs_values[index] = values.values[operands.lhs];
+                rhs_values[index] = values.values[operands.rhs];
+            }
+            try opening_rows.append(temporary, try opening.logicalRow(.{
+                .circuit = item.circuit_id,
+                .output = match.output_node,
+                .uses = uses[match.output_node],
+                .accumulator = match.accumulator_node,
+                .lhs = lhs,
+                .rhs = rhs,
+            }, values.values[match.accumulator_node], lhs_values, rhs_values, values.values[match.output_node]));
+        }
+        var matches: std.ArrayList(fusion.Match) = .empty;
+        try fusion.reserve(&matches, scratch, item.graph, uses, reserved);
+        const by_multiply = try scratch.alloc(u32, item.graph.nodes.len);
+        @memset(by_multiply, 0);
+        for (matches.items, 0..) |match, index| by_multiply[match.multiply_node] = @intCast(index + 1);
+        for (item.graph.nodes, 0..) |node, node_id| switch (node.op) {
+            .mul => |operands| {
+                const invocation = buffers.multiply[mul_cursor];
+                mul_cursor += 1;
+                const match: ?fusion.Match = if (by_multiply[node_id] == 0) null else matches.items[by_multiply[node_id] - 1];
+                if (reserved[node_id] and match == null) continue;
+                const output = if (match) |m| m.output_node else @as(u32, @intCast(node_id));
+                try mul_rows.append(temporary, try fused.logicalRow(.{
+                    .circuit = item.circuit_id,
+                    .output = output,
+                    .lhs = operands.lhs,
+                    .rhs = operands.rhs,
+                    .addend = if (match) |m| m.addend_node else 0,
+                    .uses = uses[output],
+                    .operation = if (match) |m| m.operation else .multiply,
+                }, invocation.a, invocation.b, if (match) |m| values.values[m.addend_node] else QM31.zero()));
+            },
+            .add, .sub, .neg => {
+                const invocation = buffers.linear[lin_cursor];
+                const pp = plan.linear_rows[lin_cursor];
+                lin_cursor += 1;
+                if (!reserved[node_id]) try lin_rows.append(temporary, lin.logicalInputs(try lin.mainRow(invocation), lin.preprocessedRow(pp), .binary_node));
+            },
+            else => {},
+        };
+        std.debug.print("riscv_detached_arithmetic_fusion lane={d} dot4_rows={d} multiply_add_rows={d}\n", .{ item.circuit_id, opening_matches.items.len, matches.items.len });
+    }
+    if (mul_cursor != buffers.multiply.len or lin_cursor != buffers.linear.len) return error.DetachedParentArithmeticCountMismatch;
     const inv_rows = try a.alloc([air.qm31_inv.LOGICAL_INPUT_COUNT]M31, counts.inverse);
     for (inv_rows, buffers.inverse, plan.inverse_rows[0..counts.inverse]) |*row, invocation, pp| row.* = inv.logicalInputs(try inv.mainRow(invocation), inv.preprocessedRow(pp), .binary_node);
-    const lin_rows = try a.alloc([air.linear_ops.LOGICAL_INPUT_COUNT]M31, counts.linear);
-    for (lin_rows, buffers.linear, plan.linear_rows[0..counts.linear]) |*row, invocation, pp| row.* = lin.logicalInputs(try lin.mainRow(invocation), lin.preprocessedRow(pp), .binary_node);
-    logical[cohort.logicalIndex(30)] = mul_rows;
+    logical[cohort.logicalIndex(14)] = try a.dupe(opening.Row, opening_rows.items);
+    logical[cohort.logicalIndex(30)] = try a.dupe(fused.Row, mul_rows.items);
     logical[cohort.logicalIndex(31)] = inv_rows;
-    logical[cohort.logicalIndex(32)] = lin_rows;
+    logical[cohort.logicalIndex(32)] = try a.dupe([air.linear_ops.LOGICAL_INPUT_COUNT]M31, lin_rows.items);
 }

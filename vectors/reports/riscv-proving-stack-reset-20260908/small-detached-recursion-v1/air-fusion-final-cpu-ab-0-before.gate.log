@@ -1,0 +1,19 @@
+passed 27 fresh-process parent cases; report=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-cpu-ab-0-before.json
+       24.00 real       125.24 user         3.83 sys
+          5654937600  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1503096  page reclaims
+                 204  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  66  voluntary context switches
+              147647  involuntary context switches
+          1351390503  instructions retired
+           673227992  cycles elapsed
+            32867000  peak memory footprint

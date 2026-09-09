@@ -21,3 +21,6 @@ test {
     const std = @import("std");
     std.testing.refAllDecls(@This());
 }
+
+pub const poseidon2_universal_degree3_v1 = @import("poseidon2_universal_degree3_v1.zig");
+pub const poseidon2_universal_component_v1 = @import("poseidon2_universal_component_v1.zig");

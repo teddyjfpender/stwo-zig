@@ -1,0 +1,42 @@
+test-recursion-opening-accumulation
++- run test 14/16 passed, 2 failed
+thread 45572415 panic: access of union field 'add' while field 'sub' is active
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/recursion/air/detached_opening_accumulate4_v1_test.zig:120:42: 0x1049cbdf7 in test.opening matcher hides only four unshared multiply-add terms and retains external uses (test)
+    nodes[12].op = .{ .sub = nodes[12].op.add };
+                                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x104980547 in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x10497f02b in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x10497c887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x622dffffffffffff in ??? (???)
+error: 'recursion.air.detached_opening_accumulate4_v1_test.test.opening accumulation has a pinned degree-two typed definition' failed: OPENING_ACCUMULATE4_SEMANTIC_DIGEST=9359de479b47fc345f0adb457f6eff19359efa6be4ceffb6aff3fbc11fce18e0
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+93 59 DE 47 9B 47 FC 34  5F 0A DB 45 7F 6E FF 19  .Y.G.G.4_␊.E.n..
+35 9E FA 6B E4 CE FF B6  AF F3 FB C1 1F CE 18 E0  5..k............
+
+================================================
+error: 'recursion.air.detached_opening_accumulate4_v1_test.test.opening accumulation matches native QM31 dot products and rejects every coordinate mutation' failed
+error: while executing test 'recursion.air.detached_opening_accumulate4_v1_test.test.opening matcher hides only four unshared multiply-add terms and retains external uses', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/87aa6105b858675f947170b2ec74a98c/test --cache-dir=./.zig-cache --seed=0x4bec0da6 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 14/16 tests passed; 2 failed
+test-recursion-opening-accumulation transitive failure
++- run test 14/16 passed, 2 failed
+   +- compile test ReleaseSafe native success 5s MaxRSS:482M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0a05e6127ede051ae97e5d9d531dbc7a/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x4bec0da6 -Zb10b7d9f3f5501a9 --maxrss 25769803776 -j1 test-recursion-opening-accumulation -Doptimize=ReleaseSafe --summary all

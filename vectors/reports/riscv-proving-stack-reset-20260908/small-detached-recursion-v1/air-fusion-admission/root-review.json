@@ -1,0 +1,11 @@
+{
+  "key_sha256": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+  "same_security_and_versioned_geometry_as": "a9ff0e1157a7a17406491c319b490b0f313c9fc700e2ed8d72676ca922eadae6",
+  "query_position_bits_from_child_domain": 21,
+  "child_key_sha256": [
+    "a6699c0eebc189ec372e8df780558a72761b2587404b9d345792d66cae19f603",
+    "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54"
+  ],
+  "expected_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+  "status": "reviewed_fixture_key_requires_fresh_proof_verification"
+}

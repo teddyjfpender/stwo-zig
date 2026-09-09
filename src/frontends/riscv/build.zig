@@ -1053,6 +1053,24 @@ pub fn build(b: *std.Build) void {
         .minimum = 6,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-arithmetic-fusion",
+        .description = "Check fused verifier arithmetic and authenticated graph lowering",
+        .root = "recursion_arithmetic_fusion_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-opening-accumulation",
+        .description = "Check fused opening accumulation and exact wire fanout",
+        .root = "recursion_opening_accumulation_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-poseidon-universal-degree3",
+        .description = "Check compact universal Poseidon AIR against the retained permutation",
+        .root = "poseidon2_universal_degree3_test_root.zig",
+        .imports_prover_engine = true,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-structural-hashes",
         .description = "Check canonical hash byte parity and FRI parameter extraction",
         .root = "recursion_air_core_test_root.zig",

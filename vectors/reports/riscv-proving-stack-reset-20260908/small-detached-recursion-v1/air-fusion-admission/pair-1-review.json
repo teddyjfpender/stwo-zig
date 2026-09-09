@@ -1,0 +1,7 @@
+{
+  "key_sha256": "274fd7b2b8d9f55fedf272d17389dd86f333fb14875ffa7dc058d3fa29a65d54",
+  "expected_sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9",
+  "same_versioned_geometry_as_root_from_legacy": "a9ff0e1157a7a17406491c319b490b0f313c9fc700e2ed8d72676ca922eadae6",
+  "same_security_and_child_pins_as": "7ced5ad9d4ea2b08d53ca52e537877caa19f676635203830ca51f9db65cb03fa",
+  "status": "reviewed_fixture_key_requires_fresh_proof_verification"
+}

@@ -80,11 +80,12 @@ fn prepareFor(comptime family: child_mod.Family, allocator: std.mem.Allocator, c
         const rejected = try statement_mod.testStatementRejections(statement);
         std.debug.print("DETACHED_PARENT_RECURSIVE_STATEMENT rejected={d} host_admission_bypassed=true\n", .{rejected});
     }
-    const arithmetic = try arithmetic_mod.OwnedV1.init(a, .{ .composition = compositions, .boundary = boundaries, .pcs = checks }, statement);
+    const arithmetic = try arithmetic_mod.OwnedV1.init(allocator, .{ .composition = compositions, .boundary = boundaries, .pcs = checks }, statement);
+    defer arithmetic.deinit();
     const base = try base_mod.OwnedV1.init(a, prefixes, transcripts, checks);
     var logical = base.logicalRows();
     const graph = arithmetic.view();
-    inline for (.{ 11, 12, 13, 30, 31, 32 }) |row| {
+    inline for (.{ 11, 12, 13, 14, 30, 31, 32 }) |row| {
         const index = cohort.logicalIndex(row);
         if (logical[index].len != 0) return error.DetachedParentDuplicateRowAuthority;
         logical[index] = graph.logical[index];

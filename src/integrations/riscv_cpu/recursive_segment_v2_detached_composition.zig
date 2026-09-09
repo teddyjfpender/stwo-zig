@@ -148,17 +148,29 @@ pub fn recordDetached(
     _ = try v3.recordClaimPolicyConstraints(&builder, &kinds, &claims);
     if (comptime kind == .segment_leaf)
         try builder.constrainZero(claims[10]) // Existing inactive SegmentV2 row.
-    else for (claims[14..20]) |claim| try builder.constrainZero(claim);
+    else for (14..20) |row| {
+        if (manifest.placements[row] == null) try builder.constrainZero(claims[row]);
+    }
     var total = wire_boundary;
     for (claims[0..39]) |claim| total = total.add(claim);
     try builder.constrainZero(total);
     var denominators: recorder.DenominatorCache = .{null} ** core.circle.M31_CIRCLE_LOG_ORDER;
-    const ParentRecorder = v3.segment_recorder_v3.ProgramRecorderForManifest(recursion.air.universal_adapter_manifest, .binary_node, @import("recursive_segment_v2_detached_parent_cohort.zig").LOGICAL_ROWS.len + 2);
-    var program = if (comptime kind == .segment_leaf)
-        try v3.segment_recorder_v3.SegmentProgramRecorderV3.init(&builder, manifest, layout, samples, &claims, &challenges, alpha, point, &denominators)
-    else
-        try ParentRecorder.initAuthenticatedBinary(&builder, manifest, .detached_segment_parent_v1, layout, samples, &claims, &challenges, alpha, point, &denominators);
-    const result = try components.recordCompositionV3(&program);
+    const result = if (comptime kind == .segment_leaf) blk: {
+        var program = try v3.segment_recorder_v3.SegmentProgramRecorderV3.init(&builder, manifest, layout, samples, &claims, &challenges, alpha, point, &denominators);
+        break :blk try components.recordCompositionV3(&program);
+    } else blk: {
+        // Retained children have no opening-accumulator component. Keep each
+        // admitted recorder's exact roster check rather than weakening it.
+        const active_count = @import("recursive_segment_v2_detached_parent_cohort.zig").LOGICAL_ROWS.len + 2;
+        inline for (.{ active_count - 1, active_count }) |component_count| {
+            if (manifest.roster_count == component_count) {
+                const ParentRecorder = v3.segment_recorder_v3.ProgramRecorderForManifest(recursion.air.universal_adapter_manifest, .binary_node, component_count);
+                var program = try ParentRecorder.initAuthenticatedBinary(&builder, manifest, .detached_segment_parent_v1, layout, samples, &claims, &challenges, alpha, point, &denominators);
+                break :blk try components.recordCompositionV3(&program);
+            }
+        }
+        return error.DetachedParentManifestMismatch;
+    };
     try builder.constrainZero(expected_composition.sub(result.accumulation));
     builder.deactivate();
     return .{ .circuit = try builder.finish(), .bindings = bindings };
