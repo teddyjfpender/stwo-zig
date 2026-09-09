@@ -1,0 +1,28 @@
+DETACHED_PARENT_CHILD lane=1 preparation_ns=88878875
+DETACHED_PARENT_CHILD lane=2 preparation_ns=177563375
+thread 44760389 panic: index out of bounds: index 412, len 412
+???:?:?: 0x1044ec73f in _recursive_segment_v2_detached_parent_arithmetic.OwnedV1.init (???)
+???:?:?: 0x10451e20f in _recursive_segment_v2_detached_parent_prepare.prepareWithMode (???)
+???:?:?: 0x1045aeebf in _recursive_segment_v2_detached_parent_producer.runInner (???)
+???:?:?: 0x1045b22a7 in _main (???)
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x4952ffffffffffff in ??? (???)
+time: command terminated abnormally
+        0.94 real         0.25 user         0.01 sys
+           163037184  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               10408  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   8  voluntary context switches
+                  17  involuntary context switches
+          5322532184  instructions retired
+          1042213187  cycles elapsed
+           157794760  peak memory footprint

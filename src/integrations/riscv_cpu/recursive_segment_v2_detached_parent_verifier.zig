@@ -44,7 +44,7 @@ pub fn verifyWithCaptureRecording(allocator: std.mem.Allocator, key: *const KeyV
 
 fn verifyImpl(comptime MerkleChannel: type, allocator: std.mem.Allocator, key: *const KeyV1, expected: *const ExpectedV1, claims: ClaimsV1, proof_bytes: []const u8, channel: anytype, capture: ?*ProofCapture) !RecordingResultV1 {
     try key.validate();
-    try transcript.validateExpected(expected);
+    try recursion.span_continuation_v1.validate(expected, key.publication_mode);
     _ = try claims.vector(&key.manifest);
     if (proof_bytes.len == 0 or proof_bytes.len > MAX_PROOF_BYTES)
         return error.SegmentDetachedProofSizeMismatch;

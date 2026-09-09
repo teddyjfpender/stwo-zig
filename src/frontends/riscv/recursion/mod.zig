@@ -110,6 +110,7 @@ pub const outer_parent_statement_air_source = @import("outer_parent_statement_ai
 pub const outer_parent_statement_source = @import("outer_parent_statement_source.zig");
 pub const outer_parent_transcript_source = @import("outer_parent_transcript_source.zig");
 pub const span_statement = @import("span_statement.zig");
+pub const span_continuation_v1 = @import("span_continuation_v1.zig");
 pub const statement_semantics_circuit = @import("statement_semantics_circuit.zig");
 pub const temporal_pair_node = @import("temporal_pair_node.zig");
 pub const transcript_program = @import("transcript_program.zig");

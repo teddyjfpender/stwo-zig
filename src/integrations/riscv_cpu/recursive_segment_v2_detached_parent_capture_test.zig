@@ -67,7 +67,7 @@ test "detached parent capture replays genuine sparse cohort after input destruct
     try v3.writeClaimInputs(.binary_node, &claims.values, &claims.poseidon_partials, &claim_inputs);
     try v3.writeInputsFromValidatedProfile(profile, .{
         .parent_binary_selector = true, .proof_kind = .binary_node,
-        .statement_words = &expected, .sampled_values = capture.sampled_values,
+        .statement_words = expected[0..recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS], .sampled_values = capture.sampled_values,
         .claim_inputs = &claim_inputs, .public_wire_boundary = try protocol.publicBoundary(&expected, &result.relations),
         .relations = &result.relations, .composition_randomness = capture.composition_randomness, .oods_seed = capture.oods_seed,
     }, inputs);

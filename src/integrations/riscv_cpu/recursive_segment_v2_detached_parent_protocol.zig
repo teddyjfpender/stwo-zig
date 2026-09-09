@@ -5,22 +5,24 @@ const std = @import("std");
 const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const recursion = frontend.recursion;
-const span = recursion.span_statement;
+const continuation = recursion.span_continuation_v1;
 const cohort = @import("recursive_segment_v2_detached_parent_cohort.zig");
 const manifest_mod = cohort.manifest_mod;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
-pub const VERSION: u32 = 1;
+pub const VERSION: u32 = 2;
 pub const DEVELOPMENT_ONLY = true;
 pub const PCS_CONFIG = recursion.outer_parent_child_admission.OUTER_PCS_CONFIG;
 pub const PUBLIC_SCOPE: u32 = 3;
-pub const ExpectedV1 = span.StatementWords;
+pub const ExpectedV1 = continuation.Words;
+pub const PublicationMode = continuation.Mode;
 pub const ClaimsV1 = cohort.ClaimsV1;
-pub const ProfileV1 = enum(u8) { detached_two_segment_development_q3_v1 = 1 };
+pub const ProfileV1 = enum(u8) { detached_continuation_development_q3_v2 = 2 };
 
 pub const KeyV1 = struct {
     version: u32 = VERSION,
-    profile: ProfileV1 = .detached_two_segment_development_q3_v1,
+    profile: ProfileV1 = .detached_continuation_development_q3_v2,
+    publication_mode: PublicationMode = .root,
     pcs_config: core.pcs.PcsConfig = PCS_CONFIG,
     manifest: manifest_mod.Manifest,
     parameters: cohort.ParametersV1,
@@ -32,15 +34,15 @@ pub const KeyV1 = struct {
     }
 
     pub fn identity(self: *const KeyV1) ![32]u8 {
-        if (self.version != VERSION or self.profile != .detached_two_segment_development_q3_v1 or
+        if (self.version != VERSION or self.profile != .detached_continuation_development_q3_v2 or
             !std.meta.eql(self.pcs_config, PCS_CONFIG)) return error.DetachedParentProfileMismatch;
         try self.parameters.validate(&self.manifest);
         if (std.mem.allEqual(u32, &self.preprocessed_root, 0)) return error.DetachedParentKeyMismatch;
         for (self.preprocessed_root) |word| if (word >= core.fields.m31.Modulus) return error.DetachedParentKeyMismatch;
         for (self.child_key_sha256) |pin| if (std.mem.allEqual(u8, &pin, 0)) return error.DetachedParentKeyMismatch;
         var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update("stwo-zig/segment-v2-detached-two-child-development-parent/v1\x00");
-        for ([_]u32{ VERSION, @intFromEnum(self.profile), manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, span.SPAN_STATEMENT_CANONICAL_WORDS, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
+        hash.update("stwo-zig/segment-v2-detached-two-child-development-parent/v2\x00");
+        for ([_]u32{ VERSION, @intFromEnum(self.profile), @intFromEnum(self.publication_mode), continuation.VERSION, manifest_mod.FORMAT_VERSION, PUBLIC_SCOPE, continuation.WORD_COUNT, PCS_CONFIG.pow_bits, PCS_CONFIG.fri_config.log_blowup_factor, PCS_CONFIG.fri_config.log_last_layer_degree_bound, @intCast(PCS_CONFIG.fri_config.n_queries), PCS_CONFIG.fri_config.fold_step }) |word| hashWord(&hash, word);
         hash.update(&self.manifest.seal);
         hash.update(&recursion.air.universal_challenges.registryOrderDigest());
         for (recursion.protocol.PROTOCOL_ID_WORDS) |word| hashWord(&hash, word);
@@ -57,8 +59,7 @@ pub const KeyV1 = struct {
 };
 
 pub fn validateExpected(expected: *const ExpectedV1) !void {
-    for (expected) |word| if (word.toU32() >= core.fields.m31.Modulus) return error.DetachedParentNonCanonicalField;
-    _ = try span.RootStatement.init(try span.SpanStatement.fromCanonicalWords(expected));
+    try continuation.validate(expected, .intermediate);
 }
 
 pub fn publicTuple(index: usize, word: M31) [3]M31 {
@@ -81,12 +82,12 @@ pub fn publicBoundary(expected: *const ExpectedV1, relations: *const cohort.Rela
 /// Called after the fixed and main tree commitments, before relation draws.
 pub fn mixAdmission(channel: anytype, key: *const KeyV1, expected: *const ExpectedV1) !void {
     const identity = try key.identity();
-    try validateExpected(expected);
+    try continuation.validate(expected, key.publication_mode);
     channel.mixU32s(&.{ 0x4450_4131, VERSION, manifest_mod.COMPONENT_COUNT, PUBLIC_SCOPE, expected.len });
     var pin_words: [8]u32 = undefined;
     for (&pin_words, 0..) |*word, index| word.* = std.mem.readInt(u32, identity[index * 4 ..][0..4], .little);
     channel.mixU32s(&pin_words);
-    var words: [span.SPAN_STATEMENT_CANONICAL_WORDS]u32 = undefined;
+    var words: [continuation.WORD_COUNT]u32 = undefined;
     for (&words, expected) |*word, value| word.* = value.toU32();
     channel.mixU32s(&words);
 }

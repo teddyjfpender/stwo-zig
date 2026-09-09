@@ -81,13 +81,13 @@ without reading any candidate proof or producer-generated root:
   /absolute/new/expected-root.json
 ```
 
-The retained independent fixture admission is `detached-parent-v1-admission/`.
+The retained independent fixture admission is `detached-parent-v2-admission/`.
 The parent key pin is
-`269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84`.
-It covers exactly `tiny-memory-v1`, including address membership and child keys;
+`3b96247b69ad8499f93de85bf528444dd27fa946c3b06f31ee5bf0af9f21d0b6`.
+It covers exactly `tiny-memory-root-v2`, including address membership and child keys;
 it does not authorize arbitrary circuits of the same dimensions.
 
-One command then produces, destroys the producer process, and runs all 21
+One command then produces, destroys the producer process, and runs all 25
 fresh-process acceptance/rejection cases:
 
 ```sh
@@ -96,8 +96,8 @@ python3 scripts/riscv_segment_v2_detached_parent_gate.py \
   --producer-sha256 REVIEWED_PRODUCER_BINARY_SHA256 \
   --verifier "$proof_bins/recursive-segment-v2-detached-parent-verify" \
   --verifier-sha256 REVIEWED_VERIFIER_BINARY_SHA256 \
-  --parent-key "$proof_evidence/detached-parent-v1-admission/parent-key.json" \
-  --key-sha256 269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84 \
+  --parent-key "$proof_evidence/detached-parent-v2-admission/parent-key.json" \
+  --key-sha256 3b96247b69ad8499f93de85bf528444dd27fa946c3b06f31ee5bf0af9f21d0b6 \
   --expected-root /absolute/path/to/expected-root.json \
   --expected-root-sha256 REVIEWED_EXPECTED_ROOT_SHA256 \
   --left "$proof_output/child-0" \
@@ -114,7 +114,7 @@ existing bundle without the heavy-job lock. Review binary hashes against the
 build/source receipt; a freshly hashed arbitrary executable is not admission.
 The lifecycle starts from saved child proofs; it does not include native proving.
 
-Six retained runs (seeds13/14/269, both child backends) share the exact parent key
+The earlier version1 runs (seeds13/14/269, both child backends) share the exact parent key
 and pass 126 fresh-process cases. Corresponding parent artifacts match byte for
 byte across child backends. Parent requests took 3.87–4.06s, fresh verification
 9.7–11.8ms, and maximum RSS about655–656MiB. Proofs are92,779–96,390bytes.
@@ -133,6 +133,14 @@ expected-root path. Missing inputs fail the gate. It verifies the actual parent,
 destroys the caller inputs, then replays its recorded composition and PCS/FRI
 arithmetic with45 claim/sample mutations. The retained run takes882ms at17MiB
 RSS after compilation. It does not generate a next-layer proof.
+
+The current version2 publication includes the436-word span/session/lineage
+statement. Its key explicitly binds `root` or `intermediate` mode. Six root runs
+pass150 fresh-process cases under the same key; an intermediate-mode run passes
+25 additional cases, using the same complete two-segment job (not yet a partial
+four-segment subtree). Current timings are in `detached-parent-v2-measurements.json`.
+The gate defaults to root acceptance; intermediate acceptance must explicitly use
+`--publication-mode intermediate` and its separately admitted key.
 
 ## Retained native-assisted benchmark route
 

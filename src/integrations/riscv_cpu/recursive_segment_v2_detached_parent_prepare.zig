@@ -29,12 +29,16 @@ pub const Prepared = struct {
     expected: protocol.ExpectedV1,
     child_key_sha256: [2][32]u8,
     preparation_ns: u64,
+    publication_mode: protocol.PublicationMode,
     pub fn deinit(self: *Prepared) void {
         self.cohort.deinit();
         self.* = undefined;
     }
 };
 pub fn prepare(allocator: std.mem.Allocator, children: [2]*const child_mod.OwnedV1, profile: ProfileV1) !Prepared {
+    return prepareWithMode(allocator, children, profile, .root);
+}
+pub fn prepareWithMode(allocator: std.mem.Allocator, children: [2]*const child_mod.OwnedV1, profile: ProfileV1, mode: protocol.PublicationMode) !Prepared {
     var timer = try std.time.Timer.start();
     var arena = std.heap.ArenaAllocator.init(allocator);
     defer arena.deinit();
@@ -53,7 +57,7 @@ pub fn prepare(allocator: std.mem.Allocator, children: [2]*const child_mod.Owned
         compositions[i] = try composition_mod.OwnedV1.init(a, child);
         std.debug.print("DETACHED_PARENT_CHILD lane={d} preparation_ns={d}\n", .{ lane, timer.read() });
     }
-    const statement = try statement_mod.OwnedV1.init(a, boundaries[0], boundaries[1]);
+    const statement = try statement_mod.OwnedV1.initWithMode(a, boundaries[0], boundaries[1], mode);
     const arithmetic = try arithmetic_mod.OwnedV1.init(a, .{ .composition = compositions, .boundary = boundaries, .pcs = checks }, statement);
     const base = try base_mod.OwnedV1.init(a, prefixes, transcripts, checks);
     var logical = base.logicalRows();
@@ -75,7 +79,7 @@ pub fn prepare(allocator: std.mem.Allocator, children: [2]*const child_mod.Owned
     std.debug.print("DETACHED_PARENT_PREPARATION rows_bytes={d} providers={d} graph_ns={d} snapshot_pending=true\n", .{ logical_bytes, calls.items.len, timer.read() });
     const prepared = try cohort.PreparedV1.init(allocator, logical, calls.items);
     errdefer prepared.deinit();
-    return .{ .cohort = prepared, .expected = graph.parent_words, .child_key_sha256 = .{ children[0].keySha256(), children[1].keySha256() }, .preparation_ns = timer.read() };
+    return .{ .cohort = prepared, .expected = graph.parent_words, .child_key_sha256 = .{ children[0].keySha256(), children[1].keySha256() }, .preparation_ns = timer.read(), .publication_mode = mode };
 }
 
 /// Repository fixture ingress keeps independent expected inputs/key pins outside

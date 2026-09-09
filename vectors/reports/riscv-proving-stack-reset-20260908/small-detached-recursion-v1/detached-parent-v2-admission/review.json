@@ -1,0 +1,21 @@
+{
+  "scope": "Bootstrap admission of source-reviewed tiny-memory-root-v2 development profile only; subsequent changing-value runs must reuse this independent pin. No production-security or arbitrary circuit admission.",
+  "key_sha256": "3b96247b69ad8499f93de85bf528444dd27fa946c3b06f31ee5bf0af9f21d0b6",
+  "child_key_sha256": [
+    "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+    "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517"
+  ],
+  "pcs_config": {
+    "pow_bits": 0,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 3,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "profile": "detached_continuation_development_q3_v2",
+  "publication_mode": "root",
+  "verifier_sha256": "52a3627969491923ffd8990d009e4d5cbf2b51f1cf75e8f25df840a581aa2034"
+}

@@ -88,6 +88,7 @@ pub fn retainCandidate(allocator: std.mem.Allocator, directory: []const u8, key_
 pub const ReceiptV1 = struct {
     endpoint: []const u8 = "verified_segment_v2_detached_two_child_parent_development_q3",
     development_only: bool = true,
+    publication_mode: protocol.PublicationMode,
     verified: bool = true,
     native_inputs_used: bool = false,
     key_sha256: [32]u8,
@@ -123,14 +124,14 @@ fn verifyDirectoryInner(allocator: std.mem.Allocator, directory: []const u8, ind
     if (proof.len != claims.proof_bytes or !std.meta.eql(hash(proof), claims.proof_sha256)) return error.DetachedParentProofIdentityMismatch;
     var timer = try std.time.Timer.start();
     const terminal = try verifier.verify(allocator, key.key(), &expected, claims.claims, proof);
-    return .{ .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
+    return .{ .endpoint = if (key.key().publication_mode == .root) "verified_segment_v2_detached_two_child_parent_development_q3" else "verified_segment_v2_detached_intermediate_parent_development_q3", .publication_mode = key.key().publication_mode, .key_sha256 = independent_key_sha256, .expected_root_sha256 = hash(expected_json), .claims_sha256 = hash(claims_json), .proof_sha256 = claims.proof_sha256, .proof_bytes = proof.len, .request_ns = 0, .verify_ns = timer.read(), .transcript_digest = terminal };
 }
 pub fn main() !void {
     const allocator = std.heap.smp_allocator;
     const args = try std.process.argsAlloc(allocator);
     defer std.process.argsFree(allocator, args);
-    if (args.len == 5 and std.mem.eql(u8, args[1], "--derive-expected")) {
-        const expected = try deriveExpected(allocator, .{ args[2], args[3] });
+    if (args.len == 5 and (std.mem.eql(u8, args[1], "--derive-expected") or std.mem.eql(u8, args[1], "--derive-span"))) {
+        const expected = try deriveExpected(allocator, .{ args[2], args[3] }, if (std.mem.eql(u8, args[1], "--derive-expected")) .root else .intermediate);
         const json = try encodeExpected(allocator, &expected);
         defer allocator.free(json);
         var file = try std.fs.cwd().createFile(args[4], .{ .exclusive = true });
@@ -150,7 +151,7 @@ pub fn main() !void {
 
 /// Derive the expected root from caller-owned public inputs only. No candidate
 /// key, proof, claim or producer-generated root participates in this operation.
-pub fn deriveExpected(allocator: std.mem.Allocator, paths: [2][]const u8) !verifier.ExpectedV1 {
+pub fn deriveExpected(allocator: std.mem.Allocator, paths: [2][]const u8, mode: protocol.PublicationMode) !verifier.ExpectedV1 {
     const child = @import("recursive_segment_v2_detached_command.zig");
     const frontend = @import("stwo_riscv_frontend");
     var inputs: [2]child.OwnedExpectedV1 = undefined;
@@ -165,8 +166,8 @@ pub fn deriveExpected(allocator: std.mem.Allocator, paths: [2][]const u8) !verif
     _ = try frontend.air.public_data_v2.PublicDataV2.authenticateAdjacent(&inputs[0].data, &inputs[1].data);
     const left = try inputs[0].data.authenticatedView();
     const right = try inputs[1].data.authenticatedView();
-    const span = frontend.recursion.span_statement;
-    const folded = try span.SpanStatement.fold(try left.statement.base(), try right.statement.base());
-    _ = try span.RootStatement.init(folded);
-    return folded.canonicalWords();
+    const continuation = frontend.recursion.span_continuation_v1;
+    const left_words = try continuation.fromSegment(&left.statement);
+    const right_words = try continuation.fromSegment(&right.statement);
+    return continuation.fold(&left_words, &right_words, mode);
 }

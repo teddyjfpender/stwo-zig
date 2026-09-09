@@ -1,0 +1,19 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-recursive-segment-v2-detached-parent-capture",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "process_ns": 48093596250,
+  "fixture_environment": {
+    "STWO_DETACHED_PARENT_BUNDLE": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-parent-v2-cpu-seed13-first",
+    "STWO_DETACHED_PARENT_KEY_SHA256": "3b96247b69ad8499f93de85bf528444dd27fa946c3b06f31ee5bf0af9f21d0b6",
+    "STWO_DETACHED_PARENT_EXPECTED_ROOT": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-parent-v2-admission/seed13-expected-root.json"
+  }
+}

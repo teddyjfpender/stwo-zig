@@ -37,6 +37,7 @@ def main() -> None:
     parser.add_argument("--expected-root", type=Path, required=True)
     parser.add_argument("--expected-root-sha256", type=digest, required=True)
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--publication-mode", choices=("root", "intermediate"), default="root")
     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
     parser.add_argument("--producer-sha256", type=digest)
     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
@@ -109,7 +110,8 @@ def main() -> None:
             receipt = json.loads(result.stdout)
             entry["receipt"] = receipt
             for field, value in {
-                "endpoint": "verified_segment_v2_detached_two_child_parent_development_q3",
+                "endpoint": ("verified_segment_v2_detached_two_child_parent_development_q3" if args.publication_mode == "root"
+                             else "verified_segment_v2_detached_intermediate_parent_development_q3"),
                 "development_only": True, "verified": True, "native_inputs_used": False,
                 "key_sha256": list(bytes.fromhex(pin)),
                 "expected_root_sha256": list(bytes.fromhex(sha256(root))),
@@ -126,7 +128,8 @@ def main() -> None:
 
     try:
         if args.producer:
-            argv = [str(args.producer.resolve()), "--profile", "tiny-memory-v1", str(bundle),
+            profile = "tiny-memory-root-v2" if args.publication_mode == "root" else "tiny-memory-span-v2"
+            argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
                     "--parent-key-sha256", args.key_sha256]
             log = output.with_name(output.name + ".producer.log")
@@ -159,8 +162,10 @@ def main() -> None:
         invoke("genuine", accept=True)
         key_bytes, claims_bytes, proof = [path.read_bytes() for path in artifacts]
         key, claims = json.loads(key_bytes), json.loads(claims_bytes)
-        if key["version"] != 1 or claims["version"] != 1 or len(claims["claims"]["values"]) != 36:
+        if key["version"] not in (1, 2) or claims["version"] != key["version"] or len(claims["claims"]["values"]) != 36:
             raise RuntimeError("unsupported parent transport version/claim inventory")
+        if key.get("publication_mode", "root") != args.publication_mode:
+            raise RuntimeError("admitted key does not match requested publication mode")
         if proof[:7] != bytes([0, 1, 3, 0, 1, 0, 4]):
             raise RuntimeError("unsupported canonical q3 parent proof prefix")
         with tempfile.TemporaryDirectory(prefix="segment-v2-parent-replay-") as temporary:
@@ -220,7 +225,7 @@ def main() -> None:
             wrong_pin = ("1" if args.key_sha256[0] == "0" else "0") + args.key_sha256[1:]
             invoke("wrong_independent_key_pin", pin=wrong_pin, error="DetachedParentKeyHashMismatch")
             words = json.loads(expected.read_bytes())
-            if len(words) != 412 or any(type(word) is not int or not 0 <= word < MODULUS for word in words):
+            if len(words) != (436 if key["version"] == 2 else 412) or any(type(word) is not int or not 0 <= word < MODULUS for word in words):
                 raise RuntimeError("unsupported expected-root word ABI")
             # span_statement_executed_span.canonical_layout.program_start == 11
             # in V1. The digest has no integer/tag/coverage restrictions. Requiring
@@ -230,6 +235,19 @@ def main() -> None:
             changed_root.write_text(json.dumps(words))
             invoke("changed_canonical_expected_root", root=changed_root,
                    error="DetachedParentClaimClosureMismatch")
+            if key["version"] == 2:
+                changed_key = copy.deepcopy(key)
+                changed_key["publication_mode"] = "intermediate" if key["publication_mode"] == "root" else "root"
+                changed_directory = candidate("changed_publication_mode", changed_key=changed_key)
+                invoke("changed_publication_mode", changed_directory, sha256(changed_directory / "key.json"),
+                       error="DetachedParentClaimClosureMismatch")
+                for name, index in (("session", 412), ("entry_lineage", 420), ("exit_lineage", 428)):
+                    words = json.loads(expected.read_bytes())
+                    words[index] = (words[index] + 1) % MODULUS
+                    changed_root = work / f"changed-{name}.json"
+                    changed_root.write_text(json.dumps(words))
+                    invoke(f"changed_published_{name}", root=changed_root,
+                           error="DetachedParentClaimClosureMismatch")
         report["passed"] = True
     except Exception as error:
         report["failure"] = str(error)

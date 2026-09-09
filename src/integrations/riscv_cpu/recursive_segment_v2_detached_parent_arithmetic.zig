@@ -31,7 +31,7 @@ pub const Children = struct {
 pub const View = struct {
     logical: cohort.LogicalRowsV1,
     provider: []const recursion.segment_transcript_outer_source_v2.ProviderCall,
-    parent_words: recursion.span_statement.StatementWords,
+    parent_words: recursion.span_continuation_v1.Words,
     lowering_identity: [32]u8,
 };
 pub const OwnedV1 = opaque {
@@ -135,7 +135,7 @@ pub const OwnedV1 = opaque {
         }
         const parent_uses = try a.alloc(u32, parent.graph().nodes.len);
         _ = try lowering.computeLaneUseCountsInto(lanes[9], parent_uses);
-        var publication_count: [recursion.span_statement.SPAN_STATEMENT_CANONICAL_WORDS]u32 = @splat(0);
+        var publication_count: [recursion.span_continuation_v1.WORD_COUNT]u32 = @splat(0);
         for (parent.inputBindings(), parent.inputValues()) |binding, value| {
             const source: bridge.Source = switch (binding.source) {
                 .child => |coordinate| .{ .wire = .{ .circuit = BOUNDARY_IDS[coordinate.child], .node = coordinate.boundary_node } },

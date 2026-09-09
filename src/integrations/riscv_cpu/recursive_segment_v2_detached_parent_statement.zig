@@ -8,6 +8,7 @@ const core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
 const recursion = frontend.recursion;
 const span = recursion.span_statement;
+const continuation = recursion.span_continuation_v1;
 const semantics = recursion.statement_semantics_circuit;
 const statement_input = recursion.air.statement_input;
 const recorder = recursion.air.composition_graph_recorder;
@@ -34,23 +35,34 @@ pub const OwnedV1 = opaque {
         bindings: []InputBinding,
         values: []QM31,
         words: [3]Words,
+        publication_words: continuation.Words,
         boundary_graphs: [2][32]u8,
     };
     fn storage(self: *const OwnedV1) *const Storage {
         return @ptrCast(@alignCast(self));
     }
     pub fn init(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1) !*OwnedV1 {
+        return initWithMode(allocator, left, right, .root);
+    }
+    pub fn initWithMode(allocator: std.mem.Allocator, left: *const boundary.OwnedV1, right: *const boundary.OwnedV1, mode: continuation.Mode) !*OwnedV1 {
         const children = [_]*const boundary.OwnedV1{ left, right };
         var words: [3]Words = undefined;
         for (children, 0..) |child, index| for (&words[index], child.spanNodes()) |*word, node| {
             if (node >= child.evaluatedValues().len) return error.InvalidParentProjection;
             word.* = try child.evaluatedValues()[node].tryIntoM31();
         };
-        const left_span = try span.SpanStatement.fromCanonicalWords(&words[0]);
-        const right_span = try span.SpanStatement.fromCanonicalWords(&words[1]);
-        const parent = try span.SpanStatement.fold(left_span, right_span);
-        _ = try span.RootStatement.init(parent);
-        words[2] = try parent.canonicalWords();
+        var publications: [3]continuation.Words = undefined;
+        const fixed_layout = recursion.segment_statement_v2.fixed_layout;
+        const extra_starts = [_]usize{ fixed_layout.session_id, fixed_layout.entry_lineage_id, fixed_layout.exit_lineage_id };
+        for (children, 0..) |child, index| {
+            publications[index][0..WORD_COUNT].* = words[index];
+            for (extra_starts, 0..) |start, field| for (0..8) |limb| {
+                const node = try child.rawWireNode(start + limb);
+                publications[index][WORD_COUNT + field * 8 + limb] = try child.evaluatedValues()[node].tryIntoM31();
+            };
+        }
+        publications[2] = try continuation.fold(&publications[0], &publications[1], mode);
+        words[2] = publications[2][0..WORD_COUNT].*;
         var semantic = try semantics.build(allocator);
         errdefer semantic.deinit();
         var builder = recorder.Builder.init(allocator);
@@ -72,6 +84,20 @@ pub const OwnedV1 = opaque {
             else
                 .{ .parent_word = @intCast(word) } });
         };
+        var publication_nodes: [3][continuation.WORD_COUNT]S = undefined;
+        for (&publication_nodes, 0..) |*nodes, index| {
+            nodes[0..WORD_COUNT].* = word_nodes[index];
+            for (WORD_COUNT..continuation.WORD_COUNT) |word| {
+                const input = try builder.input();
+                nodes[word] = input.value;
+                try inputs.append(allocator, QM31.fromBase(publications[index][word]));
+                const extra = word - WORD_COUNT;
+                const raw_word = extra_starts[extra / 8] + extra % 8;
+                try bindings.append(allocator, .{ .node_id = input.node_id, .source = if (index < 2)
+                    .{ .child = .{ .child = @intCast(index), .boundary_node = try children[index].rawWireNode(raw_word), .word = @intCast(raw_word), .projection = .raw } }
+                else .{ .parent_word = @intCast(word) } });
+            }
+        }
         // Complete the native V2 adjacency predicate outside the412-word
         // Span: session/job, exact sparse state and clocks, and lineage.
         // Position, cycle and machine-state adjacency use the shared Span AIR.
@@ -85,9 +111,7 @@ pub const OwnedV1 = opaque {
         if (left_clocks.count != right_clocks.count) return error.InvalidParentClockProfile;
         if (left_snapshot.count != right_snapshot.count) return error.InvalidParentMemoryProfile;
         const regions = [_]struct { left: usize, right: usize, count: usize }{
-            .{ .left = fixed.session_id, .right = fixed.session_id, .count = 8 },
             .{ .left = fixed.job_id, .right = fixed.job_id, .count = 8 },
-            .{ .left = fixed.exit_lineage_id, .right = fixed.entry_lineage_id, .count = 8 },
             .{ .left = left_snapshot.payload_start, .right = right_snapshot.payload_start, .count = left_snapshot.payloadWords() },
             .{ .left = fixed.exit_register_clocks, .right = fixed.entry_register_clocks, .count = 64 },
             .{ .left = fixed.exit_memory_clock_id, .right = fixed.entry_memory_clock_id, .count = 10 },
@@ -147,6 +171,8 @@ pub const OwnedV1 = opaque {
         const values_by_node = try allocator.alloc(S, semantic.nodeCount());
         defer allocator.free(values_by_node);
         try builder.activate();
+        var continuation_checks = RootChecks{ .builder = &builder };
+        try continuation.emitFoldChecks(&publication_nodes[0], &publication_nodes[1], &publication_nodes[2], &continuation_checks);
         for (adjacency_pairs.items) |pair| try builder.constrainZero(pair[0].sub(pair[1]));
         for (ranges.items) |range| {
             var reconstructed = S.zero();
@@ -176,7 +202,7 @@ pub const OwnedV1 = opaque {
             for (semantic.graph().outputs()) |output| try builder.constrainZero(values_by_node[output]);
         }
         var root_checks = RootChecks{ .builder = &builder };
-        try span.RootStatement.emitCanonicalChecks(word_nodes[2], &root_checks);
+        if (mode == .root) try span.RootStatement.emitCanonicalChecks(word_nodes[2], &root_checks);
         builder.deactivate();
         var circuit = try builder.finish();
         errdefer circuit.deinit();
@@ -189,7 +215,7 @@ pub const OwnedV1 = opaque {
         errdefer allocator.free(owned_inputs);
         const owned_bindings = try bindings.toOwnedSlice(allocator);
         errdefer allocator.free(owned_bindings);
-        result.* = .{ .allocator = allocator, .semantics = semantic, .circuit = circuit, .inputs = owned_inputs, .bindings = owned_bindings, .values = values, .words = words, .boundary_graphs = .{ left.graph().identity_digest, right.graph().identity_digest } };
+        result.* = .{ .allocator = allocator, .semantics = semantic, .circuit = circuit, .inputs = owned_inputs, .bindings = owned_bindings, .values = values, .words = words, .publication_words = publications[2], .boundary_graphs = .{ left.graph().identity_digest, right.graph().identity_digest } };
         return @ptrCast(result);
     }
     pub fn deinit(self: *OwnedV1) void {
@@ -217,8 +243,8 @@ pub const OwnedV1 = opaque {
     pub fn boundaryGraphIdentities(self: *const OwnedV1) [2][32]u8 {
         return self.storage().boundary_graphs;
     }
-    pub fn parentWords(self: *const OwnedV1) Words {
-        return self.storage().words[2];
+    pub fn parentWords(self: *const OwnedV1) continuation.Words {
+        return self.storage().publication_words;
     }
 };
 
@@ -264,7 +290,7 @@ fn expectArithmeticRejection(owner: *const OwnedV1, words: *const [3]Words) !voi
         try value.semantics.prepareInputsInto(witness(words, instance), destination);
     for (value.bindings, inputs, 0..) |binding, *input, index| input.* = switch (binding.source) {
         .child => |source| if (source.projection == .span) QM31.fromBase(words[source.child][source.word]) else value.inputs[index],
-        .parent_word => |word| QM31.fromBase(words[2][word]),
+        .parent_word => |word| if (word < WORD_COUNT) QM31.fromBase(words[2][word]) else value.inputs[index],
         .hint => |source| prepared[source.instance][source.semantic_input],
         .word_bit => |source| QM31.fromBase(M31.fromCanonical((words[source.statement][source.word].toU32() >> @as(u5, source.bit)) & 1)),
     };
@@ -315,10 +341,23 @@ pub fn testFromExpectedFiles(allocator: std.mem.Allocator, left_path: []const u8
         .word_bit => {},
     };
     try std.testing.expectEqual([2]usize{ WORD_COUNT, WORD_COUNT }, projected_words);
-    try std.testing.expectEqual(WORD_COUNT, published_words);
+    try std.testing.expectEqual(continuation.WORD_COUNT, published_words);
     try std.testing.expectEqual(raw_boundary_words[0], raw_boundary_words[1]);
     try std.testing.expect(raw_boundary_words[0] >= 74);
     try testRawBoundaryRejections(owner);
+    const changed_publication = try allocator.dupe(QM31, owner.inputValues());
+    defer allocator.free(changed_publication);
+    var publication_mutations: usize = 0;
+    for (owner.inputBindings(), 0..) |binding, index| {
+        const word = switch (binding.source) { .parent_word => |word| word, else => continue };
+        if (word < WORD_COUNT) continue;
+        const original = changed_publication[index];
+        defer changed_publication[index] = original;
+        changed_publication[index] = original.add(QM31.one());
+        try std.testing.expectError(error.UnsatisfiedCircuit, saved.circuit.evaluateInto(changed_publication, scratch));
+        publication_mutations += 1;
+    }
+    try std.testing.expectEqual(@as(usize, 24), publication_mutations);
     const layout = span.canonical_layout;
     const Mutation = struct { statement: usize, word: usize };
     const mutations = [_]Mutation{

@@ -7,9 +7,11 @@ const prepare = @import("recursive_segment_v2_detached_parent_prepare.zig");
 const proof = @import("recursive_segment_v2_detached_parent_proof.zig");
 const command = @import("recursive_segment_v2_detached_parent_command.zig");
 const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
-pub const PROFILE = "tiny-memory-v1";
+pub const PROFILE = "tiny-memory-root-v2";
+pub const INTERMEDIATE_PROFILE = "tiny-memory-span-v2";
 pub const ArgumentsV1 = struct {
     output: []const u8,
+    publication_mode: protocol.PublicationMode = .root,
     children: [2]child_command.ArgumentsV1,
     parent_key: ?struct { path: []const u8, sha256: [32]u8 } = null,
 };
@@ -17,9 +19,9 @@ pub const ArgumentsV1 = struct {
 /// Deliberately one reviewed fixture profile and one unambiguous argument order.
 pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
     if ((args.len != 9 and args.len != 13) or !std.mem.eql(u8, args[0], "--profile") or
-        !std.mem.eql(u8, args[1], PROFILE) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
+        (!std.mem.eql(u8, args[1], PROFILE) and !std.mem.eql(u8, args[1], INTERMEDIATE_PROFILE)) or args[2].len == 0 or std.mem.startsWith(u8, args[2], "--"))
         return error.ExpectedExplicitTinyProfileOutputAndTwoAdmittedChildren;
-    var result = ArgumentsV1{ .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
+    var result = ArgumentsV1{ .publication_mode = if (std.mem.eql(u8, args[1], PROFILE)) .root else .intermediate, .output = args[2], .children = .{ try child_command.parseArguments(args[3..6]), try child_command.parseArguments(args[6..9]) } };
     if (args.len == 13) {
         if (!std.mem.eql(u8, args[9], "--parent-key") or args[10].len == 0 or
             !std.mem.eql(u8, args[11], "--parent-key-sha256") or args[12].len != 64)
@@ -33,7 +35,8 @@ pub fn parseArguments(args: []const []const u8) !ArgumentsV1 {
 
 pub const CandidateReportV1 = struct {
     endpoint: []const u8 = "segment_v2_detached_two_child_parent_candidate_development_q3",
-    profile: []const u8 = PROFILE,
+    profile: []const u8,
+    publication_mode: protocol.PublicationMode,
     status: []const u8 = "unverified_candidate",
     verified: bool = false,
     development_only: bool = true,
@@ -74,7 +77,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
             defer left.deinit();
             const right = try prepare.loadAdmittedChild(allocator, args.children[1]);
             defer right.deinit();
-            break :child_scope try prepare.prepare(allocator, .{ left, right }, prepare.TINY_MEMORY_PROFILE_V1);
+            break :child_scope try prepare.prepareWithMode(allocator, .{ left, right }, prepare.TINY_MEMORY_PROFILE_V1, args.publication_mode);
         };
         // Both verified child owners are already destroyed here. Prepared owns
         // copied logical rows, provider calls, and canonical public root words.
@@ -82,7 +85,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
         expected = prepared.expected;
         child_pins = prepared.child_key_sha256;
         preparation_ns = prepared.preparation_ns;
-        break :blk try proof.produce(allocator, prepared.cohort, &expected, child_pins, if (admitted_key) |key| key.key() else null);
+        break :blk try proof.produce(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null);
     };
     // The cohort and every original proof/prover component have been destroyed.
     // Only durable candidate bytes and fixed claims survive this boundary.
@@ -96,6 +99,8 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 
     defer expected_file.close();
     try expected_file.writeAll(expected_json);
     return .{
+        .profile = if (args.publication_mode == .root) PROFILE else INTERMEDIATE_PROFILE,
+        .publication_mode = args.publication_mode,
         .reused_admitted_parent_key = admitted_key != null,
         .child_key_sha256 = child_pins,
         .artifacts = artifacts,

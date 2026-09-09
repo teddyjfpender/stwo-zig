@@ -1,0 +1,53 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test 1/2 passed, 1 failed
+error: 'recursive_segment_v2_detached_parent_prepare.test.detached parent prepares two genuine children with one exact routing plan' failed
+error: while executing test 'recursive_segment_v2_detached_parent_cohort.test.detached parent snapshots typed rows and rejects mutable ingress and inactive claims', the following test command failed:
+./.zig-cache/o/de677f66e8c803c019a3a7c4134a06c2/test --cache-dir=./.zig-cache --seed=0x68ce8276 --listen=-
+test-recursive-segment-v2-detached-parent-statement
++- SegmentV2 detached parent statement guard
+   +- run test failure
+detached-parent-v2-adjacency raw_word_mutations=228 unequal_word_swap=true decrement=true host_admission_bypassed=true
+thread 44750822 panic: index out of bounds: index 412, len 412
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_statement.zig:285:31: 0x102d400b7 in expectArithmeticRejection (test)
+    defer value.allocator.free(inputs);
+                              ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_statement.zig:372:38: 0x102d41f3b in testFromExpectedFiles (test)
+        try expectArithmeticRejection(owner, &changed);
+                                     ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_statement.zig:404:30: 0x102d4332f in test.SegmentV2 detached parent folds actual child projections and constrains complete root (test)
+    try testFromExpectedFiles(allocator, left, right);
+                             ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x102ce3fb7 in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x102ce29b7 in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xc668ffffffffffff in ??? (???)
+error: while executing test 'recursive_segment_v2_detached_parent_statement.test.SegmentV2 detached parent folds actual child projections and constrains complete root', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/3da0787a6cc3d813fad760f289943208/test --cache-dir=./.zig-cache --seed=0x68ce8276 --listen=-
+
+Build Summary: 12/18 steps succeeded; 2 failed; 6/7 tests passed; 1 failed
+test-recursive-segment-v2-detached-parent-prepare transitive failure
++- SegmentV2 detached parent preparation guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-segment-v2-detached-parent-statement transitive failure
++- SegmentV2 detached parent statement guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 8s MaxRSS:656M
+test-recursive-segment-v2-detached-command success
++- SegmentV2 detached transport guard success
+   +- run test 4 passed 277ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 7s MaxRSS:577M
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove success
+   +- compile exe recursive-segment-v2-detached-parent-prove ReleaseSafe native success 1m MaxRSS:4G
+build-recursive-segment-v2-detached-parent-verifier success
++- install recursive-segment-v2-detached-parent-verify success
+   +- compile exe recursive-segment-v2-detached-parent-verify ReleaseSafe native success 44s MaxRSS:2G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f70bf8ed939de4e1e91e9a4f51ef0f9d/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x68ce8276 -Zda78a99e384b8fef --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-parent-prepare test-recursive-segment-v2-detached-parent-statement test-recursive-segment-v2-detached-command build-recursive-segment-v2-detached-parent-producer build-recursive-segment-v2-detached-parent-verifier -Doptimize=ReleaseSafe --summary all

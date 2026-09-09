@@ -25,8 +25,8 @@ pub const Candidate = struct {
     }
 };
 
-pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, admitted_key: ?*const protocol.KeyV1) !Candidate {
-    try protocol.validateExpected(expected);
+pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1) !Candidate {
+    try recursion.span_continuation_v1.validate(expected, mode);
     var timer = try std.time.Timer.start();
     const manifest = prepared.manifest();
     var scheme = try Engine.init(allocator, protocol.PCS_CONFIG);
@@ -44,6 +44,7 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
     if (roots.items.len != 1) return error.DetachedParentPreprocessedCommitmentMismatch;
     const candidate_key = protocol.KeyV1{
         .manifest = manifest.*,
+        .publication_mode = mode,
         .parameters = prepared.parameters(),
         .preprocessed_root = roots.items[0],
         .child_key_sha256 = child_key_sha256,

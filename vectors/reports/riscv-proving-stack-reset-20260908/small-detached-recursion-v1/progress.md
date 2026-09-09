@@ -287,3 +287,35 @@ All four resulting artifact files match the earlier seed13 parent byte for byte,
 including the key and proof. Build receipts record unchanged source through the
 build and binary hashes. Unused parent-inactive flags were removed; semantic-only
 checks now correctly report that they did not verify a parent proof themselves.
+
+
+## Version2 continuation publication, 2026-09-09
+
+The supported parent profile now publishes436 words: the existing412-word Span,
+then session, entry lineage and exit lineage (8 words each). The shared frontend
+`span_continuation_v1` defines native and AIR endpoint propagation/join checks.
+The key's explicit root/intermediate mode participates in its identity and the
+transcript. Root mode retains the shared complete-job checks. This is a new
+version2 admission; version1 keys are not silently accepted by the new verifier.
+
+The first producer exposed a412-word publication-counter assumption. Its retained
+failure is `detached-parent-continuation-v2-cpu-seed13.log`. The counter now derives
+its length from the shared publication type. A separate mutation-helper bound
+was repaired and all24 new public words have direct AIR mutation coverage.
+The third preparation gate passes3 tests, exact closure and394ms preparation;
+full preparation/closure remains2s at507MiB RSS. The initial missing-fixture
+invocation and compile failures remain retained rather than reported as passes.
+
+Six actual version2 root proofs cover seeds13/14/269 and both native child
+backends. Their25-case fresh-process gates all pass (150 cases) under one root key,
+and corresponding artifacts are byte-identical across child backends. The
+separately admitted intermediate mode also proves and passes25 cases on this same
+full two-segment fixture. This tests mode admission/publication, not a partial
+four-segment subtree. Mode tampering, session and both lineage changes reject.
+The new root's genuine consuming capture passes in943ms at17MiB RSS, including
+45 claim/sample mutations and PCS/FRI replay after caller-input destruction.
+
+Current admission and source/binary pins are in `detached-parent-v2-admission/`
+and `detached-parent-v2-third-binary-pins.json`. Current observations are in
+`detached-parent-v2-measurements.json`. The actual4/8-segment tree, production
+security measurement and formal CSP performance preservation remain open.
