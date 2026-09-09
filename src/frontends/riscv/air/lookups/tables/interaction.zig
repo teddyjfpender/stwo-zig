@@ -40,12 +40,19 @@ pub fn tableEntry(
     tuple: schema.Tuple,
     signed_multiplicity: M31,
 ) entry.Entry {
-    var result = entry.Entry{
+    var values: [schema.MAX_ARITY]QM31 = undefined;
+    for (tuple.slice(), values[0..tuple.len]) |value, *dst| dst.* = QM31.fromBase(value);
+    return tableEntryGeneric(QM31, kind, values[0..tuple.len], QM31.fromBase(signed_multiplicity));
+}
+
+/// Single relation authority used by native evaluation and backend export.
+pub fn tableEntryGeneric(comptime S: type, kind: schema.Kind, tuple: []const S, signed_multiplicity: S) entry.Builder(S).Entry {
+    var result = entry.Builder(S).Entry{
         .domain = schema.domain(kind),
-        .numerator = QM31.fromBase(signed_multiplicity).neg(),
+        .numerator = signed_multiplicity.neg(),
         .arity = @intCast(tuple.len),
     };
-    for (tuple.slice(), result.values[0..tuple.len]) |value, *dst| dst.* = QM31.fromBase(value);
+    @memcpy(result.values[0..tuple.len], tuple);
     return result;
 }
 
@@ -437,12 +444,7 @@ pub fn evaluateGeneric(
     relations: anytype,
 ) !S {
     if (tuple.len != schema.arity(kind)) return error.InvalidTraceShape;
-    var relation_entry = entry.Builder(S).Entry{
-        .domain = schema.domain(kind),
-        .numerator = signed_multiplicity.neg(),
-        .arity = @intCast(tuple.len),
-    };
-    @memcpy(relation_entry.values[0..tuple.len], tuple);
+    const relation_entry = tableEntryGeneric(S, kind, tuple, signed_multiplicity);
     return logup.pairConstraintGeneric(
         S,
         current,

@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-parent-poseidon-interaction success
++- Parent Poseidon interaction parity guard success
+   +- run test 1 passed 315ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 5s MaxRSS:556M
+

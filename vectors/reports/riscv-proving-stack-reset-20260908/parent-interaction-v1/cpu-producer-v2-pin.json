@@ -1,0 +1,13 @@
+{
+  "base_head": "a8f1c054cd18a8c18cfc4338a4d46dcc58175205",
+  "binary": ".git/local-riscv-proving-stack/parent-interaction-v1/parent-prove-cpu-v2",
+  "binary_sha256": "859ddac32f0956b1b5f180d1edffd22315f20d5b41065c5ccd1b98e99788abc9",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig": "77fa5f6fa4915921882d432429f69393fbd926853a0ba57a53d8e00d30f73b47",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig": "17e09f482788b6c4ddfa81d0a830e683ba9a171e81a8641826c08841c353f0c3",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_degree3_v1.zig": "35573c7ffe4686be57c29282036eb8744345253291043a1ce6cae537f4602604",
+    "src/frontends/riscv/air/lookups/tables/interaction.zig": "12f93bf6e712ee098f59c6b322f3eaebd07762a4a1ca016612f49ab700dc513f",
+    "src/frontends/riscv/air/lookups/tables/component.zig": "7ae2e5b6952c6b03158e12c23c84d7ebd2eedc4e7834e37e3734842e83e4170d",
+    "src/frontends/riscv/air/lookups/tables/framework_export.zig": "42ef148711015afd5bbc68a177de58ac08823abec1b7de077a6d2336821e5b89"
+  }
+}

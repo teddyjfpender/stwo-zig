@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 58s
+test-framework-interaction-device
++- run test stderr
+FRAMEWORK_INTERACTION_GPU_V1 geometries=5 rows=1922 batches=2 dispatches=100 includes_failure_recovery=true
+
+Build Summary: 3/3 steps succeeded; 3/3 tests passed
+test-framework-interaction-device success
++- run test 3 passed 476ms MaxRSS:13M
+   +- compile test ReleaseSafe native success 4s MaxRSS:384M
+

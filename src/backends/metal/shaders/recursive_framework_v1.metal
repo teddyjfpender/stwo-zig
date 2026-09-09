@@ -1,6 +1,6 @@
 // Generated recursive framework profile v1. Shared field helpers come from core_v2.
 // Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot
-kernel void stwo_zig_framework_poly_v1_af52fdcdb0db98f13160aa3bae9dd5499990486d4082716ea9caa47b6c208c4f(
+kernel void stwo_zig_framework_poly_v1_28c894d8ba19e7e67cb9ba7c42e105eed5ca58a59c4ceca0c7408f52594c95b8(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -72,7 +72,7 @@ kernel void stwo_zig_framework_poly_v1_af52fdcdb0db98f13160aa3bae9dd5499990486d4
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_50c2d0c7636e7c055ac486d48f5f188122aac9dc2e2997499ee2e69c451f8ae3(
+kernel void stwo_zig_framework_poly_v1_a83b81d070f1360d8a60c651843041cb5c61f1fc4633236f2ab988e8d3479bd6(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -359,7 +359,7 @@ kernel void stwo_zig_framework_poly_v1_50c2d0c7636e7c055ac486d48f5f188122aac9dc2
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_c6d9c20c182362b2f0bcab2cbe507ed13a211ca703709bbd2ccf2bca70417bce(
+kernel void stwo_zig_framework_poly_v1_f921979e443de1698939363ed152616efddf38ac85f86b887e9a95aa030499e8(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -678,7 +678,7 @@ kernel void stwo_zig_framework_poly_v1_c6d9c20c182362b2f0bcab2cbe507ed13a211ca70
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_2897a4010bb14740cebc20c168d617b07d7d13988b719861f25456158e80f216(
+kernel void stwo_zig_framework_poly_v1_96db968abf69e8d5ab272b57ae9b3b03dea9fdb0d85a49a909e9278a750fe251(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -955,7 +955,7 @@ kernel void stwo_zig_framework_poly_v1_2897a4010bb14740cebc20c168d617b07d7d13988
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_b7395fc5a6e1dd8d4023ea49be12e48a6db4a9b5aa41e9ca504dbdd2e2b5d619(
+kernel void stwo_zig_framework_poly_v1_dd144816e0f37e74b81c33ef1e9f3aa9854394c24f8c4e1aaa220298fc468adc(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -1045,7 +1045,7 @@ kernel void stwo_zig_framework_poly_v1_b7395fc5a6e1dd8d4023ea49be12e48a6db4a9b5a
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_48dc913ad516d6d56b4aba849e9aa42d5cf33ca44b4ef32f928b4d22bca96133(
+kernel void stwo_zig_framework_poly_v1_bec710dd5d8aaedbe8d8a8a02449766d7b462afd4f4b43ab7d22de84711a1fcf(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -1134,7 +1134,7 @@ kernel void stwo_zig_framework_poly_v1_48dc913ad516d6d56b4aba849e9aa42d5cf33ca44
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_a71b4e1aa9fa30484a1f5c74138fdb790646b778c4b20ef48a95448551b74bd4(
+kernel void stwo_zig_framework_poly_v1_3ee6675e24dbdd6250c2b9ade267b0bf619dcd74705f70367fec3724e92f781d(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -1682,7 +1682,7 @@ kernel void stwo_zig_framework_poly_v1_a71b4e1aa9fa30484a1f5c74138fdb790646b778c
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_92116dedf1320730d038dcd85e56a5d284052260a6046c4aa0a4e22ced69c838(
+kernel void stwo_zig_framework_poly_v1_55368ff56f1d227fb93058163d20c9f0136c8de57094ee1b9c8e0a8155fb9547(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -1766,7 +1766,7 @@ kernel void stwo_zig_framework_poly_v1_92116dedf1320730d038dcd85e56a5d284052260a
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_315c764b39345fc076168138ce71128c78eb3e6ca6fe9224d1569b222b85f912(
+kernel void stwo_zig_framework_poly_v1_7a72efc0f7f735ecba4dc2bbd3893571a3d5dad279f9b7597ab7865a7cd07902(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -2024,7 +2024,7 @@ kernel void stwo_zig_framework_poly_v1_315c764b39345fc076168138ce71128c78eb3e6ca
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_8a1ecd95c10c0444060bf68f916971ff7a0a875c2420f17e6e02e35518a3a166(
+kernel void stwo_zig_framework_poly_v1_40e1a4072b178a690bb65ffccb06d1ed4491b282bdbf7a969c919342441f4900(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -2249,7 +2249,7 @@ kernel void stwo_zig_framework_poly_v1_8a1ecd95c10c0444060bf68f916971ff7a0a875c2
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_0b6197f9eee0652ab252da3f2dd80bf3e59e24555e71a9d796635571a8a8e4ca(
+kernel void stwo_zig_framework_poly_v1_b9d92e8721fe3d5bf138dc77ce3ee0aa7d1b2242b945efbc1c8943ad0c573142(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -2342,7 +2342,7 @@ kernel void stwo_zig_framework_poly_v1_0b6197f9eee0652ab252da3f2dd80bf3e59e24555
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_98d440f64938871431988f7a105cd70843ddfb2bd5b2d46795c10a1aba2105c6(
+kernel void stwo_zig_framework_poly_v1_3f816ad3b77591647ea1df645a270a5241708ccb3c4af578cce6479e877e5779(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -2598,7 +2598,7 @@ kernel void stwo_zig_framework_poly_v1_98d440f64938871431988f7a105cd70843ddfb2bd
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_d7c49cd5e3bcc4d87f100783cfe45ba1bc0bf9ff3071e66ebb52bdc34eb8af53(
+kernel void stwo_zig_framework_poly_v1_9caf442461c41e1715bff5b9ae05cac1c314f9542724837e61a0382ff08a728c(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -2691,7 +2691,7 @@ kernel void stwo_zig_framework_poly_v1_d7c49cd5e3bcc4d87f100783cfe45ba1bc0bf9ff3
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_7b9b37c4b39bebbd8c20fa37332a5e04a23a1c23268111eb1d990ba9ba67bf0a(
+kernel void stwo_zig_framework_poly_v1_846c09f850f16818bc00fc43ae964d970d03c86df5cd3c3f9a028be11ec343a6(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -3060,7 +3060,7 @@ kernel void stwo_zig_framework_poly_v1_7b9b37c4b39bebbd8c20fa37332a5e04a23a1c232
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_e180a6ac99f4ed4b54d21f5f351802a115a96cb369925e42bd612f581033f869(
+kernel void stwo_zig_framework_poly_v1_2b3717fb73ab7d02adf850c3f8da1876f3181fbbe44ce58125d9e73e4c83c7b2(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -3151,7 +3151,7 @@ kernel void stwo_zig_framework_poly_v1_e180a6ac99f4ed4b54d21f5f351802a115a96cb36
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_d77fc951cfea99af5b47605e6526ebf5ce29d986d97d4be615c09505a55502b5(
+kernel void stwo_zig_framework_poly_v1_ef27f693b63653bfbc338ffef61eecb98c40e2e65659df481cbff5748386318c(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -3227,7 +3227,7 @@ kernel void stwo_zig_framework_poly_v1_d77fc951cfea99af5b47605e6526ebf5ce29d986d
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_9810814550f99976d00e47336a12160832d852e83cec26c20dd48ac0ecd1821a(
+kernel void stwo_zig_framework_poly_v1_4cd32871391f1d72e73915e191a0f332c7a5d5011c327229dd69067b33db4438(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -3431,7 +3431,7 @@ kernel void stwo_zig_framework_poly_v1_9810814550f99976d00e47336a12160832d852e83
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_dd113082e0a504b4fef1aecd7fb0bff137174339bdfd24459c49c548122ae77d(
+kernel void stwo_zig_framework_poly_v1_2f5f7696bcd86519ab389fcbe3da9c14806fd0c31338b803dcde77877e2468ed(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -3491,7 +3491,7 @@ kernel void stwo_zig_framework_poly_v1_dd113082e0a504b4fef1aecd7fb0bff137174339b
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_ae2b02b45c2a1d5c36facd45ed28ea9e8307d2653c11a278a84b14b293a11ded(
+kernel void stwo_zig_framework_poly_v1_e0cba0825ada33bba5c353a15ec61607f8222681fa418fbdd35053d94b775735(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -4287,7 +4287,7 @@ kernel void stwo_zig_framework_poly_v1_ae2b02b45c2a1d5c36facd45ed28ea9e8307d2653
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_cf0c5fdde6f912a48d094e9f5241f0acaf76eae1df56e89bb2fb5d2d39be9814(
+kernel void stwo_zig_framework_poly_v1_a2ccd9f3763b285eafe0c18331d24c1abe19d80e4ea4669daa476892a111c4ee(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -4706,7 +4706,7 @@ kernel void stwo_zig_framework_poly_v1_cf0c5fdde6f912a48d094e9f5241f0acaf76eae1d
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_f1552b77bea4332875117195715b6c75fb8b80ff3629f9022c56462b056c3c4b(
+kernel void stwo_zig_framework_poly_v1_0cfeb254c01490404cf35e8218ce88a2de0b70e1ca600de8f1f5d6686fd58013(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -4893,7 +4893,7 @@ kernel void stwo_zig_framework_poly_v1_f1552b77bea4332875117195715b6c75fb8b80ff3
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_a9f93d00b61039376ece952faba5aadca94775edb935b87fbc9ef06e9b865905(
+kernel void stwo_zig_framework_poly_v1_a26812630d5ddc97004b2fdad26ef9c45b480fe9cbf5d7b945703e9da95d8eaf(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -5448,7 +5448,7 @@ kernel void stwo_zig_framework_poly_v1_a9f93d00b61039376ece952faba5aadca94775edb
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_c758b455bcbe5942323963691a9dde56f821b3374cd5cb4030c967bc9573db64(
+kernel void stwo_zig_framework_poly_v1_cd4a142ff996eb76a0543d9664865943a4c8edc57fb39dca6d85cb0c534ac978(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -5608,7 +5608,7 @@ kernel void stwo_zig_framework_poly_v1_c758b455bcbe5942323963691a9dde56f821b3374
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_85377a9a6367c2ea289af035aa698b27f00ad10aa04ba4c5e1504a1abe8f348d(
+kernel void stwo_zig_framework_poly_v1_dc3d7a936af525004c8eb830ba507256e3493f40a8c16233a3b33982f8a39fd9(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -6188,7 +6188,7 @@ kernel void stwo_zig_framework_poly_v1_85377a9a6367c2ea289af035aa698b27f00ad10aa
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_f83d2385533e04564a39959e1e0401462e04766752b03700f0fd82f09cfc41f3(
+kernel void stwo_zig_framework_poly_v1_ac8355485e3d2fe470466761bcd1afd36ad0da23b8cc2b8eeab6f991ce0bc067(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -6476,7 +6476,7 @@ kernel void stwo_zig_framework_poly_v1_f83d2385533e04564a39959e1e0401462e0476675
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_41972135e591a5a225fa7d5e946fd50082d5901ca3f6c01f9e4b21f6080a6acb(
+kernel void stwo_zig_framework_poly_v1_3414051ecc645d3777317cb58bbf11009f47a39ad1b1edd460ddcd2a43f4c27f(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -6635,7 +6635,7 @@ kernel void stwo_zig_framework_poly_v1_41972135e591a5a225fa7d5e946fd50082d5901ca
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_12435e118989a407a26fd04ec74e76bc770257bcc6ad881e18e6d4b35e83cc86(
+kernel void stwo_zig_framework_poly_v1_8d23938c5754afaed724def0245be4b3847630a537aedd68e1318d7394e143ca(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -6759,7 +6759,7 @@ kernel void stwo_zig_framework_poly_v1_12435e118989a407a26fd04ec74e76bc770257bcc
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_a6b0a0e332642fe760a11b3c7bf7313ddf96ae49918172ea770df42b04a51792(
+kernel void stwo_zig_framework_poly_v1_099651f90e06ddbb17d8603cc0eb859f447a31401886d436cfdfe93a74660a26(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -6940,7 +6940,7 @@ kernel void stwo_zig_framework_poly_v1_a6b0a0e332642fe760a11b3c7bf7313ddf96ae499
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_8142492e798362a03fd6d604c0fa82d33b25b73ba7ed2bee753b4f6305b435cd(
+kernel void stwo_zig_framework_poly_v1_078b980b664e2753cdba340cfc89388d382c5987ad96916667011b155da001dd(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7154,7 +7154,7 @@ kernel void stwo_zig_framework_poly_v1_8142492e798362a03fd6d604c0fa82d33b25b73ba
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_7350070ba7744d859391ad7e13f99990b3b165048a401b7d775b692d1c7878de(
+kernel void stwo_zig_framework_poly_v1_6274eb2e10f711e7a786f5455f46039b9da42ece89303e13ea732873d86b7d66(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7331,7 +7331,7 @@ kernel void stwo_zig_framework_poly_v1_7350070ba7744d859391ad7e13f99990b3b165048
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_09bedf48ecaf82ccaaac9e1c2800ddc1b13b51dd1c74a1e76e06916201907245(
+kernel void stwo_zig_framework_poly_v1_14483798effc504d4a405feea8cda660e91033832b6365fb1d0a3b2d49998278(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7586,7 +7586,7 @@ kernel void stwo_zig_framework_poly_v1_09bedf48ecaf82ccaaac9e1c2800ddc1b13b51dd1
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_ed56e3ed13ecbdd65e5ccf8458bb1df2612ef69709675a402f2be0b33377db61(
+kernel void stwo_zig_framework_poly_v1_1e1020baf7c172c95e3644e59954f86fdcd0e52686a74f7c693f8f319eb187c9(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7808,7 +7808,7 @@ kernel void stwo_zig_framework_poly_v1_ed56e3ed13ecbdd65e5ccf8458bb1df2612ef6970
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_f628a35853b927f5ccfe9e286af5a8cc9340c1df2f5a63ff743eb580778351bd(
+kernel void stwo_zig_framework_poly_v1_9c87fd0a40951f25ac4bd9a774ffb7cedc9091ee8f8c346820f0c5cdf3ae86af(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7861,7 +7861,7 @@ kernel void stwo_zig_framework_poly_v1_f628a35853b927f5ccfe9e286af5a8cc9340c1df2
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_2151af80d5d7260f446a073261206ec44828a203139d1bceac6931d5d659dfb5(
+kernel void stwo_zig_framework_poly_v1_d9e0a64b2e3776fcd0027edc87d3bf16a38004fb6a3a2b45929cd96bbe267e83(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -7925,7 +7925,7 @@ kernel void stwo_zig_framework_poly_v1_2151af80d5d7260f446a073261206ec44828a2031
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_229f99849308900a78b146ddfbf20e3e422892aa1f811266494c18e20543b11c(
+kernel void stwo_zig_framework_poly_v1_b75005ff211e8bcb5349091111f46440d6eaffd23ae209d437170e9116f6b08e(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -12925,7 +12925,7 @@ kernel void stwo_zig_base_poly_aafcc569d707c40f3a98625c3427fd9d(
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_8a6de4a8f57e5aabe903a66e232eaffce0bd0de52d177f67b16888201e9b60ac(
+kernel void stwo_zig_framework_poly_v1_42f16a1c94050f4201bbdda0e54ee9a41eed1b8659482e30a94d9724d88d4d4e(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -12962,7 +12962,7 @@ kernel void stwo_zig_framework_poly_v1_8a6de4a8f57e5aabe903a66e232eaffce0bd0de52
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_87f11702f6760b904be238c3b2a097c625b5df7b9f3084ed9d1b0e0b7e89a348(
+kernel void stwo_zig_framework_poly_v1_68f6d96fb9c901c838b94545a07ec06bbde2186cb707583c693bac6be3bfcae5(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -13131,7 +13131,7 @@ kernel void stwo_zig_framework_poly_v1_87f11702f6760b904be238c3b2a097c625b5df7b9
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_7dcf1a5d10c59b002916108faea98e6ae6a00b2d0b45b36b44e14b7156931e71(
+kernel void stwo_zig_framework_poly_v1_33d6809a676008c293d07bf082ec23df08c78f0c70543bd561fc294033683414(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -13279,7 +13279,7 @@ kernel void stwo_zig_framework_poly_v1_7dcf1a5d10c59b002916108faea98e6ae6a00b2d0
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_5bc60cfa541fc0d6d11433a5a973eb3ae801ac14c23406ca818a5db318b8db74(
+kernel void stwo_zig_framework_poly_v1_318d149c102a9cc72e7a75341c53ed00dff9874625811646b8d755416f64fe93(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -13864,7 +13864,7 @@ kernel void stwo_zig_framework_poly_v1_5bc60cfa541fc0d6d11433a5a973eb3ae801ac14c
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_5831df97c0d02def49c79bf5ccd898f915886a55f52f415f6a59211e61aec16e(
+kernel void stwo_zig_framework_poly_v1_c69a7562440115c59fe168656684199ab54266ea85e23685c38d95ef1cdaae65(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -13920,7 +13920,7 @@ kernel void stwo_zig_framework_poly_v1_5831df97c0d02def49c79bf5ccd898f915886a55f
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_eeeb298ea02efe9d36e3b6a756c092b8e3562b38a57b29d9b483c0ac173aa0e0(
+kernel void stwo_zig_framework_poly_v1_716804b2e483e5ddd2cbf1e60f6a6cf22be118f9a325478a3a9f2952f9bfc80c(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -14303,7 +14303,7 @@ kernel void stwo_zig_framework_poly_v1_eeeb298ea02efe9d36e3b6a756c092b8e3562b38a
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
 }
-kernel void stwo_zig_framework_poly_v1_13ff275ad0ca211b923c622e366c9964209914ac544ec1534403babe4b4b075f(
+kernel void stwo_zig_framework_poly_v1_74272cdf26f41b9556b06fee5bf81b22e82cdaef1ee9d66d74f616fd37b9c0fb(
     device const uint *tree0 [[buffer(0)]],
     device const uint *tree1 [[buffer(1)]],
     device const uint *tree2 [[buffer(2)]],
@@ -18224,4 +18224,286 @@ kernel void stwo_zig_lookup_poly_b0c50df2ab2e539ba69c4beef323462c(
     output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
     output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
     output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
+}
+kernel void stwo_zig_framework_poly_v1_db2d826113e988cb6087f10b7798b9d701f7bbc3d5a7696f826e949b697eb23b(
+    device const uint *tree0 [[buffer(0)]],
+    device const uint *tree1 [[buffer(1)]],
+    device const uint *tree2 [[buffer(2)]],
+    device const ulong *column_offsets [[buffer(3)]],
+    device const uint *profile_parameters [[buffer(4)]],
+    device const uint *relation_parameters [[buffer(5)]],
+    device const uint *powers [[buffer(6)]],
+    device uint *output [[buffer(7)]],
+    constant uint &row_count [[buffer(8)]],
+    constant uint *denominator_inverses [[buffer(9)]],
+    constant uint &denominator_count [[buffer(10)]],
+    uint row [[thread_position_in_grid]]) {
+    if (row >= row_count) return;
+    uint previous_row = riscv_previous_circle_row(row, row_count, denominator_count);
+    RiscvQm31 folded = { 0u, 0u, 0u, 0u };
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = tree0[column_offsets[2u] + row];
+    uint l3 = tree0[column_offsets[3u] + row];
+    uint l4 = tree0[column_offsets[4u] + row];
+    uint l5 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), l2));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 12u), l3));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 16u), l4));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+    uint is_first = tree0[column_offsets[5u] + row];
+    RiscvQm31 current0 = { tree2[column_offsets[6u] + row], tree2[column_offsets[7u] + row], tree2[column_offsets[8u] + row], tree2[column_offsets[9u] + row] };
+    RiscvQm31 previous0 = { tree2[column_offsets[6u] + previous_row], tree2[column_offsets[7u] + previous_row], tree2[column_offsets[8u] + previous_row], tree2[column_offsets[9u] + previous_row] };
+    RiscvQm31 delta0 = riscv_qm_add(riscv_qm_sub(current0, previous0), riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 20u), is_first));
+    RiscvQm31 constraint0 = riscv_qm_sub(riscv_qm_mul(delta0, denominator0), RiscvQm31{ l5, 0u, 0u, 0u });
+    folded = riscv_qm_add(folded, riscv_qm_mul(riscv_load_qm31(powers, 0u), constraint0));
+    uint denominator_index = row / (row_count / denominator_count);
+    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
+}
+kernel void stwo_zig_framework_poly_v1_84b3af2220590f405b39198e954937cc89d0ed2ceca34f6a9f5f777017b8f026(
+    device const uint *tree0 [[buffer(0)]],
+    device const uint *tree1 [[buffer(1)]],
+    device const uint *tree2 [[buffer(2)]],
+    device const ulong *column_offsets [[buffer(3)]],
+    device const uint *profile_parameters [[buffer(4)]],
+    device const uint *relation_parameters [[buffer(5)]],
+    device const uint *powers [[buffer(6)]],
+    device uint *output [[buffer(7)]],
+    constant uint &row_count [[buffer(8)]],
+    constant uint *denominator_inverses [[buffer(9)]],
+    constant uint &denominator_count [[buffer(10)]],
+    uint row [[thread_position_in_grid]]) {
+    if (row >= row_count) return;
+    uint previous_row = riscv_previous_circle_row(row, row_count, denominator_count);
+    RiscvQm31 folded = { 0u, 0u, 0u, 0u };
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+    uint is_first = tree0[column_offsets[2u] + row];
+    RiscvQm31 current0 = { tree2[column_offsets[3u] + row], tree2[column_offsets[4u] + row], tree2[column_offsets[5u] + row], tree2[column_offsets[6u] + row] };
+    RiscvQm31 previous0 = { tree2[column_offsets[3u] + previous_row], tree2[column_offsets[4u] + previous_row], tree2[column_offsets[5u] + previous_row], tree2[column_offsets[6u] + previous_row] };
+    RiscvQm31 delta0 = riscv_qm_add(riscv_qm_sub(current0, previous0), riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), is_first));
+    RiscvQm31 constraint0 = riscv_qm_sub(riscv_qm_mul(delta0, denominator0), RiscvQm31{ l2, 0u, 0u, 0u });
+    folded = riscv_qm_add(folded, riscv_qm_mul(riscv_load_qm31(powers, 0u), constraint0));
+    uint denominator_index = row / (row_count / denominator_count);
+    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
+}
+kernel void stwo_zig_framework_poly_v1_4f71be6dd54e2014809338b17e9ee94c9e1c176dcabf9dcdf46e038ca7f619bc(
+    device const uint *tree0 [[buffer(0)]],
+    device const uint *tree1 [[buffer(1)]],
+    device const uint *tree2 [[buffer(2)]],
+    device const ulong *column_offsets [[buffer(3)]],
+    device const uint *profile_parameters [[buffer(4)]],
+    device const uint *relation_parameters [[buffer(5)]],
+    device const uint *powers [[buffer(6)]],
+    device uint *output [[buffer(7)]],
+    constant uint &row_count [[buffer(8)]],
+    constant uint *denominator_inverses [[buffer(9)]],
+    constant uint &denominator_count [[buffer(10)]],
+    uint row [[thread_position_in_grid]]) {
+    if (row >= row_count) return;
+    uint previous_row = riscv_previous_circle_row(row, row_count, denominator_count);
+    RiscvQm31 folded = { 0u, 0u, 0u, 0u };
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = tree0[column_offsets[2u] + row];
+    uint l3 = tree0[column_offsets[3u] + row];
+    uint l4 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), l2));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 12u), l3));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+    uint is_first = tree0[column_offsets[4u] + row];
+    RiscvQm31 current0 = { tree2[column_offsets[5u] + row], tree2[column_offsets[6u] + row], tree2[column_offsets[7u] + row], tree2[column_offsets[8u] + row] };
+    RiscvQm31 previous0 = { tree2[column_offsets[5u] + previous_row], tree2[column_offsets[6u] + previous_row], tree2[column_offsets[7u] + previous_row], tree2[column_offsets[8u] + previous_row] };
+    RiscvQm31 delta0 = riscv_qm_add(riscv_qm_sub(current0, previous0), riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 16u), is_first));
+    RiscvQm31 constraint0 = riscv_qm_sub(riscv_qm_mul(delta0, denominator0), RiscvQm31{ l4, 0u, 0u, 0u });
+    folded = riscv_qm_add(folded, riscv_qm_mul(riscv_load_qm31(powers, 0u), constraint0));
+    uint denominator_index = row / (row_count / denominator_count);
+    RiscvQm31 result = riscv_qm_mul_base(folded, denominator_inverses[denominator_index]);
+    output[riscv_column_offset(0u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(0u, row_count, row)], result.a);
+    output[riscv_column_offset(1u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(1u, row_count, row)], result.b);
+    output[riscv_column_offset(2u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(2u, row_count, row)], result.c);
+    output[riscv_column_offset(3u, row_count, row)] = riscv_m31_add(output[riscv_column_offset(3u, row_count, row)], result.d);
+}
+// The same 256-lane two-level scan as core/relation.metal, applied separately
+// to each batch. Independent prefixes have raw claims and no average shift.
+inline RiscvQm31 framework_interaction_inverse(RiscvQm31 value) {
+    Qm31Value result = qm_inv(Qm31Value{value.a,value.b,value.c,value.d});
+    return {result.a,result.b,result.c,result.d};
+}
+inline uint framework_interaction_row(uint index, uint rows) {
+    uint circle = (index & 1u) == 0u ? index/2u : rows-1u-index/2u;
+    return riscv_bit_reverse(circle, ctz(rows));
+}
+inline RiscvQm31 framework_interaction_load(device const uint *output, uint rows, uint batch, uint row) {
+    return riscv_load_secure_column(output, 4u*batch, rows, row);
+}
+inline void framework_interaction_store(device uint *output, uint rows, uint batch, uint row, RiscvQm31 v) {
+    output[riscv_column_offset(4u*batch,rows,row)] = v.a;
+    output[riscv_column_offset(4u*batch+1u,rows,row)] = v.b;
+    output[riscv_column_offset(4u*batch+2u,rows,row)] = v.c;
+    output[riscv_column_offset(4u*batch+3u,rows,row)] = v.d;
+}
+kernel void stwo_zig_framework_interaction_block_scan_v1(
+    device uint *output [[buffer(0)]], device RiscvQm31 *block_sums [[buffer(1)]],
+    constant uint &rows [[buffer(2)]], constant uint &blocks [[buffer(3)]],
+    uint lane [[thread_index_in_threadgroup]], uint group [[threadgroup_position_in_grid]]) {
+    uint batch=group/blocks, local=group%blocks, index=local*256u+lane;
+    threadgroup RiscvQm31 values[256];
+    values[lane] = index<rows ? framework_interaction_load(output,rows,batch,framework_interaction_row(index,rows)) : RiscvQm31{0u,0u,0u,0u};
+    threadgroup_barrier(mem_flags::mem_threadgroup);
+    for (uint offset=1u; offset<256u; offset<<=1u) {
+        RiscvQm31 value=values[lane];
+        if (lane>=offset) value=riscv_qm_add(value,values[lane-offset]);
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+        values[lane]=value;
+        threadgroup_barrier(mem_flags::mem_threadgroup);
+    }
+    if (index<rows) framework_interaction_store(output,rows,batch,framework_interaction_row(index,rows),values[lane]);
+    if (lane+1u==min(256u,rows-local*256u)) block_sums[group]=values[lane];
+}
+kernel void stwo_zig_framework_interaction_scan_blocks_v1(
+    device uint *output [[buffer(0)]], device RiscvQm31 *block_sums [[buffer(1)]],
+    constant uint &rows [[buffer(2)]], constant uint &blocks [[buffer(3)]],
+    constant uint &batches [[buffer(4)]], uint batch [[thread_position_in_grid]]) {
+    if (batch>=batches) return;
+    RiscvQm31 sum={0u,0u,0u,0u};
+    for (uint block=0u; block<blocks; ++block) {
+        uint index=batch*blocks+block;
+        sum=riscv_qm_add(sum,block_sums[index]); block_sums[index]=sum;
+    }
+    ulong claim=ulong(batches)*4u*rows+batch*4u;
+    output[claim]=sum.a; output[claim+1u]=sum.b; output[claim+2u]=sum.c; output[claim+3u]=sum.d;
+}
+kernel void stwo_zig_framework_interaction_finalize_v1(
+    device uint *output [[buffer(0)]], device const RiscvQm31 *block_sums [[buffer(1)]],
+    constant uint &rows [[buffer(2)]], constant uint &blocks [[buffer(3)]],
+    constant uint &batches [[buffer(4)]], uint2 id [[thread_position_in_grid]]) {
+    uint index=id.x,batch=id.y;
+    if (index>=rows || batch>=batches) return;
+    uint block=index/256u;
+    if (block==0u) return;
+    uint row=framework_interaction_row(index,rows);
+    framework_interaction_store(output,rows,batch,row,riscv_qm_add(framework_interaction_load(output,rows,batch,row),block_sums[batch*blocks+block-1u]));
+}
+kernel void stwo_zig_framework_interaction_v1_b60460f21ee718c76582ad29b979c7a4b4fb36aae1032f8110b12e11761ffe2f(
+ device const uint *tree0 [[buffer(0)]], device const uint *tree1 [[buffer(1)]],
+ device const ulong *column_offsets [[buffer(2)]], device const uint *profile_parameters [[buffer(3)]],
+ device const uint *relation_parameters [[buffer(4)]], device uint *output [[buffer(5)]],
+ device atomic_uint *status [[buffer(6)]], constant uint &row_count [[buffer(7)]],
+ uint row [[thread_position_in_grid]]) {
+ if (row >= row_count) return;
+ if (tree0[column_offsets[5u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);
+ if (tree1[column_offsets[0u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[1u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[2u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[3u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[4u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[5u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = tree0[column_offsets[2u] + row];
+    uint l3 = tree0[column_offsets[3u] + row];
+    uint l4 = tree0[column_offsets[4u] + row];
+    uint l5 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), l2));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 12u), l3));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 16u), l4));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+ RiscvQm31 n0 = {l5,0u,0u,0u}, d0 = denominator0;
+ if ((d0.a|d0.b|d0.c|d0.d)==0u) atomic_fetch_or_explicit(status,1u,memory_order_relaxed);
+ RiscvQm31 f0 = riscv_qm_mul(n0,framework_interaction_inverse(d0));
+ framework_interaction_store(output,row_count,0u,row,f0);
+}
+kernel void stwo_zig_framework_interaction_v1_9e49c07ded7d85f139c7f66b99cde2815fc144f95a1738616a38758ad91e1de7(
+ device const uint *tree0 [[buffer(0)]], device const uint *tree1 [[buffer(1)]],
+ device const ulong *column_offsets [[buffer(2)]], device const uint *profile_parameters [[buffer(3)]],
+ device const uint *relation_parameters [[buffer(4)]], device uint *output [[buffer(5)]],
+ device atomic_uint *status [[buffer(6)]], constant uint &row_count [[buffer(7)]],
+ uint row [[thread_position_in_grid]]) {
+ if (row >= row_count) return;
+ if (tree0[column_offsets[2u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);
+ if (tree1[column_offsets[0u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[1u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[2u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+ RiscvQm31 n0 = {l2,0u,0u,0u}, d0 = denominator0;
+ if ((d0.a|d0.b|d0.c|d0.d)==0u) atomic_fetch_or_explicit(status,1u,memory_order_relaxed);
+ RiscvQm31 f0 = riscv_qm_mul(n0,framework_interaction_inverse(d0));
+ framework_interaction_store(output,row_count,0u,row,f0);
+}
+kernel void stwo_zig_framework_interaction_v1_89c33941cbf2b49d4127d38a1258eedd4e6c4a1dcddc10edbd8807c69d3baa1b(
+ device const uint *tree0 [[buffer(0)]], device const uint *tree1 [[buffer(1)]],
+ device const ulong *column_offsets [[buffer(2)]], device const uint *profile_parameters [[buffer(3)]],
+ device const uint *relation_parameters [[buffer(4)]], device uint *output [[buffer(5)]],
+ device atomic_uint *status [[buffer(6)]], constant uint &row_count [[buffer(7)]],
+ uint row [[thread_position_in_grid]]) {
+ if (row >= row_count) return;
+ if (tree0[column_offsets[3u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);
+ if (tree1[column_offsets[0u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[1u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[2u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[3u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = tree0[column_offsets[2u] + row];
+    uint l3 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), l2));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+ RiscvQm31 n0 = {l3,0u,0u,0u}, d0 = denominator0;
+ if ((d0.a|d0.b|d0.c|d0.d)==0u) atomic_fetch_or_explicit(status,1u,memory_order_relaxed);
+ RiscvQm31 f0 = riscv_qm_mul(n0,framework_interaction_inverse(d0));
+ framework_interaction_store(output,row_count,0u,row,f0);
+}
+kernel void stwo_zig_framework_interaction_v1_856d65281b00e162955ef29e957a4161f254025dc45546bece5d0c258e4736c5(
+ device const uint *tree0 [[buffer(0)]], device const uint *tree1 [[buffer(1)]],
+ device const ulong *column_offsets [[buffer(2)]], device const uint *profile_parameters [[buffer(3)]],
+ device const uint *relation_parameters [[buffer(4)]], device uint *output [[buffer(5)]],
+ device atomic_uint *status [[buffer(6)]], constant uint &row_count [[buffer(7)]],
+ uint row [[thread_position_in_grid]]) {
+ if (row >= row_count) return;
+ if (tree0[column_offsets[4u]+row] != uint(row == 0u)) atomic_fetch_or_explicit(status, 2u, memory_order_relaxed);
+ if (tree1[column_offsets[0u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[1u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[2u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[3u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+ if (tree0[column_offsets[4u]+row] >= RISCV_M31_P) atomic_fetch_or_explicit(status, 4u, memory_order_relaxed);
+    uint l0 = tree1[column_offsets[0u] + row];
+    uint l1 = tree0[column_offsets[1u] + row];
+    uint l2 = tree0[column_offsets[2u] + row];
+    uint l3 = tree0[column_offsets[3u] + row];
+    uint l4 = riscv_m31_neg(l0);
+    RiscvQm31 denominator0 = { 0u, 0u, 0u, 0u };
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 4u), l1));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 8u), l2));
+    denominator0 = riscv_qm_add(denominator0, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, 12u), l3));
+    denominator0 = riscv_qm_sub(denominator0, riscv_load_qm31(relation_parameters, 0u));
+ RiscvQm31 n0 = {l4,0u,0u,0u}, d0 = denominator0;
+ if ((d0.a|d0.b|d0.c|d0.d)==0u) atomic_fetch_or_explicit(status,1u,memory_order_relaxed);
+ RiscvQm31 f0 = riscv_qm_mul(n0,framework_interaction_inverse(d0));
+ framework_interaction_store(output,row_count,0u,row,f0);
 }

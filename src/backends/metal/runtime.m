@@ -861,3 +861,5 @@ size_t stwo_zig_metal_runtime_identity(void *runtime_ptr, char *output, size_t o
         return encoded.length;
     }
 }
+
+#include "runtime/framework_interaction.m"

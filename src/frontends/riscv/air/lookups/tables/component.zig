@@ -156,6 +156,7 @@ pub const LookupTableComponent = struct {
         component.prepare_domain_evaluator = prepareDomainEvaluatorErased;
         component.composition_work_profile = compositionWorkProfileErased;
         component.oods_work_profile = oodsWorkProfileErased;
+        component.backend_composition_capability = .{ .framework_polynomial_v1 = @import("framework_export.zig").capability(self.kind) };
         return component;
     }
 

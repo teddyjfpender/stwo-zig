@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 5s
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-parent-poseidon-interaction success
++- Parent Poseidon interaction parity guard success
+   +- run test 1 passed 303ms MaxRSS:4M
+      +- compile test ReleaseFast native success 5s MaxRSS:509M
+

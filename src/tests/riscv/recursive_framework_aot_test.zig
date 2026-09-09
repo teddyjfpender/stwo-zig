@@ -6,6 +6,7 @@ const air = frontend.recursion.air;
 const metal = @import("stwo_metal_backend");
 const backend = @import("stwo_prover_engine").air.component_prover;
 const codegen = metal.riscv_polynomial_codegen.framework;
+const interaction_codegen = metal.riscv_polynomial_codegen.framework_interaction;
 const allocator = std.testing.allocator;
 const memory = frontend.air.memory_commitment;
 
@@ -103,6 +104,77 @@ fn appendRangeProvider(source: *std.ArrayList(u8), inventory: *std.ArrayList(u8)
     try coverage.writer(allocator).print(",{{\"row\":35,\"layout\":\"independent-prefix-v1\",\"semantic_digest\":\"{s}\",\"kernel\":\"{s}\"}}]", .{ std.fmt.bytesToHex(range.SEMANTIC_DIGEST, .lower), name });
 }
 
+fn appendNativeTables(source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), coverage: *std.ArrayList(u8), names: *std.StringHashMap(void)) !void {
+    const tables = frontend.air.lookups.tables;
+    const relations = frontend.air.relation_challenges.Relations.dummy();
+    const report = coverage.writer(allocator);
+    try report.writeAll(",\n  \"native_fixed_tables\": {\"covered_tables\":6,\"total_tables\":6,\"native_composition_coverage_complete\":false,\"unsupported_infrastructure\":[\"program\",\"memory\",\"merkle\",\"clock_update\"],\"tables\":[");
+    for (std.meta.tags(tables.schema.Kind), 0..) |kind, index| {
+        const arity = tables.schema.arity(kind);
+        const tuple_columns = [_]usize{ 1, 2, 3, 4 };
+        const component = try tables.component.LookupTableComponent.initProver(kind, 0, tuple_columns[0..arity], 0, 0, &relations, @import("stwo_core").fields.qm31.QM31.zero());
+        const counts = [_]usize{ 1 + arity, 1, 4 };
+        var program = try tables.framework_export.exportProgram(allocator, &component, &counts);
+        defer program.deinit();
+        const name = try appendFrameworkKernel(.{ .program = &program, .tree_column_counts = &counts }, source, inventory, names);
+        defer allocator.free(name);
+        if (index != 0) try report.writeAll(",");
+        try report.print("{{\"kind\":\"{s}\",\"log_size\":{},\"tuple_arity\":{},\"kernel\":\"{s}\"}}", .{ @tagName(kind), tables.schema.logSize(kind), arity, name });
+    }
+    try report.writeAll("]}");
+}
+
+fn appendNativeTableInteractions(source: *std.ArrayList(u8), inventory: *std.ArrayList(u8), coverage: *std.ArrayList(u8), names: *std.StringHashMap(void)) !void {
+    const tables = frontend.air.lookups.tables;
+    const relations = frontend.air.relation_challenges.Relations.dummy();
+    const report = coverage.writer(allocator);
+    try source.appendSlice(allocator, interaction_codegen.scan_source);
+    const scan_names = [_][]const u8{
+        "stwo_zig_framework_interaction_block_scan_v1",
+        "stwo_zig_framework_interaction_scan_blocks_v1",
+        "stwo_zig_framework_interaction_finalize_v1",
+    };
+    try report.writeAll(",\n  \"native_table_interaction\": {\"covered_tables\":6,\"total_tables\":6,\"pipeline_integration_complete\":false,\"scan_kernels\":[");
+    for (scan_names, 0..) |name, index| {
+        try std.testing.expect(!names.contains(name));
+        const owned_name = try allocator.dupe(u8, name);
+        names.put(owned_name, {}) catch |err| {
+            allocator.free(owned_name);
+            return err;
+        };
+        const digest = try metal.shaders.declaration_digest.declarationDigestHex(interaction_codegen.scan_source, name);
+        try inventory.writer(allocator).print("    .{{ .name = \"{s}\", .declaration_sha256 = \"{s}\" }},\n", .{ name, digest });
+        if (index != 0) try report.writeAll(",");
+        try report.print("\"{s}\"", .{name});
+    }
+    try report.writeAll("],\"tables\":[");
+    for (std.meta.tags(tables.schema.Kind), 0..) |kind, index| {
+        const arity = tables.schema.arity(kind);
+        const tuple_columns = [_]usize{ 1, 2, 3, 4 };
+        const component = try tables.component.LookupTableComponent.initProver(kind, 0, tuple_columns[0..arity], 0, 0, &relations, @import("stwo_core").fields.qm31.QM31.zero());
+        const counts = [_]usize{ 1 + arity, 1, 4 };
+        var program = try tables.framework_export.exportProgram(allocator, &component, &counts);
+        defer program.deinit();
+        const selected = interaction_codegen.Entry{ .program = &program, .tree_column_counts = &counts };
+        const name = try interaction_codegen.kernelName(allocator, selected);
+        defer allocator.free(name);
+        if (!names.contains(name)) {
+            const owned_name = try allocator.dupe(u8, name);
+            names.put(owned_name, {}) catch |err| {
+                allocator.free(owned_name);
+                return err;
+            };
+            const start = source.items.len;
+            try interaction_codegen.emitKernel(allocator, source.writer(allocator), name, selected);
+            const digest = try metal.shaders.declaration_digest.declarationDigestHex(source.items[start..], name);
+            try inventory.writer(allocator).print("    .{{ .name = \"{s}\", .declaration_sha256 = \"{s}\" }},\n", .{ name, digest });
+        }
+        if (index != 0) try report.writeAll(",");
+        try report.print("{{\"kind\":\"{s}\",\"kernel\":\"{s}\"}}", .{ @tagName(kind), name });
+    }
+    try report.writeAll("]}");
+}
+
 const Generated = struct {
     source: []u8,
     inventory: []u8,
@@ -133,7 +205,7 @@ fn generate() !Generated {
     const report = coverage.writer(allocator);
     try writer.writeAll("// Generated recursive framework profile v1. Shared field helpers come from core_v2.\n// Regenerate: STWO_RECURSIVE_FRAMEWORK_AOT_GENERATE=<directory> zig build test-riscv-metal-recursive-aot\n");
     try table.writeAll("// Generated from the production leaf and parent typed AIR catalogs.\npub const entries = .{\n");
-    try report.writeAll("{\n  \"format\": \"recursive-framework-aot-coverage-v1\",\n  \"composition_coverage_complete\": true,\n  \"strict_coverage_complete\": false,\n  \"profiles\": [\n");
+    try report.writeAll("{\n  \"format\": \"recursive-framework-aot-coverage-v1\",\n  \"composition_coverage_scope\": \"detached_recursive_leaf_and_parent\",\n  \"composition_coverage_complete\": true,\n  \"strict_coverage_complete\": false,\n  \"profiles\": [\n");
     inline for (.{ air.segment_leaf_catalog_v2.LOGICAL_ROWS, air.detached_parent_catalog_v1.LOGICAL_ROWS }, .{ "leaf", "parent" }, 0..) |catalog, profile, profile_index| {
         if (profile_index != 0) try report.writeAll(",\n");
         try report.print("    {{\"name\":\"{s}\",\"typed_components\":{},\"covered_components\":{},\"total_components\":{},\"unsupported\":[],\"rows\":[", .{ profile, catalog.len, catalog.len + 2, catalog.len + 2 });
@@ -168,7 +240,10 @@ fn generate() !Generated {
         try appendRangeProvider(&source, &inventory, &coverage, &names);
         try report.writeAll("}");
     }
-    try report.print("\n  ],\n  \"kernel_count\": {}\n}}\n", .{names.count()});
+    try report.writeAll("\n  ]");
+    try appendNativeTables(&source, &inventory, &coverage, &names);
+    try appendNativeTableInteractions(&source, &inventory, &coverage, &names);
+    try report.print(",\n  \"kernel_count\": {}\n}}\n", .{names.count()});
     try table.writeAll("};\n");
     const source_bytes = try source.toOwnedSlice(allocator);
     errdefer allocator.free(source_bytes);
@@ -180,6 +255,7 @@ fn generate() !Generated {
 test "recursive framework AOT matches complete current typed and native provider composition catalogs" {
     try std.testing.expectEqual(@as(usize, 37), air.segment_leaf_catalog_v2.LOGICAL_ROWS.len);
     try std.testing.expectEqual(@as(usize, 29), air.detached_parent_catalog_v1.LOGICAL_ROWS.len);
+    try std.testing.expectEqual(@as(usize, 6), std.meta.tags(frontend.air.lookups.tables.schema.Kind).len);
     inline for (air.segment_leaf_catalog_v2.LOGICAL_ROWS, 0..) |entry, index|
         try std.testing.expectEqual(if (index < 34) index else index + 2, @as(usize, @intFromEnum(entry.row)));
     inline for (air.detached_parent_catalog_v1.LOGICAL_ROWS, 0..) |entry, index|
@@ -202,5 +278,5 @@ test "recursive framework AOT matches complete current typed and native provider
     try directory.writeFile(.{ .sub_path = "recursive_framework_v1.metal", .data = generated.source });
     try directory.writeFile(.{ .sub_path = "recursive_framework_v1_exports.zig", .data = generated.inventory });
     try directory.writeFile(.{ .sub_path = "recursive_framework_v1_coverage.json", .data = generated.coverage });
-    std.debug.print("RECURSIVE_FRAMEWORK_AOT covered_leaf=39/39 covered_parent=31/31 composition_coverage_complete=true strict_coverage_complete=false bytes={}\n", .{generated.source.len});
+    std.debug.print("RECURSIVE_FRAMEWORK_AOT covered_leaf=39/39 covered_parent=31/31 native_fixed_tables=6/6 recursive_composition_coverage_complete=true native_composition_coverage_complete=false strict_coverage_complete=false bytes={}\n", .{generated.source.len});
 }

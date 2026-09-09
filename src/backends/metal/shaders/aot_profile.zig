@@ -107,13 +107,39 @@ test "recursive framework AOT profile preserves core authority and exact declara
     defer coverage.deinit();
     try std.testing.expect(!coverage.value.object.get("strict_coverage_complete").?.bool);
     try std.testing.expect(coverage.value.object.get("composition_coverage_complete").?.bool);
-    try std.testing.expectEqual(recursive_generated.entries.len, coverage.value.object.get("kernel_count").?.integer);
+    try std.testing.expectEqual(@as(i64, recursive_generated.entries.len), coverage.value.object.get("kernel_count").?.integer);
+    const native_tables = coverage.value.object.get("native_fixed_tables").?.object;
+    try std.testing.expectEqual(@as(i64, 6), native_tables.get("covered_tables").?.integer);
+    try std.testing.expectEqual(@as(i64, 6), native_tables.get("total_tables").?.integer);
+    try std.testing.expectEqual(@as(usize, 6), native_tables.get("tables").?.array.items.len);
+    try std.testing.expect(!native_tables.get("native_composition_coverage_complete").?.bool);
+    const interactions = coverage.value.object.get("native_table_interaction").?.object;
+    try std.testing.expectEqual(@as(i64, 6), interactions.get("covered_tables").?.integer);
+    try std.testing.expectEqual(@as(i64, 6), interactions.get("total_tables").?.integer);
+    try std.testing.expect(!interactions.get("pipeline_integration_complete").?.bool);
+    const scan_kernels = interactions.get("scan_kernels").?.array.items;
+    try std.testing.expectEqual(@as(usize, 3), scan_kernels.len);
+    for (scan_kernels) |kernel| try expectRecursiveOnlyExport(kernel.string);
+    const interaction_tables = interactions.get("tables").?.array.items;
+    try std.testing.expectEqual(@as(usize, 6), interaction_tables.len);
+    for (interaction_tables) |table| try expectRecursiveOnlyExport(table.object.get("kernel").?.string);
     for (coverage.value.object.get("profiles").?.array.items) |profile| {
         try std.testing.expectEqual(profile.object.get("total_components").?.integer, profile.object.get("covered_components").?.integer);
         try std.testing.expectEqual(@as(usize, 0), profile.object.get("unsupported").?.array.items.len);
         const providers = profile.object.get("native_providers").?.array.items;
         try std.testing.expectEqual(@as(usize, 2), providers.len);
         for (providers, 34..) |provider, row|
-            try std.testing.expectEqual(row, provider.object.get("row").?.integer);
+            try std.testing.expectEqual(@as(i64, @intCast(row)), provider.object.get("row").?.integer);
     }
+}
+
+fn expectRecursiveOnlyExport(name: []const u8) !void {
+    var found = false;
+    for (Profile.recursive_framework_v1.exports()) |entry| if (std.mem.eql(u8, entry.name, name)) {
+        found = true;
+        break;
+    };
+    try std.testing.expect(found);
+    for (Profile.core_v2.exports()) |entry| try std.testing.expect(!std.mem.eql(u8, entry.name, name));
+    for (Profile.ethereum_fixed_program_narrow_v1.exports()) |entry| try std.testing.expect(!std.mem.eql(u8, entry.name, name));
 }

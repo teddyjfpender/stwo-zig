@@ -148,6 +148,26 @@ pub fn build(b: *std.Build) void {
     b.step("test-framework-polynomial-device", "Execute generated recursive framework constraints on Metal and compare CPU values")
         .dependOn(&run_framework_device.step);
 
+    const interaction_device_root = b.createModule(.{
+        .root_source_file = b.path("framework_interaction_device_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    addImports(interaction_device_root, core, backend_contracts, prover_api, prover);
+    const interaction_device_tests = b.addTest(.{ .root_module = interaction_device_root, .filters = &.{"framework interaction"} });
+    interaction_device_tests.addCSourceFile(.{
+        .file = b.path("runtime/framework_interaction_device_test.m"),
+        .flags = &.{ "-fobjc-arc", "-fblocks" },
+    });
+    interaction_device_tests.linkLibC();
+    interaction_device_tests.linkFramework("Foundation");
+    interaction_device_tests.linkFramework("Metal");
+    interaction_device_tests.linkSystemLibrary("objc");
+    const interaction_device_run = b.addRunArtifact(interaction_device_tests);
+    interaction_device_run.has_side_effects = true;
+    b.step("test-framework-interaction-device", "Generate independent-prefix interactions on Metal and check exact native columns, claims and rejection")
+        .dependOn(&interaction_device_run.step);
+
     const tests = b.addTest(.{ .root_module = backend });
     linkRuntime(b, tests);
     const composition_profile_root = b.createModule(.{

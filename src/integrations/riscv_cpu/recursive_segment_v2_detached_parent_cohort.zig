@@ -9,6 +9,7 @@ pub const manifest_mod = air.universal_adapter_manifest;
 const provider = air.universal_shared_provider;
 const PoseidonAdapter = provider.Poseidon2Degree3AdapterForManifest(manifest_mod);
 const range = air.range_check_8_8_bridge;
+const work_pool = @import("stwo_prover_engine").work_pool;
 const CompactLedger = @import("recursive_compact_tuple_ledger_v1.zig").Owner;
 const M31 = core.fields.m31.M31;
 const QM31 = core.fields.qm31.QM31;
@@ -255,6 +256,25 @@ pub const LogicalRowsV1 = blk: {
 const poseidon_air = frontend.air.memory_commitment.poseidon2_universal_degree3_v1;
 pub const ProviderCall = poseidon_air.Call;
 
+// Match the leaf's existing worker policy and reuse the exact native writer.
+// The compact AIR shares these IO entries and claims with the legacy layout.
+fn generatePoseidonInteraction(allocator: std.mem.Allocator, calls: []const ProviderCall, outputs: []const [16]u32, log_size: u32, relations: *const frontend.air.relation_challenges.Relations) !frontend.air.memory_commitment.poseidon2_air.Interaction {
+    if (log_size >= 12) if (work_pool.getGlobalPool()) |pool| {
+        return frontend.air.memory_commitment.poseidon2_air.generateIoInteractionFromOutputsParallel(allocator, calls, outputs, log_size, relations, pool) catch |err| switch (err) {
+            error.DivisionByZero => error.ZeroDenominator,
+            else => err,
+        };
+    };
+    return poseidon_air.generateIoInteractionFromOutputs(allocator, calls, outputs, log_size, relations);
+}
+
+fn profileTimer() !?std.time.Timer {
+    return if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) try std.time.Timer.start() else null;
+}
+fn profileLap(timer: *?std.time.Timer) u64 {
+    return if (timer.*) |*value| value.lap() else 0;
+}
+
 /// A private snapshot, admitted once at construction. The caller may destroy
 /// every source row and child owner immediately after init returns.
 pub const PreparedV1 = opaque {
@@ -448,25 +468,32 @@ pub const PreparedV1 = opaque {
     /// range counter supplies row35; actual provider/public tuples close before
     /// any mutable state is published to interaction generation or commitment.
     pub fn finalizeMainInto(self: *Self, expected: *const @import("recursive_segment_v2_detached_parent_protocol.zig").ExpectedV1, destination: [][]M31) !air.relation_interaction.TupleClosureReport {
+        var timer = try profileTimer();
         try @import("recursive_segment_v2_detached_parent_protocol.zig").validateExpected(expected);
         try self.preflight(1, destination);
         for (destination) |column| if (overlapBytes(std.mem.asBytes(expected), std.mem.sliceAsBytes(column))) return error.DestinationAlias;
         const data: *Storage = @ptrCast(@alignCast(self));
         data.main_generated = false;
         errdefer for (destination) |column| @memset(column, M31.zero());
+        const preflight_ns = profileLap(&timer);
         try self.fillMainBody(destination);
+        const main_fill_ns = profileLap(&timer);
         var compact = try CompactLedger.init(data.allocator, false);
         defer compact.deinit();
         var ledger = compact.ledger();
         defer ledger.deinit();
         try self.appendSourceTuples(&ledger);
+        const source_projection_ns = profileLap(&timer);
         var batch = try range.PreparedBatch.init(data.allocator, &compact.source_counter);
         errdefer batch.deinit();
         try self.fillRangeInto(&batch, destination);
+        const range_fill_ns = profileLap(&timer);
         const report = try self.closeProviderTuples(expected, destination, &batch, &compact, &ledger);
         if (data.range_batch) |*previous| previous.deinit();
         data.range_batch = batch;
         data.main_generated = true;
+        const closure_ns = profileLap(&timer);
+        if (timer != null) std.debug.print("PARENT_MAIN_FINALIZE preflight_ns={d} main_fill_ns={d} source_projection_ns={d} range_fill_ns={d} closure_ns={d}\n", .{ preflight_ns, main_fill_ns, source_projection_ns, range_fill_ns, closure_ns });
         return report;
     }
     /// Challenge-independent diagnostic over exact typed/native relation entries.
@@ -533,6 +560,7 @@ pub const PreparedV1 = opaque {
         return report;
     }
     pub fn fillInteractionInto(self: *const Self, relations: *const Relations, destination: [][]M31) !ClaimsV1 {
+        var timer = try profileTimer();
         try self.preflight(2, destination);
         const data = self.storage();
         if (!data.main_generated) return error.DetachedParentMainNotGenerated;
@@ -541,6 +569,7 @@ pub const PreparedV1 = opaque {
         errdefer for (destination) |column| @memset(column, M31.zero());
         const admitted: *const OwnedComponentsV1.Storage = @ptrCast(@alignCast(data.components.?));
         var result = ClaimsV1{ .values = @splat(QM31.zero()), .poseidon_partials = undefined };
+        const preflight_ns = profileLap(&timer);
         inline for (LOGICAL_ROWS, 0..) |entry, index| {
             const row = @intFromEnum(entry.row);
             const placement = data.manifest.placements[row].?;
@@ -550,19 +579,23 @@ pub const PreparedV1 = opaque {
             for (interaction.columns, 0..) |column, local| @memcpy(destination[placement.interaction_offset + local], column);
             result.values[row] = interaction.claimed_sum;
         }
+        const typed_ns = profileLap(&timer);
         const providers = try provider.SharedProviderRelations.init(relations);
         const poseidon = data.manifest.placements[34].?;
-        var interaction = try poseidon_air.generateIoInteractionFromOutputs(data.allocator, data.calls, data.outputs, poseidon.geometry.log_size, &providers.native);
+        var interaction = try generatePoseidonInteraction(data.allocator, data.calls, data.outputs, poseidon.geometry.log_size, &providers.native);
         defer interaction.deinit(data.allocator);
         for (interaction.columns, 0..) |column, local| @memcpy(destination[poseidon.interaction_offset + local], column);
         result.poseidon_partials = interaction.claims.sums;
         result.values[34] = interaction.claims.total();
+        const poseidon_ns = profileLap(&timer);
         var range_interaction = try data.range_batch.?.generateNativeInteraction(data.allocator, &providers.native);
         defer range_interaction.deinit(data.allocator);
         const range_placement = data.manifest.placements[35].?;
         for (range_interaction.columns, 0..) |column, local| @memcpy(destination[range_placement.interaction_offset + local], column);
         result.values[35] = range_interaction.claim;
         _ = try result.vector(&data.manifest);
+        const range_ns = profileLap(&timer);
+        if (timer != null) std.debug.print("PARENT_INTERACTION_FILL preflight_ns={d} typed_ns={d} poseidon_ns={d} range_ns={d}\n", .{ preflight_ns, typed_ns, poseidon_ns, range_ns });
         return result;
     }
 };
@@ -624,4 +657,52 @@ test "detached parent snapshots typed rows and rejects mutable ingress and inact
     key.version = protocol.VERSION;
     key.pcs_config.fri_config.n_queries += 1;
     try std.testing.expectError(error.DetachedParentProfileMismatch, verifier.proofPreflightShape(allocator, &key));
+}
+
+test "detached parent Poseidon interaction policy preserves serial columns claims and pole errors" {
+    const allocator = std.testing.allocator;
+    const native = frontend.air.memory_commitment.poseidon2_air;
+    var relations = frontend.air.relation_challenges.Relations.dummy();
+    const calls = try allocator.alloc(ProviderCall, 4101);
+    defer allocator.free(calls);
+    const outputs = try allocator.alloc([16]u32, calls.len);
+    defer allocator.free(outputs);
+    for (calls, outputs, 0..) |*call, *output, row| {
+        call.* = .{ .input = undefined, .io = true };
+        for (&call.input, 0..) |*word, lane| word.* = @intCast(row * 31 + lane * 7);
+        for (native.output(native.fill(call.*)), output) |value, *word| word.* = value.toU32();
+    }
+    // An absent pool keeps the serial fallback available even above threshold.
+    try std.testing.expect(work_pool.getGlobalPool() == null);
+    {
+        var serial = try native.generateIoInteractionFromOutputs(allocator, calls[0..7], outputs[0..7], 12, &relations);
+        defer serial.deinit(allocator);
+        var actual = try generatePoseidonInteraction(allocator, calls[0..7], outputs[0..7], 12, &relations);
+        defer actual.deinit(allocator);
+        try std.testing.expectEqualDeep(serial.claims, actual.claims);
+        for (serial.columns, actual.columns) |expected, column| try std.testing.expectEqualSlices(M31, expected, column);
+    }
+    var pool: work_pool.WorkPool = undefined;
+    try pool.initInPlaceWithOptions(.{ .worker_count = 2 });
+    defer pool.deinit();
+    var binding = try work_pool.ScopedPoolBinding.init(&pool);
+    defer binding.deinit();
+    // Below threshold, at threshold with padding, and across the 4096-row
+    // inversion chunk boundary. Every call has a distinct input/output tuple.
+    for ([_]struct { log: u32, active: usize }{
+        .{ .log = 11, .active = 7 },
+        .{ .log = 12, .active = 4093 },
+        .{ .log = 13, .active = 4101 },
+    }) |case| {
+        var serial = try native.generateIoInteractionFromOutputs(allocator, calls[0..case.active], outputs[0..case.active], case.log, &relations);
+        defer serial.deinit(allocator);
+        var actual = try generatePoseidonInteraction(allocator, calls[0..case.active], outputs[0..case.active], case.log, &relations);
+        defer actual.deinit(allocator);
+        try std.testing.expectEqualDeep(serial.claims, actual.claims);
+        for (serial.columns, actual.columns) |expected, column| try std.testing.expectEqualSlices(M31, expected, column);
+    }
+    // alpha=0 retains alpha^0=1; row0 input0=0 makes this a genuine pole.
+    relations.poseidon2_io = @TypeOf(relations.poseidon2_io).init(QM31.zero(), QM31.zero());
+    try std.testing.expectError(error.ZeroDenominator, native.generateIoInteractionFromOutputs(allocator, calls[0..1], outputs[0..1], 12, &relations));
+    try std.testing.expectError(error.ZeroDenominator, generatePoseidonInteraction(allocator, calls[0..1], outputs[0..1], 12, &relations));
 }

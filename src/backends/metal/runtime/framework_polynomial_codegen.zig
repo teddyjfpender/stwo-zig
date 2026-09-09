@@ -123,22 +123,7 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
     const total_roots = program.direct.roots.len + program.batches.len;
     try emitNodes(allocator, writer, program, program.direct.nodes, program.direct.roots, "d", total_roots);
 
-    var lookup_roots = std.ArrayList(u32).empty;
-    defer lookup_roots.deinit(allocator);
-    for (program.entries) |relation| {
-        try lookup_roots.append(allocator, relation.numerator);
-        try lookup_roots.appendSlice(allocator, relation.values[0..relation.arity]);
-    }
-    try emitNodes(allocator, writer, program, program.lookup_nodes, lookup_roots.items, "l", null);
-    var parameter: usize = 0;
-    for (program.entries, 0..) |relation, index| {
-        try writer.print("    RiscvQm31 denominator{} = {{ 0u, 0u, 0u, 0u }};\n", .{index});
-        for (relation.values[0..relation.arity], 0..) |root, coordinate| {
-            try writer.print("    denominator{} = riscv_qm_add(denominator{}, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, {}u), l{}));\n", .{ index, index, 4 * (parameter + 1 + coordinate), root });
-        }
-        try writer.print("    denominator{} = riscv_qm_sub(denominator{}, riscv_load_qm31(relation_parameters, {}u));\n", .{ index, index, 4 * parameter });
-        parameter += 1 + relation.arity;
-    }
+    const parameter = try emitLookupTerms(allocator, writer, program);
     if (program.layout == .independent_prefix_v1) {
         const slot = program.is_first_input.?;
         const column = program.inputs[slot].trace_column;
@@ -182,6 +167,29 @@ pub fn emitKernel(allocator: std.mem.Allocator, writer: anytype, name: []const u
         \\}
         \\
     );
+}
+
+/// Shared lowering for composition and interaction generation. Returns the
+/// QM31 relation-parameter cursor immediately after the final entry's powers.
+/// The caller admits the complete program before entering this emitter.
+pub fn emitLookupTerms(allocator: std.mem.Allocator, writer: anytype, program: *const Program) !usize {
+    var lookup_roots = std.ArrayList(u32).empty;
+    defer lookup_roots.deinit(allocator);
+    for (program.entries) |relation| {
+        try lookup_roots.append(allocator, relation.numerator);
+        try lookup_roots.appendSlice(allocator, relation.values[0..relation.arity]);
+    }
+    try emitNodes(allocator, writer, program, program.lookup_nodes, lookup_roots.items, "l", null);
+    var parameter: usize = 0;
+    for (program.entries, 0..) |relation, index| {
+        try writer.print("    RiscvQm31 denominator{} = {{ 0u, 0u, 0u, 0u }};\n", .{index});
+        for (relation.values[0..relation.arity], 0..) |root, coordinate| {
+            try writer.print("    denominator{} = riscv_qm_add(denominator{}, riscv_qm_mul_base(riscv_load_qm31(relation_parameters, {}u), l{}));\n", .{ index, index, 4 * (parameter + 1 + coordinate), root });
+        }
+        try writer.print("    denominator{} = riscv_qm_sub(denominator{}, riscv_load_qm31(relation_parameters, {}u));\n", .{ index, index, 4 * parameter });
+        parameter += 1 + relation.arity;
+    }
+    return parameter;
 }
 
 fn emitSecureLoad(writer: anytype, program: *const Program, prefix: []const u8, index: usize, first: usize, row: []const u8) !void {

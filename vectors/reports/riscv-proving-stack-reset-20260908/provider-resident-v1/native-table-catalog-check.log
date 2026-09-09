@@ -1,0 +1,5 @@
+
+Build Summary: 2/2 steps succeeded
+test-riscv-metal-recursive-aot success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 35s MaxRSS:1G
+

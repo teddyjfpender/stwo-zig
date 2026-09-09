@@ -1,0 +1,20 @@
+{
+  "scope": "Cold process requests, alternating order; same retained children and independently pinned verifier/key. Candidate Metal also has equivalent regenerated AOT names and unused native-table kernels.",
+  "records": [
+    {
+      "pair": 1,
+      "arm": "baseline",
+      "receipt": "vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-1-baseline.json",
+      "receipt_sha256": "caeddd865c63c17565664865b12400bca7e38f0f019bd71a9b3af570286489de",
+      "request_ns": 13556171958,
+      "preparation_ns": 3682644375,
+      "proof_ns": 8342437791,
+      "fresh_cases": 28,
+      "artifact_sha256": {
+        "proof.bin": "f8ea56660aed9a7ac0a09c164248472ba29cd0436e2fd6cebb6c6d0e3f19c17d",
+        "key.json": "9125f8f140c1c7cacd4d4770adb12463ed7ccf27ec14a0c07900cc667eaeccf9",
+        "claims.json": "ce5538aad40d0969574ad354e644b72a4dafccbb61be66015e004c3b4c238d8a"
+      }
+    }
+  ]
+}

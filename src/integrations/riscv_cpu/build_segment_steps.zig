@@ -50,6 +50,15 @@ pub fn add(ctx: anytype) void {
         integration,
     );
     segment_v2_verifier_components_root.addImport("stwo_prover_engine", prover);
+    const parent_interaction_names: []const []const u8 = &.{
+        "detached parent Poseidon interaction policy preserves serial columns claims and pole errors",
+    };
+    const parent_interaction_test = b.addTest(.{
+        .root_module = segment_v2_verifier_components_root,
+        .filters = parent_interaction_names,
+    });
+    b.step("test-recursive-parent-poseidon-interaction", "Compare parent batch-inverted interaction columns, claims and pole rejection with the native serial writer")
+        .dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(parent_interaction_test), parent_interaction_names, "Parent Poseidon interaction parity guard"));
     const segment_v2_verifier_components_names: []const []const u8 = &.{
         "SegmentV2 witness-free verifier owns all39 canonical adapters and untrusted claims",
         "SegmentV2 witness-free verifier rejects malformed admission and inactive or provider claims",

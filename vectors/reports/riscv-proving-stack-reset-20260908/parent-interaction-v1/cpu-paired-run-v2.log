@@ -1,0 +1,7 @@
+cpu 1 baseline 13.497346s freshly verified, identical artifacts
+cpu 1 candidate 13.496750s freshly verified, identical artifacts
+cpu 2 candidate 13.439676s freshly verified, identical artifacts
+cpu 2 baseline 13.551693s freshly verified, identical artifacts
+cpu 3 baseline 13.759559s freshly verified, identical artifacts
+cpu 3 candidate 13.483111s freshly verified, identical artifacts
+request medians {'baseline': 13.551693167, 'candidate': 13.483110792}

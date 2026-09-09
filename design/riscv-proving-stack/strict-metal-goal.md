@@ -1,6 +1,8 @@
 # Strict Metal proving and small-tree performance
 
-Status: active. This preserves the complete objective accepted on 2026-09-09.
+Status: paused at the user's request on 2026-09-09; objective remains incomplete.
+See [the pause checkpoint](pause-checkpoint-20260909.md) for newer source work,
+verified CPU results and the exact outstanding gates. This preserves the complete objective accepted on 2026-09-09.
 The endpoint is the existing complete four-segment RISC-V proof tree, followed by
 controlled increases in instructions, memory and recursive depth. Ethereum-sized
 runs are not the development loop.

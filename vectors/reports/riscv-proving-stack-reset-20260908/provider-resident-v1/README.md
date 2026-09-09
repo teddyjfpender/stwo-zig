@@ -1,6 +1,9 @@
 # Recursive provider composition on resident Metal
 
-This continues the strict Metal goal from `80e73583`. The 227-instruction,
+This measured checkpoint continues the strict Metal goal from `80e73583`.
+Additional unpromoted native-table, interaction and selected-lane work is
+recorded in [the pause handoff](../../../../design/riscv-proving-stack/pause-checkpoint-20260909.md);
+the full-tree measurements below belong to the earlier frozen binaries. The 227-instruction,
 one-address fixture contains four native proofs, four leaf wrappers, two
 intermediate parents and one root. It is not an Ethereum block or a
 production-security benchmark.

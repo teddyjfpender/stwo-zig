@@ -1,0 +1,29 @@
+test-lookup-table-framework-export
++- stwo_riscv_frontend test count floor
+   +- run test failure
+thread 45873166 panic: reached unreachable code
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/debug.zig:559:14: 0x104cee063 in test.native table framework rejects corrupted bindings and challenges before use (test)
+    if (!ok) unreachable; // assertion failure
+             ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x104ca8743 in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x104ca6f6b in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x104ca489b in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xa74effffffffffff in ??? (???)
+error: while executing test 'air.lookups.tables.framework_export.test.native table framework rejects corrupted bindings and challenges before use', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/2673bb83e61ca656d4c01f2b9a1f4517/test --cache-dir=./.zig-cache --seed=0x88bf1eb --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 5/5 tests passed
+test-lookup-table-framework-export transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 5s MaxRSS:479M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/66d6df8539cbb45605f6ae3dd0dff6e6/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x88bf1eb -Z3c00a246b9185209 --maxrss 25769803776 -j1 test-lookup-table-framework-export -Doptimize=ReleaseSafe --summary all

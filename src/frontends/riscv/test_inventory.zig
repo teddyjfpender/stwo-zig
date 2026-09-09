@@ -465,6 +465,7 @@ test {
     _ = @import("air/prepared_parallel.zig");
     _ = @import("air/lookups/tables/counter.zig");
     _ = @import("air/lookups/tables/interaction.zig");
+    _ = @import("air/lookups/tables/framework_export.zig");
     _ = @import("air/lookups/tables/mod.zig");
     _ = @import("air/lookups/tables/schema.zig");
     _ = @import("air/lookups/tables/source_ingest.zig");

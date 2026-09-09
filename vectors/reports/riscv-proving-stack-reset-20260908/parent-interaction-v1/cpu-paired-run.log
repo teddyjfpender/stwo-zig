@@ -1,0 +1,16 @@
+cpu 1 baseline 13.556172s freshly verified, identical artifacts
+Traceback (most recent call last):
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/replay_roots.py", line 69, in <module>
+    main()
+    ~~~~^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/replay_roots.py", line 55, in main
+    assert result.returncode == 0, output.with_suffix('.log').read_text()[-3000:]
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: Traceback (most recent call last):
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_parent_gate.py", line 359, in <module>
+    main()
+    ~~~~^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_parent_gate.py", line 205, in main
+    raise RuntimeError(f"parent producer failed; retained log: {log}")
+RuntimeError: parent producer failed; retained log: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/parent-interaction-v1/root-cpu-1-candidate.json.producer.log
+

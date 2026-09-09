@@ -74,6 +74,9 @@ pub const OwnedV1 = opaque {
         return @ptrCast(@alignCast(self));
     }
     pub fn init(allocator: std.mem.Allocator, child: anytype, lane: u32) !*OwnedV1 {
+        return initWithLaneSelection(allocator, child, lane, false);
+    }
+    fn initWithLaneSelection(allocator: std.mem.Allocator, child: anytype, lane: u32, comptime selected_lane_only: bool) !*OwnedV1 {
         if (lane != 1 and lane != 2) return error.InvalidDetachedPcsLane;
         const value = try allocator.create(Storage);
         errdefer allocator.destroy(value);
@@ -82,14 +85,20 @@ pub const OwnedV1 = opaque {
         errdefer value.arena.deinit();
         const owned = value.arena.allocator();
         value.lane = lane;
+        var timer = if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) @as(?std.time.Timer, try std.time.Timer.start()) else null;
         value.capture = try child.preparePcs(owned);
+        const capture_ns = if (timer) |*t| t.lap() else 0;
         value.vm_plan = try makePlan(owned, child, &value.capture, .vm);
         value.recursion_plan = try makePlan(owned, child, &value.capture, .recursion);
+        const plans_ns = if (timer) |*t| t.lap() else 0;
         // Both template lanes use this child's independently admitted geometry.
         // Only the selected lane is exported; the other lane is never proved.
         const Child = struct { capture: *const recursion.captured_fri.Owned };
         value.rows = try source.FriRowsAuthority.init(owned, &value.vm_plan, &value.recursion_plan, [2]Child{ .{ .capture = &value.capture }, .{ .capture = &value.capture } });
-        try buildRows(value, child);
+        const authority_ns = if (timer) |*t| t.lap() else 0;
+        try buildRows(value, child, selected_lane_only);
+        const rows_ns = if (timer) |*t| t.lap() else 0;
+        if (timer != null) std.debug.print("DETACHED_PARENT_PCS_PHASE lane={d} selected_lane_only={} capture_ns={d} plans_ns={d} authority_ns={d} rows_ns={d}\n", .{ lane, selected_lane_only, capture_ns, plans_ns, authority_ns, rows_ns });
         return @ptrCast(value);
     }
     pub fn deinit(self: *OwnedV1) void {
@@ -174,7 +183,7 @@ fn selectedMetadata(comptime T: type, allocator: std.mem.Allocator, lane: u32, r
     for (rows) |row| if (row.verifier_id == lane) try result.append(allocator, row);
     return result.toOwnedSlice(allocator);
 }
-fn buildRows(value: *OwnedV1.Storage, child: anytype) !void {
+fn buildRows(value: *OwnedV1.Storage, child: anytype, comptime selected_lane_only: bool) !void {
     const allocator = value.arena.allocator();
     var scratch_arena = std.heap.ArenaAllocator.init(value.allocator);
     defer scratch_arena.deinit();
@@ -198,19 +207,31 @@ fn buildRows(value: *OwnedV1.Storage, child: anytype) !void {
     try prepared.merkle_root_executor.generateMainInto(&prepared.merkle_root_preprocessing, prepared.merkle_root_reference, &merkle_root.columns, roots);
     value.view_value.merkle_root = try selectRows(A.merkle_root, allocator, value.lane, prepared.merkle_root_preprocessing.rows, merkle_root.columns, try W.merkle_root.logicalRow(prepared.merkle_root_preprocessing.rows[0], roots));
     var trace_merkle = try Columns(W.trace_merkle).init(scratch, prepared.trace_merkle_preprocessing.log_size);
-    try prepared.trace_merkle_executor.generateMainInto(&prepared.trace_merkle_preprocessing, prepared.trace_merkle_reference, &trace_merkle.columns, trace);
+    if (selected_lane_only)
+        try prepared.trace_merkle_executor.generateMainForLaneInto(&prepared.trace_merkle_preprocessing, prepared.trace_merkle_reference, &trace_merkle.columns, trace, value.lane)
+    else
+        try prepared.trace_merkle_executor.generateMainInto(&prepared.trace_merkle_preprocessing, prepared.trace_merkle_reference, &trace_merkle.columns, trace);
     value.view_value.trace_merkle = try selectRows(A.trace_merkle, allocator, value.lane, prepared.trace_merkle_preprocessing.rows, trace_merkle.columns, try W.trace_merkle.logicalRow(prepared.trace_merkle_reference, &prepared.trace_merkle_preprocessing, 0, trace));
     var pcs_deep = try Columns(W.pcs_deep).init(scratch, prepared.pcs_preprocessing.log_size);
     try prepared.pcs_executor.generateMainInto(&prepared.pcs_preprocessing, prepared.pcs_reference, &pcs_deep.columns, prepared.pcs_inputs, .binary_node);
     value.view_value.pcs_deep = try selectRows(A.pcs_deep, allocator, value.lane, prepared.pcs_preprocessing.rows, pcs_deep.columns, try W.pcs_deep.logicalRow(prepared.pcs_reference, &prepared.pcs_preprocessing, 0, prepared.pcs_inputs, .binary_node));
     var fri_leaf = try Columns(W.fri_leaf).init(scratch, prepared.fri_leaf_preprocessing.log_size);
-    try prepared.fri_leaf_executor.generateMainInto(&prepared.fri_leaf_preprocessing, prepared.fri_reference, &fri_leaf.columns, fri);
+    if (selected_lane_only)
+        try prepared.fri_leaf_executor.generateMainForLaneInto(&prepared.fri_leaf_preprocessing, prepared.fri_reference, &fri_leaf.columns, fri, value.lane)
+    else
+        try prepared.fri_leaf_executor.generateMainInto(&prepared.fri_leaf_preprocessing, prepared.fri_reference, &fri_leaf.columns, fri);
     value.view_value.fri_leaf = try selectRows(A.fri_leaf, allocator, value.lane, prepared.fri_leaf_preprocessing.rows, fri_leaf.columns, try W.fri_leaf.logicalRow(prepared.fri_reference, &prepared.fri_leaf_preprocessing, 0, fri));
     var fri_node = try Columns(W.fri_node).init(scratch, prepared.fri_node_preprocessing.log_size);
-    try prepared.fri_node_executor.generateMainInto(&prepared.fri_node_preprocessing, prepared.fri_reference, &fri_node.columns, fri);
+    if (selected_lane_only)
+        try prepared.fri_node_executor.generateMainForLaneInto(&prepared.fri_node_preprocessing, prepared.fri_reference, &fri_node.columns, fri, value.lane)
+    else
+        try prepared.fri_node_executor.generateMainInto(&prepared.fri_node_preprocessing, prepared.fri_reference, &fri_node.columns, fri);
     value.view_value.fri_node = try selectRows(A.fri_node, allocator, value.lane, prepared.fri_node_preprocessing.rows, fri_node.columns, W.fri_node.logicalInputs(@splat(M31.zero()), @splat(M31.zero()), .binary_node));
     var fri_anchor = try Columns(W.fri_anchor).init(scratch, prepared.fri_anchor_preprocessing.log_size);
-    try prepared.fri_anchor_executor.generateMainInto(&prepared.fri_anchor_preprocessing, prepared.fri_reference, &value.vm_plan, &value.recursion_plan, &fri_anchor.columns, fri);
+    if (selected_lane_only)
+        try prepared.fri_anchor_executor.generateMainForLaneInto(&prepared.fri_anchor_preprocessing, prepared.fri_reference, &value.vm_plan, &value.recursion_plan, &fri_anchor.columns, fri, value.lane)
+    else
+        try prepared.fri_anchor_executor.generateMainInto(&prepared.fri_anchor_preprocessing, prepared.fri_reference, &value.vm_plan, &value.recursion_plan, &fri_anchor.columns, fri);
     value.view_value.fri_anchor = try selectRows(A.fri_anchor, allocator, value.lane, prepared.fri_anchor_preprocessing.rows, fri_anchor.columns, try W.fri_anchor.logicalRow(prepared.fri_reference, &prepared.fri_anchor_preprocessing, &value.vm_plan, &value.recursion_plan, 0, fri));
     var fri_control = try Columns(W.fri_control).init(scratch, prepared.control_preprocessing.log_size);
     try prepared.control_executor.generateMainInto(&prepared.control_preprocessing, prepared.control_reference, &fri_control.columns, query);
@@ -316,6 +337,9 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: anytype) !void
         const owner = try OwnedV1.init(allocator, child, lane);
         defer owner.deinit();
         const view_value = owner.view();
+        const selected = try OwnedV1.initWithLaneSelection(allocator, child, lane, true);
+        defer selected.deinit();
+        try std.testing.expectEqualDeep(view_value, selected.view());
         inline for (.{ "query_bits", "query_mapping", "merkle_root", "trace_merkle", "pcs_deep", "fri_leaf", "fri_node", "fri_anchor", "fri_control", "fri_input" }) |name|
             try checkLogicalRows(allocator, @field(A, name), @field(view_value, name));
         try checkLogicalRows(allocator, air.merkle_path, view_value.merkle_path);

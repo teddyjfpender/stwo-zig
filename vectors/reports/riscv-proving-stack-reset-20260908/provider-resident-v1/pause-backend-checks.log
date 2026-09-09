@@ -1,0 +1,12 @@
+test-framework-interaction-device
++- run test stderr
+FRAMEWORK_INTERACTION_GPU_V1 geometries=5 rows=1922 batches=2 dispatches=100 includes_failure_recovery=true
+
+Build Summary: 6/6 steps succeeded; 15/15 tests passed
+test-framework-interaction-device success
++- run test 3 passed 360ms MaxRSS:11M
+   +- compile test ReleaseSafe native success 3s MaxRSS:362M
+test-framework-polynomial-codegen success
++- run test 12 passed 659ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 4s MaxRSS:391M
+

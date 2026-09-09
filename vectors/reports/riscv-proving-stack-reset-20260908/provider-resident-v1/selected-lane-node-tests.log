@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 4/4 tests passed
+test-recursion-structural-hashes success
++- stwo_riscv_frontend test count floor success
+   +- run test 4 passed 287ms MaxRSS:1M
+      +- compile test ReleaseFast native success 6s MaxRSS:475M
+

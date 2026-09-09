@@ -535,6 +535,14 @@ pub fn build(b: *std.Build) void {
         .minimum = 5,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-lookup-table-framework-export",
+        .description = "Check native fixed-table backend export and ownership without proving",
+        .root = "lookup_table_interaction_test_root.zig",
+        .filters = &.{"native table framework"},
+        .imports_prover_engine = true,
+        .minimum = 4,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-lookup-table-interaction",
         .description = "Run lookup-table interaction parity and rollback tests",
         .root = "lookup_table_interaction_test_root.zig",
@@ -1051,6 +1059,14 @@ pub fn build(b: *std.Build) void {
         .imports_prover_engine = true,
         .filters = &.{ "R-012 direct", "R-012 universal challenge" },
         .minimum = 6,
+    });
+    addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
+        .step = "test-recursion-selected-lane-writers",
+        .description = "Compare selected-lane recursive witness materialization with the complete native writers",
+        .root = "recursion_air_core_test_root.zig",
+        .imports_prover_engine = true,
+        .filters = &.{ "R-012 trace Merkle direct writers", "R-012 FRI Merkle leaf writers", "R-012 FRI Merkle node writers", "R-012 FRI Merkle anchor writers" },
+        .minimum = 4,
     });
     addFocusedTests(b, core, prover, prover_api, postcard, typed_air_artifacts, target, optimize, check_only, .{
         .step = "test-recursion-framework-export",
