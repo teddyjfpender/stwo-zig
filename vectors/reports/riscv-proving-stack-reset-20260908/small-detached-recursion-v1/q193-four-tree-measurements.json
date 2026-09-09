@@ -1,0 +1,760 @@
+{
+  "scope": "Experimental q193 four-segment recursion; production-security admission remains open",
+  "runs": [
+    {
+      "backend": "cpu",
+      "seed": 13,
+      "segments": 4,
+      "retired_instructions": 227,
+      "leaf_production_ns": 43882646000,
+      "parent_production_ns": 83758544375,
+      "summed_producer_ns": 127641190375,
+      "complete_gate_ns": 328597716458,
+      "timing_scope": "One observation; production excludes lock waiting and hostile verification. Complete gate includes both, and other serial jobs were queued. Not an A/B performance claim.",
+      "maximum_rss_bytes": 7152058368,
+      "native": [
+        {
+          "profile": "protocol_v1",
+          "segment": "0",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "2020245917",
+          "transport_ns": "8567667",
+          "verify_ns": "438810083",
+          "recursive_prepare_ns": "957613167",
+          "proof_bytes": "1333079",
+          "transcript_calls": "1164",
+          "verifier_core_calls": "58865",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "1",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1911397833",
+          "transport_ns": "8477042",
+          "verify_ns": "439533458",
+          "recursive_prepare_ns": "939153334",
+          "proof_bytes": "1285640",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "2",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1865827666",
+          "transport_ns": "8513834",
+          "verify_ns": "428676583",
+          "recursive_prepare_ns": "944739792",
+          "proof_bytes": "1293574",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "3",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "2027518833",
+          "transport_ns": "8792000",
+          "verify_ns": "441907333",
+          "recursive_prepare_ns": "977600834",
+          "proof_bytes": "1287206",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        }
+      ],
+      "leaves": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-first/leaves/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2483410",
+          "native_ingress_ns": "3426745250",
+          "outer_prepare_ns": "2478525750",
+          "outer_prove_ns": "5236959250",
+          "transaction_ns": "11166242125",
+          "producer_peak_bytes": "2634971942",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-first/leaves/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2485445",
+          "native_ingress_ns": "3299926875",
+          "outer_prepare_ns": "2467946750",
+          "outer_prove_ns": "5165743167",
+          "transaction_ns": "10960072625",
+          "producer_peak_bytes": "2625493096",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "2",
+          "first_cycle": "128",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-first/leaves/child-2",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2490707",
+          "native_ingress_ns": "3249172333",
+          "outer_prepare_ns": "2473827750",
+          "outer_prove_ns": "4780385041",
+          "transaction_ns": "10542741667",
+          "producer_peak_bytes": "2625493103",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "3",
+          "first_cycle": "192",
+          "retired_cycles": "35",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-first/leaves/child-3",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2485993",
+          "native_ingress_ns": "3457731958",
+          "outer_prepare_ns": "2526328750",
+          "outer_prove_ns": "5150989625",
+          "transaction_ns": "11160679083",
+          "producer_peak_bytes": "2625096474",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "parents": [
+        {
+          "node": "parent-1-0-accepted.json",
+          "process_ns": 28112907250,
+          "lifecycle": {
+            "preparation_ns": 6071119542,
+            "key_preparation_ns": 3638485292,
+            "proof_ns": 18115337750,
+            "request_ns": 28100863375
+          },
+          "verify_ns": 78471750,
+          "verifier_request_ns": 81233250,
+          "proof_bytes": 2552282,
+          "key_sha256": "bad065b9c0a347a8f1f0712bace146bc8ad394ca49e90fb0f99cb7e8390fdf8b",
+          "metal": null
+        },
+        {
+          "node": "parent-1-1-accepted.json",
+          "process_ns": 27769217625,
+          "lifecycle": {
+            "preparation_ns": 6090162500,
+            "key_preparation_ns": 3795400084,
+            "proof_ns": 17549628541,
+            "request_ns": 27713153333
+          },
+          "verify_ns": 78723250,
+          "verifier_request_ns": 81731334,
+          "proof_bytes": 2553028,
+          "key_sha256": "7ced5ad9d4ea2b08d53ca52e537877caa19f676635203830ca51f9db65cb03fa",
+          "metal": null
+        },
+        {
+          "node": "parent-2-0-accepted.json",
+          "process_ns": 27876419500,
+          "lifecycle": {
+            "preparation_ns": 5919959042,
+            "key_preparation_ns": 3526524041,
+            "proof_ns": 18160775959,
+            "request_ns": 27843362792
+          },
+          "verify_ns": 72287333,
+          "verifier_request_ns": 74055292,
+          "proof_bytes": 2429796,
+          "key_sha256": "aab2c957cb3dc060ae53fef77c342d5a57760ddb6316007f0089ab615412089b",
+          "metal": null
+        }
+      ],
+      "root_verify_ns": 72287333,
+      "root_verifier_request_ns": 74055292,
+      "fresh_cases": 133,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-first/report.json",
+      "report_sha256": "ce28cad03f86793adf24233b05ff3b0c45471a8a79a4c915661b388b80b56d9d"
+    },
+    {
+      "backend": "metal",
+      "seed": 13,
+      "segments": 4,
+      "retired_instructions": 227,
+      "leaf_production_ns": 36734647375,
+      "parent_production_ns": 66205115418,
+      "summed_producer_ns": 102939762793,
+      "complete_gate_ns": 259436981750,
+      "timing_scope": "One observation; production excludes lock waiting and hostile verification. Complete gate includes both, and other serial jobs were queued. Not an A/B performance claim.",
+      "maximum_rss_bytes": 7578320896,
+      "native": [
+        {
+          "profile": "protocol_v1",
+          "segment": "0",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1084154666",
+          "transport_ns": "8889542",
+          "verify_ns": "435912875",
+          "recursive_prepare_ns": "1000180542",
+          "proof_bytes": "1333079",
+          "transcript_calls": "1164",
+          "verifier_core_calls": "58865",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "1",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1030984542",
+          "transport_ns": "9226375",
+          "verify_ns": "452404042",
+          "recursive_prepare_ns": "962794375",
+          "proof_bytes": "1285640",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "2",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1018018250",
+          "transport_ns": "8748542",
+          "verify_ns": "452347583",
+          "recursive_prepare_ns": "975091417",
+          "proof_bytes": "1293574",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "3",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1042310125",
+          "transport_ns": "9303292",
+          "verify_ns": "435339375",
+          "recursive_prepare_ns": "968392667",
+          "proof_bytes": "1287206",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        }
+      ],
+      "leaves": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-first/leaves/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2483410",
+          "native_ingress_ns": "2531822291",
+          "outer_prepare_ns": "2368553000",
+          "outer_prove_ns": "4307916500",
+          "transaction_ns": "9235586333",
+          "producer_peak_bytes": "2241429302",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-first/leaves/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2485445",
+          "native_ingress_ns": "2456858750",
+          "outer_prepare_ns": "2345510125",
+          "outer_prove_ns": "4297269375",
+          "transaction_ns": "9128343042",
+          "producer_peak_bytes": "2231950456",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "2",
+          "first_cycle": "128",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-first/leaves/child-2",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2490707",
+          "native_ingress_ns": "2455826500",
+          "outer_prepare_ns": "2334047709",
+          "outer_prove_ns": "4268955125",
+          "transaction_ns": "9087195125",
+          "producer_peak_bytes": "2231950463",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "3",
+          "first_cycle": "192",
+          "retired_cycles": "35",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-first/leaves/child-3",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2485993",
+          "native_ingress_ns": "2457084292",
+          "outer_prepare_ns": "2333066666",
+          "outer_prove_ns": "4297267667",
+          "transaction_ns": "9121459125",
+          "producer_peak_bytes": "2231553834",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "parents": [
+        {
+          "node": "parent-1-0-accepted.json",
+          "process_ns": 22086847334,
+          "lifecycle": {
+            "preparation_ns": 6128509000,
+            "key_preparation_ns": 1283482458,
+            "proof_ns": 14254124375,
+            "request_ns": 21964731416
+          },
+          "verify_ns": 79596208,
+          "verifier_request_ns": 82648917,
+          "proof_bytes": 2552282,
+          "key_sha256": "bad065b9c0a347a8f1f0712bace146bc8ad394ca49e90fb0f99cb7e8390fdf8b",
+          "metal": {
+            "dispatches": 95,
+            "poseidon_commits": 10,
+            "cpu_fallbacks": 0,
+            "manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+            "runtime_released": true
+          }
+        },
+        {
+          "node": "parent-1-1-accepted.json",
+          "process_ns": 22240861375,
+          "lifecycle": {
+            "preparation_ns": 6078702375,
+            "key_preparation_ns": 1269721875,
+            "proof_ns": 14531693375,
+            "request_ns": 22158923750
+          },
+          "verify_ns": 77111458,
+          "verifier_request_ns": 80047083,
+          "proof_bytes": 2553028,
+          "key_sha256": "7ced5ad9d4ea2b08d53ca52e537877caa19f676635203830ca51f9db65cb03fa",
+          "metal": {
+            "dispatches": 95,
+            "poseidon_commits": 10,
+            "cpu_fallbacks": 0,
+            "manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+            "runtime_released": true
+          }
+        },
+        {
+          "node": "parent-2-0-accepted.json",
+          "process_ns": 21877406709,
+          "lifecycle": {
+            "preparation_ns": 5849147083,
+            "key_preparation_ns": 1226266000,
+            "proof_ns": 14465485542,
+            "request_ns": 21779709083
+          },
+          "verify_ns": 80969417,
+          "verifier_request_ns": 84075292,
+          "proof_bytes": 2429796,
+          "key_sha256": "aab2c957cb3dc060ae53fef77c342d5a57760ddb6316007f0089ab615412089b",
+          "metal": {
+            "dispatches": 89,
+            "poseidon_commits": 10,
+            "cpu_fallbacks": 0,
+            "manifest_sha256": "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5",
+            "runtime_released": true
+          }
+        }
+      ],
+      "root_verify_ns": 80969417,
+      "root_verifier_request_ns": 84075292,
+      "fresh_cases": 133,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-first/report.json",
+      "report_sha256": "1c5ba64fe71a8ea2388dcc8ce33bab28f4ebb720412d26b049e5568a5a019eb0"
+    },
+    {
+      "backend": "cpu",
+      "seed": 14,
+      "segments": 4,
+      "retired_instructions": 227,
+      "leaf_production_ns": 44681850708,
+      "parent_production_ns": 82382135001,
+      "summed_producer_ns": 127063985709,
+      "complete_gate_ns": 297985571167,
+      "timing_scope": "One observation; production excludes lock waiting and hostile verification. Complete gate includes both, and other serial jobs were queued. Not an A/B performance claim.",
+      "maximum_rss_bytes": 7174029312,
+      "native": [
+        {
+          "profile": "protocol_v1",
+          "segment": "0",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "2085700042",
+          "transport_ns": "8872250",
+          "verify_ns": "435468000",
+          "recursive_prepare_ns": "973172083",
+          "proof_bytes": "1329111",
+          "transcript_calls": "1164",
+          "verifier_core_calls": "58865",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "1",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "2303480542",
+          "transport_ns": "8421625",
+          "verify_ns": "431951875",
+          "recursive_prepare_ns": "961745625",
+          "proof_bytes": "1280687",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "2",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "1854481584",
+          "transport_ns": "8684500",
+          "verify_ns": "450639833",
+          "recursive_prepare_ns": "971105958",
+          "proof_bytes": "1289309",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        },
+        {
+          "profile": "protocol_v1",
+          "segment": "3",
+          "queries": "193",
+          "fold_step": "4",
+          "pcs_pow_bits": "16",
+          "interaction_pow_bits": "10",
+          "prove_ns": "2243143042",
+          "transport_ns": "9324125",
+          "verify_ns": "437067750",
+          "recursive_prepare_ns": "953294208",
+          "proof_bytes": "1292069",
+          "transcript_calls": "1104",
+          "verifier_core_calls": "57900",
+          "outer_proof_created": "false"
+        }
+      ],
+      "leaves": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/leaves/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2481105",
+          "native_ingress_ns": "3504693917",
+          "outer_prepare_ns": "2615076250",
+          "outer_prove_ns": "4977240917",
+          "transaction_ns": "11130391833",
+          "producer_peak_bytes": "2634971942",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/leaves/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2485202",
+          "native_ingress_ns": "3707084375",
+          "outer_prepare_ns": "2550319250",
+          "outer_prove_ns": "5139294125",
+          "transaction_ns": "11422018250",
+          "producer_peak_bytes": "2625493096",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "2",
+          "first_cycle": "128",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/leaves/child-2",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2497059",
+          "native_ingress_ns": "3286503333",
+          "outer_prepare_ns": "2650424000",
+          "outer_prove_ns": "5033242583",
+          "transaction_ns": "10995575125",
+          "producer_peak_bytes": "2625493103",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "3",
+          "first_cycle": "192",
+          "retired_cycles": "35",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/leaves/child-3",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2494348",
+          "native_ingress_ns": "3644264084",
+          "outer_prepare_ns": "2538424875",
+          "outer_prove_ns": "4868541542",
+          "transaction_ns": "11076126291",
+          "producer_peak_bytes": "2625096474",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "parents": [
+        {
+          "node": "parent-1-0-accepted.json",
+          "process_ns": 28104763209,
+          "lifecycle": {
+            "preparation_ns": 5912907333,
+            "key_preparation_ns": 3608493000,
+            "proof_ns": 18292007292,
+            "request_ns": 28084289542
+          },
+          "verify_ns": 74516458,
+          "verifier_request_ns": 76302583,
+          "proof_bytes": 2563313,
+          "key_sha256": "bad065b9c0a347a8f1f0712bace146bc8ad394ca49e90fb0f99cb7e8390fdf8b",
+          "metal": null
+        },
+        {
+          "node": "parent-1-1-accepted.json",
+          "process_ns": 27298679417,
+          "lifecycle": {
+            "preparation_ns": 5906829375,
+            "key_preparation_ns": 3503988208,
+            "proof_ns": 17600227500,
+            "request_ns": 27287555708
+          },
+          "verify_ns": 78999291,
+          "verifier_request_ns": 81908208,
+          "proof_bytes": 2551017,
+          "key_sha256": "7ced5ad9d4ea2b08d53ca52e537877caa19f676635203830ca51f9db65cb03fa",
+          "metal": null
+        },
+        {
+          "node": "parent-2-0-accepted.json",
+          "process_ns": 26978692375,
+          "lifecycle": {
+            "preparation_ns": 5845616667,
+            "key_preparation_ns": 3554690208,
+            "proof_ns": 17316068084,
+            "request_ns": 26957059750
+          },
+          "verify_ns": 79515458,
+          "verifier_request_ns": 82428084,
+          "proof_bytes": 2425814,
+          "key_sha256": "aab2c957cb3dc060ae53fef77c342d5a57760ddb6316007f0089ab615412089b",
+          "metal": null
+        }
+      ],
+      "root_verify_ns": 79515458,
+      "root_verifier_request_ns": 82428084,
+      "fresh_cases": 133,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/report.json",
+      "report_sha256": "4e42ce5a59cb48a27b670e950d571343a407bf923c927faed2399cdadde2c208"
+    }
+  ],
+  "cpu_metal_artifact_parity": [
+    {
+      "path": "leaves/child-0/key.json",
+      "sha256": "e5fb45e1b74c32219af17cda598e1fbd56ed61055be19dde260a03d2d0b015a2"
+    },
+    {
+      "path": "leaves/child-0/claims.json",
+      "sha256": "015e062b1e0b582b0d812ac496a6d94f1ede83aeaca99421eedfcd1af8db0efa"
+    },
+    {
+      "path": "leaves/child-0/proof.bin",
+      "sha256": "8ef19db0aa78f425149522db8ae7861e96db753b71595f6da45d191b46c949ea"
+    },
+    {
+      "path": "leaves/child-0/expected-wire.json",
+      "sha256": "e01923264a3f39fd78a049e52365e26f7e4999a306703f67a4eda4f1403545f8"
+    },
+    {
+      "path": "leaves/child-1/key.json",
+      "sha256": "0723005d48d350f3719a61e384df4e3ad7b06550e1ffaa9a6a0f66da3a694fab"
+    },
+    {
+      "path": "leaves/child-1/claims.json",
+      "sha256": "7bfdd5f6bc86ca50afc7c0b3dd8c1f5ec7ec343d6db4b590ccdc51d062050390"
+    },
+    {
+      "path": "leaves/child-1/proof.bin",
+      "sha256": "5407e053eb44b3b48c2357f553a237732239774f2a7456b32fc175f89183f758"
+    },
+    {
+      "path": "leaves/child-1/expected-wire.json",
+      "sha256": "d7bc8ae71ed948a1bd8ae193fcd5427baefa2ef074fb0da742ede1fcfcfc3ca1"
+    },
+    {
+      "path": "leaves/child-2/key.json",
+      "sha256": "bf5cb7e0102a36053e53e20097ee12dc2f35cdcf23ee5105f1a7134594eb2dd2"
+    },
+    {
+      "path": "leaves/child-2/claims.json",
+      "sha256": "04e29fe6f98f05cc432abd4d3b4fe57f19ed3f30451cd8aae3792dc1c32561e6"
+    },
+    {
+      "path": "leaves/child-2/proof.bin",
+      "sha256": "c864f3f919e3c327f0b15462afff39dd349669680ca03b32f62809b1f5737d4b"
+    },
+    {
+      "path": "leaves/child-2/expected-wire.json",
+      "sha256": "0b647a13c24bf4e4150e593b11c4615bb23317d86c1578daa696b29eb70cfdd0"
+    },
+    {
+      "path": "leaves/child-3/key.json",
+      "sha256": "45aec7e8e4757f900a72a2bbad40bfb68269f09c6899c163afb1240e8df4dfd3"
+    },
+    {
+      "path": "leaves/child-3/claims.json",
+      "sha256": "8268daea6b3922db610660e217530a169bde79592cef24a9e782758b064745dc"
+    },
+    {
+      "path": "leaves/child-3/proof.bin",
+      "sha256": "a2d525c98bba38e71b580c68533e83a0778ce86dd19871c860b9ec6c9902c2bf"
+    },
+    {
+      "path": "leaves/child-3/expected-wire.json",
+      "sha256": "41f7917bb78ee298b4f536d4f768073abe6a72e84e24438bb284cdd1a852d758"
+    },
+    {
+      "path": "parent-1-0/key.json",
+      "sha256": "bad065b9c0a347a8f1f0712bace146bc8ad394ca49e90fb0f99cb7e8390fdf8b"
+    },
+    {
+      "path": "parent-1-0/claims.json",
+      "sha256": "45212afb6a909f1ce45072fcf49ae37150148ceccbe05ea67eca0f18db656205"
+    },
+    {
+      "path": "parent-1-0/proof.bin",
+      "sha256": "0fc9bfc708d547f77fde5f085da7806e6e4ac066fb3695780e0a98e4ad263160"
+    },
+    {
+      "path": "parent-1-0/candidate-rootwords.json",
+      "sha256": "cf7aaf183469c5e3b284dea942b9bd73a3b4e05e93fc71130972efa88697ebbd"
+    },
+    {
+      "path": "parent-1-1/key.json",
+      "sha256": "7ced5ad9d4ea2b08d53ca52e537877caa19f676635203830ca51f9db65cb03fa"
+    },
+    {
+      "path": "parent-1-1/claims.json",
+      "sha256": "2069b3da71727479463bb7f4a7048a8fd69098de93a3cfc8fc49b7298fbfde79"
+    },
+    {
+      "path": "parent-1-1/proof.bin",
+      "sha256": "f27a2abc5956d3eb13466e224d7c2b361a5dfc2ecaa7abacbcc1d40ee9d344aa"
+    },
+    {
+      "path": "parent-1-1/candidate-rootwords.json",
+      "sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9"
+    },
+    {
+      "path": "parent-2-0/key.json",
+      "sha256": "aab2c957cb3dc060ae53fef77c342d5a57760ddb6316007f0089ab615412089b"
+    },
+    {
+      "path": "parent-2-0/claims.json",
+      "sha256": "f15463ba471cffa01fc85d6a5de9f35b32b523e718ef0a0444708bcf42d0c8c7"
+    },
+    {
+      "path": "parent-2-0/proof.bin",
+      "sha256": "d67cf8a475d74effa60dad47eddfab51e42f414fffd8a317f1004ef9f1d5311a"
+    },
+    {
+      "path": "parent-2-0/candidate-rootwords.json",
+      "sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f"
+    }
+  ],
+  "seed14_reused_keys": [
+    "leaves/child-0/key.json",
+    "leaves/child-1/key.json",
+    "leaves/child-2/key.json",
+    "leaves/child-3/key.json",
+    "parent-1-0/key.json",
+    "parent-1-1/key.json",
+    "parent-2-0/key.json"
+  ],
+  "seed14_all_proofs_changed": true,
+  "passed": true
+}

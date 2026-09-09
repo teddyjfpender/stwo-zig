@@ -1,0 +1,286 @@
+[
+  {
+    "backend": "cpu",
+    "environment": {
+      "STWO_RISCV_RECURSIVE_PARENT_PROFILE": "1"
+    },
+    "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-four-root-cpu-profile.json",
+    "profile": {
+      "schema_version": 1,
+      "runtime": "cpu",
+      "example": "detached-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 3.577377,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation and filling",
+          "seconds": 0.46619,
+          "children": null
+        },
+        {
+          "id": "parent.closure",
+          "label": "Exact lookup closure",
+          "seconds": 5.232743,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 2.949656,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.939685,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 1.789463,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.003131,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 2e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 1.4e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 3.362497,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.012453,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.366644,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.000127,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.153933,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000789,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.662448,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.830928,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.05981,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.003109,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.000342,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.005109,
+          "children": null
+        }
+      ]
+    },
+    "all_artifacts_equal_bootstrap": true,
+    "fresh_cases": 27
+  },
+  {
+    "backend": "metal",
+    "environment": {
+      "STWO_RISCV_RECURSIVE_PARENT_PROFILE": "1"
+    },
+    "report": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-four-root-metal-profile.json",
+    "profile": {
+      "schema_version": 1,
+      "runtime": "device",
+      "example": "detached-recursive-parent",
+      "stages": [
+        {
+          "id": "parent.fixed",
+          "label": "Fixed columns and key admission",
+          "seconds": 1.217871,
+          "children": null
+        },
+        {
+          "id": "parent.main_fill",
+          "label": "Main column allocation and filling",
+          "seconds": 0.45057,
+          "children": null
+        },
+        {
+          "id": "parent.closure",
+          "label": "Exact lookup closure",
+          "seconds": 4.88379,
+          "children": null
+        },
+        {
+          "id": "parent.main_commit",
+          "label": "Main commitment",
+          "seconds": 1.335543,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_fill",
+          "label": "Transcript and interaction columns",
+          "seconds": 1.939077,
+          "children": null
+        },
+        {
+          "id": "parent.interaction_commit",
+          "label": "Interaction commitment",
+          "seconds": 0.637434,
+          "children": null
+        },
+        {
+          "id": "parent.components",
+          "label": "Typed component assembly",
+          "seconds": 0.00301,
+          "children": null
+        },
+        {
+          "id": "draw_random_coeff",
+          "label": "Draw random coefficient",
+          "seconds": 1e-06,
+          "children": null
+        },
+        {
+          "id": "composition_trace_extract",
+          "label": "Composition trace extract",
+          "seconds": 1.3e-05,
+          "children": null
+        },
+        {
+          "id": "composition_evaluation",
+          "label": "Composition evaluation",
+          "seconds": 3.432524,
+          "children": null
+        },
+        {
+          "id": "composition_interpolate_and_split",
+          "label": "Composition interpolate and split",
+          "seconds": 0.008727,
+          "children": null
+        },
+        {
+          "id": "composition_commit",
+          "label": "Composition commit",
+          "seconds": 0.502907,
+          "children": null
+        },
+        {
+          "id": "oods_point_and_mask_points",
+          "label": "OODS point and mask points",
+          "seconds": 0.00016,
+          "children": null
+        },
+        {
+          "id": "sampled_value_evaluation",
+          "label": "Sampled-value evaluation",
+          "seconds": 0.241674,
+          "children": null
+        },
+        {
+          "id": "sampled_value_channel_mix",
+          "label": "Sampled-value channel mix",
+          "seconds": 0.000739,
+          "children": null
+        },
+        {
+          "id": "fri_quotient_build_and_commit",
+          "label": "FRI quotient build + commit (lazy)",
+          "seconds": 0.590465,
+          "children": null
+        },
+        {
+          "id": "proof_of_work",
+          "label": "Proof of work",
+          "seconds": 0.005101,
+          "children": null
+        },
+        {
+          "id": "fri_decommit",
+          "label": "FRI decommit",
+          "seconds": 0.005631,
+          "children": null
+        },
+        {
+          "id": "trace_decommit",
+          "label": "Trace decommit",
+          "seconds": 0.015168,
+          "children": null
+        },
+        {
+          "id": "constraint_check_and_assembly",
+          "label": "Constraint check and assembly",
+          "seconds": 0.000368,
+          "children": null
+        },
+        {
+          "id": "parent.serialize",
+          "label": "Canonical proof serialization",
+          "seconds": 0.005272,
+          "children": null
+        }
+      ]
+    },
+    "all_artifacts_equal_bootstrap": true,
+    "fresh_cases": 27
+  }
+]

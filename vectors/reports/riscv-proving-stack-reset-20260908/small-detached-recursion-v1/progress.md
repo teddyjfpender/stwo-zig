@@ -678,3 +678,55 @@ All eight complete-tree reruns pass 1,014 fresh cases and exact artifact parity;
 commands and resource data are in `wrapper-interaction-direct-trees.json` and
 `wrapper-interaction-direct-tree-measurements.json`. The next critical-path work
 is stronger 4/8 admission plus formal quiet-host CSP preservation.
+
+
+## Stronger complete 4/8 trees, 2026-09-09
+
+The existing shared route now completes the experimental q193 profile at four
+and eight segments on CPU and Metal. No production implementation change was
+needed. Each N-segment tree generates N native proofs, N wrappers and N-1 parent
+proofs; fresh CPU processes verify the retained wrappers and parents after each
+producer exits. These fixtures execute 227/482 instructions, with one memory
+address. Ethereum-block proving has not resumed.
+
+| Segments | CPU production sum | Metal production sum | Root STARK verification | Peak process RSS CPU / Metal |
+| --- | ---: | ---: | ---: | ---: |
+| 4 | 127.64s | 102.94s | 72–81ms | 6.66 / 7.06GiB |
+| 8 | 279.65s | 228.24s | 77–80ms | 6.66 / 7.13GiB |
+
+Production sums exclude shared-lock waits and hostile verification cases. These
+are single observations, not paired performance claims. GPU allocation memory
+is not separately measured. All 28 four-tree and 60 eight-tree artifacts match
+between CPU and Metal. Seed13→14 reuses every key (7 and 15 respectively); every
+proof and expected statement changes and freshly verifies.
+
+Evidence:
+
+- `q193-complete-ladder-measurements.json`: pinned 2/4/8 CPU/Metal reports,
+  individual proof counts, production, final verification and RSS.
+- `q193-four-tree-measurements.json`, `q193-ladder-8-summary.json`: changed-memory
+  key reuse, artifact parity and complete fresh-proof gates.
+- `q193-four-root-stage-profiles.json`: separate CPU/Metal root diagnostics,
+  unchanged artifacts and another 54 fresh cases. Graph preparation (~5.9s),
+  exact closure (~4.9–5.2s) and composition (~3.4s) now dominate Metal root cost;
+  sampled openings are only 0.15–0.24s.
+- `q193-four-intermediate-capture.{json,log}` and
+  `q193-ladder-8-level2-capture.{json,log}`: both consuming-AIR depths reject all
+  436 public-word mutations and 45 claim/sample mutations, bind 872 transcript
+  limbs and survive input destruction. Each test runs in 3s; the second build
+  is cached (63ms).
+- `q193-genuine-weak-child-rejections.json`: actual weaker segment and parent
+  proofs reject before q193 recursive AIR allocation; source artifacts unchanged.
+- `tree-admissions/q193-{4,8}.json` plus their explicit experimental admission
+  reviews: fixed keys and independently derived expectations. Hash custody is
+  not production circuit certification.
+- `wrapper-interaction-csp-preflight.json`: two failed CPU normative preflights,
+  the second after stopping the unrelated proximity search. No cohort launched;
+  the previous CPU/Metal paired diagnostic is not superseded. Formal dual-backend
+  CSP preservation remains open and no thresholds were weakened.
+
+Root rechecked all six new full-tree reports, every step log hash, 274 distinct
+retained input/artifact pins and 1,278 fresh-case records. Bootstrap proofs add 426
+fresh cases and the root diagnostics add 54; the two genuine weak-family failures
+and focused consuming-AIR checks are recorded separately. Production security,
+formal CSP preservation and separate device-memory accounting remain open.

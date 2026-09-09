@@ -1,0 +1,32 @@
+{
+  "name": "level2-0",
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/metal-parent-cpu-compat-prove",
+    "--profile",
+    "tiny-parent-span-v2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-level2-0-cpu-bootstrap",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-pair-0-cpu-bootstrap",
+    "10262b5554ba7b0f69eee100015cbc28b661c907cf6fe9e3a2c1d7aee728bff0",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-admission/pair-0-expected-span.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-pair-1-cpu-bootstrap",
+    "20104a1c6c47a974cd086c6f1d1733a8d948b83b0f0baf03e8e2cf98b5e9533e",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-admission/pair-1-expected-span.json",
+    "--proof-profile",
+    "recursive_q193_v1"
+  ],
+  "process_ns": 26401350375,
+  "maximum_rss_bytes": 7152812032,
+  "exit_code": 0,
+  "log_sha256": "2f038e3ff37278b0b503095f0b2fc5f880b4903737efdcae385e00a68eef9354",
+  "producer_sha256": "88fcd214f1b7f40903d8087d16eac45addf1f16a7203bee340f0fefbbfd08f34",
+  "production_security_admission_complete": false,
+  "key_sha256": "128e6b2ce19528caa737b56ab9d16168cf298f38d217dfff712a8b230cf2c2ad",
+  "expected_sha256": "8295b0fa446abb0ef3a5bd8144c33eaacfac4a353dd875b836cb1e9e64456cb8",
+  "fresh_cases": 27,
+  "scope": "Explicit experimental bootstrap only; profile and child pins checked; independent expected statement; production security admission remains open",
+  "cross_statement_reuse": {
+    "passed": true,
+    "report": "../q193-ladder-8-seed14-key-reuse.json",
+    "report_sha256": "4f75c4b70850c093cc7ca907038eb9974b0c7a32ef326f038dd86a3eb46cefd9"
+  }
+}

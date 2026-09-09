@@ -3,8 +3,8 @@
 The small detached route now proves complete 2/4/8-segment recursive trees
 on CPU or Metal: native children, detached wrappers, every intermediate parent
 and one root. Fresh CPU verification runs after producer exit with independently
-pinned keys and expected statements. The development profile and stronger q193
-two-segment route have separate evidence; production-security admission and formal
+pinned keys and expected statements. The development and stronger q193 profiles
+each have complete 2/4/8-tree evidence; production-security admission and formal
 CSP performance promotion remain pending. These are tiny RISC-V memory workloads,
 not Ethereum blocks. q193 names the FRI query count.
 
@@ -558,13 +558,9 @@ in `src/integrations/riscv_metal`. The shared complete-proof gate accepts explic
 `--metal-aot-bundle` and `--metal-aot-manifest-sha256` with its normal producer/key/
 expected-statement pins, and checks dispatch/shutdown evidence before verification.
 
-Full Metal trees remain unfinished: native children and recursive parents now
-run on Metal, but the detached child wrappers still use CPU. Next pass the same
-backend engine through their existing producer transaction, retain per-wrapper
-GPU evidence, prove and freshly verify a complete two-segment Metal tree, then
-run the actual2/4/8 ladders. Expand telemetry to attribute composition's remaining
-host/device work before claiming further GPU speedups. Production-security
-admission and the formal CSP preservation gate remain open.
+The complete controller below supersedes this initial parent-only checkpoint:
+native children, detached wrappers and every parent now select Metal together.
+Production-security admission and formal CSP preservation remain open.
 
 ## Complete CPU and Metal tree controller
 
@@ -597,9 +593,8 @@ The separate `q193-two-full-metal-first.json` records a complete stronger
 98-instruction tree: both native proofs, both wrappers and the root use Metal,
 then independent CPU verification passes all 45 acceptance/rejection cases.
 It takes 44.54s including those cases, with 6.59GiB peak process RSS. Artifact
-bytes match the CPU route. Stronger 4/8 trees, production-security admission and
-formal CSP promotion are still open. The next user-requested pass targets
-sampled opening work in the wrappers on both CPU and Metal.
+bytes match the CPU route. The later stronger 4/8 runs are recorded below;
+production-security admission and formal CSP promotion remain open.
 
 ## Wrapper coefficient retention comparison
 
@@ -712,5 +707,100 @@ expected statement and parent publication matches the preceding checkpoint.
 `wrapper-interaction-direct-trees.json` contains the commands and binary pin;
 `wrapper-interaction-direct-tree-measurements.json` records endpoint timing,
 root verification and memory. These reruns establish complete-route correctness
-and scaling observations, not additional paired timing claims. The next milestone
-is the separately admitted stronger 4/8 route and formal CSP preservation.
+and scaling observations, not additional paired timing claims. The subsequent
+stronger 4/8 route is recorded below; formal CSP preservation remains open.
+
+## Complete stronger ladder
+
+The same tree controller completes the experimental q193 profile at 2/4/8
+segments on both backends. Each N-segment run generates N native proofs, N
+detached wrapper proofs and N-1 aggregation proofs. Workloads contain only
+98/227/482 retired RISC-V instructions, respectively, with one memory address.
+
+| Segments | Backend | Native + wrappers (s) | Aggregation (s) | Sum (s) | Root STARK verification (ms) | Peak RSS (GiB) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| 2 | CPU | 24.00 | 28.74 | 52.74 | 78.38 | 6.41 |
+| 2 | Metal | 18.45 | 22.38 | 40.82 | 79.77 | 5.93 |
+| 4 | CPU | 43.88 | 83.76 | 127.64 | 72.29 | 6.66 |
+| 4 | Metal | 36.73 | 66.21 | 102.94 | 80.97 | 7.06 |
+| 8 | CPU | 89.70 | 189.95 | 279.65 | 76.95 | 6.66 |
+| 8 | Metal | 73.65 | 154.58 | 228.24 | 80.38 | 7.13 |
+
+These are single observations from serial producer processes, excluding lock
+waiting and hostile verification cases. Complete-gate wall time includes both
+and must not be substituted for the production sum. RSS is process memory, not
+a separate device allocation measurement. The four/eight-segment final proofs
+remain approximately 2.43MB. This ladder demonstrates bounded scaling at these
+small geometries, not Ethereum-block performance or production security.
+
+Use the existing tree command with the newly pinned manifests:
+
+- `tree-admissions/q193-4.json`:
+  `ea8ba2941e859af36d516c62adc1c33b38835874688973015cade10dea201fad`.
+- `tree-admissions/q193-8.json`:
+  `6d7bbd731204e18f786543ab69bd43647369e9ec929d699db1cc59a5be302e36`.
+
+Every full-tree report retains the executable command, independent input pins,
+producer exit evidence, per-node fresh proof gates and backend lifecycle checks.
+All 28 four-tree and 60 eight-tree artifact files match between CPU and Metal.
+Changing the initial memory word from 13 to 14 reuses all seven four-tree and
+all fifteen eight-tree keys unchanged; every proof and expected statement
+changes and freshly verifies. Independent execution supplies the expected
+statements before the new proofs are produced. See the
+[four-tree reuse evidence](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-four-tree-measurements.json)
+and [eight-tree summary](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-summary.json).
+The [ladder measurements](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-complete-ladder-measurements.json)
+link the six exact reports and distinguish native, wrapper and parent counts.
+
+## Stronger parent-of-parent cost attribution
+
+The four-segment q193 root now consumes two genuine intermediate parent proofs.
+Separate diagnostic runs reproduce identical CPU/Metal artifacts and pass all
+27 fresh verifier cases on each backend. They use the existing
+`STWO_RISCV_RECURSIVE_PARENT_PROFILE=1` recorder; they are single observations,
+not a paired performance claim.
+
+| Root operation | CPU seconds | Metal seconds |
+| --- | ---: | ---: |
+| Recursive preparation | 5.908 | 5.944 |
+| Fixed columns and admission | 3.577 | 1.218 |
+| Exact lookup closure | 5.233 | 4.884 |
+| Main commitment | 2.950 | 1.336 |
+| Interaction filling | 1.940 | 1.939 |
+| Interaction commitment | 1.789 | 0.637 |
+| Composition evaluation | 3.362 | 3.433 |
+| Sampled openings | 0.154 | 0.242 |
+| Complete producer request | 27.665 | 21.835 |
+
+These rows expose the material phases rather than partition every remaining
+millisecond; see the full recorder for the smaller phases. Metal accelerates
+commitments, while preparation, exact closure and composition remain substantial
+host work. Selecting the Metal backend at every tree node does not mean every
+operation runs on the GPU. The removed CPU opening cost is no longer dominant.
+
+The next measured optimization target is repeated preparation/closure work in
+the shared parent route. Preserve exact lookup semantics, independent key
+admission and complete-proof parity. Do not widen the instruction frontend or
+change security parameters to reduce these timings.
+
+Evidence: [root stage profiles](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-four-root-stage-profiles.json),
+[consuming-AIR check](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-four-intermediate-capture.json),
+and [genuine weak-child rejections](../../vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-genuine-weak-child-rejections.json).
+
+The next-level intermediate also passes the same focused check in three seconds
+(708 MiB test RSS; cached compilation took 63ms). From the repository root:
+
+```sh
+proof_fixture="$PWD/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1"
+STWO_DETACHED_PARENT_BUNDLE="$proof_fixture/q193-ladder-8-level2-0-cpu-bootstrap" \
+STWO_DETACHED_PARENT_KEY_SHA256=128e6b2ce19528caa737b56ab9d16168cf298f38d217dfff712a8b230cf2c2ad \
+STWO_DETACHED_PARENT_EXPECTED_ROOT="$proof_fixture/q193-ladder-8-admission/level2-0-expected-span.json" \
+python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu \
+  test-recursive-segment-v2-detached-parent-capture -Doptimize=ReleaseSafe --summary all
+```
+
+This checks a genuine parent-of-parent proof, destruction of the original inputs,
+all 436 public-word mutations, 872 transcript limbs and 45 claim/sample controls.
+It does not generate the next consumer proof; use the full tree command for that
+gate. Shared-lock waiting is reported separately in the retained log and is not
+included in the three-second test runtime.

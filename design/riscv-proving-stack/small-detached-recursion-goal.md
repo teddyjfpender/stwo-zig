@@ -14,10 +14,11 @@ on CPU or Metal. Each serialized proof verifies in a fresh CPU process after
 producer exit. All artifact bytes match across backends. These are small RISC-V
 memory workloads; Ethereum block proving has not resumed.
 
-The separately admitted experimental q193 profile also completes a two-segment
-full Metal tree. Here q193 means 193 FRI queries. A stronger profile is not itself
-production-security certification. Stronger 4/8 trees and formal production
-admission remain open. The shared parent statement authenticates 436 public
+The separately admitted experimental q193 profile now also completes 2/4/8 trees
+on CPU and Metal, including every recursive parent. Here q193 means 193 FRI
+queries. A stronger profile is not itself production-security certification;
+formal production admission remains open. The shared parent statement
+authenticates 436 public
 words, session and endpoint lineage; existing changed-memory runs reuse complete
 admitted keys. Focused capture checks cover all 872 transcript limbs, canonical
 field encoding and coherent public-word mutations.
@@ -53,9 +54,24 @@ wrapper medians improve another 11.4% CPU and 15.7% Metal, with stable memory.
 Complete two-child medians are 23.896s CPU and 18.671s Metal. The focused
 framework gate runs in 272ms after a six-second compile.
 
-All eight full-tree reruns now pass 1,014 fresh cases with identical artifacts.
-Return to the stronger 4/8-segment milestone and
-formal CSP preservation. Keep the existing per-segment workload small. Do not
+All eight full-tree reruns pass 1,014 fresh cases with identical artifacts.
+The subsequent stronger 4/8-segment milestone now also passes on both backends.
+Its four-segment producer sums are 127.64s CPU / 102.94s Metal; eight segments
+take 279.65s CPU / 228.24s Metal. Each aggregate contains N-1 actual parent proofs.
+Final root STARK verification stays at 72–81ms, and peak process RSS remains
+about 6.7GiB CPU / 7.1GiB Metal for four and eight segments. These are single
+observations, not an A/B promotion claim; device allocation memory remains a
+separate measurement obligation. See `q193-complete-ladder-measurements.json`.
+
+Changed initial memory now reuses all seven four-tree and all fifteen eight-tree
+keys unchanged; every new proof and statement verifies independently. Both
+depths also pass the consuming-AIR mutation check, including all 436 public
+words. The deeper cached check runs in three seconds. Genuine weaker segment and
+parent proofs are rejected before q193 AIR allocation.
+
+Formal CSP preservation, independent production circuit/security admission and
+separate device-memory measurement remain open. Keep the existing per-segment
+workload small. Do not
 extend leaf optimization indefinitely or substitute development-profile trees
 for the separately admitted stronger route.
 
@@ -117,6 +133,51 @@ additional twelve-hour optimization/cleanup direction.
   passed proof/policy checks but did not meet quiet-host admission.
 - Keep RV64 a separately admitted future frontend/profile. No shared RV32
   widening or CSP execution-path change is part of this work.
+
+### Stronger recursive admission boundary
+
+The q193 parent-of-parent review found a shared verifier/transcript route, not a
+second protocol implementation. Capture consumes the standalone verifier;
+`recursive_segment_v2_detached_prefix.zig` owns admission, claim and interaction
+PoW ordering. All 436 parent public words enter canonical split-u16 relations.
+Session, endpoint lineage and adjacent spans use the shared continuation rules.
+
+Successful experimental trees do not close production admission. The independent
+key hash authenticates the selected bytes; structural key validation does not
+certify that Tree0 encodes the intended circuit. Production admission must retain
+reproducible fixed-circuit/Tree0 generation and reviewed transitive child pins at
+every level. Parent-family construction relies on those child proofs to enforce
+child semantics. The configured q193 parameters also need an explicit security
+argument covering FRI assumptions, algebraic and lookup error, hash assumptions,
+and composition across the admitted depth. `DEVELOPMENT_ONLY` remains true.
+
+For each new experimental tree, require unchanged keys across initial-memory
+values, CPU/Metal artifact parity, freshly verified intermediate/root proofs,
+and the existing consuming-AIR public-word mutation gate. Retain genuine weak
+segment and weak parent inputs that fail a q193 parent before AIR allocation;
+mutating a transport header alone does not cover that admission boundary.
+
+### Next bounded optimization candidate
+
+The stronger four-segment root profile isolates one duplicate source projection.
+`recursive_segment_v2_detached_parent_cohort.zig` evaluates every logical row's
+`relation_plan.preparedEntries` during admission to build only the range counter.
+Exact closure later projects the same owned rows again. The existing compact
+tuple ledger already owns a source range counter.
+
+A candidate main-finalization operation can append source tuples once, derive
+the range batch from that counter, fill provider columns and close the actual
+provider/public tuples before commitment. Keep direct-constraint admission,
+canonicality, destination/alias checks, provider column agreement and the cold
+mutated-main audit. Keep the ledger local to finalization rather than extending
+its retained lifetime. This is a candidate, not an implemented improvement.
+
+The entire measured graph-to-prepared snapshot interval is only 1.416s CPU and
+1.372s Metal; the removable traversal is a subset of it. Therefore this alone
+cannot save more than roughly 5–6% of the root request. Measure preparation plus
+finalization together so relocated work cannot masquerade as savings. Larger
+reductions require separate evidence about graph construction and exact-ledger
+aggregation; do not promise an order-of-magnitude gain from this fusion.
 
 ## Starting evidence and immediate boundary
 
