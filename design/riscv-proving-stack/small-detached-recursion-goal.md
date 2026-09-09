@@ -36,6 +36,14 @@ is378/384ms; peak parent RSS remains about656MiB. The observed stage sums are
 26.91/57.75s for CPU leaves plus aggregation. These sums combine separate runs
 and are not a single end-to-end controller wall-time measurement.
 
+The first measured whole-tree bottleneck has a working optimization: retaining
+parent polynomial coefficients reduces sampled-value evaluation from1.373s to
+17ms. Three alternating local A/B rounds reduce final-aggregation median request
+from3.875s to2.553s (34.1%) for about48MiB additional RSS. All175 fresh cases and
+exact proof/key byte checks pass. These results do not replace production-security
+or CSP promotion requirements. Exact tuple closure is now the largest measured
+parent phase, around749ms; composition is394ms.
+
 ## Required implementation order
 
 1. Make the current small wrapper independently verifiable. A fresh process

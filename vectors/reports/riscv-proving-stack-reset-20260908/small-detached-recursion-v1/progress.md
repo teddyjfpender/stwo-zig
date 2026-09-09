@@ -402,3 +402,34 @@ development admissions. No candidate self-admits in the pinned lifecycle runs.
 Production-security measurements, formal quiet-host CSP preservation and
 optimization of the measured whole tree remain open. The new route does not
 change shared RV32 types, CSP protocol identities or backend worker policy.
+
+## Measured parent opening optimization
+
+The existing stage recorder is available through
+`STWO_RISCV_RECURSIVE_PARENT_PROFILE=1`, with task capture disabled. It covers
+fixed preprocessing, main columns, exact closure, interaction generation and
+commitments, then the shared engine composition/PCS stages. The ordinary route
+allocates no recorder nodes. Profiling on/off preserves exact key/proof bytes
+and passes50 fresh cases.
+
+The first profile attributed1.373s to sampled-value evaluation,743ms to exact
+lookup closure and389ms to composition. The small parent had explicitly
+discarded coefficients already computed for commitments. Retaining them reduced
+sampled-value evaluation to16.96ms, about98.8%. Three alternating A/B rounds on
+the same eight-segment final root reduced median request time from3.8748s to
+2.5528s (34.1%), while peak RSS rose from655.6MiB to703.5MiB. All175 fresh cases
+pass and key, claims, proof and expected-word bytes remain identical. This uses
+the established PCS retention policy only in the small detached parent; CSP
+and native-child defaults are unchanged. Detailed source/binary pins, phase
+profiles, process memory and all rounds are in `parent-coefficients-ab.json`
+and the adjacent build/patch records.
+
+The remaining dominant measured phase is exact tuple closure, approximately
+749ms, followed by composition at394ms. Further work should optimize that actual
+finalization boundary without replacing authenticated ownership with a cached
+validation flag. The complete tree now works; production-security measurements
+and formal CSP promotion are still outstanding.
+
+The retained-coefficient producer also passes25 fresh cases on the original
+two-native-child parent with Metal-produced inputs, under the original admitted
+key and with byte-identical artifacts (`parent-retained-coefficients-metal-two-accepted.json`).

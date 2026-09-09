@@ -1,0 +1,351 @@
+{
+  "scope": "Alternating three-round local A/B on the same independently admitted eight-segment final aggregation. Diagnostic round excluded from paired timings. Development profile, unchanged proof/key bytes, fresh verification and 25-case gate per run. Not CSP promotion.",
+  "rows": [
+    {
+      "variant": "retain",
+      "round": 0,
+      "diagnostic": true,
+      "binary_sha256": "d0af65e2b272661a6fdc68a9fc64c0ddfd71210452a50cfabab8dd5b3aebeecc",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-retained-coefficients-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-retain-0",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 2579299000,
+      "proof_ns": 1903811500,
+      "wall_ns": 3218324959,
+      "max_rss_bytes": 737673216,
+      "peak_footprint_bytes": 733856872,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true,
+      "profile": {
+        "schema_version": 1,
+        "runtime": "cpu",
+        "example": "detached-recursive-parent",
+        "stages": [
+          {
+            "id": "parent.fixed",
+            "label": "Fixed columns and key admission",
+            "seconds": 0.251408,
+            "children": null
+          },
+          {
+            "id": "parent.main_fill",
+            "label": "Main column allocation and filling",
+            "seconds": 0.058906,
+            "children": null
+          },
+          {
+            "id": "parent.closure",
+            "label": "Exact lookup closure",
+            "seconds": 0.748857,
+            "children": null
+          },
+          {
+            "id": "parent.main_commit",
+            "label": "Main commitment",
+            "seconds": 0.188551,
+            "children": null
+          },
+          {
+            "id": "parent.interaction_fill",
+            "label": "Transcript and interaction columns",
+            "seconds": 0.178122,
+            "children": null
+          },
+          {
+            "id": "parent.interaction_commit",
+            "label": "Interaction commitment",
+            "seconds": 0.117002,
+            "children": null
+          },
+          {
+            "id": "parent.components",
+            "label": "Typed component assembly",
+            "seconds": 0.002997,
+            "children": null
+          },
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 2e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 1.6e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 0.393938,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.001202,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.051368,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 0.000101,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 0.016956,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 0.000758,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 0.129552,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 2e-06,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.002029,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.000164,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.000334,
+            "children": null
+          },
+          {
+            "id": "parent.serialize",
+            "label": "Canonical proof serialization",
+            "seconds": 0.000257,
+            "children": null
+          }
+        ]
+      }
+    },
+    {
+      "variant": "discard",
+      "round": 1,
+      "diagnostic": false,
+      "binary_sha256": "cc19e45f01077859f881984a205d25d84fcc99bdfc8b4bef5d713e47beadbc73",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-stage-profile-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-discard-1",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 3988795291,
+      "proof_ns": 3274471667,
+      "wall_ns": 3995924458,
+      "max_rss_bytes": 687489024,
+      "peak_footprint_bytes": 682919160,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    },
+    {
+      "variant": "retain",
+      "round": 1,
+      "diagnostic": false,
+      "binary_sha256": "d0af65e2b272661a6fdc68a9fc64c0ddfd71210452a50cfabab8dd5b3aebeecc",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-retained-coefficients-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-retain-1",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 2514930125,
+      "proof_ns": 1875733791,
+      "wall_ns": 2519929166,
+      "max_rss_bytes": 737640448,
+      "peak_footprint_bytes": 733774880,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    },
+    {
+      "variant": "retain",
+      "round": 2,
+      "diagnostic": false,
+      "binary_sha256": "d0af65e2b272661a6fdc68a9fc64c0ddfd71210452a50cfabab8dd5b3aebeecc",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-retained-coefficients-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-retain-2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 2552820208,
+      "proof_ns": 1905398375,
+      "wall_ns": 2557951500,
+      "max_rss_bytes": 737656832,
+      "peak_footprint_bytes": 733774856,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    },
+    {
+      "variant": "discard",
+      "round": 2,
+      "diagnostic": false,
+      "binary_sha256": "cc19e45f01077859f881984a205d25d84fcc99bdfc8b4bef5d713e47beadbc73",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-stage-profile-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-discard-2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 3873455458,
+      "proof_ns": 3229957500,
+      "wall_ns": 3878066458,
+      "max_rss_bytes": 687456256,
+      "peak_footprint_bytes": 682869984,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    },
+    {
+      "variant": "discard",
+      "round": 3,
+      "diagnostic": false,
+      "binary_sha256": "cc19e45f01077859f881984a205d25d84fcc99bdfc8b4bef5d713e47beadbc73",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-stage-profile-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-discard-3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 3874835209,
+      "proof_ns": 3230111417,
+      "wall_ns": 3879495459,
+      "max_rss_bytes": 687472640,
+      "peak_footprint_bytes": 682886368,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    },
+    {
+      "variant": "retain",
+      "round": 3,
+      "diagnostic": false,
+      "binary_sha256": "d0af65e2b272661a6fdc68a9fc64c0ddfd71210452a50cfabab8dd5b3aebeecc",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-retained-coefficients-first-prove",
+        "--profile",
+        "tiny-parent-root-v2",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-coefficients-retain-3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-0-first",
+        "9b47e52cb288771b2ef8325ece06b2a52433f1d8967b105d150bcb846bc91728",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-0-expected-span.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-level2-1-first",
+        "802f0d0313f0ecc0b25ca95c995957a630fa4791cdc774ceb762684c5bc3fd5a",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/level2-1-expected-span.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/root-key.json",
+        "--parent-key-sha256",
+        "5348168bea601a49d6d155f8a769ea7afeeb5e65ac5a09b442ca29aa2faeba09"
+      ],
+      "request_ns": 2557367042,
+      "proof_ns": 1920080333,
+      "wall_ns": 2562311334,
+      "max_rss_bytes": 737673216,
+      "peak_footprint_bytes": 733824056,
+      "fresh_cases": 25,
+      "exact_proof_bytes_identical": true
+    }
+  ],
+  "summary": {
+    "median_request_seconds": {
+      "retain": 2.552820208,
+      "discard": 3.874835209
+    },
+    "median_request_reduction_fraction": 0.3411796707971949,
+    "additional_peak_rss_mib": 47.828125,
+    "all_proof_bytes_identical": true,
+    "fresh_cases": 175
+  }
+}
