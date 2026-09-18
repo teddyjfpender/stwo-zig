@@ -35,7 +35,7 @@ pub fn main() !void {
         const QM31 = core.fields.qm31.QM31;
         const qs = try a.alloc(QM31, n / 4);
         defer a.free(qs);
-        for (qs, 0..) |*q, i| q.* = QM31.fromM31Array(values[4 * i ..][0..4].*);
+        for (qs, 0..) |*q, i| q.* = QM31.fromM31(values[4 * i], values[4 * i + 1], values[4 * i + 2], values[4 * i + 3]);
         const alpha = QM31.fromU32Unchecked(17, 2147483646, 65535, 12345);
         const circle_domain = core.poly.circle.canonic.CanonicCoset.new(log - 2).circleDomain();
         const line_domain = try core.poly.line.LineDomain.init(core.circle.Coset.halfOdds(log - 2));
@@ -53,11 +53,11 @@ pub fn main() !void {
         if (is_circle) {
             var workspace = try core.fri.FoldCircleWorkspace.init(a, result.len);
             defer workspace.deinit(a);
-            try core.fri.foldCircleIntoLineWithWorkspace(a, result, qs, circle_domain, alpha, &workspace);
+            try @call(.never_inline, core.fri.foldCircleIntoLineWithWorkspace, .{ a, result, qs, circle_domain, alpha, &workspace });
         } else {
             var workspace = try core.fri.FoldLineWorkspace.init(a, result.len);
             defer workspace.deinit(a);
-            const folded = try core.fri.foldLineNWithWorkspace(a, qs, line_domain, alpha, &workspace, 1);
+            const folded = try @call(.never_inline, core.fri.foldLineNWithWorkspace, .{ a, qs, line_domain, alpha, &workspace, @as(u32, 1) });
             defer a.free(folded.values);
             @memcpy(result, folded.values);
         }

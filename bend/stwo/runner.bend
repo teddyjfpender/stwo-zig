@@ -61,10 +61,27 @@ def run(req: Request) -> Array<U32>:
       I.prefix(values)
     case Request{4, fuel, factor, plan, values, inverses, alpha}:
       F.run(alpha, inverses, values)
+    case Request{5, fuel, factor, plan, values, inverses, alpha}:
+      C.extension(fuel, plan, values)
     case Request{op, fuel, factor, plan, values, inverses, alpha}:
       values
 
+# A bounded session amortizes process/runtime startup across prover columns.
+# The ordinary runner requests one iteration; persistent mode requests 65536.
+def iterations() -> IO(Nat):
+  import "./transport.c"
+
+def serve(n: Nat) -> IO(Unit):
+  match n:
+    case 0n:
+      IO.pure(Unit, Unit{})
+    case 1n+p:
+      do IO<Unit>:
+        req : Request <- read()
+        done : Unit <- write(run(req))
+        serve(p)
+
 def main() -> IO(Unit):
   do IO<Unit>:
-    req : Request <- read()
-    write(run(req))
+    n : Nat <- iterations()
+    serve(n)

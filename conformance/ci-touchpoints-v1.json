@@ -694,6 +694,20 @@
           "{output_dir}/metal-aot"
         ]
       ]
+    },
+    "riscv_bend_integration": {
+      "host": "linux",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/integrations/riscv_bend/build.zig",
+          "-Doptimize=ReleaseFast",
+          "-j2"
+        ]
+      ]
     }
   },
   "product_scope_lanes": {
@@ -1336,10 +1350,21 @@
         "autoresearch/benchmarks/bend_circle_fft.py",
         "autoresearch/benchmarks/bend_common.py",
         "autoresearch/benchmarks/bend_fri.py",
-        "autoresearch/benchmarks/bend_interactions.py"
+        "autoresearch/benchmarks/bend_interactions.py",
+        "autoresearch/benchmarks/bend_csp.py",
+        "autoresearch/benchmarks/bend_backend.py",
+        "autoresearch/benchmarks/bend_compare.py"
       ],
       "lanes": [
         "bend_experiment"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/integrations/riscv_bend/"
+      ],
+      "lanes": [
+        "riscv_bend_integration"
       ]
     }
   ],

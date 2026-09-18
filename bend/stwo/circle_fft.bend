@@ -211,3 +211,20 @@ def scale(values: Array<U32>, factor: U32) -> Array<U32>:
 
 def interpolate(plan: Plan, values: Array<U32>, factor: U32) -> Array<U32>:
   scale(inverse(plan, values), factor)
+
+# Exact 2x LDE has a zero upper coefficient half. Its first butterfly layer
+# produces two copies of the lower half, so no twiddle multiplication is needed.
+def extension_apply(fuel: Nat, plan: Plan, pair: Array<U32> & Array<U32>) -> Array<U32>:
+  match fuel plan pair:
+    case 2n+ +p Fork{w, pl, pr} Tuple{a, b}:
+      l r = forward(p, True{}, pl, a) forward(p, True{}, pr, b)
+      ANode{l, r}
+    case fuel plan Tuple{a, b}:
+      ANode{a, b}
+
+def extension(fuel: Nat, plan: Plan, values: Array<U32>) -> Array<U32>:
+  match values:
+    case ANode{a, b}:
+      extension_apply(fuel, plan, Array.clone(U32, a))
+    case values:
+      values

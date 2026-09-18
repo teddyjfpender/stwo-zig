@@ -17,6 +17,7 @@ pub const Package = enum {
     metal_backend,
     riscv_frontend,
     sm83_frontend,
+    riscv_bend_integration,
     riscv_cpu_integration,
     riscv_cuda_integration,
     sm83_cpu_integration,
@@ -44,6 +45,7 @@ const Owner = struct {
 };
 
 const owners = [_]Owner{
+    .{ .prefix = "src/integrations/riscv_bend/", .package = .riscv_bend_integration, .dependency_name = "stwo_riscv_bend_integration" },
     .{ .prefix = "src/core/", .package = .core, .dependency_name = "stwo_core" },
     .{ .prefix = "src/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
     .{ .prefix = "src/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },

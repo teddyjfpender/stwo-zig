@@ -51,3 +51,43 @@ test "bend native: missing runtime errors without fallback" {
     try std.testing.expectError(error.FileNotFound, Missing.evaluateCircleBuffers(a, &.{&values}, d, view(tree)));
     try std.testing.expectEqual(@as(u32, 1), values[0].v);
 }
+
+test "bend persistent session: repeated transforms and consuming multi-fold FRI match core" {
+    const P = bend.BendBackend(.{ .executable = @import("config").executable, .persistent = true });
+    defer bend.runtime.shutdown();
+    const a = std.testing.allocator;
+    const Q = core.fields.qm31.QM31;
+    const d = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var tree = try tw.precomputeM31(a, d.half_coset);
+    defer tw.deinitM31(a, &tree);
+    var vals: [32]M31 = undefined;
+    for (&vals, 0..) |*x, i| x.* = M31.fromCanonical(@intCast(i * 65537));
+    const original = vals;
+    for (0..3) |_| {
+        _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
+        _ = try P.interpolateCircleBuffers(a, &.{&vals}, d, view(tree));
+        try std.testing.expectEqualSlices(M31, &original, &vals);
+    }
+    const line = try core.poly.line.LineDomain.init(core.circle.Coset.halfOdds(5));
+    var workspace = try core.fri.FoldLineWorkspace.init(a, 16);
+    defer workspace.deinit(a);
+    const alpha = Q.fromU32Unchecked(17, 2147483646, 65535, 12345);
+    const values = try a.alloc(Q, 32);
+    // foldLineN consumes values on success; testing allocator catches leaks.
+    for (values, 0..) |*x, i| x.* = Q.fromU32Unchecked(@intCast(i * 123), 65536, 32767, 1);
+    const expected = try @call(.never_inline, core.fri.foldLineNWithWorkspace, .{ a, values, line, alpha, &workspace, @as(u32, 3) });
+    defer a.free(expected.values);
+    const actual = try P.foldLineN(a, values, line, alpha, &workspace, 3);
+    defer a.free(actual.values);
+    try std.testing.expectEqualSlices(Q, expected.values, actual.values);
+    var dst = [_]Q{Q.one()} ** 16;
+    var want = dst;
+    const planes: [4][]const M31 = .{ &vals, &vals, &vals, &vals };
+    var circle_workspace = try core.fri.FoldCircleWorkspace.init(a, 16);
+    defer circle_workspace.deinit(a);
+    try @call(.never_inline, core.fri.foldCircleColumnsIntoLineWithWorkspace, .{ a, &want, planes, d, alpha, &circle_workspace });
+    try P.foldCircleIntoLine(a, &dst, planes, d, alpha, &circle_workspace);
+    try std.testing.expectEqualSlices(Q, &want, &dst);
+    const calls = bend.runtime.snapshot().calls;
+    try std.testing.expect(calls[0] >= 3 and calls[1] >= 3 and calls[4] >= 4);
+}

@@ -23,8 +23,11 @@ pub fn request(allocator: std.mem.Allocator, values: []const QM31, coset: core.c
     var points = coset.iter();
     for (0..inverses.len) |i| {
         const point = points.next() orelse return error.InvalidDomain;
-        inverses[core.utils.bitReverseIndex(i, log - 1)] = try (if (y_coordinate) point.y else point.x).inv();
+        inverses[core.utils.bitReverseIndex(i, log - 1)] = (if (y_coordinate) point.y else point.x);
     }
+    const coordinates = try allocator.dupe(M31, inverses);
+    defer allocator.free(coordinates);
+    try core.fields.batchInverseInPlace(M31, coordinates, inverses);
     for (inverses) |x| try abi.word(&out, allocator, x.v);
     for (alpha.toM31Array()) |x| {
         if (x.v >= 2147483647) return error.NonCanonicalInput;
@@ -39,7 +42,7 @@ fn fold(allocator: std.mem.Allocator, config: runtime.Config, values: []const QM
     const flat = try runtime.execute(allocator, config, bytes, values.len * 2);
     defer allocator.free(flat);
     const result = try allocator.alloc(QM31, values.len / 2);
-    for (result, 0..) |*q, i| q.* = QM31.fromM31Array(flat[4 * i ..][0..4].*);
+    for (result, 0..) |*q, i| q.* = QM31.fromM31(flat[4 * i], flat[4 * i + 1], flat[4 * i + 2], flat[4 * i + 3]);
     return result;
 }
 
@@ -56,9 +59,10 @@ pub fn line(allocator: std.mem.Allocator, config: runtime.Config, values: []QM31
         d = d.double();
         challenge = challenge.square();
     }
-    const expected = try core.fri.foldLineNWithWorkspace(allocator, values, domain, alpha, workspace, count);
+    const expected = try @call(.never_inline, core.fri.foldLineNWithWorkspace, .{ allocator, values, domain, alpha, workspace, count });
     defer allocator.free(expected.values);
     if (!equal(expected.values, current)) return error.BendParityMismatch;
+    allocator.free(values); // Match the consuming in-place backend contract on success.
     return .{ .domain = d, .values = current };
 }
 
@@ -74,7 +78,7 @@ pub fn circle(allocator: std.mem.Allocator, config: runtime.Config, dst: []QM31,
     for (result, dst) |*q, previous| q.* = previous.mul(alpha_sq).add(q.*);
     const expected = try allocator.dupe(QM31, dst);
     defer allocator.free(expected);
-    try core.fri.foldCircleColumnsIntoLineWithWorkspace(allocator, expected, src, domain, alpha, workspace);
+    try @call(.never_inline, core.fri.foldCircleColumnsIntoLineWithWorkspace, .{ allocator, expected, src, domain, alpha, workspace });
     if (!equal(expected, result)) return error.BendParityMismatch;
     @memcpy(dst, result);
 }

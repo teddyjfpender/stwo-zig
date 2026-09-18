@@ -40,6 +40,13 @@ pub fn writePlan(out: *std.ArrayList(u8), a: std.mem.Allocator, tree: anytype, d
 }
 
 pub fn transform(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype, inverse: bool) !void {
+    return transformImpl(allocator, config, values, domain, tree, inverse, false);
+}
+pub fn evaluateExtension(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype) !void {
+    for (values) |v| for (v[v.len / 2 ..]) |x| if (!x.eql(M31.zero())) return error.NonZeroExtensionTail;
+    return transformImpl(allocator, config, values, domain, tree, false, true);
+}
+fn transformImpl(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype, inverse: bool, extension: bool) !void {
     const log = domain.logSize();
     if (log < 1 or log > abi.max_log_size or values.len == 0) return error.InvalidColumns;
     if (tree.root_coset.logSize() != domain.half_coset.logSize() or
@@ -56,7 +63,7 @@ pub fn transform(allocator: std.mem.Allocator, config: runtime.Config, values: [
     const norm = try M31.fromCanonical(@intCast(domain.size())).inv();
     for (values) |v| {
         request.clearRetainingCapacity();
-        for ([_]u32{ abi.request_magic, abi.version, if (inverse) 1 else 0, log, norm.v }) |x| try abi.word(&request, allocator, x);
+        for ([_]u32{ abi.request_magic, abi.version, if (inverse) 1 else if (extension) 5 else 0, log, norm.v }) |x| try abi.word(&request, allocator, x);
         for (v) |x| try abi.word(&request, allocator, x.v);
         try writePlan(&request, allocator, tree, domain, log, 0, inverse);
         const actual = try runtime.execute(allocator, config, request.items, v.len);

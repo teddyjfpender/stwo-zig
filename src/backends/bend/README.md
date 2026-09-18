@@ -44,7 +44,8 @@ source-pinned and must not be presented as measurements of this branch.
 
 ## Public API
 
-`BendBackend` (called with an explicit config) produces a marker with `circle_transform` enabled and
+`BendBackend` (called with an explicit config) produces a proving backend with
+`circle_transform`, `fri_folding` and `fri_multi_fold` enabled and
 `transformCircleBuffers` plus the existing interpolate/evaluate/combined-LDE
 hooks. The new contract formalizes one core-only `!void` primitive; higher-level
 hooks retain existing prover execution receipts. This avoids introducing a
@@ -53,10 +54,12 @@ backend-contract dependency on the prover engine or changing Metal's APIs.
 
 `abi` is the versioned little-endian array transport. `runtime` manages the native
 child and validates its response. `circle` serializes exact Circle twiddle plans
-and checks results. `fri` contains unqualified line/circle fold adapters; it is
-**not** a claimed FRI capability because Debug and ReleaseFast oracle outputs
-currently disagree. No `MerkleTree`, resident storage or full-proof entry is
-provided. A configured backend always executes Bend; it never silently substitutes
+and checks results. `fri` implements checked line/circle/multi-fold adapters. Keeping the core oracle
+call boundary explicit with `@call(.never_inline, ...)` removes the observed
+ReleaseFast discrepancy in the retained fixtures; core arithmetic is unchanged.
+Host `MerkleTree` and commit hooks satisfy the full prover contract.
+`BendBackendWithHost` injects host composition services at the integration layer.
+Resident GPU storage is not provided. A configured backend always executes Bend; it never silently substitutes
 CPU results. The subsequent Zig parity computation is deliberate validation cost.
 
 ```zig
@@ -162,3 +165,17 @@ LDE backend calls. Flat leaf loops, bounded transform fusion and chunked scans
 reduce split/join allocation. Arithmetic remains Bend source; generated C is
 unchanged by hand. This is an explicitly expanded experiment, not admission under
 the original two-file autoresearch surface. Full-proof throughput remains unmeasured.
+
+## Complete proof integration
+
+The [RISC-V Bend integration](../../integrations/riscv_bend/README.md) binds this
+backend to real CSP proofs. Circle FFT/IFFT, exact 2x LDE and FRI run in Bend;
+host commitment and composition services are explicit. All numerical parity
+checks remain enabled. Config `.persistent = true` reuses one serialized child
+for up to 65,536 requests; call `runtime.shutdown()` when work finishes.
+Single-request mode remains the default. The persistent wire uses distinct
+`BND2` magic so an old one-request binary fails rather than silently changing
+framing. Input and output are buffered in 64 KiB blocks; IO contains no field
+arithmetic. Direct calls still require a trusted binary; the proof harness kills
+the process group on timeout. Exact 2x LDE skips its redundant first forward
+layer, and FRI prepares inverses in one host batch instead of per point.

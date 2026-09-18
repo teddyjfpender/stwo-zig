@@ -17,6 +17,7 @@
   ],
   "api_surface": [
     "BendBackend",
+    "BendBackendWithHost",
     "abi",
     "circle",
     "fri",
@@ -24,7 +25,7 @@
   ],
   "api_contract": {
     "signature_tests": [
-      "mod.zig::bend: compute backend claims Circle only"
+      "mod.zig::bend: proving backend claims Circle and FRI with host commitments"
     ],
     "invariant_tests": [
       "runtime.zig::bend ABI rejects truncated oversized wrong-version and noncanonical responses"

@@ -4,6 +4,7 @@
     .version = "0.1.0",
     .paths = .{"."},
     .dependencies = .{
+        .stwo_riscv_bend_integration = .{ .path = "src/integrations/riscv_bend" },
         .stwo_core = .{ .path = "src/core" },
         .stwo_backend_contracts = .{ .path = "src/backend" },
         .stwo_prover_api = .{ .path = "src/prover_api" },
