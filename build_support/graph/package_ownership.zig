@@ -11,11 +11,13 @@ pub const Package = enum {
     prover_api,
     prover,
     cairo_frontend,
+    bend_backend,
     cpu_backend,
     cuda_backend,
     metal_backend,
     riscv_frontend,
     sm83_frontend,
+    riscv_bend_integration,
     riscv_cpu_integration,
     riscv_cuda_integration,
     sm83_cpu_integration,
@@ -43,11 +45,13 @@ const Owner = struct {
 };
 
 const owners = [_]Owner{
+    .{ .prefix = "src/integrations/riscv_bend/", .package = .riscv_bend_integration, .dependency_name = "stwo_riscv_bend_integration" },
     .{ .prefix = "src/core/", .package = .core, .dependency_name = "stwo_core" },
     .{ .prefix = "src/backend/", .package = .backend_contracts, .dependency_name = "stwo_backend_contracts" },
     .{ .prefix = "src/prover_api/", .package = .prover_api, .dependency_name = "stwo_prover_api" },
     .{ .prefix = "src/prover/", .package = .prover, .dependency_name = "stwo_prover_engine" },
     .{ .prefix = "src/frontends/cairo/", .package = .cairo_frontend, .dependency_name = "stwo_cairo_frontend" },
+    .{ .prefix = "src/backends/bend/", .package = .bend_backend, .dependency_name = "stwo_bend_backend" },
     .{ .prefix = "src/backends/cpu_scalar/", .package = .cpu_backend, .dependency_name = "stwo_cpu_backend" },
     .{ .prefix = "src/backends/cuda/", .package = .cuda_backend, .dependency_name = "stwo_cuda_backend" },
     .{ .prefix = "src/backends/metal/", .package = .metal_backend, .dependency_name = "stwo_metal_backend" },

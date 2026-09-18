@@ -1,0 +1,645 @@
+{
+  "schema": "stwo-bend-backend-evidence-v2",
+  "toolchain": {
+    "repository": "https://github.com/bendlang/bend",
+    "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+    "version": "2.0.5",
+    "zig_version": "0.15.2",
+    "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+    "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+  },
+  "host": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpu_count": 9,
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "bend_binary_sha256": "1e82f79eaf97b45d866e87be809ebf964777e53613639c7a1b8dc5a784a41b63",
+  "zig_oracle_sha256": "2272af1f43e3b0e7b8b1ad70bab5711651cd79a03eb5923aa60a78121571f926",
+  "sources": {
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "06f150ad0fd24d762f725f15405c3822e7f8738737455d00fc5ba96bd09d4769",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "2029286b6f82cea592e0d7bbe6cf735de83c785bf4535953c40cae01c39f3c09",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "a94b557ac5d00c45ed55ed542eba425ee9c461b10e922ccc9a356890d364f890",
+    "src/backends/bend/abi.zig": "507aaf1746f644bda507cdd5f944faf0d73b0c06ac230cc96d891c313e356127",
+    "src/backends/bend/benchmark.zig": "d4d345ba15f5e40b834a8b24eb4ef2c84bb5df563c7649eaac31bf8d651d3d6e",
+    "src/backends/bend/build.zig": "de539929c483a99346444e54f2f51874d050cd365994196c382c1e0101562d96",
+    "src/backends/bend/circle.zig": "d1cb27405a73572c78dc4fccd978f9a7f38d40c451b382be04cbfe2c113eb989",
+    "src/backends/bend/fri.zig": "4af9c8ff52a10cec39c23ddc9e102cc12e1b8b99c0ab6b12b95462bbcb55f530",
+    "src/backends/bend/integration_test.zig": "2eaf319b0f60c9c3940b42b5dfa92f52e26b69251f6d5ca72647e2af5578a6bd",
+    "src/backends/bend/mod.zig": "eff6ac0f7cb8d1df16f3c7e98de1dd73811714e1e97f742c510f0d185347c9fd",
+    "src/backends/bend/oracle.zig": "440d323a23ba6816408f8a18d7ff590138b4df3ee41848cdbc848947a2f362ba",
+    "src/backends/bend/runtime.zig": "a5db75671956848e7ee534667486f0c505a6d675506e1b0d07cf01c9a7d1707c",
+    "bend/stwo/transport.c": "70dacc0d6eb50a0052932ad498c4cd9af6a5f6c0e33d430c71335c9caf802ffc",
+    "autoresearch/benchmarks/bend_common.py": "78e6dc3edb3113312d3f70b764c184abbaab5abd0db52749e75fa39418d99a12"
+  },
+  "rust_oracle_qualified": false,
+  "proof_throughput_claim": false,
+  "scope": "Timed backend operation includes request construction, child launch, IO, decoding, Zig parity, copies; domain/twiddle/input setup and external check excluded. Zig uses existing SIMD transforms and specialized 2x LDE. Single column, Bend measured first. No full proof.",
+  "limitations": [
+    "shared host, uncontrolled frequency",
+    "RSS includes runtime and IO",
+    "logical operations are not machine instructions",
+    "no full proof or universal arithmetic proof"
+  ],
+  "rows": [
+    {
+      "operation": "fft",
+      "input_log": 16,
+      "output_log": 16,
+      "samples": [
+        {
+          "compute_ns": 20041734,
+          "bend_backend_ns": 20041734,
+          "zig_operation_ns": 325420,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 26661669,
+          "cpu_user_s": 0.005769,
+          "cpu_system_s": 0.032982,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 12674467,
+          "bend_backend_ns": 12674467,
+          "zig_operation_ns": 319831,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 15876780,
+          "cpu_user_s": 0.017202,
+          "cpu_system_s": 0.011432,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 14191414,
+          "bend_backend_ns": 14191414,
+          "zig_operation_ns": 344918,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 16991975,
+          "cpu_user_s": 0.0056229999999999995,
+          "cpu_system_s": 0.024950999999999997,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 14191414,
+      "zig_operation_median_ns": 325420,
+      "bend_over_zig": 43.60953229672423
+    },
+    {
+      "operation": "fft",
+      "input_log": 20,
+      "output_log": 20,
+      "samples": [
+        {
+          "compute_ns": 143175426,
+          "bend_backend_ns": 143175426,
+          "zig_operation_ns": 6213306,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 185454858,
+          "cpu_user_s": 0.219546,
+          "cpu_system_s": 0.106074,
+          "peak_rss_bytes": 91488256,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 139409516,
+          "bend_backend_ns": 139409516,
+          "zig_operation_ns": 6495371,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 174950913,
+          "cpu_user_s": 0.225244,
+          "cpu_system_s": 0.07209399999999999,
+          "peak_rss_bytes": 84934656,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 125221897,
+          "bend_backend_ns": 125221897,
+          "zig_operation_ns": 6283109,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 158935093,
+          "cpu_user_s": 0.247918,
+          "cpu_system_s": 0.042373999999999995,
+          "peak_rss_bytes": 91619328,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 139409516,
+      "zig_operation_median_ns": 6283109,
+      "bend_over_zig": 22.18798305106596
+    },
+    {
+      "operation": "fft",
+      "input_log": 22,
+      "output_log": 22,
+      "samples": [
+        {
+          "compute_ns": 660140185,
+          "bend_backend_ns": 660140185,
+          "zig_operation_ns": 28356730,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 806345426,
+          "cpu_user_s": 1.102463,
+          "cpu_system_s": 0.33901699999999996,
+          "peak_rss_bytes": 367001600,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 530937126,
+          "bend_backend_ns": 530937126,
+          "zig_operation_ns": 27939814,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 679197026,
+          "cpu_user_s": 1.1255519999999999,
+          "cpu_system_s": 0.188798,
+          "peak_rss_bytes": 349044736,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 612296350,
+          "bend_backend_ns": 612296350,
+          "zig_operation_ns": 30487863,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 765019464,
+          "cpu_user_s": 1.130372,
+          "cpu_system_s": 0.301098,
+          "peak_rss_bytes": 366477312,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 612296350,
+      "zig_operation_median_ns": 28356730,
+      "bend_over_zig": 21.592628980845113
+    },
+    {
+      "operation": "fft",
+      "input_log": 24,
+      "output_log": 24,
+      "samples": [
+        {
+          "compute_ns": 3855897878,
+          "bend_backend_ns": 3855897878,
+          "zig_operation_ns": 132426845,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 4457476304,
+          "cpu_user_s": 4.974848,
+          "cpu_system_s": 3.759746,
+          "peak_rss_bytes": 1549926400,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 2425887210,
+          "bend_backend_ns": 2425887210,
+          "zig_operation_ns": 119887378,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 3046498706,
+          "cpu_user_s": 4.90381,
+          "cpu_system_s": 1.569886,
+          "peak_rss_bytes": 1489764352,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 2675138136,
+          "bend_backend_ns": 2675138136,
+          "zig_operation_ns": 124591594,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 3258335150,
+          "cpu_user_s": 5.06539,
+          "cpu_system_s": 1.7273839999999998,
+          "peak_rss_bytes": 1539178496,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 2675138136,
+      "zig_operation_median_ns": 124591594,
+      "bend_over_zig": 21.471257009521846
+    },
+    {
+      "operation": "ifft",
+      "input_log": 16,
+      "output_log": 16,
+      "samples": [
+        {
+          "compute_ns": 15842309,
+          "bend_backend_ns": 15842309,
+          "zig_operation_ns": 275757,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 18506168,
+          "cpu_user_s": 0.00418,
+          "cpu_system_s": 0.024956,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 16911356,
+          "bend_backend_ns": 16911356,
+          "zig_operation_ns": 273263,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 20241166,
+          "cpu_user_s": 0.010047,
+          "cpu_system_s": 0.022154999999999998,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 10392600,
+          "bend_backend_ns": 10392600,
+          "zig_operation_ns": 307834,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 12671732,
+          "cpu_user_s": 0.001807,
+          "cpu_system_s": 0.021200999999999998,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 15842309,
+      "zig_operation_median_ns": 275757,
+      "bend_over_zig": 57.45025148953608
+    },
+    {
+      "operation": "ifft",
+      "input_log": 20,
+      "output_log": 20,
+      "samples": [
+        {
+          "compute_ns": 136024609,
+          "bend_backend_ns": 136024609,
+          "zig_operation_ns": 5421878,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 180602305,
+          "cpu_user_s": 0.28643399999999997,
+          "cpu_system_s": 0.06596099999999999,
+          "peak_rss_bytes": 93061120,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 154289732,
+          "bend_backend_ns": 154289732,
+          "zig_operation_ns": 5100213,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 185955942,
+          "cpu_user_s": 0.25948,
+          "cpu_system_s": 0.08774599999999999,
+          "peak_rss_bytes": 94896128,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 129974475,
+          "bend_backend_ns": 129974475,
+          "zig_operation_ns": 5493333,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 162896779,
+          "cpu_user_s": 0.256943,
+          "cpu_system_s": 0.06953999999999999,
+          "peak_rss_bytes": 99090432,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 136024609,
+      "zig_operation_median_ns": 5421878,
+      "bend_over_zig": 25.088098441167432
+    },
+    {
+      "operation": "ifft",
+      "input_log": 22,
+      "output_log": 22,
+      "samples": [
+        {
+          "compute_ns": 511257387,
+          "bend_backend_ns": 511257387,
+          "zig_operation_ns": 25104702,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 647097616,
+          "cpu_user_s": 1.117467,
+          "cpu_system_s": 0.260446,
+          "peak_rss_bytes": 355991552,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 752999985,
+          "bend_backend_ns": 752999985,
+          "zig_operation_ns": 24865690,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 896570938,
+          "cpu_user_s": 1.947627,
+          "cpu_system_s": 0.399964,
+          "peak_rss_bytes": 390070272,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 532767282,
+          "bend_backend_ns": 532767282,
+          "zig_operation_ns": 23798335,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 673822414,
+          "cpu_user_s": 1.136187,
+          "cpu_system_s": 0.22317599999999999,
+          "peak_rss_bytes": 378798080,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 532767282,
+      "zig_operation_median_ns": 24865690,
+      "bend_over_zig": 21.4257992438577
+    },
+    {
+      "operation": "ifft",
+      "input_log": 24,
+      "output_log": 24,
+      "samples": [
+        {
+          "compute_ns": 3096230072,
+          "bend_backend_ns": 3096230072,
+          "zig_operation_ns": 106014001,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 3668076873,
+          "cpu_user_s": 5.098608,
+          "cpu_system_s": 2.487975,
+          "peak_rss_bytes": 1539309568,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 2825575976,
+          "bend_backend_ns": 2825575976,
+          "zig_operation_ns": 102126238,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 3393330395,
+          "cpu_user_s": 4.77831,
+          "cpu_system_s": 2.162802,
+          "peak_rss_bytes": 1557266432,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 2620604295,
+          "bend_backend_ns": 2620604295,
+          "zig_operation_ns": 102396197,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 3186223490,
+          "cpu_user_s": 4.784112,
+          "cpu_system_s": 1.616613,
+          "peak_rss_bytes": 1506148352,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 2825575976,
+      "zig_operation_median_ns": 102396197,
+      "bend_over_zig": 27.594540215199594
+    },
+    {
+      "operation": "lde2x",
+      "input_log": 15,
+      "output_log": 16,
+      "samples": [
+        {
+          "compute_ns": 19021288,
+          "bend_backend_ns": 19021288,
+          "zig_operation_ns": 472137,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 21454632,
+          "cpu_user_s": 0.034744,
+          "cpu_system_s": 0.0021479999999999997,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 18276620,
+          "bend_backend_ns": 18276620,
+          "zig_operation_ns": 481310,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 20503920,
+          "cpu_user_s": 0.002375,
+          "cpu_system_s": 0.031444,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 17898613,
+          "bend_backend_ns": 17898613,
+          "zig_operation_ns": 462082,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 19626592,
+          "cpu_user_s": 0.010752,
+          "cpu_system_s": 0.024229,
+          "peak_rss_bytes": 15437824,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 18276620,
+      "zig_operation_median_ns": 472137,
+      "bend_over_zig": 38.71041667990435
+    },
+    {
+      "operation": "lde2x",
+      "input_log": 19,
+      "output_log": 20,
+      "samples": [
+        {
+          "compute_ns": 209823148,
+          "bend_backend_ns": 209823148,
+          "zig_operation_ns": 8984391,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 236988539,
+          "cpu_user_s": 0.304253,
+          "cpu_system_s": 0.130434,
+          "peak_rss_bytes": 88473600,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 210784808,
+          "bend_backend_ns": 210784808,
+          "zig_operation_ns": 9684746,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 237995450,
+          "cpu_user_s": 0.369978,
+          "cpu_system_s": 0.08841199999999999,
+          "peak_rss_bytes": 82575360,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 376215964,
+          "bend_backend_ns": 376215964,
+          "zig_operation_ns": 9779275,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 406260642,
+          "cpu_user_s": 0.372326,
+          "cpu_system_s": 0.30477699999999996,
+          "peak_rss_bytes": 87425024,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 210784808,
+      "zig_operation_median_ns": 9684746,
+      "bend_over_zig": 21.76461912372302
+    },
+    {
+      "operation": "lde2x",
+      "input_log": 21,
+      "output_log": 22,
+      "samples": [
+        {
+          "compute_ns": 786072356,
+          "bend_backend_ns": 786072356,
+          "zig_operation_ns": 39570590,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 908717864,
+          "cpu_user_s": 1.481547,
+          "cpu_system_s": 0.422961,
+          "peak_rss_bytes": 367132672,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 1049661038,
+          "bend_backend_ns": 1049661038,
+          "zig_operation_ns": 48222443,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 1175443320,
+          "cpu_user_s": 1.654731,
+          "cpu_system_s": 0.499127,
+          "peak_rss_bytes": 390201344,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 762856632,
+          "bend_backend_ns": 762856632,
+          "zig_operation_ns": 39268425,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 877724730,
+          "cpu_user_s": 1.423854,
+          "cpu_system_s": 0.443059,
+          "peak_rss_bytes": 386007040,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 786072356,
+      "zig_operation_median_ns": 39570590,
+      "bend_over_zig": 19.86506534272044
+    },
+    {
+      "operation": "lde2x",
+      "input_log": 23,
+      "output_log": 24,
+      "samples": [
+        {
+          "compute_ns": 3707225338,
+          "bend_backend_ns": 3707225338,
+          "zig_operation_ns": 181270464,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 4201857865,
+          "cpu_user_s": 6.836534,
+          "cpu_system_s": 1.955873,
+          "peak_rss_bytes": 1526464512,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 3615273269,
+          "bend_backend_ns": 3615273269,
+          "zig_operation_ns": 186245734,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 4175528569,
+          "cpu_user_s": 6.633084,
+          "cpu_system_s": 2.131583,
+          "peak_rss_bytes": 1380319232,
+          "request_bytes": 0,
+          "response_bytes": 0
+        },
+        {
+          "compute_ns": 3867780967,
+          "bend_backend_ns": 3867780967,
+          "zig_operation_ns": 200291894,
+          "lane": "bend-cpu-verified-backend",
+          "equal": true,
+          "wall_ns": 4379234609,
+          "cpu_user_s": 6.484037,
+          "cpu_system_s": 2.789875,
+          "peak_rss_bytes": 1503002624,
+          "request_bytes": 0,
+          "response_bytes": 0
+        }
+      ],
+      "bend_backend_median_ns": 3707225338,
+      "zig_operation_median_ns": 186245734,
+      "bend_over_zig": 19.905021491660044
+    }
+  ],
+  "all_equal": true,
+  "threads": 8,
+  "parity_enabled": true,
+  "benchmark_sha256": "c2047b51878b4a2df10abcdce1e7855eafab72d2d49948ca0ebcb1b03ea673f7",
+  "harness_sha256": "20132e417d1b4935e6aafba08ad4e6aa50b21bc68928a856228f1ad6edd90b12"
+}

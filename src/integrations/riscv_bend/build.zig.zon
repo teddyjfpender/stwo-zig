@@ -1,0 +1,13 @@
+.{
+    .name = .stwo_riscv_bend_integration,
+    .version = "0.1.0",
+    .fingerprint = 0x97686baa38938039,
+    .paths = .{"."},
+    .dependencies = .{
+        .stwo_core = .{ .path = "../../core" },
+        .stwo_cpu_backend = .{ .path = "../../backends/cpu_scalar" },
+        .stwo_bend_backend = .{ .path = "../../backends/bend" },
+        .stwo_prover_engine = .{ .path = "../../prover" },
+        .stwo_riscv_frontend = .{ .path = "../../frontends/riscv" },
+    },
+}

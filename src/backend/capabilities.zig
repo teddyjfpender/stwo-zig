@@ -6,6 +6,7 @@
 //! must be absent so a no-op placeholder cannot masquerade as an implementation.
 
 pub const Set = struct {
+    circle_transform: bool = false,
     host_batch_inverse: bool = false,
     fri_folding: bool = false,
     fri_multi_fold: bool = false,

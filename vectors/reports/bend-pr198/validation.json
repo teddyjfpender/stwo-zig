@@ -1,0 +1,39 @@
+{
+  "schema": "stwo-bend-validation-v1",
+  "checks": {
+    "bend_boundary_laws": "7 named equalities checked",
+    "backend_contracts": "zig build test --build-file src/backend/build.zig -Doptimize=ReleaseSafe -j2: passed",
+    "cpu_backend": "zig build test --build-file src/backends/cpu_scalar/build.zig -Doptimize=ReleaseSafe -j2: passed",
+    "bend_and_native_integration": "\nBuild Summary: 7/7 steps succeeded; 4/4 tests passed\ntest success\n+- run test 2 passed 244us MaxRSS:2M\n   +- compile test ReleaseSafe native cached 9ms MaxRSS:68M\ntest-integration success\n+- run test 2 passed 25ms MaxRSS:2M\n   +- compile test ReleaseSafe native success 10s MaxRSS:291M\n      +- options success\n\n",
+    "python_syntax": "py_compile passed",
+    "git_diff_check": "passed",
+    "package_workspace": {
+      "baseline_failure_count": 15,
+      "current_failure_count": 15,
+      "new_failures": [],
+      "baseline_failures": [
+        "stwo_metal_backend: public API differs: missing=[], added=['core_aot', 'execution_policy']",
+        "stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/memory_commitment/poseidon2_narrow_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/memory_commitment/poseidon2_narrow_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/memory_commitment/poseidon2_universal_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/memory_commitment/poseidon2_universal_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in air/program/fixed_table_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_cpu_backend' in air/program/fixed_table_proof_v1_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in ethereum_narrow_aot_generator_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in ethereum_narrow_metal_proof_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in ethereum_narrow_metal_proof_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_metal_backend' in recursion_poseidon_degree3_metal_test.zig",
+        "stwo_riscv_frontend: undeclared named import 'stwo_proof_wire' in recursion_poseidon_degree3_metal_test.zig",
+        "stwo_riscv_cpu_integration: undeclared named import 'stwo_metal_backend' in recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+        "stwo_riscv_cpu_integration: public API differs: missing=[], added=['recursive_segment_v2_detached_boundary', 'recursive_segment_v2_detached_child_transcript', 'recursive_segment_v2_detached_command', 'recursive_segment_v2_detached_composition', 'recursive_segment_v2_detached_parent_command', 'recursive_segment_v2_detached_parent_producer', 'recursive_segment_v2_detached_parent_statement', 'recursive_segment_v2_detached_pcs_rows', 'recursive_segment_v2_detached_prefix', 'recursive_segment_v2_detached_proof', 'recursive_segment_v2_detached_transcript', 'recursive_segment_v2_detached_verifier', 'recursive_segment_v2_public_inputs', 'recursive_segment_v2_verifier_components']",
+        "stwo_riscv_metal_integration: undeclared named import 'stwo_riscv_cpu_small_recursion_runner' in recursive_segment_v2_concrete_outer_proof_runner.zig"
+      ]
+    }
+  },
+  "unavailable": [
+    "GPU host / Metal / CUDA execution",
+    "Rust toolchain and pinned Rust Stwo oracle qualification",
+    "full proof integration"
+  ],
+  "known_rejection": "FRI Zig Debug vs ReleaseFast disagreement"
+}

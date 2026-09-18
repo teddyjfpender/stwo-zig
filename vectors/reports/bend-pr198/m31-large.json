@@ -1,0 +1,156 @@
+{
+  "schema": "stwo-bend-evidence-v1",
+  "toolchain": {
+    "repository": "https://github.com/bendlang/bend",
+    "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+    "version": "2.0.5",
+    "zig_version": "0.15.2",
+    "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+    "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+  },
+  "host": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpu_count": 9,
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "bend_binary_sha256": "6383c09953c48d80665202534944c292be2f9c48262a0cd4dd02aa30e64ebe61",
+  "zig_oracle_sha256": "3631aa523628b9472eec29712853f5b4aa6f90930d3292b175f3136803972b6d",
+  "sources": {
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "b615d2162f7f27ee804ffa9f27f8957af221a1f307cb8fef8cbbbca4a8b0c79a",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "43c0c97c241382e60622c9116482918aedc3ebe0017049645262fe25f86deece",
+    "bend/stwo/m31.bend": "aea2a896c29a4ec3238da01367f0203496ce8a4efb2cd8ed76e7b858d3201d2d",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "68b8fb7fa033df15ce800b05edbd486d2390b88b0570fe41aabaa398f859a933",
+    "src/backends/bend/abi.zig": "33e1bd2d8721dc298c347533dbeaae423586f8b5dcea078553e10649cbb87f0b",
+    "src/backends/bend/build.zig": "27ad4d3bedc6335b46ad917e0bf40b9e7f82fdd08386d90db71109425c14d594",
+    "src/backends/bend/circle.zig": "d1cb27405a73572c78dc4fccd978f9a7f38d40c451b382be04cbfe2c113eb989",
+    "src/backends/bend/fri.zig": "4af9c8ff52a10cec39c23ddc9e102cc12e1b8b99c0ab6b12b95462bbcb55f530",
+    "src/backends/bend/integration_test.zig": "2eaf319b0f60c9c3940b42b5dfa92f52e26b69251f6d5ca72647e2af5578a6bd",
+    "src/backends/bend/mod.zig": "eff6ac0f7cb8d1df16f3c7e98de1dd73811714e1e97f742c510f0d185347c9fd",
+    "src/backends/bend/oracle.zig": "440d323a23ba6816408f8a18d7ff590138b4df3ee41848cdbc848947a2f362ba",
+    "src/backends/bend/runtime.zig": "a5db75671956848e7ee534667486f0c505a6d675506e1b0d07cf01c9a7d1707c",
+    "bend/stwo/transport.c": "0867a0d971c5882c4dbef56b0766d99c6c9b7ef9d45ec79a6f510015fbd80874",
+    "autoresearch/benchmarks/bend_common.py": "78e6dc3edb3113312d3f70b764c184abbaab5abd0db52749e75fa39418d99a12",
+    "autoresearch/benchmarks/bend_circle_fft.py": "c632cdd7d0a4fcd416a160ade6aefd4e0f99eb1a52a4cd93a1d0e89214afd835"
+  },
+  "rust_oracle_qualified": false,
+  "proof_throughput_claim": false,
+  "scope": "fresh process per column; compute excludes input tree/plan construction and output serialization; wall includes native process launch and transport; compiler excluded",
+  "limitations": [
+    "shared host, uncontrolled frequency",
+    "RSS includes runtime and IO",
+    "logical operations are not machine instructions",
+    "no full proof or universal arithmetic proof"
+  ],
+  "rows": [
+    {
+      "operation": "multiply",
+      "log_size": 20,
+      "columns": 1,
+      "threads": 1,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 26625728,
+            "wall_ns": 44353219,
+            "cpu_user_s": 0.035931,
+            "cpu_system_s": 0.007975,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164,
+            "peak_rss_bytes": 19980288
+          },
+          "zig": {
+            "compute_ns": 143422,
+            "wall_ns": 45894143,
+            "cpu_user_s": 0.018522,
+            "cpu_system_s": 0.025705,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 15261696
+          }
+        },
+        {
+          "bend": {
+            "compute_ns": 25404066,
+            "wall_ns": 42790293,
+            "cpu_user_s": 0.033986999999999996,
+            "cpu_system_s": 0.008586,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164,
+            "peak_rss_bytes": 28368896
+          },
+          "zig": {
+            "compute_ns": 115541,
+            "wall_ns": 24667379,
+            "cpu_user_s": 0.016274999999999998,
+            "cpu_system_s": 0.008109,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 22077440
+          }
+        },
+        {
+          "bend": {
+            "compute_ns": 25778458,
+            "wall_ns": 43815176,
+            "cpu_user_s": 0.035822,
+            "cpu_system_s": 0.007722,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164,
+            "peak_rss_bytes": 28368896
+          },
+          "zig": {
+            "compute_ns": 120027,
+            "wall_ns": 27531334,
+            "cpu_user_s": 0.027295,
+            "cpu_system_s": 0.0,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 28368896
+          }
+        },
+        {
+          "bend": {
+            "compute_ns": 25725029,
+            "wall_ns": 42955073,
+            "cpu_user_s": 0.042692,
+            "cpu_system_s": 0.0,
+            "request_bytes": 4194324,
+            "response_bytes": 2097164,
+            "peak_rss_bytes": 28368896
+          },
+          "zig": {
+            "compute_ns": 117974,
+            "wall_ns": 25266653,
+            "cpu_user_s": 0.024997,
+            "cpu_system_s": 0.0,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 28368896
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 25751743.5,
+      "zig_compute_median_ns": 119000.5,
+      "bend_over_zig": 216.4002966374091,
+      "effective_m31_ops_per_s": 20359320.52522968
+    }
+  ],
+  "fixture_count": 0,
+  "all_equal": true,
+  "unavailable_lanes": {
+    "zig_scalar": "not separately compiled",
+    "metal": "not measured",
+    "bend_metal": "not measured",
+    "bend_cuda": "not measured"
+  }
+}

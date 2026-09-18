@@ -1,0 +1,349 @@
+{
+  "schema": "stwo-bend-evidence-v1",
+  "toolchain": {
+    "repository": "https://github.com/bendlang/bend",
+    "commit": "0b7e2b11c1054f5d0f4eb955cadb47997ef1115d",
+    "version": "2.0.5",
+    "zig_version": "0.15.2",
+    "base_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+    "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc"
+  },
+  "host": {
+    "platform": "Linux-6.18.44-x86_64-with-glibc2.39",
+    "machine": "x86_64",
+    "cpu_count": 9,
+    "cpu": "AMD EPYC 9V74 80-Core Processor"
+  },
+  "bend_binary_sha256": "7077ae02b13991069c5fac4066e51d5973cea52e81b1f44fd7ccca9130301bdd",
+  "zig_oracle_sha256": "ebc03b2fdaee9c6b1ad6df62d2bf01afa4ff9cd67569a51b2d95b245a54db98f",
+  "sources": {
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "c6bbbe7e9cb592b46fbf125b202bde92df1119991f74b0fe79a6b125e2e55eb6",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "2029286b6f82cea592e0d7bbe6cf735de83c785bf4535953c40cae01c39f3c09",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "e3514c2d11c9b579b0b0805d626f274fab6fe8d909516e5a7b259476c7c6402d",
+    "src/backends/bend/abi.zig": "507aaf1746f644bda507cdd5f944faf0d73b0c06ac230cc96d891c313e356127",
+    "src/backends/bend/benchmark.zig": "d4d345ba15f5e40b834a8b24eb4ef2c84bb5df563c7649eaac31bf8d651d3d6e",
+    "src/backends/bend/build.zig": "de539929c483a99346444e54f2f51874d050cd365994196c382c1e0101562d96",
+    "src/backends/bend/circle.zig": "7fb4a6749f377872ea7b40c8c3f95dc5f7758352177af18e20898ab47b4ebb46",
+    "src/backends/bend/fri.zig": "f7421059281c31dea29e2695c583ee4ced59bca9af4f01af619177d08b50e2fd",
+    "src/backends/bend/integration_test.zig": "5e5f5a4f7fe790ca46433564da757ec51aa1040929136342973427c06b30718d",
+    "src/backends/bend/mod.zig": "cf02cc79c8c8fcc3957aae0a81cd85703c5435b80f4d0811363310f1bc2622bd",
+    "src/backends/bend/oracle.zig": "0144a08cfb66956c33b2f4e3469176a645e81967e1109947afb98890d7cb24f2",
+    "src/backends/bend/runtime.zig": "48bbb6ca0e4ed3dd30db0bf8e6d1380346eb8a96a907491b452797d0fedee761",
+    "bend/stwo/transport.c": "86c07f28f9ec0fbcf1922e194d0c50470345d4b3612cf5a3f6e7470cbb9dd495",
+    "autoresearch/benchmarks/bend_common.py": "78e6dc3edb3113312d3f70b764c184abbaab5abd0db52749e75fa39418d99a12",
+    "autoresearch/benchmarks/bend_circle_fft.py": "c632cdd7d0a4fcd416a160ade6aefd4e0f99eb1a52a4cd93a1d0e89214afd835"
+  },
+  "rust_oracle_qualified": false,
+  "proof_throughput_claim": false,
+  "scope": "fresh process per column; compute excludes input tree/plan construction and output serialization; wall includes native process launch and transport; compiler excluded",
+  "limitations": [
+    "shared host, uncontrolled frequency",
+    "RSS includes runtime and IO",
+    "logical operations are not machine instructions",
+    "no full proof or universal arithmetic proof"
+  ],
+  "rows": [
+    {
+      "operation": "fft",
+      "log_size": 16,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 4983711,
+            "wall_ns": 6615048,
+            "cpu_user_s": 0.0,
+            "cpu_system_s": 0.012595,
+            "request_bytes": 524304,
+            "response_bytes": 262156,
+            "peak_rss_bytes": 15269888
+          },
+          "zig": {
+            "compute_ns": 399229,
+            "wall_ns": 2912707,
+            "cpu_user_s": 0.0028139999999999997,
+            "cpu_system_s": 0.0,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 15269888
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 4983711,
+      "zig_compute_median_ns": 399229,
+      "bend_over_zig": 12.483339136184997,
+      "effective_m31_ops_per_s": 315600964.823201
+    },
+    {
+      "operation": "fft",
+      "log_size": 20,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 53841366,
+            "wall_ns": 78515034,
+            "cpu_user_s": 0.117479,
+            "cpu_system_s": 0.059133,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316,
+            "peak_rss_bytes": 84148224
+          },
+          "zig": {
+            "compute_ns": 6017497,
+            "wall_ns": 82150026,
+            "cpu_user_s": 0.033844,
+            "cpu_system_s": 0.048050999999999996,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 20971520
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 53841366,
+      "zig_compute_median_ns": 6017497,
+      "bend_over_zig": 8.947468690055018,
+      "effective_m31_ops_per_s": 584258579.1749786
+    },
+    {
+      "operation": "fft",
+      "log_size": 22,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 213722348,
+            "wall_ns": 293660060,
+            "cpu_user_s": 0.6349349999999999,
+            "cpu_system_s": 0.14404999999999998,
+            "request_bytes": 33554448,
+            "response_bytes": 16777228,
+            "peak_rss_bytes": 333185024
+          },
+          "zig": {
+            "compute_ns": 25521388,
+            "wall_ns": 267735431,
+            "cpu_user_s": 0.129182,
+            "cpu_system_s": 0.127847,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 83886080
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 213722348,
+      "zig_compute_median_ns": 25521388,
+      "bend_over_zig": 8.374244692334132,
+      "effective_m31_ops_per_s": 647625450.9425472
+    },
+    {
+      "operation": "fft",
+      "log_size": 24,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 850572368,
+            "wall_ns": 1144904120,
+            "cpu_user_s": 3.094363,
+            "cpu_system_s": 0.545083,
+            "request_bytes": 134217744,
+            "response_bytes": 67108876,
+            "peak_rss_bytes": 1343356928
+          },
+          "zig": {
+            "compute_ns": 118333502,
+            "wall_ns": 1076892955,
+            "cpu_user_s": 0.625173,
+            "cpu_system_s": 0.447065,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 335544320
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 850572368,
+      "zig_compute_median_ns": 118333502,
+      "bend_over_zig": 7.187925258900899,
+      "effective_m31_ops_per_s": 710086288.6248851
+    },
+    {
+      "operation": "ifft",
+      "log_size": 16,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 5494946,
+            "wall_ns": 7992962,
+            "cpu_user_s": 0.0,
+            "cpu_system_s": 0.015026,
+            "request_bytes": 524304,
+            "response_bytes": 262156,
+            "peak_rss_bytes": 300150784
+          },
+          "zig": {
+            "compute_ns": 317428,
+            "wall_ns": 4256830,
+            "cpu_user_s": 0.004134,
+            "cpu_system_s": 0.0,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 300150784
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 5494946,
+      "zig_compute_median_ns": 317428,
+      "bend_over_zig": 17.31084214373023,
+      "effective_m31_ops_per_s": 298164895.52399606
+    },
+    {
+      "operation": "ifft",
+      "log_size": 20,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 89233526,
+            "wall_ns": 114018490,
+            "cpu_user_s": 0.207996,
+            "cpu_system_s": 0.069093,
+            "request_bytes": 8388624,
+            "response_bytes": 4194316,
+            "peak_rss_bytes": 300150784
+          },
+          "zig": {
+            "compute_ns": 4624562,
+            "wall_ns": 80283863,
+            "cpu_user_s": 0.024189,
+            "cpu_system_s": 0.055628,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 300150784
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 89233526,
+      "zig_compute_median_ns": 4624562,
+      "bend_over_zig": 19.295562693288574,
+      "effective_m31_ops_per_s": 364278511.19544464
+    },
+    {
+      "operation": "ifft",
+      "log_size": 22,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 188398103,
+            "wall_ns": 262576471,
+            "cpu_user_s": 0.641317,
+            "cpu_system_s": 0.144516,
+            "request_bytes": 33554448,
+            "response_bytes": 16777228,
+            "peak_rss_bytes": 340787200
+          },
+          "zig": {
+            "compute_ns": 23844755,
+            "wall_ns": 258949981,
+            "cpu_user_s": 0.133415,
+            "cpu_system_s": 0.125171,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 300150784
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 188398103,
+      "zig_compute_median_ns": 23844755,
+      "bend_over_zig": 7.901029094238964,
+      "effective_m31_ops_per_s": 756941464.532687
+    },
+    {
+      "operation": "ifft",
+      "log_size": 24,
+      "columns": 1,
+      "threads": 8,
+      "samples": [
+        {
+          "bend": {
+            "compute_ns": 823247108,
+            "wall_ns": 1090853587,
+            "cpu_user_s": 3.428199,
+            "cpu_system_s": 0.5209,
+            "request_bytes": 134217744,
+            "response_bytes": 67108876,
+            "peak_rss_bytes": 1427505152
+          },
+          "zig": {
+            "compute_ns": 99110036,
+            "wall_ns": 734123012,
+            "cpu_user_s": 0.6237849999999999,
+            "cpu_system_s": 0.10904499999999999,
+            "request_bytes": 0,
+            "response_bytes": 0,
+            "peak_rss_bytes": 335544320
+          }
+        }
+      ],
+      "equal": true,
+      "batch_mode": "sequential native child per column",
+      "gpu_ns": null,
+      "host_device_copy_bytes": 0,
+      "bend_compute_median_ns": 823247108,
+      "zig_compute_median_ns": 99110036,
+      "bend_over_zig": 8.306395005244473,
+      "effective_m31_ops_per_s": 754034828.6288787
+    }
+  ],
+  "fixture_count": 4096,
+  "all_equal": true,
+  "unavailable_lanes": {
+    "zig_scalar": "not separately compiled",
+    "metal": "not measured",
+    "bend_metal": "not measured",
+    "bend_cuda": "not measured"
+  }
+}
