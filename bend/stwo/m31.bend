@@ -14,10 +14,12 @@ def reduce(+x: U32) -> U32:
   canon(r, U32.is_ge(r, 2147483647))
 
 def add(a: U32, b: U32) -> U32:
-  reduce((a + b : U32))
+  +s = (a + b : U32)
+  canon(s, U32.is_ge(s, 2147483647))
 
 def sub(a: U32, b: U32) -> U32:
-  reduce((a + (2147483647 - b : U32) : U32))
+  +s = (a + (2147483647 - b : U32) : U32)
+  canon(s, U32.is_ge(s, 2147483647))
 
 # Rotate a canonical residue left 16 bits in its 31-bit representation.
 def shift16(+x: U32) -> U32:

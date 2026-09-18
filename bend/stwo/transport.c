@@ -39,7 +39,7 @@ Term read_run(Env e, Term *f, IoWork *w) {
   if (REQUIRE_GPU && !io_gpu) bend_die("GPU execution required; no CPU fallback");
   if (bend_word() != 0x31444e42 || bend_word() != 1) bend_die("bad version/magic");
   uint32_t op = bend_word(), depth = bend_word(), factor = bend_field();
-  if (op > 4 || depth < 1 || depth > 20) bend_die("unsupported operation/size");
+  if (op > 4 || depth < 1 || depth > 24) bend_die("unsupported operation/size");
   if (op == 4 && depth < 3) bend_die("FRI requires at least two QM31 values");
   uint32_t n = 1u << depth;
   Loc v = heap_alloc(e, buf_wcls(depth));

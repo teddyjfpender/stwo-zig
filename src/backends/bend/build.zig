@@ -15,6 +15,12 @@ pub fn build(b: *std.Build) void {
     if (b.option([]const u8, "bend-executable", "Absolute path to the pinned Bend native runner")) |path| {
         const options = b.addOptions();
         options.addOption([]const u8, "executable", path);
+        const benchmark = b.createModule(.{ .root_source_file = b.path("benchmark.zig"), .target = target, .optimize = optimize });
+        benchmark.addOptions("config", options);
+        benchmark.addImport("stwo_core", core);
+        benchmark.addImport("stwo_prover_engine", prover);
+        benchmark.addImport("stwo_bend_backend", backend);
+        b.installArtifact(b.addExecutable(.{ .name = "bend-backend-bench", .root_module = benchmark }));
         const integration = b.createModule(.{ .root_source_file = b.path("integration_test.zig"), .target = target, .optimize = optimize });
         integration.addOptions("config", options);
         integration.addImport("stwo_core", core);

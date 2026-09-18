@@ -118,7 +118,7 @@ Use `bend_fri.py` and `bend_interactions.py` for the separate experimental lanes
 
 ## Contract and invariants
 
-The request is bounded to log20 M31 words (FRI therefore at most log18 QM31
+The request is bounded to log24 M31 words (FRI therefore at most log22 QM31
 values), canonical little-endian u32 residues, exact lengths and no trailing data.
 Twiddles are host-precomputed and supplied in recursive preorder. The last Circle
 layer uses the existing y/-y/-x/x ordering, not ordinary multiplicative FFT roots.
@@ -153,3 +153,12 @@ pinned Rust oracle gate.
 See [retained results](../../../vectors/reports/bend-pr198/README.md),
 [search environment](../../../autoresearch/environments/bend_circle_fft/README.md),
 and [PR #198](https://github.com/teddyjfpender/stwo-zig/pull/198).
+
+## Second optimization pass
+
+[Pass-two evidence](../../../vectors/reports/bend-pr198/pass2/README.md) retains
+log22/log24 measurements, paired baseline comparisons, and end-to-end FFT/IFFT/2x
+LDE backend calls. Flat leaf loops, bounded transform fusion and chunked scans
+reduce split/join allocation. Arithmetic remains Bend source; generated C is
+unchanged by hand. This is an explicitly expanded experiment, not admission under
+the original two-file autoresearch surface. Full-proof throughput remains unmeasured.

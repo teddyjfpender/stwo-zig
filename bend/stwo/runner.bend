@@ -13,15 +13,34 @@ def read() -> IO(Request):
 def write(values: Array<U32>) -> IO(Unit):
   import "./transport.c"
 
-def batch_mul(a: Array<U32>, b: Array<U32>) -> Array<U32>:
-  match a b:
-    case ALeaf{x} ALeaf{y}:
-      ALeaf{M.mul(x, y)}
-    case ANode{al, ar} ANode{bl, br}:
-      l r = batch_mul(al, bl) batch_mul(ar, br)
-      ANode{l, r}
-    case a b:
+# Flat leaf multiplication avoids per-field split/join allocation.
+def mul_loop(n: Nat, pa: Array<U32> & U32, pb: Array<U32> & U32) -> Array<U32>:
+  match n pa pb:
+    case 0n Tuple{a, x} Tuple{b, y}:
       a
+    case 1n+ +p Tuple{a, x} Tuple{b, y}:
+      a = Array.set(U32, a, U32.from_nat(p), M.mul(x, y))
+      mul_loop(p, C.read_at(p, a), C.read_at(p, b))
+
+def mul_fork(a: Array<U32>, b: Array<U32>, +size: U32, stop: Bool) -> Array<U32>:
+  match a b stop:
+    case a b True{}:
+      +n = U32.to_nat(size)
+      mul_loop(n, C.read_at(n, a), C.read_at(n, b))
+    case ANode{al, ar} ANode{bl, br} False{}:
+      +half = U32.shr(size)
+      +stop = U32.is_le(half, 4096)
+      l r = mul_fork(al, bl, half, stop) mul_fork(ar, br, half, stop)
+      ANode{l, r}
+    case a b False{}:
+      a
+
+def mul_start(pair: Array<U32> & U32, b: Array<U32>) -> Array<U32>:
+  (a, +size) = pair
+  mul_fork(a, b, size, U32.is_le(size, 4096))
+
+def batch_mul(a: Array<U32>, b: Array<U32>) -> Array<U32>:
+  mul_start(Array.size(U32, a), b)
 
 def multiply(values: Array<U32>) -> Array<U32>:
   match values:

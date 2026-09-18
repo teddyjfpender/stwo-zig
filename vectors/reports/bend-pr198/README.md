@@ -3,6 +3,9 @@
 Base: `1358234f1e8a2ac34241658dcd3505bad5feb1fc`. Bend: pinned 2.0.5.
 Zig: 0.15.2. Scope: initial CPU experiment, not a production backend release.
 
+See [the second pass](pass2/README.md) for log24, faster Bend algorithms and
+complete backend/LDE timings. This page preserves the initial checkpoint.
+
 ## Outcome
 
 The initial balanced Bend Circle FFT scales across threads but remains much

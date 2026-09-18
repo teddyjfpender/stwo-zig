@@ -42,3 +42,13 @@ FRI is a separate rejected lane until the retained Debug/ReleaseFast discrepancy
 is resolved against the independent oracle. `interactions.bend` only supplies an
 M31 inclusive prefix. Full QM31 rational interaction generation, normalization,
 projection and typed-program lowering require their own frozen corpus and gate.
+
+## Pass-two experiment boundary
+
+The user-directed second pass expands the human-editable surface to the Bend
+runner's batch multiply and `interactions.bend` prefix chunks. The ABI/native size
+limit rises together from log20 to log24; the oracle algorithm and original
+measurement scripts stay unchanged. New `bend_compare.py` and `bend_backend.py`
+retain alternating old/new pairs and actual verified backend-call timings. This
+is a new benchmark checkpoint, not an admitted autonomous search candidate under
+the original frozen-file list. See the retained pass-two report for exact hashes.
