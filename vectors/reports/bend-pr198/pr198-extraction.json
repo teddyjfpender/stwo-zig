@@ -1,0 +1,23 @@
+{
+  "schema": "stwo-bend-pr198-extraction-v1",
+  "source_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "source_pr": "https://github.com/teddyjfpender/stwo-zig/pull/198",
+  "checkpoint": "design/riscv-proving-stack/pause-checkpoint-20260909.md",
+  "checkpoint_sha256": "48b8e0c429aab8bb31fa7ab6b5adc6e1b7ee9a25d12d135e063632df0758a455",
+  "observed_parent_phases_seconds": {
+    "source_tuple_projection": 2.121,
+    "typed_interaction_generation": 1.474,
+    "poseidon_interaction_filling": 0.0167
+  },
+  "interpretation": "One retained candidate CPU root observation; not repeated phase medians or measurements of this branch. An M31 prefix does not establish improvement in these full phases.",
+  "seams": [
+    "src/backend/mod.zig",
+    "src/backend/capabilities.zig",
+    "src/backend/field_ops.zig",
+    "src/backend/fri_ops.zig",
+    "src/prover/poly/circle/transforms.zig",
+    "src/backends/cpu_scalar/mod.zig",
+    "src/backends/metal/commit_backend.zig"
+  ],
+  "next_target": "typed independent-prefix interaction program, after arithmetic qualification; no Merkle or recursion changes"
+}

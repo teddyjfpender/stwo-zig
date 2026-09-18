@@ -227,6 +227,21 @@
         ]
       ]
     },
+    "bend_experiment": {
+      "host": "linux",
+      "commands": [
+        [
+          "zig",
+          "build",
+          "test",
+          "--build-file",
+          "src/backends/bend/build.zig",
+          "-Doptimize=ReleaseSafe",
+          "-j2"
+        ]
+      ],
+      "description": "Independent optional Bend compute-backend contracts (native runtime parity is a separate explicit gate)"
+    },
     "cpu_backend": {
       "host": "linux",
       "description": "Independent CPU scalar/SIMD backend package",
@@ -1310,6 +1325,21 @@
       "lanes": [
         "script_contracts",
         "build_graph"
+      ]
+    },
+    {
+      "prefixes": [
+        "src/backends/bend/",
+        "bend/",
+        "scripts/build_bend_experiment.py",
+        "autoresearch/environments/bend_circle_fft/",
+        "autoresearch/benchmarks/bend_circle_fft.py",
+        "autoresearch/benchmarks/bend_common.py",
+        "autoresearch/benchmarks/bend_fri.py",
+        "autoresearch/benchmarks/bend_interactions.py"
+      ],
+      "lanes": [
+        "bend_experiment"
       ]
     }
   ],

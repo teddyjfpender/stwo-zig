@@ -1,0 +1,46 @@
+{
+  "schema": "stwo-zig-package-contract-v2",
+  "package": "stwo_bend_backend",
+  "version": "0.1.0",
+  "layer": "backend",
+  "owner": "bend-experiment",
+  "public_modules": {
+    "stwo_bend_backend": "mod.zig"
+  },
+  "dependencies": {
+    "stwo_core": "../../core",
+    "stwo_backend_contracts": "../../backend",
+    "stwo_prover_engine": "../../prover"
+  },
+  "injected_modules": [
+    "config"
+  ],
+  "api_surface": [
+    "BendBackend",
+    "abi",
+    "circle",
+    "fri",
+    "runtime"
+  ],
+  "api_contract": {
+    "signature_tests": [
+      "mod.zig::bend: compute backend claims Circle only"
+    ],
+    "invariant_tests": [
+      "runtime.zig::bend ABI rejects truncated oversized wrong-version and noncanonical responses"
+    ]
+  },
+  "ci": {
+    "lane": "bend_experiment",
+    "host": "linux",
+    "command": [
+      "zig",
+      "build",
+      "test",
+      "--build-file",
+      "src/backends/bend/build.zig",
+      "-Doptimize=ReleaseSafe",
+      "-j2"
+    ]
+  }
+}
