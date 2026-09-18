@@ -59,8 +59,9 @@ python3 autoresearch/benchmarks/bend_csp.py --cli .zig-cache/bend-pass3/qualifie
 ```
 
 The harness defaults to three alternating CPU/Bend pairs at the minimum canonical
-SHA-256, Keccak and Poseidon2 input sizes. ECDSA can be requested explicitly with
-`--targets ecdsa_secp256k1`; it is substantially larger. Every sample runs in a
+SHA-256, Keccak, Poseidon2 and ECDSA secp256k1 input sizes. ECDSA is
+substantially larger; `--targets ecdsa_secp256k1` selects it alone. Completed
+lane receipts are saved immediately, including when the paired lane fails. Every sample runs in a
 fresh process and writes proof bytes under the selected artifact directory.
 
 ## Contract and invariants
@@ -77,6 +78,10 @@ Verification and serialization are reported separately. Wall time includes the
 whole process. Native CPU use, RSS, transport bytes and per-operation call counts
 are retained. The Bend child is persistent within one proof, serialized behind a
 mutex, bounded to 65,536 requests, and explicitly terminated after the proof.
+The runner uses a cold, per-proof 64 MiB exact-request cache of Bend-produced
+arrays. Full request bytes must match; hashes alone never authorize reuse.
+Shutdown clears all entries. Native calls, cache hits and boundary timings are
+reported separately, and cached results still pass the Zig parity check.
 There is no silent fallback to CPU when the Bend worker fails.
 
 ## Change checklist

@@ -5,14 +5,24 @@ const std = @import("std");
 const abi = @import("abi.zig");
 const M31 = @import("stwo_core").fields.m31.M31;
 var requests = [_]std.atomic.Value(u64){std.atomic.Value(u64).init(0)} ** 6;
+var cache_hits = std.atomic.Value(u64).init(0);
+var bridge_ns = std.atomic.Value(u64).init(0);
+var oracle_ns = std.atomic.Value(u64).init(0);
+var preparation_ns = std.atomic.Value(u64).init(0);
+pub fn observeOracle(ns: u64) void {
+    _ = oracle_ns.fetchAdd(ns, .monotonic);
+}
+pub fn observePreparation(ns: u64) void {
+    _ = preparation_ns.fetchAdd(ns, .monotonic);
+}
 var sent_bytes = std.atomic.Value(u64).init(0);
 var received_bytes = std.atomic.Value(u64).init(0);
-pub fn snapshot() struct { calls: [6]u64, request_bytes: u64, response_bytes: u64 } {
+pub fn snapshot() struct { calls: [6]u64, request_bytes: u64, response_bytes: u64, cache_hits: u64, bridge_ns: u64, oracle_ns: u64, preparation_ns: u64 } {
     var calls: [6]u64 = undefined;
     for (&requests, &calls) |*counter, *value| value.* = counter.load(.monotonic);
-    return .{ .calls = calls, .request_bytes = sent_bytes.load(.monotonic), .response_bytes = received_bytes.load(.monotonic) };
+    return .{ .calls = calls, .request_bytes = sent_bytes.load(.monotonic), .response_bytes = received_bytes.load(.monotonic), .cache_hits = cache_hits.load(.monotonic), .bridge_ns = bridge_ns.load(.monotonic), .oracle_ns = oracle_ns.load(.monotonic), .preparation_ns = preparation_ns.load(.monotonic) };
 }
-pub const Config = struct { executable: []const u8, threads: u8 = 1, persistent: bool = false };
+pub const Config = struct { executable: []const u8, threads: u8 = 1, persistent: bool = false, cache_bytes: usize = 0 };
 
 pub fn decode(allocator: std.mem.Allocator, bytes: []const u8, count: usize) ![]M31 {
     if (count > 1 << abi.max_log_size or bytes.len != 12 + count * 4) return error.InvalidBendOutput;
@@ -30,6 +40,10 @@ pub fn decode(allocator: std.mem.Allocator, bytes: []const u8, count: usize) ![]
 }
 
 pub fn execute(allocator: std.mem.Allocator, config: Config, request: []const u8, count: usize) ![]M31 {
+    var timer = try std.time.Timer.start();
+    defer {
+        _ = bridge_ns.fetchAdd(timer.read(), .monotonic);
+    }
     if (request.len < 20) return error.InvalidBendRequest;
     if (config.executable.len == 0 or config.threads == 0 or config.threads > 128) return error.InvalidBendConfig;
     if (request.len > 16 * (1 << abi.max_log_size) or count > 1 << abi.max_log_size) return error.BendRequestTooLarge;
@@ -69,6 +83,36 @@ pub fn execute(allocator: std.mem.Allocator, config: Config, request: []const u8
 var session_lock: std.Thread.Mutex = .{};
 var session: ?std.process.Child = null;
 var session_config: ?Config = null;
+const CacheEntry = struct { hash: u64, request: []u8, values: []M31 };
+var cache: std.ArrayList(CacheEntry) = .empty;
+var cache_size: usize = 0;
+fn clearCache() void {
+    const a = std.heap.page_allocator;
+    for (cache.items) |entry| {
+        a.free(entry.request);
+        a.free(entry.values);
+    }
+    cache.deinit(a);
+    cache = .empty;
+    cache_size = 0;
+}
+fn remember(request: []const u8, values: []const M31, hash: u64, limit: usize) !void {
+    const size = request.len + values.len * @sizeOf(M31);
+    if (size > limit or limit == 0) return;
+    const a = std.heap.page_allocator;
+    while (cache_size + size > limit and cache.items.len > 0) {
+        const entry = cache.orderedRemove(0);
+        cache_size -= entry.request.len + entry.values.len * @sizeOf(M31);
+        a.free(entry.request);
+        a.free(entry.values);
+    }
+    const key = try a.dupe(u8, request);
+    errdefer a.free(key);
+    const result = try a.dupe(M31, values);
+    errdefer a.free(result);
+    try cache.append(a, .{ .hash = hash, .request = key, .values = result });
+    cache_size += size;
+}
 
 pub fn shutdown() void {
     session_lock.lock();
@@ -76,6 +120,7 @@ pub fn shutdown() void {
     stopSession();
 }
 fn stopSession() void {
+    clearCache();
     if (session) |*child| {
         _ = child.kill() catch {};
     }
@@ -88,8 +133,16 @@ fn executePersistent(a: std.mem.Allocator, config: Config, request: []const u8, 
     defer session_lock.unlock();
     errdefer stopSession();
     if (session_config) |old| {
-        if (old.threads != config.threads or !std.mem.eql(u8, old.executable, config.executable)) return error.BendSessionConfigChanged;
+        if (old.cache_bytes != config.cache_bytes or old.threads != config.threads or !std.mem.eql(u8, old.executable, config.executable)) return error.BendSessionConfigChanged;
     }
+    const hash = std.hash.Wyhash.hash(0, request);
+    if (config.cache_bytes != 0) for (cache.items) |entry| {
+        // Hash only indexes candidates: full request equality is mandatory.
+        if (entry.hash == hash and entry.values.len == count and std.mem.eql(u8, entry.request, request)) {
+            _ = cache_hits.fetchAdd(1, .monotonic);
+            return a.dupe(M31, entry.values);
+        }
+    };
     if (session == null) {
         const pa = std.heap.page_allocator;
         var env = try std.process.getEnvMap(pa);
@@ -109,7 +162,7 @@ fn executePersistent(a: std.mem.Allocator, config: Config, request: []const u8, 
         child.argv = &.{};
         child.env_map = null;
         session = child;
-        session_config = .{ .executable = owned_path, .threads = config.threads, .persistent = true };
+        session_config = .{ .executable = owned_path, .threads = config.threads, .persistent = true, .cache_bytes = config.cache_bytes };
     }
     var child = &session.?;
     var magic: [4]u8 = undefined;
@@ -126,6 +179,8 @@ fn executePersistent(a: std.mem.Allocator, config: Config, request: []const u8, 
     @memcpy(bytes[0..12], &header);
     if (try child.stdout.?.readAll(bytes[12..]) != bytes.len - 12) return error.TruncatedBendOutput;
     const values = try decode(a, bytes, count);
+    errdefer a.free(values);
+    try remember(request, values, hash, config.cache_bytes);
     const op = std.mem.readInt(u32, request[8..12], .little);
     if (op < requests.len) _ = requests[op].fetchAdd(1, .monotonic);
     _ = sent_bytes.fetchAdd(request.len, .monotonic);

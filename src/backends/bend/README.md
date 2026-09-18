@@ -179,3 +179,16 @@ framing. Input and output are buffered in 64 KiB blocks; IO contains no field
 arithmetic. Direct calls still require a trusted binary; the proof harness kills
 the process group on timeout. Exact 2x LDE skips its redundant first forward
 layer, and FRI prepares inverses in one host batch instead of per point.
+
+
+## Exact request reuse and ECDSA measurements
+
+`runtime.Config.cache_bytes` optionally bounds per-session storage of complete
+request keys and native Bend result arrays (zero disables it). Lookup requires
+both a matching hash and full request equality. It never caches proofs or
+substitutes Zig-computed values. Session shutdown discards all cached arrays.
+The CSP runner enables 64 MiB per fresh proof; its default matrix now includes
+ECDSA secp256k1. Cache hits are separate from actual native execution counters,
+and all results retain numerical parity checks. See
+[pass4 evidence](../../../vectors/reports/bend-pr198/pass4/README.md) for measured
+performance and the rejected larger-leaf tuning experiment.

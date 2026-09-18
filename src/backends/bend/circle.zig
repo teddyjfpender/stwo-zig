@@ -47,6 +47,7 @@ pub fn evaluateExtension(allocator: std.mem.Allocator, config: runtime.Config, v
     return transformImpl(allocator, config, values, domain, tree, false, true);
 }
 fn transformImpl(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype, inverse: bool, extension: bool) !void {
+    var preparation_timer = try std.time.Timer.start();
     const log = domain.logSize();
     if (log < 1 or log > abi.max_log_size or values.len == 0) return error.InvalidColumns;
     if (tree.root_coset.logSize() != domain.half_coset.logSize() or
@@ -61,13 +62,24 @@ fn transformImpl(allocator: std.mem.Allocator, config: runtime.Config, values: [
     var request: std.ArrayList(u8) = .empty;
     defer request.deinit(allocator);
     const norm = try M31.fromCanonical(@intCast(domain.size())).inv();
+    var plan: std.ArrayList(u8) = .empty;
+    defer plan.deinit(allocator);
+    try writePlan(&plan, allocator, tree, domain, log, 0, inverse);
+    runtime.observePreparation(preparation_timer.lap());
     for (values) |v| {
+        preparation_timer.reset();
         request.clearRetainingCapacity();
         for ([_]u32{ abi.request_magic, abi.version, if (inverse) 1 else if (extension) 5 else 0, log, norm.v }) |x| try abi.word(&request, allocator, x);
-        for (v) |x| try abi.word(&request, allocator, x.v);
-        try writePlan(&request, allocator, tree, domain, log, 0, inverse);
+        if (comptime @import("builtin").target.cpu.arch.endian() == .little) {
+            comptime std.debug.assert(@sizeOf(M31) == 4);
+            try request.appendSlice(allocator, std.mem.sliceAsBytes(v));
+        } else for (v) |x| try abi.word(&request, allocator, x.v);
+        try request.appendSlice(allocator, plan.items);
+        runtime.observePreparation(preparation_timer.read());
         const actual = try runtime.execute(allocator, config, request.items, v.len);
         defer allocator.free(actual);
+        var oracle_timer = try std.time.Timer.start();
+        defer runtime.observeOracle(oracle_timer.read());
         // This experimental backend remains parity-checked on every call.
         const expected = try allocator.dupe(M31, v);
         defer allocator.free(expected);

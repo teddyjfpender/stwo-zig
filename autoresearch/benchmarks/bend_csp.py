@@ -59,7 +59,7 @@ def main():
     p.add_argument('--cli', type=Path, required=True)
     p.add_argument('--bend', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
-    p.add_argument('--targets', default='sha256,keccak,poseidon2_m31')
+    p.add_argument('--targets', default='sha256,keccak,poseidon2_m31,ecdsa_secp256k1')
     p.add_argument('--samples', type=int, default=3)
     p.add_argument('--timeout', type=int, default=600)
     p.add_argument('--artifact-dir', type=Path, default=ROOT/'.zig-cache/bend-csp-proofs')
@@ -74,7 +74,7 @@ def main():
     report = dict(schema='stwo-bend-csp-experiment-v1', manifest_sha256=digest(ROOT/'vectors/riscv_csp/manifest-v2.json'),
                   cli_sha256=digest(args.cli), bend_binary_sha256=digest(args.bend),
                   source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
-                  sources={str(f.relative_to(ROOT)):digest(f) for base,pattern in [('src/backends/bend','*.zig'),('bend/stwo','*')] for f in sorted((ROOT/base).glob(pattern)) if f.is_file()},
+                  sources={str(f.relative_to(ROOT)):digest(f) for base,pattern in [('src/backends/bend','*.zig'),('bend/stwo','*'),('src/integrations/riscv_bend','*.zig')] for f in sorted((ROOT/base).glob(pattern)) if f.is_file()},
                   harness_sha256=digest(__file__), secure_pcs=SECURE_PCS_CONFIG, rows=[], all_verified=True,
                   scope='execution + witness + proof; verification separately; serialization excluded from compute, included in wall',
                   limitations=['experimental runner, not official CSP registry admission','CPU only, no GPU','host composition/interactions/Merkle/inversion','Bend results shadow-checked against Zig','fresh proof process, persistent Bend child per proof','minimum canonical input per selected target','shared host'],
@@ -90,6 +90,8 @@ def main():
             report['rows'].append(row)
             for sample in range(args.samples):
                 pair = {}
+                row['samples'].append(pair)
+                save()
                 order = ('cpu','bend') if sample%2==0 else ('bend','cpu')
                 for backend in order:
                     proof = args.artifact_dir/f'{case.target}-{sample}-{backend}.proof'
@@ -106,11 +108,11 @@ def main():
                     if backend=='cpu' and any(calls):
                         raise ValueError('CPU lane executed Bend')
                     pair[backend]=receipt
+                    save()
                     print(f'{case.target} sample{sample} {backend}: {receipt["compute_ns"]/1e9:.3f}s, verified',flush=True)
                 pair['proof_bytes_equal']=pair['cpu']['proof_sha256']==pair['bend']['proof_sha256']
                 if not pair['proof_bytes_equal']:
                     raise ValueError('backend proof bytes differ')
-                row['samples'].append(pair)
                 save()
             c=statistics.median(s['cpu']['compute_ns'] for s in row['samples'])
             b=statistics.median(s['bend']['compute_ns'] for s in row['samples'])

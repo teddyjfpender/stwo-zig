@@ -6,7 +6,7 @@ const frontend = @import("stwo_riscv_frontend");
 const prover = frontend.prover_mod;
 const bend = @import("stwo_bend_backend");
 const Cpu = @import("stwo_cpu_backend").CpuBackend;
-const B = bend.BendBackendWithHost(.{ .executable = @import("config").executable, .threads = 1, .persistent = true }, Cpu);
+const B = bend.BendBackendWithHost(.{ .executable = @import("config").executable, .threads = 1, .persistent = true, .cache_bytes = 64 * 1024 * 1024 }, Cpu);
 const pd = frontend.air.public_data;
 const postcard = @import("postcard");
 

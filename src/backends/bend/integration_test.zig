@@ -91,3 +91,32 @@ test "bend persistent session: repeated transforms and consuming multi-fold FRI 
     const calls = bend.runtime.snapshot().calls;
     try std.testing.expect(calls[0] >= 3 and calls[1] >= 3 and calls[4] >= 4);
 }
+
+test "bend exact request cache reuses native results and clears on shutdown" {
+    const P = bend.BendBackend(.{ .executable = @import("config").executable, .persistent = true, .cache_bytes = 4096 });
+    defer bend.runtime.shutdown();
+    const a = std.testing.allocator;
+    const d = core.poly.circle.canonic.CanonicCoset.new(5).circleDomain();
+    var tree = try tw.precomputeM31(a, d.half_coset);
+    defer tw.deinitM31(a, &tree);
+    var original: [32]M31 = undefined;
+    for (&original, 0..) |*x, i| x.* = M31.fromCanonical(@intCast(i * 173));
+    var vals = original;
+    const before = bend.runtime.snapshot();
+    _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
+    const expected = vals;
+    vals = original;
+    _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
+    try std.testing.expectEqualSlices(M31, &expected, &vals);
+    const cached = bend.runtime.snapshot();
+    try std.testing.expectEqual(before.calls[0] + 1, cached.calls[0]);
+    try std.testing.expectEqual(before.cache_hits + 1, cached.cache_hits);
+    vals = original;
+    vals[7] = vals[7].add(M31.one());
+    _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
+    try std.testing.expectEqual(cached.calls[0] + 1, bend.runtime.snapshot().calls[0]);
+    bend.runtime.shutdown();
+    vals = original;
+    _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
+    try std.testing.expectEqual(cached.calls[0] + 2, bend.runtime.snapshot().calls[0]);
+}
