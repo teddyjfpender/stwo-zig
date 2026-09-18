@@ -192,3 +192,27 @@ ECDSA secp256k1. Cache hits are separate from actual native execution counters,
 and all results retain numerical parity checks. See
 [pass4 evidence](../../../vectors/reports/bend-pr198/pass4/README.md) for measured
 performance and the rejected larger-leaf tuning experiment.
+
+
+## Parallel sessions and compact Bend plans (pass5)
+
+`runtime.Config.workers` selects up to eight independent persistent sessions;
+`threads` controls native Bend threads per session. Disjoint batches of columns
+at log10 or larger run across sessions and join before the prover continues.
+Worker-local allocations avoid concurrent use of a caller-owned allocator.
+Aliased or small batches remain serial. The result cache budget is divided across
+sessions. Template storage is additional: each session holds one complete plan
+on each side of the pipe (maximum about 64 MiB per side at log24).
+
+BND3 frames reuse the last native twiddle template after exact Zig byte equality.
+Native code only handles framing, storage and layout; M31 and transforms remain
+Bend. Inside 256-value leaves the Bend algorithm uses a flat heap-indexed twiddle
+array and iterative stages. Outer balanced parallel calls remain intact.
+
+`shadow_check` defaults to true. Qualified benchmarks may explicitly disable
+per-operation recomputation, but must retain full proof verification and parity
+admission. This is measured separately from checked mode. `snapshot()` reports
+peak native request concurrency and actual template reuses alongside traffic.
+Shutdown must run only after every caller has joined; it clears all sessions.
+The selected experiments and rejected candidates are retained in
+[pass5](../../../vectors/reports/bend-pr198/pass5/README.md).

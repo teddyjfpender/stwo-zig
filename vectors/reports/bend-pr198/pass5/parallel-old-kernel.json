@@ -1,0 +1,365 @@
+{
+  "schema": "stwo-bend-csp-experiment-v1",
+  "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "cli_sha256": "545945e24ceb3e3e8f16e16e2aaddb157c2b2dd6a07d6774b9b5437dd3fcd265",
+  "bend_binary_sha256": "d11fefb66bd3a66a4705f24edf415a9be2ab3214dbcd1efcb6eacbbcfe4dce90",
+  "source_commit": "b7f30b402c3b7d8b900a7637bba5616ac57ca214",
+  "sources": {
+    "src/backends/bend/abi.zig": "507aaf1746f644bda507cdd5f944faf0d73b0c06ac230cc96d891c313e356127",
+    "src/backends/bend/benchmark.zig": "d4d345ba15f5e40b834a8b24eb4ef2c84bb5df563c7649eaac31bf8d651d3d6e",
+    "src/backends/bend/build.zig": "de539929c483a99346444e54f2f51874d050cd365994196c382c1e0101562d96",
+    "src/backends/bend/circle.zig": "6d02ed5a7b1050ddfa94cc47e058e461c7d05692d326a2ecebe0be2a501f7995",
+    "src/backends/bend/fri.zig": "5b8ff436cd6670951a389cd618728ec64b77b062d4a949daaca8225f18b946b4",
+    "src/backends/bend/integration_test.zig": "73be1dcef00e9dccd90c5d950e9c7ce2e5846e12303723f01f2377a26115f1b3",
+    "src/backends/bend/mod.zig": "cf02cc79c8c8fcc3957aae0a81cd85703c5435b80f4d0811363310f1bc2622bd",
+    "src/backends/bend/oracle.zig": "0144a08cfb66956c33b2f4e3469176a645e81967e1109947afb98890d7cb24f2",
+    "src/backends/bend/runtime.zig": "bdad371b2f5d0ca523075cf722c1b81df31c092cfec3b4e2b1e9d372ef8af91a",
+    "bend/stwo/LAWS.bend": "3aaf0961036a89c99208b8bd9279677f3ab4c19856ca6972f060b5ecfdc84c46",
+    "bend/stwo/PROOF.bend": "78a682775b4c89294620d14918d7d5668977155074f5d6c30468b3a89f2c1bd1",
+    "bend/stwo/butterfly.bend": "8c00e7df8b02f7d69752f259ab2b10559615baadfec1bc92b025132e8a6656e9",
+    "bend/stwo/circle_fft.bend": "0ac639d573f34a6979a215b04a9c5159aba62aad6d30f559eeec6176ba5a03ad",
+    "bend/stwo/fri.bend": "295e94c4e9aab3fc2f8531be77b310cca32cfadc843b1756ec655000f290fec6",
+    "bend/stwo/interactions.bend": "c0a9b4b4cf7bf672b66327ccedb7f7b0e525265ad40785c829e287b23e6ce6db",
+    "bend/stwo/m31.bend": "2029286b6f82cea592e0d7bbe6cf735de83c785bf4535953c40cae01c39f3c09",
+    "bend/stwo/qm31.bend": "5ee5e9301f3ba2253640f9cc0551032f407531642f9842f58d48e3c8ef2d4e9c",
+    "bend/stwo/runner.bend": "e3514c2d11c9b579b0b0805d626f274fab6fe8d909516e5a7b259476c7c6402d",
+    "bend/stwo/transport.c": "2e929dc8b868b46adb7b473436b6318e625615a463f744da719e7bc2762fdedb",
+    "src/integrations/riscv_bend/build.zig": "3158012bc00b4edfabdda8afcb63783446161c9bdb97c2e342432029794cd730",
+    "src/integrations/riscv_bend/csp_benchmark.zig": "49412335fb84f83baeb2895c888b6d44f23a389bd7eb5d6af370ca7937264003",
+    "src/integrations/riscv_bend/mod.zig": "9900010944ac4821dd60bb4b8d9f34e460286e1a744133a4963599a8ae3ce4bb"
+  },
+  "harness_sha256": "4148b3395a970bafa14940999d7c5dfa161a401219a81a1041b96b6168cfeff2",
+  "requested_zig_workers": 8,
+  "secure_pcs": {
+    "pow_bits": 26,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "rows": [
+    {
+      "target": "sha256",
+      "input_size": 128,
+      "cycles": 14056,
+      "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+      "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+      "samples": [
+        {
+          "cpu": {
+            "backend": "cpu",
+            "parallelism": {
+              "zig_workers": 8,
+              "bend_processes": 0,
+              "bend_threads_per_process": 0
+            },
+            "verified_by": "cpu",
+            "secure_pcs": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "cycles": 14056,
+            "execution_ns": 2879678,
+            "proving_with_witness_ns": 2394304424,
+            "compute_ns": 2397184102,
+            "serialization_ns": 1726687,
+            "verification_ns": 315676369,
+            "proof_bytes": 836463,
+            "proof_sha256": "19bb635973c23a3b9aea16b420f763d5e6b89fb6ee7760ae0704541e53ec90fa",
+            "bend": {
+              "calls": [
+                0,
+                0,
+                0,
+                0,
+                0,
+                0
+              ],
+              "request_bytes": 0,
+              "response_bytes": 0,
+              "cache_hits": 0,
+              "bridge_ns": 0,
+              "oracle_ns": 0,
+              "preparation_ns": 0,
+              "peak_native_requests": 0
+            },
+            "public_values": {
+              "schema": "riscv-public-values-diagnostic-v1",
+              "public_data": {
+                "io_entries": {
+                  "input_start": 1048576,
+                  "input_len": 132,
+                  "input_words": [
+                    128,
+                    3816285882,
+                    802747786,
+                    2792753674,
+                    2537821958,
+                    4080020841,
+                    3656730932,
+                    3182246372,
+                    419312300,
+                    2446883419,
+                    2520107707,
+                    2021437682,
+                    176887627,
+                    108467342,
+                    2819787656,
+                    540899572,
+                    461401887,
+                    4139022022,
+                    835818445,
+                    2854210055,
+                    1943241974,
+                    2062488763,
+                    584472327,
+                    4130800069,
+                    871635372,
+                    2204784348,
+                    4049851268,
+                    1381576332,
+                    782868272,
+                    3111201614,
+                    3942506657,
+                    769443906,
+                    3440999729
+                  ],
+                  "output_len": 32,
+                  "output_len_addr": 1052676,
+                  "output_data_addr": 1052680,
+                  "output_words": [
+                    {
+                      "addr": 1052676,
+                      "value": 32,
+                      "clock": 56211
+                    },
+                    {
+                      "addr": 1052680,
+                      "value": 130520548,
+                      "clock": 55631
+                    },
+                    {
+                      "addr": 1052684,
+                      "value": 1234834425,
+                      "clock": 55711
+                    },
+                    {
+                      "addr": 1052688,
+                      "value": 3094061723,
+                      "clock": 55791
+                    },
+                    {
+                      "addr": 1052692,
+                      "value": 2129089512,
+                      "clock": 55871
+                    },
+                    {
+                      "addr": 1052696,
+                      "value": 3521784123,
+                      "clock": 55951
+                    },
+                    {
+                      "addr": 1052700,
+                      "value": 2476615414,
+                      "clock": 56031
+                    },
+                    {
+                      "addr": 1052704,
+                      "value": 143505320,
+                      "clock": 56111
+                    },
+                    {
+                      "addr": 1052708,
+                      "value": 3589175632,
+                      "clock": 56191
+                    }
+                  ]
+                }
+              }
+            },
+            "host_services": "Merkle, composition evaluation, interaction generation, batch inversion, transcript and verifier",
+            "wall_ns": 2718389072,
+            "cpu_user_s": 10.629137,
+            "cpu_system_s": 1.000386,
+            "peak_rss_bytes": 1344589824
+          },
+          "bend": {
+            "backend": "bend",
+            "parallelism": {
+              "zig_workers": 8,
+              "bend_processes": 4,
+              "bend_threads_per_process": 2
+            },
+            "verified_by": "cpu",
+            "secure_pcs": {
+              "pow_bits": 26,
+              "fri_config": {
+                "log_blowup_factor": 1,
+                "log_last_layer_degree_bound": 0,
+                "n_queries": 70,
+                "fold_step": 1
+              },
+              "lifting_log_size": null
+            },
+            "cycles": 14056,
+            "execution_ns": 3017381,
+            "proving_with_witness_ns": 11124376795,
+            "compute_ns": 11127394176,
+            "serialization_ns": 1660169,
+            "verification_ns": 287191627,
+            "proof_bytes": 836463,
+            "proof_sha256": "19bb635973c23a3b9aea16b420f763d5e6b89fb6ee7760ae0704541e53ec90fa",
+            "bend": {
+              "calls": [
+                8,
+                1222,
+                0,
+                0,
+                20,
+                1218
+              ],
+              "request_bytes": 1263953928,
+              "response_bytes": 627792336,
+              "cache_hits": 404,
+              "bridge_ns": 24433342196,
+              "oracle_ns": 1301070847,
+              "preparation_ns": 1710038743,
+              "peak_native_requests": 4
+            },
+            "public_values": {
+              "schema": "riscv-public-values-diagnostic-v1",
+              "public_data": {
+                "io_entries": {
+                  "input_start": 1048576,
+                  "input_len": 132,
+                  "input_words": [
+                    128,
+                    3816285882,
+                    802747786,
+                    2792753674,
+                    2537821958,
+                    4080020841,
+                    3656730932,
+                    3182246372,
+                    419312300,
+                    2446883419,
+                    2520107707,
+                    2021437682,
+                    176887627,
+                    108467342,
+                    2819787656,
+                    540899572,
+                    461401887,
+                    4139022022,
+                    835818445,
+                    2854210055,
+                    1943241974,
+                    2062488763,
+                    584472327,
+                    4130800069,
+                    871635372,
+                    2204784348,
+                    4049851268,
+                    1381576332,
+                    782868272,
+                    3111201614,
+                    3942506657,
+                    769443906,
+                    3440999729
+                  ],
+                  "output_len": 32,
+                  "output_len_addr": 1052676,
+                  "output_data_addr": 1052680,
+                  "output_words": [
+                    {
+                      "addr": 1052676,
+                      "value": 32,
+                      "clock": 56211
+                    },
+                    {
+                      "addr": 1052680,
+                      "value": 130520548,
+                      "clock": 55631
+                    },
+                    {
+                      "addr": 1052684,
+                      "value": 1234834425,
+                      "clock": 55711
+                    },
+                    {
+                      "addr": 1052688,
+                      "value": 3094061723,
+                      "clock": 55791
+                    },
+                    {
+                      "addr": 1052692,
+                      "value": 2129089512,
+                      "clock": 55871
+                    },
+                    {
+                      "addr": 1052696,
+                      "value": 3521784123,
+                      "clock": 55951
+                    },
+                    {
+                      "addr": 1052700,
+                      "value": 2476615414,
+                      "clock": 56031
+                    },
+                    {
+                      "addr": 1052704,
+                      "value": 143505320,
+                      "clock": 56111
+                    },
+                    {
+                      "addr": 1052708,
+                      "value": 3589175632,
+                      "clock": 56191
+                    }
+                  ]
+                }
+              }
+            },
+            "host_services": "Merkle, composition evaluation, interaction generation, batch inversion, transcript and verifier",
+            "wall_ns": 11447380971,
+            "cpu_user_s": 33.512723,
+            "cpu_system_s": 6.538641,
+            "peak_rss_bytes": 1394184192
+          },
+          "proof_bytes_equal": true
+        }
+      ],
+      "cpu_median_ns": 2397184102,
+      "bend_median_ns": 11127394176,
+      "bend_over_cpu": 4.641860492365304
+    }
+  ],
+  "all_verified": true,
+  "scope": "execution + witness + proof; verification separately; serialization excluded from compute, included in wall",
+  "limitations": [
+    "experimental runner, not official CSP registry admission",
+    "CPU only, no GPU",
+    "host composition/interactions/Merkle/inversion",
+    "Bend results shadow-checked against Zig",
+    "fresh proof process, persistent Bend child per proof",
+    "minimum canonical input per selected target",
+    "shared host"
+  ],
+  "bend_call_order": [
+    "fft",
+    "ifft",
+    "multiply",
+    "prefix",
+    "fri",
+    "lde_forward"
+  ]
+}

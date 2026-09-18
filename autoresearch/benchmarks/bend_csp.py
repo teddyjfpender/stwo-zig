@@ -25,10 +25,11 @@ from scripts.riscv_csp_benchmark_lib.public_output import reconstruct_public_out
 from bend_common import digest
 
 
-def run(argv, timeout):
+def run(argv, timeout, workers):
     with tempfile.TemporaryFile() as out, tempfile.TemporaryFile() as err:
         start = time.perf_counter_ns()
-        child = subprocess.Popen(list(map(str, argv)), stdout=out, stderr=err, start_new_session=True)
+        env = dict(os.environ, STWO_ZIG_WORKERS=str(workers))
+        child = subprocess.Popen(list(map(str, argv)), stdout=out, stderr=err, start_new_session=True, env=env)
         expired = threading.Event()
         def kill():
             expired.set()
@@ -60,11 +61,13 @@ def main():
     p.add_argument('--bend', type=Path, required=True)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--targets', default='sha256,keccak,poseidon2_m31,ecdsa_secp256k1')
+    p.add_argument('--parity-report', type=Path, help='Required >=4096-fixture receipt for runs without per-operation shadow checks')
+    p.add_argument('--workers', type=int, default=8, help='Explicit Zig host pool size for both lanes')
     p.add_argument('--samples', type=int, default=3)
     p.add_argument('--timeout', type=int, default=600)
     p.add_argument('--artifact-dir', type=Path, default=ROOT/'.zig-cache/bend-csp-proofs')
     args = p.parse_args()
-    if args.samples < 1 or args.timeout < 1:
+    if args.samples < 1 or args.timeout < 1 or not 1 <= args.workers <= 32:
         p.error('samples and timeout must be positive')
     manifest, cases, _ = validate_manifest()
     targets = args.targets.split(',')
@@ -75,10 +78,21 @@ def main():
                   cli_sha256=digest(args.cli), bend_binary_sha256=digest(args.bend),
                   source_commit=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),
                   sources={str(f.relative_to(ROOT)):digest(f) for base,pattern in [('src/backends/bend','*.zig'),('bend/stwo','*'),('src/integrations/riscv_bend','*.zig')] for f in sorted((ROOT/base).glob(pattern)) if f.is_file()},
-                  harness_sha256=digest(__file__), secure_pcs=SECURE_PCS_CONFIG, rows=[], all_verified=True,
+                  harness_sha256=digest(__file__), requested_zig_workers=args.workers, secure_pcs=SECURE_PCS_CONFIG, rows=[], all_verified=True, complete=False,
                   scope='execution + witness + proof; verification separately; serialization excluded from compute, included in wall',
                   limitations=['experimental runner, not official CSP registry admission','CPU only, no GPU','host composition/interactions/Merkle/inversion','Bend results shadow-checked against Zig','fresh proof process, persistent Bend child per proof','minimum canonical input per selected target','shared host'],
                   bend_call_order=['fft','ifft','multiply','prefix','fri','lde_forward'])
+    native_build = json.loads(Path(str(args.bend) + '.json').read_text())
+    if native_build['binary_sha256'] != report['bend_binary_sha256']:
+        raise ValueError('native build receipt does not match executable')
+    report['native_build'] = native_build
+    qualification = json.loads(args.parity_report.read_text()) if args.parity_report else None
+    if qualification is not None:
+        if not qualification.get('all_equal') or qualification.get('fixture_count', 0) < 4096 or qualification['bend_binary_sha256'] != report['bend_binary_sha256']:
+            raise ValueError('invalid or mismatched parity qualification')
+        report['parity_qualification_sha256'] = digest(args.parity_report)
+    report['limitations'] = [x for x in report['limitations'] if x != 'Bend results shadow-checked against Zig']
+    report['limitations'].append('per-operation shadow setting is explicit in each receipt; full proof verification and equality always required')
     def save():
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(json.dumps(report,indent=2)+'\n')
@@ -95,13 +109,17 @@ def main():
                 order = ('cpu','bend') if sample%2==0 else ('bend','cpu')
                 for backend in order:
                     proof = args.artifact_dir/f'{case.target}-{sample}-{backend}.proof'
-                    receipt = run([args.cli.resolve(),backend,case.guest_path,case.input_path,proof.resolve()],args.timeout)
+                    receipt = run([args.cli.resolve(),backend,case.guest_path,case.input_path,proof.resolve()],args.timeout,args.workers)
                     if receipt['verified_by']!='cpu' or receipt['backend']!=backend or receipt['secure_pcs']!=SECURE_PCS_CONFIG or receipt['cycles']!=case.expected_cycles:
                         raise ValueError('proof execution identity mismatch')
                     if reconstruct_public_output(receipt['public_values']).hex()!=case.expected_digest:
                         raise ValueError('canonical guest output mismatch')
                     if digest(proof)!=receipt['proof_sha256']:
                         raise ValueError('proof artifact digest mismatch')
+                    if receipt['parallelism']['zig_workers'] != args.workers:
+                        raise ValueError('actual Zig worker count differs from requested count')
+                    if backend == 'bend' and receipt.get('bend_shadow_check') is False and qualification is None:
+                        raise ValueError('unshadowed measurement requires parity qualification')
                     calls=receipt['bend']['calls']
                     if backend=='bend' and (calls[1]==0 or calls[4]==0 or calls[0]+calls[5]==0):
                         raise ValueError('Bend transform/FRI execution not observed')
@@ -122,6 +140,7 @@ def main():
         report.update(all_verified=False,error=str(exc))
         save()
         raise
+    report['complete'] = True
     save()
 
 

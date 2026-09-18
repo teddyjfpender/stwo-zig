@@ -14,6 +14,9 @@ pub fn build(b: *std.Build) void {
     integration.addImport("stwo_riscv_frontend", frontend);
     const options = b.addOptions();
     options.addOption([]const u8, "executable", b.option([]const u8, "bend-executable", "Pinned Bend native runner") orelse "/not-installed/stwo-bend");
+    options.addOption(u8, "bend_threads", b.option(u8, "bend-threads", "Native threads per Bend process") orelse 2);
+    options.addOption(u8, "bend_workers", b.option(u8, "bend-workers", "Independent Bend processes") orelse 4);
+    options.addOption(bool, "shadow_check", b.option(bool, "shadow-check", "Recompute every Bend result in Zig") orelse true);
     const csp = b.createModule(.{ .root_source_file = b.path("csp_benchmark.zig"), .target = target, .optimize = optimize });
     csp.addOptions("config", options);
     csp.addImport("stwo_core", core);

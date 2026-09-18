@@ -59,9 +59,11 @@ pub fn line(allocator: std.mem.Allocator, config: runtime.Config, values: []QM31
         d = d.double();
         challenge = challenge.square();
     }
-    const expected = try @call(.never_inline, core.fri.foldLineNWithWorkspace, .{ allocator, values, domain, alpha, workspace, count });
-    defer allocator.free(expected.values);
-    if (!equal(expected.values, current)) return error.BendParityMismatch;
+    if (config.shadow_check) {
+        const expected = try @call(.never_inline, core.fri.foldLineNWithWorkspace, .{ allocator, values, domain, alpha, workspace, count });
+        defer allocator.free(expected.values);
+        if (!equal(expected.values, current)) return error.BendParityMismatch;
+    }
     allocator.free(values); // Match the consuming in-place backend contract on success.
     return .{ .domain = d, .values = current };
 }
@@ -76,10 +78,12 @@ pub fn circle(allocator: std.mem.Allocator, config: runtime.Config, dst: []QM31,
     defer allocator.free(result);
     const alpha_sq = alpha.square();
     for (result, dst) |*q, previous| q.* = previous.mul(alpha_sq).add(q.*);
-    const expected = try allocator.dupe(QM31, dst);
-    defer allocator.free(expected);
-    try @call(.never_inline, core.fri.foldCircleColumnsIntoLineWithWorkspace, .{ allocator, expected, src, domain, alpha, workspace });
-    if (!equal(expected, result)) return error.BendParityMismatch;
+    if (config.shadow_check) {
+        const expected = try allocator.dupe(QM31, dst);
+        defer allocator.free(expected);
+        try @call(.never_inline, core.fri.foldCircleColumnsIntoLineWithWorkspace, .{ allocator, expected, src, domain, alpha, workspace });
+        if (!equal(expected, result)) return error.BendParityMismatch;
+    }
     @memcpy(dst, result);
 }
 

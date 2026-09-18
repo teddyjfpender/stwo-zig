@@ -149,7 +149,7 @@ def local_inverse_start(plan: Plan, pair: Array<U32> & U32) -> Array<U32>:
     case plan Tuple{a, size}:
       a
 
-# Only subtransforms larger than 256 values enter the fork/join scheduler.
+# Only subtransforms larger than 4096 values enter the fork/join scheduler.
 def forward_go(fuel: Nat, stop: Bool, phase: Bool, plan: Plan, values: Array<U32>) -> Array<U32>:
   match fuel stop phase plan values:
     case fuel True{} phase plan values:
@@ -159,28 +159,28 @@ def forward_go(fuel: Nat, stop: Bool, phase: Bool, plan: Plan, values: Array<U32
     case 1n+p False{} True{} Fork{w, pl, pr} ANode{a, b}:
       forward_go(p, False{}, False{}, Fork{0, pl, pr}, join(zip_forward(a, b, w)))
     case 1n+ +p False{} False{} Fork{w, pl, pr} ANode{a, b}:
-      +stop = Nat.is_le(p, 16n)
+      +stop = Nat.is_le(p, 24n)
       l r = forward_go(p, stop, True{}, pl, a) forward_go(p, stop, True{}, pr, b)
       ANode{l, r}
     case 1n+p False{} phase plan values:
       values
 
 def forward(+fuel: Nat, phase: Bool, plan: Plan, values: Array<U32>) -> Array<U32>:
-  forward_go(fuel, Nat.is_le(fuel, 16n), phase, plan, values)
+  forward_go(fuel, Nat.is_le(fuel, 24n), phase, plan, values)
 
 def inverse_go(depth: Nat, stop: Bool, plan: Plan, values: Array<U32>) -> Array<U32>:
   match depth stop plan values:
     case depth True{} plan values:
       local_inverse_start(plan, Array.size(U32, values))
     case 1n+ +p False{} Fork{w, pl, pr} ANode{a, b}:
-      +stop = Nat.is_le(p, 8n)
+      +stop = Nat.is_le(p, 12n)
       l r = inverse_go(p, stop, pl, a) inverse_go(p, stop, pr, b)
       join(zip_inverse(l, r, w))
     case depth False{} plan values:
       values
 
 def inverse_start(+depth: Nat, plan: Plan, values: Array<U32>) -> Array<U32>:
-  inverse_go(depth, Nat.is_le(depth, 8n), plan, values)
+  inverse_go(depth, Nat.is_le(depth, 12n), plan, values)
 
 def inverse(depth: Nat, plan: Plan, values: Array<U32>) -> Array<U32>:
   inverse_start(depth, plan, values)
@@ -227,17 +227,8 @@ def extension_apply(fuel: Nat, plan: Plan, pair: Array<U32> & Array<U32>) -> Arr
     case fuel plan Tuple{a, b}:
       ANode{a, b}
 
-def extension_block(depth: Nat, t: Array<U32>, pair: Array<U32> & Array<U32>) -> Array<U32>:
-  match depth pair:
-    case 0n Tuple{a, b}:
-      ANode{a, b}
-    case 1n+ +p Tuple{a, b}:
-      flat_stages(p, False{}, 2, U32.shr(U32.shln(1, p)), (t, ANode{a, b}))
-
 def extension(fuel: Nat, plan: Plan, values: Array<U32>) -> Array<U32>:
   match plan values:
-    case Block{depth, t} ANode{a, b}:
-      extension_block(depth, t, Array.clone(U32, a))
     case Fork{w, pl, pr} ANode{a, b}:
       extension_apply(fuel, Fork{w, pl, pr}, Array.clone(U32, a))
     case plan values:

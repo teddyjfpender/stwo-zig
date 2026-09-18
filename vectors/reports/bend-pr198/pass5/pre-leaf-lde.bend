@@ -227,17 +227,8 @@ def extension_apply(fuel: Nat, plan: Plan, pair: Array<U32> & Array<U32>) -> Arr
     case fuel plan Tuple{a, b}:
       ANode{a, b}
 
-def extension_block(depth: Nat, t: Array<U32>, pair: Array<U32> & Array<U32>) -> Array<U32>:
-  match depth pair:
-    case 0n Tuple{a, b}:
-      ANode{a, b}
-    case 1n+ +p Tuple{a, b}:
-      flat_stages(p, False{}, 2, U32.shr(U32.shln(1, p)), (t, ANode{a, b}))
-
 def extension(fuel: Nat, plan: Plan, values: Array<U32>) -> Array<U32>:
   match plan values:
-    case Block{depth, t} ANode{a, b}:
-      extension_block(depth, t, Array.clone(U32, a))
     case Fork{w, pl, pr} ANode{a, b}:
       extension_apply(fuel, Fork{w, pl, pr}, Array.clone(U32, a))
     case plan values:

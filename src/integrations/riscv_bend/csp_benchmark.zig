@@ -6,7 +6,7 @@ const frontend = @import("stwo_riscv_frontend");
 const prover = frontend.prover_mod;
 const bend = @import("stwo_bend_backend");
 const Cpu = @import("stwo_cpu_backend").CpuBackend;
-const B = bend.BendBackendWithHost(.{ .executable = @import("config").executable, .threads = 1, .persistent = true, .cache_bytes = 64 * 1024 * 1024 }, Cpu);
+const B = bend.BendBackendWithHost(.{ .executable = @import("config").executable, .threads = @import("config").bend_threads, .workers = @import("config").bend_workers, .shadow_check = @import("config").shadow_check, .persistent = true, .cache_bytes = 64 * 1024 * 1024 }, Cpu);
 const pd = frontend.air.public_data;
 const postcard = @import("postcard");
 
@@ -72,7 +72,13 @@ fn run(comptime Backend: type, comptime name: []const u8, a: std.mem.Allocator, 
     const hash = std.fmt.bytesToHex(digest, .lower);
     const report = try std.json.Stringify.valueAlloc(a, .{
         .backend = name,
+        .parallelism = .{
+            .zig_workers = if (@import("stwo_prover_engine").work_pool.getGlobalPool()) |pool| pool.workerCount() else 1,
+            .bend_processes = if (Backend == Cpu) @as(u8, 0) else @import("config").bend_workers,
+            .bend_threads_per_process = if (Backend == Cpu) @as(u8, 0) else @import("config").bend_threads,
+        },
         .verified_by = "cpu",
+        .bend_shadow_check = Backend != Cpu and @import("config").shadow_check,
         .secure_pcs = prover.SECURE_PCS_CONFIG,
         .cycles = result.step_count,
         .execution_ns = execution_ns,

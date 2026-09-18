@@ -59,23 +59,16 @@ static void bend_put(uint32_t x) {
   b[0] = x; b[1] = x>>8; b[2] = x>>16; b[3] = x>>24;
   bend_output_len += 4;
 }
-/* Session-local canonical twiddle template. No field arithmetic lives here. */
-static uint32_t *bend_plan_cache;
-static uint32_t bend_plan_count, bend_plan_pos;
-static uint32_t bend_plan_field(void) {
-  if (bend_plan_pos >= bend_plan_count) bend_die("plan template exhausted");
-  return bend_plan_cache[bend_plan_pos++];
-}
 /* Rearrange preorder twiddle words only; field arithmetic stays in Bend. */
 static void bend_plan_words(Env e, Loc p, uint32_t depth, uint32_t index) {
-  *blk_ptr(e.mem, p, index) = bend_plan_field();
+  *blk_ptr(e.mem, p, index) = bend_field();
   if (depth > 1) {
     bend_plan_words(e, p, depth-1, 2*index);
     bend_plan_words(e, p, depth-1, 2*index+1);
   }
 }
 static Term bend_plan(Env e, uint32_t depth) {
-  if (depth <= 8) {
+  if (depth <= 12) {
     Loc words = heap_alloc(e, buf_wcls(depth));
     *blk_ptr(e.mem, words, 0) = 0;
     bend_plan_words(e, words, depth, 1);
@@ -83,7 +76,7 @@ static Term bend_plan(Env e, uint32_t depth) {
     e.mem[p] = depth; e.mem[p+1] = term_buf(depth, words);
     return term_ctr(CID_CIRCLE_FFT_BLOCK, p);
   }
-  uint32_t w = bend_plan_field();
+  uint32_t w = bend_field();
   Term l = bend_plan(e, depth - 1), r = bend_plan(e, depth - 1);
   Loc p = heap_alloc(e, cls_fit(3));
   e.mem[p] = w; e.mem[p+1] = l; e.mem[p+2] = r;
@@ -102,30 +95,14 @@ Term read_run(Env e, Term *f, IoWork *w) {
     if (first == EOF) exit(0);
     bend_input_pos--;
   }
-  uint32_t magic = bend_word();
-  if ((bend_persistent ? (magic != 0x32444e42u && magic != 0x33444e42u) : magic != 0x31444e42u) || bend_word() != 1) bend_die("bad version/magic");
+  if (bend_word() != (bend_persistent ? 0x32444e42u : 0x31444e42u) || bend_word() != 1) bend_die("bad version/magic");
   uint32_t op = bend_word(), depth = bend_word(), factor = bend_field();
-  int reuse_plan = (op & 0x80000000u) != 0;
-  op &= 0x7fffffffu;
-  if (reuse_plan && (magic != 0x33444e42u || !(op < 2 || op == 5))) bend_die("invalid plan reuse");
   if (op > 5 || depth < 1 || depth > 24) bend_die("unsupported operation/size");
   if (op == 4 && depth < 3) bend_die("FRI requires at least two QM31 values");
   uint32_t n = 1u << depth;
   Loc v = heap_alloc(e, buf_wcls(depth));
   for (uint32_t i=0; i<n; i++) *blk_ptr(e.mem, v, i) = bend_field();
-  int has_plan = op < 2 || op == 5;
-  if (has_plan) {
-    if (reuse_plan) {
-      if (!bend_plan_cache || bend_plan_count != n-1) bend_die("missing plan template");
-    } else {
-      uint32_t *next = realloc(bend_plan_cache, (size_t)(n-1) * sizeof(uint32_t));
-      if (!next) bend_die("plan template allocation failed");
-      bend_plan_cache = next; bend_plan_count = n-1;
-      for (uint32_t i=0; i<n-1; i++) bend_plan_cache[i] = bend_field();
-    }
-    bend_plan_pos = 0;
-  }
-  Term plan = has_plan ? bend_plan(e, depth) : bend_empty_plan(e);
+  Term plan = (op < 2 || op == 5) ? bend_plan(e, depth) : bend_empty_plan(e);
   uint32_t inv_depth = op == 4 ? depth - 3 : 0;
   Loc inv = heap_alloc(e, buf_wcls(inv_depth));
   for (uint32_t i=0; i<(1u << inv_depth); i++)

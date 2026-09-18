@@ -10,7 +10,7 @@ fn view(tree: tw.TwiddleTree([]M31)) tw.TwiddleTree([]const M31) {
 }
 test "bend native: roundtrip and combined LDE match Zig across small and fused sizes" {
     const a = std.testing.allocator;
-    for ([_]u32{ 1, 2, 3, 5, 10 }) |log| {
+    for ([_]u32{ 1, 2, 3, 5, 7, 8, 10 }) |log| {
         const d = core.poly.circle.canonic.CanonicCoset.new(log).circleDomain();
         const ed = core.poly.circle.canonic.CanonicCoset.new(log + 1).circleDomain();
         var tree = try tw.precomputeM31(a, d.half_coset);
@@ -48,7 +48,12 @@ test "bend native: missing runtime errors without fallback" {
     var tree = try tw.precomputeM31(a, d.half_coset);
     defer tw.deinitM31(a, &tree);
     var values = [_]M31{ M31.one(), M31.zero() };
-    try std.testing.expectError(error.FileNotFound, Missing.evaluateCircleBuffers(a, &.{&values}, d, view(tree)));
+    if (Missing.evaluateCircleBuffers(a, &.{&values}, d, view(tree))) |_| {
+        return error.ExpectedMissingRuntimeFailure;
+    } else |err| {
+        // POSIX spawn can report exec failure before or after the pipe write.
+        try std.testing.expect(err == error.FileNotFound or err == error.BrokenPipe);
+    }
     try std.testing.expectEqual(@as(u32, 1), values[0].v);
 }
 
@@ -119,4 +124,32 @@ test "bend exact request cache reuses native results and clears on shutdown" {
     vals = original;
     _ = try P.evaluateCircleBuffers(a, &.{&vals}, d, view(tree));
     try std.testing.expectEqual(cached.calls[0] + 2, bend.runtime.snapshot().calls[0]);
+}
+
+test "parallel Bend columns execute concurrently and preserve parity" {
+    const P = bend.BendBackend(.{ .executable = @import("config").executable, .threads = 2, .workers = 4, .persistent = true, .shadow_check = false, .cache_bytes = 1024 * 1024 });
+    defer bend.runtime.shutdown();
+    const a = std.testing.allocator;
+    const d = core.poly.circle.canonic.CanonicCoset.new(12).circleDomain();
+    var tree = try tw.precomputeM31(a, d.half_coset);
+    defer tw.deinitM31(a, &tree);
+    var cols: [8][]M31 = undefined;
+    for (&cols, 0..) |*col, j| {
+        col.* = try a.alloc(M31, d.size());
+        for (col.*, 0..) |*x, i| x.* = M31.fromCanonical(@intCast(i * 19 + j));
+    }
+    defer for (cols) |col| a.free(col);
+    _ = try P.evaluateCircleBuffers(a, &cols, d, view(tree));
+    const expected = try a.alloc(M31, d.size());
+    defer a.free(expected);
+    for (cols, 0..) |col, j| {
+        for (expected, 0..) |*x, i| x.* = M31.fromCanonical(@intCast(i * 19 + j));
+        var batch = [_][]M31{expected};
+        try prover.poly.circle.poly.evaluateBuffersWithTwiddles(&batch, d, view(tree));
+        try std.testing.expectEqualSlices(M31, expected, col);
+    }
+    _ = try P.interpolateCircleBuffers(a, &cols, d, view(tree));
+    for (cols, 0..) |col, j| for (col, 0..) |x, i| try std.testing.expectEqual(@as(u32, @intCast(i * 19 + j)), x.v);
+    try std.testing.expect(bend.runtime.snapshot().peak_native_requests > 1);
+    try std.testing.expect(bend.runtime.snapshot().plan_reuses > 0);
 }

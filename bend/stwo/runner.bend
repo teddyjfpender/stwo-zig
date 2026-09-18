@@ -54,7 +54,7 @@ def run(req: Request) -> Array<U32>:
     case Request{0, fuel, factor, plan, values, inverses, alpha}:
       C.forward(fuel, True{}, plan, values)
     case Request{1, fuel, factor, plan, values, inverses, alpha}:
-      C.interpolate(plan, values, factor)
+      C.interpolate(fuel, plan, values, factor)
     case Request{2, fuel, factor, plan, values, inverses, alpha}:
       multiply(values)
     case Request{3, fuel, factor, plan, values, inverses, alpha}:

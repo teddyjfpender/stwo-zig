@@ -76,11 +76,18 @@ nonzero Bend transform and fold counters. Failed samples are retained as failure
 Reported proving duration includes execution, witness and proof construction.
 Verification and serialization are reported separately. Wall time includes the
 whole process. Native CPU use, RSS, transport bytes and per-operation call counts
-are retained. The Bend child is persistent within one proof, serialized behind a
-mutex, bounded to 65,536 requests, and explicitly terminated after the proof.
+are retained. Bend uses persistent independent sessions, each bounded to 65,536 requests and
+explicitly terminated after the proof. The benchmark defaults to four processes
+with two native threads each; `-Dbend-workers=N -Dbend-threads=N` changes this.
+Each receipt records actual resolved Zig pool size and Bend configuration, and
+the harness explicitly sets `STWO_ZIG_WORKERS=8` in both lanes (`--workers`
+overrides it). Peak concurrent native requests attest column-level overlap.
 The runner uses a cold, per-proof 64 MiB exact-request cache of Bend-produced
 arrays. Full request bytes must match; hashes alone never authorize reuse.
-Shutdown clears all entries. Native calls, cache hits and boundary timings are
+Shutdown clears all entries. The budget is split across sessions. Each session
+also retains its last exact twiddle template in both Zig and native memory, up to
+4*(2^24-1) bytes per side; this storage is separate from the result cache. BND3
+frames omit a repeated template only after complete byte equality. Native calls, cache hits and boundary timings are
 reported separately, and cached results still pass the Zig parity check.
 There is no silent fallback to CPU when the Bend worker fails.
 
@@ -98,3 +105,15 @@ production cancellation remain separate admission work.
 See the [Bend backend](../../backends/bend/README.md),
 [CSP experiment harness](../../../autoresearch/benchmarks/bend_csp.py), and
 [PR #199](https://github.com/teddyjfpender/stwo-zig/pull/199), stacked on #198.
+
+
+## Qualified timing without duplicate arithmetic
+
+Per-operation Zig shadow checks remain on by default. An explicitly built runner
+with `-Dshadow-check=false` uses native Bend results directly after boundary
+validation. The benchmark harness requires `--parity-report` naming a successful
+receipt of at least 4096 fixtures bound to the exact native executable hash.
+Every complete proof still requires CPU verification, correct canonical public
+output, transcript agreement and byte-identical CPU/Bend proof bytes. Each receipt
+states `bend_shadow_check`; checked and unshadowed times must be labelled separately.
+See [pass5 evidence](../../../vectors/reports/bend-pr198/pass5/README.md).

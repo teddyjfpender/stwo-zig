@@ -46,7 +46,55 @@ pub fn evaluateExtension(allocator: std.mem.Allocator, config: runtime.Config, v
     for (values) |v| for (v[v.len / 2 ..]) |x| if (!x.eql(M31.zero())) return error.NonZeroExtensionTail;
     return transformImpl(allocator, config, values, domain, tree, false, true);
 }
+// Independent columns own disjoint arrays and independent native sessions.
+// Use worker-local page allocation: the caller's allocator need not be thread-safe.
 fn transformImpl(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype, inverse: bool, extension: bool) !void {
+    if (config.workers == 0 or config.workers > 8) return error.InvalidBendConfig;
+    var disjoint = true;
+    for (values, 0..) |v, i| for (values[0..i]) |other| {
+        const lo = @intFromPtr(v.ptr);
+        const other_lo = @intFromPtr(other.ptr);
+        if (lo < other_lo + other.len * @sizeOf(M31) and other_lo < lo + v.len * @sizeOf(M31)) disjoint = false;
+    };
+    const count = @min(@as(usize, config.workers), values.len);
+    if (!config.persistent or count <= 1 or domain.logSize() < 10 or !disjoint)
+        return transformSerial(allocator, config, values, domain, tree, inverse, extension);
+    const Job = struct {
+        config: runtime.Config,
+        values: []const []M31,
+        domain: Domain,
+        tree: @TypeOf(tree),
+        inverse: bool,
+        extension: bool,
+        err: ?anyerror = null,
+        fn run(job: *@This()) void {
+            transformSerial(std.heap.page_allocator, job.config, job.values, job.domain, job.tree, job.inverse, job.extension) catch |err| {
+                job.err = err;
+            };
+        }
+    };
+    var jobs: [8]Job = undefined;
+    var threads: [7]std.Thread = undefined;
+    var spawned: usize = 0;
+    for (0..count) |i| {
+        var worker_config = config;
+        worker_config.lane = @intCast(i);
+        jobs[i] = .{ .config = worker_config, .values = values[values.len * i / count .. values.len * (i + 1) / count], .domain = domain, .tree = tree, .inverse = inverse, .extension = extension };
+    }
+    // Even a failed spawn joins all already-started jobs before buffers can unwind.
+    for (1..count) |i| {
+        threads[spawned] = std.Thread.spawn(.{}, Job.run, .{&jobs[i]}) catch |err| {
+            for (threads[0..spawned]) |thread| thread.join();
+            return err;
+        };
+        spawned += 1;
+    }
+    Job.run(&jobs[0]);
+    for (threads[0..spawned]) |thread| thread.join();
+    for (jobs[0..count]) |job| if (job.err) |err| return err;
+}
+
+fn transformSerial(allocator: std.mem.Allocator, config: runtime.Config, values: []const []M31, domain: Domain, tree: anytype, inverse: bool, extension: bool) !void {
     var preparation_timer = try std.time.Timer.start();
     const log = domain.logSize();
     if (log < 1 or log > abi.max_log_size or values.len == 0) return error.InvalidColumns;
@@ -78,14 +126,16 @@ fn transformImpl(allocator: std.mem.Allocator, config: runtime.Config, values: [
         runtime.observePreparation(preparation_timer.read());
         const actual = try runtime.execute(allocator, config, request.items, v.len);
         defer allocator.free(actual);
-        var oracle_timer = try std.time.Timer.start();
-        defer runtime.observeOracle(oracle_timer.read());
-        // This experimental backend remains parity-checked on every call.
-        const expected = try allocator.dupe(M31, v);
-        defer allocator.free(expected);
-        var batch = [_][]M31{expected};
-        if (inverse) try prover.poly.circle.poly.interpolateBuffersWithTwiddles(&batch, domain, tree) else try prover.poly.circle.poly.evaluateBuffersWithTwiddles(&batch, domain, tree);
-        for (expected, actual) |x, y| if (!x.eql(y)) return error.BendParityMismatch;
+        if (config.shadow_check) {
+            var oracle_timer = try std.time.Timer.start();
+            defer runtime.observeOracle(oracle_timer.read());
+            // This experimental backend remains parity-checked on every call.
+            const expected = try allocator.dupe(M31, v);
+            defer allocator.free(expected);
+            var batch = [_][]M31{expected};
+            if (inverse) try prover.poly.circle.poly.interpolateBuffersWithTwiddles(&batch, domain, tree) else try prover.poly.circle.poly.evaluateBuffersWithTwiddles(&batch, domain, tree);
+            for (expected, actual) |x, y| if (!x.eql(y)) return error.BendParityMismatch;
+        }
         @memcpy(v, actual);
     }
 }
