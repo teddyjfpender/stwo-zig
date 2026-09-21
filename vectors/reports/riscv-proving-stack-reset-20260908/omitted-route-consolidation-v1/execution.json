@@ -1,0 +1,70 @@
+{
+  "status": "passed",
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu",
+    "test-ethereum-incremental-omitted-leaf-route-v1",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+  "started_at": "2026-09-08T14:47:02.661681+00:00",
+  "source_before": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig",
+      "sha256": "bfa696e07030611ba528fb59ca8e5096a954543f3b854050f988ffc02dec373a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_proof_steps.zig",
+      "sha256": "b793cd6382ad22f54cdf54a61e3db823c498458aa2133f979dd8c685da0b477c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test.zig",
+      "sha256": "424aeb6b472fed3060cf3124a5866a076c5b33c2f251dc51201381c0f9dd3bc3"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test_root.zig",
+      "sha256": "ad9cfd3eb768f1bce3e1921ea0ee7142a9f446087e951a4e29d95670c084ae57"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_ethereum_leaf_steps.zig",
+      "sha256": "e79041f8a972b98cfc1de9870db4ecba9de3094cd183a2d12947515d2b4267a1"
+    }
+  ],
+  "deleted_source": "src/integrations/riscv_cpu/ethereum_incremental_omitted_route_instantiation_v4_test.zig",
+  "expected_guarded_count": 6,
+  "pid": 76923,
+  "exit_code": 0,
+  "wall_seconds": 30.263857875019312,
+  "source_after": [
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_precompile_proof_test.zig",
+      "sha256": "bfa696e07030611ba528fb59ca8e5096a954543f3b854050f988ffc02dec373a"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_proof_steps.zig",
+      "sha256": "b793cd6382ad22f54cdf54a61e3db823c498458aa2133f979dd8c685da0b477c"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test.zig",
+      "sha256": "424aeb6b472fed3060cf3124a5866a076c5b33c2f251dc51201381c0f9dd3bc3"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1_test_root.zig",
+      "sha256": "ad9cfd3eb768f1bce3e1921ea0ee7142a9f446087e951a4e29d95670c084ae57"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_ethereum_leaf_steps.zig",
+      "sha256": "e79041f8a972b98cfc1de9870db4ecba9de3094cd183a2d12947515d2b4267a1"
+    }
+  ],
+  "pins_unchanged": true,
+  "finished_at": "2026-09-08T14:47:32.925981+00:00",
+  "log_sha256": "90bef41a64cee60f18c27a1e15ee64db77eb2729198c7ba0455bf8e53e464b91",
+  "actual_passed_count": 6,
+  "named_guard": "Stage101 D5 provider route body guard",
+  "named_guard_passed": true
+}

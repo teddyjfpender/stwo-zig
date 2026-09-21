@@ -20,16 +20,24 @@ pub const KernelAbi = struct {
 
 const empty_function_constants = [_]FunctionConstant{};
 
-const declaration_digests: [manifest.native_exports.len][64]u8 = build: {
-    @setEvalBranchQuota(10_000_000);
-    var result: [manifest.native_exports.len][64]u8 = undefined;
-    for (manifest.native_exports, 0..) |entry, index| {
-        const declaration = kernelDeclaration(manifest.native_amalgamated_source, entry.name) catch
-            @compileError("Native Metal export has no kernel declaration");
-        result[index] = std.fmt.bytesToHex(canonicalDeclarationDigest(declaration), .lower);
+const declaration_digest = @import("abi_declaration_digest.zig");
+const generated = @import("abi_declaration_digests.zig");
+
+// The digest table is generated natively (`zig build update-abi-declaration-
+// digests`) instead of at comptime: searching the amalgamated shader source
+// once per export in the comptime interpreter cost about nine minutes per
+// build. Name alignment is enforced here at comptime, which is 166 short
+// string comparisons; digest freshness is enforced by the runtime test below.
+comptime {
+    if (generated.entries.len != manifest.native_exports.len) {
+        @compileError("abi_declaration_digests.zig is stale: run `zig build update-abi-declaration-digests` in src/backends/metal");
     }
-    break :build result;
-};
+    for (manifest.native_exports, generated.entries) |entry, row| {
+        if (!std.mem.eql(u8, entry.name, row.name)) {
+            @compileError("abi_declaration_digests.zig is stale: run `zig build update-abi-declaration-digests` in src/backends/metal");
+        }
+    }
+}
 
 /// Ordered ABI table serialized into the authenticated core-library manifest.
 /// There are currently no Native function constants; each empty inventory is
@@ -41,42 +49,21 @@ pub const native_kernel_abi: [manifest.native_exports.len]KernelAbi = build: {
             .name = entry.name,
             .owner = entry.owner,
             .minimum_core_shader_abi = manifest.core_shader_abi,
-            .declaration_sha256 = declaration_digests[index][0..],
+            .declaration_sha256 = generated.entries[index].declaration_sha256[0..],
             .function_constants = empty_function_constants[0..],
         };
     }
     break :build result;
 };
 
-fn kernelDeclaration(source: []const u8, name: []const u8) ![]const u8 {
-    var prefix_buffer: [192]u8 = undefined;
-    const prefix = try std.fmt.bufPrint(&prefix_buffer, "kernel void {s}(", .{name});
-    const start = std.mem.indexOf(u8, source, prefix) orelse return error.MissingKernelDeclaration;
-    const end = std.mem.indexOfPos(u8, source, start + prefix.len, ") {") orelse
-        return error.MalformedKernelDeclaration;
-    return source[start .. end + 1];
-}
-
-fn canonicalDeclarationDigest(declaration: []const u8) [32]u8 {
-    var digest = std.crypto.hash.sha2.Sha256.init(.{});
-    var pending_space = false;
-    var previous: ?u8 = null;
-    for (declaration) |byte| {
-        if (std.ascii.isWhitespace(byte)) {
-            pending_space = true;
-            continue;
-        }
-        if (pending_space and previous != null and tokenByte(previous.?) and tokenByte(byte))
-            digest.update(" ");
-        digest.update(&.{byte});
-        pending_space = false;
-        previous = byte;
+test "generated declaration digests match the amalgamated shader source" {
+    for (manifest.native_exports, native_kernel_abi) |entry, abi| {
+        const expected = try declaration_digest.declarationDigestHex(
+            manifest.native_amalgamated_source,
+            entry.name,
+        );
+        try std.testing.expectEqualStrings(&expected, abi.declaration_sha256);
     }
-    return digest.finalResult();
-}
-
-fn tokenByte(byte: u8) bool {
-    return std.ascii.isAlphanumeric(byte) or byte == '_';
 }
 
 test "every Native export has exactly one ordered ABI entry" {
@@ -99,26 +86,4 @@ test "function-constant authority is explicitly empty" {
     );
     for (native_kernel_abi) |abi|
         try std.testing.expectEqual(@as(usize, 0), abi.function_constants.len);
-}
-
-test "canonical declaration digests ignore formatting but bind ABI tokens" {
-    const compact = "kernel void example(device uint*value[[buffer(0)]],uint i[[thread_position_in_grid]])";
-    const formatted =
-        \\kernel void example(
-        \\    device uint *value [[buffer(0)]],
-        \\    uint i [[thread_position_in_grid]]
-        \\)
-    ;
-    try std.testing.expectEqualSlices(
-        u8,
-        &canonicalDeclarationDigest(compact),
-        &canonicalDeclarationDigest(formatted),
-    );
-
-    const changed = "kernel void example(device uint*value[[buffer(1)]],uint i[[thread_position_in_grid]])";
-    try std.testing.expect(!std.mem.eql(
-        u8,
-        &canonicalDeclarationDigest(compact),
-        &canonicalDeclarationDigest(changed),
-    ));
 }

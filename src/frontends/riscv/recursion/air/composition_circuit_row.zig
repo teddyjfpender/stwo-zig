@@ -85,7 +85,7 @@ pub const Row = struct {
             boolM31(source_value == .child_kind_selector),
             boolM31(source_value == .statement_word),
             M31.fromU64(if (is_recursion) recursion.verifier_id else SEGMENT_VERIFIER_ID),
-            M31.fromU64(if (is_recursion) recursion.statement_scope else 0),
+            M31.fromU64(if (is_recursion) recursion.statement_scope else if (tag == .vm_input and self.classification.vm_input == .native_continuation_root) @import("vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE else 0),
             boolM31(is_recursion and source_value == .claimed_sum),
             boolM31(source_value == .transcript_claimed_sum),
         };
@@ -365,13 +365,15 @@ pub fn sourceClass(classification: Classification) SourceClass {
             .composition_randomness => .composition_randomness,
             .oods_point => .oods_point,
             .transcript_claimed_sum => .transcript_claimed_sum,
+            .statement_word, .native_continuation_root => .statement_word,
         },
         .recursion_input => |input| switch (input.source) {
             .parent_binary_selector => .parent_binary_selector,
             .child_kind_selector => .child_kind_selector,
-            .statement_word => .statement_word,
+            .statement_word, .field_public_word => .statement_word,
             .sampled_value => .sampled_value,
             .claimed_sum => .claimed_sum,
+            .transcript_claimed_sum => .transcript_claimed_sum,
             .relation_challenge => .relation_challenge,
             .composition_randomness => .composition_randomness,
             .oods_point => .oods_point,
@@ -391,7 +393,9 @@ pub fn sourceIndices(classification: Classification) [2]u32 {
 
 pub fn validateVmSourceBounds(source_value: VmSource) Error!void {
     switch (source_value) {
-        .segment_selector => {},
+        .segment_selector, .native_continuation_root => {},
+        .statement_word => |word| if (!@import("vm_statement_roots.zig").contains(word))
+            return error.InvalidInputSource,
         .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
@@ -404,7 +408,9 @@ pub fn validateRecursionSourceBounds(source_value: RecursionSource) Error!void {
         .parent_binary_selector, .child_kind_selector => {},
         .statement_word => |word_index| if (word_index >= statement.CANONICAL_WORD_COUNT)
             return error.InvalidInputSource,
-        .sampled_value, .claimed_sum => |coordinate| try validateSecure(coordinate),
+        .field_public_word => |word_index| if (!(word_index < 6 or (word_index >= 418 and word_index < 450)))
+            return error.InvalidInputSource,
+        .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,

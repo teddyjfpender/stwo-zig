@@ -209,8 +209,8 @@ test "lookup batch planner: all production families have a no-worse expansion ca
             candidate.score.maximum_interaction_degree,
         );
     }
-    try std.testing.expectEqual(@as(u32, 155), total_current_batches);
-    try std.testing.expectEqual(@as(u32, 137), total_candidate_batches);
+    try std.testing.expectEqual(@as(u32, 156), total_current_batches);
+    try std.testing.expectEqual(@as(u32, 138), total_candidate_batches);
     try std.testing.expectEqual(@as(u32, 0), lower_expansion_families);
     try std.testing.expectEqual(@as(u32, 3), changed_families);
     try std.testing.expectEqual(@as(u32, 3), maximum_candidate_degree);

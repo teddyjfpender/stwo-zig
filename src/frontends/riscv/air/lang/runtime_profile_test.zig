@@ -192,7 +192,7 @@ test "runtime profile: exact static, stage, task, and hardware evidence joins de
     try std.testing.expectEqual(@as(u64, 1), profile.tasks.task_count);
     try std.testing.expectEqual(@as(?u64, 20), profile.tasks.critical_path_ns);
     try std.testing.expectEqualStrings(
-        "bceaa2fa4607a9fc488a48700ecc7c8ac2fc99e05f9ba2cbe5e76c7d30dac6f0",
+        "427aa2e4f024e7996734808f58255c7a23aba58402b26f218f82398c213db38f",
         &std.fmt.bytesToHex(profile.profile_digest, .lower),
     );
 

@@ -1,0 +1,33 @@
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=1 cumulative_cycles=1 retired_addi=1 retired_bne=0 exit_pc=1004 counter=64 accumulator=0
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=17 retired_addi=11 retired_bne=5 exit_pc=1008 counter=59 accumulator=6
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=4 cumulative_cycles=4 retired_addi=3 retired_bne=1 exit_pc=1004 counter=63 accumulator=1
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=20 retired_addi=11 retired_bne=5 exit_pc=1008 counter=58 accumulator=7
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=16 retired_addi=11 retired_bne=5 exit_pc=1004 counter=59 accumulator=5
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=32 retired_addi=11 retired_bne=5 exit_pc=1008 counter=54 accumulator=11
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=64 cumulative_cycles=64 retired_addi=43 retired_bne=21 exit_pc=1004 counter=43 accumulator=21
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=80 retired_addi=11 retired_bne=5 exit_pc=1008 counter=38 accumulator=27
+SEGMENT_V2_LADDER_EXECUTION status=passed sizes=1,4,16,64 continuation_steps=16
+
+Build Summary: 3/3 steps succeeded
+run-recursive-segment-v2-concrete-outer-proof success
++- run exe recursive-segment-v2-concrete-outer-proof success 2ms MaxRSS:3M
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native cached 55ms MaxRSS:35M
+
+        0.13 real         0.05 user         0.07 sys
+            35962880  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               10373  page reclaims
+                 278  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  35  voluntary context switches
+                 167  involuntary context switches
+           223353714  instructions retired
+            87167580  cycles elapsed
+             9257416  peak memory footprint

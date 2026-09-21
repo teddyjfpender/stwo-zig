@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "tests_per_filesystem": 20,
+  "filesystems": [
+    "tmpfs",
+    "ext4"
+  ],
+  "guest_architecture": "x86_64",
+  "kernel": "6.18.52-0-virt",
+  "emulator": "QEMU emulator version 11.1.1",
+  "guest_network": false,
+  "host_directory_mounts": false,
+  "source_matches_typed_recursion_checkpoint": true,
+  "source_sha256": {
+    "src/artifact_store/encoding.zig": "32ab9a662cd2c6aa2c2703e1fa0c33d6be87eb383982ed4ddb8bbb112cc89823",
+    "src/artifact_store/types_test.zig": "e69d2a2581cb435804824a96a9045c997605ccdc8398f107a0e6cf6b47dd4789",
+    "src/artifact_store/publication.zig": "4509ce4044d80975e5faf0f96d411be7a9f59edb881a1e210a9335abd87ddccd",
+    "src/artifact_store/manifest.zig": "bd7137326983f09ed0f9beb16485884837bc701f725fc7dc839daf4b9d58a37d",
+    "src/artifact_store/store_test.zig": "22f5c685d734ed0edc62fbedd1a3bc585aa9df6c3665ba87958b56d8897499cc",
+    "src/artifact_store/store.zig": "3329d3f7271efe4fca3e2578748c8e4a2099e7530589779440a16987cfe9585a",
+    "src/artifact_store/build.zig": "d6b9ac68cdaa624218a77c3a4d007364a678bae503293ed299089aad2f6e15f8",
+    "src/artifact_store/publication_test.zig": "560c0277bd42d4ba70e85736383cd77e80d6c883af12daf9e0d6b43dcb08e9db",
+    "src/artifact_store/wire.zig": "e27d576298a5fe2dc66db8bc4958e61c52fb50914e6ec934c30e9794a9c342ce",
+    "src/artifact_store/types.zig": "a22c09cf7a5d037e02a33a00416006c71b30beb13fe7d8c3b46d3b746f210ef4",
+    "src/artifact_store/mod.zig": "9a40c7b011798cac72c77d14e07878ab5a8505470a18fea921069b848dbf99a7"
+  },
+  "input_sha256": {
+    "libuuid-2.41.6-r1.apk": "e428f43397e863243f17aa85c5b1c3a99adfcb9277d2300b1df7759502db4b6c",
+    "libcom_err-1.47.3-r0.apk": "74f16d0f39b2568062ea46d0d05dbac696d8d50c007f320448d4d6e9831cb316",
+    "guest-initramfs.gz": "ef82ea62ca808340220e8a544d8d333851e7114a28a413b20d3d78d13cdbfc2d",
+    "e2fsprogs-static.apk": "a3dce73485d5cad2ccdcfa80024cbdad4660bdf38f4687c58074c72a8b0b28cf",
+    "e2fsprogs.apk": "5fa751854da8d0c4f71602f682d3b4057b21a0751eb62b5ecfcfac6dff37f7ea",
+    "e2fsprogs-libs-1.47.3-r0.apk": "f7b1578a16dc3c10e8602fda46757eef28b0ccc463a39199fb31f541d69cb0cc",
+    "initramfs-virt": "88492ef60ed51d40e37d2429f775c30540b97107e24388be17d8a08bd5187423",
+    "vmlinuz-virt": "2647623597a32d13adf6bdbfcbc84fa79a561f93563d955974369f8a387c0f38",
+    "artifact-store-tests": "5ecbc57342945d1dec7a1c40c78a35361c7fed05f51228879ef23df6daa58f49",
+    "linux-virt.apk": "87792475f4104c5930d84ff80c9ee7ecb2df268dac4c7fae1aa3494215b28f66",
+    "libblkid-2.41.6-r1.apk": "e8c829016f4b82f34500b05023060d5f1eb8f06e5affadb0a4427cc26dbb58df"
+  },
+  "compile_argv": [
+    "zig",
+    "test",
+    "src/artifact_store/mod.zig",
+    "-target",
+    "x86_64-linux-musl",
+    "-O",
+    "ReleaseSafe",
+    "-femit-bin=/tmp/pr198-linux-publication-v1/artifact-store-tests",
+    "--test-no-exec"
+  ],
+  "local_workspace": "/tmp/pr198-linux-publication-v1",
+  "setup_attempts": 3,
+  "repository_source_changed": false
+}

@@ -1,0 +1,68 @@
+✔ [5/6] Built RiscvRefinement.Air.Family.LoadStore (689ms)
+⚠ [6/6] Built RiscvRefinement.Opcodes.LoadStore (1.7s)
+warning: RiscvRefinement/Opcodes/LoadStore.lean:588:35: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [LoadStoreEnvironment.memoryWord, LoadStoreEnvironment.busAddress,
+      row_busAddress row env holds, ← env.memoryBinds,
+  ̵  ̵ ̵ ̵memoryBefore_load row isStore,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:993:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1000:14: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [loadStoreRelations, memoryPreviousClock_load row isStore,
+       ̵ ̵memoryBefore_load row isStore, ← bus, LoadStoreEnvironment.busAddress_eq,
+  ̵  ̵ ̵ ̵ ̵ ̵memory,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1147:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1154:14: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [loadStoreRelations, memoryPreviousClock_load row isStore,
+       ̵ ̵memoryBefore_load row isStore, ← bus, LoadStoreEnvironment.busAddress_eq,
+  ̵  ̵ ̵ ̵ ̵ ̵memory,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1438:5: unused variable `holds`
+
+Note: This linter can be disabled with `set_option linter.unusedVariables false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1442:37: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp only [LoadStoreEnvironment.operandValue, ← env.operandBinds, operandBefore_store row i̵s̵S̵t̵o̵r̵e̵,̵ ̵h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵]̵i̲s̲S̲t̲o̲r̲e̲]̲
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1713:30: This simp argument is unused:
+  holds.baseReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, h̵o̵l̵d̵s̵.̵b̵a̵s̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵env.baseBinds]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+warning: RiscvRefinement/Opcodes/LoadStore.lean:1717:6: This simp argument is unused:
+  holds.sourceReadOnly
+
+Hint: Omit it from the simp argument list.
+  simp [loadStoreRelations, operandAfter_store row isStore, h̵o̵l̵d̵s̵.̵s̵o̵u̵r̵c̵e̵R̵e̵a̵d̵O̵n̵l̵y̵,̵ ̵operand]
+
+Note: This linter can be disabled with `set_option linter.unusedSimpArgs false`
+Build completed successfully (6 jobs).

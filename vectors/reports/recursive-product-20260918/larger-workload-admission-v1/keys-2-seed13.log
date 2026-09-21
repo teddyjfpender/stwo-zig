@@ -1,0 +1,11 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 718 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=462829584 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1325134 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1581400167 transport_ns=8679917 verify_ns=310207208 recursive_prepare_ns=757086042 proof_bytes=1325134 transcript_calls=1187 verifier_core_calls=58865 outer_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 718 exact sparse-node calls, poseidon_log_size=10, merkle_log_size=10
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=462762096 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1287112 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=1 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=1280976250 transport_ns=8862375 verify_ns=311124875 recursive_prepare_ns=749660500 proof_bytes=1287112 transcript_calls=1134 verifier_core_calls=57900 outer_proof_created=false
+SEGMENT_V2_KEY_SETUP segments=2 outer_proofs_created=0 directory=/tmp/pr198-useful-workload-admissions-v1/keys-2-seed13

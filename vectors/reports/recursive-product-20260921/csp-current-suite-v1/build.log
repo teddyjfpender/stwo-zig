@@ -1,0 +1,11 @@
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+
+Build Summary: 7/7 steps succeeded
+stwo-zig-riscv-cpu success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G
+stwo-riscv-metal success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 22s MaxRSS:849M
+riscv-trace-dump success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 42s MaxRSS:2G
+

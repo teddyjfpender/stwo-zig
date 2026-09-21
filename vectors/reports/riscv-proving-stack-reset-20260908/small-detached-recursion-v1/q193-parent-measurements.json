@@ -1,0 +1,188 @@
+{
+  "scope": "two actual adjacent q193 child wrappers to one freshly verified q193 parent; all aggregation CPU",
+  "production_security_admission_complete": false,
+  "full_metal_recursion_complete": false,
+  "rows": [
+    {
+      "name": "q193-parent-cpu-seed13-first",
+      "producer_process_ns": 29048871667,
+      "request_ns": 28286104625,
+      "preparation_ns": 6162671500,
+      "fixed_key_preparation_ns": 3691762333,
+      "proof_ns": 18149664125,
+      "maximum_rss_bytes": 6695026688,
+      "proof_bytes": 2563834,
+      "verify_ns": 73270792,
+      "fresh_cases": 27
+    },
+    {
+      "name": "q193-parent-cpu-seed14-reuse",
+      "producer_process_ns": 28713032667,
+      "request_ns": 28667099833,
+      "preparation_ns": 5860419584,
+      "fixed_key_preparation_ns": 3720291500,
+      "proof_ns": 18820439417,
+      "maximum_rss_bytes": 6456606720,
+      "proof_bytes": 2559233,
+      "verify_ns": 82000166,
+      "fresh_cases": 27
+    },
+    {
+      "name": "q193-parent-metal-seed13-lifecycle",
+      "producer_process_ns": 27733534166,
+      "request_ns": 27677373666,
+      "preparation_ns": 5952969583,
+      "fixed_key_preparation_ns": 3615581708,
+      "proof_ns": 17831518292,
+      "maximum_rss_bytes": 6805471232,
+      "proof_bytes": 2563834,
+      "verify_ns": 78952333,
+      "fresh_cases": 27
+    }
+  ],
+  "cpu_metal_origin_byte_parity": {
+    "key.json": "6d1885a89eec10375d57806311c2738c0758dbfc517a0bc8551beda8f098a395",
+    "claims.json": "7d25e26098464c1252da2cfcb2f4c3e70d1afe740043b7b9a02e6f497cef2354",
+    "proof.bin": "458f148dd7a94c821dcd7a7d922697325ca5cb34b48d00977600917e6a9e4b5f",
+    "candidate-rootwords.json": "2a307683be2012d18456bfc050dbf450e91a0fc22da8c4c26f95a4bdc6586724"
+  },
+  "profiled_first_parent": {
+    "schema_version": 1,
+    "runtime": "cpu",
+    "example": "detached-recursive-parent",
+    "stages": [
+      {
+        "id": "parent.fixed",
+        "label": "Fixed columns and key admission",
+        "seconds": 3.691771,
+        "children": null
+      },
+      {
+        "id": "parent.main_fill",
+        "label": "Main column allocation and filling",
+        "seconds": 0.459053,
+        "children": null
+      },
+      {
+        "id": "parent.closure",
+        "label": "Exact lookup closure",
+        "seconds": 5.091244,
+        "children": null
+      },
+      {
+        "id": "parent.main_commit",
+        "label": "Main commitment",
+        "seconds": 3.287458,
+        "children": null
+      },
+      {
+        "id": "parent.interaction_fill",
+        "label": "Transcript and interaction columns",
+        "seconds": 2.012261,
+        "children": null
+      },
+      {
+        "id": "parent.interaction_commit",
+        "label": "Interaction commitment",
+        "seconds": 2.079108,
+        "children": null
+      },
+      {
+        "id": "parent.components",
+        "label": "Typed component assembly",
+        "seconds": 0.003339,
+        "children": null
+      },
+      {
+        "id": "draw_random_coeff",
+        "label": "Draw random coefficient",
+        "seconds": 2e-06,
+        "children": null
+      },
+      {
+        "id": "composition_trace_extract",
+        "label": "Composition trace extract",
+        "seconds": 2.4e-05,
+        "children": null
+      },
+      {
+        "id": "composition_evaluation",
+        "label": "Composition evaluation",
+        "seconds": 3.535602,
+        "children": null
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "label": "Composition interpolate and split",
+        "seconds": 0.013391,
+        "children": null
+      },
+      {
+        "id": "composition_commit",
+        "label": "Composition commit",
+        "seconds": 0.408782,
+        "children": null
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "label": "OODS point and mask points",
+        "seconds": 0.000102,
+        "children": null
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "label": "Sampled-value evaluation",
+        "seconds": 0.245647,
+        "children": null
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "label": "Sampled-value channel mix",
+        "seconds": 0.000776,
+        "children": null
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 0.693387,
+        "children": null
+      },
+      {
+        "id": "proof_of_work",
+        "label": "Proof of work",
+        "seconds": 0.010573,
+        "children": null
+      },
+      {
+        "id": "fri_decommit",
+        "label": "FRI decommit",
+        "seconds": 0.060273,
+        "children": null
+      },
+      {
+        "id": "trace_decommit",
+        "label": "Trace decommit",
+        "seconds": 0.007702,
+        "children": null
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "label": "Constraint check and assembly",
+        "seconds": 0.000362,
+        "children": null
+      },
+      {
+        "id": "parent.serialize",
+        "label": "Canonical proof serialization",
+        "seconds": 0.005526,
+        "children": null
+      }
+    ]
+  },
+  "limits": [
+    "single local observations, not quiet-host performance promotion",
+    "RSS is separate from Metal device footprint",
+    "no stronger four/eight-segment root yet",
+    "CSP formal preservation remains open"
+  ]
+}

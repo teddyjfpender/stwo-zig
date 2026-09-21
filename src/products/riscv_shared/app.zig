@@ -42,6 +42,7 @@ pub fn App(comptime Deps: type) type {
             const allocator = std.heap.smp_allocator;
             const process_args = try std.process.argsAlloc(allocator);
             defer std.process.argsFree(allocator, process_args);
+            if (try @import("csp_ecdsa.zig").App(Deps).tryRun(allocator, process_args[1..])) return;
             const parsed = cli.parse(process_args[1..]) catch |err| {
                 try cli.writeUsage(std.fs.File.stderr().deprecatedWriter(), null);
                 return err;

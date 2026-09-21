@@ -1,0 +1,38 @@
+{
+  "passed": true,
+  "lifted_verifier_count_review": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/execution-v1/lifted-verifier/count-review.json",
+  "gates": [
+    {
+      "gate": "small-composition",
+      "exit_code": 0,
+      "wall_ns": 24534390750,
+      "expected_test_count": 3,
+      "exact_test_count_passed": true,
+      "abba_samples_passed": true,
+      "request_manifest_and_inputs_unchanged": true,
+      "log": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/small-composition.log",
+        "bytes": 254,
+        "sha256": "8553617e8d687826c168586ef211a55bead4f83125ed95fdc05cc917456e90cf"
+      },
+      "passed": true
+    },
+    {
+      "gate": "native-allocator-abba",
+      "exit_code": 0,
+      "wall_ns": 281904563625,
+      "expected_test_count": 1,
+      "exact_test_count_passed": true,
+      "abba_samples_passed": true,
+      "request_manifest_and_inputs_unchanged": true,
+      "log": {
+        "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/native-allocator-abba.log",
+        "bytes": 2433,
+        "sha256": "56ad8ae9cab217d9ac3aa12183cbaae10956288d778ac7bd1ff76ead6e2d7047"
+      },
+      "passed": true
+    }
+  ],
+  "full_wrapper_launched": false,
+  "native_producer_launched": false
+}

@@ -1,0 +1,25 @@
+test-ethereum-incremental-leaf-universal-proof-v4-genuine
++- genuine two-segment Ethereum incremental role0 proof guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child' failed: ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=stage101_build source=darwin_proc_pid_rusage_v6 wall_ns=79420509875 process_cpu_ns=102106204875 parallelism_milli=1285 peak_footprint_bytes=1154516360 energy_nj=438640140484 instructions=1971616372256 cycles=396971226488 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47156651916 process_cpu_ns=49643609917 parallelism_milli=1052 peak_footprint_bytes=1154516360 energy_nj=229133343908 instructions=1100728281956 cycles=196589947305 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=0 bytes=8637263 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/role0-genuine-stage101-canonical-io/fb15a6064ae68884f64ef138987b0f5053f18df708162b29336091e14db94e6b.bin
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=1 bytes=8960088 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/role0-genuine-stage101-canonical-io/8759e365005142eaa6b4311271b18e07939da50ad351d313d5e76beff849e0d2.bin
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1528825750 process_cpu_ns=1525779000 parallelism_milli=998 peak_footprint_bytes=1154516360 energy_nj=7613864496 instructions=33647737803 cycles=6027335300 workers=1 host_byte_budget=8589934592
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=6053837166 process_cpu_ns=6045313291 parallelism_milli=998 peak_footprint_bytes=1959365056 energy_nj=30929002235 instructions=109118518171 cycles=24026525446 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=39519292 public_ns=293950333 transcript_ns=137034042 profile_ns=28083 program_ns=70424500 prepare_ns=58906292 fri_ns=4114857291 seal_ns=39103167 total_ns=4753825292 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=53 bytes=856163262 peak=1893491093 allocated=3176282536 freed=2320119274 untracked=0
+ETHEREUM_INCREMENTAL_ROLE0_GENUINE_STAGE=role0_prove error=EthereumIncrementalTranscriptGeometryMismatchV4
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 genuine two-leaf q193 proof cold-opens into neutral real child', the following test command failed:
+./.zig-cache/o/71e0508a58e877ed0b1e368632ea3907/test --cache-dir=./.zig-cache --seed=0x44efd765 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-universal-proof-v4-genuine transitive failure
++- genuine two-segment Ethereum incremental role0 proof guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 2m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f16f0478a846048c0b9791a77190b4aa/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x44efd765 -Z24693162fe92f9c3 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-universal-proof-v4-genuine -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

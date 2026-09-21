@@ -1,0 +1,402 @@
+[
+  {
+    "path": "generated/air/lui.json",
+    "changed_fields": [
+      "canonical_digest",
+      "production_binding"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/addi.json",
+    "changed_fields": [
+      "canonical_digest",
+      "production_binding"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/add.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sub.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sll.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/slt.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sltu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/xor.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/srl.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sra.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/or.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/and.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/addi.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/slti.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sltiu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/xori.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/ori.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/andi.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/slli.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/srli.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/srai.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lb.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lh.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lw.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lbu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lhu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sb.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sh.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/sw.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/beq.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/bne.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/blt.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/bge.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/bltu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/bgeu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/jal.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/jalr.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/lui.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/auipc.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/mul.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/mulh.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/mulhsu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/mulhu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/div.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/divu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/rem.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/remu.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "generated/air/fence.air-ir-v2.json",
+    "changed_fields": [
+      "content_digest",
+      "source_identity"
+    ],
+    "semantic_payload_unchanged": true
+  },
+  {
+    "path": "RiscvRefinement/Air/Generated/Pilot.lean",
+    "only_digest_or_source_identity_changed": true
+  },
+  {
+    "path": "RiscvRefinement/Air/Generated/LuiProgram.lean",
+    "only_digest_or_source_identity_changed": true
+  },
+  {
+    "path": "RiscvRefinement/Air/Generated/Programs.lean",
+    "only_digest_or_source_identity_changed": true
+  },
+  {
+    "path": "RiscvRefinement/Air/Bridge/LoadStoreProgram.lean",
+    "only_digest_or_source_identity_changed": true
+  }
+]

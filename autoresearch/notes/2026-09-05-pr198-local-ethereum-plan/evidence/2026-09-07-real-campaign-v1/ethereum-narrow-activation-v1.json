@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "result": "PASS",
+  "test_groups": {
+    "cpu_and_exported_dag": 8,
+    "generated_aot_authority": 1,
+    "aot_and_legacy_admission": 9,
+    "actual_metal_complete_component_proof": 1
+  },
+  "total_tests": 19,
+  "actual_gpu_gate": {
+    "trace_log": 15,
+    "quotient_log": 16,
+    "proof_bytes": 26812,
+    "same_cpu_proof_bytes": true,
+    "producer_destroyed": true,
+    "fresh_cpu_verified": true,
+    "base_batch_dispatches": 1,
+    "lookup_batch_dispatches": 1,
+    "base_partitions": 4,
+    "lookup_programs": 1
+  },
+  "runtime_profile": "ethereum_fixed_program_narrow_v1",
+  "default_core_source_sha256": "c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786",
+  "default_core_exports": 166,
+  "ethereum_exports": 171,
+  "bundle_manifest_sha256": "320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3",
+  "bundle_source": {
+    "path": "stwo_zig_core.metal",
+    "sha256": "1c722c8e8541664962469e3277d21b98837b9e8c88c0141c887d0b6163b8b372",
+    "bytes": 1621173
+  },
+  "bundle_metallib": {
+    "path": "stwo_zig_core.metallib",
+    "sha256": "9a32b36496d66eb0d0889949ec7f6d06f95a25d9aa6bd16695ca4d9e2d1f171d",
+    "bytes": 2885498
+  },
+  "source_files": [
+    {
+      "path": "src/backends/metal/core_aot.zig",
+      "sha256": "13420b8320532ddb38f31bba528b6bcd3d41c42c5c0644eadce8978d33ac9963"
+    },
+    {
+      "path": "src/backends/metal/shared_runtime.zig",
+      "sha256": "8be5c360dd0b005e2f4ad80d0bdc991cebb52e20cb009c2e6a9669f9c9704c6e"
+    },
+    {
+      "path": "src/backends/metal/runtime/initialization.m",
+      "sha256": "a4ecae2686a30c4a199014ac9305d6d74ccbacd9012e4115843b308bcb7d315b"
+    },
+    {
+      "path": "src/backends/metal/runtime/initialization.zig",
+      "sha256": "a58b6543c72165366b52913b5375d3831491144ad49d2a8ae62b9e37cf29e798"
+    },
+    {
+      "path": "src/backends/metal/runtime/session.zig",
+      "sha256": "5b594b6e15372cd6bc06b8e4a6c26c17f2dde7d9d0dd46975ff771e169f4b119"
+    },
+    {
+      "path": "src/backends/metal/shaders/aot_profile.zig",
+      "sha256": "0a62ddd635b376b1e30beae3c1df2cd438712327ddea14a2356f44620725deb4"
+    },
+    {
+      "path": "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1.metal",
+      "sha256": "048ec9780bf0b0cb757dd496e7b24999b42f2040b43a960d694edf2f534913cd"
+    },
+    {
+      "path": "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1_exports.zig",
+      "sha256": "7ad4b7336d0afaa48f57966a7e6228098a62a6d0d5d85c3c0c25982311dd8e6d"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_component_v1.zig",
+      "sha256": "d1c95565747da63908a1fcbbda5c386dad79a5f0127901508891667ac61fffdb"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_backend_v1.zig",
+      "sha256": "b351361b3d7bd6f88ac5a066a1797dafa54675440b13239daac1655d6446ef12"
+    },
+    {
+      "path": "src/frontends/riscv/air/memory_commitment/poseidon2_narrow_proof_v1_test.zig",
+      "sha256": "c04bce1083e28ddf913253bc4c67ff74ced017f9304dfda88ddfaa02c9f14d3a"
+    },
+    {
+      "path": "src/frontends/riscv/ethereum_narrow_metal_proof_test.zig",
+      "sha256": "e63e8d678310be0afab33cff1341469da443494fc769a47040b05af672f968af"
+    },
+    {
+      "path": "src/frontends/riscv/ethereum_narrow_aot_generator_test.zig",
+      "sha256": "ebe1ac10b602609f04652d3418b41b2b180df96743f9fc9008c12c502c9b2f12"
+    },
+    {
+      "path": "scripts/ethereum_narrow_metal_proof.py",
+      "sha256": "a0d5f705423c909de881f7e83a85145b769ada7c19fb53b987b6589020326b96"
+    },
+    {
+      "path": "src/integrations/riscv_metal/stage101_leaf_autoresearch_v1.zig",
+      "sha256": "c5f7491faf8fbca13da5179046dc19c28aa5cbfb05b3194859f09e723385050a"
+    },
+    {
+      "path": "src/integrations/riscv_metal/stage101_benchmark_admission_v2.zig",
+      "sha256": "cbdd6c2103e6d3a8e1c3d65429355035faeaedfa52f1a3e150ffdf3ee29df09c"
+    }
+  ],
+  "log": {
+    "path": "ethereum-narrow-activation-v1.log",
+    "sha256": "096dd15c9596e3db6f68955dbc9bd625236b334d6b6379033542ad936bc63837"
+  },
+  "limitations": [
+    "Isolated provider with public lookup claims, not full guest caller closure",
+    "Full schema5 Metal leaf benchmark pending",
+    "CSP16 latency/memory promotion gate not run by this work"
+  ]
+}

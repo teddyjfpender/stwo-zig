@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "continuation_cases": 1110,
+  "continuation_baseline_identical_artifacts": 78,
+  "focused_package_ownership_checks": 66,
+  "production_security_qualified": false,
+  "goal_complete": false
+}

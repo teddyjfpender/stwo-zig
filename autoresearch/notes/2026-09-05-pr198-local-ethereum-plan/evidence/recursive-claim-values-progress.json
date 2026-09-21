@@ -1,0 +1,74 @@
+{
+  "previous_goal_turn_classification": "progress",
+  "current_goal_turn_classification": "progress",
+  "common_fold_schema": 7,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/universal_adapter_manifest.zig": "008e02061039e9bacd7514b49733f44decf2c27f3fa8b8aa5ef69e608ce482e7",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "62b7e52aaa5182a4fcac519ebcd3f11309d7401cbc6540887d7329a745f04a8f",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "8c80cc8203fb31c5a42dd7c32c7cd0bcb0fa38d15da8265ed261db50700e3ee1",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "309f8be6132249797dac4bf90c0aa6c19648d451d5cc49774831af972d7d01df",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "b0fd8866f6c72e44aef565405ed265750f9aaaf9271a6bf59c2b7c24341e5088",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_manifest_v2.zig": "223fa91df37a689f6d82e6d203d22e63ff4c2d27d5fc7b9c4f1a1378e9c4d215",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "133d21728088250d7c4dc69de5cb9a99cff091038d618955c8185ef12861c881",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "888426c5764f08c46bff5256626ab6d24e0e415fa45a2d5b13ecf0ae5db8afd9",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "bb66bf0327f11bbdcbae9068b3eb5ce202d5ea7ca80799f5106389162bc98231"
+  },
+  "implemented": [
+    "Omit redundant claim-vector SHA receipt only in the versioned common-fold transcript; validate and directly absorb all 36 claims. Legacy transcript entry point retains its exact suffix.",
+    "Pin canonical-empty preprocessing root in the transcript payload AIR with immutable M31 constants, while retaining root-word lookup emissions.",
+    "Keep session SHA and native boundary dependencies until their key/provenance/semantic replacements are constrained."
+  ],
+  "pending_sessions": [],
+  "check_log": "recursive-claim-values-check.log",
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "verified": [
+    "zig fmt --check"
+  ],
+  "remaining": [
+    "Session SHA, legacy canonical claim SHA, native auxiliary/boundary inputs, common-fold fixed-key admission, real Ethereum leaf and block bundle, Zisk final-proof comparison, latest-tree CSP promotion."
+  ],
+  "post_launch_test_fix": {
+    "path": "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig",
+    "sha256": "80f282102b037c780da0f5b18cc09b449dedc6154616dd466080af16da7ca16f",
+    "change": "Use the common-fold minimum Poseidon log size in the claim-format test manifest. Initial field test fixture used an invalid provider log size."
+  },
+  "canonical_key_basis": "recursive_common_canonical_empty_universal_trace_v2.fillPreprocessed takes only the validated frozen manifest and destination; its first-row masks and range table are independent of the child statement.",
+  "source_conformance": {
+    "status": "failed",
+    "findings": 94,
+    "files": 93,
+    "new_failing_files": [],
+    "scope": "Claim-value changes before the later canonical-key pin additions."
+  },
+  "checks": {
+    "combined_checks": {
+      "status": "partial failure in initial field-test setup; source, canonical and backend checks passed",
+      "source_time": "48s",
+      "source_max_rss": "5G",
+      "canonical_time": "11s",
+      "canonical_max_rss": "87M",
+      "canonical_proof_sha256": "23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468",
+      "canonical_preprocessed_root_recomputed": true,
+      "wrong_key_rejected": true,
+      "root_words_fixed_in_air": 8,
+      "backend_compile_time": "1m",
+      "backend_compile_max_rss": "4G"
+    },
+    "corrected_field_check": {
+      "status": "passed",
+      "log": "recursive-claim-values-field-check.log",
+      "steps": "3/3",
+      "tests": "4/4",
+      "test_time": "275ms",
+      "test_max_rss": "3M",
+      "compile_time": "9s",
+      "compile_max_rss": "732M",
+      "all_36_claim_mutations_bound": true,
+      "legacy_suffix_preserved": true,
+      "invalid_claims_rejected_before_mix": true
+    }
+  },
+  "full_proof_receipt": "recursive-claim-values-proof-progress.json",
+  "full_proof_resolution": "Session 12805 passed on the exact source hashes retained in recursive-claim-values-proof-progress.json; later checkpoint test changes are not covered by that run."
+}

@@ -11,18 +11,17 @@
 const std = @import("std");
 
 const digest = @import("../../air/lang/digest.zig");
-const base = @import("universal_adapter_manifest.zig");
+const base = @import("universal_manifest_contract.zig");
 const universal_manifest = @import("universal_manifest.zig");
 const universal_roster = @import("universal_roster.zig");
-const statement_v2 = @import("../segment_statement_outer_source_v2.zig");
+const statement_v2 = @import("../segment_statement_outer_geometry_v2.zig");
 const public_air_v2 = @import("segment_public_outer_air_v2.zig");
 const row17_air_v2 = @import("vm_public_logup_control_v2.zig");
-const row17_witness_v2 = @import("vm_public_logup_control_witness_v2.zig");
-const boundary_v2 = @import("../segment_leaf_outer_authority_v2.zig");
+const boundary_v2 = @import("../segment_leaf_outer_geometry_v2.zig");
 const boundary_air_v2 = @import("../segment_leaf_outer_air_v2.zig");
 const provider_air_v2 = @import("segment_publication_input_provider_v2.zig");
 const provider_authority_v2 =
-    @import("../segment_publication_input_provider_authority_v2.zig");
+    @import("../segment_publication_input_provider_contract_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 3;
 pub const COMPONENT_COUNT: usize = universal_roster.COMPONENT_COUNT + 3;
@@ -163,6 +162,15 @@ pub fn build(
     log_sizes: universal_manifest.LogSizes,
     boundary_components: [boundary_v2.COMPONENT_COUNT]boundary_v2.ComponentGeometryV2,
 ) Error!Catalog {
+    return buildWithProviderShape(log_sizes, boundary_components, provider_authority_v2.Shape.init(21) catch unreachable);
+}
+
+pub fn buildWithProviderShape(
+    log_sizes: universal_manifest.LogSizes,
+    boundary_components: [boundary_v2.COMPONENT_COUNT]boundary_v2.ComponentGeometryV2,
+    provider_shape: provider_authority_v2.Shape,
+) Error!Catalog {
+    provider_shape.validate() catch return error.InvalidCatalogGeometry;
     for (boundary_components) |component|
         component.validate() catch return error.InvalidCatalogGeometry;
 
@@ -212,7 +220,7 @@ pub fn build(
         PUBLIC_LOGUP_SOURCE_INDEX,
         boundary_components[1],
     );
-    entries[VERIFIER_INPUT_PROVIDER_INDEX] = try providerEntry();
+    entries[VERIFIER_INPUT_PROVIDER_INDEX] = try providerEntry(provider_shape.trace_log_size);
 
     var result = Catalog{
         .entries = entries,
@@ -343,7 +351,7 @@ fn validatePublicOverride(entry: *const Entry, table_index: usize) Error!void {
 /// Row 17 is no longer one instance of the generic public relay kernel. Its
 /// schedule-consuming V2 AIR owns independent geometry and a distinct seal.
 fn row17Entry(log_size: u32) Error!Entry {
-    if (log_size != row17_witness_v2.TRACE_LOG_SIZE)
+    if (log_size != row17_air_v2.TRACE_LOG_SIZE)
         return error.InvalidCatalogGeometry;
     const geometry = Geometry{
         .roster_row = 17,
@@ -409,10 +417,11 @@ fn validateSourceAir(comptime Air: type, geometry: Geometry) Error!void {
     }
 }
 
-fn providerEntry() Error!Entry {
+fn providerEntry(log_size: u32) Error!Entry {
+    if (log_size < 6 or log_size > 30) return error.InvalidCatalogGeometry;
     const geometry = Geometry{
         .roster_row = VERIFIER_INPUT_PROVIDER_INDEX,
-        .log_size = provider_authority_v2.TRACE_LOG_SIZE,
+        .log_size = log_size,
         .preprocessed_columns = provider_air_v2.PREPROCESSED_COLUMN_COUNT,
         .main_columns = provider_air_v2.PHYSICAL_MAIN_COLUMN_COUNT,
         .interaction_columns = provider_air_v2.INTERACTION_COLUMN_COUNT,
@@ -432,7 +441,7 @@ fn providerEntry() Error!Entry {
 }
 
 fn validateProviderEntry(entry: *const Entry) Error!void {
-    const expected = try providerEntry();
+    const expected = try providerEntry(entry.geometry.log_size);
     if (!std.meta.eql(entry.*, expected))
         return error.InvalidCatalogGeometry;
 }
@@ -542,8 +551,8 @@ comptime {
         row17_air_v2.RELATION_EVENT_COUNT != 2 or
         row17_air_v2.INTERACTION_BATCH_COUNT != 1 or
         row17_air_v2.INTERACTION_COLUMN_COUNT != 4 or
-        row17_witness_v2.LOGICAL_ROW_COUNT != 71 or
-        row17_witness_v2.TRACE_LOG_SIZE != 7 or
+        row17_air_v2.LOGICAL_ROW_COUNT != 71 or
+        row17_air_v2.TRACE_LOG_SIZE != 7 or
         V2_AUTHORITY_CHANGED_MASK | V1_AUTHORITY_UNCHANGED_MASK |
             APPENDED_SOURCE_MASK | APPENDED_PROVIDER_MASK !=
             ALL_COMPONENT_MASK)

@@ -1,0 +1,198 @@
+Analysis of sampling stwo-ethereum-block-proof (pid 5000) every 1 millisecond
+Process:         stwo-ethereum-block-proof [5000]
+Path:            /Users/USER/*/stwo-ethereum-block-proof
+Load Address:    0x102318000
+Identifier:      stwo-ethereum-block-proof
+Version:         0
+Code Type:       ARM64
+Platform:        macOS
+Parent Process:  time [4998]
+
+Date/Time:       2026-09-07 16:22:45.320 +0400
+Launch Time:     2026-09-07 16:20:36.681 +0400
+OS Version:      macOS 15.3.1 (24D70)
+Report Version:  7
+Analysis Tool:   /usr/bin/sample
+
+Physical footprint:         116.2M
+Physical footprint (peak):  537.0M
+Idle exit:                  untracked
+----
+
+Call graph:
+    483 Thread_36014375   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 483 start  (in dyld) + 2840  [0x19bcdc274]
+    +   483 main  (in stwo-ethereum-block-proof) + 1692  [0x1026d9008]  start.zig:602
+    +     483 ethereum_incremental_capture_postprocess_command_v4.run  (in stwo-ethereum-block-proof) + 9668  [0x1023a21a8]  ethereum_incremental_capture_postprocess_command_v4.zig:251
+    +       483 ethereum_incremental_capture_postprocess_command_v4.recoverCompleteRawResume  (in stwo-ethereum-block-proof) + 780  [0x1023978e8]  ethereum_incremental_capture_postprocess_command_v4.zig:433
+    +         483 ethereum_incremental_capture_postprocess_command_v4.openInputBatch  (in stwo-ethereum-block-proof) + 800  [0x102388574]  ethereum_incremental_capture_postprocess_command_v4.zig:972
+    +           483 _pthread_join  (in libsystem_pthread.dylib) + 612  [0x19c05e7d4]
+    +             483 __ulock_wait  (in libsystem_kernel.dylib) + 8  [0x19c01ccac]
+    483 Thread_36016227
+      483 thread_start  (in libsystem_pthread.dylib) + 8  [0x19c0570fc]
+        483 _pthread_start  (in libsystem_pthread.dylib) + 136  [0x19c05c2e4]
+          483 Thread.PosixThreadImpl.spawn__anon_89531.Instance.entryFn  (in stwo-ethereum-block-proof) + 668  [0x102717288]  Thread.zig:781
+            483 ethereum_incremental_capture_postprocess_authority_v4.openCanonicalBytesWithProgram  (in stwo-ethereum-block-proof) + 276  [0x1023ae224]  ethereum_incremental_capture_postprocess_authority_v4.zig:456
+              483 ethereum_incremental_public_wire_publication_v4.decodeWireAllocWithRetained  (in stwo-ethereum-block-proof) + 2116  [0x10237e7e0]  ethereum_incremental_public_wire_publication_v4.zig:304
+                483 air.public_data_v2.PublicDataV2.authenticateReusingRoots  (in stwo-ethereum-block-proof) + 72  [0x10237eb1c]  public_data_v2.zig:327
+                  377 recursion.segment_statement_v2_authenticate_canonical_wire.authenticateCanonicalWireReusingRoots  (in stwo-ethereum-block-proof) + 108  [0x1023abb44]  segment_statement_v2_authenticate_canonical_wire.zig:75
+                  ! 376 recursion.segment_statement_v2_source_v2.snapshotSectionIdentity  (in stwo-ethereum-block-proof) + 300  [0x10283729c]  segment_statement_v2_source_v2.zig:634
+                  ! : 372 recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof) + 116  [0x102822704]  segment_statement_v2_contract.zig:586
+                  ! : | 169 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1172,1204,...  [0x1027108d0,0x1027108f0,...]  poseidon2.zig:41
+                  ! : | 43 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 156,604,...  [0x1027104d8,0x102710698,...]  poseidon2.zig:38
+                  ! : | 40 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1664,1360,...  [0x102710abc,0x10271098c,...]  poseidon2.zig:43
+                  ! : | 14 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 192,212,...  [0x102835c28,0x102835c3c,...]  poseidon2.zig:60
+                  ! : | 14 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 184  [0x1027104f4]  poseidon2.zig:38
+                  ! : | + 12 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 368,112,...  [0x102835cd8,0x102835bd8,...]  poseidon2.zig:60
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 836  [0x102835eac]  poseidon2.zig:67
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 476  [0x102835d44]  poseidon2.zig:68
+                  ! : | 14 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 332  [0x102710588]  poseidon2.zig:38
+                  ! : | + 11 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 88,232,...  [0x102835bc0,0x102835c50,...]  poseidon2.zig:60
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 772,1144  [0x102835e6c,0x102835fe0]  poseidon2.zig:71
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1076  [0x102835f9c]  poseidon2.zig:68
+                  ! : | 13 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1388  [0x1027109a8]  poseidon2.zig:43
+                  ! : | + 11 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 368,112,...  [0x102835cd8,0x102835bd8,...]  poseidon2.zig:60
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 476  [0x102835d44]  poseidon2.zig:68
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 968  [0x102835f30]  poseidon2.zig:71
+                  ! : | 13 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1540  [0x102710a40]  poseidon2.zig:43
+                  ! : | + 10 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 132,272,...  [0x102835bec,0x102835c78,...]  poseidon2.zig:60
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 740,1136  [0x102835e4c,0x102835fd8]  poseidon2.zig:71
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1064  [0x102835f90]  poseidon2.zig:68
+                  ! : | 13 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1692  [0x102710ad8]  poseidon2.zig:43
+                  ! : | + 9 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 132,368,...  [0x102835bec,0x102835cd8,...]  poseidon2.zig:60
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 716,1136  [0x102835e34,0x102835fd8]  poseidon2.zig:71
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1032  [0x102835f70]  poseidon2.zig:67
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1076  [0x102835f9c]  poseidon2.zig:68
+                  ! : | 12 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 480  [0x10271061c]  poseidon2.zig:38
+                  ! : | + 4 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 292,192,...  [0x102835c8c,0x102835c28,...]  poseidon2.zig:60
+                  ! : | + 3 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 636  [0x102835de4]  poseidon2.zig:67
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 56  [0x102835ba0]  poseidon2.zig:61
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1076  [0x102835f9c]  poseidon2.zig:68
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 572  [0x102835da4]  poseidon2.zig:71
+                  ! : | 11 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 28  [0x102710458]  poseidon2.zig:37
+                  ! : | + 8 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 112,88,...  [0x102835bd8,0x102835bc0,...]  poseidon2.zig:60
+                  ! : | + 3 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 612,408  [0x102835dcc,0x102835d00]  poseidon2.zig:66
+                  ! : | 6 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 548,572,...  [0x102835d8c,0x102835da4,...]  poseidon2.zig:71
+                  ! : | 4 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 628  [0x1027106b0]  poseidon2.zig:38
+                  ! : | + 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 192,252  [0x102835c28,0x102835c64]  poseidon2.zig:60
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 372  [0x102835cdc]  poseidon2.zig:61
+                  ! : | + 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1120  [0x102835fc8]  poseidon2.zig:71
+                  ! : | 2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1232  [0x10271090c]  poseidon2.zig:0
+                  ! : | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1208  [0x102836020]  poseidon2.zig:0
+                  ! : | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 28  [0x102835b84]  poseidon2.zig:57
+                  ! : | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 612  [0x102835dcc]  poseidon2.zig:66
+                  ! : | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 440  [0x102835d20]  poseidon2.zig:67
+                  ! : 4 recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof) + 180,16,...  [0x102822744,0x1028226a0,...]  segment_statement_v2_contract.zig:586
+                  ! 1 recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof) + 212  [0x102822764]  segment_statement_v2_contract.zig:586
+                  61 recursion.segment_statement_v2_authenticate_canonical_wire.authenticateCanonicalWireReusingRoots  (in stwo-ethereum-block-proof) + 124  [0x1023abb54]  segment_statement_v2_authenticate_canonical_wire.zig:75
+                  ! 60 recursion.segment_statement_v2_source_v2.snapshotSectionIdentity  (in stwo-ethereum-block-proof) + 300  [0x10283729c]  segment_statement_v2_source_v2.zig:634
+                  ! : 60 recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof) + 116  [0x102822704]  segment_statement_v2_contract.zig:586
+                  ! :   28 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1204,1172,...  [0x1027108f0,0x1027108d0,...]  poseidon2.zig:41
+                  ! :   9 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1360,1512,...  [0x10271098c,0x102710a24,...]  poseidon2.zig:43
+                  ! :   5 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 308,156,...  [0x102710570,0x1027104d8,...]  poseidon2.zig:38
+                  ! :   3 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 184  [0x1027104f4]  poseidon2.zig:38
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 88  [0x102835bc0]  poseidon2.zig:60
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 636  [0x102835de4]  poseidon2.zig:67
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1136  [0x102835fd8]  poseidon2.zig:71
+                  ! :   3 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 480  [0x10271061c]  poseidon2.zig:38
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1208  [0x102836020]  poseidon2.zig:0
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 252  [0x102835c64]  poseidon2.zig:60
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 836  [0x102835eac]  poseidon2.zig:67
+                  ! :   3 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1388  [0x1027109a8]  poseidon2.zig:43
+                  ! :   | 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 132,332  [0x102835bec,0x102835cb4]  poseidon2.zig:60
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 376  [0x102835ce0]  poseidon2.zig:61
+                  ! :   2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 232,368  [0x102835c50,0x102835cd8]  poseidon2.zig:60
+                  ! :   2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 332  [0x102710588]  poseidon2.zig:38
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 88  [0x102835bc0]  poseidon2.zig:60
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 440  [0x102835d20]  poseidon2.zig:67
+                  ! :   2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1540  [0x102710a40]  poseidon2.zig:43
+                  ! :   | 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 152,368  [0x102835c00,0x102835cd8]  poseidon2.zig:60
+                  ! :   1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 772  [0x102835e6c]  poseidon2.zig:71
+                  ! :   1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 28  [0x102710458]  poseidon2.zig:37
+                  ! :   | 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 368  [0x102835cd8]  poseidon2.zig:60
+                  ! :   1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 628  [0x1027106b0]  poseidon2.zig:38
+                  ! :     1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 772  [0x102835e6c]  poseidon2.zig:71
+                  ! 1 recursion.segment_statement_v2_source_v2.snapshotSectionIdentity  (in stwo-ethereum-block-proof) + 312  [0x1028372a8]  segment_statement_v2_source_v2.zig:635
+                  !   1 recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof) + 96  [0x1028226f0]  segment_statement_v2_contract.zig:586
+                  45 recursion.segment_statement_v2_authenticate_canonical_wire.authenticateCanonicalWireReusingRoots  (in stwo-ethereum-block-proof) + 64  [0x1023abb18]  segment_statement_v2_authenticate_canonical_wire.zig:74
+                    45 recursion.segment_statement_v2_authenticate_canonical_wire.decodeCanonicalWire  (in stwo-ethereum-block-proof) + 1692  [0x10271bad4]  segment_statement_v2_authenticate_canonical_wire.zig:130
+                      45 recursion.poseidon2_channel.hashCanonicalWords  (in stwo-ethereum-block-proof) + 196  [0x1026f9990]  poseidon2_channel.zig:96
+                        13 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1204,972,...  [0x1027108f0,0x102710808,...]  poseidon2.zig:41
+                        12 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1512,1416,...  [0x102710a24,0x1027109c4,...]  poseidon2.zig:43
+                        7 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 156,604,...  [0x1027104d8,0x102710698,...]  poseidon2.zig:38
+                        2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 332  [0x102710588]  poseidon2.zig:38
+                        : 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 172,312  [0x102835c14,0x102835ca0]  poseidon2.zig:60
+                        2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 628  [0x1027106b0]  poseidon2.zig:38
+                        : 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 368  [0x102835cd8]  poseidon2.zig:60
+                        : 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 968  [0x102835f30]  poseidon2.zig:71
+                        2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 668  [0x1027106d8]  poseidon2.zig:40
+                        2 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1692  [0x102710ad8]  poseidon2.zig:43
+                        : 2 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 172,312  [0x102835c14,0x102835ca0]  poseidon2.zig:60
+                        1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 304  [0x102835c98]  poseidon2.zig:60
+                        1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 184  [0x1027104f4]  poseidon2.zig:38
+                        : 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 440  [0x102835d20]  poseidon2.zig:67
+                        1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 480  [0x10271061c]  poseidon2.zig:38
+                        : 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 312  [0x102835ca0]  poseidon2.zig:60
+                        1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1388  [0x1027109a8]  poseidon2.zig:43
+                        : 1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 212  [0x102835c3c]  poseidon2.zig:60
+                        1 air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof) + 1540  [0x102710a40]  poseidon2.zig:43
+                          1 air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 1172  [0x102835ffc]  poseidon2.zig:71
+
+Total number in stack (recursive counted multiple, when >=5):
+        22       air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 0  [0x102835b68]  poseidon2.zig:60
+        12       air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 0  [0x102835b68]  poseidon2.zig:71
+        8       air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 0  [0x102835b68]  poseidon2.zig:67
+        6       air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof) + 0  [0x102835b68]  poseidon2.zig:68
+
+Sort by top of stack, same collapsed (when >= 5):
+        __ulock_wait  (in libsystem_kernel.dylib)        483
+        air.memory_commitment.poseidon2.permute  (in stwo-ethereum-block-proof)        330
+        air.memory_commitment.poseidon2.externalMatrix  (in stwo-ethereum-block-proof)        147
+        recursion.segment_statement_v2_contract.IdentityHasher.u32Value  (in stwo-ethereum-block-proof)        6
+
+Binary Images:
+       0x102318000 -        0x102d67f7f +stwo-ethereum-block-proof (0) <0FDFF416-3190-3311-A20E-C67280BE6E18> /Users/*/stwo-ethereum-block-proof
+       0x19bc84000 -        0x19bcd5ca3  libobjc.A.dylib (928.3) <B2882096-462B-3878-BE2A-410F7B1A27FD> /usr/lib/libobjc.A.dylib
+       0x19bcd6000 -        0x19bd57f3f  dyld (1.0.0 - 1245.1) <398A133C-9BCB-317F-A064-A40D3CEA3C0F> /usr/lib/dyld
+       0x19bd58000 -        0x19bd5bff8  libsystem_blocks.dylib (95) <A33D811C-BD2D-3833-9C38-9BF3960A1F8C> /usr/lib/system/libsystem_blocks.dylib
+       0x19bd5c000 -        0x19bda6fff  libxpc.dylib (2866.81.1) <564B7785-E7C4-3231-8BF1-3FBB266B6599> /usr/lib/system/libxpc.dylib
+       0x19bda7000 -        0x19bdc2fff  libsystem_trace.dylib (1612.80.7) <7F5EC174-AB45-37E7-B783-83A04B6154A1> /usr/lib/system/libsystem_trace.dylib
+       0x19bdc3000 -        0x19be62fdf  libcorecrypto.dylib (1736.80.2) <8A08F4FE-C92E-35AA-BBB8-45A9D7A00AAD> /usr/lib/system/libcorecrypto.dylib
+       0x19be63000 -        0x19bea4fff  libsystem_malloc.dylib (657.80.3) <1480B446-99F7-3757-9D4E-5BA3014A2726> /usr/lib/system/libsystem_malloc.dylib
+       0x19bea5000 -        0x19beebfff  libdispatch.dylib (1504.60.7) <5576E4FD-AAD2-3608-8C8F-4EEC421236F9> /usr/lib/system/libdispatch.dylib
+       0x19beec000 -        0x19beeeffb  libsystem_featureflags.dylib (94) <64FD190D-C0D7-3B9A-837B-E63EA386BE14> /usr/lib/system/libsystem_featureflags.dylib
+       0x19beef000 -        0x19bf70ffb  libsystem_c.dylib (1669.60.4) <92699527-645F-3D8D-AED8-1CFB0C034E15> /usr/lib/system/libsystem_c.dylib
+       0x19bf71000 -        0x19bffeffb  libc++.1.dylib (1800.105) <BBAB286C-2E51-3D64-9AE3-A4102935FE32> /usr/lib/libc++.1.dylib
+       0x19bfff000 -        0x19c019fff  libc++abi.dylib (1800.105) <E7DBA219-4E97-307D-8E80-E0D97BE8517B> /usr/lib/libc++abi.dylib
+       0x19c01a000 -        0x19c054ff7  libsystem_kernel.dylib (11215.81.4) <EEE9D0D3-DFFC-37CB-9CED-B27CD0286D8C> /usr/lib/system/libsystem_kernel.dylib
+       0x19c055000 -        0x19c061fff  libsystem_pthread.dylib (535) <642FAF7A-874E-37E6-8ABA-2B0CC09A3025> /usr/lib/system/libsystem_pthread.dylib
+       0x19c062000 -        0x19c08effb  libdyld.dylib (1245.1) <C0C53058-94D2-3D9E-9E92-56BA8B43C327> /usr/lib/system/libdyld.dylib
+       0x19c08f000 -        0x19c096feb  libsystem_platform.dylib (340.60.2) <984D08B8-F85C-36F5-9E17-5BFF7FC779A3> /usr/lib/system/libsystem_platform.dylib
+       0x19c097000 -        0x19c0c6ffb  libsystem_info.dylib (592) <8C7C4902-FEC1-3776-87FF-2373BA19B1CE> /usr/lib/system/libsystem_info.dylib
+       0x19f7ad000 -        0x19f7b7ff7  libsystem_darwin.dylib (1669.60.4) <F23DCA7C-AF18-3BB9-9D2F-FFBC4645DDC1> /usr/lib/system/libsystem_darwin.dylib
+       0x19fc10000 -        0x19fc22fff  libsystem_notify.dylib (327.60.1) <A3EE7CB1-6FCC-37AB-A8BC-256B9642B47D> /usr/lib/system/libsystem_notify.dylib
+       0x1a1bbe000 -        0x1a1bd8ff7  libsystem_networkextension.dylib (2063.80.10) <CD0C82E0-9B1B-3CAA-8CA7-466D1C439C3B> /usr/lib/system/libsystem_networkextension.dylib
+       0x1a1c54000 -        0x1a1c6cffb  libsystem_asl.dylib (402) <26693E85-AFDC-38E2-B939-D6EC865FA506> /usr/lib/system/libsystem_asl.dylib
+       0x1a375d000 -        0x1a3765fff  libsystem_symptoms.dylib (2001.80.5) <695D143C-5D59-37B0-8784-4AE727AFEEF5> /usr/lib/system/libsystem_symptoms.dylib
+       0x1a6eba000 -        0x1a6ee8ff7  libsystem_containermanager.dylib (689) <A72C2FD5-969A-342F-B8A4-4216D7C7957E> /usr/lib/system/libsystem_containermanager.dylib
+       0x1a80f7000 -        0x1a80fbfff  libsystem_configuration.dylib (1351.80.2) <C218F939-9E60-37A3-B2EC-93837054946D> /usr/lib/system/libsystem_configuration.dylib
+       0x1a80fc000 -        0x1a8102fff  libsystem_sandbox.dylib (2401.81.2) <BF38E17B-6A57-3EE2-A805-8E9B35542182> /usr/lib/system/libsystem_sandbox.dylib
+       0x1a9014000 -        0x1a9016ffb  libquarantine.dylib (181.80.2) <90D46A44-087C-3900-8509-EA90C6CFAD58> /usr/lib/system/libquarantine.dylib
+       0x1a9723000 -        0x1a9729ffb  libsystem_coreservices.dylib (171.1) <579E4601-365D-346F-9CD9-37851FB2874C> /usr/lib/system/libsystem_coreservices.dylib
+       0x1a9b90000 -        0x1a9bcdfff  libsystem_m.dylib (3289) <1B9E3C19-420A-38C5-96CE-6C2CE6EB56BA> /usr/lib/system/libsystem_m.dylib
+       0x1a9bcf000 -        0x1a9bd2ff7  libmacho.dylib (1022.1) <9E0F73E3-1865-3F72-9ED1-465C68D23BA6> /usr/lib/system/libmacho.dylib
+       0x1a9bf0000 -        0x1a9bfdfff  libcommonCrypto.dylib (600033.60.1) <1C8E15A6-869F-3AAD-AAE8-5825C7C4F902> /usr/lib/system/libcommonCrypto.dylib
+       0x1a9bfe000 -        0x1a9c09fff  libunwind.dylib (1800.85) <BEFBB85F-B46E-3C52-9A92-2F8EE957E3D9> /usr/lib/system/libunwind.dylib
+       0x1a9c0a000 -        0x1a9c11fff  liboah.dylib (342) <D8407F3E-5522-3C66-8A60-C29567136FD5> /usr/lib/liboah.dylib
+       0x1a9c12000 -        0x1a9c1cff7  libcopyfile.dylib (213.40.2) <0D18978A-4446-31EE-8228-25FABB44DB94> /usr/lib/system/libcopyfile.dylib
+       0x1a9c1d000 -        0x1a9c20fff  libcompiler_rt.dylib (103.3) <F22CE10B-B1DF-3A58-9B8B-7F0ED73962DF> /usr/lib/system/libcompiler_rt.dylib
+       0x1a9c21000 -        0x1a9c25ffb  libsystem_collections.dylib (1669.60.4) <74DC56B7-7BE5-3392-835A-7C6863986FF2> /usr/lib/system/libsystem_collections.dylib
+       0x1a9c26000 -        0x1a9c29ffb  libsystem_secinit.dylib (153.60.1) <9BFA7CCC-E31E-3D39-832D-CA425269A795> /usr/lib/system/libsystem_secinit.dylib
+       0x1a9c2a000 -        0x1a9c2cfff  libremovefile.dylib (75.80.1) <D242539B-BA45-363C-8B08-83FBCE4EC1C2> /usr/lib/system/libremovefile.dylib
+       0x1a9c2d000 -        0x1a9c2dfff  libkeymgr.dylib (31) <95E4D67C-51BF-36C9-99B5-35F5E2D6E2CA> /usr/lib/system/libkeymgr.dylib
+       0x1a9c2e000 -        0x1a9c36fff  libsystem_dnssd.dylib (2559.80.8) <35DE5A07-AF58-33F0-A950-1F7CCAE85F3E> /usr/lib/system/libsystem_dnssd.dylib
+       0x1a9c37000 -        0x1a9c3cffb  libcache.dylib (95) <46788F12-8B07-3253-BF23-C49BC753A327> /usr/lib/system/libcache.dylib
+       0x1a9c3d000 -        0x1a9c3effb  libSystem.B.dylib (1351) <E7A14776-89AB-310A-9FCF-F47CAE8043B6> /usr/lib/libSystem.B.dylib
+       0x27cc36000 -        0x27cc39fff  libsystem_darwindirectory.dylib (122) <E3036CCB-95CF-3BD6-AA4F-58543B923EA5> /usr/lib/system/libsystem_darwindirectory.dylib
+       0x27cc3a000 -        0x27cc40fff  libsystem_eligibility.dylib (160.60.1) <4C8AC363-F171-3A08-85F8-7542B9C79A87> /usr/lib/system/libsystem_eligibility.dylib
+       0x27cc41000 -        0x27cc46fff  libsystem_sanitizers.dylib (17.1) <F0A7379E-6861-3B3F-BB56-1B08B1BEE98A> /usr/lib/system/libsystem_sanitizers.dylib

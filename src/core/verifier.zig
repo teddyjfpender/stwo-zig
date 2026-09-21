@@ -127,9 +127,10 @@ fn verifyImpl(
     const composition_log_size = components.compositionLogDegreeBound();
     const composition_log_split = components.compositionLogSplit() catch
         return VerificationError.InvalidStructure;
-    if (composition_log_size <= composition_log_split) {
-        return VerificationError.InvalidStructure;
-    }
+    const max_log_degree_bound = verifier_types.compositionMaskLogSize(
+        composition_log_size,
+        composition_log_split,
+    ) orelse return VerificationError.InvalidStructure;
 
     const composition_randomness = channel.drawSecureFelt();
 
@@ -153,7 +154,7 @@ fn verifyImpl(
     defer allocator.free(composition_commitment_log_sizes);
     @memset(
         composition_commitment_log_sizes,
-        composition_log_size - composition_log_split,
+        max_log_degree_bound,
     );
     try commitment_scheme.commit(
         allocator,
@@ -164,7 +165,6 @@ fn verifyImpl(
 
     const oods_seed = channel.drawSecureFelt();
     const oods_point = circle.secureFieldPointFromRandomSeed(oods_seed);
-    const max_log_degree_bound = composition_log_size - composition_log_split;
 
     var sample_points = try components.maskPoints(
         allocator,

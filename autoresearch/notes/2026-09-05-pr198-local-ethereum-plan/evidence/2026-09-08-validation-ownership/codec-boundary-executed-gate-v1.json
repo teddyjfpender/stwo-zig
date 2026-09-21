@@ -1,0 +1,12 @@
+{
+  "recorded_at": "2026-09-08T07:14:45.079464+00:00",
+  "source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "exit_code": 0,
+  "tests_passed": 6,
+  "test_ms": 264,
+  "compile_s": 17,
+  "compile_reported_maxrss": "2G",
+  "log": "devex-codec-boundary-gate-v1.log",
+  "log_sha256": "c0b13dcc08e356793cc35829d0e50ec9d53d16e0c2dc81a82c5c91d50e1cb276",
+  "scope": "Replay-only codec correction plus cheap gate wiring; boundary 25-test/full-compile results remain source-v5 receipts"
+}

@@ -1,0 +1,147 @@
+1/4 pcs_commitments_test_root.test_0...OK
+2/4 pcs.owned_source_admission_test.test.PCS owned source admission releases every partial ownership stage on allocation failure...
+fail_index: 53/62
+allocated bytes: 53848
+freed bytes: 53576
+allocations: 53
+deallocations: 52
+allocation that was made to fail: 
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/leaves.zig:56:53: 0x104cf90ef in build (root)
+                const expanded = try allocator.alloc(H, layer_size);
+                                                    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:373:45: 0x104cfbcd7 in commitWithOptions (root)
+                break :blk try LeafOps.build(allocator, layer_alloc, sorted);
+                                            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:123:37: 0x104cfcd3f in commit (root)
+            return commitWithOptions(
+                                    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:24:36: 0x104cfced3 in commitMerkle__anon_27225 (root)
+        return MerkleTree(H).commit(allocator, columns);
+                                   ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:164:35: 0x104cfd217 in initOwnedWithBackingAndWorkRecorder (root)
+                try B.commitMerkle(H, allocator, column_refs);
+                                  ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:80:63: 0x104cfd54f in initPrepared__anon_29270 (root)
+            var tree = try initOwnedWithBackingAndWorkRecorder(
+                                                              ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:288:66: 0x104cffbc7 in commitOwnedPreparedWithRecorderAndBacking__anon_27774 (root)
+                break :blk try BackendCommitmentTree.initPrepared(allocator, &prepared, work_recorder);
+                                                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:106:66: 0x104d01053 in commitOwnedWithRecorderAndBacking__anon_27752 (root)
+            return self.commitOwnedPreparedWithRecorderAndBacking(
+                                                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:86:58: 0x104d010df in commitOwnedWithRecorder__anon_27740 (root)
+            return self.commitOwnedWithRecorderAndBacking(
+                                                         ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:68:48: 0x104d01157 in commitOwned__anon_27525 (root)
+            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+                                               ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:100:27: 0x104d01d0f in commitFixture (root)
+    try scheme.commitOwned(allocator, columns, &channel);
+                          ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:107:35: 0x104d02163 in allocationCase (root)
+    var scheme = try commitFixture(allocator, use_packing, retention);
+                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1146:9: 0x104d02507 in checkAllAllocationFailures__anon_26623 (root)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:114:51: 0x104d02e17 in test.PCS owned source admission releases every partial ownership stage on allocation failure (root)
+        try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationCase, .{ false, retention });
+                                                  ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x104cb310b in mainTerminal (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:66:28: 0x104cadc67 in main (root)
+        return mainTerminal();
+                           ^
+FAIL (MemoryLeakDetected)
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/mem/Allocator.zig:283:82: 0x104c32623 in allocBytesWithAlignment__anon_8945 (root)
+    const byte_ptr = self.rawAlloc(byte_count, alignment, return_address) orelse return Error.OutOfMemory;
+                                                                                 ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/mem/Allocator.zig:269:5: 0x104d1d153 in allocWithSizeAndAlignment__anon_32062 (root)
+    return self.allocBytesWithAlignment(alignment, byte_count, return_address);
+    ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/mem/Allocator.zig:181:5: 0x104cf7833 in alloc__anon_29492 (root)
+    return self.allocAdvancedWithRetAddr(T, null, n, @returnAddress());
+    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/leaves.zig:56:34: 0x104cf910b in build (root)
+                const expanded = try allocator.alloc(H, layer_size);
+                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:373:28: 0x104cfbf73 in commitWithOptions (root)
+                break :blk try LeafOps.build(allocator, layer_alloc, sorted);
+                           ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:123:13: 0x104cfcd8f in commit (root)
+            return commitWithOptions(
+            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:24:9: 0x104cfcf23 in commitMerkle__anon_27225 (root)
+        return MerkleTree(H).commit(allocator, columns);
+        ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:164:17: 0x104cfd2f7 in initOwnedWithBackingAndWorkRecorder (root)
+                try B.commitMerkle(H, allocator, column_refs);
+                ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:80:24: 0x104cfd573 in initPrepared__anon_29270 (root)
+            var tree = try initOwnedWithBackingAndWorkRecorder(
+                       ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:288:28: 0x104cffc83 in commitOwnedPreparedWithRecorderAndBacking__anon_27774 (root)
+                break :blk try BackendCommitmentTree.initPrepared(allocator, &prepared, work_recorder);
+                           ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:106:13: 0x104d0107b in commitOwnedWithRecorderAndBacking__anon_27752 (root)
+            return self.commitOwnedPreparedWithRecorderAndBacking(
+            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:86:13: 0x104d01107 in commitOwnedWithRecorder__anon_27740 (root)
+            return self.commitOwnedWithRecorderAndBacking(
+            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:68:13: 0x104d0117f in commitOwned__anon_27525 (root)
+            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:100:5: 0x104d01d47 in commitFixture (root)
+    try scheme.commitOwned(allocator, columns, &channel);
+    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:107:18: 0x104d0217f in allocationCase (root)
+    var scheme = try commitFixture(allocator, use_packing, retention);
+                 ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1167:21: 0x104d026bf in checkAllAllocationFailures__anon_26623 (root)
+                    return error.MemoryLeakDetected;
+                    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:114:9: 0x104d02e3b in test.PCS owned source admission releases every partial ownership stage on allocation failure (root)
+        try std.testing.checkAllAllocationFailures(std.testing.allocator, allocationCase, .{ false, retention });
+        ^
+[gpa] (err): memory address 0x107ae0000 leaked: 
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/leaves.zig:38:49: 0x104cf8d37 in build (root)
+            var prev_layer = try allocator.alloc(H, 2);
+                                                ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:373:45: 0x104cfbcd7 in commitWithOptions (root)
+                break :blk try LeafOps.build(allocator, layer_alloc, sorted);
+                                            ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/prover.zig:123:37: 0x104cfcd3f in commit (root)
+            return commitWithOptions(
+                                    ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/owned_source_admission_test.zig:24:36: 0x104cfced3 in commitMerkle__anon_27225 (root)
+        return MerkleTree(H).commit(allocator, columns);
+                                   ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:164:35: 0x104cfd217 in initOwnedWithBackingAndWorkRecorder (root)
+                try B.commitMerkle(H, allocator, column_refs);
+                                  ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commitment_tree.zig:80:63: 0x104cfd54f in initPrepared__anon_29270 (root)
+            var tree = try initOwnedWithBackingAndWorkRecorder(
+                                                              ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:288:66: 0x104cffbc7 in commitOwnedPreparedWithRecorderAndBacking__anon_27774 (root)
+                break :blk try BackendCommitmentTree.initPrepared(allocator, &prepared, work_recorder);
+                                                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:106:66: 0x104d01053 in commitOwnedWithRecorderAndBacking__anon_27752 (root)
+            return self.commitOwnedPreparedWithRecorderAndBacking(
+                                                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:86:58: 0x104d010df in commitOwnedWithRecorder__anon_27740 (root)
+            return self.commitOwnedWithRecorderAndBacking(
+                                                         ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/commit_ops.zig:68:48: 0x104d01157 in commitOwned__anon_27525 (root)
+            return self.commitOwnedWithRecorder(allocator, owned_columns, null, channel);
+                                               ^
+
+3/4 pcs.owned_source_admission_test.test.PCS owned source admission preserves real FFT Merkle roots and adopts aligned coefficients...OK
+4/4 pcs.owned_source_admission_test.test.PCS owned source admission never retention preserves LDE roots without coefficients...OK
+3 passed; 0 skipped; 1 failed.
+1 errors were logged.
+1 tests leaked memory.
+error: the following test command failed with exit code 1:
+.zig-cache/o/ce97b2f73ef8b1ed8319d86473687454/root --seed=0x68be930

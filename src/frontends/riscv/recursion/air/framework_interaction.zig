@@ -221,15 +221,16 @@ pub fn Runtime(comptime RelationRuntime: type) type {
             );
         }
 
-        fn generatePreparedIntoInternal(
-            comptime decompose_domains: bool,
+        /// Admit the same shape and memory contract before an alternative
+        /// writer touches scratch or caller-owned columns.
+        pub fn preflightPreparedInto(
             workspace: *Workspace,
             plan: *const Plan,
             rows: []const Row,
             log_size: u32,
             relations: *const universal.UniversalRelations,
             destination: *[INTERACTION_COLUMN_COUNT][]M31,
-        ) Error!DomainClaims {
+        ) Error!usize {
             try relations.validate();
             const size = try traceSize(log_size);
             if (rows.len > size) return error.InvalidTraceShape;
@@ -242,6 +243,20 @@ pub fn Runtime(comptime RelationRuntime: type) type {
                 destination,
                 size,
             );
+
+            return size;
+        }
+
+        fn generatePreparedIntoInternal(
+            comptime decompose_domains: bool,
+            workspace: *Workspace,
+            plan: *const Plan,
+            rows: []const Row,
+            log_size: u32,
+            relations: *const universal.UniversalRelations,
+            destination: *[INTERACTION_COLUMN_COUNT][]M31,
+        ) Error!DomainClaims {
+            const size = try preflightPreparedInto(workspace, plan, rows, log_size, relations, destination);
 
             const term_count = std.math.mul(usize, BATCH_COUNT, size) catch
                 return error.InvalidTraceShape;
@@ -653,9 +668,10 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
     try std_testing.expect(actual_claim.eql(expected.claimed_sum));
     try std_testing.expectEqualSlices(M31, expected.storage, &output);
 
-    // A second proof reuses the same scratch without growing the allocator.
+    // Domain decomposition reuses the same scratch and matches the independent
+    // cold audit, including padding, without changing any committed column.
     @memset(&output, sentinel);
-    const second_claim = try Framework.generatePreparedInto(
+    const second_claim = try Framework.generatePreparedIntoWithDomainSums(
         &workspace,
         &plan,
         &rows,
@@ -664,7 +680,14 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
         &columns,
     );
     try std_testing.expectEqual(allocation_cursor, fixed.end_index);
-    try std_testing.expect(second_claim.eql(expected.claimed_sum));
+    try std_testing.expect(second_claim.claimed_sum.eql(expected.claimed_sum));
+    const domain_audit = try plan.auditPreparedDomainSums(
+        std_testing.allocator,
+        &rows,
+        &relations,
+        expected.claimed_sum,
+    );
+    try std_testing.expectEqualDeep(domain_audit.values, second_claim.by_domain);
     try std_testing.expectEqualSlices(M31, expected.storage, &output);
 
     // Force a denominator to zero only after row evaluation has begun. The
@@ -678,6 +701,22 @@ test "R-012 framework workspace is equivalent, zero-allocation, fail-atomic, and
     try std_testing.expectError(
         error.ZeroDenominator,
         Framework.generatePreparedInto(
+            &workspace,
+            &plan,
+            &rows,
+            log_size,
+            &relations,
+            &columns,
+        ),
+    );
+    try std_testing.expectEqualSlices(
+        M31,
+        &([_]M31{sentinel} ** output.len),
+        &output,
+    );
+    try std_testing.expectError(
+        error.ZeroDenominator,
+        Framework.generatePreparedIntoWithDomainSums(
             &workspace,
             &plan,
             &rows,

@@ -1,0 +1,17 @@
+[
+  {
+    "case": "bad-pin",
+    "error": "SetupManifestPinMismatch",
+    "output_created": false
+  },
+  {
+    "case": "bad-count",
+    "error": "InvalidSegmentCount",
+    "output_created": false
+  },
+  {
+    "case": "bad-addresses",
+    "error": "InvalidMemoryAddressCount",
+    "output_created": false
+  }
+]

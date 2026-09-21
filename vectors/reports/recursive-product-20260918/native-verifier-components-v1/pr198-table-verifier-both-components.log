@@ -1,0 +1,8 @@
+1/7 lookup_table_interaction_test_root.test_0...OK
+2/7 air.lookups.tables.component_prepared_test.test.lookup table component: construction metadata pins all schemas...OK
+3/7 air.lookups.tables.component_prepared_test.test.lookup table component: verifier construction exposes exact masks and columns...OK
+4/7 air.lookups.tables.component_prepared_test.test.lookup table component: singleton identity rejects all placement mutations...OK
+5/7 air.lookups.tables.component_prepared_test.test.lookup table component: OODS adapter enforces predecessor ordering...OK
+6/7 air.lookups.tables.component_prepared_test.test.lookup table component: constructors fail closed on ambiguous bindings...OK
+7/7 air.lookups.tables.component_prepared_test.test.lookup table component: prover construction uses committed shift masks...OK
+All 7 tests passed.

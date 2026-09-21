@@ -114,8 +114,43 @@ pub fn relationRowsDigest(rows: anytype) air_digest.Digest {
     hash.update("stwo-zig/typed-air/binary-fri-retained-relation-rows/v1\x00");
     hash.update(&rows.source_authority_digest);
     hashInt(&hash, u64, rows.storage.len);
-    for (rows.storage) |word| hashInt(&hash, u32, word.toU32());
+    // Preserve the little-endian wire identity while avoiding one SHA update
+    // per field element in the large retained witness buffers.
+    if (comptime @import("builtin").target.cpu.arch.endian() == .little and
+        @sizeOf(M31) == @sizeOf(u32) and @offsetOf(M31, "v") == 0)
+    {
+        hash.update(std.mem.sliceAsBytes(rows.storage));
+    } else for (rows.storage) |word| hashInt(&hash, u32, word.toU32());
     return hash.finalResult();
+}
+
+test "retained relation rows preserve little-endian digest bytes" {
+    var storage: [130]M31 = undefined;
+    for (&storage, 0..) |*word, index| word.* = M31.fromU32Unchecked(@as(u32, @intCast(index)) *% 0x9e37_79b9);
+    // Include malformed backing words too: hashing must still detect them,
+    // rather than reducing them to a canonical field alias.
+    storage[1] = M31.fromU32Unchecked(0x7fff_ffff);
+    storage[2] = M31.fromU32Unchecked(0xffff_ffff);
+    for (0..storage.len + 1) |count| {
+        const rows: struct { source_authority_digest: [32]u8, storage: []const M31 } = .{
+            .source_authority_digest = [_]u8{0x63} ** 32,
+            .storage = storage[0..count],
+        };
+        var legacy = std.crypto.hash.sha2.Sha256.init(.{});
+        legacy.update("stwo-zig/typed-air/binary-fri-retained-relation-rows/v1\x00");
+        legacy.update(&rows.source_authority_digest);
+        hashInt(&legacy, u64, count);
+        for (rows.storage) |word| hashInt(&legacy, u32, word.toU32());
+        const expected = legacy.finalResult();
+        try std.testing.expectEqualDeep(expected, relationRowsDigest(rows));
+        if (count != 0) {
+            const original = storage[count - 1];
+            storage[count - 1].v ^= 1;
+            try std.testing.expect(!std.mem.eql(u8, &expected, &relationRowsDigest(rows)));
+            storage[count - 1] = original;
+        }
+    }
+    std.debug.print("RETAINED_ROWS_DIGEST_AB lengths=131 legacy_bytes_preserved=true changed_word_rejected=true\n", .{});
 }
 
 pub fn friPathLeafDigest(source: anytype, columns: *const [MAIN_COLUMN_COUNT][]M31) air_digest.Digest {

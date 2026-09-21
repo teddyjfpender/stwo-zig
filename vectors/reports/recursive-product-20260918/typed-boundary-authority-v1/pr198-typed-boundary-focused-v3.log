@@ -1,0 +1,27 @@
+test-vm-air-profile-v2
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+test-compact-poseidon-authority
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+COMPACT_POSEIDON_CANONICAL_V2=e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf
+
+Build Summary: 16/16 steps succeeded; 454/456 tests passed; 2 skipped
+test-native-boundary-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 156 passed 1 skipped 666ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 12s MaxRSS:1G
+test-merkle-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 150 passed 1 skipped 701ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 9s MaxRSS:788M
+test-compact-poseidon-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 127 passed 717ms MaxRSS:3M
+      +- compile test ReleaseSafe native success 8s MaxRSS:739M
+test-vm-air-profile-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 21 passed 6s MaxRSS:78M
+      +- compile test ReleaseSafe native success 23s MaxRSS:1G
+

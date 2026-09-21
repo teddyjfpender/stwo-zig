@@ -1,0 +1,13 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 161s
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test stderr
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=188 frames=190 permutations=1681 queries=193
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-program-v1 success
++- Common-fold transcript program proof identity guard success
+   +- run test 1 passed 14m MaxRSS:10G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 3/3 tests passed
+test-recursive-detached-leaf-command success
++- run test 3 passed 5ms MaxRSS:1M
+   +- compile test ReleaseSafe native cached 90ms MaxRSS:36M
+build-recursive-segment-v2-leaf-key-setup success
++- install recursive-segment-v2-leaf-key-setup success
+   +- compile exe recursive-segment-v2-leaf-key-setup ReleaseSafe native success 1m MaxRSS:5G
+

@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 222s
+test-riscv-segment-v2-native-proof
++- native V2 segment proof identity guard
+   +- run test 1/2 passed, 1 failed
+error: 'segment_v2_native_proof_test.test.native V2 proves and independently verifies real nonfinal and final segments' failed
+error: while executing test 'segment_v2_native_proof_test.test.native V2 proves a rebased leaf-local V3 segment without widening the AIR', the following test command failed:
+./.zig-cache/o/bd751e7674dfc3f283ff7b12288609e6/test --cache-dir=./.zig-cache --seed=0xf8081e31 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-riscv-segment-v2-native-proof transitive failure
++- native V2 segment proof identity guard transitive failure
+   +- run test 1/2 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/99b4be8092662371a3484b82edc34198/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xf8081e31 -Z3d715645dbd5b5ec --maxrss 25769803776 -j1 test-riscv-segment-v2-native-proof -Doptimize=ReleaseSafe --summary all

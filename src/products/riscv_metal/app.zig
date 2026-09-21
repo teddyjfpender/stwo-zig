@@ -60,6 +60,8 @@ const AuthenticatedAdapter = struct {
 };
 
 const Deps = struct {
+    pub const csp_identity = @import("product_identity");
+    pub const CspRuntime = runtime_admission.Guard(Engine);
     pub const stwo = @import("stwo_riscv_metal");
     pub const adapter = AuthenticatedAdapter;
     pub const cli = @import("cli.zig");

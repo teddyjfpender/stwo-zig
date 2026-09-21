@@ -15,6 +15,7 @@ const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
 const recursive_admission = @import("recursive_temporal_parent_recursive_admission_v1.zig");
 const transcript_prefix_mod =
     @import("recursive_temporal_parent_transcript_prefix_v1.zig");
+const child_transcript = @import("recursive_temporal_child_transcript_authority_v1.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const m31 = stwo_core.fields.m31;
@@ -52,6 +53,24 @@ pub const Error = temporal.Error || recursive_admission.Error || error{
     UnsupportedFormat,
 };
 
+pub const OutputVkBindingV1 = struct {
+    verification_key_id: Digest,
+    next_parent_vk_id: Digest,
+
+    pub fn validateAgainst(
+        self: OutputVkBindingV1,
+        admission_value: *const recursive_admission.PreparedAdmissionV1,
+    ) !void {
+        try admission_value.validateRetained();
+        try requireDigest(self.verification_key_id);
+        try requireDigest(self.next_parent_vk_id);
+        if (!std.meta.eql(
+            self.verification_key_id,
+            admission_value.receipt.verification_key_id,
+        )) return error.EvidenceMismatch;
+    }
+};
+
 pub const VerifiedTemporalParentArtifactV1 = struct {
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
@@ -62,6 +81,9 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
     publication_id: Digest,
     recursive_admission: recursive_admission.PreparedAdmissionV1,
     transcript_prefix: transcript_prefix_mod.PrefixV1,
+    transcript_authority: child_transcript.DescriptorV1 =
+        .temporalParentV3(),
+    transcript_context_sha_id: [32]u8,
     recursive_wire_bytes: u32,
     recursive_proof_id: Digest,
     child: temporal.VerifiedChildV2,
@@ -83,6 +105,9 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
         try requireDigest(self.artifact_id);
         try self.recursive_admission.validateRetained();
         try self.transcript_prefix.validate();
+        try self.transcript_authority.validate();
+        if (std.mem.allEqual(u8, &self.transcript_context_sha_id, 0))
+            return error.ArtifactIdentityMismatch;
         if (self.child.kind != .binary_node or
             self.child.scope != .complete_execution or
             !self.child.proof_present or
@@ -92,6 +117,9 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
             return error.ArtifactIdentityMismatch;
         }
         const statement = try self.child.statement();
+        try self.transcript_authority.validateForChildHeight(
+            statement.slots.height,
+        );
         if (statement.slots.height == 0 or
             self.child.position != try temporal.positionForNextParent(statement) or
             !std.meta.eql(
@@ -110,7 +138,14 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
     ) !void {
         try self.validate();
         try publication.validate();
-        if (!std.mem.eql(
+        if (!std.meta.eql(
+            self.transcript_authority,
+            publication.transcript_authority,
+        ) or !std.mem.eql(
+            u8,
+            &self.transcript_context_sha_id,
+            &publication.transcript_context_sha_id,
+        ) or !std.mem.eql(
             u8,
             &self.publication_sha_id,
             &publication.publication_sha_id,
@@ -135,20 +170,14 @@ pub const VerifiedTemporalParentArtifactV1 = struct {
             publication.context.parent_statement_id,
         ) or !std.meta.eql(
             self.recursive_admission.receipt.verification_key_id,
-            publication.context.parent_vk_id,
+            self.child.verification_key_id,
         ) or
             !std.meta.eql(self.child.session_id, publication.context.session_id) or
-            !std.meta.eql(
-                self.child.recursive_parent_vk_id,
-                publication.context.parent_vk_id,
-            ) or !std.meta.eql(
-            self.child.verification_key_id,
-            publication.context.parent_vk_id,
-        ) or !std.mem.eql(
-            u8,
-            &self.transcript_prefix.manifest_sha_id,
-            &publication.manifest_sha_id,
-        )) return error.PublicationMismatch;
+            !std.mem.eql(
+                u8,
+                &self.transcript_prefix.manifest_sha_id,
+                &publication.manifest_sha_id,
+            )) return error.PublicationMismatch;
     }
 };
 
@@ -161,9 +190,33 @@ pub fn mintFromSuccessfulVerifier(
     transcript_prefix: *const transcript_prefix_mod.PrefixV1,
     capture: *const recursive_admission.OuterProofCapture,
 ) !VerifiedTemporalParentArtifactV1 {
+    return mintFromSuccessfulVerifierWithVkBinding(
+        evidence,
+        publication,
+        admission_value,
+        transcript_prefix,
+        capture,
+        .{
+            .verification_key_id = publication.context.parent_vk_id,
+            .next_parent_vk_id = publication.context.parent_vk_id,
+        },
+    );
+}
+
+/// Append-only heterogeneous-tree mint. The opaque success evidence remains
+/// mandatory; only the next-level routing VK becomes independently selected.
+pub fn mintFromSuccessfulVerifierWithVkBinding(
+    evidence: *const SuccessEvidence,
+    publication: *const Publication,
+    admission_value: *const recursive_admission.PreparedAdmissionV1,
+    transcript_prefix: *const transcript_prefix_mod.PrefixV1,
+    capture: *const recursive_admission.OuterProofCapture,
+    vk_binding: OutputVkBindingV1,
+) !VerifiedTemporalParentArtifactV1 {
     const verified = try contract.openTemporalVerifierSuccessEvidence(evidence);
     try publication.validate();
     try admission_value.validateAgainst(capture);
+    try vk_binding.validateAgainst(admission_value);
     try transcript_prefix.validate();
     if (!std.meta.eql(verified.proof_id, publication.proof_id) or
         !std.meta.eql(verified.capture_id, publication.capture_id) or
@@ -248,8 +301,8 @@ pub fn mintFromSuccessfulVerifier(
         .roster_count = ROSTER_COUNT,
         .session_id = publication.context.session_id,
         .job_id = try temporal.jobId(&publication.statement_words),
-        .recursive_parent_vk_id = publication.context.parent_vk_id,
-        .verification_key_id = publication.context.parent_vk_id,
+        .recursive_parent_vk_id = vk_binding.next_parent_vk_id,
+        .verification_key_id = vk_binding.verification_key_id,
         .air_program_id = air_program_id,
         .manifest_id = manifest_id,
         .profile_id = combine(
@@ -290,6 +343,8 @@ pub fn mintFromSuccessfulVerifier(
         ),
         .recursive_admission = admission_value.*,
         .transcript_prefix = transcript_prefix.*,
+        .transcript_authority = publication.transcript_authority,
+        .transcript_context_sha_id = publication.transcript_context_sha_id,
         .recursive_wire_bytes = std.math.cast(u32, recursive_wire_bytes) orelse
             return error.ArtifactIdentityMismatch,
         .recursive_proof_id = recursive_proof_id,
@@ -299,6 +354,8 @@ pub fn mintFromSuccessfulVerifier(
     };
     result.artifact_id = artifactIdentity(&result);
     try result.validateAgainst(publication);
+    if (comptime @import("builtin").is_test)
+        try validateTranscriptAuthorityMutationFleetForTest(result, publication);
     return result;
 }
 
@@ -319,6 +376,20 @@ fn artifactIdentity(value: *const VerifiedTemporalParentArtifactV1) Digest {
         &value.transcript_prefix.identity,
         ARTIFACT_ID_DOMAIN + 1,
     ));
+    if (!value.transcript_authority.isLegacyParent()) {
+        hasher.addU32(value.transcript_authority.format_version);
+        hasher.addU32(value.transcript_authority.schema_version);
+        hasher.addU32(@intFromEnum(value.transcript_authority.kind));
+        hasher.addU32(value.transcript_authority.domain);
+        hasher.addU32(value.transcript_authority.cohort_format_version);
+        hasher.addU32(value.transcript_authority.cohort_schema_version);
+        hasher.addU32(value.transcript_authority.component_count);
+        hasher.addU32(value.transcript_authority.reserved);
+        hasher.digest(channel.hashBytes(
+            &value.transcript_context_sha_id,
+            ARTIFACT_ID_DOMAIN + 2,
+        ));
+    }
     hasher.digest(value.child_id);
     hasher.digest(value.child.proof_id);
     hasher.digest(value.child.transcript_id);
@@ -326,6 +397,48 @@ fn artifactIdentity(value: *const VerifiedTemporalParentArtifactV1) Digest {
     hasher.digest(value.child.closure_receipt_id);
     hasher.digest(value.child.lineage_id);
     return hasher.finalize();
+}
+
+pub fn validateTranscriptAuthorityMutationFleetForTest(
+    artifact: VerifiedTemporalParentArtifactV1,
+    publication: *const Publication,
+) !void {
+    var forged = artifact;
+    forged.transcript_authority.domain +%= 1;
+    forged.artifact_id = artifactIdentity(&forged);
+    try expectArtifactRejected(&forged, publication);
+
+    forged = artifact;
+    forged.transcript_authority.cohort_format_version +%= 1;
+    forged.artifact_id = artifactIdentity(&forged);
+    try expectArtifactRejected(&forged, publication);
+
+    forged = artifact;
+    forged.transcript_authority.cohort_schema_version +%= 1;
+    forged.artifact_id = artifactIdentity(&forged);
+    try expectArtifactRejected(&forged, publication);
+
+    forged = artifact;
+    forged.transcript_authority = switch (artifact.transcript_authority.kind) {
+        .temporal_parent_v3 => .recursiveNodeV1(),
+        .recursive_node_v1 => .temporalParentV3(),
+        .empty_parent_v1 => .temporalParentV3(),
+    };
+    forged.artifact_id = artifactIdentity(&forged);
+    try expectArtifactRejected(&forged, publication);
+
+    forged = artifact;
+    forged.transcript_context_sha_id[0] ^= 1;
+    forged.artifact_id = artifactIdentity(&forged);
+    try expectArtifactRejected(&forged, publication);
+}
+
+fn expectArtifactRejected(
+    artifact: *const VerifiedTemporalParentArtifactV1,
+    publication: *const Publication,
+) !void {
+    artifact.validateAgainst(publication) catch return;
+    return error.AdversarialMutationAccepted;
 }
 
 fn combine(domain: u32, values: []const Digest) Digest {

@@ -1,0 +1,24 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 184s
+test-ethereum-statement-root-cohort-replay
++- saved Ethereum complete root cohort guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_NATIVE_VERIFICATION workers=14 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=48490817542 process_cpu_ns=50942367959 parallelism_milli=1050 peak_footprint_bytes=289129360 energy_nj=234744474320 instructions=1127358721228 cycles=201729737926 workers=14 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=406588166 process_cpu_ns=403718333 parallelism_milli=992 peak_footprint_bytes=289129360 energy_nj=2339605840 instructions=8661491798 cycles=1588264648 workers=14 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=15503167 public_ns=0 transcript_ns=0 profile_ns=0 program_ns=0 prepare_ns=0 fri_ns=0 seal_ns=0 total_ns=15969167 nodes=0 node_bytes=0 output_bytes=0 binding_bytes=0 schedule_bytes=0 evaluation_bytes=0 input_bytes=0 claim_bytes=0 schedule_compiles=0 graph_copies=0 workers=14
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=49096490917 process_cpu_ns=51544972750 parallelism_milli=1049 peak_footprint_bytes=289129360 energy_nj=238186825796 instructions=1139813177603 cycles=204106772235 workers=14 host_byte_budget=8589934592
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=materialize error=RoleAwareIoClaimMismatchV4
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort', the following test command failed:
+./.zig-cache/o/d056f37d636f297adad1d08db255818a/test --cache-dir=./.zig-cache --seed=0xb8240524 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-statement-root-cohort-replay transitive failure
++- saved Ethereum complete root cohort guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/f391a6108268fcfcfeecfd52f5b970bb/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb8240524 -Z140a411e486fadc1 --maxrss 25769803776 -j1 test-ethereum-statement-root-cohort-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

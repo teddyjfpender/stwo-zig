@@ -1,0 +1,265 @@
+{
+  "schema_version": 1,
+  "scope": "Experimental q193 four-segment parent-of-parent root; small RISC-V memory workload, not Ethereum block proving.",
+  "source": {
+    "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-source.json",
+    "sha256": "7f2862f80e73eb53228e9b76b2e52134a7272edf88cebf7ee0893411e449955f"
+  },
+  "paired_order": [
+    "before",
+    "after",
+    "after",
+    "before",
+    "before",
+    "after"
+  ],
+  "csp_benchmarks_run": false,
+  "binary_pins": {
+    "metal-parent-cpu-compat-prove": "88fcd214f1b7f40903d8087d16eac45addf1f16a7203bee340f0fefbbfd08f34",
+    "metal-parent-first-prove": "d6deb97578300270d95f82de56a074e2597b06e44c0ab0eac55b892a5b3bc2af",
+    "q193-parent-first-verify": "38175995f7e7396ac4a1e06bab9c9bd14436e9ecc6bc30e8a85b89ed3e4b7d2c",
+    "q193-child-first-verify": "0720755fb784af9bd18f003453440c4c8d4a4d87fe02ff115ba0c373709079a9",
+    "parent-hotpath-final-cpu-prove": "6943f04e3443aaf4ccb6dcefc2a955a2a6deda662c861f3dc8133d7001973e63",
+    "parent-hotpath-final-metal-prove": "469add16c6a760d548ce554f018f5cec73eb8e7cf79ae1a4f87c92d6a31913fd",
+    "parent-hotpath-final-leaf-prove": "c31eab892dbfc0c68290d0272dd905e90528b9ce02a858c38371e51869571003"
+  },
+  "backends": {
+    "cpu": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-cpu-ab-measurements.json",
+        "sha256": "88649683ab156fb430c3970368da47fbdc12deac503bfc53541306b0c3ae679c"
+      },
+      "medians": {
+        "before": {
+          "request_seconds": 26.25167875,
+          "preparation_seconds": 5.637616375,
+          "key_preparation_seconds": 3.374608291,
+          "proof_seconds": 17.005420916,
+          "maximum_process_rss_gib_median": 6.660888671875,
+          "maximum_process_rss_gib_max": 6.660888671875
+        },
+        "after": {
+          "request_seconds": 21.363559541,
+          "preparation_seconds": 3.843973792,
+          "key_preparation_seconds": 3.398956292,
+          "proof_seconds": 13.843866875,
+          "maximum_process_rss_gib_median": 6.661529541015625,
+          "maximum_process_rss_gib_max": 6.6615447998046875
+        }
+      },
+      "request_reduction_fraction": 0.18620215703348109,
+      "phase_diagnostic": {
+        "scope": "Single diagnostic observations; main finalization includes work moved out of preparation.",
+        "before_preparation_seconds": 5.908227125,
+        "after_preparation_seconds": 3.706371291,
+        "before_main_and_closure_seconds": 5.698933,
+        "after_main_and_closure_seconds": 3.59287,
+        "before_composition_seconds": 3.362497,
+        "after_composition_seconds": 1.423476,
+        "before_target_group_seconds": 14.969657125,
+        "after_target_group_seconds": 8.722717291
+      },
+      "new_profile": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-cpu-profile-measurements.json",
+        "sha256": "feac1993c2fbf20f075b467501053d75761855a4ae6f2166e0076334822f4f49"
+      },
+      "fresh_paired_cases": 162
+    },
+    "metal": {
+      "measurements": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-metal-ab-measurements.json",
+        "sha256": "335d7d04176d0d200ae752a605899bc812acfff3d03fdf860a71d718cdfd472a"
+      },
+      "medians": {
+        "before": {
+          "request_seconds": 20.804679375,
+          "preparation_seconds": 5.811617458,
+          "key_preparation_seconds": 1.23681075,
+          "proof_seconds": 13.518951041,
+          "maximum_process_rss_gib_median": 7.0986175537109375,
+          "maximum_process_rss_gib_max": 7.1315460205078125
+        },
+        "after": {
+          "request_seconds": 15.046437458,
+          "preparation_seconds": 3.925883833,
+          "key_preparation_seconds": 1.238412084,
+          "proof_seconds": 9.751167875,
+          "maximum_process_rss_gib_median": 7.144134521484375,
+          "maximum_process_rss_gib_max": 7.1441650390625
+        }
+      },
+      "request_reduction_fraction": 0.2767762873538636,
+      "phase_diagnostic": {
+        "scope": "Single diagnostic observations; main finalization includes work moved out of preparation.",
+        "before_preparation_seconds": 5.94363625,
+        "after_preparation_seconds": 3.775404958,
+        "before_main_and_closure_seconds": 5.33436,
+        "after_main_and_closure_seconds": 3.6166690000000004,
+        "before_composition_seconds": 3.432524,
+        "after_composition_seconds": 1.533556,
+        "before_target_group_seconds": 14.71052025,
+        "after_target_group_seconds": 8.925629958
+      },
+      "new_profile": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-metal-profile-measurements.json",
+        "sha256": "beff916f4d904919d24ab7d7bae4616beb9cea870d5105c791bddefaaa7d17bc"
+      },
+      "fresh_paired_cases": 162
+    }
+  },
+  "complete_trees": [
+    {
+      "backend": "cpu",
+      "profile": "development",
+      "initial_memory_word": 13,
+      "segments": 4,
+      "native_proofs": 4,
+      "wrapper_proofs": 4,
+      "parent_proofs": 3,
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-cpu-4-seed13-parent-hotpath/report.json",
+        "sha256": "23282362ef8bb0756888dfe359351218a97e24dbeaed3ff257f9d26758f96455"
+      },
+      "parity": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-cpu-4-seed13-parent-hotpath.json",
+        "sha256": "e2e83ad870570a176974c43d6bb93b894889c760f88a63dc85e3ff1d5b5abfe8"
+      },
+      "fresh_cases": 126,
+      "leaf_production_seconds": 13.8408965,
+      "parent_production_seconds": 5.1892545,
+      "production_seconds": 19.030151,
+      "maximum_process_rss_gib": 1.0222625732421875
+    },
+    {
+      "backend": "metal",
+      "profile": "development",
+      "initial_memory_word": 13,
+      "segments": 4,
+      "native_proofs": 4,
+      "wrapper_proofs": 4,
+      "parent_proofs": 3,
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-seed13-parent-hotpath/report.json",
+        "sha256": "96c1d3b14cdc6c08ccacd7997316043c7857fb4bcd4009faee4b371272bb6a85"
+      },
+      "parity": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-development-metal-4-seed13-parent-hotpath.json",
+        "sha256": "7fb20336196bca3fca9840ceaf04ae4f0500eeebe3289956e9f3e338924c5378"
+      },
+      "fresh_cases": 126,
+      "leaf_production_seconds": 10.752711916,
+      "parent_production_seconds": 4.634512917,
+      "production_seconds": 15.387224833,
+      "maximum_process_rss_gib": 0.710540771484375
+    },
+    {
+      "backend": "cpu",
+      "profile": "q193",
+      "initial_memory_word": 13,
+      "segments": 4,
+      "native_proofs": 4,
+      "wrapper_proofs": 4,
+      "parent_proofs": 3,
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-parent-hotpath/report.json",
+        "sha256": "f21e265b466432d2c9fde22087b149226b698402da0c27a45ad99d41893bba68"
+      },
+      "parity": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed13-parent-hotpath.json",
+        "sha256": "231ecc1be4fc9aedb1f4e43596ef1db87ac54a605f7bc2c9c6ad208208420b64"
+      },
+      "fresh_cases": 133,
+      "leaf_production_seconds": 40.482178541,
+      "parent_production_seconds": 63.466685708,
+      "production_seconds": 103.948864249,
+      "maximum_process_rss_gib": 6.661529541015625
+    },
+    {
+      "backend": "metal",
+      "profile": "q193",
+      "initial_memory_word": 13,
+      "segments": 4,
+      "native_proofs": 4,
+      "wrapper_proofs": 4,
+      "parent_proofs": 3,
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-parent-hotpath/report.json",
+        "sha256": "b96d90fd35eb18d6de7f7279ebc7416bd9b63ea41ad14252d2a9fc4f5d89026a"
+      },
+      "parity": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-4-seed13-parent-hotpath.json",
+        "sha256": "65523dee3989f7c57adaed14bea90354472368e1458b075c80c789ef4194d0b6"
+      },
+      "fresh_cases": 133,
+      "leaf_production_seconds": 34.059769917,
+      "parent_production_seconds": 48.3751285,
+      "production_seconds": 82.434898417,
+      "maximum_process_rss_gib": 7.0574798583984375
+    },
+    {
+      "backend": "cpu",
+      "profile": "q193",
+      "initial_memory_word": 14,
+      "segments": 4,
+      "native_proofs": 4,
+      "wrapper_proofs": 4,
+      "parent_proofs": 3,
+      "report": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-parent-hotpath/report.json",
+        "sha256": "ae48acdfcbc19cb89ddb5f1d5808fcbb05b90319e769098fe24db9e859b9d7ec"
+      },
+      "parity": {
+        "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-parent-hotpath.json",
+        "sha256": "554347d701c8d1d6d74ca72239c0789a84dc800e1c5f9654e8c1192b5b83a187"
+      },
+      "fresh_cases": 133,
+      "leaf_production_seconds": 40.105912875,
+      "parent_production_seconds": 63.156455125,
+      "production_seconds": 103.262368,
+      "maximum_process_rss_gib": 6.66180419921875
+    }
+  ],
+  "focused_checks": [
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-frontend-checks-second.json",
+      "sha256": "b0f3d71c9680e206707f1bc8ded233bfb01579bf98f549349585e87555dd5964"
+    },
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-domain-parallel-checks.json",
+      "sha256": "ae682a76482c0ecaa31bc49b908feeada54e14b329784ee7e7a8e21aac590f26"
+    },
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-cpu-build-second.json",
+      "sha256": "fddbe19de8d36885b594d4a9737b12ebc5bc487c70b2328f024b195121173199"
+    }
+  ],
+  "limitations": [
+    "Process RSS is not separate device allocation accounting.",
+    "Metal commitments execute on GPU; this recursive catalog still uses shared host composition.",
+    "Experimental q193 profile is unchanged; production security admission remains open.",
+    "CSP benchmarks explicitly excluded from this pass."
+  ],
+  "next_gpu_admission_note": {
+    "path": "design/riscv-proving-stack/recursive-metal-composition.md",
+    "sha256": "55dfe21f6c5247c808f85b700718167a9e71d2fc79356a86eb1b1509d175826f"
+  },
+  "final_artifact_audit": {
+    "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-artifact-audit.json",
+    "sha256": "b6594b931a36b6d5879892f1058ffd8b074953aabd77185542c2b49159ddbb59"
+  },
+  "fresh_final_acceptance_rejection_cases": 975,
+  "final_builds": [
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-cpu-build-final.json",
+      "sha256": "e291cbeb0e25ac4642ecd9d772586cc3d341c43265984f3bc350b5593abecec9"
+    },
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-metal-build-final.json",
+      "sha256": "2a0bb955ff94b50c307d8ac2bd70fc161eb02d723f05bf4f3f1fce0c79078820"
+    },
+    {
+      "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-leaf-build.json",
+      "sha256": "6d9a143357faed295797043d98360f684d9e8e47642f735be9bcab84673e9a7a"
+    }
+  ]
+}

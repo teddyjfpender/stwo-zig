@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "initial_profile": false,
+  "original_key_sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+  "original_inputs_sha256": "3ffccebb793814ae951c554decdaa68ba21c5dce94f22ca0b969ede157cef45f",
+  "proof_sha256": "0c772d96071c75d5975e779b922319641f450a0c31ce371b20c4da3ecd00e480",
+  "proof_bytes": 3028338,
+  "proof_verified": false,
+  "cases": [
+    {
+      "name": "changed-statement",
+      "inputs_file": "changed-statement-inputs.json",
+      "inputs_sha256": "bbd6c205dc01a923a41332e987fcb7ef078b722292f8cbd6cdf1a17ee10d28b9",
+      "key_file": "original-key.json",
+      "expected_key_sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+      "test_only_alternate_key": false
+    },
+    {
+      "name": "changed-boundary",
+      "inputs_file": "changed-boundary-inputs.json",
+      "inputs_sha256": "81e58e16511ea5c4a5b3ffa879ebb21b1f259e8acd44fe728c5e04598f585a82",
+      "key_file": "original-key.json",
+      "expected_key_sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+      "test_only_alternate_key": false
+    },
+    {
+      "name": "changed-position",
+      "inputs_file": "changed-position-inputs.json",
+      "inputs_sha256": "1b6b261e12e3910740126d23c82d03fd680890afbc175b8231d8b2927dfe42a8",
+      "key_file": "original-key.json",
+      "expected_key_sha256": "0bfb07fadf11dbce2f21c96bc440efec779cf790443aa43eccdcf03db5989357",
+      "test_only_alternate_key": false
+    },
+    {
+      "name": "changed-protocol",
+      "inputs_file": "changed-protocol-inputs.json",
+      "inputs_sha256": "3ffccebb793814ae951c554decdaa68ba21c5dce94f22ca0b969ede157cef45f",
+      "key_file": "changed-protocol-key.json",
+      "expected_key_sha256": "8c22dae5c7e7637935682b079a339ee01f96c2e11e17eee0946b034b496a8357",
+      "test_only_alternate_key": true
+    },
+    {
+      "name": "changed-circuit-parameter",
+      "inputs_file": "changed-circuit-parameter-inputs.json",
+      "inputs_sha256": "3ffccebb793814ae951c554decdaa68ba21c5dce94f22ca0b969ede157cef45f",
+      "key_file": "changed-circuit-parameter-key.json",
+      "expected_key_sha256": "b8f2458624a0b4f29ab36fb69b9470091391a4aafc29cc6e60d8d04599322b4b",
+      "test_only_alternate_key": true
+    }
+  ]
+}

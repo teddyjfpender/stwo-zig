@@ -1,0 +1,101 @@
+{
+  "passed": true,
+  "scope": "Ingress rejection before proving; active AIR mutation checks are separately retained",
+  "cases": [
+    {
+      "case": "swapped",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-v1-prove",
+        "--profile",
+        "tiny-memory-v1",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/detached-parent-ingress-vxsc9x9e/swapped",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-parent-v1-admission/parent-key.json",
+        "--parent-key-sha256",
+        "269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84"
+      ],
+      "exit_code": 1,
+      "process_ns": 108948083,
+      "stderr": "error: InvalidBoundarySectionProfile\n",
+      "candidate_created": false
+    },
+    {
+      "case": "duplicate_left",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-v1-prove",
+        "--profile",
+        "tiny-memory-v1",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/detached-parent-ingress-vxsc9x9e/duplicate_left",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-0",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-parent-v1-admission/parent-key.json",
+        "--parent-key-sha256",
+        "269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84"
+      ],
+      "exit_code": 1,
+      "process_ns": 195932583,
+      "stderr": "DETACHED_PARENT_CHILD lane=1 preparation_ns=86407500\nerror: InvalidBoundarySectionProfile\n",
+      "candidate_created": false
+    },
+    {
+      "case": "duplicate_right",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-v1-prove",
+        "--profile",
+        "tiny-memory-v1",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/detached-parent-ingress-vxsc9x9e/duplicate_right",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-seed13/child-1",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json",
+        "--parent-key",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/detached-parent-v1-admission/parent-key.json",
+        "--parent-key-sha256",
+        "269616bd501f0c157849e464764be82134bf216b6decc27fabaad4d5f3a55c84"
+      ],
+      "exit_code": 1,
+      "process_ns": 105677375,
+      "stderr": "error: InvalidBoundarySectionProfile\n",
+      "candidate_created": false
+    },
+    {
+      "case": "derive_swapped",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-v1-verify-derived",
+        "--derive-expected",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-1-expected-wire.json",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/detached-parent-ingress-vxsc9x9e/derive_swapped"
+      ],
+      "exit_code": 1,
+      "stderr": "error: NonAdjacentPosition\n",
+      "candidate_created": false
+    },
+    {
+      "case": "derive_duplicate",
+      "argv": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/detached-parent-v1-verify-derived",
+        "--derive-expected",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/dynamic-memory-v3-admission/seed13-child-0-expected-wire.json",
+        "/var/folders/5x/7hym3yzn05z0k_z3g1m17brc0000gn/T/detached-parent-ingress-vxsc9x9e/derive_duplicate"
+      ],
+      "exit_code": 1,
+      "stderr": "error: NonAdjacentPosition\n",
+      "candidate_created": false
+    }
+  ]
+}

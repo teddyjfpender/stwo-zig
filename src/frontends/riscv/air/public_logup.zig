@@ -119,6 +119,32 @@ pub fn memoryAccessSum(
         )), .consume);
     }
 
+    return result.add(try publicIoMemoryAccessSumAssumeValid(
+        data,
+        relations,
+    ));
+}
+
+/// Role-aware public-I/O memory compensation without register endpoints.
+///
+/// Incremental full-state profiles use this exact V1 authority after removing
+/// the V2 sparse-RW transition terms. Keeping it separate prevents an
+/// untouched public input from disappearing merely because its value and
+/// predecessor clock are both zero.
+pub fn publicIoMemoryAccessSum(
+    data: *const public_data.PublicData,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    try data.validate();
+    return publicIoMemoryAccessSumAssumeValid(data, relations);
+}
+
+fn publicIoMemoryAccessSumAssumeValid(
+    data: *const public_data.PublicData,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    var result = QM31.zero();
+
     // Public input words are initial RW-memory values at clock zero. The public
     // validator restricts addresses to the non-wrapping subset of the pinned
     // Rust arithmetic, and this helper repeats the checked derivation here.
@@ -164,6 +190,38 @@ pub fn programAccessSum(
     const completion = data.completion orelse return error.MissingCompletion;
     if (completion.kind != .unretired_self_loop) return result;
     const values = program_decode.decodeProgramWord(completion.value) catch unreachable;
+    try addInverse(&result, relations.program_access.combineBase(.{
+        base(completion.address),
+        base(values[0]),
+        base(values[1]),
+        base(values[2]),
+        base(values[3]),
+    }), .consume);
+    return result;
+}
+
+/// Versioned profile-aware program-boundary compensation.
+///
+/// Legacy public data can only expose the canonical base self-loop and keeps
+/// using `programAccessSum`. Incremental Ethereum V4 additionally admits one
+/// actual, unretired declared-program fetch at a nonfinal segment boundary;
+/// that word must be decoded under the selected execution profile because it
+/// may be a CUSTOM-0 instruction.
+pub fn programAccessSumForProfile(
+    selected_profile: program_decode.ExecutionProfile,
+    data: *const public_data.PublicData,
+    relations: *const relation_challenges.Relations,
+) Error!QM31 {
+    var result = QM31.zero();
+    const completion = data.completion orelse return error.MissingCompletion;
+    switch (completion.kind) {
+        .halt_flag => return result,
+        .unretired_self_loop, .unretired_program_fetch => {},
+    }
+    const values = program_decode.decodeProgramWordForProfile(
+        selected_profile,
+        completion.value,
+    ) catch return error.InvalidCompletionValue;
     try addInverse(&result, relations.program_access.combineBase(.{
         base(completion.address),
         base(values[0]),

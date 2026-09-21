@@ -1,0 +1,23 @@
+test-ethereum-incremental-leaf-wrapper-v4-replay
++- saved Ethereum pair recursive wrapper replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47284273458 process_cpu_ns=49762862750 parallelism_milli=1052 peak_footprint_bytes=288359216 energy_nj=233837609922 instructions=1102271599644 cycles=197113195587 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1512844041 process_cpu_ns=1511021166 parallelism_milli=998 peak_footprint_bytes=288359216 energy_nj=7692754032 instructions=33651188008 cycles=5995682584 workers=1 host_byte_budget=8589934592
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=6570337292 process_cpu_ns=6540355875 parallelism_milli=995 peak_footprint_bytes=1957038384 energy_nj=31491804227 instructions=108802436010 cycles=25833173449 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38560000 public_ns=293652208 transcript_ns=136170167 profile_ns=26958 program_ns=67390375 prepare_ns=56254917 fri_ns=4626754250 seal_ns=39739958 total_ns=5258551291 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=53 bytes=856163262 peak=1893491093 allocated=3176282536 freed=2320119274 untracked=0
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=role0_prove error=InvalidTraceRow
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper', the following test command failed:
+./.zig-cache/o/67a3159854fbc1112c00d6fbba0f6f20/test --cache-dir=./.zig-cache --seed=0xc9cf90f --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-wrapper-v4-replay transitive failure
++- saved Ethereum pair recursive wrapper replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/68a265188e92bde93764e7926e2632f1/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xc9cf90f -Zc61883c57f17b70d --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-wrapper-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

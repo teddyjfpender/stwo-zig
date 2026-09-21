@@ -1,0 +1,7 @@
+{
+  "physical_footprint_bytes": "bytes; correctly measured",
+  "rss_bytes": "bytes; correctly measured",
+  "process_cpu_ns": "Historical field name is incorrect in this run: proc_pid_rusage returns Mach absolute ticks on this host. Multiply by125/3 to obtain ns. /usr/bin/time user/system seconds are the authoritative final CPU totals.",
+  "mach_timebase_numer": 125,
+  "mach_timebase_denom": 3
+}

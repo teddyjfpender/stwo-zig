@@ -1,0 +1,31 @@
+test-recursive-segment-v2-concrete-outer-proof
++- SegmentV2 concrete outer-proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_concrete_outer_proof_test.test.SegmentV2 concrete 39-row outer proof independently verifies all 47 domains' failed: SEGMENT_V2_NATIVE_MEMORY backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=458184140 producer_live_bytes_after_destroy=0 canonical_proof_bytes=24261
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=84.877
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=22.659
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=24.135
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=133.079
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=86.169 publish_01_ms=0.548 interaction_ms=56.774 publish_2_ms=0.263 cached_validate_ns=84483250 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=27875 tree0_prepare_ns=23965417 tree0_commit_ns=133241791 tree1_prepare_ns=24224709 tree1_commit_ns=120253291 transcript_prefix_ns=44427959 interaction_generate_ns=161704250 interaction_admit_closure_ns=71069541 transcript_tree2_commit_ns=103529834 components_ns=73916041 diagnostic_ns=42 stark_ns=628254292 phase_sum_ns=1384615042
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=12833 preprocessed_root_ns=166529584 transcript_prefix_ns=43680750 interaction_regenerate_ns=132912625 interaction_validate_claims_ns=22393666 closure_ns=48258667 transcript_after_ns=23358833 components_ns=35674334 publication_authority_ns=24340375 stark_ns=91768333 publication_total_ns=27596958 phase_sum_ns=616526958
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=78420 canonical_proof_bytes=91749 canonicalize_ms=3.867 prove_ms=1384.645 verify_ms=622.073 publication_ms=4.102 producer_prepare_ms=254.633 producer_destroy_ms=1.031 verifier_prepare_ms=268.140 decode_ms=9.713 stark_verify_ms=91.768 transaction_ms=2591.478 artifact_rejections_ms=39.621 producer_peak_bytes=99412620 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=91749 verification=native_assisted_fresh_decode draws=1 cols=577/1010/532 workers=1
+SegmentV2 outer admission geometry mismatch: expected=.{ .commitment_count = 4, .claimed_sum_count = 39, .sampled_value_count = 2283, .queried_value_count = 6369, .trace_path_count = 12, .fri_layer_count = 16, .query_count = 3, .maximum_fold_width = 2, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 } actual=.{ .commitment_count = 4, .claimed_sum_count = 39, .sampled_value_count = 2287, .queried_value_count = 6381, .trace_path_count = 12, .fri_layer_count = 16, .query_count = 3, .maximum_fold_width = 2, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 }
+error: while executing test 'recursive_segment_v2_concrete_outer_proof_test.test.SegmentV2 concrete 39-row outer proof independently verifies all 47 domains', the following test command failed:
+./.zig-cache/o/f63b6b50209ea2eca15589a9c9675fb4/test --cache-dir=./.zig-cache --seed=0x8f845083 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-segment-v2-concrete-outer-proof transitive failure
++- SegmentV2 concrete outer-proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 2m MaxRSS:8G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/655edcb20860a1cab15a94097760ed69/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x8f845083 -Za09da4a713843a1e --maxrss 25769803776 -j1 test-recursive-segment-v2-concrete-outer-proof -Doptimize=ReleaseSafe --summary all

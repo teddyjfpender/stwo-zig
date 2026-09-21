@@ -1,0 +1,7 @@
+1/6 vcs_lifted.verifier.test.vcs_lifted verifier: verifies simple proof...OK
+2/6 vcs_lifted.verifier.test.vcs_lifted verifier: every allocation failure preserves capture and releases columns...OK
+3/6 vcs_lifted.verifier.test.vcs_lifted verifier: captured paths preserve input order and duplicates...OK
+4/6 vcs_lifted.verifier.test.vcs_lifted verifier: rejects queried column count mismatch...OK
+5/6 vcs_lifted.verifier.test.vcs_lifted verifier: duplicate mismatch releases only initialized columns...OK
+6/6 crypto.blake2s_backend.test_0...OK
+All 6 tests passed.

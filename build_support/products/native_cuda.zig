@@ -24,6 +24,7 @@ const source_closure = policy.SourceClosure{
     .named_imports = &.{
         .{ .name = "stwo", .source = "src/stwo.zig" },
         .{ .name = "stwo_native_cuda", .source = "src/stwo.zig" },
+        .{ .name = "stwo_artifact_store", .source = "src/artifact_store/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cairo_frontend", .source = "src/frontends/cairo/mod.zig" },
@@ -44,6 +45,7 @@ const source_closure = policy.SourceClosure{
     },
     .allowed_files = &.{"src/stwo.zig"},
     .allowed_prefixes = &.{
+        "src/artifact_store",
         "src/backend",
         "src/backends/cuda",
         "src/backends/cpu_scalar",
@@ -211,6 +213,13 @@ fn createStwoModule(
     const proof_wire = graph.addProofWireImport(
         context.b,
         context.protocol,
+        product(role),
+        context.target,
+        context.optimize,
+        module,
+    );
+    _ = graph.addArtifactStoreImport(
+        context.b,
         product(role),
         context.target,
         context.optimize,

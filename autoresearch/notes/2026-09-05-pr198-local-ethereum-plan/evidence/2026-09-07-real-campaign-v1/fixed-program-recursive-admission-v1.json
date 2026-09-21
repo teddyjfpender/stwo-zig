@@ -1,0 +1,81 @@
+{
+  "version": 1,
+  "recorded_at": "2026-09-07T16:32:06.641985+00:00",
+  "scope": "schema5 recursive profile/compiler and independently derived native Tree0 admission",
+  "root_owner_tests_passed": 3,
+  "profile_compiler_evaluator_tests_passed": 14,
+  "fixed_program_whole_elf_bound": true,
+  "same_table_same_tree0_wrong_elf_rejected": true,
+  "legacy_defaults_unchanged": true,
+  "actual_schema5_wrapper_closure": "PASS 1/1; 36 real components; exact 68595159 tuple contributions closed",
+  "actual_schema5_wrapper_proof": "not produced; field5 now enabled through shared field-transcript policy after full materialized admission; complete lifecycle next",
+  "csp_performance_promotion": "pending matched A/B",
+  "initial_failure": "fixture changed core program rows after minting extension certificate; canonical certificate now minted after geometry finalized",
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-recursive-admission-v1.log",
+      "sha256": "ffb0e6a88bc9d50042e26a916849a7c53e695b8eed0060447c1d45e08a246c20"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-recursive-admission-v2.log",
+      "sha256": "1adcfe3d58ba5db8f0ade7e96e4392dff889ce698650f602cdb349741d988e69"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-circuit-profile-recursive-v4.log",
+      "sha256": "8d0f54f17df23fb58ce626ba0425196fd51589d58ca2a86c308b2e433857efe5"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-closure-v1.log",
+      "sha256": "9cdb55b1b039f13b6689b7c20adc7a4328d7439b7fe02cdb2ee69ebc8f720077"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-closure-v2.log",
+      "sha256": "3402e630ba012c4cb6ad46fa9c7fcca03696d843eb173e9734016f08e3186446"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-closure-v3.log",
+      "sha256": "bc66fdf2a9c4432f19c0bcd77822e458efc3b647f5915a03d18e3e581baee79d"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-closure-v4.log",
+      "sha256": "782581948183e25ea5a65791fc7324fcb2e3c07b775c70fd5fc321b87871fe42"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-boundaries-v1.log",
+      "sha256": "4f6873d33197eeb6df4b3f0189c9b7342c3a7b47dac2bb62e11e66ab793f9c90"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-fixed-program-wrapper-air-preflight-v1.log",
+      "sha256": "2881d1cf194e1816628d2e35715cc6e5ce4acbedecb1cdf3c601e91f4f0db347"
+    }
+  ],
+  "updated_at": "2026-09-07T16:53:47.781296+00:00",
+  "wrapper_closure": {
+    "total_ns": 165228317125,
+    "cohort_ns": 111129127166,
+    "materialize_ns": 4090344833,
+    "graph_nodes": 537513,
+    "peak_physical_footprint_bytes": 26079514064,
+    "worker_count": 1,
+    "preprocessed_columns": 619
+  },
+  "native_corpus_manifest_sha256": "97113e1e50f053bf65406eda1c2fd8c28bb68e1bad3b8c54d5440245ec026914",
+  "retained_failures": [
+    "v1 RoleAwareIoClaimMismatchV4: legacy role witness root compensation disagreed with schema5 native sums; shared selected-profile audit now owns both",
+    "v2 compile: new inversion errors absent from explicit integration error set; propagated",
+    "v3 EthereumNonfinalPublicationProfileRequired: source48 is program_term_present not public-sum schema; removed unnecessary profile-dependent writer"
+  ],
+  "public_boundary_tests_passed": 9,
+  "prepared_wrapper_boundary_tests_passed": 6,
+  "typed_air_preflight": {
+    "test_count": 1,
+    "components_checked": 34,
+    "direct_roots": true,
+    "adapter_parameters": true,
+    "padding": true,
+    "provider_rows_checked": false,
+    "total_ns": 116033730542,
+    "peak_physical_footprint_bytes": 16609932032,
+    "worker_count": 1
+  }
+}

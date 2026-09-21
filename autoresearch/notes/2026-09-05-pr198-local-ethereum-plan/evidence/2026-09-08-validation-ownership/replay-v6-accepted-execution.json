@@ -1,0 +1,12 @@
+{
+  "status": "passed",
+  "pid": 50656,
+  "started_at": "2026-09-08T07:15:12.012563+00:00",
+  "source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "request_sha256": "0905cd4d9221279cf9c02ffa59d3b24e14217e7726140d8a66cb26c7bd842836",
+  "validated_source_files": 5774,
+  "child_pid": 50657,
+  "exit_code": 0,
+  "wall_seconds": 4357.108485125005,
+  "finished_at": "2026-09-08T08:27:49.216340+00:00"
+}

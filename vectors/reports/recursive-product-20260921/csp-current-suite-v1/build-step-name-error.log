@@ -1,0 +1,4 @@
+no step named 'stwo-riscv-cpu'
+  access the help menu with 'zig build -h'
+error: the following build command failed with exit code 1:
+.zig-cache/o/0cfd3b278a5188511fd11fe9275ab8df/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x61c50812 -Z97ac944f5cf2247e --maxrss 25769803776 -j1 stwo-riscv-cpu stwo-riscv-metal riscv-trace-dump -Doptimize=ReleaseFast --prefix /tmp/pr198-csp-current-suite-v1 --summary all

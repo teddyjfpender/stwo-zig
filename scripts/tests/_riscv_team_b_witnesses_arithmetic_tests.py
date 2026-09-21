@@ -16,7 +16,7 @@ class RemainderWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_every_remainder_witness_is_reachable_in_production(self):
@@ -86,7 +86,7 @@ class DivisionWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_every_required_div_witness_is_reachable_in_production(self):
@@ -179,7 +179,7 @@ class MultiplyAndShiftWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_multiply_witnesses_are_reachable_in_production(self):
@@ -274,7 +274,7 @@ class RegisterShiftWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_register_shift_witnesses_are_reachable_in_production(self):

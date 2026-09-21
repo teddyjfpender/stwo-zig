@@ -22,11 +22,13 @@ const framework_interaction = @import("air/framework_interaction.zig");
 const universal = @import("air/universal_challenges.zig");
 const boundary = @import("segment_leaf_outer_authority_v2.zig");
 
-pub const FORMAT_VERSION: u16 = 1;
-pub const SCHEMA_VERSION: u16 = 1;
-pub const LOGICAL_ROW_COUNT: usize = witness.LOGICAL_ROW_COUNT;
-pub const TRACE_LOG_SIZE: u32 = witness.TRACE_LOG_SIZE;
-pub const TRACE_ROW_COUNT: usize = witness.TRACE_ROW_COUNT;
+pub const FORMAT_VERSION = @import("segment_publication_input_provider_contract_v2.zig").FORMAT_VERSION;
+pub const SCHEMA_VERSION = @import("segment_publication_input_provider_contract_v2.zig").SCHEMA_VERSION;
+pub const Shape = witness.Shape;
+// Compatibility geometry for existing fixed-21 fixtures, not live captures.
+pub const LOGICAL_ROW_COUNT = witness.LOGICAL_ROW_COUNT;
+pub const TRACE_LOG_SIZE = witness.TRACE_LOG_SIZE;
+pub const TRACE_ROW_COUNT = witness.TRACE_ROW_COUNT;
 pub const PROPOSED_ROSTER_ROW: u8 = witness.PROPOSED_ROSTER_ROW;
 pub const HOT_PREPARE_HEAP_ALLOCATIONS: usize = 0;
 pub const SOURCE_AIR_AUTHORITY_AVAILABLE = true;
@@ -118,51 +120,72 @@ pub const TraceV2 = struct {
 /// Reusable worker-private staging. All heap allocation is confined to init;
 /// repeated capture preparation performs one bulk inversion and zero allocs.
 pub const WorkspaceV2 = struct {
+    allocator: std.mem.Allocator,
+    shape: Shape,
     interaction_workspace: Framework.Workspace,
-    main_storage: [air.PHYSICAL_MAIN_COLUMN_COUNT * TRACE_ROW_COUNT]M31 = undefined,
-    preprocessed_storage: [air.PREPROCESSED_COLUMN_COUNT * TRACE_ROW_COUNT]M31 = undefined,
-    interaction_storage: [air.INTERACTION_COLUMN_COUNT * TRACE_ROW_COUNT]M31 = undefined,
-    logical_rows: [LOGICAL_ROW_COUNT]binding.Row = undefined,
-    relation_events: [witness.ACTIVE_RELATION_EVENT_COUNT]witness.RelationEventV2 = undefined,
+    storage: []M31,
+    logical_rows: []binding.Row,
+    relation_events: []witness.RelationEventV2,
 
     pub fn init(allocator: std.mem.Allocator) Error!WorkspaceV2 {
+        return initForShape(allocator, witness.LEGACY_SHAPE);
+    }
+
+    pub fn initForShape(allocator: std.mem.Allocator, shape: Shape) Error!WorkspaceV2 {
+        try shape.validate();
+        var interaction = try Framework.Workspace.init(allocator, shape.trace_log_size);
+        errdefer interaction.deinit();
+        const storage = try allocator.alloc(M31, traceWordCount(shape));
+        errdefer allocator.free(storage);
+        const rows = try allocator.alloc(binding.Row, shape.logical_row_count);
+        errdefer allocator.free(rows);
+        const events = try allocator.alloc(witness.RelationEventV2, shape.logical_row_count);
         return .{
-            .interaction_workspace = try Framework.Workspace.init(
-                allocator,
-                TRACE_LOG_SIZE,
-            ),
+            .allocator = allocator,
+            .shape = shape,
+            .interaction_workspace = interaction,
+            .storage = storage,
+            .logical_rows = rows,
+            .relation_events = events,
         };
     }
 
     pub fn deinit(self: *WorkspaceV2) void {
+        self.allocator.free(self.relation_events);
+        self.allocator.free(self.logical_rows);
+        self.allocator.free(self.storage);
         self.interaction_workspace.deinit();
         self.* = undefined;
     }
 
     pub fn validate(self: *const WorkspaceV2) Error!void {
-        if (self.interaction_workspace.capacity_log_size != TRACE_LOG_SIZE or
+        try self.shape.validate();
+        if (self.interaction_workspace.capacity_log_size != self.shape.trace_log_size or
             self.interaction_workspace.scratch.len !=
-                try Framework.requiredScratchElementCount(TRACE_LOG_SIZE))
-        {
+                try Framework.requiredScratchElementCount(self.shape.trace_log_size) or
+            self.storage.len != traceWordCount(self.shape) or
+            self.logical_rows.len != self.shape.logical_row_count or
+            self.relation_events.len != self.shape.logical_row_count)
             return error.WorkspaceMismatch;
+        const buffers = self.mutableRanges();
+        for (buffers, 0..) |left, index| {
+            if (overlap(left, std.mem.asBytes(self))) return error.AliasedDestination;
+            for (buffers[index + 1 ..]) |right|
+                if (overlap(left, right)) return error.AliasedDestination;
         }
     }
 
-    pub fn stagedTrace(self: *WorkspaceV2) TraceV2 {
-        var preprocessed: [air.PREPROCESSED_COLUMN_COUNT][]M31 = undefined;
-        for (&preprocessed, 0..) |*column, index|
-            column.* = self.preprocessed_storage[index * TRACE_ROW_COUNT ..][0..TRACE_ROW_COUNT];
-        var main: [air.PHYSICAL_MAIN_COLUMN_COUNT][]M31 = undefined;
-        for (&main, 0..) |*column, index|
-            column.* = self.main_storage[index * TRACE_ROW_COUNT ..][0..TRACE_ROW_COUNT];
-        var interaction: [air.INTERACTION_COLUMN_COUNT][]M31 = undefined;
-        for (&interaction, 0..) |*column, index|
-            column.* = self.interaction_storage[index * TRACE_ROW_COUNT ..][0..TRACE_ROW_COUNT];
+    fn mutableRanges(self: *const WorkspaceV2) [4][]const u8 {
         return .{
-            .preprocessed = preprocessed,
-            .main = main,
-            .interaction = interaction,
+            std.mem.sliceAsBytes(self.storage),
+            std.mem.sliceAsBytes(self.logical_rows),
+            std.mem.sliceAsBytes(self.relation_events),
+            std.mem.sliceAsBytes(self.interaction_workspace.scratch),
         };
+    }
+
+    pub fn stagedTrace(self: *WorkspaceV2) TraceV2 {
+        return traceFromStorage(self.storage, self.shape.traceRowCount());
     }
 
     fn sourceDestinations(self: *WorkspaceV2) witness.DestinationsV2 {
@@ -170,8 +193,8 @@ pub const WorkspaceV2 = struct {
         return .{
             .main = trace.main,
             .preprocessed = trace.preprocessed,
-            .logical_rows = &self.logical_rows,
-            .relation_events = &self.relation_events,
+            .logical_rows = self.logical_rows,
+            .relation_events = self.relation_events,
         };
     }
 };
@@ -181,9 +204,10 @@ pub const PreparedAuthorityV2 = struct {
     format_version: u16 = FORMAT_VERSION,
     schema_version: u16 = SCHEMA_VERSION,
     roster_row: u8 = PROPOSED_ROSTER_ROW,
-    trace_log_size: u8 = TRACE_LOG_SIZE,
-    logical_row_count: u16 = LOGICAL_ROW_COUNT,
-    relation_event_count: u16 = witness.ACTIVE_RELATION_EVENT_COUNT,
+    detailed_claim_count: u32,
+    trace_log_size: u8,
+    logical_row_count: u32,
+    relation_event_count: u32,
     semantic_digest: [32]u8 = air.SEMANTIC_DIGEST,
     source_authority_sha_id: [32]u8,
     source_snapshot_id: [32]u8,
@@ -200,12 +224,13 @@ pub const PreparedAuthorityV2 = struct {
     identity: [32]u8,
 
     pub fn validate(self: *const PreparedAuthorityV2) Error!void {
+        const shape = try Shape.init(self.detailed_claim_count);
         if (self.format_version != FORMAT_VERSION or
             self.schema_version != SCHEMA_VERSION or
             self.roster_row != PROPOSED_ROSTER_ROW or
-            self.trace_log_size != TRACE_LOG_SIZE or
-            self.logical_row_count != LOGICAL_ROW_COUNT or
-            self.relation_event_count != witness.ACTIVE_RELATION_EVENT_COUNT or
+            self.trace_log_size != shape.trace_log_size or
+            self.logical_row_count != shape.logical_row_count or
+            self.relation_event_count != shape.logical_row_count or
             !std.mem.eql(u8, &self.semantic_digest, &air.SEMANTIC_DIGEST) or
             !std.mem.eql(
                 u8,
@@ -243,7 +268,10 @@ pub const PreparedAuthorityV2 = struct {
         try inputs.validate();
         try relations.validate();
         const source = try witness.preflight(inputs);
-        if (!std.mem.eql(u8, &self.source_snapshot_id, &source.identity) or
+        if (self.detailed_claim_count != source.shape.claim_count or
+            self.trace_log_size != source.shape.trace_log_size or
+            self.logical_row_count != source.shape.logical_row_count or
+            !std.mem.eql(u8, &self.source_snapshot_id, &source.identity) or
             !std.meta.eql(self.capture_identity, inputs.capture.identity) or
             !std.meta.eql(
                 self.publication_id,
@@ -255,7 +283,7 @@ pub const PreparedAuthorityV2 = struct {
         ) or !std.mem.eql(
             u8,
             &self.context_profile_manifest_digest,
-            &inputs.vm_context.profile.manifest_digest,
+            &inputs.vm_context.profile.identity_digest,
         ) or
             !std.mem.eql(
                 u8,
@@ -289,9 +317,23 @@ pub fn prepareInto(
     inputs: witness.InputsV2,
     relations: *const universal.UniversalRelations,
 ) Error!void {
-    // Authenticate and snapshot both verifier-owned inputs exactly once on the
-    // hot path. All later work consumes this pointer-free source value.
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return prepareIntoWithGenerator(destination, workspace, authority, traces, inputs, relations, &generator);
+}
+
+pub fn prepareIntoWithGenerator(
+    destination: *PreparedAuthorityV2,
+    workspace: *WorkspaceV2,
+    authority: *const AuthorityV2,
+    traces: TraceV2,
+    inputs: witness.InputsV2,
+    relations: *const universal.UniversalRelations,
+    generator: anytype,
+) !void {
+    // Authenticate both verifier-owned inputs before materializing their
+    // immutable source view. The context remains owned by this caller.
     const source = try witness.preflight(inputs);
+    if (!std.meta.eql(source.shape, workspace.shape)) return error.WorkspaceMismatch;
     try validateBoundary(destination, workspace, authority, traces, inputs, relations);
     if (!std.mem.eql(
         u8,
@@ -302,11 +344,12 @@ pub fn prepareInto(
     try witness.writeInto(&source, workspace.sourceDestinations());
     try validateDirectRows(workspace, authority);
     var staged_trace = workspace.stagedTrace();
-    const domain_claims = try Framework.generatePreparedIntoWithDomainSums(
+    const domain_claims = try generator.generatePreparedIntoWithDomainSums(
+        Framework,
         &workspace.interaction_workspace,
         &authority.relation_plan,
-        &workspace.logical_rows,
-        TRACE_LOG_SIZE,
+        workspace.logical_rows,
+        workspace.shape.trace_log_size,
         relations,
         &staged_trace.interaction,
     );
@@ -320,7 +363,7 @@ pub fn prepareInto(
 
     // The first 55 source-exact rows are byte-for-byte the opposite of row
     // 37's capture-backed consumers. The residual therefore belongs solely to
-    // row 18's 84 detailed-claim limbs without a second inversion pass.
+    // row 18's authenticated detailed-claim limbs without a second inversion pass.
     const row37_consumer_claim =
         inputs.capture.closure.verifier_input_consume;
     const lup2_publisher_claim = row37_consumer_claim.neg();
@@ -328,12 +371,16 @@ pub fn prepareInto(
         domain_claims.claimed_sum.sub(lup2_publisher_claim);
 
     var staged = PreparedAuthorityV2{
+        .detailed_claim_count = source.shape.claim_count,
+        .trace_log_size = @intCast(source.shape.trace_log_size),
+        .logical_row_count = source.shape.logical_row_count,
+        .relation_event_count = source.shape.logical_row_count,
         .source_authority_sha_id = authority.source_authority_sha_id,
         .source_snapshot_id = source.identity,
         .capture_identity = inputs.capture.identity,
         .publication_id = inputs.capture.public_logup.identity,
         .context_identity_digest = inputs.vm_context.identity_digest,
-        .context_profile_manifest_digest = inputs.vm_context.profile.manifest_digest,
+        .context_profile_manifest_digest = inputs.vm_context.profile.identity_digest,
         .relation_context_sha_id = outerRelationContextShaId(relations),
         .committed_trace_sha_id = committedTraceShaId(
             &source,
@@ -362,12 +409,12 @@ pub fn verifyTrace(
     relations: *const universal.UniversalRelations,
 ) Error!void {
     try prepared.validateAgainst(inputs, relations);
+    // Rebuilding must not overwrite the trace or receipt being checked.
+    try validateBoundary(prepared, workspace, authority, traces, inputs, relations);
     var rebuilt: PreparedAuthorityV2 = undefined;
-    var expected_storage: [
-        (air.PREPROCESSED_COLUMN_COUNT + air.PHYSICAL_MAIN_COLUMN_COUNT +
-            air.INTERACTION_COLUMN_COUNT) * TRACE_ROW_COUNT
-    ]M31 = undefined;
-    const expected = traceFromStorage(&expected_storage);
+    const expected_storage = try workspace.allocator.alloc(M31, traceWordCount(workspace.shape));
+    defer workspace.allocator.free(expected_storage);
+    const expected = traceFromStorage(expected_storage, workspace.shape.traceRowCount());
     try prepareInto(
         &rebuilt,
         workspace,
@@ -387,7 +434,7 @@ fn validateDirectRows(
     const trace = @constCast(workspace).stagedTrace();
     var scratch: [direct_program.MAX_NODES]M31 = undefined;
     var roots: [air.DIRECT_CONSTRAINT_COUNT]M31 = undefined;
-    for (0..TRACE_ROW_COUNT) |row_index| {
+    for (0..workspace.shape.traceRowCount()) |row_index| {
         var row: binding.Row = undefined;
         row[0] = trace.main[0][row_index];
         inline for (0..air.PREPROCESSED_COLUMN_COUNT) |column|
@@ -400,7 +447,7 @@ fn validateDirectRows(
 }
 
 fn validateBoundary(
-    destination: *PreparedAuthorityV2,
+    destination: *const PreparedAuthorityV2,
     workspace: *WorkspaceV2,
     authority: *const AuthorityV2,
     traces: TraceV2,
@@ -410,12 +457,12 @@ fn validateBoundary(
     try workspace.validate();
     try authority.validate();
     try relations.validate();
-    try validateTraceShape(traces);
+    try validateTraceShape(traces, workspace.shape.traceRowCount());
 
     var outputs: [
         air.PREPROCESSED_COLUMN_COUNT + air.PHYSICAL_MAIN_COLUMN_COUNT +
             air.INTERACTION_COLUMN_COUNT + 1
-    ][]u8 = undefined;
+    ][]const u8 = undefined;
     var at: usize = 0;
     for (traces.preprocessed) |column| {
         outputs[at] = std.mem.sliceAsBytes(column);
@@ -432,31 +479,38 @@ fn validateBoundary(
     outputs[at] = std.mem.asBytes(destination);
     at += 1;
     std.debug.assert(at == outputs.len);
-    const input_ranges = [_][]const u8{
-        std.mem.asBytes(workspace),
-        std.mem.sliceAsBytes(workspace.interaction_workspace.scratch),
+    const immutable_inputs = [_][]const u8{
         std.mem.asBytes(authority),
         std.mem.asBytes(inputs.capture),
         std.mem.asBytes(inputs.vm_context),
         std.mem.sliceAsBytes(inputs.vm_context.component_descs),
         std.mem.sliceAsBytes(inputs.vm_context.infra_descs),
         std.mem.sliceAsBytes(inputs.vm_context.detailed_claims),
+        std.mem.sliceAsBytes(inputs.vm_context.profile.entries),
         std.mem.asBytes(relations),
     };
+    const input_ranges = [_][]const u8{std.mem.asBytes(workspace)} ++
+        workspace.mutableRanges() ++ immutable_inputs;
     for (outputs, 0..) |left, left_index| {
         for (outputs[left_index + 1 ..]) |right| if (overlap(left, right))
             return error.AliasedDestination;
         for (input_ranges) |input| if (overlap(left, input))
             return error.AliasedDestination;
     }
+    // Owned heap buffers can be reassigned by a caller. Reject overlap with
+    // authenticated inputs before using any of those buffers as staging.
+    for (workspace.mutableRanges()) |buffer| {
+        for (immutable_inputs) |input|
+            if (overlap(buffer, input)) return error.AliasedDestination;
+    }
 }
 
-fn validateTraceShape(traces: TraceV2) Error!void {
-    for (traces.preprocessed) |column| if (column.len != TRACE_ROW_COUNT)
+fn validateTraceShape(traces: TraceV2, row_count: usize) Error!void {
+    for (traces.preprocessed) |column| if (column.len != row_count)
         return error.InvalidTraceShape;
-    for (traces.main) |column| if (column.len != TRACE_ROW_COUNT)
+    for (traces.main) |column| if (column.len != row_count)
         return error.InvalidTraceShape;
-    for (traces.interaction) |column| if (column.len != TRACE_ROW_COUNT)
+    for (traces.interaction) |column| if (column.len != row_count)
         return error.InvalidTraceShape;
 }
 
@@ -477,23 +531,28 @@ fn compareTrace(actual: TraceV2, expected: TraceV2) Error!void {
         if (!m31SliceEqual(left, right)) return error.TraceMutation;
 }
 
-fn traceFromStorage(storage: []M31) TraceV2 {
+fn traceWordCount(shape: Shape) usize {
+    return (air.PREPROCESSED_COLUMN_COUNT + air.PHYSICAL_MAIN_COLUMN_COUNT +
+        air.INTERACTION_COLUMN_COUNT) * shape.traceRowCount();
+}
+
+fn traceFromStorage(storage: []M31, row_count: usize) TraceV2 {
     std.debug.assert(storage.len ==
         (air.PREPROCESSED_COLUMN_COUNT + air.PHYSICAL_MAIN_COLUMN_COUNT +
-            air.INTERACTION_COLUMN_COUNT) * TRACE_ROW_COUNT);
+            air.INTERACTION_COLUMN_COUNT) * row_count);
     var at: usize = 0;
     var result: TraceV2 = undefined;
     for (&result.preprocessed) |*column| {
-        column.* = storage[at..][0..TRACE_ROW_COUNT];
-        at += TRACE_ROW_COUNT;
+        column.* = storage[at..][0..row_count];
+        at += row_count;
     }
     for (&result.main) |*column| {
-        column.* = storage[at..][0..TRACE_ROW_COUNT];
-        at += TRACE_ROW_COUNT;
+        column.* = storage[at..][0..row_count];
+        at += row_count;
     }
     for (&result.interaction) |*column| {
-        column.* = storage[at..][0..TRACE_ROW_COUNT];
-        at += TRACE_ROW_COUNT;
+        column.* = storage[at..][0..row_count];
+        at += row_count;
     }
     std.debug.assert(at == storage.len);
     return result;
@@ -521,26 +580,7 @@ fn committedTraceShaId(
 
 /// Stable allocation-free seal for manifest geometry/authorship binding.
 /// Per-proof snapshot identities and claims deliberately do not enter it.
-pub fn sourceAuthorityShaId() [32]u8 {
-    var hash = ShaHasher.init(
-        "stwo-zig/typed-air/segment-publication-input-provider/authority/v1\x00",
-    );
-    hash.u16Value(FORMAT_VERSION);
-    hash.u16Value(SCHEMA_VERSION);
-    hash.u8Value(PROPOSED_ROSTER_ROW);
-    hash.u16Value(LOGICAL_ROW_COUNT);
-    hash.u8Value(TRACE_LOG_SIZE);
-    hash.u16Value(air.PREPROCESSED_COLUMN_COUNT);
-    hash.u16Value(air.PHYSICAL_MAIN_COLUMN_COUNT);
-    hash.u16Value(air.INTERACTION_COLUMN_COUNT);
-    hash.u16Value(air.DIRECT_CONSTRAINT_COUNT);
-    hash.u16Value(air.RELATION_EVENT_COUNT);
-    hash.u8Value(@intFromEnum(relation.Domain.recursion_verifier_input_word));
-    hash.u8Value(@intFromEnum(relation.Role.emit));
-    hash.rawBytes(&air.SEMANTIC_DIGEST);
-    hash.rawBytes(&relation.registryOrderDigest());
-    return hash.finalize();
-}
+pub const sourceAuthorityShaId = @import("segment_publication_input_provider_contract_v2.zig").sourceAuthorityShaId;
 
 /// Byte-identical to the capture-backed boundary authority's relation-context
 /// seal, so a publisher cannot be generated under different denominators.
@@ -563,14 +603,15 @@ fn outerRelationContextShaId(
 
 fn preparedAuthorityId(prepared: *const PreparedAuthorityV2) [32]u8 {
     var hash = ShaHasher.init(
-        "stwo-zig/typed-air/segment-publication-input-provider/receipt/v1\x00",
+        "stwo-zig/typed-air/segment-publication-input-provider/receipt/v2\x00",
     );
     hash.u16Value(prepared.format_version);
     hash.u16Value(prepared.schema_version);
     hash.u8Value(prepared.roster_row);
     hash.u8Value(prepared.trace_log_size);
-    hash.u16Value(prepared.logical_row_count);
-    hash.u16Value(prepared.relation_event_count);
+    hash.u32Value(prepared.detailed_claim_count);
+    hash.u32Value(prepared.logical_row_count);
+    hash.u32Value(prepared.relation_event_count);
     hash.rawBytes(&prepared.semantic_digest);
     hash.rawBytes(&prepared.source_authority_sha_id);
     hash.rawBytes(&prepared.source_snapshot_id);
@@ -587,48 +628,7 @@ fn preparedAuthorityId(prepared: *const PreparedAuthorityV2) [32]u8 {
     return hash.finalize();
 }
 
-const ShaHasher = struct {
-    inner: std.crypto.hash.sha2.Sha256,
-
-    fn init(domain: []const u8) ShaHasher {
-        var inner = std.crypto.hash.sha2.Sha256.init(.{});
-        inner.update(domain);
-        return .{ .inner = inner };
-    }
-
-    fn u8Value(self: *ShaHasher, value: anytype) void {
-        self.inner.update(&.{@intCast(value)});
-    }
-
-    fn u16Value(self: *ShaHasher, value: anytype) void {
-        var bytes: [2]u8 = undefined;
-        std.mem.writeInt(u16, &bytes, @intCast(value), .little);
-        self.inner.update(&bytes);
-    }
-
-    fn u32Value(self: *ShaHasher, value: anytype) void {
-        var bytes: [4]u8 = undefined;
-        std.mem.writeInt(u32, &bytes, @intCast(value), .little);
-        self.inner.update(&bytes);
-    }
-
-    fn rawBytes(self: *ShaHasher, value: []const u8) void {
-        self.u32Value(value.len);
-        self.inner.update(value);
-    }
-
-    fn nativeDigest(self: *ShaHasher, value: boundary.NativeDigest) void {
-        for (value) |word| self.u32Value(word);
-    }
-
-    fn qm31(self: *ShaHasher, value: QM31) void {
-        for (value.toM31Array()) |word| self.u32Value(word.toU32());
-    }
-
-    fn finalize(self: *ShaHasher) [32]u8 {
-        return self.inner.finalResult();
-    }
-};
+const ShaHasher = @import("publication_authority_encoding.zig").ShaHasher;
 
 fn requireNativeDigest(value: boundary.NativeDigest) Error!void {
     var aggregate: u32 = 0;
@@ -665,8 +665,7 @@ fn overlap(left: []const u8, right: []const u8) bool {
 }
 
 comptime {
-    if (LOGICAL_ROW_COUNT != 139 or TRACE_ROW_COUNT != 256 or
-        PROPOSED_ROSTER_ROW != 38 or air.RELATION_EVENT_COUNT != 1 or
+    if (PROPOSED_ROSTER_ROW != 38 or air.RELATION_EVENT_COUNT != 1 or
         air.PREPROCESSED_COLUMN_COUNT != 4 or
         air.INTERACTION_COLUMN_COUNT != 4 or
         binding.Runtime.INTERACTION_COLUMN_COUNT != 4 or

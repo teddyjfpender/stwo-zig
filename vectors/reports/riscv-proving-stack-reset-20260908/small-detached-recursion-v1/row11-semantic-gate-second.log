@@ -1,0 +1,30 @@
+test-recursion-segment-statement-source-v2
++- run test 357/361 passed, 3 failed, 1 skipped
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 statement source has a pinned typed authority' failed: slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+4A F9 B4 D3 2B 2F 77 04  17 29 AB 8F C4 58 BF 84  J...+/w..)...X..
+5D 39 A1 24 69 84 B5 48  78 A7 CC 9C E3 3F 69 15  ]9.$i..Hx....?i.
+
+============= instead found this: ==============  len: 32 (0x20)
+
+5A 48 29 35 0C 9E 0E 0B  8F 8A AC AF 0F A8 A6 04  ZH)5............
+2D A9 65 D3 70 B2 AC 1D  AE A0 A0 78 0E 58 59 41  -.e.p......x.XYA
+
+================================================
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 closes boundary words and exact ProgramV2 statement payloads' failed
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 register byte bridge reuses constrained decomposition' failed
+error: while executing test 'air.public_logup.test.public LogUp: relation domains are independent and total is their sum', the following test command failed:
+./.zig-cache/o/f42558238d5064527a384a62b523508e/test --cache-dir=./.zig-cache --seed=0xada2e442 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 357/361 tests passed; 1 skipped; 3 failed
+test-recursion-segment-statement-source-v2 transitive failure
++- run test 357/361 passed, 3 failed, 1 skipped
+   +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5efaf111d40b5d953deba87d0e177ced/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xada2e442 -Ze931ac32e6891436 --maxrss 25769803776 -j1 test-recursion-segment-statement-source-v2 -Doptimize=ReleaseSafe --summary all

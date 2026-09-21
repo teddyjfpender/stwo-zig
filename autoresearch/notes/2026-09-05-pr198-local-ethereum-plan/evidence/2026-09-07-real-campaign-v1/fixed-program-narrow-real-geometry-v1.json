@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "status": "Actual admitted geometry before proof; terminal result pending",
+  "source_log": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field5-segment9-selected-v1/stderr-and-time.log",
+  "extracted_lines": [
+    "INCREMENTAL_FIXED_PROGRAM_GEOMETRY_V1 profile=5 fixed_rows=729419 omitted_program_calls=2917696 program_calls=0 incremental_calls=478450 poseidon_calls=478450 fixed_pp_columns=6 poseidon_main_columns=287 elf_sha256=f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16 table_sha256=99b797f52b7ce4d4d91052636705db4c6442ef36da80e4260453177c6105ab9d",
+    "INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=5874223360 source_column_bytes=2937111680 columns=16742 blowup_log=1 budget_bytes=25769803776 excludes=merkle,fri,quotient,twiddles,witness,allocator",
+    "INCREMENTAL_FULL_LEAF_TREE1_PREFLIGHT_V1 retained_bytes=3231506176 columns=8300 budget_bytes=25769803776 retention=never"
+  ],
+  "source_snapshot_manifest_sha256": "aa9ccc8ecc867ea3aa6c9e85c9e22f3e8758d266f13e617d0c02f44eb6d00d0a",
+  "old_retained_lde_bytes": 20550093056,
+  "new_retained_lde_bytes": 5874223360,
+  "source_column_bytes": 2937111680,
+  "scope": "PCS retained evaluations and source columns only; excludes Merkle/FRI/quotient/twiddles/witness/allocator; not process peak or timing",
+  "model_agrees_with_observed_geometry": true
+}

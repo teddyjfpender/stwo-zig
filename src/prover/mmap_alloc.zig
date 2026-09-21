@@ -6,6 +6,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
 
+/// Explicit disk-backed storage; separate from anonymous mappings and their
+/// destructive page-release hints below.
+pub const FileBackedAllocator = @import("file_backed_allocator.zig").FileBackedAllocator;
+
 pub const MmapAllocator = struct {
     /// Get a std.mem.Allocator backed by mmap with sequential hint.
     pub fn allocator() std.mem.Allocator {

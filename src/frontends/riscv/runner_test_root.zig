@@ -1,4 +1,10 @@
 test {
+    _ = @import("host/runtime.zig");
+    _ = @import("host/mod.zig");
+    _ = @import("air/lang/typed_opcode_production_authority_test.zig");
+    _ = @import("air/lang/typed_lt_imm_witness_test.zig");
+    _ = @import("air/lang/typed_branch_lt_witness_test.zig");
+    _ = @import("diagnostics/segment_manifest.zig");
     _ = @import("runner/access_witness.zig");
     _ = @import("runner/auipc_retirement.zig");
     _ = @import("runner/auipc_retirement_test.zig");
@@ -14,13 +20,15 @@ test {
     _ = @import("runner/decode.zig");
     _ = @import("runner/elf_admission.zig");
     _ = @import("runner/elf_loader.zig");
-    _ = @import("runner/execute.zig");
     _ = @import("runner/guest_precompile/c011_semantic_equivalence_test.zig");
     _ = @import("runner/guest_precompile/call_buffer.zig");
+    _ = @import("runner/guest_precompile/ethereum_runner_test.zig");
     _ = @import("runner/guest_precompile/mod.zig");
     _ = @import("runner/guest_precompile/poseidon2_v1.zig");
     _ = @import("runner/guest_precompile/poseidon2_clock_authority_test.zig");
     _ = @import("runner/guest_precompile/runner_test.zig");
+    _ = @import("runner/guest_precompile/secp256k1_recover_call_buffer.zig");
+    _ = @import("runner/guest_precompile/secp256k1_recover_v1_test.zig");
     _ = @import("runner/host_integration_test.zig");
     _ = @import("runner/fence_retirement_test.zig");
     _ = @import("runner/generated_retirement.zig");
@@ -47,10 +55,13 @@ test {
     _ = @import("runner/div_retirement_test.zig");
     _ = @import("runner/memory.zig");
     _ = @import("runner/memory_state.zig");
+    _ = @import("runner/minimal_trace/mod.zig");
+    _ = @import("runner/minimal_trace/test.zig");
     _ = @import("runner/mod.zig");
     _ = @import("runner/sail_oracle.zig");
     _ = @import("runner/state_chain.zig");
     _ = @import("runner/trace.zig");
+    _ = @import("runner/trace_test.zig");
     _ = @import("runner/trace_clock_authority_test.zig");
     _ = @import("runner/trace_dump.zig");
     _ = @import("runner/witness/load_store_legacy_test_oracle.zig");

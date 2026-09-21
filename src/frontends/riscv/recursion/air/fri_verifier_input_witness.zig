@@ -29,12 +29,12 @@ pub const Source = circuit_mod.InputSource;
 pub const SEGMENT_VERIFIER_ID: u32 = 0;
 pub const LEFT_RECURSION_VERIFIER_ID: u32 = 1;
 pub const RIGHT_RECURSION_VERIFIER_ID: u32 = 2;
-pub const FRI_ALPHA_KIND: u32 = 4;
-pub const FRI_FOLD_KIND: u32 = 3;
-pub const LAST_LAYER_KIND: u32 = 5;
-pub const POSITION_FIELD: u32 = 1;
-pub const OFFSET_FIELD: u32 = 2;
-pub const COEFFICIENT_KIND: u32 = 8;
+pub const FRI_ALPHA_KIND = @import("verifier_parameter_tags.zig").input.FRI_ALPHA_KIND;
+pub const FRI_FOLD_KIND = @import("verifier_parameter_tags.zig").input.FRI_FOLD_KIND;
+pub const LAST_LAYER_KIND = @import("verifier_parameter_tags.zig").input.LAST_LAYER_KIND;
+pub const POSITION_FIELD = @import("verifier_parameter_tags.zig").input.POSITION_FIELD;
+pub const OFFSET_FIELD = @import("verifier_parameter_tags.zig").input.OFFSET_FIELD;
+pub const COEFFICIENT_KIND = @import("verifier_parameter_tags.zig").input.COEFFICIENT_KIND;
 
 pub const BINDING_FORMAT_VERSION: u16 = 1;
 pub const BINDING_DOMAIN =
@@ -138,7 +138,7 @@ pub const Binding = struct {
     }
 
     pub fn identityDigest(self: *const Binding) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        var hash = @import("structural_sha256.zig").Hasher.init(.{});
         hash.update(BINDING_DOMAIN);
         hashInt(&hash, u16, self.format_version);
         hashInt(&hash, u16, self.semantic_format_version);
@@ -701,7 +701,7 @@ fn traceLogSize(row_count: usize) Error!u32 {
 }
 
 fn referenceDigest(lanes: [3]Lane, identities: [3]digest.Digest) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u32, lanes.len);
     for (lanes, identities) |lane, identity| {
@@ -713,7 +713,7 @@ fn referenceDigest(lanes: [3]Lane, identities: [3]digest.Digest) digest.Digest {
 }
 
 fn rowsDigest(rows: []const Row) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(ROWS_DOMAIN);
     hashInt(&hash, u32, rows.len);
     for (rows) |row| {

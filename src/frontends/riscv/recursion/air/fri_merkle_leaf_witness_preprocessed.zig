@@ -64,7 +64,19 @@ pub const Executor = struct {
         columns: *[MAIN_COLUMN_COUNT][]M31,
         opening_witness: OpeningWitness,
     ) Error!void {
-        return preprocessing.generateMainInto(reference, columns, opening_witness, self);
+        return preprocessing.generateMainInto(reference, columns, opening_witness, self, null);
+    }
+
+    /// Materialize only this admitted verifier lane; all other rows are zero.
+    pub fn generateMainForLaneInto(
+        self: *const Executor,
+        preprocessing: *const Preprocessed,
+        reference: Reference,
+        columns: *[MAIN_COLUMN_COUNT][]M31,
+        opening_witness: OpeningWitness,
+        verifier_id: u32,
+    ) Error!void {
+        return preprocessing.generateMainInto(reference, columns, opening_witness, self, verifier_id);
     }
 };
 
@@ -150,13 +162,16 @@ pub const Preprocessed = struct {
         columns: *[MAIN_COLUMN_COUNT][]M31,
         opening_witness: OpeningWitness,
         executor: *const Executor,
+        selected_lane: ?u32,
     ) Error!void {
+        if (selected_lane) |lane| if (lane > RIGHT_RECURSION_VERIFIER_ID) return error.InvalidWitness;
         try self.validateAgainst(reference);
         try validateWitness(reference, opening_witness);
         _ = try preflightMain(columns, self, opening_witness, executor);
         for (columns) |column| @memset(column, M31.zero());
         var state = [_]M31{M31.zero()} ** component.STATE_WIDTH;
         for (self.rows, 0..) |row, row_index| {
+            if (selected_lane) |lane| if (row.verifier_id != lane) continue;
             const opening = selectOpening(row.verifier_id, opening_witness) orelse {
                 writeMainRow(columns, row_index, zeroMainRow(row));
                 continue;

@@ -1,0 +1,23 @@
+
+Build Summary: 2/2 steps succeeded
+stwo-zig-riscv-cpu success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 1m MaxRSS:4G
+
+       91.59 real        87.21 user         3.48 sys
+          4247814144  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              376974  page reclaims
+                3517  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                7194  voluntary context switches
+               50515  involuntary context switches
+           213872817  instructions retired
+            89933760  cycles elapsed
+            10322616  peak memory footprint

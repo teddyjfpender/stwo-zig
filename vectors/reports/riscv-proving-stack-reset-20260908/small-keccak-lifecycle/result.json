@@ -1,0 +1,67 @@
+{
+  "status": "passed",
+  "tests_passed": 3,
+  "configuration": "ReleaseSafe development PCS; 3 queries; no PoW; worker1",
+  "scope": "Complete RV Ethereum Keccak proofs; fresh verifier transaction after producer allocations reach zero, in same test process; not production security, CSP promotion or real-block scaling acceptance",
+  "command": "python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu test-riscv-keccak-scaling-proof -Doptimize=ReleaseSafe --summary all",
+  "request_seconds": 96.75,
+  "test_runtime_seconds_rounded": 15,
+  "cases": [
+    {
+      "calls": 1,
+      "workers": 1,
+      "profile": "development",
+      "queries": 3,
+      "pow_bits": 0,
+      "execution_ns": 313583,
+      "prove_ns": 4048363542,
+      "encode_ns": 2440792,
+      "fresh_decode_verify_ns": 923073959,
+      "total_ns": 4976121500,
+      "artifact_bytes": 640361,
+      "producer_peak_bytes": 762160716,
+      "verifier_peak_bytes": 132811904,
+      "producer_live_bytes": 0,
+      "verifier_live_bytes": 0
+    },
+    {
+      "calls": 4,
+      "workers": 1,
+      "profile": "development",
+      "queries": 3,
+      "pow_bits": 0,
+      "execution_ns": 210459,
+      "prove_ns": 4082445333,
+      "encode_ns": 2398291,
+      "fresh_decode_verify_ns": 930610417,
+      "total_ns": 5017611125,
+      "artifact_bytes": 654326,
+      "producer_peak_bytes": 764904688,
+      "verifier_peak_bytes": 132815824,
+      "producer_live_bytes": 0,
+      "verifier_live_bytes": 0
+    },
+    {
+      "calls": 16,
+      "workers": 1,
+      "profile": "development",
+      "queries": 3,
+      "pow_bits": 0,
+      "execution_ns": 277250,
+      "prove_ns": 4317599292,
+      "encode_ns": 2374542,
+      "fresh_decode_verify_ns": 931679333,
+      "total_ns": 5253736500,
+      "artifact_bytes": 654898,
+      "producer_peak_bytes": 781398804,
+      "verifier_peak_bytes": 132891600,
+      "producer_live_bytes": 0,
+      "verifier_live_bytes": 0
+    }
+  ],
+  "source_sha256": {
+    "src/frontends/riscv/runner/guest_precompile/test_elf.zig": "b719d2b54dd796949de10671f0e295ed08946619a6d152021cb2152365af46fb",
+    "src/integrations/riscv_cpu/ethereum_keccak_scaling_proof_test.zig": "25ff7f6caf34e40d68df62811228d906f23b9f3a37f7b85027076d247d1431c3"
+  },
+  "raw_log_sha256": "e43da39232a0ad653b971b6ba104aeece233e4a5f8b4bd39733bc9e9eac14b9d"
+}

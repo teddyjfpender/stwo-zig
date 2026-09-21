@@ -1,0 +1,22 @@
+1/3 recursion_air_composition_v3_test_root.test.V3 shared recursion composition declarations compile...OK
+2/3 recursion.recursion_air_composition_circuit_v3_test.test_0...OK
+3/3 recursion.recursion_air_composition_circuit_v3_test.test.Ethereum wrapper capture explicitly admits normalized split two and preserves legacy split one...OK
+All 3 tests passed.
+       12.06 real        10.60 user         4.42 sys
+          2307735552  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              148371  page reclaims
+                 123  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  30  voluntary context switches
+                3061  involuntary context switches
+           624122015  instructions retired
+           177972247  cycles elapsed
+            11747760  peak memory footprint

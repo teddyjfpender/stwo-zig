@@ -1,0 +1,51 @@
+//! Atomically publish a completed object without replacing an existing name.
+const std = @import("std");
+const builtin = @import("builtin");
+
+extern "c" fn renameatx_np(
+    old_dir: std.posix.fd_t,
+    old_path: [*:0]const u8,
+    new_dir: std.posix.fd_t,
+    new_path: [*:0]const u8,
+    flags: c_uint,
+) c_int;
+
+/// Returns false only when the destination already exists. No link is left for
+/// caller cleanup to mutate after the published object's identity is measured.
+/// Unsupported kernels/filesystems fail closed; ordinary rename could clobber
+/// an existing object and hard-link fallback changes the accepted ctime.
+pub fn publish(source: []const u8, destination: []const u8) !bool {
+    const old = try std.posix.toPosixPath(source);
+    const new = try std.posix.toPosixPath(destination);
+    const result = switch (builtin.os.tag) {
+        .linux => std.os.linux.E.init(std.os.linux.renameat2(
+            std.os.linux.AT.FDCWD, &old, std.os.linux.AT.FDCWD, &new, 1, // RENAME_NOREPLACE
+        )),
+        .macos => std.posix.errno(renameatx_np(
+            std.posix.AT.FDCWD, &old, std.posix.AT.FDCWD, &new, 4, // RENAME_EXCL
+        )),
+        else => return error.AtomicPublicationUnsupported,
+    };
+    return switch (result) {
+        .SUCCESS => true,
+        .EXIST, .NOTEMPTY => false,
+        .INVAL, .NOSYS, .OPNOTSUPP => error.AtomicPublicationUnsupported,
+        .ACCES => error.AccessDenied,
+        .PERM => error.PermissionDenied,
+        .BUSY => error.FileBusy,
+        .DQUOT => error.DiskQuota,
+        .ISDIR => error.IsDir,
+        .LOOP => error.SymLinkLoop,
+        .MLINK => error.LinkQuotaExceeded,
+        .NAMETOOLONG => error.NameTooLong,
+        .NOENT => error.FileNotFound,
+        .NOTDIR => error.NotDir,
+        .NOMEM => error.SystemResources,
+        .NOSPC => error.NoSpaceLeft,
+        .ROFS => error.ReadOnlyFileSystem,
+        .XDEV => error.RenameAcrossMountPoints,
+        .IO => error.FileSystem,
+        .FAULT, .BADF => unreachable,
+        else => |err| std.posix.unexpectedErrno(err),
+    };
+}

@@ -1,0 +1,21 @@
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=11560 nodes=35927 outputs=7228 provider_calls=247 rejected=34
+detached expected boundary: inputs=11560 nodes=35927 outputs=7228 provider_calls=247 rejected=34
+detached expected boundary: inputs=11892 nodes=37202 outputs=7496 provider_calls=251 rejected=34
+test-recursive-segment-v2-detached-parent-statement
++- SegmentV2 detached parent statement guard
+   +- run test stderr
+detached-parent-statement child_words=412/412 published_words=412 nodes=80423 outputs=22138 arithmetic_mutations=21 boundary_producers_destroyed=true proof_verified=false
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 352ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 6s MaxRSS:610M
+test-recursive-segment-v2-detached-parent-statement success
++- SegmentV2 detached parent statement guard success
+   +- run test 1 passed 315ms MaxRSS:15M
+      +- compile test ReleaseSafe native success 7s MaxRSS:634M
+

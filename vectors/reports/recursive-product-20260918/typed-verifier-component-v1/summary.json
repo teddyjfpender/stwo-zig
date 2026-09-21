@@ -1,0 +1,51 @@
+{
+  "status": "focused_checks_passed_complete_gate_pending",
+  "verifier_factory_source_count": 178,
+  "verifier_factory_runner_witness_prover_dependencies": false,
+  "both_component_types_admit_typed_rows": 34,
+  "full_standalone_verifier_separation_complete": false,
+  "checks": {
+    "shared": {
+      "passed": true,
+      "test_count_including_wrappers": 6,
+      "log": "pr198-typed-verifier-shared-v3.log"
+    },
+    "all_rows_and_point": {
+      "passed": true,
+      "test_count_including_wrappers": 4,
+      "log": "pr198-typed-verifier-all-rows.log"
+    },
+    "domain": {
+      "passed": true,
+      "test_count_including_wrappers": 4,
+      "log": "pr198-typed-verifier-domain.log"
+    },
+    "logup_geometry": {
+      "passed": true,
+      "test_count_including_wrappers": 2,
+      "log": "pr198-typed-verifier-logup-geometry.log"
+    },
+    "ownership": {
+      "passed": true,
+      "test_count_including_wrappers": 10,
+      "log": "pr198-typed-verifier-ownership-final.log"
+    }
+  },
+  "source_sha256": {
+    "air/logup.zig": "b25ea1e0053feec546b11c3f6ab00ccb265731d5c2d072ce3e289df0dff4eaa8",
+    "air/logup_equations.zig": "982b8de80afbf9c2fe07dc54792591e7270f3ae4e694da139d0b0ea8aeaac402",
+    "recursion/air/universal_typed_component_contract.zig": "71d459b33d39e138dec1377770d9381fa849ec1dbc116a4a3793d67dfc0a387a",
+    "recursion/air/universal_typed_component_component_for_manifest.zig": "3224a74819797f37142bc427a7c9d496439900e3e0c1ffbdb79e980cb7a646f6",
+    "recursion/air/universal_typed_verifier_component.zig": "d64fb623766faf0ac7c22401e0029d80abed1422adcc3d1798167862de475a95",
+    "recursion/air/universal_typed_verifier_support.zig": "764824b6b730abca72728ffb0900d225ca601bf99d52638f2823996cd7a5e388",
+    "recursion/air/universal_typed_component_test.zig": "7c68f3821401e93284931d046ed418d2d95e3673407c63cfae79fa8be0ed620c",
+    "recursion/air/mod.zig": "39c1496bac8fa00abd978163a29f420d7baeefe70480f2bb7b9c629135688ee0"
+  },
+  "last_complete_qualification": "../recursive-product-20260917/parent-contract-qualified-v1/cross-backend.json",
+  "included_in_last_complete_snapshot": false,
+  "next": [
+    "Separate native Poseidon and range provider verifier components.",
+    "Construct standalone verifier component collection using the pure factories.",
+    "Qualify the completed batch with fresh CPU/Metal full proofs."
+  ]
+}

@@ -1,0 +1,12 @@
+[
+  {
+    "case": "reject-parent-key",
+    "rejected": true,
+    "key_written": false
+  },
+  {
+    "case": "reject-child-key-hash",
+    "rejected": true,
+    "key_written": false
+  }
+]

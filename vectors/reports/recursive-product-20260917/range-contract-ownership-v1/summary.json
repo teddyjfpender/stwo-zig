@@ -1,0 +1,34 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "contract_dependency_sources": 115,
+  "contract_prover_and_witness_dependencies": false,
+  "whole_parent_verifier_only": false,
+  "checks": {
+    "range_bridge": 8,
+    "table_schemas": 5,
+    "backend_export": 5,
+    "manifest": 5,
+    "ownership": 7
+  },
+  "identities_unchanged": [
+    "source authority",
+    "typed semantic program",
+    "physical witness binding"
+  ],
+  "source_sha256": {
+    "air/lookups/tables/schema.zig": "788273e0c240763e24423fa141c6218ef40aa6495bab8c5dc1182e747e1f197a",
+    "air/lookups/tables/schema_definition.zig": "849f56ef92e42a579537bd39651871fe02424068beaf1a65d4a7cc4e4e2e9bb9",
+    "air/lookups/tables/layout.zig": "f9d870043d47dc548dd94be873b18b3ade73e02b8a670aefe455816d4be667b6",
+    "air/lookups/tables/component.zig": "fe368dbbe980fa56a42a4720074ca849278d577d8f22225e889f3b048a7281dd",
+    "air/lookups/tables/interaction.zig": "81d7692757ca186f96bf26fd7e528c8524fa5ae24698d57c566a43a7869e1767",
+    "recursion/air/range_check_8_8_bridge.zig": "8228c0d513a4eba72886abb3f275eb4a88d99939d7b0dbe557540b790501733c",
+    "recursion/air/range_check_8_8_contract.zig": "fa8b9e973f0e803455d6c942200ee19dbe06fde2bc9a867abb344ec96d02c70b",
+    "recursion/air/universal_manifest.zig": "7c908cf89d9c648d0f13523093e7d870c50bd8e32b0b42a0dbaa6cef6b4fa561",
+    "recursion/binary_node_program_descriptor_v1.zig": "5f491618710f9c3e7042185383b5d780bf60572226ba39353549acf903b404f6"
+  },
+  "complete_gate_runs": {
+    "cpu": "/tmp/pr198-product-cpu-equation-owners-20260917-v1",
+    "metal": "/tmp/pr198-product-metal-equation-owners-20260917-v1"
+  },
+  "complete_qualification": "../equation-owners-v1/cross-backend.json"
+}

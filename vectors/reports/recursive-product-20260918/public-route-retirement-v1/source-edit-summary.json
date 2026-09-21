@@ -1,0 +1,22 @@
+{
+  "removed_public_exports": 46,
+  "changed_files": [
+    "src/integrations/riscv_cpu/recursive_segment_v2_temporal_quad_fixture.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_temporal_octet_fixture.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_test_root.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_key_setup_runner.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_height3_real_proof_test.zig",
+    "src/integrations/riscv_cpu/recursive_parent_statement_source_test.zig",
+    "src/integrations/riscv_cpu/mod.zig",
+    "src/integrations/riscv_cpu/build_segment_steps.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_runner.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_poseidon_ingress_runner.zig"
+  ],
+  "removed_test_gate_executables": 2
+}

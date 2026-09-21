@@ -1,0 +1,9 @@
+test_initial_selection_checks_both_extra_claims (scripts.tests.test_ethereum_wrapper_root_check.RootProcessGateTests.test_initial_selection_checks_both_extra_claims) ... ok
+test_initial_selection_rejects_ordinary_endpoint_receipt (scripts.tests.test_ethereum_wrapper_root_check.RootProcessGateTests.test_initial_selection_rejects_ordinary_endpoint_receipt) ... ok
+test_resource_io_crash_timeout_and_unknown_errors_do_not_prove_rejection (scripts.tests.test_ethereum_wrapper_root_check.RootProcessGateTests.test_resource_io_crash_timeout_and_unknown_errors_do_not_prove_rejection) ... ok
+test_semantic_rejections_and_fresh_genuine_receipt_pass (scripts.tests.test_ethereum_wrapper_root_check.RootProcessGateTests.test_semantic_rejections_and_fresh_genuine_receipt_pass) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.044s
+
+OK

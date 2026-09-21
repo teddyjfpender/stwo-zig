@@ -672,66 +672,68 @@ test "packed radix-8 pass matches three independent stages" {
     defer std.testing.allocator.free(expected);
     const actual = try std.testing.allocator.alloc(M31, value_count);
     defer std.testing.allocator.free(actual);
-    const twiddles = try std.testing.allocator.alloc(M31, pair_count);
-    defer std.testing.allocator.free(twiddles);
+    for ([_]usize{ 1, 2, 4 }) |tower_factor| {
+        const twiddles = try std.testing.allocator.alloc(M31, pair_count * tower_factor);
+        defer std.testing.allocator.free(twiddles);
 
-    for (input) |*value| value.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus));
-    for (twiddles) |*value| value.* = M31.fromCanonical(random.intRangeLessThan(u32, 1, m31.Modulus));
+        for (input) |*value| value.* = M31.fromCanonical(random.intRangeLessThan(u32, 0, m31.Modulus));
+        for (twiddles) |*value| value.* = M31.fromCanonical(random.intRangeLessThan(u32, 1, m31.Modulus));
 
-    const forward_stages = [_]u32{ 9, 5 };
-    for (forward_stages) |highest_stage| {
-        @memcpy(expected, input);
-        @memcpy(actual, input);
-        var step: u32 = 0;
-        while (step < 3) : (step += 1) {
-            const stage = highest_stage - step;
-            const count = @as(usize, 1) << @intCast(log_size - stage - 1);
-            const offset = pair_count - count * 2;
-            for (twiddles[offset .. offset + count], 0..) |twiddle, block| {
-                fftLayerLoopForwardM31(expected, stage, block, twiddle);
+        const forward_stages = [_]u32{ 9, 5 };
+        for (forward_stages) |highest_stage| {
+            @memcpy(expected, input);
+            @memcpy(actual, input);
+            var step: u32 = 0;
+            while (step < 3) : (step += 1) {
+                const stage = highest_stage - step;
+                const count = @as(usize, 1) << @intCast(log_size - stage - 1);
+                const offset = twiddles.len - count * 2;
+                for (twiddles[offset .. offset + count], 0..) |twiddle, block| {
+                    fftLayerLoopForwardM31(expected, stage, block, twiddle);
+                }
             }
+            fftThreeLayersForwardPackedM31(actual, log_size, highest_stage, twiddles);
+            try std.testing.expectEqualSlices(M31, expected, actual);
         }
-        fftThreeLayersForwardPackedM31(actual, log_size, highest_stage, twiddles);
-        try std.testing.expectEqualSlices(M31, expected, actual);
-    }
 
-    // A 2x extension's first active group sees two identical halves. The
-    // expansion kernel must synthesize the upper group without reading its
-    // deliberately unrelated contents.
-    @memcpy(expected, input);
-    @memcpy(expected[value_count / 2 ..], expected[0 .. value_count / 2]);
-    @memcpy(actual, input);
-    fftThreeLayersForwardPackedM31(expected, log_size, 8, twiddles);
-    fftThreeLayersForwardPackedM31FromDuplicatedHalf(actual, log_size, 8, twiddles);
-    try std.testing.expectEqualSlices(M31, expected, actual);
-
-    const inverse_stages = [_]u32{ 3, 7 };
-    for (inverse_stages) |lowest_stage| {
+        // A 2x extension's first active group sees two identical halves. The
+        // expansion kernel must synthesize the upper group without reading its
+        // deliberately unrelated contents.
         @memcpy(expected, input);
+        @memcpy(expected[value_count / 2 ..], expected[0 .. value_count / 2]);
         @memcpy(actual, input);
-        var step: u32 = 0;
-        while (step < 3) : (step += 1) {
-            const stage = lowest_stage + step;
-            const count = @as(usize, 1) << @intCast(log_size - stage - 1);
-            const offset = pair_count - count * 2;
-            for (twiddles[offset .. offset + count], 0..) |twiddle, block| {
-                fftLayerLoopInverseM31(expected, stage, block, twiddle);
-            }
-        }
-        fftThreeLayersInversePackedM31(actual, log_size, lowest_stage, twiddles);
+        fftThreeLayersForwardPackedM31(expected, log_size, 8, twiddles);
+        fftThreeLayersForwardPackedM31FromDuplicatedHalf(actual, log_size, 8, twiddles);
         try std.testing.expectEqualSlices(M31, expected, actual);
 
-        const normalization = M31.fromCanonical(1_234_567);
-        for (expected) |*value| value.* = value.mul(normalization);
-        @memcpy(actual, input);
-        fftThreeLayersInversePackedM31Normalized(
-            actual,
-            log_size,
-            lowest_stage,
-            twiddles,
-            normalization,
-        );
-        try std.testing.expectEqualSlices(M31, expected, actual);
+        const inverse_stages = [_]u32{ 3, 7 };
+        for (inverse_stages) |lowest_stage| {
+            @memcpy(expected, input);
+            @memcpy(actual, input);
+            var step: u32 = 0;
+            while (step < 3) : (step += 1) {
+                const stage = lowest_stage + step;
+                const count = @as(usize, 1) << @intCast(log_size - stage - 1);
+                const offset = twiddles.len - count * 2;
+                for (twiddles[offset .. offset + count], 0..) |twiddle, block| {
+                    fftLayerLoopInverseM31(expected, stage, block, twiddle);
+                }
+            }
+            fftThreeLayersInversePackedM31(actual, log_size, lowest_stage, twiddles);
+            try std.testing.expectEqualSlices(M31, expected, actual);
+
+            const normalization = M31.fromCanonical(1_234_567);
+            for (expected) |*value| value.* = value.mul(normalization);
+            @memcpy(actual, input);
+            fftThreeLayersInversePackedM31Normalized(
+                actual,
+                log_size,
+                lowest_stage,
+                twiddles,
+                normalization,
+            );
+            try std.testing.expectEqualSlices(M31, expected, actual);
+        }
     }
 }
 

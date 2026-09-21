@@ -1,7 +1,8 @@
 test {
+    _ = @import("air/interaction_legacy_test_oracle.zig");
     _ = @import("air/semantics/auipc_legacy_test_oracle.zig");
-    _ = @import("air/semantics/base_alu_imm.zig");
-    _ = @import("air/semantics/base_alu_reg.zig");
+    _ = @import("air/semantics/base_alu_imm_legacy_test_oracle.zig");
+    _ = @import("air/semantics/base_alu_reg_legacy_test_oracle.zig");
     _ = @import("air/semantics/branch_eq_legacy_test_oracle.zig");
     _ = @import("air/semantics/branch_lt_legacy_test_oracle.zig");
     _ = @import("air/semantics/common.zig");

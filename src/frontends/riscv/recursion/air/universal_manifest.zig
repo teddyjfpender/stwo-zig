@@ -5,11 +5,10 @@
 //! protocol order and column geometry. It deliberately performs no witness
 //! allocation and contains no component equation.
 
-const manifest_mod = @import("universal_adapter_manifest.zig");
-const provider = @import("universal_shared_provider.zig");
-const range_bridge = @import("range_check_8_8_bridge.zig");
-const binding = @import("universal_relation_binding.zig");
-const adapter = @import("universal_typed_component.zig");
+const manifest_mod = @import("universal_manifest_contract.zig");
+const provider = @import("universal_shared_geometry.zig");
+const range_contract = @import("range_check_8_8_contract.zig");
+const typed_geometry = @import("universal_typed_geometry.zig");
 const catalog = @import("universal_catalog.zig");
 const roster = @import("universal_roster.zig");
 
@@ -23,8 +22,14 @@ pub const Error = manifest_mod.Error || error{
 pub const LogSizes = [roster.COMPONENT_COUNT]u32;
 
 pub fn build(log_sizes: LogSizes) Error!manifest_mod.Manifest {
+    return buildForCatalog(catalog, log_sizes);
+}
+
+/// Explicit versioned profiles may replace logical AIRs without changing the
+/// default universal roster. Each selected AIR seals its own exact geometry.
+pub fn buildForCatalog(comptime Catalog: type, log_sizes: LogSizes) Error!manifest_mod.Manifest {
     var builder = manifest_mod.Builder{};
-    inline for (catalog.LOGICAL_ROWS) |entry|
+    inline for (Catalog.LOGICAL_ROWS) |entry|
         try appendTyped(&builder, entry.Air, entry.row, log_sizes);
 
     const poseidon_log = rowLogSize(log_sizes, .poseidon2);
@@ -33,10 +38,10 @@ pub fn build(log_sizes: LogSizes) Error!manifest_mod.Manifest {
     {
         return error.LogSizeMismatch;
     }
-    _ = try builder.append(provider.Poseidon2Adapter.manifestGeometry(poseidon_log));
-    if (rowLogSize(log_sizes, .range_check_8_8) != range_bridge.LOG_SIZE)
+    _ = try builder.append(provider.PoseidonForManifest(manifest_mod, false, .canonical_only).manifestGeometry(poseidon_log));
+    if (rowLogSize(log_sizes, .range_check_8_8) != range_contract.LOG_SIZE)
         return error.LogSizeMismatch;
-    _ = try builder.append(provider.RangeCheck8x8Adapter.manifestGeometry());
+    _ = try builder.append(provider.RangeForManifest(manifest_mod).manifestGeometry());
 
     const manifest = try builder.seal();
     if (manifest.roster_count != roster.COMPONENT_COUNT)
@@ -50,9 +55,9 @@ fn appendTyped(
     comptime row: roster.Component,
     log_sizes: LogSizes,
 ) Error!void {
-    const Relation = binding.Binding(Air);
-    const TypedAdapter = adapter.Component(Air, Relation);
-    _ = try builder.append(TypedAdapter.manifestGeometry(
+    _ = try builder.append(typed_geometry.manifestGeometryForAir(
+        Air,
+        manifest_mod,
         row,
         rowLogSize(log_sizes, row),
     ));

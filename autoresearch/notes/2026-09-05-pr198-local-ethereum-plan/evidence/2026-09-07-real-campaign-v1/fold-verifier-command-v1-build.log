@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 129s
+
+Build Summary: 6/6 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-verifier-transport-v2 success
++- run test 1 passed 295ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 6s MaxRSS:628M
+build-recursive-common-fold-verifier-v2 success
++- install recursive-common-fold-verify-v2 success
+   +- compile exe recursive-common-fold-verify-v2 ReleaseSafe native success 45s MaxRSS:2G
+

@@ -1,0 +1,69 @@
+{
+  "status": "focused_gates_passed_actual_wrapper_running",
+  "at": "2026-09-08T08:40:33.220757+00:00",
+  "arithmetic_tests": 4,
+  "compact_tests": 7,
+  "small_composition_tests": 3,
+  "prepared_boundary_tests": 8,
+  "symbolic_boundary_tests": 9,
+  "complete_proof_compile_passed": true,
+  "real_new_wrapper_accepted": false,
+  "microbenchmark": {
+    "fixture": "expanded_existing_authenticated_fixture",
+    "sparse_words": 4096,
+    "scalar_median_ns": 10812042,
+    "surviving_median_ns": 395958,
+    "speed_ratio": 27.306032457987968,
+    "rounds": 3,
+    "setup_included": false,
+    "real_block": false
+  },
+  "notes": [
+    "v8 direct arithmetic test command had wrong module root; v9 frontend-root command passed",
+    "v8 ownership failure was wrong expected circuit error in test; geometry test also needed a reachable test root",
+    "v10 witness mutation expectation corrected at wrong assertion; v11 fixes only expected error at invalid statement constructor",
+    "production preparation unchanged through test-only v9/v10/v11 corrections; all failing logs retained"
+  ],
+  "artifacts": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v8-compact-ledger.log",
+      "sha256": "8452ac5a444602a90cd6a6c6fcb6ec17c3e9df45d60f98a00d29932e976cd3cb"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v8-public-sums.log",
+      "sha256": "be55b5c1eac55b713beca11b1c3e3ca92316ccbab3461be0de17fe1e6f14e1c1"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v8-complete-boundaries.log",
+      "sha256": "665d6569dd66799848204ce624e3c2e7b4060573a77cf7a2fe2c020e757c86f9"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v9-public-sums.log",
+      "sha256": "75b93ce2d6d075d80d2a184784921824d8919405bae5cdf7d5174daf06360e88"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v9-public-sums-benchmark.log",
+      "sha256": "9f241e868034f84f11c0f4a0269b715a6c218baeac92ad68ba8887462ed6c732"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v10-public-sums-benchmark.log",
+      "sha256": "461c799bf97fbba2652c23aa8177976431a5bac6831a72abc1e8a5dd9b6a1bc6"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v10-compact-ledger.log",
+      "sha256": "17be43d9f81e1f44b22a258a7f4856cadcebf9a1bcd6a511740bb52af6b067be"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-gates-v10-ownership.log",
+      "sha256": "177613cd1323f9d0c1a28c989aa74acf1d2dc09272ad1c83ddb8b2d283f2daa1"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/devex-preparation-ownership-v11.log",
+      "sha256": "236a224cf191909f730f74f7aac538619601646fcdec01580b1e54a18aa6271e"
+    }
+  ],
+  "ownership_tests": 20,
+  "ownership_source_manifest_sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a",
+  "real_wrapper_request_sha256": "fdbb6c7a8cbd6975f1c6e13309e7a8be28507018c6a286792fd9f81d2953b247",
+  "real_wrapper_run": ".git/local-ethereum/real-wrapper-segment2-devex-v3"
+}

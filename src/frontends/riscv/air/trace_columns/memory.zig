@@ -51,5 +51,7 @@ pub const LoadStoreColumns = struct {
     result_3: M31,
     rd_nonzero: M31,
     rd_inv: M31,
+    aligned_addr_quarter: M31,
+    aligned_addr_low20: M31,
     pub const N_COLUMNS = @typeInfo(@This()).@"struct".fields.len;
 };

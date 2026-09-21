@@ -1,0 +1,60 @@
+const std = @import("std");
+const store_mod = @import("store.zig");
+test "artifact store: publication returns a resolvable cached identity" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const parent = try temporary.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(parent);
+    const root = try std.fs.path.join(std.testing.allocator, &.{ parent, "store" });
+    defer std.testing.allocator.free(root);
+    var store = try store_mod.Store.openOrCreate(std.testing.allocator, root, false);
+    defer store.deinit();
+    const ref = try store.putBytes(.raw, 1, "published-content");
+    var snapshot = try store.resolveObject(ref.sha256);
+    defer snapshot.deinit(std.testing.allocator);
+    try std.testing.expectEqual(ref.byte_count, snapshot.measurement.bytes);
+}
+
+test "artifact store: ingested snapshots retain identity after publisher returns" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const parent = try temporary.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(parent);
+    const root = try std.fs.path.join(std.testing.allocator, &.{ parent, "store" });
+    defer std.testing.allocator.free(root);
+    try temporary.dir.writeFile(.{ .sub_path = "input", .data = "ingested-content" });
+    const source = try temporary.dir.realpathAlloc(std.testing.allocator, "input");
+    defer std.testing.allocator.free(source);
+    var store = try store_mod.Store.initNew(std.testing.allocator, root, false);
+    defer store.deinit();
+    var first = try store.ingestPathWithPolicy(source, .byte_copy);
+    defer first.deinit(std.testing.allocator);
+    var resolved = try store.resolveRef(first.ref());
+    defer resolved.deinit(std.testing.allocator);
+    try std.testing.expect(first.measurement.identity.eql(resolved.measurement.identity));
+    var duplicate = try store.ingestPathWithPolicy(source, .prefer_apfs_clone);
+    defer duplicate.deinit(std.testing.allocator);
+    var again = try store.resolveRef(first.ref());
+    defer again.deinit(std.testing.allocator);
+    try std.testing.expect(first.measurement.identity.eql(again.measurement.identity));
+}
+
+test "artifact store: duplicate publication preserves the first store's cached identity" {
+    var temporary = std.testing.tmpDir(.{});
+    defer temporary.cleanup();
+    const parent = try temporary.dir.realpathAlloc(std.testing.allocator, ".");
+    defer std.testing.allocator.free(parent);
+    const root = try std.fs.path.join(std.testing.allocator, &.{ parent, "store" });
+    defer std.testing.allocator.free(root);
+    var first = try store_mod.Store.openOrCreate(std.testing.allocator, root, false);
+    defer first.deinit();
+    var second = try store_mod.Store.openOrCreate(std.testing.allocator, root, false);
+    defer second.deinit();
+    const ref = try first.putBytes(.raw, 1, "same-object");
+    _ = try second.putBytes(.raw, 1, "same-object");
+    var a = try first.resolveObject(ref.sha256);
+    defer a.deinit(std.testing.allocator);
+    var b = try second.resolveObject(ref.sha256);
+    defer b.deinit(std.testing.allocator);
+    try std.testing.expect(a.measurement.identity.eql(b.measurement.identity));
+}

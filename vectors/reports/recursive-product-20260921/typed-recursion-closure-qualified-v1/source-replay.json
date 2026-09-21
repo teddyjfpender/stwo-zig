@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "base_head": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "verified_source_files": 6208,
+  "source_patch_sha256": "0ebc08d0abbd5130442fe56748bab1c7335586029f29dd0fc31976b6a4ed67d5",
+  "user_index_modified": false,
+  "independent_build": false
+}

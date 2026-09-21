@@ -1,0 +1,20 @@
+{
+  "version": 2,
+  "recorded_at": "2026-09-07T17:53:11.613050+00:00",
+  "scope": "CPU/Metal controller invocation and immutable AOT custody; mocked subprocesses, not Metal proof acceptance",
+  "tests_passed": 16,
+  "command": "python3 -m unittest scripts.tests.test_ethereum_full_leaf_bundle_producer",
+  "source_files": [
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "sha256": "d517815ec19863c339eab46cd6015a4c8d0c3f2cec23185f8b47006aca923241"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_full_leaf_bundle_producer.py",
+      "sha256": "84c76e8c7e2a1498c3bcfb1329b18c889bab3a337bfd1448eaebaeb001dba79c"
+    }
+  ],
+  "cpu_default_plan_unchanged": true,
+  "metal_requires_cpu_reference": false,
+  "whole_block_verified": false
+}

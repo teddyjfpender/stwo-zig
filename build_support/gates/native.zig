@@ -5,9 +5,10 @@ pub const Result = struct {
 };
 
 pub fn addGates(b: *std.Build, zig_optimize_arg: []const u8) Result {
-    const deep = b.addSystemCommand(&.{
-        "python3", "scripts/zig_protocol_test.py", "src/stwo_deep.zig", zig_optimize_arg,
-    });
+    const deep = b.addSystemCommand(&.{ "python3", "scripts/zig_protocol_test.py" });
+    // The serial launcher already owns the scheduling lock for this build.
+    if (b.graph.env_map.get("STWO_ZIG_BUILD_HELD_LOCK") != null) deep.addArg("--no-lock");
+    deep.addArgs(&.{ "src/stwo_deep.zig", zig_optimize_arg });
     b.step("deep-gate", "Run expanded deep graph coverage").dependOn(&deep.step);
 
     const fields = b.addSystemCommand(&.{ "python3", "scripts/parity_fields.py", "--skip-zig" });

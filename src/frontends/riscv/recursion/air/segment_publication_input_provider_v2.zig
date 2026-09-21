@@ -21,8 +21,8 @@ const types = @import("../../air/lang/types.zig");
 const validate_mod = @import("../../air/lang/validate.zig");
 const direct_program = @import("direct_constraint_program.zig");
 const relation_effect = @import("relation_effect.zig");
-const leaf_source = @import("../segment_leaf_authority_v2.zig");
-const composition_witness = @import("vm_air_composition_input_witness.zig");
+const leaf_source = @import("../segment_leaf_layout_v2.zig");
+const composition_tags = @import("verifier_parameter_tags.zig").vm_input;
 
 pub const STABLE_NAME =
     "recursion.segment_v2.publication_input_provider.v1";
@@ -32,9 +32,9 @@ pub const SCHEMA_VERSION: u16 = 1;
 pub const LUP2_VERIFIER_ID: u32 = leaf_source.SEGMENT_V2_VERIFIER_ID;
 pub const LUP2_SOURCE_KIND: u32 = leaf_source.PUBLIC_LOGUP_V2_KIND;
 pub const DETAILED_VERIFIER_ID: u32 =
-    composition_witness.SEGMENT_VERIFIER_ID;
+    composition_tags.SEGMENT_VERIFIER_ID;
 pub const DETAILED_SOURCE_KIND: u32 =
-    composition_witness.VM_CLAIMED_SUM_KIND;
+    composition_tags.VM_CLAIMED_SUM_KIND;
 
 pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 1;
 pub const PREPROCESSED_COLUMN_COUNT: usize = 4;

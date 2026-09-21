@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "milestone": "full-program completion opening exact wrapper tuple closure",
+  "test_count": 1,
+  "passed": true,
+  "components": 36,
+  "contributions": 68619086,
+  "wall_ns": 412673072583,
+  "peak_footprint_bytes": 29179975328,
+  "whole_elf_pinned": true,
+  "opening_version": 1,
+  "input_corpus": "fixed-program-narrow-v5 small fixture",
+  "wrapper_proof_verified": false,
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-completion-opening-closure-v1.log",
+      "sha256": "2bb063c15158b995b8ea48413896d16ca2cf787848b59f958cb1a0ee20b1061b"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-completion-opening-closure-v2.log",
+      "sha256": "8236df9f9b80d11ec00dae160cce1a6d9551a4934f46f1a5d0dc2f5176fb4342"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-completion-opening-closure-v3.log",
+      "sha256": "0f8a25b85b4be4c0ca7594bd1e1727b03439539dec407f8a450709d262b58a4f"
+    }
+  ],
+  "next_gate": "Real independently verified nonfinal leaves1/2 typed AIR and serialized wrapper lifecycle",
+  "whole_block_prerequisites": [
+    "segment0 large input-vector admission",
+    "terminal halt wrapper",
+    "actual child-verifying parent/root"
+  ]
+}

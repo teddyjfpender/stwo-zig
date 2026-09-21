@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 361s
+test-riscv-segment-v2-native-proof
++- native V2 segment proof identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'segment_v2_native_proof_test.test.native V2 proves and independently verifies real nonfinal and final segments' failed: NATIVE_V2_CLOCK_DIAG frame=global_continuous first=2 cycles=2 actual_origin=1 actual_last=3 row_first=2 row_last=3 error=ProfileClockAuthorityMismatch
+error: while executing test 'segment_v2_native_proof_test.test.native V2 proves and independently verifies real nonfinal and final segments', the following test command failed:
+./.zig-cache/o/67717c97374bba050d0c1d9d48cd9920/test --cache-dir=./.zig-cache --seed=0x576b01aa --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-riscv-segment-v2-native-proof transitive failure
++- native V2 segment proof identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/4f4778189de563482b9c88477689de2f/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-v2-clock-diagnosis-source-v1/source/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x576b01aa -Zfb0c5282a53f3835 --maxrss 25769803776 -j1 test-riscv-segment-v2-native-proof -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

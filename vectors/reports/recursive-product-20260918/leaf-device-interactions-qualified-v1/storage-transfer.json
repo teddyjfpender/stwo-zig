@@ -1,0 +1,5 @@
+{
+  "body_identical_after_dependency_binding": true,
+  "expected_sha256": "4262c1ac45aed739a15fc2f854dd59ea92a499865baa0b06a7cce2315acae353",
+  "actual_sha256": "4262c1ac45aed739a15fc2f854dd59ea92a499865baa0b06a7cce2315acae353"
+}

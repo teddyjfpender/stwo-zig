@@ -12,7 +12,25 @@ test "public data V2 authenticates canonical metadata and mixes one distinct fra
     defer std.testing.allocator.free(words);
 
     const data = try public_data_v2.PublicDataV2.authenticate(words);
+    const view = try segment_v2.authenticateCanonicalWire(words);
+    const reused = try public_data_v2.PublicDataV2.authenticateReusingRoots(
+        words,
+        .{
+            .entry = .{
+                .id = view.statement.entry_snapshot_id,
+                .count = view.statement.entry_snapshot_count,
+                .root = view.statement.entry_continuation_root,
+            },
+            .exit = .{
+                .id = view.statement.exit_snapshot_id,
+                .count = view.statement.exit_snapshot_count,
+                .root = view.statement.exit_continuation_root,
+            },
+        },
+    );
     const metadata = try data.metadata();
+    try reused.validate();
+    try std.testing.expectEqual(metadata, try reused.metadata());
     try std.testing.expectEqual(@as(u32, 0), metadata.segment_index);
     try std.testing.expectEqual(@as(u32, 2), metadata.segment_count);
     try std.testing.expectEqual(@as(u32, 0), metadata.global_cycle_start);
@@ -236,3 +254,102 @@ const RecordingChannel = struct {
         self.canonical_words += words.len;
     }
 };
+
+test "public data V2 cold lease authenticates once and rejects substituted views" {
+    const allocator = std.testing.allocator;
+    var fixture = try support.Fixture.init();
+    const source = fixture.leftSource();
+    const words = try support.encode(allocator, &source);
+    defer allocator.free(words);
+    const expected = try public_data_v2.PublicDataV2.authenticate(words);
+    const expected_metadata = try expected.metadata();
+    const owned = try allocator.dupe(M31, words);
+    var counters = public_data_v2.PublicDataV2.ValidationCountersV2{};
+    var lease = public_data_v2.PublicDataV2.OwnedValidatedLeaseV2.adoptCold(allocator, owned, &counters) catch |err| {
+        allocator.free(owned);
+        return err;
+    };
+    defer lease.deinit();
+    comptime {
+        const Storage = @typeInfo(@TypeOf(lease.storage)).pointer.child;
+        if (@typeInfo(Storage) != .@"opaque") @compileError("cold lease storage must be opaque");
+    }
+    for (0..16) |_| {
+        try lease.data().validate();
+        try std.testing.expectEqualDeep(expected_metadata, try lease.data().metadata());
+        _ = try lease.data().eventCounts();
+        _ = try @import("statement_v2.zig").nativePublicTermCounts(lease.data());
+    }
+    words[0] = M31.zero(); // External allocation is not the admitted allocation.
+    try lease.data().validate();
+    var altered = lease.data().*;
+    altered.canonical_words = words;
+    try std.testing.expectError(error.SourceMutation, altered.validate());
+    altered = lease.data().*;
+    altered.canonical_words = altered.canonical_words[0 .. altered.canonical_words.len - 1];
+    try std.testing.expectError(error.SourceMutation, altered.validate());
+    altered = lease.data().*;
+    altered.authenticated_wire_id[0] ^= 1;
+    try std.testing.expectError(error.SourceMutation, altered.validate());
+    altered = lease.data().*;
+    altered.retained_snapshots = std.mem.zeroes(public_data_v2.PublicDataV2.RetainedSnapshots);
+    try std.testing.expectError(error.SourceMutation, altered.validate());
+    const measured = counters.snapshot();
+    try std.testing.expectEqual(@as(u64, 1), measured.legacy_full_authentications);
+    try std.testing.expectEqual(@as(u64, 0), measured.retained_root_authentications);
+    try std.testing.expect(measured.cached_view_reuses >= 80);
+}
+
+test "public data V2 cold lease rejects changed sparse values and clocks before ownership" {
+    const allocator = std.testing.allocator;
+    var fixture = try support.Fixture.init();
+    const source = fixture.leftSource();
+    const words = try support.encode(allocator, &source);
+    defer allocator.free(words);
+    const view = try segment_v2.authenticateCanonicalWire(words);
+    const bad_value = try allocator.dupe(M31, words);
+    defer allocator.free(bad_value); // A rejected admission does not consume it.
+    bad_value[view.entry_snapshot.payload_start + 2] = M31.fromCanonical(99);
+    try std.testing.expectError(error.BoundaryIdentityMismatch, public_data_v2.PublicDataV2.OwnedValidatedLeaseV2.adoptCold(allocator, bad_value, null));
+    const bad_clock = try allocator.dupe(M31, words);
+    defer allocator.free(bad_clock);
+    support.writeU32(bad_clock[segment_v2.fixed_layout.entry_register_clocks + 2 ..][0..2], 5);
+    try std.testing.expectError(error.BoundaryClockOutOfRange, public_data_v2.PublicDataV2.OwnedValidatedLeaseV2.adoptCold(allocator, bad_clock, null));
+}
+
+test "public data V2 cold statement codec retains immutable admission and rejects altered authority" {
+    const allocator = std.testing.allocator;
+    const wire = @import("../prover/guest_precompile/ethereum_segment_artifact_statement_wire.zig");
+    const native_v1 = @import("statement.zig");
+    const native_v2 = @import("statement_v2.zig");
+    var fixture = try support.Fixture.init();
+    const source = fixture.leftSource();
+    const words = try support.encode(allocator, &source);
+    defer allocator.free(words);
+    const data = try public_data_v2.PublicDataV2.authenticate(words);
+    var core: native_v1.RiscVStatement = undefined;
+    core.initializeDescriptorStorage();
+    core.n_components = 1;
+    core.component_descs[0] = .{ .family = .branch_eq, .log_size = 4, .n_rows = 3, .n_columns = 8 };
+    core.n_infra = 0;
+    core.public_data = try native_v2.canonicalCorePublicData(&data);
+    core.initial_pc = core.public_data.initial_pc;
+    core.final_pc = core.public_data.final_pc;
+    core.total_steps = core.public_data.clock;
+    const statement = try native_v2.RiscVStatementV2.init(core, data);
+    var encoded: std.ArrayList(u8) = .empty;
+    defer encoded.deinit(allocator);
+    try wire.encode(encoded.writer(allocator), &statement, 1024 * 1024);
+    var counters = public_data_v2.PublicDataV2.ValidationCountersV2{};
+    var decoded = try wire.decodeWithColdLease(allocator, encoded.items, 1024 * 1024, &counters);
+    defer decoded.deinit();
+    for (0..8) |_| try decoded.value.validate();
+    try std.testing.expectEqualDeep(statement.authority_id, decoded.value.authority_id);
+    try std.testing.expectEqualSlices(M31, words, decoded.lease.ownedWords());
+    // The transport is still externally mutable. Its altered authority cannot
+    // change the admitted owner or mint a second one.
+    encoded.items[encoded.items.len - 4] ^= 1;
+    try decoded.value.validate();
+    try std.testing.expectError(error.StatementAuthorityMismatch, wire.decodeWithColdLease(allocator, encoded.items, 1024 * 1024, null));
+    try std.testing.expectEqual(@as(u64, 1), counters.snapshot().legacy_full_authentications);
+}

@@ -1,0 +1,29 @@
+test-recursion-segment-claim-hash-v2
++- stwo_riscv_frontend test count floor
+   +- run test 0/2 passed, 2 failed
+error: 'vm_public_claim_hash_authority_v2_test_root.test.isolated row13 V2 identity and authenticated relation plan' failed: ROW13_SEMANTIC_DIGEST=ffcdb219f5f7603c127633a30049ad10ed306ceea9add11027ed231cb5ab918a
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+5A C9 B8 84 C3 42 09 FE  02 4D FC 65 D5 05 94 27  Z....B␉..M.e...'
+62 76 EF 0A 8D 18 62 9D  C8 73 78 F6 0B 26 F3 47  bv.␊..b..sx..&.G
+
+============= instead found this: ==============  len: 32 (0x20)
+
+FF CD B2 19 F5 F7 60 3C  12 76 33 A3 00 49 AD 10  ......`<.v3..I..
+ED 30 6C EE A9 AD D1 10  27 ED 23 1C B5 AB 91 8A  .0l.....'.#.....
+
+================================================
+error: 'vm_public_claim_hash_authority_v2_test_root.test.isolated row13 V2 witness replays authority calls and bind step atomically' failed
+error: while executing test 'vm_public_claim_hash_authority_v2_test_root.test.isolated row13 V2 witness replays authority calls and bind step atomically', the following test command failed:
+./.zig-cache/o/fc66ed3e0a90e68c2510ce059a0490af/test --cache-dir=./.zig-cache --seed=0x98320029 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/2 tests passed; 2 failed
+test-recursion-segment-claim-hash-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 0/2 passed, 2 failed
+      +- compile test ReleaseSafe native success 8s MaxRSS:624M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/735d7229169efdf9743fef4d209a359d/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x98320029 -Z775745812fee2595 --maxrss 25769803776 -j1 test-recursion-segment-claim-hash-v2 -Doptimize=ReleaseSafe --summary all

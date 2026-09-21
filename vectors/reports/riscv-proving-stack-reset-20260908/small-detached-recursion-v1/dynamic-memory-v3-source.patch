@@ -1,0 +1,2457 @@
+diff --git a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig
+index 945233ff..ffa0a008 100644
+--- a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig
++++ b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering.zig
+@@ -31,6 +31,7 @@ pub const Evaluations = shard_0.Evaluations;
+ pub const PublicWireTerm = shard_0.PublicWireTerm;
+ /// Same tuple ordering and signs for an explicitly admitted detached key.
+ pub const publicTermClaim = shard_0.publicTermClaim;
++pub const publicTermParts = shard_0.publicTermParts;
+ pub const InvocationBuffers = shard_0.InvocationBuffers;
+ pub const Plan = shard_1.Plan;
+ pub const computeUseCountsInto = shard_0.computeUseCountsInto;
+diff --git a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
+index ac724b94..6a3f21e5 100644
+--- a/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
++++ b/src/frontends/riscv/recursion/air/verifier_arithmetic_lowering_reference.zig
+@@ -363,10 +363,9 @@ pub fn metadataMatches(
+         metadata.rhs_id.toU32() == rhs_id;
+ }
+ 
+-pub fn publicTermClaim(
+-    challenge: *const universal.Elements,
+-    term: PublicWireTerm,
+-) PublicClaimError!QM31 {
++pub const PublicTermParts = struct { tuple: [6]QM31, numerator: QM31 };
++/// One native/recursive authority for fixed public-anchor tuple order and sign.
++pub fn publicTermParts(term: PublicWireTerm) PublicClaimError!PublicTermParts {
+     if (term.circuit_id >= m31.Modulus or term.node_id >= m31.Modulus or
+         term.multiplicity == 0 or term.multiplicity >= m31.Modulus or
+         term.role == .request)
+@@ -374,18 +373,24 @@ pub fn publicTermClaim(
+         return error.InvalidPublicAnchor;
+     }
+     const words = term.value.toM31Array();
+-    const denominator = challenge.combineSecure(&.{
++    const tuple = [6]QM31{
+         QM31.fromBase(M31.fromCanonical(term.circuit_id)),
+         QM31.fromBase(M31.fromCanonical(term.node_id)),
+         QM31.fromBase(words[0]),
+         QM31.fromBase(words[1]),
+         QM31.fromBase(words[2]),
+         QM31.fromBase(words[3]),
+-    }) catch return error.InvalidPublicAnchor;
+-    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
++    };
+     var numerator = QM31.fromBase(M31.fromCanonical(term.multiplicity));
+     if (term.role == .consume) numerator = numerator.neg();
+-    return numerator.mul(inverse_value);
++    return .{ .tuple = tuple, .numerator = numerator };
++}
++
++pub fn publicTermClaim(challenge: *const universal.Elements, term: PublicWireTerm) PublicClaimError!QM31 {
++    const parts = try publicTermParts(term);
++    const denominator = challenge.combineSecure(&parts.tuple) catch return error.InvalidPublicAnchor;
++    const inverse_value = denominator.inv() catch return error.ZeroDenominator;
++    return parts.numerator.mul(inverse_value);
+ }
+ 
+ pub fn inputTermClaim(
+diff --git a/src/frontends/riscv/recursion/poseidon2_channel.zig b/src/frontends/riscv/recursion/poseidon2_channel.zig
+index b94cc080..5c50b42d 100644
+--- a/src/frontends/riscv/recursion/poseidon2_channel.zig
++++ b/src/frontends/riscv/recursion/poseidon2_channel.zig
+@@ -19,6 +19,7 @@ const std = @import("std");
+ const stwo_core = @import("stwo_core");
+ const permutation = @import("../air/memory_commitment/poseidon2.zig");
+ const permutation_constants = @import("../air/memory_commitment/poseidon2_constants.zig");
++pub const canonical_word_sponge = @import("poseidon2_canonical_word_sponge.zig");
+ 
+ const m31 = stwo_core.fields.m31;
+ const qm31 = stwo_core.fields.qm31;
+@@ -53,29 +54,21 @@ const Sponge = struct {
+ 
+     fn init(capacity_tag: u32) Sponge {
+         std.debug.assert(capacity_tag < m31.Modulus);
+-        var state = [_]M31{M31.zero()} ** permutation.WIDTH;
+-        state[permutation.WIDTH - 1] = M31.fromCanonical(capacity_tag);
++        const state = canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(capacity_tag));
+         return .{ .state = state, .filled = 0 };
+     }
+ 
+     fn absorbCanonical(self: *Sponge, word: u32) void {
+         std.debug.assert(word < m31.Modulus);
+-        self.state[self.filled] = self.state[self.filled].add(
+-            M31.fromCanonical(word),
+-        );
+-        self.filled += 1;
+-        if (self.filled == RATE) {
+-            permutation.permute(&self.state);
+-            self.filled = 0;
+-        }
++        canonical_word_sponge.absorb(self, M31.fromCanonical(word));
++    }
++
++    pub fn permute(self: *Sponge) void {
++        permutation.permute(&self.state);
+     }
+ 
+     fn finish(self: *Sponge) Hash {
+-        self.absorbCanonical(1);
+-        if (self.filled != 0) {
+-            permutation.permute(&self.state);
+-            self.filled = 0;
+-        }
++        canonical_word_sponge.finish(self, M31.one());
+         return stateDigest(self.state);
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+index 5ccd52d5..b6f32b49 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2.zig
+@@ -95,6 +95,8 @@ pub const ManifestV2 = shard_0.ManifestV2;
+ /// Native temporal preimage retained separately from every SHA closure ID.
+ pub const NativeTemporalContextV2 = shard_0.NativeTemporalContextV2;
+ pub const nativeContext = shard_0.nativeContext;
++pub const emitContextIdentity = shard_0.emitContextIdentity;
++pub const emitContextWords = shard_0.emitContextWords;
+ pub const PerformanceV2 = shard_0.PerformanceV2;
+ /// SHA identities consumed by global-closure plumbing.  These byte values are
+ /// never accepted where a native temporal `Digest` is required.
+@@ -122,6 +124,7 @@ pub const writeTraceInto = shard_1.writeTraceInto;
+ pub const writeStatementRelationEventsInto = shard_1.writeStatementRelationEventsInto;
+ /// Canonical statement tuple shared by source writers and detached verifiers.
+ pub const statementEvent = shard_1.statementEvent;
++pub const statementTupleGeneric = shard_1.statementTupleGeneric;
+ /// Allocation-free source preflight over the uncompensated public boundary.
+ ///
+ /// This value is useful for typed-AIR authoring and trace-shape validation,
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+index f2ef0d0a..2f348f89 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig
+@@ -606,27 +606,20 @@ pub const AuthorityHashCallRecorder = struct {
+     call_at: usize = 0,
+ 
+     fn init(calls: []poseidon2_air.Call) AuthorityHashCallRecorder {
+-        var state = [_]M31{M31.zero()} ** poseidon2_air.WIDTH;
+-        state[poseidon2_air.WIDTH - 1] = M31.fromCanonical(
+-            statement_v2.AUTHORITY_ID_DOMAIN,
+-        );
++        const state = channel.canonical_word_sponge.initialState(M31, M31.zero(), M31.fromCanonical(statement_v2.AUTHORITY_ID_DOMAIN));
+         return .{ .state = state, .calls = calls };
+     }
+ 
+     fn canonical(self: *AuthorityHashCallRecorder, value: u32) void {
+         std.debug.assert(value < m31.Modulus);
+-        self.state[self.filled] = self.state[self.filled].add(
+-            M31.fromCanonical(value),
+-        );
+-        self.filled += 1;
+-        if (self.filled == channel.RATE) self.permute();
++        channel.canonical_word_sponge.absorb(self, M31.fromCanonical(value));
+     }
+ 
+     pub fn word(self: *AuthorityHashCallRecorder, _: statement_v2.authority_preimage.Source, value: u32) void {
+         self.canonical(value);
+     }
+ 
+-    fn permute(self: *AuthorityHashCallRecorder) void {
++    pub fn permute(self: *AuthorityHashCallRecorder) void {
+         std.debug.assert(self.call_at < self.calls.len);
+         var input: [poseidon2_air.WIDTH]u32 = undefined;
+         for (&input, self.state) |*destination, field_word|
+@@ -643,8 +636,7 @@ pub const AuthorityHashCallRecorder = struct {
+     }
+ 
+     fn finalize(self: *AuthorityHashCallRecorder) Digest {
+-        self.canonical(1);
+-        if (self.filled != 0) self.permute();
++        channel.canonical_word_sponge.finish(self, M31.one());
+         var result: Digest = undefined;
+         for (&result, self.state[0..channel.RATE]) |*destination, field_word|
+             destination.* = field_word.toU32();
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
+index 6d1d3f4e..1da472f2 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig
+@@ -470,33 +470,72 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     return hash.finalize();
+ }
+ 
++/// Canonical context identity preimage. The sink owns scalar representation;
++/// native hashing and recursive provider recording consume this same order.
++pub fn emitContextIdentity(context: anytype, sink: anytype) void {
++    sink.scalar(context.format_version);
++    sink.scalar(context.schema_version);
++    sink.scalar(context.statement_version);
++    sink.u32Value(context.segment_index);
++    sink.u32Value(context.segment_count);
++    sink.u32Value(context.global_cycle_start);
++    sink.u32Value(context.global_cycle_end);
++    sink.boolean(context.is_first);
++    sink.boolean(context.is_final);
++    sink.u32Value(context.entry_continuation_root);
++    sink.u32Value(context.exit_continuation_root);
++    sink.digest(context.segment_format_id);
++    sink.digest(context.protocol_id);
++    sink.digest(context.manifest_id);
++    sink.digest(context.statement_id);
++    sink.digest(context.segment_wire_id);
++    sink.digest(context.session_id);
++    sink.digest(context.job_id);
++    sink.digest(context.position_id);
++    sink.digest(context.entry_lineage_id);
++    sink.digest(context.exit_lineage_id);
++    sink.digest(context.lineage_id);
++    sink.digest(context.verifier_key_authority_id);
++    sink.digest(context.segment_leaf_vk_id);
++    sink.digest(context.recursive_parent_vk_id);
++}
++
++/// Canonical row36 context words, including the authenticated identity. Roots
++/// are scalar words here and split-u16 values in the identity preimage above.
++pub fn emitContextWords(context: anytype, sink: anytype) void {
++    sink.scalar(CONTEXT_TAG);
++    sink.scalar(context.format_version);
++    sink.scalar(context.schema_version);
++    sink.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
++    sink.scalar(context.statement_version);
++    sink.u32Value(context.segment_index);
++    sink.u32Value(context.segment_count);
++    sink.u32Value(context.global_cycle_start);
++    sink.u32Value(context.global_cycle_end);
++    sink.boolean(context.is_first);
++    sink.boolean(context.is_final);
++    sink.scalar(context.entry_continuation_root);
++    sink.scalar(context.exit_continuation_root);
++    sink.digest(context.segment_format_id);
++    sink.digest(context.protocol_id);
++    sink.digest(context.manifest_id);
++    sink.digest(context.statement_id);
++    sink.digest(context.segment_wire_id);
++    sink.digest(context.session_id);
++    sink.digest(context.job_id);
++    sink.digest(context.position_id);
++    sink.digest(context.entry_lineage_id);
++    sink.digest(context.exit_lineage_id);
++    sink.digest(context.lineage_id);
++    sink.digest(context.verifier_key_authority_id);
++    sink.digest(context.segment_leaf_vk_id);
++    sink.digest(context.recursive_parent_vk_id);
++    sink.digest(context.authenticated_context_id);
++}
++
+ pub fn contextId(context: *const NativeTemporalContextV2) Digest {
+     var hash = IdentityHasher.init(CONTEXT_ID_DOMAIN);
+-    hash.scalar(context.format_version);
+-    hash.scalar(context.schema_version);
+-    hash.scalar(context.statement_version);
+-    hash.u32Value(context.segment_index);
+-    hash.u32Value(context.segment_count);
+-    hash.u32Value(context.global_cycle_start);
+-    hash.u32Value(context.global_cycle_end);
+-    hash.scalar(@intFromBool(context.is_first));
+-    hash.scalar(@intFromBool(context.is_final));
+-    hash.u32Value(context.entry_continuation_root);
+-    hash.u32Value(context.exit_continuation_root);
+-    hash.digest(context.segment_format_id);
+-    hash.digest(context.protocol_id);
+-    hash.digest(context.manifest_id);
+-    hash.digest(context.statement_id);
+-    hash.digest(context.segment_wire_id);
+-    hash.digest(context.session_id);
+-    hash.digest(context.job_id);
+-    hash.digest(context.position_id);
+-    hash.digest(context.entry_lineage_id);
+-    hash.digest(context.exit_lineage_id);
+-    hash.digest(context.lineage_id);
+-    hash.digest(context.verifier_key_authority_id);
+-    hash.digest(context.segment_leaf_vk_id);
+-    hash.digest(context.recursive_parent_vk_id);
++    emitContextIdentity(context, &hash);
+     return hash.finalize();
+ }
+ 
+@@ -505,34 +544,7 @@ pub fn writeContextWordsAssumeValid(
+     destination: *[CONTEXT_WORD_COUNT]M31,
+ ) void {
+     var writer = WordWriter{ .words = destination };
+-    writer.scalar(CONTEXT_TAG);
+-    writer.scalar(context.format_version);
+-    writer.scalar(context.schema_version);
+-    writer.scalar(public_data_v2.STATEMENT_TRANSCRIPT_DOMAIN);
+-    writer.scalar(context.statement_version);
+-    writer.u32Value(context.segment_index);
+-    writer.u32Value(context.segment_count);
+-    writer.u32Value(context.global_cycle_start);
+-    writer.u32Value(context.global_cycle_end);
+-    writer.scalar(@intFromBool(context.is_first));
+-    writer.scalar(@intFromBool(context.is_final));
+-    writer.scalar(context.entry_continuation_root);
+-    writer.scalar(context.exit_continuation_root);
+-    writer.digest(context.segment_format_id);
+-    writer.digest(context.protocol_id);
+-    writer.digest(context.manifest_id);
+-    writer.digest(context.statement_id);
+-    writer.digest(context.segment_wire_id);
+-    writer.digest(context.session_id);
+-    writer.digest(context.job_id);
+-    writer.digest(context.position_id);
+-    writer.digest(context.entry_lineage_id);
+-    writer.digest(context.exit_lineage_id);
+-    writer.digest(context.lineage_id);
+-    writer.digest(context.verifier_key_authority_id);
+-    writer.digest(context.segment_leaf_vk_id);
+-    writer.digest(context.recursive_parent_vk_id);
+-    writer.digest(context.authenticated_context_id);
++    emitContextWords(context, &writer);
+     std.debug.assert(writer.at == destination.len);
+ }
+ 
+@@ -568,6 +580,10 @@ pub const WordWriter = struct {
+         self.at += 1;
+     }
+ 
++    pub fn boolean(self: *WordWriter, value: bool) void {
++        self.scalar(@intFromBool(value));
++    }
++
+     pub fn u32Value(self: *WordWriter, value: u32) void {
+         self.scalar(value & 0xffff);
+         self.scalar(value >> 16);
+@@ -599,6 +615,10 @@ pub const IdentityHasher = struct {
+         self.inner.update(&words);
+     }
+ 
++    pub fn boolean(self: *IdentityHasher, value: bool) void {
++        self.scalar(@intFromBool(value));
++    }
++
+     pub fn u32Value(self: *IdentityHasher, value: u32) void {
+         self.scalar(value & 0xffff);
+         self.scalar(value >> 16);
+diff --git a/src/frontends/riscv/recursion/segment_leaf_authority_v2_source_preflight_public_log_up_publication_v2.zig b/src/frontends/riscv/recursion/segment_leaf_authority_v2_source_preflight_public_log_up_publication_v2.zig
+index 38ddf6f8..dbc08bff 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_authority_v2_source_preflight_public_log_up_publication_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_authority_v2_source_preflight_public_log_up_publication_v2.zig
+@@ -350,12 +350,15 @@ pub fn writeTraceRow(
+     trace.value[row] = value;
+ }
+ 
++/// Same scoped tuple for native source rows and symbolic expected-public AIR.
++pub fn statementTupleGeneric(comptime S: type, from_base: anytype, scope: u32, index: usize, value: S) [3]S {
++    return .{ from_base(M31.fromCanonical(scope)), from_base(M31.fromCanonical(@intCast(index))), value };
++}
++fn identityBase(value: M31) M31 {
++    return value;
++}
+ pub fn statementEvent(scope: u32, index: usize, value: M31) StatementRelationEventV2 {
+-    return .{ .tuple = .{
+-        M31.fromCanonical(scope),
+-        M31.fromCanonical(@intCast(index)),
+-        value,
+-    } };
++    return .{ .tuple = statementTupleGeneric(M31, identityBase, scope, index, value) };
+ }
+ 
+ pub fn validateTraceShape(trace: TraceColumnsV2, expected: u32) Error!void {
+diff --git a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+index 6e6d3004..9eb02835 100644
+--- a/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
++++ b/src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig
+@@ -45,23 +45,23 @@ pub const StatementSemanticsV2 = struct {
+     /// Circuit 44 remains owned by the source-37 publication lane.
+     pub const BOUNDARY_BRIDGE_CIRCUIT_ID: u32 = 45;
+ 
+-    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 10;
+-    pub const PREPROCESSED_COLUMN_COUNT: usize = 19;
++    pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 14;
++    pub const PREPROCESSED_COLUMN_COUNT: usize = 22;
+     pub const PARAMETER_COUNT: usize = 0;
+     pub const LOGICAL_INPUT_COUNT: usize =
+         PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
+-    pub const DIRECT_CONSTRAINT_COUNT: usize = 15;
+-    pub const RELATION_EVENT_COUNT: usize = 9;
++    pub const DIRECT_CONSTRAINT_COUNT: usize = 23;
++    pub const RELATION_EVENT_COUNT: usize = 11;
+     pub const LOOKUP_BATCH_SIZE: u8 = 2;
+-    pub const INTERACTION_BATCH_COUNT: usize = 5;
+-    pub const INTERACTION_COLUMN_COUNT: usize = 20;
++    pub const INTERACTION_BATCH_COUNT: usize = 6;
++    pub const INTERACTION_COLUMN_COUNT: usize = 24;
+     pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
+     pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+ 
+     // Regenerated from the typed IR by the focused source test. This value is
+     // deliberately pinned before the component can be authenticated.
+     pub const SEMANTIC_DIGEST_HEX =
+-        "5a4829350c9e0e0b8f8aacaf0fa8a6042da965d370b2ac1daea0a0780e585941";
++        "fc0993e7444aaa88049ec7f4ea083da00d5e6a8c7dbacd03641d0b1f8dfa10c9";
+     pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
+         SEMANTIC_DIGEST_HEX,
+         "invalid V2 statement-semantics digest",
+@@ -78,6 +78,10 @@ pub const StatementSemanticsV2 = struct {
+         "recursion.segment_leaf_v2.statement_semantics.verifier_a_high_byte",
+         "recursion.segment_leaf_v2.statement_semantics.verifier_b_low_byte",
+         "recursion.segment_leaf_v2.statement_semantics.verifier_b_high_byte",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero",
+     };
+     pub const PREPROCESSED_COLUMN_NAMES =
+         [PREPROCESSED_COLUMN_COUNT][]const u8{
+@@ -100,6 +104,9 @@ pub const StatementSemanticsV2 = struct {
+             "recursion_segment_leaf_v2_statement_semantics_register_byte_bridge_mask",
+             "recursion_segment_leaf_v2_statement_semantics_register_low_byte_index",
+             "recursion_segment_leaf_v2_statement_semantics_register_high_byte_index",
++            "recursion_segment_leaf_v2_statement_semantics_memory_byte_bridge_mask",
++            "recursion_segment_leaf_v2_statement_semantics_memory_low_selector_index",
++            "recursion_segment_leaf_v2_statement_semantics_memory_high_selector_index",
+         };
+     pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
+         "recursion.segment_leaf_v2.statement_semantics.enabler_matches_row_mask",
+@@ -117,6 +124,14 @@ pub const StatementSemanticsV2 = struct {
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_a_high_byte_zero",
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_low_byte_zero",
+         "recursion.segment_leaf_v2.statement_semantics.inactive_verifier_b_high_byte_zero",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inverse_selector",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_nonzero_exact",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_zero_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_low_inactive_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inverse_selector",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_nonzero_exact",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_zero_inverse",
++        "recursion.segment_leaf_v2.statement_semantics.memory_high_inactive_inverse",
+     };
+ 
+     pub const MainColumns = struct {
+@@ -130,6 +145,10 @@ pub const StatementSemanticsV2 = struct {
+         verifier_a_high_byte: types.ValueId,
+         verifier_b_low_byte: types.ValueId,
+         verifier_b_high_byte: types.ValueId,
++        memory_low_inverse: types.ValueId,
++        memory_high_inverse: types.ValueId,
++        memory_low_nonzero: types.ValueId,
++        memory_high_nonzero: types.ValueId,
+ 
+         pub fn physical(
+             self: MainColumns,
+@@ -145,6 +164,10 @@ pub const StatementSemanticsV2 = struct {
+                 self.verifier_a_high_byte,
+                 self.verifier_b_low_byte,
+                 self.verifier_b_high_byte,
++                self.memory_low_inverse,
++                self.memory_high_inverse,
++                self.memory_low_nonzero,
++                self.memory_high_nonzero,
+             };
+         }
+     };
+@@ -169,6 +192,9 @@ pub const StatementSemanticsV2 = struct {
+         register_byte_bridge_mask: types.ValueId,
+         register_low_byte_index: types.ValueId,
+         register_high_byte_index: types.ValueId,
++        memory_byte_bridge_mask: types.ValueId,
++        memory_low_selector_index: types.ValueId,
++        memory_high_selector_index: types.ValueId,
+ 
+         pub fn physical(
+             self: PreprocessedColumns,
+@@ -193,6 +219,9 @@ pub const StatementSemanticsV2 = struct {
+                 self.register_byte_bridge_mask,
+                 self.register_low_byte_index,
+                 self.register_high_byte_index,
++                self.memory_byte_bridge_mask,
++                self.memory_low_selector_index,
++                self.memory_high_selector_index,
+             };
+         }
+     };
+@@ -363,6 +392,10 @@ pub const StatementSemanticsV2 = struct {
+             const register_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.register_high_byte_index, self.main.source_high_byte, zero, zero, zero };
+             try validateEffect(&self.arena, self.events[7], 7, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_low_tuple);
+             try validateEffect(&self.arena, self.events[8], 8, .recursion_wire, .emit, self.preprocessed.register_byte_bridge_mask, &register_high_tuple);
++            const memory_low_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_low_selector_index, self.main.memory_low_nonzero, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[9], 9, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_low_tuple);
++            const memory_high_tuple = [_]types.ValueId{ bridge_circuit, self.preprocessed.memory_high_selector_index, self.main.memory_high_nonzero, zero, zero, zero };
++            try validateEffect(&self.arena, self.events[10], 10, .recursion_wire, .emit, self.preprocessed.memory_byte_bridge_mask, &memory_high_tuple);
+         }
+     };
+ 
+@@ -404,7 +437,7 @@ pub const StatementSemanticsV2 = struct {
+         for (&main_values, MAIN_COLUMN_NAMES, 0..) |*value, name, index|
+             value.* = try arena.input(
+                 name,
+-                if (index == 0) .selector else if (index >= 4) .byte else .felt,
++                if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
+                 span,
+             );
+         const main = MainColumns{
+@@ -418,6 +451,10 @@ pub const StatementSemanticsV2 = struct {
+             .verifier_a_high_byte = main_values[7],
+             .verifier_b_low_byte = main_values[8],
+             .verifier_b_high_byte = main_values[9],
++            .memory_low_inverse = main_values[10],
++            .memory_high_inverse = main_values[11],
++            .memory_low_nonzero = main_values[12],
++            .memory_high_nonzero = main_values[13],
+         };
+         var preprocessed_values: [PREPROCESSED_COLUMN_COUNT]types.ValueId = undefined;
+         for (&preprocessed_values, PREPROCESSED_COLUMN_NAMES, 0..) |
+@@ -426,7 +463,7 @@ pub const StatementSemanticsV2 = struct {
+             index,
+         | value.* = try arena.input(
+             name,
+-            if (index < 9 or index == 15 or index == 16) .selector else .felt,
++            if (index < 9 or index == 15 or index == 16 or index == 19) .selector else .felt,
+             span,
+         );
+         const preprocessed = PreprocessedColumns{
+@@ -449,6 +486,9 @@ pub const StatementSemanticsV2 = struct {
+             .register_byte_bridge_mask = preprocessed_values[16],
+             .register_low_byte_index = preprocessed_values[17],
+             .register_high_byte_index = preprocessed_values[18],
++            .memory_byte_bridge_mask = preprocessed_values[19],
++            .memory_low_selector_index = preprocessed_values[20],
++            .memory_high_selector_index = preprocessed_values[21],
+         };
+         const one = try arena.constantField(1, span);
+         const byte_radix = try arena.constantField(256, span);
+@@ -515,6 +555,17 @@ pub const StatementSemanticsV2 = struct {
+             try arena.mul(inactive_a_u16, main.verifier_a_high_byte, span),
+             try arena.mul(inactive_b_u16, main.verifier_b_low_byte, span),
+             try arena.mul(inactive_b_u16, main.verifier_b_high_byte, span),
++            // For mask=1 these force s=(byte!=0), with a canonical zero
++            // inverse. For mask=0 both extra cells vanish, while unrelated
++            // source bytes remain free. Every root stays quadratic.
++            try arena.sub(try arena.mul(main.source_low_byte, main.memory_low_inverse, span), main.memory_low_nonzero, span),
++            try arena.mul(main.source_low_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
++            try arena.mul(main.memory_low_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_low_nonzero, span), span),
++            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_low_inverse, span),
++            try arena.sub(try arena.mul(main.source_high_byte, main.memory_high_inverse, span), main.memory_high_nonzero, span),
++            try arena.mul(main.source_high_byte, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
++            try arena.mul(main.memory_high_inverse, try arena.sub(preprocessed.memory_byte_bridge_mask, main.memory_high_nonzero, span), span),
++            try arena.mul(try arena.sub(one, preprocessed.memory_byte_bridge_mask, span), main.memory_high_inverse, span),
+         };
+         var constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId = undefined;
+         for (&constraints, roots, CONSTRAINT_NAMES) |*constraint, root, name|
+@@ -567,9 +618,11 @@ pub const StatementSemanticsV2 = struct {
+             zero,
+         };
+         // These are the existing range-checked u16 decomposition bytes; the
+-        // admitted preprocessing selects only canonical register-limb rows.
++        // admitted preprocessing selects canonical register and sparse value limbs.
+         const register_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_low_byte_index, main.source_low_byte, zero, zero, zero };
+         const register_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.register_high_byte_index, main.source_high_byte, zero, zero, zero };
++        const memory_low_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_low_selector_index, main.memory_low_nonzero, zero, zero, zero };
++        const memory_high_tuple = [_]types.ValueId{ bridge_circuit, preprocessed.memory_high_selector_index, main.memory_high_nonzero, zero, zero, zero };
+         const events = [RELATION_EVENT_COUNT]types.EffectId{
+             try relation_effect.append(&arena, .{
+                 .domain = .recursion_statement_word,
+@@ -625,6 +678,8 @@ pub const StatementSemanticsV2 = struct {
+                 .values = &register_high_tuple,
+                 .weight = preprocessed.register_byte_bridge_mask,
+             }, span),
++            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_low_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
++            try relation_effect.append(&arena, .{ .domain = .recursion_wire, .role = .emit, .values = &memory_high_tuple, .weight = preprocessed.memory_byte_bridge_mask }, span),
+         };
+         return .{
+             .arena = arena,
+@@ -646,7 +701,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             index,
+-            if (index == 0) .selector else if (index >= 4) .byte else .felt,
++            if (index == 0 or index >= 12) .selector else if (index >= 4 and index < 10) .byte else .felt,
+         );
+         for (
+             definition.preprocessed.physical(),
+@@ -657,7 +712,7 @@ pub const StatementSemanticsV2 = struct {
+             value,
+             expected_name,
+             PHYSICAL_MAIN_COLUMN_COUNT + local_index,
+-            if (local_index < 9 or local_index == 15 or local_index == 16) .selector else .felt,
++            if (local_index < 9 or local_index == 15 or local_index == 16 or local_index == 19) .selector else .felt,
+         );
+     }
+ };
+diff --git a/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig b/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
+index 50b8ff37..ea896d3a 100644
+--- a/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_claim_hash_authority_v2.zig
+@@ -372,9 +372,17 @@ pub fn callWireTuple(call_index: usize, group: usize, call: poseidon2_air.Call)
+ }
+ 
+ fn callWireTupleFromWords(call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]M31) [6]M31 {
++    return callWireTupleGeneric(M31, identityBase, call_index, group, words);
++}
++fn identityBase(value: M31) M31 {
++    return value;
++}
++/// Canonical circuit/node/word projection, shared by native public boundary
++/// calculation and the parent's provider-authenticated symbolic call words.
++pub fn callWireTupleGeneric(comptime S: type, from_base: anytype, call_index: usize, group: usize, words: *const [air.POSEIDON_TUPLE_WIDTH]S) [6]S {
+     std.debug.assert(group < CALL_WIRE_GROUP_COUNT);
+     std.debug.assert(call_index <= (m31.Modulus - 1 - group) / CALL_WIRE_GROUP_COUNT);
+-    return .{ felt(CALL_WIRE_CIRCUIT_ID), felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group))) } ++ words[group * 4 ..][0..4].*;
++    return .{ from_base(felt(CALL_WIRE_CIRCUIT_ID)), from_base(felt(@as(u32, @intCast(call_index * CALL_WIRE_GROUP_COUNT + group)))) } ++ words[group * 4 ..][0..4].*;
+ }
+ 
+ fn tupleForCall(call: poseidon2_air.Call) [air.POSEIDON_TUPLE_WIDTH]M31 {
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+index dd47ee18..b84f9074 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_add_boundary_terms.zig
+@@ -34,7 +34,8 @@ pub fn buildGraph(
+     allocator: std.mem.Allocator,
+     view: *const wire_statement.CanonicalWireViewV2,
+ ) Error!AuthoredGraph {
+-    const input_count = try checkedAdd(view.words.len, INPUT_SUFFIX_WORD_COUNT);
++    const layout = try register_bytes.MemoryLayout.init(view);
++    const input_count = try checkedAdd(try checkedAdd(view.words.len, INPUT_SUFFIX_WORD_COUNT), 2 * layout.memoryByteCount());
+     var builder = arithmetic.Builder.initDefault(allocator);
+     errdefer builder.deinit();
+     // Inputs are declared before the first operation, making input node IDs
+@@ -45,12 +46,12 @@ pub fn buildGraph(
+     for (values, 0..) |*value, index|
+         value.* = try builder.input(@intCast(index));
+ 
+-    const graph_inputs = try bindGraphInputs(&builder, values, view.words.len);
++    const graph_inputs = try bindGraphInputs(&builder, values, view.words.len, layout.memoryByteCount());
+     var accumulator = RelationAccumulator{
+         .builder = &builder,
+         .relations = &graph_inputs.relations,
+     };
+-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes);
++    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes, layout, graph_inputs.memory_bytes, graph_inputs.memory_selectors);
+ 
+     for (0..DOMAIN_COUNT) |index| {
+         _ = try builder.markOutput(try builder.sub(
+@@ -91,6 +92,9 @@ pub fn addBoundaryTerms(
+     view: *const wire_statement.CanonicalWireViewV2,
+     wire: []const arithmetic.Value,
+     bytes: []const arithmetic.Value,
++    layout: register_bytes.MemoryLayout,
++    memory_bytes: []const arithmetic.Value,
++    selectors: []const arithmetic.Value,
+ ) Error!void {
+     const base = try view.statement.base();
+     const executed = switch (base.body) {
+@@ -165,7 +169,7 @@ pub fn addBoundaryTerms(
+         }, .negative);
+     }
+ 
+-    try addSparseMemoryTerms(accumulator, view, wire);
++    try addSparseMemoryTerms(accumulator, view, wire, layout, memory_bytes);
+ 
+     const program_root_index = wire_statement.fixed_layout.base_statement +
+         span_statement.canonical_layout.program_start;
+@@ -191,16 +195,20 @@ pub fn addBoundaryTerms(
+     }, .positive);
+     try addContinuationCompensation(
+         accumulator,
+-        view,
+         wire,
+-        view.entry_snapshot,
++        layout,
++        .entry,
++        memory_bytes,
++        selectors,
+         entry_root,
+     );
+     try addContinuationCompensation(
+         accumulator,
+-        view,
+         wire,
+-        view.exit_snapshot,
++        layout,
++        .exit,
++        memory_bytes,
++        selectors,
+         exit_root,
+     );
+ 
+@@ -250,16 +258,7 @@ pub fn countTerms(
+         if (section.count == 0) {
+             merkle = try checkedAddU32(merkle, 1);
+         } else {
+-            for (0..section.count) |index| {
+-                const value = view.sparseEntry(section, index).value;
+-                for (0..4) |limb| {
+-                    const shift: u5 = @intCast(limb * 8);
+-                    merkle = try checkedAddU32(
+-                        merkle,
+-                        @intFromBool(@as(u8, @truncate(value >> shift)) != 0),
+-                    );
+-                }
+-            }
++            merkle = try checkedAddU32(merkle, try checkedMulU32(section.count, 4));
+         }
+     }
+     return .{
+@@ -294,6 +293,7 @@ pub fn authenticatedView(
+ 
+ pub fn inputSource(
+     wire_count: u32,
++    memory_byte_count: u32,
+     input_index: usize,
+ ) Error!InputSourceV2 {
+     if (input_index < wire_count)
+@@ -324,6 +324,10 @@ pub fn inputSource(
+     }
+     suffix -= CHALLENGE_WORD_COUNT;
+     if (suffix < register_bytes.BYTE_COUNT) return .{ .register_byte = @intCast(suffix) };
++    suffix -= register_bytes.BYTE_COUNT;
++    if (suffix < memory_byte_count) return .{ .memory_byte = @intCast(suffix) };
++    suffix -= memory_byte_count;
++    if (suffix < memory_byte_count) return .{ .memory_selector = @intCast(suffix) };
+     return error.InputBindingMismatch;
+ }
+ 
+@@ -364,6 +368,16 @@ pub fn fillInputValues(
+         destination[at] = QM31.fromBase(register_bytes.value(inputs.owned_public_data.data.words(), index));
+         at += 1;
+     }
++    const layout = prepared.memory_layout;
++    const words = inputs.owned_public_data.data.words();
++    for (register_bytes.BYTE_COUNT..layout.byteCount()) |index| {
++        destination[at] = QM31.fromBase(layout.value(words, index));
++        at += 1;
++    }
++    for (register_bytes.BYTE_COUNT..layout.byteCount()) |index| {
++        destination[at] = QM31.fromBase(dependency_0.M31.fromCanonical(@intFromBool(layout.value(words, index).toU32() != 0)));
++        at += 1;
++    }
+     std.debug.assert(at == destination.len);
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+index ebd70a7e..dddb9738 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_contract.zig
+@@ -16,8 +16,8 @@ pub const graph_mod = @import("air/composition_circuit.zig");
+ pub const lowering = @import("air/verifier_arithmetic_lowering.zig");
+ pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ 
+-pub const FORMAT_VERSION: u16 = 4;
+-pub const SCHEMA_VERSION: u16 = 2;
++pub const FORMAT_VERSION: u16 = 5;
++pub const SCHEMA_VERSION: u16 = 3;
+ pub const CIRCUIT_ID: u32 = public_source.NATIVE_SUM_CIRCUIT_ID;
+ pub const DOMAIN_COUNT: usize = 4;
+ pub const PUBLISHED_WORD_COUNT: usize =
+@@ -84,6 +84,8 @@ pub const InputSourceV2 = union(enum) {
+     published_total_word: PublishedTotalCoordinateV2,
+     native_challenge_word: ChallengeCoordinateV2,
+     register_byte: u8,
++    memory_byte: u32,
++    memory_selector: u32,
+ };
+ 
+ pub const InputBindingV2 = struct {
+@@ -184,6 +186,8 @@ pub const AuthoredGraph = struct {
+ pub const GraphInputs = struct {
+     wire: []const arithmetic.Value,
+     register_bytes: []const arithmetic.Value,
++    memory_bytes: []const arithmetic.Value,
++    memory_selectors: []const arithmetic.Value,
+     published_sums: [DOMAIN_COUNT]arithmetic.Value,
+     published_total: arithmetic.Value,
+     relations: [DOMAIN_COUNT]BoundRelation,
+@@ -265,14 +269,34 @@ pub const RelationAccumulator = struct {
+         count.* = std.math.add(u32, count.*, 1) catch
+             return error.ArithmeticOverflow;
+     }
++    pub fn addSelectedMerkle(
++        self: *RelationAccumulator,
++        tuple: []const arithmetic.Value,
++        selector: arithmetic.Value,
++    ) Error!void {
++        const index = @intFromEnum(RelationDomainV2.merkle);
++        const denominator = try self.relations[index].combine(self.builder, tuple);
++        // Row 11 constrains selector to exactly byte != 0. Inactive terms use
++        // denominator one, so an absent tuple cannot introduce a false pole.
++        const active_denominator = try self.builder.add(
++            try self.builder.mul(selector, denominator),
++            try self.builder.sub(arithmetic.Value.one(), selector),
++        );
++        const contribution = try self.builder.mul(selector, try self.builder.inverse(active_denominator));
++        self.sums[index] = try self.builder.sub(self.sums[index], contribution);
++        self.counts.merkle = std.math.add(u32, self.counts.merkle, 1) catch return error.ArithmeticOverflow;
++    }
+ };
+ 
+ pub fn bindGraphInputs(
+     builder: *arithmetic.Builder,
+     values: []const arithmetic.Value,
+     wire_count: usize,
++    memory_byte_count: usize,
+ ) Error!GraphInputs {
+-    if (values.len != try checkedAdd(wire_count, INPUT_SUFFIX_WORD_COUNT))
++    const fixed_end = try checkedAdd(wire_count, INPUT_SUFFIX_WORD_COUNT);
++    const memory_end = try checkedAdd(fixed_end, memory_byte_count);
++    if (values.len != try checkedAdd(memory_end, memory_byte_count))
+         return error.InputBindingMismatch;
+     const published_start = wire_count;
+     var published_sums: [DOMAIN_COUNT]arithmetic.Value = undefined;
+@@ -298,7 +322,9 @@ pub fn bindGraphInputs(
+     }
+     return .{
+         .wire = values[0..wire_count],
+-        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT ..],
++        .register_bytes = values[wire_count + PUBLISHED_WORD_COUNT + CHALLENGE_WORD_COUNT .. fixed_end],
++        .memory_bytes = values[fixed_end..memory_end],
++        .memory_selectors = values[memory_end..],
+         .published_sums = published_sums,
+         .published_total = published_total,
+         .relations = relations,
+@@ -309,6 +335,8 @@ pub fn addSparseMemoryTerms(
+     accumulator: *RelationAccumulator,
+     view: *const wire_statement.CanonicalWireViewV2,
+     wire: []const arithmetic.Value,
++    layout: register_bytes.MemoryLayout,
++    bytes: []const arithmetic.Value,
+ ) Error!void {
+     var positions = [_]usize{0} ** 4;
+     while (nextMemoryAddress(view, positions)) |address| {
+@@ -336,14 +364,15 @@ pub fn addSparseMemoryTerms(
+             wire,
+             address_start,
+         );
++        const zero_bytes = [_]arithmetic.Value{arithmetic.Value.zero()} ** 4;
+         const entry_value = if (entry_value_match)
+-            view.sparseEntry(view.entry_snapshot, positions[0]).value
++            bytes[layout.byteIndex(.entry, positions[0], 0) - register_bytes.BYTE_COUNT ..][0..4]
+         else
+-            0;
++            &zero_bytes;
+         const exit_value = if (exit_value_match)
+-            view.sparseEntry(view.exit_snapshot, positions[1]).value
++            bytes[layout.byteIndex(.exit, positions[1], 0) - register_bytes.BYTE_COUNT ..][0..4]
+         else
+-            0;
++            &zero_bytes;
+         const entry_clock = if (entry_clock_match)
+             try u32At(
+                 accumulator.builder,
+@@ -365,19 +394,19 @@ pub fn addSparseMemoryTerms(
+             baseValue(1),
+             address_value,
+             entry_clock,
+-            baseValue(@as(u8, @truncate(entry_value))),
+-            baseValue(@as(u8, @truncate(entry_value >> 8))),
+-            baseValue(@as(u8, @truncate(entry_value >> 16))),
+-            baseValue(@as(u8, @truncate(entry_value >> 24))),
++            entry_value[0],
++            entry_value[1],
++            entry_value[2],
++            entry_value[3],
+         }, .positive);
+         try accumulator.add(.memory_access, &.{
+             baseValue(1),
+             address_value,
+             exit_clock,
+-            baseValue(@as(u8, @truncate(exit_value))),
+-            baseValue(@as(u8, @truncate(exit_value >> 8))),
+-            baseValue(@as(u8, @truncate(exit_value >> 16))),
+-            baseValue(@as(u8, @truncate(exit_value >> 24))),
++            exit_value[0],
++            exit_value[1],
++            exit_value[2],
++            exit_value[3],
+         }, .negative);
+ 
+         positions[0] += @intFromBool(entry_value_match);
+@@ -389,11 +418,14 @@ pub fn addSparseMemoryTerms(
+ 
+ pub fn addContinuationCompensation(
+     accumulator: *RelationAccumulator,
+-    view: *const wire_statement.CanonicalWireViewV2,
+     wire: []const arithmetic.Value,
+-    section: wire_statement.RetainedSectionV2,
++    layout: register_bytes.MemoryLayout,
++    side: register_bytes.Side,
++    bytes: []const arithmetic.Value,
++    selectors: []const arithmetic.Value,
+     root: arithmetic.Value,
+ ) Error!void {
++    const section = if (side == .entry) layout.entry else layout.exit;
+     if (section.count == 0) {
+         try accumulator.add(.merkle, &.{
+             baseValue(0), baseValue(0), root, root,
+@@ -401,25 +433,22 @@ pub fn addContinuationCompensation(
+         return;
+     }
+     for (0..section.count) |index| {
+-        const entry = view.sparseEntry(section, index);
+         const address = try u32At(
+             accumulator.builder,
+             wire,
+             retainedStart(section, index),
+         );
+         for (0..4) |limb| {
+-            const shift: u5 = @intCast(limb * 8);
+-            const byte: u8 = @truncate(entry.value >> shift);
+-            if (byte == 0) continue;
+-            try accumulator.add(.merkle, &.{
++            const byte_index = layout.byteIndex(side, index, limb) - register_bytes.BYTE_COUNT;
++            try accumulator.addSelectedMerkle(&.{
+                 try accumulator.builder.add(
+                     address,
+                     baseValue(@as(u32, @intCast(limb))),
+                 ),
+                 baseValue(@import("../air/memory_commitment/sparse_merkle.zig").LEAF_DEPTH),
+-                baseValue(byte),
++                bytes[byte_index],
+                 root,
+-            }, .negative);
++            }, selectors[byte_index]);
+         }
+     }
+ }
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+index 42d15e58..f098a335 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_source_v2.zig
+@@ -47,6 +47,7 @@ const wire_statement = dependency_0.wire_statement;
+ pub const SourceV2 = struct {
+     allocator: std.mem.Allocator,
+     wire_word_count: u32,
++    memory_byte_count: u32,
+     input_count: u32,
+     term_counts: TermCountsV2,
+     prepared_source_id: public_source.Digest,
+@@ -70,12 +71,12 @@ pub const SourceV2 = struct {
+         const view = try authenticatedView(prepared, inputs);
+         const wire_count = std.math.cast(u32, view.words.len) orelse
+             return error.ArithmeticOverflow;
+-        const expected_inputs = try checkedAddU32(
+-            wire_count,
+-            INPUT_SUFFIX_WORD_COUNT,
+-        );
++        const layout = try dependency_0.register_bytes.MemoryLayout.init(&view);
++        const memory_byte_count = std.math.cast(u32, layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
++        const expected_inputs = try checkedAddU32(try checkedAddU32(wire_count, INPUT_SUFFIX_WORD_COUNT), try checkedAddU32(memory_byte_count, memory_byte_count));
+         if (prepared.lowering_obligation.input_count != expected_inputs or
+             prepared.lowering_obligation.boundary_word_count != wire_count or
++            prepared.lowering_obligation.memory_byte_count != memory_byte_count or
+             prepared.lowering_obligation.zero_output_count != OUTPUT_COUNT or
+             prepared.lowering_obligation.circuit_id != CIRCUIT_ID)
+         {
+@@ -105,7 +106,7 @@ pub const SourceV2 = struct {
+                 .use_count = try authored.circuit.inputUseCount(
+                     @intCast(input_index),
+                 ),
+-                .source = try inputSource(wire_count, input_index),
++                .source = try inputSource(wire_count, memory_byte_count, input_index),
+             };
+         }
+ 
+@@ -114,6 +115,7 @@ pub const SourceV2 = struct {
+         var result = SourceV2{
+             .allocator = allocator,
+             .wire_word_count = wire_count,
++            .memory_byte_count = memory_byte_count,
+             .input_count = expected_inputs,
+             .term_counts = authored.term_counts,
+             .prepared_source_id = prepared.source_id,
+@@ -277,11 +279,10 @@ pub const SourceV2 = struct {
+     ) Error!void {
+         const wire_count = std.math.cast(u32, view.words.len) orelse
+             return error.ArithmeticOverflow;
+-        const expected_inputs = try checkedAddU32(
+-            wire_count,
+-            INPUT_SUFFIX_WORD_COUNT,
+-        );
+-        if (self.wire_word_count != wire_count or
++        const layout = try dependency_0.register_bytes.MemoryLayout.init(view);
++        const memory_byte_count = std.math.cast(u32, layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
++        const expected_inputs = try checkedAddU32(try checkedAddU32(wire_count, INPUT_SUFFIX_WORD_COUNT), try checkedAddU32(memory_byte_count, memory_byte_count));
++        if (self.wire_word_count != wire_count or self.memory_byte_count != memory_byte_count or
+             self.input_count != expected_inputs or
+             self.bindings.len != expected_inputs or
+             self.circuit.inputNodes().len != expected_inputs or
+@@ -331,7 +332,7 @@ pub const SourceV2 = struct {
+                 ) or
+                 !std.meta.eql(
+                     binding.source,
+-                    try inputSource(self.wire_word_count, input_index),
++                    try inputSource(self.wire_word_count, self.memory_byte_count, input_index),
+                 ))
+             {
+                 return error.InputBindingMismatch;
+@@ -484,6 +485,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
+     hashInt(&hash, u16, SCHEMA_VERSION);
+     hashInt(&hash, u32, CIRCUIT_ID);
+     hashInt(&hash, u32, source.wire_word_count);
++    hashInt(&hash, u32, source.memory_byte_count);
+     hashInt(&hash, u32, source.input_count);
+     hashInt(&hash, u32, source.term_counts.registers_state);
+     hashInt(&hash, u32, source.term_counts.memory_access);
+@@ -522,6 +524,7 @@ pub fn authorityDigest(source: *const SourceV2) [32]u8 {
+                 hashInt(&hash, u8, coordinate.limb);
+             },
+             .register_byte => |index| hashInt(&hash, u8, index),
++            .memory_byte, .memory_selector => |index| hashInt(&hash, u32, index),
+         }
+     }
+     return hash.finalResult();
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+index 179dba53..57ccdbe2 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+@@ -53,7 +53,14 @@ test "SegmentV2 native-sum graph exactly replays all four domains and total" {
+     );
+     try std.testing.expectEqual(@as(u32, 2), source.term_counts.registers_state);
+     try std.testing.expectEqual(native_counts.memory, source.term_counts.memory_access);
+-    try std.testing.expectEqual(native_counts.merkle, source.term_counts.merkle);
++    const canonical = try fixture.owned_public.data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&canonical);
++    var zero_bytes: u32 = 0;
++    for (register_bytes.BYTE_COUNT..memory.byteCount()) |index|
++        zero_bytes += @intFromBool(memory.value(canonical.words, index).isZero());
++    // Graph inventory schedules zero-byte terms too; their exact selectors
++    // make their contribution zero. The native oracle counts active terms.
++    try std.testing.expectEqual(native_counts.merkle + zero_bytes, source.term_counts.merkle);
+     try std.testing.expect(source.term_counts.total() > 0);
+ 
+     const lane = source.loweringLane();
+@@ -75,9 +82,10 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+     defer source.deinit();
+ 
+     const wire_count = fixture.owned_public.data.words().len;
++    const memory = try register_bytes.MemoryLayout.init(&try fixture.owned_public.data.authenticatedView());
+     try std.testing.expectEqual(
+         wire_count + subject.PUBLISHED_WORD_COUNT +
+-            subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
++            subject.CHALLENGE_WORD_COUNT + memory.totalBridgeWords(),
+         source.bindings.len,
+     );
+     for (source.bindings, 0..) |binding, index| {
+@@ -120,7 +128,14 @@ test "SegmentV2 native-sum graph pins dense input and circuit-44 bridge order" {
+                 coordinate.limb,
+             );
+         } else {
+-            try std.testing.expectEqual(@as(u8, @intCast(suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT)), binding.source.register_byte);
++            const byte = suffix - subject.PUBLISHED_WORD_COUNT - subject.CHALLENGE_WORD_COUNT;
++            if (byte < register_bytes.BYTE_COUNT) {
++                try std.testing.expectEqual(@as(u8, @intCast(byte)), binding.source.register_byte);
++            } else if (byte < memory.byteCount()) {
++                try std.testing.expectEqual(@as(u32, @intCast(byte - register_bytes.BYTE_COUNT)), binding.source.memory_byte);
++            } else {
++                try std.testing.expectEqual(@as(u32, @intCast(byte - memory.byteCount())), binding.source.memory_selector);
++            }
+         }
+     }
+ }
+@@ -654,3 +669,174 @@ test "SegmentV2 native-sum graph independently binds every Span snapshot digest
+     try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
+     try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
+ }
++
++/// Rebuild the complete job and terminal Span after changing actual sparse
++/// memory. This uses canonical admission, never a forged wire or native receipt.
++fn sparseValueCanonicalWords(allocator: std.mem.Allocator, value: u32) ![]M31 {
++    const segment = @import("segment_statement_v2.zig");
++    const span = @import("span_statement.zig");
++    var fixture = try public_data_support.Fixture.init();
++    fixture.right_words[0].final_word = value;
++    const old = fixture.job.complete;
++    var final_state = old.final_state;
++    final_state.rw_memory = segment.snapshotDigest(&fixture.right_words, .final_word).id;
++    fixture.job = try span.JobContext.init(try span.CompleteExecution.init(
++        old.protocol_id,
++        old.program,
++        old.initial_state,
++        final_state,
++        old.public_input,
++        old.public_output,
++        old.total_cycles,
++    ), fixture.job.segment_count);
++    const executed = fixture.statements[1].body.executed;
++    fixture.statements[1] = try span.SpanStatement.segmentLeaf(fixture.job, 1, try span.ExecutedSpan.init(
++        executed.first_segment,
++        executed.segment_count,
++        executed.first_cycle,
++        executed.cycle_count,
++        executed.entry,
++        final_state,
++        executed.input,
++        executed.output,
++    ));
++    const source = fixture.rightSource();
++    try source.validate();
++    const words = try public_data_support.encode(allocator, &source);
++    errdefer allocator.free(words);
++    _ = try segment.authenticateCanonicalWire(words);
++    return words;
++}
++
++test "SegmentV2 native-sum sparse values preserve fixed graph under identical address topology" {
++    const allocator = std.testing.allocator;
++    const segment = @import("segment_statement_v2.zig");
++    const graph_contract = @import("segment_public_native_sum_authority_v2_contract.zig");
++    const graph_builder = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
++    const values = [_]u32{ 13, 14, 269 };
++    var graphs: [values.len]graph_contract.OwnedGraph = undefined;
++    var initialized: usize = 0;
++    defer for (graphs[0..initialized]) |*graph| graph.deinit();
++    var counts: [values.len]graph_contract.TermCountsV2 = undefined;
++    var native_totals: [values.len]QM31 = undefined;
++    var first_words: ?[]M31 = null;
++    defer if (first_words) |words| allocator.free(words);
++    for (values, 0..) |value, index| {
++        const words = try sparseValueCanonicalWords(allocator, value);
++        defer if (index != 0) allocator.free(words);
++        if (index == 0) first_words = words;
++        const view = try segment.authenticateCanonicalWire(words);
++        const baseline = try segment.authenticateCanonicalWire(first_words.?);
++        try std.testing.expectEqual(baseline.words.len, view.words.len);
++        inline for (.{ "entry_snapshot", "exit_snapshot", "entry_memory_clocks", "exit_memory_clocks" }) |field| {
++            const before = @field(baseline, field);
++            const after = @field(view, field);
++            try std.testing.expectEqual(before.count, after.count);
++            for (0..before.count) |row| {
++                // All retained sections begin each row with canonical address
++                // limbs; counts and membership are the admitted topology here.
++                const before_address = baseline.words[before.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                const after_address = view.words[after.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                try std.testing.expectEqualSlices(M31, before_address, after_address);
++            }
++        }
++        var authored = try graph_builder.buildGraph(allocator, &view);
++        defer authored.circuit.deinit();
++        graphs[index] = try graph_contract.OwnedGraph.init(allocator, &authored.circuit);
++        initialized += 1;
++        counts[index] = authored.term_counts;
++        native_totals[index] = try evaluateSparseCanonicalGraph(allocator, &authored.circuit, words);
++    }
++    var plans: [values.len]lowering.Plan = undefined;
++    var plan_count: usize = 0;
++    defer for (plans[0..plan_count]) |*plan| plan.deinit();
++    const companion = lowering.Lane{ .circuit_id = subject.CIRCUIT_ID + 1, .active_in = .binary, .circuit_identity = graphs[0].graph.identity_digest, .graph = graphs[0].graph };
++    for (&graphs, 0..) |*graph, index| {
++        const lanes = [_]lowering.Lane{ .{ .circuit_id = subject.CIRCUIT_ID, .active_in = .segment, .circuit_identity = graph.graph.identity_digest, .graph = graph.graph }, companion };
++        plans[index] = try lowering.Plan.init(allocator, try lowering.Reference.seal(&lanes));
++        plan_count += 1;
++        std.debug.print("SEGMENT_V2_SPARSE_SPECIALIZATION value={d} nodes={d} merkle_terms={d} public_terms={d} graph_sha256={s} native_proof_created=false\n", .{
++            values[index],                                           graph.nodes.len, counts[index].merkle, plans[index].public_terms.len,
++            std.fmt.bytesToHex(graph.graph.identity_digest, .lower),
++        });
++    }
++    // The retained 13/14/269 regression previously changed graph constants
++    // and, when a second byte became nonzero, the operation schedule. All
++    // three now use one graph and fixed lowering anchors. Native sums and
++    // witness evaluation must still respond to the actual values.
++    for (1..values.len) |index| {
++        try std.testing.expectEqualDeep(graphs[0].graph.identity_digest, graphs[index].graph.identity_digest);
++        try std.testing.expectEqualDeep(graphs[0].nodes, graphs[index].nodes);
++        try std.testing.expect(sparseSpecializationTermsEqual(plans[0].public_terms, plans[index].public_terms));
++        try std.testing.expectEqualDeep(plans[0].multiply_rows, plans[index].multiply_rows);
++        try std.testing.expectEqualDeep(plans[0].inverse_rows, plans[index].inverse_rows);
++        try std.testing.expectEqualDeep(plans[0].linear_rows, plans[index].linear_rows);
++        try std.testing.expectEqualDeep(counts[0], counts[index]);
++        try std.testing.expect(!native_totals[0].eql(native_totals[index]));
++    }
++}
++
++fn sparseSpecializationTermsEqual(left: []const lowering.PublicWireTerm, right: []const lowering.PublicWireTerm) bool {
++    if (left.len != right.len) return false;
++    for (left, right) |a, b| if (!std.meta.eql(a, b)) return false;
++    return true;
++}
++
++// Independent input construction for the production graph, using its shared
++// typed coordinates and the native public-sum oracle. No native verification
++// receipt is fabricated just to exercise an arithmetic compiler regression.
++fn evaluateSparseCanonicalGraph(allocator: std.mem.Allocator, circuit: *const @import("arithmetic_circuit.zig").Circuit, words: []const M31) !QM31 {
++    const build = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
++    const data = try public_data_v2.PublicDataV2.authenticate(words);
++    const view = try data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&view);
++    const relations = native_relations.Relations.dummy();
++    const sums = try native_statement.NativePublicSums.init(&data, &relations);
++    const domain_sums = [_]QM31{ sums.sums.registers_state, sums.sums.memory_access, sums.sums.program_access, sums.sums.merkle };
++    const challenges = [_][2]QM31{
++        .{ relations.registers_state.z, relations.registers_state.alpha },
++        .{ relations.memory_access.z, relations.memory_access.alpha },
++        .{ relations.program_access.z, relations.program_access.alpha },
++        .{ relations.merkle.z, relations.merkle.alpha },
++    };
++    const inputs = try allocator.alloc(QM31, circuit.inputNodes().len);
++    defer allocator.free(inputs);
++    for (inputs, 0..) |*input, index| {
++        const coordinate = try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index);
++        const word = switch (coordinate) {
++            .wire_word => |i| words[i],
++            .published_sum_word => |c| domain_sums[@intFromEnum(c.domain)].toM31Array()[c.limb],
++            .published_total_word => |c| sums.total.toM31Array()[c.limb],
++            .native_challenge_word => |c| challenges[@intFromEnum(c.relation)][c.limb / 4].toM31Array()[c.limb % 4],
++            .register_byte => |i| register_bytes.value(words, i),
++            .memory_byte => |i| memory.value(words, register_bytes.BYTE_COUNT + i),
++            .memory_selector => |i| M31.fromCanonical(@intFromBool(!memory.value(words, register_bytes.BYTE_COUNT + i).isZero())),
++        };
++        input.* = QM31.fromBase(word);
++    }
++    var evaluation = try circuit.evaluate(allocator, inputs);
++    defer evaluation.deinit();
++    try std.testing.expect(try circuit.outputsAreZero(evaluation.values));
++    var byte_input: ?usize = null;
++    var selector_input: ?usize = null;
++    for (inputs, 0..) |_, index| {
++        switch (try build.inputSource(@intCast(words.len), @intCast(memory.memoryByteCount()), index)) {
++            .memory_byte => |i| if (i == 0) {
++                byte_input = index;
++            },
++            .memory_selector => |i| if (i == 0) {
++                selector_input = index;
++            },
++            else => {},
++        }
++    }
++    for ([_]usize{ byte_input.?, selector_input.? }) |index| {
++        const saved = inputs[index];
++        defer inputs[index] = saved;
++        inputs[index] = if (index == selector_input.?) QM31.zero() else saved.add(QM31.one());
++        var changed = try circuit.evaluate(allocator, inputs);
++        defer changed.deinit();
++        try std.testing.expect(!try circuit.outputsAreZero(changed.values));
++    }
++    return sums.total;
++}
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+index 6ab325b6..aa21272b 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_arithmetic_graph_binding_v2.zig
+@@ -113,6 +113,7 @@ pub const PreparedV2 = struct {
+     publication_id: Digest,
+     native_public_sums_id: Digest,
+     relation_context_id: Digest,
++    memory_layout: register_bytes.MemoryLayout,
+     public_sums: public_logup_v2.Sums,
+     public_total: QM31,
+     lowering_obligation: LoweringObligationV2,
+@@ -141,6 +142,7 @@ pub const PreparedV2 = struct {
+         return .{
+             .source36_statement_word_emits = wire_count,
+             .row11_statement_word_consumes = wire_count,
++            .memory_byte_count = self.manifest.memory_byte_count,
+             .row11_boundary_bridge_emits = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+             .row15_boundary_bridge_consumes = self.manifest.logical_rows[rowIndex(.vm_public_claim_semantics_input)],
+             .rows13_16_arithmetic_wire_emits = self.lowering_obligation.input_count,
+@@ -270,15 +272,19 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
+         inputs.infra_descs,
+     );
+     const authority_call_count = try authority_hash_plan.poseidonCallCount();
+-    const counts = try deriveCounts(data.words().len, authority_call_count);
++    const view = try data.authenticatedView();
++    const memory_layout = try register_bytes.MemoryLayout.init(&view);
++    const memory_byte_count = std.math.cast(u32, memory_layout.memoryByteCount()) orelse return error.ArithmeticOverflow;
++    const counts = try deriveCounts(data.words().len, authority_call_count, memory_byte_count);
+     var obligation = LoweringObligationV2{
++        .memory_byte_count = memory_byte_count,
+         .boundary_word_count = std.math.cast(u32, data.words().len) orelse
+             return error.ArithmeticOverflow,
+         .input_count = std.math.cast(
+             u32,
+             try checkedAdd(
+                 data.words().len,
+-                ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
++                try checkedAdd(ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT, memory_layout.totalBridgeWords()),
+             ),
+         ) orelse return error.ArithmeticOverflow,
+         .identity = undefined,
+@@ -310,6 +316,7 @@ pub fn derivePrepared(inputs: InputsV2) Error!PreparedV2 {
+         .publication_id = inputs.publication.identity,
+         .native_public_sums_id = inputs.native_public_sums.identity,
+         .relation_context_id = inputs.native_public_sums.relation_context_id,
++        .memory_layout = memory_layout,
+         .public_sums = inputs.native_public_sums.sums,
+         .public_total = inputs.native_public_sums.total,
+         .lowering_obligation = obligation,
+@@ -353,6 +360,7 @@ pub fn manifestFor(
+             u32,
+             inputs.owned_public_data.data.words().len,
+         ) orelse return error.ArithmeticOverflow,
++        .memory_byte_count = obligation.memory_byte_count,
+         .statement_source_id = inputs.statement_source.source_id,
+         .publication_id = inputs.publication.identity,
+         .native_public_sums_id = inputs.native_public_sums.identity,
+@@ -614,6 +622,10 @@ pub fn sourceId(prepared: *const PreparedV2) Digest {
+     hash.digest(prepared.publication_id);
+     hash.digest(prepared.native_public_sums_id);
+     hash.digest(prepared.relation_context_id);
++    inline for (.{ prepared.memory_layout.entry, prepared.memory_layout.exit }) |section| {
++        hash.scalar(@as(u64, @intCast(section.payload_start)));
++        hash.scalar(section.count);
++    }
+     hash.qm31(prepared.public_sums.registers_state);
+     hash.qm31(prepared.public_sums.memory_access);
+     hash.qm31(prepared.public_sums.program_access);
+@@ -647,6 +659,7 @@ pub fn preparedEql(left: *const PreparedV2, right: *const PreparedV2) bool {
+         std.meta.eql(left.publication_id, right.publication_id) and
+         std.meta.eql(left.native_public_sums_id, right.native_public_sums_id) and
+         std.meta.eql(left.relation_context_id, right.relation_context_id) and
++        std.meta.eql(left.memory_layout, right.memory_layout) and
+         sumsEql(left.public_sums, right.public_sums) and
+         left.public_total.eql(right.public_total) and
+         std.meta.eql(left.lowering_obligation, right.lowering_obligation) and
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+index 7e0c3ae1..c96ab99e 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_contract.zig
+@@ -27,8 +27,8 @@ pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
+ const AUTHORITY_EVENTS_PER_CALL = 1 + @import("air/vm_public_claim_hash_authority_v2.zig").CALL_WIRE_GROUP_COUNT;
+ 
+ pub const FORMAT_VERSION: u16 = 2;
+-pub const SCHEMA_VERSION: u16 = 5;
+-pub const MANIFEST_VERSION: u16 = 7;
++pub const SCHEMA_VERSION: u16 = 6;
++pub const MANIFEST_VERSION: u16 = 8;
+ pub const FIRST_ROW: usize = @intFromEnum(roster.Component.vm_public_claim_input);
+ pub const ROW_COUNT: usize = 6;
+ pub const LAST_ROW: usize = FIRST_ROW + ROW_COUNT - 1;
+@@ -194,6 +194,7 @@ pub const ClosureLedgerV2 = struct {
+     source36_statement_word_emits: u32,
+     row11_statement_word_consumes: u32,
+     row11_boundary_bridge_emits: u32,
++    memory_byte_count: u32,
+     row15_boundary_bridge_consumes: u32,
+     row8_challenge_word_emits: u32 = CHALLENGE_WORD_COUNT,
+     row16_challenge_word_consumes: u32 = CHALLENGE_WORD_COUNT,
+@@ -221,7 +222,7 @@ pub const ClosureLedgerV2 = struct {
+             self.source36_statement_word_emits !=
+                 self.row11_statement_word_consumes or
+             self.row11_boundary_bridge_emits !=
+-                try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT) or
++                try checkedAddU32(try checkedAddU32(self.row11_statement_word_consumes, register_bytes.BYTE_COUNT), try checkedAddU32(self.memory_byte_count, self.memory_byte_count)) or
+             self.row15_boundary_bridge_consumes !=
+                 self.row11_boundary_bridge_emits or
+             self.row8_challenge_word_emits != CHALLENGE_WORD_COUNT or
+@@ -254,6 +255,7 @@ pub const ManifestV2 = struct {
+     publication_word_count: u16 = PUBLICATION_WORD_COUNT,
+     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
+     wire_word_count: u32,
++    memory_byte_count: u32,
+     statement_source_id: Digest,
+     publication_id: Digest,
+     native_public_sums_id: Digest,
+@@ -297,7 +299,7 @@ pub const ManifestV2 = struct {
+                 control_witness_v2.TRACE_LOG_SIZE or
+             allZeroBytes(&self.control_source_id) or
+             self.logical_rows[rowIndex(.vm_public_claim_semantics_input)] !=
+-                try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT))
++                try checkedAddU32(try checkedAddU32(self.wire_word_count, register_bytes.BYTE_COUNT), try checkedAddU32(self.memory_byte_count, self.memory_byte_count)))
+         {
+             return error.InvalidManifest;
+         }
+@@ -329,6 +331,7 @@ pub const LoweringObligationV2 = struct {
+     schema_version: u16 = SCHEMA_VERSION,
+     circuit_id: u32 = NATIVE_SUM_CIRCUIT_ID,
+     boundary_word_count: u32,
++    memory_byte_count: u32,
+     native_sum_and_total_word_count: u16 = ARITHMETIC_PUBLICATION_WORD_COUNT,
+     challenge_word_count: u16 = CHALLENGE_WORD_COUNT,
+     input_count: u32,
+@@ -344,7 +347,7 @@ pub const LoweringObligationV2 = struct {
+     pub fn validate(self: *const LoweringObligationV2) Error!void {
+         const expected_inputs = try checkedAddU32(
+             self.boundary_word_count,
+-            ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
++            try checkedAddU32(ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT, try checkedAddU32(self.memory_byte_count, self.memory_byte_count)),
+         );
+         if (self.format_version != FORMAT_VERSION or
+             self.schema_version != SCHEMA_VERSION or
+@@ -368,11 +371,13 @@ pub const LoweringObligationV2 = struct {
+ pub fn deriveCounts(
+     wire_words: usize,
+     authority_call_count: usize,
++    memory_byte_count: usize,
+ ) Error!CountsV2 {
++    const bridge_words = try checkedAdd(register_bytes.BYTE_COUNT, try checkedMul(memory_byte_count, 2));
+     var relay_relation_events = try checkedMul(PUBLICATION_WORD_COUNT, 3);
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+-        try checkedMul(try checkedAdd(wire_words, register_bytes.BYTE_COUNT), 3),
++        try checkedMul(try checkedAdd(wire_words, bridge_words), 3),
+     );
+     relay_relation_events = try checkedAdd(
+         relay_relation_events,
+@@ -390,7 +395,7 @@ pub fn deriveCounts(
+         .publication_header = PUBLICATION_HEADER_WORD_COUNT,
+         .native_public_sums = NATIVE_PUBLIC_SUM_WORD_COUNT,
+         .publication_seal = PUBLICATION_SEAL_WORD_COUNT,
+-        .boundary_bridge = try checkedAdd(wire_words, register_bytes.BYTE_COUNT),
++        .boundary_bridge = try checkedAdd(wire_words, bridge_words),
+         .native_challenges = CHALLENGE_WORD_COUNT,
+         .control_relay = CONTROL_LOGICAL_ROW_COUNT,
+         .relay_relation_events = relay_relation_events,
+@@ -422,6 +427,7 @@ pub fn countsFromManifest(manifest: ManifestV2) CountsV2 {
+ pub fn eventCountFromManifest(manifest: *const ManifestV2) Error!u32 {
+     var relay_rows = try checkedAddU32(PUBLICATION_WORD_COUNT, manifest.wire_word_count);
+     relay_rows = try checkedAddU32(relay_rows, register_bytes.BYTE_COUNT);
++    relay_rows = try checkedAddU32(relay_rows, try checkedAddU32(manifest.memory_byte_count, manifest.memory_byte_count));
+     relay_rows = try checkedAddU32(relay_rows, CHALLENGE_WORD_COUNT);
+     var result = try checkedMulU32(relay_rows, 3);
+     result = try checkedAddU32(result, try checkedMulU32(manifest.authority_poseidon_call_count, AUTHORITY_EVENTS_PER_CALL));
+@@ -450,6 +456,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     hash.scalar(manifest.publication_word_count);
+     hash.scalar(manifest.challenge_word_count);
+     hash.scalar(manifest.wire_word_count);
++    hash.scalar(manifest.memory_byte_count);
+     hash.digest(manifest.statement_source_id);
+     hash.digest(manifest.publication_id);
+     hash.digest(manifest.native_public_sums_id);
+@@ -471,6 +478,7 @@ pub fn loweringObligationId(obligation: *const LoweringObligationV2) Digest {
+     hash.scalar(obligation.schema_version);
+     hash.scalar(obligation.circuit_id);
+     hash.scalar(obligation.boundary_word_count);
++    hash.scalar(obligation.memory_byte_count);
+     hash.scalar(obligation.native_sum_and_total_word_count);
+     hash.scalar(obligation.challenge_word_count);
+     hash.scalar(obligation.input_count);
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+index f673bca6..ab66cd43 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_test.zig
+@@ -30,7 +30,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+     try std.testing.expectEqual(subject.PUBLICATION_HEADER_WORD_COUNT, counts.publication_header);
+     try std.testing.expectEqual(subject.NATIVE_PUBLIC_SUM_WORD_COUNT, counts.native_public_sums);
+     try std.testing.expectEqual(subject.PUBLICATION_SEAL_WORD_COUNT, counts.publication_seal);
+-    try std.testing.expectEqual(wire.len + register_bytes.BYTE_COUNT, counts.boundary_bridge);
++    try std.testing.expectEqual(wire.len + prepared.memory_layout.totalBridgeWords(), counts.boundary_bridge);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, counts.native_challenges);
+     try std.testing.expectEqual(subject.CONTROL_LOGICAL_ROW_COUNT, counts.control_relay);
+     try std.testing.expectEqual(
+@@ -43,7 +43,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+         counts.authority_relation_events,
+     );
+     try std.testing.expectEqual(
+-        3 * (subject.PUBLICATION_WORD_COUNT + wire.len + register_bytes.BYTE_COUNT +
++        3 * (subject.PUBLICATION_WORD_COUNT + wire.len + prepared.memory_layout.totalBridgeWords() +
+             subject.CHALLENGE_WORD_COUNT) +
+             counts.authority_relation_events +
+             subject.CONTROL_RELATION_EVENT_COUNT,
+@@ -131,9 +131,10 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+     for (owned.boundary_bridge[wire.len..], 0..) |row, byte_index| {
+         try std.testing.expectEqual(subject.RelaySourceKindV2.boundary_bridge, row.source_kind);
+         try std.testing.expectEqual(subject.BOUNDARY_BRIDGE_CIRCUIT_ID, row.source_fields[0]);
+-        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.bridgeIndex(wire.len, byte_index))), row.source_fields[1]);
+-        try std.testing.expect(row.value.eql(register_bytes.value(wire, byte_index)));
+-        try std.testing.expectEqual(@as(u32, @intCast(register_bytes.inputIndex(wire.len + subject.ARITHMETIC_PUBLICATION_WORD_COUNT + subject.CHALLENGE_WORD_COUNT, byte_index))), row.arithmetic_node_id);
++        try std.testing.expectEqual(@as(u32, @intCast(wire.len + byte_index)), row.source_fields[1]);
++        const expected_byte = if (byte_index < register_bytes.BYTE_COUNT) register_bytes.value(wire, byte_index) else if (byte_index < prepared.memory_layout.byteCount()) prepared.memory_layout.value(wire, byte_index) else M31.fromCanonical(@intFromBool(prepared.memory_layout.value(wire, byte_index - prepared.memory_layout.memoryByteCount()).toU32() != 0));
++        try std.testing.expect(row.value.eql(expected_byte));
++        try std.testing.expectEqual(@as(u32, @intCast(wire.len + subject.ARITHMETIC_PUBLICATION_WORD_COUNT + subject.CHALLENGE_WORD_COUNT + byte_index)), row.arithmetic_node_id);
+         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_mask);
+         try std.testing.expectEqual(@as(u32, 1), row.arithmetic_use_count);
+         try std.testing.expectEqual(@as(u32, 0), row.control_mask);
+@@ -163,7 +164,7 @@ test "V2 public spine writes exact recursion-local bridge rows" {
+     for (owned.control_logical_rows[subject.CONTROL_LOGICAL_ROW_COUNT..]) |row|
+         for (row) |word| try std.testing.expect(word.isZero());
+ 
+-    try expectExactRelationProjection(&owned, wire.len);
++    try expectExactRelationProjection(&owned);
+ }
+ 
+ test "V2 public spine rejects omitted and aliased destinations before writes" {
+@@ -436,7 +437,7 @@ fn expectEventTriplets(events: []const subject.RelationEventV2) !void {
+     }
+ }
+ 
+-fn expectExactRelationProjection(owned: *const OwnedDestinations, wire_len: usize) !void {
++fn expectExactRelationProjection(owned: *const OwnedDestinations) !void {
+     var source_wire_consumes: usize = 0;
+     var source_challenge_consumes: usize = 0;
+     var arithmetic_emits: usize = 0;
+@@ -456,10 +457,10 @@ fn expectExactRelationProjection(owned: *const OwnedDestinations, wire_len: usiz
+             control_emits += @intFromBool(event.multiplicity == 1);
+         }
+     }
+-    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + wire_len + register_bytes.BYTE_COUNT, source_wire_consumes);
++    try std.testing.expectEqual(subject.PUBLICATION_WORD_COUNT + owned.boundary_bridge.len, source_wire_consumes);
+     try std.testing.expectEqual(subject.CHALLENGE_WORD_COUNT, source_challenge_consumes);
+     try std.testing.expectEqual(
+-        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + wire_len + subject.CHALLENGE_WORD_COUNT + register_bytes.BYTE_COUNT,
++        subject.ARITHMETIC_PUBLICATION_WORD_COUNT + owned.boundary_bridge.len + subject.CHALLENGE_WORD_COUNT,
+         arithmetic_emits,
+     );
+     try std.testing.expectEqual(@as(usize, 1), control_emits);
+diff --git a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+index 82a90eef..9ed4918f 100644
+--- a/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
++++ b/src/frontends/riscv/recursion/segment_public_outer_source_v2_write_into_bound.zig
+@@ -213,10 +213,15 @@ pub fn writeAssumeValid(
+     // Row 11 emitted these exact bytes after its existing u16 decomposition
+     // and range checks. Reuse the ordinary relay with distinct coordinates;
+     // no new value is accepted solely from the native-sum graph producer.
+-    for (0..register_bytes.BYTE_COUNT) |byte_index| {
+-        const index = register_bytes.bridgeIndex(wire.len, byte_index);
+-        const node = register_bytes.inputIndex(wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT, byte_index);
+-        const value = register_bytes.value(wire, byte_index);
++    for (0..prepared.memory_layout.totalBridgeWords()) |byte_index| {
++        const index = wire.len + byte_index;
++        const node = wire.len + ARITHMETIC_PUBLICATION_WORD_COUNT + CHALLENGE_WORD_COUNT + byte_index;
++        const value = if (byte_index < register_bytes.BYTE_COUNT)
++            register_bytes.value(wire, byte_index)
++        else if (byte_index < prepared.memory_layout.byteCount())
++            prepared.memory_layout.value(wire, byte_index)
++        else
++            M31.fromCanonical(@intFromBool(prepared.memory_layout.value(wire, byte_index - prepared.memory_layout.memoryByteCount()).toU32() != 0));
+         const row = RelayRowV2{
+             .source_kind = .boundary_bridge,
+             .source_fields = .{ BOUNDARY_BRIDGE_CIRCUIT_ID, @intCast(index), 0, 0, 0 },
+@@ -265,7 +270,6 @@ pub fn writeAssumeValid(
+     }
+ 
+     std.debug.assert(sink.at == destinations.relation_events.len);
+-    _ = prepared;
+ }
+ 
+ pub fn rejectArithmeticBindingAliases(
+diff --git a/src/frontends/riscv/recursion/segment_range_authority_v2.zig b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+index 31252ed6..e2592244 100644
+--- a/src/frontends/riscv/recursion/segment_range_authority_v2.zig
++++ b/src/frontends/riscv/recursion/segment_range_authority_v2.zig
+@@ -89,7 +89,7 @@ pub const SourceAuthorityV2 = struct {
+             self.table_size != lookup_schema.size(self.table_kind) or
+             // The appended byte exports are recursion_wire events; request
+             // ordinals3/4/5 remain the complete three-lane range source.
+-            statement.Air.RELATION_EVENT_COUNT != 9 or
++            statement.Air.RELATION_EVENT_COUNT != 11 or
+             !statement.ROW_35_REQUEST_SET_COMPLETE)
+         {
+             return error.InvalidSourceAuthority;
+diff --git a/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig b/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig
+index 354ef039..9f69dc63 100644
+--- a/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig
++++ b/src/frontends/riscv/recursion/segment_register_byte_layout_v1.zig
+@@ -46,3 +46,63 @@ pub fn value(words: []const M31, byte_index: usize) M31 {
+     const shift: u5 = @intCast((byte_index % 2) * 8);
+     return M31.fromCanonical((word >> shift) & 0xff);
+ }
++
++/// Value-independent coordinates for retained sparse words. Section membership
++/// is admitted geometry; byte values and nonzero selectors are AIR inputs.
++pub const MemoryLayout = struct {
++    entry: wire.RetainedSectionV2,
++    exit: wire.RetainedSectionV2,
++
++    pub fn init(view: *const wire.CanonicalWireViewV2) !MemoryLayout {
++        const count = std.math.add(usize, view.entry_snapshot.count, view.exit_snapshot.count) catch return error.ArithmeticOverflow;
++        const bytes = std.math.mul(usize, count, 4) catch return error.ArithmeticOverflow;
++        _ = std.math.add(usize, BYTE_COUNT, std.math.mul(usize, bytes, 2) catch return error.ArithmeticOverflow) catch return error.ArithmeticOverflow;
++        return .{ .entry = view.entry_snapshot, .exit = view.exit_snapshot };
++    }
++
++    pub fn memoryByteCount(self: MemoryLayout) usize {
++        return (@as(usize, self.entry.count) + self.exit.count) * 4;
++    }
++    pub fn byteCount(self: MemoryLayout) usize {
++        return BYTE_COUNT + self.memoryByteCount();
++    }
++    pub fn totalBridgeWords(self: MemoryLayout) usize {
++        return BYTE_COUNT + 2 * self.memoryByteCount();
++    }
++    pub fn byteIndex(self: MemoryLayout, side: Side, entry_index: usize, byte: usize) usize {
++        const section = if (side == .entry) self.entry else self.exit;
++        std.debug.assert(entry_index < section.count and byte < 4);
++        return BYTE_COUNT + (if (side == .entry) @as(usize, 0) else @as(usize, self.entry.count) * 4) + entry_index * 4 + byte;
++    }
++    pub fn firstByteIndexForWireWord(self: MemoryLayout, index: usize) ?usize {
++        inline for (.{ Side.entry, Side.exit }) |side| {
++            const section = if (side == .entry) self.entry else self.exit;
++            if (index >= section.payload_start) {
++                const relative = index - section.payload_start;
++                const entry_index = relative / wire.RETAINED_ENTRY_WORDS;
++                const limb = relative % wire.RETAINED_ENTRY_WORDS;
++                if (entry_index < section.count and limb >= 2 and limb < 4)
++                    return self.byteIndex(side, entry_index, (limb - 2) * 2);
++            }
++        }
++        return null;
++    }
++    pub fn wireWordIndex(self: MemoryLayout, global_byte: usize) usize {
++        std.debug.assert(global_byte >= BYTE_COUNT and global_byte < self.byteCount());
++        const relative = global_byte - BYTE_COUNT;
++        const entry_bytes = @as(usize, self.entry.count) * 4;
++        const section = if (relative < entry_bytes) self.entry else self.exit;
++        const local = if (relative < entry_bytes) relative else relative - entry_bytes;
++        return section.payload_start + local / 4 * wire.RETAINED_ENTRY_WORDS + 2 + (local % 4) / 2;
++    }
++    pub fn value(self: MemoryLayout, words: []const M31, global_byte: usize) M31 {
++        const word = words[self.wireWordIndex(global_byte)].toU32();
++        std.debug.assert(word <= std.math.maxInt(u16));
++        const shift: u5 = @intCast((global_byte % 2) * 8);
++        return M31.fromCanonical((word >> shift) & 0xff);
++    }
++    pub fn selectorIndex(self: MemoryLayout, global_byte: usize) usize {
++        std.debug.assert(global_byte >= BYTE_COUNT and global_byte < self.byteCount());
++        return self.byteCount() + global_byte - BYTE_COUNT;
++    }
++};
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+index 75d8ac4d..9b168fcd 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig
+@@ -34,9 +34,9 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
+     Air.authenticate,
+ )).@"fn".return_type.?).error_union.error_set;
+ 
+-pub const FORMAT_VERSION: u16 = 4;
+-pub const SCHEMA_VERSION: u16 = 3;
+-pub const MANIFEST_VERSION: u16 = 4;
++pub const FORMAT_VERSION: u16 = 5;
++pub const SCHEMA_VERSION: u16 = 4;
++pub const MANIFEST_VERSION: u16 = 5;
+ pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
+ pub const ROUTING_ROW_11: u8 =
+     @intFromEnum(roster.Component.statement_semantics_input);
+@@ -125,6 +125,10 @@ pub const ClosureLedgerV2 = struct {
+     row15_boundary_wire_consumes: u32,
+     row11_register_byte_emits: u32,
+     row15_register_byte_consumes: u32,
++    row11_memory_byte_emits: u32,
++    row15_memory_byte_consumes: u32,
++    row11_memory_selector_emits: u32,
++    row15_memory_selector_consumes: u32,
+     boundary_bridge_circuit_id: u32 = Air.BOUNDARY_BRIDGE_CIRCUIT_ID,
+     source37_custom_logup_consumes: u32 = source_v2.LOGUP_PUBLICATION_WORD_COUNT,
+     source37_verifier_id: u32 = source_v2.SEGMENT_V2_VERIFIER_ID,
+@@ -148,6 +152,10 @@ pub const ClosureLedgerV2 = struct {
+                 self.row15_boundary_wire_consumes or
+             self.row11_register_byte_emits != register_bytes.BYTE_COUNT or
+             self.row15_register_byte_consumes != self.row11_register_byte_emits or
++            self.row11_memory_byte_emits % 4 != 0 or
++            self.row15_memory_byte_consumes != self.row11_memory_byte_emits or
++            self.row11_memory_selector_emits != self.row11_memory_byte_emits or
++            self.row15_memory_selector_consumes != self.row11_memory_selector_emits or
+             self.boundary_bridge_circuit_id !=
+                 public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID or
+             self.source37_custom_logup_consumes !=
+@@ -175,8 +183,8 @@ comptime {
+         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
+         VM_PUBLIC_LOGUP_ROW_16 != 16 or
+         HEADER_LIMB_COUNT != 8 or
+-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 9 or
+-        Air.INTERACTION_BATCH_COUNT != 5 or Air.INTERACTION_COLUMN_COUNT != 20 or
++        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 11 or
++        Air.INTERACTION_BATCH_COUNT != 6 or Air.INTERACTION_COLUMN_COUNT != 24 or
+         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
+             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
+     {
+@@ -211,6 +219,7 @@ pub const ManifestV2 = struct {
+     range_provider_row_35: u8 = RANGE_PROVIDER_ROW_35,
+     wire_word_count: u32,
+     register_byte_count: u32 = register_bytes.BYTE_COUNT,
++    memory_byte_count: u32,
+     context_word_count: u32 = source_v2.CONTEXT_WORD_COUNT,
+     header_limb_count: u32 = HEADER_LIMB_COUNT,
+     logical_row_count: u32,
+@@ -236,6 +245,7 @@ pub const ManifestV2 = struct {
+             self.range_provider_row_35 != RANGE_PROVIDER_ROW_35 or
+             self.context_word_count != source_v2.CONTEXT_WORD_COUNT or
+             self.register_byte_count != register_bytes.BYTE_COUNT or
++            self.memory_byte_count % 4 != 0 or self.memory_byte_count > self.wire_word_count or
+             self.header_limb_count != HEADER_LIMB_COUNT or
+             self.wire_id_limb_request_count != WIRE_ID_LIMB_COUNT or
+             !self.range_request_source_complete or
+@@ -295,6 +305,9 @@ pub const PreprocessedRowV2 = struct {
+     register_byte_bridge_mask: u32 = 0,
+     register_low_byte_index: u32 = 0,
+     register_high_byte_index: u32 = 0,
++    memory_byte_bridge_mask: u32 = 0,
++    memory_low_selector_index: u32 = 0,
++    memory_high_selector_index: u32 = 0,
+ 
+     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
+         return .{
+@@ -317,6 +330,9 @@ pub const PreprocessedRowV2 = struct {
+             felt(self.register_byte_bridge_mask),
+             felt(self.register_low_byte_index),
+             felt(self.register_high_byte_index),
++            felt(self.memory_byte_bridge_mask),
++            felt(self.memory_low_selector_index),
++            felt(self.memory_high_selector_index),
+         };
+     }
+ };
+@@ -332,6 +348,10 @@ pub const MainRowV2 = struct {
+     verifier_a_high_byte: M31,
+     verifier_b_low_byte: M31,
+     verifier_b_high_byte: M31,
++    memory_low_inverse: M31 = M31.zero(),
++    memory_high_inverse: M31 = M31.zero(),
++    memory_low_nonzero: M31 = M31.zero(),
++    memory_high_nonzero: M31 = M31.zero(),
+ 
+     pub fn values(self: MainRowV2) [Air.PHYSICAL_MAIN_COLUMN_COUNT]M31 {
+         return .{
+@@ -345,6 +365,10 @@ pub const MainRowV2 = struct {
+             self.verifier_a_high_byte,
+             self.verifier_b_low_byte,
+             self.verifier_b_high_byte,
++            self.memory_low_inverse,
++            self.memory_high_inverse,
++            self.memory_low_nonzero,
++            self.memory_high_nonzero,
+         };
+     }
+ };
+@@ -467,6 +491,7 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
+     hash.scalar(manifest.range_provider_row_35);
+     hash.u32Value(manifest.wire_word_count);
+     hash.u32Value(manifest.register_byte_count);
++    hash.u32Value(manifest.memory_byte_count);
+     hash.u32Value(manifest.context_word_count);
+     hash.u32Value(manifest.header_limb_count);
+     hash.u32Value(manifest.logical_row_count);
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+index 5c305e3c..ec44810d 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig
+@@ -200,6 +200,10 @@ pub fn closureLedger(prepared: *const PreparedV2) Error!ClosureLedgerV2 {
+         .row15_boundary_wire_consumes = prepared.manifest.wire_word_count,
+         .row11_register_byte_emits = prepared.manifest.register_byte_count,
+         .row15_register_byte_consumes = prepared.manifest.register_byte_count,
++        .row11_memory_byte_emits = prepared.manifest.memory_byte_count,
++        .row15_memory_byte_consumes = prepared.manifest.memory_byte_count,
++        .row11_memory_selector_emits = prepared.manifest.memory_byte_count,
++        .row15_memory_selector_consumes = prepared.manifest.memory_byte_count,
+     };
+     try result.validate();
+     return result;
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+index 29ba8b80..4a4e29f2 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig
+@@ -148,6 +148,7 @@ pub fn deriveManifest(
+     if (log_size >= 31) return error.InvalidManifest;
+     var result = ManifestV2{
+         .wire_word_count = wire_count,
++        .memory_byte_count = @intCast((try dependency_0.register_bytes.MemoryLayout.init(&view)).memoryByteCount()),
+         .logical_row_count = logical_rows,
+         .trace_log_size = log_size,
+         .trace_row_count = @as(u32, 1) << @intCast(log_size),
+@@ -237,9 +238,16 @@ pub fn wireRow(
+ ) LogicalRowV2 {
+     const value = view.words[index];
+     const is_u16 = wireWordIsU16(view, index);
+-    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index);
++    const memory = dependency_0.register_bytes.MemoryLayout.init(view) catch unreachable;
++    const memory_byte = memory.firstByteIndexForWireWord(index);
++    const register_byte = dependency_0.register_bytes.firstByteIndexForWireWord(index) orelse memory_byte;
+     std.debug.assert(register_byte == null or is_u16);
+     const bytes = if (is_u16) bytesOfU16(value) else .{ M31.zero(), M31.zero() };
++    const hint_recipe = @import("../air/lang/hint_recipe.zig");
++    var low_hint: [2]u32 = undefined;
++    var high_hint: [2]u32 = undefined;
++    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[0].toU32() else 0}, &low_hint) catch unreachable;
++    hint_recipe.evaluateField(hint_recipe.id(.field_inverse_or_zero), &.{if (memory_byte != null) bytes[1].toU32() else 0}, &high_hint) catch unreachable;
+     return .{
+         .preprocessing = .{
+             .row_mask = 1,
+@@ -259,8 +267,11 @@ pub fn wireRow(
+             .expected_header = 0,
+             .boundary_bridge_mask = 1,
+             .register_byte_bridge_mask = @intFromBool(register_byte != null),
+-            .register_low_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte)) else 0,
+-            .register_high_byte_index = if (register_byte) |byte| @intCast(dependency_0.register_bytes.bridgeIndex(view.words.len, byte + 1)) else 0,
++            .register_low_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte) else 0,
++            .register_high_byte_index = if (register_byte) |byte| @intCast(view.words.len + byte + 1) else 0,
++            .memory_byte_bridge_mask = @intFromBool(memory_byte != null),
++            .memory_low_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte)) else 0,
++            .memory_high_selector_index = if (memory_byte) |byte| @intCast(view.words.len + memory.selectorIndex(byte + 1)) else 0,
+         },
+         .main = .{
+             .enabler = M31.one(),
+@@ -269,6 +280,10 @@ pub fn wireRow(
+             .verifier_b = M31.zero(),
+             .source_low_byte = bytes[0],
+             .source_high_byte = bytes[1],
++            .memory_low_inverse = felt(low_hint[0]),
++            .memory_high_inverse = felt(high_hint[0]),
++            .memory_low_nonzero = felt(low_hint[1]),
++            .memory_high_nonzero = felt(high_hint[1]),
+             .verifier_a_low_byte = M31.zero(),
+             .verifier_a_high_byte = M31.zero(),
+             .verifier_b_low_byte = M31.zero(),
+@@ -399,6 +414,16 @@ pub fn writeEvents(
+             main.source_high_byte,                M31.zero(),
+             M31.zero(),                           M31.zero(),
+         }),
++        event(logical_row, 9, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_low_selector_index),
++            main.memory_low_nonzero,              M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
++        event(logical_row, 10, .recursion_wire, .emit, pp.memory_byte_bridge_mask, &.{
++            felt(Air.BOUNDARY_BRIDGE_CIRCUIT_ID), felt(pp.memory_high_selector_index),
++            main.memory_high_nonzero,             M31.zero(),
++            M31.zero(),                           M31.zero(),
++        }),
+     };
+ }
+ 
+diff --git a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+index bc0767de..9dfd38b4 100644
+--- a/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig
+@@ -183,6 +183,10 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+     var boundary_wire_emits: usize = 0;
+     var register_byte_emits: usize = 0;
+     var seen_register_bytes: [register_bytes.BYTE_COUNT]bool = @splat(false);
++    const memory = try register_bytes.MemoryLayout.init(&try fixture.data.authenticatedView());
++    const seen_memory = try std.testing.allocator.alloc(bool, memory.memoryByteCount() * 2);
++    defer std.testing.allocator.free(seen_memory);
++    @memset(seen_memory, false);
+     for (owned.events) |event| {
+         try event.validate();
+         if (event.multiplicity == 0) continue;
+@@ -212,14 +216,35 @@ test "V2 row-11 closes boundary words and exact ProgramV2 statement payloads" {
+             const coordinate = event.tuple[1].toU32();
+             try std.testing.expect(coordinate >= fixture.words.len);
+             const byte_index = coordinate - fixture.words.len;
+-            try std.testing.expect(byte_index < register_bytes.BYTE_COUNT);
++            if (byte_index >= register_bytes.BYTE_COUNT) {
++                try std.testing.expect(byte_index < memory.byteCount());
++                const offset = byte_index - register_bytes.BYTE_COUNT;
++                try std.testing.expect(!seen_memory[offset]);
++                seen_memory[offset] = true;
++                try std.testing.expect(event.tuple[2].eql(memory.value(fixture.words, byte_index)));
++                continue;
++            }
+             try std.testing.expect(!seen_register_bytes[byte_index]);
+             seen_register_bytes[byte_index] = true;
+             try std.testing.expect(event.tuple[2].eql(register_bytes.value(fixture.words, byte_index)));
+             try std.testing.expect(event.tuple[3].isZero() and event.tuple[4].isZero() and event.tuple[5].isZero());
+             register_byte_emits += 1;
+         }
++        if (event.ordinal == 9 or event.ordinal == 10) {
++            const coordinate = event.tuple[1].toU32() - fixture.words.len;
++            try std.testing.expect(coordinate >= memory.byteCount() and coordinate < memory.totalBridgeWords());
++            const offset = coordinate - register_bytes.BYTE_COUNT;
++            try std.testing.expect(!seen_memory[offset]);
++            seen_memory[offset] = true;
++            const byte_index = coordinate - memory.memoryByteCount();
++            try std.testing.expectEqual(@as(u32, @intFromBool(!memory.value(fixture.words, byte_index).isZero())), event.tuple[2].toU32());
++        }
+     }
++    for (seen_memory) |seen| try std.testing.expect(seen);
++    try std.testing.expectEqual(memory.memoryByteCount(), closure.row11_memory_byte_emits);
++    var missing_selector = closure;
++    missing_selector.row11_memory_selector_emits -= 1;
++    try std.testing.expectError(error.SourceMismatch, missing_selector.validate());
+     try std.testing.expectEqual(
+         fixture.words.len + source_v2.CONTEXT_WORD_COUNT,
+         source_consumes,
+@@ -533,3 +558,35 @@ test "V2 row-11 register byte bridge reuses constrained decomposition" {
+     try std.testing.expectEqual(@as(u32, 1), header.preprocessing.boundary_bridge_mask);
+     try std.testing.expectEqual(@as(u32, 0), header.preprocessing.register_byte_bridge_mask);
+ }
++
++test "V2 row-11 sparse bytes constrain exact nonzero selectors" {
++    const rows = @import("segment_statement_outer_source_v2_prepared_v2.zig");
++    var fixture = try Fixture.init(std.testing.allocator);
++    defer fixture.deinit();
++    const view = try fixture.data.authenticatedView();
++    const memory = try register_bytes.MemoryLayout.init(&view);
++    var authority = try subject.AuthorityV2.init(std.testing.allocator);
++    defer authority.deinit();
++    var workspace = subject.WorkspaceV2{};
++    var saw_zero = false;
++    var saw_nonzero = false;
++    for (register_bytes.BYTE_COUNT..memory.byteCount()) |byte_index| {
++        const row = rows.wireRow(&view, memory.wireWordIndex(byte_index));
++        try rows.validateDirectRow(&workspace, &authority, row.runtime());
++        const byte = memory.value(view.words, byte_index);
++        saw_zero = saw_zero or byte.isZero();
++        saw_nonzero = saw_nonzero or !byte.isZero();
++        inline for (.{ "source_low_byte", "source_high_byte", "memory_low_inverse", "memory_high_inverse", "memory_low_nonzero", "memory_high_nonzero" }) |field| {
++            var changed = row;
++            @field(changed.main, field) = @field(changed.main, field).add(M31.one());
++            try std.testing.expectError(error.DirectConstraintFailure, rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++        }
++    }
++    try std.testing.expect(saw_zero and saw_nonzero);
++    const ordinary = rows.wireRow(&view, register_bytes.wireWordIndex(0));
++    inline for (.{ "memory_low_inverse", "memory_high_inverse", "memory_low_nonzero", "memory_high_nonzero" }) |field| {
++        var changed = ordinary;
++        @field(changed.main, field) = M31.one();
++        try std.testing.expectError(error.DirectConstraintFailure, rows.validateDirectRow(&workspace, &authority, changed.runtime()));
++    }
++}
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index 784ee5b1..75c2a83b 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -1826,6 +1826,9 @@ pub fn add(ctx: anytype) void {
+     const detached_child_names: []const []const u8 = &.{"SegmentV2 detached child owns genuine capture and exact recorded transcript"};
+     const detached_child_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_child_names });
+     b.step("test-recursive-segment-v2-detached-child", "Replay a pinned real child proof for recursion after caller input destruction").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_child_tests), detached_child_names, "SegmentV2 detached child guard"));
++    const detached_boundary_names: []const []const u8 = &.{"SegmentV2 expected boundary shares native hashes and keeps dynamic values out of graph"};
++    const detached_boundary_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_boundary_names });
++    b.step("test-recursive-segment-v2-detached-boundary", "Check authenticated expected-boundary arithmetic before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_boundary_tests), detached_boundary_names, "SegmentV2 detached boundary guard"));
+     const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+     detached_runner.addImport("stwo_prover_engine", prover);
+     detached_runner.addImport("stwo_prover_api", prover_api);
+diff --git a/src/integrations/riscv_cpu/mod.zig b/src/integrations/riscv_cpu/mod.zig
+index a8ea77b6..fa2e014b 100644
+--- a/src/integrations/riscv_cpu/mod.zig
++++ b/src/integrations/riscv_cpu/mod.zig
+@@ -231,6 +231,8 @@ pub const recursive_segment_v2_detached_proof = @import("recursive_segment_v2_de
+ pub const recursive_segment_v2_detached_command = @import("recursive_segment_v2_detached_command.zig");
+ pub const recursive_segment_v2_detached_child_transcript = @import("recursive_segment_v2_detached_child_transcript.zig");
+ pub const recursive_segment_v2_detached_composition = @import("recursive_segment_v2_detached_composition.zig");
++pub const recursive_segment_v2_detached_prefix = @import("recursive_segment_v2_detached_prefix.zig");
++pub const recursive_segment_v2_detached_boundary = @import("recursive_segment_v2_detached_boundary.zig");
+ pub const recursive_segment_v2_tuple_closure_diagnostic = @import("recursive_segment_v2_tuple_closure_diagnostic.zig");
+ pub const recursive_segment_v2_verified_artifact = @import("recursive_segment_v2_verified_artifact.zig");
+ pub const recursive_segment_v2_verified_publication = @import("recursive_segment_v2_verified_publication.zig");
+diff --git a/src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig b/src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig
+index 48ee3e5b..9e4535f3 100644
+--- a/src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig
++++ b/src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig
+@@ -255,20 +255,13 @@ pub const Program = struct {
+         }
+         try writer.mix(.boundary, .provider_partial, recursion.recursion_air_composition_circuit_v3.POSEIDON_AUX_START, 8);
+         try writer.mix(.tree2, .commitment, 2, 8);
+-        try writer.draw(.composition, .composition, 0, 4);
+-        try writer.mix(.tree3, .commitment, 3, 8);
+-        try writer.draw(.oods, .oods, 0, 4);
+-        try writer.mix(.samples, .sampled_values, 0, try words(capture.sampled_values.len));
+-        try writer.draw(.deep, .deep, 0, 4);
+-        for (0..capture.fri.layers.len) |i| {
+-            try writer.mix(.fri, .fri_commitment, i, 8);
+-            try writer.draw(.fri, .fri_alpha, i, 4);
+-        }
+-        try writer.mix(.last_layer, .last_layer, 0, try words(capture.last_layer_coefficients.len));
+-        try writer.pow(.pcs_pow, 1, protocol.pcs_pow_bits);
+-        var query: usize = 0;
+-        while (query < protocol.fri_query_count) : (query += recording.RATE)
+-            try writer.draw(.queries, .queries, query, @min(recording.RATE, protocol.fri_query_count - query));
++        try appendPcsTranscript(writer, .{
++            .sampled_value_count = capture.sampled_values.len,
++            .fri_layer_count = capture.fri.layers.len,
++            .last_layer_coefficient_count = capture.last_layer_coefficients.len,
++            .query_count = protocol.fri_query_count,
++            .pow_bits = protocol.pcs_pow_bits,
++        });
+         const operations = try list.toOwnedSlice(allocator);
+         var result = Program{
+             .allocator = allocator,
+@@ -365,6 +358,44 @@ pub const Program = struct {
+     }
+ };
+ 
++/// The shared PCS suffix begins after the interaction commitment. Its shape
++/// comes from an admitted profile; captured values are never program constants.
++pub const PcsShape = struct {
++    sampled_value_count: usize,
++    fri_layer_count: usize,
++    last_layer_coefficient_count: usize,
++    query_count: usize,
++    pow_bits: u32,
++};
++
++pub fn initPcsOperations(allocator: std.mem.Allocator, shape: PcsShape) ![]Operation {
++    var list: std.ArrayList(Operation) = .empty;
++    errdefer list.deinit(allocator);
++    try appendPcsTranscript(Writer{ .allocator = allocator, .list = &list }, shape);
++    return list.toOwnedSlice(allocator);
++}
++
++pub fn appendPcsTranscript(writer: anytype, shape: PcsShape) !void {
++    if (shape.sampled_value_count == 0 or shape.fri_layer_count == 0 or
++        shape.fri_layer_count > 30 or shape.last_layer_coefficient_count == 0 or
++        shape.query_count == 0) return error.InvalidRecursiveTranscriptProgram;
++    _ = try checked(shape.query_count);
++    try writer.draw(.composition, .composition, 0, 4);
++    try writer.mix(.tree3, .commitment, 3, 8);
++    try writer.draw(.oods, .oods, 0, 4);
++    try writer.mix(.samples, .sampled_values, 0, try words(shape.sampled_value_count));
++    try writer.draw(.deep, .deep, 0, 4);
++    for (0..shape.fri_layer_count) |i| {
++        try writer.mix(.fri, .fri_commitment, i, 8);
++        try writer.draw(.fri, .fri_alpha, i, 4);
++    }
++    try writer.mix(.last_layer, .last_layer, 0, try words(shape.last_layer_coefficient_count));
++    try writer.pow(.pcs_pow, 1, shape.pow_bits);
++    var query: usize = 0;
++    while (query < shape.query_count) : (query += recording.RATE)
++        try writer.draw(.queries, .queries, query, @min(recording.RATE, shape.query_count - query));
++}
++
+ const Writer = struct {
+     allocator: std.mem.Allocator,
+     list: *std.ArrayList(Operation),
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index f42358ab..64ac800b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -48,6 +48,9 @@ fn run(comptime Metal: type) !void {
+     var memory_addresses: ?usize = null;
+     var two_segment_output: ?[]const u8 = null;
+     var initial_register7: ?u32 = null;
++    var initial_memory_word: ?u32 = null;
++    var child_key_paths: [2]?[]const u8 = .{ null, null };
++    var child_key_pins: [2]?[]const u8 = .{ null, null };
+     var backend: NativeBackend = .cpu;
+     var backend_seen = false;
+     var aot_bundle: ?[]const u8 = null;
+@@ -63,6 +66,17 @@ fn run(comptime Metal: type) !void {
+         } else if (std.mem.eql(u8, key, "--memory-addresses")) {
+             if (memory_addresses != null) return error.DuplicateArgument;
+             memory_addresses = std.fmt.parseInt(usize, value, 10) catch return error.InvalidMemoryAddressCount;
++        } else if (std.mem.eql(u8, key, "--initial-memory-word")) {
++            if (initial_memory_word != null) return error.DuplicateArgument;
++            initial_memory_word = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialMemoryWord;
++        } else if (std.mem.eql(u8, key, "--child-0-key") or std.mem.eql(u8, key, "--child-1-key")) {
++            const index: usize = if (key[8] == '0') 0 else 1;
++            if (child_key_paths[index] != null or value.len == 0) return error.InvalidArguments;
++            child_key_paths[index] = value;
++        } else if (std.mem.eql(u8, key, "--child-0-key-sha256") or std.mem.eql(u8, key, "--child-1-key-sha256")) {
++            const index: usize = if (key[8] == '0') 0 else 1;
++            if (child_key_pins[index] != null or value.len != 64) return error.InvalidArguments;
++            child_key_pins[index] = value;
+         } else if (std.mem.eql(u8, key, "--initial-register7")) {
+             if (initial_register7 != null) return error.DuplicateArgument;
+             initial_register7 = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialRegister7;
+@@ -85,10 +99,12 @@ fn run(comptime Metal: type) !void {
+             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
+             aot_manifest = digest;
+         } else {
+-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--two-segment-output NEW_DIRECTORY]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--two-segment-output NEW_DIRECTORY [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+             return error.InvalidArguments;
+         }
+     }
++    if (two_segment_output == null and (initial_memory_word != null or child_key_paths[0] != null or child_key_paths[1] != null or child_key_pins[0] != null or child_key_pins[1] != null)) return error.TwoSegmentOutputRequired;
++    for (child_key_paths, child_key_pins) |path, pin| if ((path == null) != (pin == null)) return error.MissingDetachedKeyAdmission;
+     if (two_segment_output != null and memory_addresses == null) return error.MissingMemoryAddressCount;
+     if (memory_addresses) |count| {
+         if (steps != null or initial_register7 != null) return error.ConflictingWorkloadArguments;
+@@ -110,7 +126,7 @@ fn run(comptime Metal: type) !void {
+         .cpu => {
+             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
+             if (two_segment_output) |directory|
+-                try producePair(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, directory)
++                try producePair(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
+             else if (memory_addresses) |count|
+                 try gate.runMemoryProof(allocator, count)
+             else
+@@ -148,7 +164,7 @@ fn run(comptime Metal: type) !void {
+                 );
+                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
+                 if (two_segment_output) |directory| {
+-                    try producePair(NativeEngine, allocator, memory_addresses.?, directory);
++                    try producePair(NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
+                     try Backend.shutdown();
+                 } else if (memory_addresses) |count|
+                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
+@@ -167,10 +183,22 @@ fn run(comptime Metal: type) !void {
+     std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
+ }
+ 
+-fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, directory: []const u8) !void {
++fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [2]?[]const u8, child_key_pins: [2]?[]const u8) !void {
+     const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
+     const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
+     const recursion = @import("stwo_riscv_frontend").recursion;
++    const command = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_command;
++    var admitted: [2]?*command.OwnedKeyV1 = .{ null, null };
++    defer for (admitted) |key| if (key) |owner| owner.deinit();
++    for (child_key_paths, child_key_pins, 0..) |path, pin_text, index| {
++        if (path) |key_path| {
++            var pin: [32]u8 = undefined;
++            _ = try std.fmt.hexToBytes(&pin, pin_text.?);
++            const bytes = try std.fs.cwd().readFileAlloc(allocator, key_path, command.MAX_KEY_BYTES);
++            defer allocator.free(bytes);
++            admitted[index] = try command.OwnedKeyV1.admit(allocator, bytes, pin);
++        }
++    }
+     try std.fs.cwd().makeDir(directory);
+     const left = try std.fs.path.join(allocator, &.{ directory, "child-0" });
+     defer allocator.free(left);
+@@ -182,6 +210,8 @@ fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, addres
+             ingress.digest("recursive-v2-parent-vk"),
+         ),
+         .child_directories = .{ left, right },
++        .initial_memory_word = initial_memory_word,
++        .admitted_outer_keys = .{ if (admitted[0]) |owner| owner.key() else null, if (admitted[1]) |owner| owner.key() else null },
+     });
+     const bytes = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
+     defer allocator.free(bytes);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+index 2c4022a2..ee5b9be9 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig
+@@ -149,6 +149,19 @@ pub const OwnedV1 = opaque {
+     pub fn compositionLayout(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3 {
+         return recursion.recursion_air_composition_circuit_v3.capture_layout_v3.CaptureLayoutV3.initSegment(allocator, &self.key().manifest, &self.storage().capture);
+     }
++    /// Explicit preparation of the shared PCS/FRI arithmetic. This copies the
++    /// admitted capture once into caller-owned storage and evaluates both
++    /// circuits. Cheap capture reads above never initiate this construction.
++    pub fn preparePcs(self: *const OwnedV1, allocator: std.mem.Allocator) !recursion.captured_fri.Owned {
++        const pcs = self.key().pcs_config;
++        return recursion.captured_fri.Owned.init(allocator, .{
++            .log_blowup_factor = pcs.fri_config.log_blowup_factor,
++            .log_last_layer_degree_bound = pcs.fri_config.log_last_layer_degree_bound,
++            .interaction_pow_bits = @import("recursive_segment_v2_detached_transcript.zig").INTERACTION_POW_BITS,
++            .pcs_pow_bits = pcs.pow_bits,
++            .claimed_sum_count = @intCast(self.claims().values.len),
++        }, &self.storage().capture);
++    }
+     pub fn columnLogSizes(self: *const OwnedV1, tree: usize) []const u32 {
+         return self.storage().capture.column_log_sizes[tree];
+     }
+@@ -282,6 +295,33 @@ test "SegmentV2 detached child owns genuine capture and exact recorded transcrip
+     try std.testing.expectEqual(before.identity_sha256, owner.recordingView().identity_sha256);
+     try @import("recursive_segment_v2_detached_composition.zig").testFromVerifiedChild(allocator, owner);
+     try @import("recursive_segment_v2_detached_prefix.zig").testFromVerifiedChild(allocator, owner);
++    try @import("recursive_segment_v2_detached_boundary.zig").testFromVerifiedChild(allocator, owner);
++    {
++        var pcs = try owner.preparePcs(allocator);
++        defer pcs.deinit();
++        try std.testing.expectEqualSlices(QM31, ordinary_capture.deep_answers, pcs.deep_answers);
++        const changed_answers = try allocator.dupe(QM31, pcs.deep_answers);
++        defer allocator.free(changed_answers);
++        for (changed_answers, 0..) |original, query| {
++            changed_answers[query] = original.add(QM31.one());
++            var witness = pcs.witness();
++            witness.deep_answers = changed_answers;
++            try std.testing.expectError(error.UnsatisfiedCircuit, pcs.circuit.evaluate(allocator, witness));
++            try std.testing.expectError(error.UnsatisfiedCircuit, pcs.pcs_circuit.evaluateFrozen(allocator, .{
++                .active = true,
++                .sampled_values = pcs.sampled_values,
++                .queried_values = pcs.queried_values,
++                .oods_seed = pcs.oods_seed,
++                .deep_randomness = pcs.deep_randomness,
++                .raw_queries = pcs.raw_queries,
++                .answers = changed_answers,
++            }));
++            changed_answers[query] = original;
++        }
++        std.debug.print("SEGMENT_V2_DETACHED_PCS samples={d} queried_values={d} layers={d} rejected_deep_answers={d} parent_profile_active=false\n", .{
++            pcs.sampled_values.len, pcs.queried_values.len, pcs.fold_widths.len, changed_answers.len,
++        });
++    }
+ 
+     var wrong_pin = args.independent_key_sha256;
+     wrong_pin[0] ^= 1;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
+index 2005959e..b244daf2 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_prefix.zig
+@@ -79,6 +79,19 @@ pub fn boundaryChallenge(challenge: usize) bool {
+     return challenge == @intFromEnum(recursion.segment_leaf_authority_v2.STATEMENT_RELATION_DOMAIN) or challenge == @intFromEnum(frontend.air.relation.Domain.recursion_wire);
+ }
+ 
++/// The admitted child owns verified geometry. Reuse the secure recursive
++/// program's PCS emitter so the detached suffix cannot grow a parallel order.
++pub fn initPcsOperations(allocator: std.mem.Allocator, child: *const child_mod.OwnedV1) ![]@import("recursive_secure_transcript_program_v1.zig").Operation {
++    const captured = child.captureView();
++    return @import("recursive_secure_transcript_program_v1.zig").initPcsOperations(allocator, .{
++        .sampled_value_count = captured.sampled_values.len,
++        .fri_layer_count = captured.fri_layer_count,
++        .last_layer_coefficient_count = captured.last_layer_coefficients.len,
++        .query_count = child.key().pcs_config.fri_config.n_queries,
++        .pow_bits = child.key().pcs_config.pow_bits,
++    });
++}
++
+ pub const PayloadRow = struct { preprocessing: air.transcript_payload_witness.Row, value: M31 };
+ pub const View = struct {
+     operations: []const Operation,
+@@ -387,5 +400,33 @@ pub fn testFromVerifiedChild(allocator: std.mem.Allocator, child: *const child_m
+     try std.testing.expectEqual(@as(u32, @intCast(view.operations.len)), view.next_operation);
+     try std.testing.expectEqual(recording_view.operations[view.next_operation].first_hash_id, view.next_hash);
+     try std.testing.expectEqual(recording_view.operations[view.next_operation].first_call_id, view.next_call);
++    const suffix = try initPcsOperations(allocator, child);
++    defer allocator.free(suffix);
++    const suffix_capture = recording_view.operations[view.next_operation..];
++    try std.testing.expectEqual(suffix_capture.len, suffix.len);
++    var hash_at: usize = view.next_hash;
++    var call_at: usize = view.next_call;
++    for (suffix, suffix_capture) |expected, actual| {
++        try std.testing.expectEqual(expected.effect, actual.effect);
++        try std.testing.expectEqual(hash_at, actual.first_hash_id);
++        try std.testing.expectEqual(call_at, actual.first_call_id);
++        const is_pow = expected.effect == .pow;
++        const hash_count: usize = if (is_pow) 2 else 1;
++        try std.testing.expectEqual(hash_count, actual.hash_count);
++        for (0..hash_count) |part| {
++            const draw = expected.effect == .draw or (is_pow and part == 1);
++            const word_count = recording.RATE + @as(usize, if (draw) 2 else expected.payload_words);
++            const frame = recording_view.trace.hash_frames[hash_at];
++            try std.testing.expectEqual(word_count, frame.words.len);
++            try std.testing.expectEqual(word_count / recording.RATE + 1, frame.call_count);
++            try std.testing.expectEqual(@as(recording.HashPurpose, if (draw) .draw else .mix), frame.purpose);
++            try std.testing.expect(std.mem.allEqual(u32, &expected.constant_words, 0));
++            call_at += frame.call_count;
++            hash_at += 1;
++        }
++    }
++    try std.testing.expectEqual(recording_view.trace.hash_frames.len, hash_at);
++    try std.testing.expectEqual(recording_view.trace.poseidon_calls.len, call_at);
+     std.debug.print("SEGMENT_V2_DETACHED_PREFIX operations={d} calls={d} payload_fixed={d} payload_dynamic={d} input_uses={d} boundary_challenges={d} parent_profile_active=false\n", .{ view.operations.len, view.provider.len, fixed, dynamic, uses, public_challenges });
++    std.debug.print("SEGMENT_V2_DETACHED_PCS_SCHEDULE operations={d} shared_secure_emitter=true\n", .{suffix.len});
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+index 5de26512..f9f4b638 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig
+@@ -190,6 +190,10 @@ const test_terms = [_]lowering.PublicWireTerm{
+ 
+ // Structural fixture only: the pin in these tests is not a compiled-circuit
+ // admission or evidence that a production lowering is statement-independent.
++pub const testing = if (@import("builtin").is_test) struct {
++    pub const key = testKey;
++} else struct {};
++
+ fn testKey(word_count: usize, transcript_template_id: u32) !KeyV1 {
+     const source_manifest = try source.ManifestV2.init(word_count);
+     const boundary = try recursion.segment_leaf_outer_authority_v2.OuterManifestV2.init(source_manifest);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+index 304b88db..a3b7471a 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+@@ -15,7 +15,7 @@ pub fn validateSegment(
+     cumulative_steps: usize,
+     segment_steps: usize,
+ ) !void {
+-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false);
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0);
+ }
+ 
+ /// Same independent instruction/memory model with an explicit completed-leaf
+@@ -26,7 +26,18 @@ pub fn validateCompletedSegment(
+     cumulative_steps: usize,
+     segment_steps: usize,
+ ) !void {
+-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true);
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0);
++}
++
++pub fn validateSeededSegment(
++    result: *const runner.SegmentResult,
++    address_count: usize,
++    cumulative_steps: usize,
++    segment_steps: usize,
++    completed: bool,
++    initial_word: u32,
++) !void {
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word);
+ }
+ 
+ fn validateSegmentWithCompletion(
+@@ -35,6 +46,7 @@ fn validateSegmentWithCompletion(
+     cumulative_steps: usize,
+     segment_steps: usize,
+     completed: bool,
++    initial_word: u32,
+ ) !void {
+     switch (address_count) {
+         1, 4, 16 => {},
+@@ -56,6 +68,7 @@ fn validateSegmentWithCompletion(
+     }
+     const first_step = cumulative_steps - segment_steps;
+     var words: [16]u32 = @splat(0);
++    @memset(words[0..address_count], initial_word);
+     var entry_words = words;
+     var registers: [32]u32 = @splat(0);
+     registers[2] = runner.elf_loader.DEFAULT_STACK_POINTER;
+@@ -93,7 +106,7 @@ fn validateSegmentWithCompletion(
+         const before = words[index];
+         switch (phase) {
+             0 => registers[6] = before,
+-            1 => registers[6] += 1,
++            1 => registers[6] +%= 1,
+             2 => words[index] = registers[6],
+             else => unreachable,
+         }
+@@ -155,10 +168,10 @@ fn validateSegmentWithCompletion(
+     try std.testing.expectEqual(expected_exit_nonzero, exit_nonzero);
+     if (first_step == 0) try std.testing.expectEqual(address_count, std.mem.count(bool, &touched, &.{true}));
+     std.debug.print(
+-        "SEGMENT_V2_MEMORY_EXECUTION address_count={d} segment_cycles={d} cumulative_cycles={d} " ++
++        "SEGMENT_V2_MEMORY_EXECUTION address_count={d} initial_word={d} segment_cycles={d} cumulative_cycles={d} " ++
+             "loads={d} stores={d} distinct_accessed={d} stride_bytes={d} " ++
+             "entry_nonzero_words={d} exit_nonzero_words={d} exit_pc={x}\n",
+-        .{ address_count, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), fixture.recursion_memory_stride, entry_nonzero, exit_nonzero, result.exit_cpu.pc },
++        .{ address_count, initial_word, segment_steps, cumulative_steps, loads, stores, std.mem.count(bool, &touched, &.{true}), fixture.recursion_memory_stride, entry_nonzero, exit_nonzero, result.exit_cpu.pc },
+     );
+ }
+ 
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig b/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig
+index 303b20e6..6d753d5b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_public_inputs.zig
+@@ -28,19 +28,26 @@ pub fn statementClaim(
+     const context = try source.nativeContext(&metadata, admitted_keys, admitted_source_manifest);
+     const context_words = try context.canonicalWords();
+     try relations.validate();
+-    const challenge = relations.get(source.STATEMENT_RELATION_DOMAIN);
+-    var claim = QM31.zero();
+-    for (expected.words(), 0..) |word, index| {
+-        const event = source.statementEvent(source.WIRE_SCOPE, index, word);
+-        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
+-    }
+-    for (context_words, 0..) |word, index| {
+-        const event = source.statementEvent(source.CONTEXT_SCOPE, index, word);
+-        claim = claim.add(try (try challenge.combineBase(&event.tuple)).inv());
+-    }
+-    return claim;
++    var sink = NativeStatementSink{ .challenge = relations.get(source.STATEMENT_RELATION_DOMAIN) };
++    try emitStatementTerms(expected.words(), &context_words, &sink);
++    return sink.claim;
+ }
+ 
++/// Canonical expected-public multiset order. The sink decides whether each
++/// inverse is evaluated natively or recorded as an authenticated AIR equation.
++pub fn emitStatementTerms(wire: anytype, context: anytype, sink: anytype) !void {
++    for (wire, 0..) |word, index| try sink.term(source.WIRE_SCOPE, index, word);
++    for (context, 0..) |word, index| try sink.term(source.CONTEXT_SCOPE, index, word);
++}
++const NativeStatementSink = struct {
++    challenge: *const universal.Elements,
++    claim: QM31 = QM31.zero(),
++    pub fn term(self: *NativeStatementSink, scope: u32, index: usize, value: core.fields.m31.M31) !void {
++        const event = source.statementEvent(scope, index, value);
++        self.claim = self.claim.add(try (try self.challenge.combineBase(&event.tuple)).inv());
++    }
++};
++
+ /// Checks public-input equality; it does not verify the STARK. The caller must
+ /// also verify the same row36 claim through the canonical component adapter.
+ pub fn verifyStatementClaim(
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+index acb3329b..a541123b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+@@ -17,6 +17,7 @@ const verifier = integration.recursive_segment_v2_detached_verifier;
+ const ProducerAllocator = integration.recursive_segment_v2_outer_engine.ProducerAllocator;
+ 
+ pub const Options = struct {
++    initial_memory_word: u32 = 0,
+     native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+     /// Each directory must be new. Neither child may overwrite prior evidence.
+     child_directories: [2][]const u8,
+@@ -48,6 +49,7 @@ pub const Receipt = struct {
+     /// Canonical host admission only. No parent AIR/proof is constructed here.
+     folded_statement: span.SpanStatement,
+     address_count: usize,
++    initial_memory_word: u32,
+     transaction_ns: u64,
+ };
+ 
+@@ -66,7 +68,7 @@ pub fn producePair(
+         return error.InvalidTwoSegmentCandidateDirectories;
+     try options.native_keys.validate();
+     var timer = try std.time.Timer.start();
+-    var pair = try workload.OwnedPair.init(allocator, address_count);
++    var pair = try workload.OwnedPair.initWithMemorySeed(allocator, address_count, options.initial_memory_word);
+     var pair_owned = true;
+     defer if (pair_owned) pair.deinit();
+     const statements = try workload.fixtureStatements(allocator, &pair);
+@@ -84,6 +86,7 @@ pub fn producePair(
+         .children = children,
+         .folded_statement = folded_statement,
+         .address_count = address_count,
++        .initial_memory_word = options.initial_memory_word,
+         .transaction_ns = timer.read(),
+     };
+ }
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+index eb55d70d..54f91c44 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+@@ -27,17 +27,31 @@ pub const OwnedPair = struct {
+     first: runner.Poseidon2SegmentResult,
+     second: runner.Poseidon2SegmentResult,
+     address_count: usize,
++    initial_memory_word: u32,
+ 
+     pub fn init(allocator: std.mem.Allocator, address_count: usize) !OwnedPair {
++        return initWithMemorySeed(allocator, address_count, 0);
++    }
++
++    pub fn initWithMemorySeed(allocator: std.mem.Allocator, address_count: usize, initial_word: u32) !OwnedPair {
+         const elf = try fixture.buildRecursionMemory(address_count);
+         var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+         defer session.deinit();
++        // Seed mutable input before the runner captures segment entry. ELF and
++        // program commitment are unchanged; native memory AIR proves all reads.
++        if (initial_word != 0) {
++            var addresses: [16]u32 = undefined;
++            for (addresses[0..address_count], 0..) |*address, index|
++                address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
++            try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
++            for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
++        }
+         var first = try session.startSegment(first_steps);
+         errdefer first.deinit();
+         const continuation = first.base.continuation orelse return error.ExpectedFirstSegmentContinuation;
+         var second = try session.resumeSegment(continuation, second_budget);
+         errdefer second.deinit();
+-        var result = OwnedPair{ .first = first, .second = second, .address_count = address_count };
++        var result = OwnedPair{ .first = first, .second = second, .address_count = address_count, .initial_memory_word = initial_word };
+         try result.validate();
+         // Runner publication transfers trace, tracker, frozen call/row buffers,
+         // captured IO, snapshots and copied access clocks into each result.
+@@ -53,8 +67,8 @@ pub const OwnedPair = struct {
+     }
+ 
+     pub fn validate(self: *const OwnedPair) !void {
+-        try model.validateSegment(&self.first.base, self.address_count, first_steps, first_steps);
+-        try model.validateCompletedSegment(&self.second.base, self.address_count, total_steps, second_steps);
++        try model.validateSeededSegment(&self.first.base, self.address_count, first_steps, first_steps, false, self.initial_memory_word);
++        try model.validateSeededSegment(&self.second.base, self.address_count, total_steps, second_steps, true, self.initial_memory_word);
+         try std.testing.expectEqual(@as(u32, 0), self.first.base.segment_index);
+         try std.testing.expectEqual(@as(u32, 1), self.second.base.segment_index);
+         try std.testing.expect(self.first.base.segment_role.is_first);
+@@ -79,6 +93,30 @@ pub const OwnedPair = struct {
+ 
+ /// Execution/source-admission gate, deliberately requiring no native proof.
+ pub fn checkWorkload(allocator: std.mem.Allocator) !void {
++    var reference_pair: ?OwnedPair = null;
++    defer if (reference_pair) |*pair| pair.deinit();
++    for ([_]u32{ 13, 14, 269 }) |seed| {
++        var pair = try OwnedPair.initWithMemorySeed(allocator, 1, seed);
++        defer pair.deinit();
++        try pair.validate();
++        const statements = try fixtureStatements(allocator, &pair);
++        const admission = try pair.admitStatements(digest("two-segment-seeded-memory-session"), statements);
++        _ = try span.RootStatement.init(admission.folded);
++        if (reference_pair) |*reference| {
++            try std.testing.expectEqualDeep(reference.first.base.rw_memory.program_words, pair.first.base.rw_memory.program_words);
++        } else {
++            reference_pair = try OwnedPair.initWithMemorySeed(allocator, 1, seed);
++        }
++        for (pair.first.base.rw_memory.words) |*word| {
++            if (word.addr != fixture.recursion_memory_base) continue;
++            const saved = word.initial_word;
++            defer word.initial_word = saved;
++            word.initial_word ^= 1;
++            try std.testing.expectError(error.TestExpectedEqual, pair.validate());
++            break;
++        }
++        std.debug.print("SEGMENT_V2_SEEDED_MEMORY_EXECUTION initial_word={d} address_count=1 elf_unchanged=true completed=true canonical_adjacent=true proofs_created=0\n", .{seed});
++    }
+     for (fixture.recursion_memory_address_counts) |address_count| {
+         var pair = try OwnedPair.init(allocator, address_count);
+         defer pair.deinit();
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig
+index c028cbf9..c6192488 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_verifier_components_test_root.zig
+@@ -8,4 +8,5 @@ comptime {
+     _ = @import("recursive_segment_v2_detached_transcript.zig");
+     _ = @import("recursive_segment_v2_detached_command.zig");
+     _ = @import("recursive_segment_v2_detached_child_transcript.zig");
++    _ = @import("recursive_segment_v2_detached_boundary.zig");
+ }

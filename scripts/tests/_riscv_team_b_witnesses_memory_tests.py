@@ -21,7 +21,7 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_every_required_lh_witness_is_reachable_in_production(self):
@@ -86,9 +86,30 @@ class LoadHalfwordWitnessTest(unittest.TestCase):
         # The base-address and aligned-address range requests bound admitted
         # addresses well below 2**32, so a 32-bit wrap is unreachable.
         beyond = witnesses.MAX_ADMITTED_ALIGNED_ADDRESS + 4
-        assignment, _ = witnesses.load_halfword_row(beyond, 0, 0x0000FFFF, 7)
+        assignment, _ = witnesses.load_halfword_row(beyond - 4, 4, 0x0000FFFF, 7)
         with self.assertRaisesRegex(
-            witnesses.WitnessError, "outside the 20-bit production table"
+            witnesses.WitnessError, "lookup 16 on range_check_8_8 coordinate 0 is 256"
+        ):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_committed_word_address_is_bound_to_the_selector(self):
+        assignment, _ = witnesses.load_halfword_row(0x2000, 0, 0x0000FFFF, 7)
+        assignment["aligned_addr_quarter"] += 1
+        with self.assertRaisesRegex(witnesses.WitnessError, "constraint roots 61"):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_low_word_address_limb_is_bound_through_the_high_lookup(self):
+        assignment, _ = witnesses.load_halfword_row(0x2000, 0, 0x0000FFFF, 7)
+        assignment["aligned_addr_low20"] += 1
+        with self.assertRaisesRegex(
+            witnesses.WitnessError, "lookup 16 on range_check_8_8"
+        ):
+            witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
+
+    def test_base_bound_is_checked_even_when_effective_address_is_in_range(self):
+        assignment, _ = witnesses.load_halfword_row(1 << 30, -4, 0x0000FFFF, 7)
+        with self.assertRaisesRegex(
+            witnesses.WitnessError, "lookup 7 on range_check_m31 coordinate 1 is 128"
         ):
             witnesses.check_witness(self.air_ir_dir, "load_store", assignment)
 
@@ -109,7 +130,7 @@ class PerOpcodeLoadWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_every_per_opcode_load_witness_is_reachable_in_production(self):
@@ -226,7 +247,7 @@ class StoreWitnessTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_store_witnesses_are_reachable_in_production(self):
@@ -301,12 +322,12 @@ class AddressAliasingRegressionTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
-    def test_the_aliasing_row_is_rejected_by_the_new_constraint(self):
+    def test_the_aliasing_row_is_rejected_by_the_doubled_base_lookup(self):
         report = witnesses.check_address_aliasing_rejected(self.air_ir_dir)
-        self.assertIn("constraint root 61 rejects it", report)
+        self.assertIn("doubled base-high lookup 7 rejects it", report)
 
     def test_the_counterexample_has_a_nonzero_high_base_byte(self):
         self.assertNotEqual((witnesses.ALIASING_BASE >> 24) & 0xFF, 0)

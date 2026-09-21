@@ -1,0 +1,26 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+CANONICAL_EMPTY_REUSE_AB proof_sha=23da5f591218aab54cf8f04f646e045195349d9b1674e641c5b80f702419f468 capture_sha=1251c5325be690bcb807d1590a66b303ec984fd02452453288965b4eb6606cc9 preprocessed_root={ 954990678, 2121991109, 170329451, 1328292063, 1455115890, 189563844, 788180061, 1542255950 } prove_ns=1371579292 prove_fresh_verify_ns=544591041 cold_open_total_ns=639259041 baseline_ns=1553056833 optimized_ns=5357167 reduction_bps=9965 q193_ns=411969875 replay_ns=102515333 graph_ns=76377791 cache_hits=3 cache_misses=1 cache_lookup_ns=132203666 cache_rebuild_ns=132200292
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+test-recursive-common-fold-q193-bootstrap-v2
++- Nonproduction common-fold q193 bootstrap identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.nonproduction common-fold q193 bootstrap preserves canonical child artifact ownership' failed: COMMON_FOLD_TRANSCRIPT_PROGRAM operations=188 frames=190 permutations=1681 queries=193
+COMMON_FOLD_Q193_BOOTSTRAP_STAGE=fold.cold-cache.miss-reference error=CommonFoldPreprocessedCacheLifecycleMismatch
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.nonproduction common-fold q193 bootstrap preserves canonical child artifact ownership', the following test command failed:
+./.zig-cache/o/457441e4edb4658255eba891ec5fe8a7/test --cache-dir=./.zig-cache --seed=0x9a5107a6 --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 9s MaxRSS:86M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+test-recursive-common-fold-q193-bootstrap-v2 transitive failure
++- Nonproduction common-fold q193 bootstrap identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/e5eb5c7a03a5c1c545c31576e584386a/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x9a5107a6 -Z4572aabe691915d9 --maxrss 25769803776 -j1 test-recursive-common-canonical-empty-universal-v2-proof test-recursive-common-fold-q193-bootstrap-v2 -Doptimize=ReleaseSafe --summary all

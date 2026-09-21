@@ -1,0 +1,11 @@
+test-poseidon-merkle
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+Build Summary: 4/4 steps succeeded; 15/15 tests passed
+test-poseidon-merkle success
++- stwo_riscv_frontend test count floor success
+   +- run test 15 passed 688ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 4s MaxRSS:366M
+

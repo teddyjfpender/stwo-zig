@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 1s
+test-vm-air-profile-v2
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+
+Build Summary: 8/8 steps succeeded; 198/199 tests passed; 1 skipped
+test-wide-poseidon-authority success
++- stwo_riscv_frontend test count floor success
+   +- run test 177 passed 1 skipped 43s MaxRSS:4M
+      +- compile test ReleaseSafe native success 13s MaxRSS:1G
+test-vm-air-profile-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 21 passed 8s MaxRSS:78M
+      +- compile test ReleaseSafe native cached 73ms MaxRSS:35M
+

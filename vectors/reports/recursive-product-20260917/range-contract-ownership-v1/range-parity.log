@@ -1,0 +1,9 @@
+1/8 recursion_framework_export_test_root.test_0...OK
+2/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 bridge pins exact source geometry and identities...OK
+3/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 bridge exposes zero duplicate AIR and exact degree cost...OK
+4/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 writers preserve every upstream row without hot allocation...OK
+5/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 typed relation equals native provider and cancels requests...OK
+6/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 seals aliases and failures before every first store...OK
+7/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 relation-row materialization is padded and atomic...OK
+8/8 recursion.air.range_check_8_8_bridge_test.test.R-012 range-check 8-8 construction releases every allocation failure...OK
+All 8 tests passed.

@@ -1,0 +1,9 @@
+{
+  "status": "observer_finished",
+  "reason": "child_missing",
+  "sample_count": 1160,
+  "sample_errors": 1,
+  "sampled_maximum_footprint_bytes": 44929895816,
+  "scope": "sampled while attached, not complete request or lifetime peak",
+  "observation_sha256": "dac82f8c65d92840aa6e9ba98434d5299a95d730c0eb5f317926d52b85908d98"
+}

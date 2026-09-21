@@ -1,0 +1,30 @@
+{
+  "scope": "Single complete-tree observations, excluding compilation, lock waits and hostile verifier cases. Not a statistical speed comparison.",
+  "speedup_established": false,
+  "measurements": {
+    "cpu": {
+      "before": {
+        "leaf_production_ns": 33871104375,
+        "parent_production_ns": 33373529457,
+        "maximum_rss_bytes": 3898195968
+      },
+      "after": {
+        "leaf_production_ns": 35527422833,
+        "parent_production_ns": 33296749500,
+        "maximum_rss_bytes": 3898212352
+      }
+    },
+    "metal": {
+      "before": {
+        "leaf_production_ns": 25879428750,
+        "parent_production_ns": 26089962791,
+        "maximum_rss_bytes": 4388585472
+      },
+      "after": {
+        "leaf_production_ns": 26081132834,
+        "parent_production_ns": 26035306416,
+        "maximum_rss_bytes": 4388421632
+      }
+    }
+  }
+}

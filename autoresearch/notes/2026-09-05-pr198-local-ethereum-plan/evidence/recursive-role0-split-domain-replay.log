@@ -1,0 +1,16 @@
+test-ethereum-incremental-leaf-materialize-v4-replay
++- saved Ethereum leaf composition replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition' failed: VM_COMPOSITION_UNSAT output=43/44 node=540226 value=.{ .c0 = .{ .a = .{ .v = 1316645300 }, .b = .{ .v = 285061722 } }, .c1 = .{ .a = .{ .v = 717544782 }, .b = .{ .v = 1776127123 } } }
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38895416 public_ns=292618834 transcript_ns=135706541 profile_ns=24042 program_ns=66829083 prepare_ns=0 fri_ns=0 seal_ns=0 total_ns=582584333 nodes=540227 node_bytes=10804540 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643632 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 proof replays VM composition', the following test command failed:
+./.zig-cache/o/8ca8ee7f55fa3c5ccb90e2c0b4851bbc/test --cache-dir=./.zig-cache --seed=0x986835c3 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-materialize-v4-replay transitive failure
++- saved Ethereum leaf composition replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 3m MaxRSS:5G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0378ae1cbcc2dcb8b88d6d0fcd0941d1/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x986835c3 -Zed6c56a9332a5df0 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-materialize-v4-replay -Doptimize=ReleaseSafe --summary all

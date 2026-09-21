@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_tree_gate.py", line 175, in <module>
+    main()
+    ~~~~^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_tree_gate.py", line 119, in main
+    batch = run("produce-leaves", argv, heavy=True)
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_tree_gate.py", line 100, in run
+    execute()
+    ~~~~~~~^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/riscv_segment_v2_detached_tree_gate.py", line 97, in execute
+    raise RuntimeError(f"{name} failed; retained log: {log}")
+RuntimeError: produce-leaves failed; retained log: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/strict-metal-v1/strict-tree-rejected/produce-leaves.log

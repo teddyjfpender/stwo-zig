@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove-metal success
+   +- compile exe recursive-segment-v2-detached-parent-prove-metal ReleaseSafe native success 1m MaxRSS:5G
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof-metal success
+   +- compile exe recursive-segment-v2-concrete-outer-proof-metal ReleaseSafe native success 2m MaxRSS:8G
+

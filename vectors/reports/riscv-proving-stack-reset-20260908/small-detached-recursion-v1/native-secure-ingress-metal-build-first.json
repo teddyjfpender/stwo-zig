@@ -1,0 +1,20 @@
+{
+  "base_commit": "c1b36e0742a34180afc6d4afaf234a4f622d3786",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "490ba9a455cea93cb5b83cff9fa281fde32528eca7e8f2584c12d7e0b39ebae9",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig": "9f93156a98db50aa5a7019be565b22081468d23cc564f46268f21486f6f57c62",
+    "src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig": "0a4415dda98dc09ba9bbc9ab4c1d071b5d5f8ff00934d4e2f1cbc0347c86b539"
+  },
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 177.53001854103059
+}

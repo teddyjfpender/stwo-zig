@@ -1,0 +1,74 @@
+{
+  "scope": "Experimental bootstrap of eight-segment q193 fixed circuits; not production-security certification",
+  "production_security_admission_complete": false,
+  "source_binary_sha256": "16d2904f34f9b741cd39ada170b69f42b17e3d46d40033e45ecc057d8c6b76f1",
+  "checks": [
+    "same version, PCS and admitted source identity as reviewed q193 two-child route",
+    "39-component roster",
+    "expected statements byte-equal independent execution ladder",
+    "fresh verifier profile, canonical layout and hostile proof checks"
+  ],
+  "children": [
+    {
+      "child": 0,
+      "key_sha256": "f3583bba4c386773c40bd1462ba62ccb1b2dff5f462ac0d5261805bb541e1678",
+      "expected_sha256": "77f739700803532262dd8a66366c16fa6ce064b66ec998cb4e0a3b350f94f659",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-0-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 1,
+      "key_sha256": "99820d4209b13a30073dbaf4ecd0524b899ce0b343b6c959c5f0bcbfa6cd3153",
+      "expected_sha256": "e02da4c7fb1bdb70905112cd7406d2fd988450469198f8d2b2aeb158a5f53abb",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-1-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 2,
+      "key_sha256": "7c4789d2548af27711311bb082876e0be0121b225e41b701f502be4371b9fe2f",
+      "expected_sha256": "0efe2fb234e7e86b8b5b8308731bb7ecc0c32e0628ba37015d9610bd95897516",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-2-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 3,
+      "key_sha256": "53e549946dc9e1b647d949fbb899e5e18882739dc913675df4cc8304986fe448",
+      "expected_sha256": "95de0886e4900bcbb74ab323b7cb1b7eea73b54fb27990f2e959e4bb2035260c",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-3-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 4,
+      "key_sha256": "cc5efb4a6fbf5bd943ad5681c4aedcbb9f144d76969a05c4cf9fb7846a33e48a",
+      "expected_sha256": "3ec4132b1d414b22553c39b9227dd8448f9e6b44358229c9b457d62a8942e56d",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-4-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 5,
+      "key_sha256": "7ba7de3317a93280f5f0fe0d565af62ad28a9a9ec70731a8d3f9cdbaf0415c7f",
+      "expected_sha256": "0b83f106fa2693c617aaa63b912a2b27d326a321f4e9a26cf85fa7f4c656072f",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-5-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 6,
+      "key_sha256": "bad0d1fd93719f3d7c1cc9ba56f75a66ed9044c1859b8b9239777f6d9929e33e",
+      "expected_sha256": "a37992f1694f42ee2e5107b528efa79b9ea1a47fb8d74284229ecca6580e2220",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-6-expected-wire.json",
+      "fresh_cases": 13
+    },
+    {
+      "child": 7,
+      "key_sha256": "4ca9fb2639a19a6a4504733f0932930bacdf0731279f6b16f6cfa4b690eac30c",
+      "expected_sha256": "5e0ae527dfabdf0c698046dfa8c7b95021e7a5eb0ba2ee8c91c714ad19c61241",
+      "source_expected": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-8-admission/child-7-expected-wire.json",
+      "fresh_cases": 13
+    }
+  ],
+  "cross_statement_reuse": {
+    "passed": true,
+    "report": "../q193-ladder-8-seed14-key-reuse.json",
+    "report_sha256": "4f75c4b70850c093cc7ca907038eb9974b0c7a32ef326f038dd86a3eb46cefd9"
+  }
+}

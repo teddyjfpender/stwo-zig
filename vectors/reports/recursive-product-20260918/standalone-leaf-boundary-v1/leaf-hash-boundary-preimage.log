@@ -1,0 +1,3 @@
+1/2 statement_authority_preimage_test_root.test.native authority preimage preserves legacy split encoding and hash...OK
+2/2 statement_authority_preimage_test_root.test.native authority preimage matches native adjacent statement authorities...OK
+All 2 tests passed.

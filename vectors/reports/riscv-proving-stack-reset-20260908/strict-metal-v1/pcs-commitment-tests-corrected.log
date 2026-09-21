@@ -1,0 +1,13 @@
+test-pcs-commitments
++- run test 160/161 passed, 1 failed
+error: 'pcs.sampled_value_plan_overlap.test.sampled-value overlap: exact normalized keys expose within and cross-tree reuse' failed: expected 3, found 4
+error: while executing test 'channel.logging_channel.test.logging merkle channel: mixRoot delegates exactly', the following test command failed:
+./.zig-cache/o/1c093d9e8293049e774ecdcd4efa6bf6/test --cache-dir=./.zig-cache --seed=0xb756e852 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 160/161 tests passed; 1 failed
+test-pcs-commitments transitive failure
++- run test 160/161 passed, 1 failed
+   +- compile test ReleaseSafe native success 39s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a0d042829db08b3ae57a3f688277abb3/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover .zig-cache /Users/theodorepender/.cache/zig --seed 0xb756e852 -Za7635c1c79fa2953 --maxrss 25769803776 -j1 test-pcs-commitments -Doptimize=ReleaseSafe --summary all

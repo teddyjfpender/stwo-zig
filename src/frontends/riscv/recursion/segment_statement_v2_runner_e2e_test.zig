@@ -43,17 +43,17 @@ test "real adjacent runner segments authenticate as one canonical V2 span" {
     const public_output = digest("runner-output");
     const initial_state = try machineState(
         left_result.entry_cpu,
-        digest("runner-rw-entry"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .initial_word).id,
         digest("runner-io-entry"),
     );
     const shared_state = try machineState(
         left_result.exit_cpu,
-        digest("runner-rw-shared"),
+        segment_v2.snapshotDigest(left_result.rw_memory.words, .final_word).id,
         digest("runner-io-shared"),
     );
     const final_state = try machineState(
         right_result.exit_cpu,
-        digest("runner-rw-exit"),
+        segment_v2.snapshotDigest(right_result.rw_memory.words, .final_word).id,
         digest("runner-io-exit"),
     );
     const total_cycles = try std.math.add(

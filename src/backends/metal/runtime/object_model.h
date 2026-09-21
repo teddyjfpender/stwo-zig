@@ -11,11 +11,24 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceTrace;
 @property(nonatomic, strong) id<MTLComputePipelineState> quadraticRecurrenceIfftWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> leaves;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Leaves;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeavesWide;
+@property(nonatomic, strong) id<MTLComputePipelineState> proofOfWork;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2ChannelPowSearch;
 @property(nonatomic, strong) id<MTLComputePipelineState> parents;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31Parents;
 @property(nonatomic, strong) id<MTLComputePipelineState> quotients;
 @property(nonatomic, strong) id<MTLComputePipelineState> rawQuotients;
 @property(nonatomic, strong) id<MTLComputePipelineState> polynomialEval;
 @property(nonatomic, strong) id<MTLComputePipelineState> polynomialBasis;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricDomain;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricScale;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricParts;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricInverseDirect;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricInverseTree;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricFinish;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricEvaluateMany;
+@property(nonatomic, strong) id<MTLComputePipelineState> sampledBarycentricReduce;
 @property(nonatomic, strong) id<MTLComputePipelineState> circleIfftFirst;
 @property(nonatomic, strong) id<MTLComputePipelineState> circleIfftLayer;
 @property(nonatomic, strong) id<MTLComputePipelineState> circleRfftLayer;
@@ -52,6 +65,7 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> friFold3Resident;
 @property(nonatomic, strong) id<MTLComputePipelineState> friFold2Resident;
 @property(nonatomic, strong) id<MTLComputePipelineState> friPackedLeavesResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31FriPackedLeavesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> friFinalLineResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> transcriptInitResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> transcriptMixResident;
@@ -62,6 +76,8 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherFriValuesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitPrepareTraceQueriesResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTraceValuesResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTreeValuesResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> decommitGatherTreeValuesResidentWide;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitAssembleFriResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseParentResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> decommitSparseLeavesResident;
@@ -77,6 +93,9 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> publicMemorySeedResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbResident;
 @property(nonatomic, strong) id<MTLComputePipelineState> leafAbsorbCompactResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafAbsorbResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafAbsorbCompactResident;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31LeafStateDigestResidentV1;
 @property(nonatomic, strong) id<MTLComputePipelineState> parentsPlainSparse;
 @property(nonatomic, strong) id<MTLComputePipelineState> clearArenaSpans;
 @property(nonatomic, strong) id<MTLComputePipelineState> circleExpandSparse;
@@ -98,6 +117,8 @@
 @property(nonatomic, strong) id<MTLComputePipelineState> fixedTableLookup;
 @property(nonatomic, strong) id<MTLComputePipelineState> parentsSparse;
 @property(nonatomic, strong) id<MTLComputePipelineState> parentTailSparse;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31ParentsSparse;
+@property(nonatomic, strong) id<MTLComputePipelineState> poseidon2M31ParentTailSparse;
 @property(nonatomic, strong) id<MTLComputePipelineState> felt252Oracle;
 @property(nonatomic, strong) id<MTLComputePipelineState> ecOpWitness;
 @property(nonatomic, strong) id<MTLComputePipelineState> ecOpLookup;
@@ -170,6 +191,20 @@
 @implementation StwoZigCircleLdePlan
 @end
 
+/// Owns one command buffer for all direct shared-memory circle-LDE groups in a
+/// commitment. Only operations whose coefficient and evaluation buffers are
+/// both bound with `newBufferWithBytesNoCopy` enter it, so no deferred host
+/// copy or extra private working set is hidden here.
+@interface StwoZigCircleLdeBatch : NSObject
+@property(nonatomic, strong) StwoZigMetalRuntime *runtime;
+@property(nonatomic, strong) id<MTLCommandBuffer> command;
+@property(nonatomic) NSUInteger encodedOperations;
+@property(nonatomic) BOOL finished;
+@end
+
+@implementation StwoZigCircleLdeBatch
+@end
+
 @interface StwoZigCircleIfftPlan : NSObject
 @property(nonatomic, strong) id<MTLBuffer> sourceOffsets;
 @property(nonatomic, strong) id<MTLBuffer> destinationOffsets;
@@ -221,6 +256,7 @@
 @property(nonatomic, strong) id<MTLBuffer> nodeSeed;
 @property(nonatomic) uint32_t levelCount;
 @property(nonatomic) uint32_t prefixBytes;
+@property(nonatomic) uint32_t hashFamily;
 @property(nonatomic) uint32_t bottomLevelCount;
 @property(nonatomic) uint32_t bottomThreadgroupWidth;
 @property(nonatomic) uint32_t bottomThreadgroupCount;
@@ -402,6 +438,7 @@
 @property(nonatomic, strong) id<MTLBuffer> nodeSeed;
 @property(nonatomic) uint32_t evaluationBase, coordinateStride, evaluationSize, logRowsPerLeaf, layerCount;
 @property(nonatomic) uint32_t prefixBytes;
+@property(nonatomic) uint32_t hashFamily;
 @end
 @implementation StwoZigFriTreePlan
 @end
@@ -420,6 +457,7 @@
 @property(nonatomic) uint32_t liftingLogSize;
 @property(nonatomic) uint32_t destinationOffset;
 @property(nonatomic) uint32_t prefixBytes;
+@property(nonatomic) uint32_t hashFamily;
 @end
 @implementation StwoZigMerkleLeafPlan
 @end
@@ -430,10 +468,13 @@
 @property(nonatomic, strong) NSData *layerOffsets;
 @property(nonatomic, strong) id<MTLBuffer> leafSeed;
 @property(nonatomic, strong) id<MTLBuffer> nodeSeed;
+@property(nonatomic, strong) NSData *stagedStateOffsets;
 @property(nonatomic) uint32_t columnCount;
 @property(nonatomic) uint32_t liftingLogSize;
 @property(nonatomic) uint32_t layerCount;
 @property(nonatomic) uint32_t prefixBytes;
+@property(nonatomic) uint32_t hashFamily;
+@property(nonatomic) uint32_t leafEncoding;
 @end
 @implementation StwoZigResidentMerklePlan
 @end
@@ -459,6 +500,7 @@
 @property(nonatomic, strong) NSData *residentColumnHostBegins;
 @property(nonatomic, strong) NSData *residentColumnWordCounts;
 @property(nonatomic, strong) NSData *residentColumnWordOffsets;
+@property(nonatomic, assign) uint32_t residentColumnOffsetWordBytes;
 @end
 @implementation StwoZigMetalTree
 @end

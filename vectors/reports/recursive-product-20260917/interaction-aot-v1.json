@@ -1,0 +1,18 @@
+{
+  "schema": "stwo.native-table-aot-qualification.v1",
+  "passed": true,
+  "native_tables": 6,
+  "columns_per_table": 4,
+  "columns_and_claims_exact": true,
+  "selector_and_zero_denominator_rejection": true,
+  "recovery_after_rejection": true,
+  "source_compiler_used": false,
+  "full_producer_interaction_integration": false,
+  "log_sha256": "4fb997f69ed523bb619d6585ac35baa242810cbd0103a816239dce6a65fc69fa",
+  "aot_manifest_sha256": "ccc64528edb010884c717507b0ea32a38e1df02c27c0e9a579c68ea636d76d59",
+  "source_sha256": {
+    "src/tests/riscv/recursive_framework_resident_test.zig": "73ad2003913e9c89e1cd5153a8e22cf05d5660d2e63d9bf5d8eaffbc7733c687",
+    "src/backends/metal/runtime.zig": "29d4fead27c8f4a2e4d5c092b12108f8e0c60e91a74431055eb4f093aa84191f",
+    "src/backends/metal/runtime/framework_interaction.zig": "b6359cef3e5d4a0f317a29f393ce21dea7153f25fb0a5eede4e8ba7ff6704d86"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "tests": {
+    "row11": 5,
+    "native_sum": 12
+  },
+  "process": {
+    "argv": [
+      "python3",
+      "scripts/zig_serial_build.py",
+      "--cwd",
+      "src/frontends/riscv",
+      "test-recursion-segment-statement-source-v2",
+      "test-recursion-segment-native-sum-v2",
+      "-Doptimize=ReleaseSafe",
+      "--summary",
+      "all"
+    ],
+    "exit_code": 0,
+    "process_ns": 22175987375
+  },
+  "log": "row11-dynamic-memory-third.log",
+  "log_sha256": "e76e9d485837a3266f5008434db88ea7741befb338fa9f7737a16f07e57db0f5",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/segment_leaf_outer_air_v2_statement_semantics_v2.zig": "8128e52f673032f1d2a7aecfd065468e092d2afd0d16e87ddcb6ed975003cf85",
+    "src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig": "ffaf3b405ef166e73a0179b8c7c2b1d4ee42107abf1eaa846e555498bf0e3bba",
+    "src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepared_v2.zig": "52d632f418dc9bc86a338ffce7d8fc60d9999ee067f9c4f35c658d0c86481042",
+    "src/frontends/riscv/recursion/segment_statement_outer_source_v2_prepare_into.zig": "f14755816d6bc15f4e04cb74856e3accea6da38ad5d9faa47595c86ac4c4fca0",
+    "src/frontends/riscv/recursion/segment_range_authority_v2.zig": "7173578550cb25757a63a60d123e81fe7c247b3537d4f1ef67f5127dd3e2194f",
+    "src/frontends/riscv/recursion/segment_statement_outer_source_v2_test.zig": "e1a9e566edf93468f9bd71165a1f25194fdaa45650aa428b1f49459ecd0ddb01",
+    "src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig": "98443bcd2724261cf0b63f21f24e1e29a7e53d2d999a173a48097ac147aa978b"
+  },
+  "row11_semantic_digest": "fc0993e7444aaa88049ec7f4ea083da00d5e6a8c7dbacd03641d0b1f8dfa10c9",
+  "geometry": {
+    "main": 14,
+    "preprocessed": 22,
+    "direct_constraints": 23,
+    "relation_events": 11,
+    "lookup_batches": 6,
+    "interaction": 24,
+    "max_direct_degree": 2
+  },
+  "proof_created": false
+}

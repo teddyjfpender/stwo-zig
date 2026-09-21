@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import math
+import struct
 from typing import Any, Mapping, Protocol, Sequence
+
+from .public_output import reconstruct_output_words
 
 from scripts.riscv_csp_benchmark_lib.contract import (
     BenchmarkError,
@@ -57,12 +61,23 @@ def summarize_evidence(
         "all_peak_memory_available": all(
             row["peak_memory"] is not None for row in rows
         ),
+        "all_negative_proofs_verified": all(
+            item.get("proof_status") == "verified" for item in negative_evidence
+        ),
         "all_negative_fixtures_rejected": all(
             item["status"] == "rejected_as_expected"
             for item in negative_evidence
         ),
-        "all_metal_resident_polynomial_dispatches_verified": all(
+        "all_metal_dispatches_verified": all(
             row.get("backend") != "metal"
+            or isinstance((row.get("evidence") or {}).get("resident_polynomial_telemetry"), dict)
+            or bool((row.get("evidence") or {}).get("precompile_dispatch_samples"))
+            and all(sample.get("metal_dispatches", 0) > 0
+                    for sample in row["evidence"]["precompile_dispatch_samples"])
+            for row in rows
+        ),
+        "all_metal_resident_polynomial_dispatches_verified": all(
+            row.get("backend") != "metal" or row.get("uses_precompile") is True
             or isinstance(
                 (row.get("evidence") or {}).get("resident_polynomial_telemetry"),
                 dict,
@@ -175,6 +190,7 @@ def validate_artifact(
         or artifact.get("pcs_config") != SECURE_PCS_CONFIG
     ):
         raise BenchmarkError(f"{case.target}/{case.input_size}: proof artifact drifted")
+    validate_workload_binding(artifact, case)
     proof_hex = artifact.get("proof_bytes_hex")
     if (
         not isinstance(proof_hex, str)
@@ -214,3 +230,58 @@ def validate_verify_receipt(
         raise BenchmarkError(
             f"{case.target}/{case.input_size}: retained-proof receipt drifted"
         )
+
+
+def validate_workload_binding(artifact: Mapping[str, Any], case: Case) -> None:
+    """Bind expected results to the actual retained proof, not a separate run."""
+    label = f"{case.target}/{case.input_size}"
+    source = artifact.get("source")
+    if source != {"elf_sha256": case.guest_sha256, "input_sha256": case.input_sha256}:
+        raise BenchmarkError(f"{label}: proof source does not match workload")
+    statement = artifact.get("statement")
+    if not isinstance(statement, dict) or (
+        statement.get("segment_count") != 1
+        or statement.get("segment_ordinal") != 0
+        or statement.get("total_steps") != case.expected_cycles
+    ):
+        raise BenchmarkError(f"{label}: proof execution does not match workload")
+    public = statement.get("public_data")
+    if not isinstance(public, dict) or public.get("clock") != case.expected_cycles:
+        raise BenchmarkError(f"{label}: proof public clock does not match workload")
+    length, words = public.get("input_len"), public.get("input_words")
+    if (type(length) is not int or length < 0 or not isinstance(words, list)
+        or len(words) != (length + 3) // 4
+        or any(type(word) is not int or not 0 <= word <= 0xffffffff for word in words)):
+        raise BenchmarkError(f"{label}: proof public input framing is invalid")
+    encoded = b"".join(struct.pack("<I", word) for word in words)
+    if any(encoded[length:]) or sha256_bytes(encoded[:length]) != case.input_sha256:
+        raise BenchmarkError(f"{label}: proof public input does not match workload")
+    if reconstruct_output_words(public).hex() != case.expected_digest:
+        raise BenchmarkError(f"{label}: proof public output does not match workload")
+
+
+def phase_seconds(report: Mapping[str, Any]) -> tuple[float, float]:
+    names = ("mean_execution_seconds", "mean_witness_seconds",
+             "mean_proving_seconds", "mean_verification_seconds")
+    values = []
+    for name in names:
+        value = report.get(name)
+        if type(value) not in (int, float) or not math.isfinite(value) or value < 0:
+            raise BenchmarkError(f"benchmark report has invalid {name}")
+        values.append(float(value))
+    return sum(values[:3]), values[3]
+
+
+def peak_memory(report: Mapping[str, Any]) -> tuple[int | None, str]:
+    resources = report.get("resources")
+    if not isinstance(resources, dict):
+        return None, "benchmark report has no resources object"
+    if resources.get("availability") != "available":
+        return None, str(resources.get("unavailable_reason") or "resource telemetry unavailable")
+    after = resources.get("after_verified_samples")
+    if not isinstance(after, dict):
+        return None, "resource telemetry has no after-samples snapshot"
+    value = after.get("lifetime_max_phys_footprint_bytes")
+    if type(value) is not int or value <= 0:
+        return None, "resource telemetry has no positive peak footprint"
+    return value, str(resources.get("source") or "unknown")

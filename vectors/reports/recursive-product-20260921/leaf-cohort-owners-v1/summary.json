@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "cohort_contract_tests": 12,
+  "ownership_checks": 44,
+  "unchanged_function_transfers": 5,
+  "owner_lines_before": 999,
+  "owner_lines_after": 843,
+  "support_lines": 284,
+  "diagnostics_lines": 111,
+  "source_conformance_findings": 107,
+  "full_proof_rerun": false,
+  "goal_complete": false
+}

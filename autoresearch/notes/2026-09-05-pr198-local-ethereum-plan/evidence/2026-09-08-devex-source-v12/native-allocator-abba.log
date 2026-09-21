@@ -1,0 +1,26 @@
+test-ethereum-native-cold-allocator
++- Ethereum native cold allocator probe guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_REAL_REPLAY materialization_pinned=true first_segment=2 leaf_count=2 whole_elf_pinned=true
+ETHEREUM_COMPLETION_OPENING admitted_version=1 whole_elf_pinned=true
+ETHEREUM_NATIVE_ALLOCATOR_PROBE sample=0 allocator=std_testing captures_live=2
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=59648696292 process_cpu_ns=59411103083 parallelism_milli=996 peak_footprint_bytes=1706739464 energy_nj=275167309924 instructions=1279801069923 cycles=235080480898 workers=1 host_byte_budget=17179869184
+ETHEREUM_NATIVE_ALLOCATOR_PROBE sample=1 allocator=tracked_smp captures_live=2
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=57307167708 process_cpu_ns=57096203875 parallelism_milli=996 peak_footprint_bytes=1706739464 energy_nj=266593501567 instructions=1252437416353 cycles=226142155144 workers=1 host_byte_budget=17179869184
+ETHEREUM_NATIVE_ALLOCATOR_PROBE sample=2 allocator=tracked_smp captures_live=2
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=57144478167 process_cpu_ns=56980058833 parallelism_milli=997 peak_footprint_bytes=1731135600 energy_nj=266217501812 instructions=1252290756366 cycles=225919872392 workers=1 host_byte_budget=17179869184
+ETHEREUM_NATIVE_ALLOCATOR_PROBE sample=3 allocator=std_testing captures_live=2
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=59447152500 process_cpu_ns=59268576375 parallelism_milli=996 peak_footprint_bytes=1765951888 energy_nj=275003093589 instructions=1280010252203 cycles=234843909213 workers=1 host_byte_budget=17179869184
+ETHEREUM_NATIVE_ALLOCATOR_PROBE samples=4 exact_source_identities=true all_native_owners_destroyed=true
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-native-cold-allocator success
++- Ethereum native cold allocator probe guard success
+   +- run test 1 passed 3m MaxRSS:1G
+      +- compile test ReleaseSafe native success 42s MaxRSS:2G
+

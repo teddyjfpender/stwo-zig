@@ -1,0 +1,7 @@
+{
+  "source_changes": [
+    "design/riscv-proving-stack/small-detached-recursion-goal.md"
+  ],
+  "documentation_only": true,
+  "compiled_sources_unchanged": true
+}

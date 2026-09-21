@@ -1,0 +1,20 @@
+{
+  "applied": true,
+  "store_tests_passed": 20,
+  "metal_session_tests_passed": 8,
+  "package_tests_passed": 45,
+  "linux_cross_compile_passed": true,
+  "linux_runtime_qualified": false,
+  "linux_historical_failure_root_cause_proven": false,
+  "production_security_qualified": false,
+  "full_proof_rerun": false,
+  "source_sha256": {
+    "src/artifact_store/README.md": "2d59df52d984cadeda415c3630d3a9e3c049ef8eca99fcf6751ab9d80d7ba719",
+    "src/artifact_store/mod.zig": "9a40c7b011798cac72c77d14e07878ab5a8505470a18fea921069b848dbf99a7",
+    "src/artifact_store/package.contract.json": "d0a950c3deb6eb8d9b33ac4491b1cd3ef8683b289e21e05099fcddb78705d44a",
+    "src/artifact_store/store.zig": "3329d3f7271efe4fca3e2578748c8e4a2099e7530589779440a16987cfe9585a",
+    "src/artifact_store/store_test.zig": "22f5c685d734ed0edc62fbedd1a3bc585aa9df6c3665ba87958b56d8897499cc",
+    "src/artifact_store/publication.zig": "4509ce4044d80975e5faf0f96d411be7a9f59edb881a1e210a9335abd87ddccd",
+    "src/artifact_store/publication_test.zig": "560c0277bd42d4ba70e85736383cd77e80d6c883af12daf9e0d6b43dcb08e9db"
+  }
+}

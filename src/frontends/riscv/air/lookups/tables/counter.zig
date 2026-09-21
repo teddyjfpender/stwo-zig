@@ -3,7 +3,7 @@
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
 const QM31 = @import("stwo_core").fields.qm31.QM31;
-const infra = @import("../../../infra_trace.zig");
+const permutation = @import("../../../infra_trace/permutation.zig");
 const entry = @import("../entry.zig");
 const schema = @import("schema.zig");
 
@@ -69,7 +69,7 @@ pub const Counter = struct {
     pub fn committedColumn(self: *const Counter, allocator: std.mem.Allocator) ![]M31 {
         const result = try allocator.alloc(M31, self.values.len);
         errdefer allocator.free(result);
-        const table = try infra.BitReversalTable.init(allocator, schema.logSize(self.kind));
+        const table = try permutation.BitReversalTable.init(allocator, schema.logSize(self.kind));
         defer table.deinit(allocator);
         for (self.values, 0..) |value, row| result[table.map(row)] = value;
         return result;
@@ -150,7 +150,7 @@ test "signed counter preserves consumer signs and committed order" {
 
     const committed = try counter.committedColumn(allocator);
     defer allocator.free(committed);
-    const table = try infra.BitReversalTable.init(allocator, schema.logSize(.range_check_8_8));
+    const table = try permutation.BitReversalTable.init(allocator, schema.logSize(.range_check_8_8));
     defer table.deinit(allocator);
     try std.testing.expect(committed[table.map(row)].eql(M31.one().neg()));
 }

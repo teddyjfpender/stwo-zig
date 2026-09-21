@@ -53,7 +53,7 @@ const product = graph.Product{
     .role = .cli,
     .protocol_features = "rv32im-zkvm-v1+lifted-pcs-v1" ++
         "+metal-runtime-v2+authenticated-core-aot-v2" ++
-        "+rv32im-zkvm-poseidon2-v1",
+        "+rv32im-zkvm-poseidon2-v1+csp-ecdsa-typed-recovery-v1",
 };
 
 const source_closure = product_policy.SourceClosure{
@@ -63,6 +63,8 @@ const source_closure = product_policy.SourceClosure{
         "src/products/riscv_metal/root.zig",
         "src/integrations/riscv_metal/mod.zig",
         "src/tests/riscv/metal_backend_test.zig",
+        "src/tests/riscv/recursive_framework_aot_test.zig",
+        "src/tests/riscv/recursive_framework_resident_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/products/riscv_metal/root.zig" },
@@ -96,6 +98,8 @@ const source_closure = product_policy.SourceClosure{
         "src/riscv_metal_bench_cli.zig",
         "src/products/riscv_metal/root.zig",
         "src/tests/riscv/metal_backend_test.zig",
+        "src/tests/riscv/recursive_framework_aot_test.zig",
+        "src/tests/riscv/recursive_framework_resident_test.zig",
         "src/interop/atomic_file.zig",
         "src/interop/output_transaction.zig",
         "src/interop/postcard.zig",
@@ -173,7 +177,7 @@ pub fn addProduct(context: Context) void {
             context.b,
             descriptor.unsupported_target_reason.?,
         );
-        registerUnavailableGuestPoseidon2(
+        registerUnavailableAcceptanceTests(
             context.b,
             descriptor.unsupported_target_reason.?,
         );
@@ -234,6 +238,35 @@ pub fn addProduct(context: Context) void {
         "Build the compatible RV32IM Metal benchmark",
     );
     metal.linkRuntime(context.b, benchmark.executable);
+
+    const recursive_aot_module = riscv_metal_modules.createModule(
+        context,
+        product,
+        riscv_metal_modules.roleProduct(product, .@"test"),
+        "src/tests/riscv/recursive_framework_aot_test.zig",
+    );
+    const recursive_aot_tests = context.b.addTest(.{
+        .root_module = recursive_aot_module,
+        .filters = &.{"recursive framework AOT matches"},
+    });
+    context.b.step("test-riscv-metal-recursive-aot", "Check or regenerate the exact recursive typed AIR AOT catalog without proving")
+        .dependOn(&context.b.addRunArtifact(recursive_aot_tests).step);
+
+    const recursive_resident_module = riscv_metal_modules.createModule(
+        context,
+        product,
+        riscv_metal_modules.roleProduct(product, .@"test"),
+        "src/tests/riscv/recursive_framework_resident_test.zig",
+    );
+    const recursive_resident_tests = context.b.addTest(.{
+        .root_module = recursive_resident_module,
+        .filters = &.{"recursive framework AOT executes"},
+    });
+    metal.linkRuntime(context.b, recursive_resident_tests);
+    const recursive_resident_run = context.b.addRunArtifact(recursive_resident_tests);
+    recursive_resident_run.has_side_effects = true;
+    context.b.step("test-riscv-metal-recursive-resident", "Compare an admitted recursive AOT kernel on proof-owned resident trees against native AIR")
+        .dependOn(&recursive_resident_run.step);
 
     const stwo_tests = riscv_metal_modules.createFacadeModule(
         context,
@@ -377,6 +410,8 @@ fn registerMissingAotBundle(b: *std.Build) void {
     b.step(descriptor.benchmark_step.?, reason).dependOn(&failure.step);
     b.step("riscv-csp-bench-metal", reason).dependOn(&failure.step);
     b.step("test-riscv-metal-guest-poseidon2-aot", reason).dependOn(&failure.step);
+    b.step("test-riscv-metal-recursive-aot", reason).dependOn(&failure.step);
+    b.step("test-riscv-metal-recursive-resident", reason).dependOn(&failure.step);
 }
 
 fn registerUnavailableCspBenchmark(b: *std.Build, reason: []const u8) void {
@@ -387,15 +422,17 @@ fn registerUnavailableCspBenchmark(b: *std.Build, reason: []const u8) void {
     b.step("riscv-csp-bench-metal", reason).dependOn(&failure.step);
 }
 
-fn registerUnavailableGuestPoseidon2(b: *std.Build, reason: []const u8) void {
+fn registerUnavailableAcceptanceTests(b: *std.Build, reason: []const u8) void {
     const failure = b.addFail(b.fmt(
-        "RISC-V Metal guest Poseidon2 acceptance is unavailable: {s}",
+        "RISC-V Metal acceptance tests are unavailable: {s}",
         .{reason},
     ));
     b.step(
         "test-riscv-metal-guest-poseidon2-aot",
         reason,
     ).dependOn(&failure.step);
+    b.step("test-riscv-metal-recursive-aot", reason).dependOn(&failure.step);
+    b.step("test-riscv-metal-recursive-resident", reason).dependOn(&failure.step);
 }
 
 test "descriptor requires Metal and explicitly excludes CUDA" {

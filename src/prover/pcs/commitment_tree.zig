@@ -41,6 +41,43 @@ pub const BackingTeardownToken = struct {
     }
 };
 
+/// Moves independently owned LDE buffers to explicit retained storage. Consumes
+/// the input on success and failure. Copy/free one column at a time, so the
+/// temporary duplicate is bounded by the largest column, not the whole tree.
+pub fn relocateOwnedColumns(
+    allocator: std.mem.Allocator,
+    retained_allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+) ![]ColumnEvaluation {
+    defer {
+        for (columns) |column| if (column.values.len != 0) allocator.free(column.values);
+        allocator.free(columns);
+    }
+    const result = try allocator.alloc(ColumnEvaluation, columns.len);
+    var initialized: usize = 0;
+    errdefer {
+        for (result[0..initialized]) |column| retained_allocator.free(column.values);
+        allocator.free(result);
+    }
+    for (columns, result) |*source, *destination| {
+        const values = try retained_allocator.dupe(M31, source.values);
+        destination.* = .{ .log_size = source.log_size, .values = values };
+        initialized += 1;
+        allocator.free(source.values);
+        source.values = &.{};
+    }
+    return result;
+}
+
+pub fn freeRetainedColumns(
+    allocator: std.mem.Allocator,
+    retained_allocator: std.mem.Allocator,
+    columns: []ColumnEvaluation,
+) void {
+    for (columns) |column| if (column.values.len != 0) retained_allocator.free(column.values);
+    allocator.free(columns);
+}
+
 const HostMerkleBackend = struct {
     pub const reuses_constant_merkle_parents = true;
 
@@ -65,13 +102,31 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
     comptime backend_merkle.assertMerkleOps(B, H);
     return struct {
         columns: []ColumnEvaluation,
+        /// Value buffers only; outer descriptors remain on the caller allocator.
+        retained_column_allocator: ?std.mem.Allocator = null,
         coefficients: ?[]prover_circle.CircleCoefficients,
         column_backing_buffers: ?[][]M31 = null,
+        column_backing_alignment: std.mem.Alignment = .of(M31),
         coefficient_backing_buffers: ?[][]M31 = null,
         backing_teardown: ?BackingTeardownToken = null,
         commitment: B.MerkleTree(H),
 
         const Self = @This();
+
+        /// Transfers a complete prepared owner on success, including the
+        /// allocation metadata needed when releasing resident backing.
+        pub fn initPrepared(allocator: std.mem.Allocator, prepared: anytype, recorder: ?*WorkRecorder) !Self {
+            var tree = try initOwnedWithBackingAndWorkRecorder(
+                allocator,
+                prepared.columns,
+                prepared.coefficients,
+                prepared.column_backing_buffers,
+                prepared.coefficient_backing_buffers,
+                recorder,
+            );
+            tree.column_backing_alignment = prepared.column_backing_alignment;
+            return tree;
+        }
 
         pub fn init(
             allocator: std.mem.Allocator,
@@ -204,10 +259,9 @@ pub fn CommitmentTreeProverForBackend(comptime B: type, comptime H: type) type {
             self.commitment.deinit(allocator);
             if (self.column_backing_buffers) |buffers| {
                 allocator.free(self.columns);
-                for (buffers) |buffer| allocator.free(buffer);
-                allocator.free(buffers);
+                @import("backed_columns.zig").freeBuffers(allocator, buffers, self.column_backing_alignment);
             } else {
-                freeOwnedColumns(allocator, self.columns);
+                freeRetainedColumns(allocator, self.retained_column_allocator orelse allocator, self.columns);
             }
             if (self.coefficients) |coeffs| {
                 for (coeffs) |*coeff| coeff.deinit(allocator);

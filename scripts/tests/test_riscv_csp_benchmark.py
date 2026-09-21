@@ -14,6 +14,16 @@ from scripts.riscv_csp_benchmark_lib import contract as csp_contract
 from scripts.riscv_csp_benchmark_lib import host as csp_host
 
 
+class ReportPathTests(unittest.TestCase):
+    def test_in_repository_install_retains_relative_path(self) -> None:
+        self.assertEqual("zig-out/bin/prover", csp.report_path(csp.ROOT / "zig-out/bin/prover"))
+
+    def test_external_install_is_reportable(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "bin/prover"
+            self.assertEqual(str(executable.resolve()), csp.report_path(executable))
+
+
 class ManifestContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls) -> None:
@@ -525,9 +535,11 @@ class ArtifactBackendTests(unittest.TestCase):
             "promoted", "release_gated", False
         )
 
-    @staticmethod
-    def artifact(backend: str) -> dict:
+    @classmethod
+    def artifact(cls, backend: str) -> dict:
+        from scripts.tests.riscv_csp_provenance_fixture import artifact_workload
         return {
+            **artifact_workload(cls.case),
             "schema_version": 4,
             "artifact_kind": "stwo_riscv_proof",
             "exchange_mode": "riscv_proof_json_wire_v4",
@@ -771,20 +783,6 @@ class AdmissionPassthroughTests(unittest.TestCase):
             csp._resolve_admission(Path("/opt/example/prover"), "metal")
         self.assertEqual("metal", recorded["backend"])
 
-    def test_metal_fails_closed_until_admission_learns_backends(self) -> None:
-        def resolve(cli, *, cwd=None, timeout_seconds=30):
-            return riscv_cli_admission.Admission(
-                "promoted", "release_gated", False
-            )
-
-        with mock.patch.object(csp.riscv_cli_admission, "resolve", resolve):
-            admission = csp._resolve_admission(Path("/opt/example/prover"), "cpu")
-            self.assertEqual("release_gated", admission.release_status)
-            with self.assertRaisesRegex(
-                csp.BenchmarkError,
-                "cannot authenticate a metal",
-            ):
-                csp._resolve_admission(Path("/opt/example/prover"), "metal")
 
 
 class BuildRegistrationTests(unittest.TestCase):

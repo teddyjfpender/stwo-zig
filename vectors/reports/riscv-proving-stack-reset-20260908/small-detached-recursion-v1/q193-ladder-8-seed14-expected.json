@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-workload-first",
+    "--export-segment-inputs",
+    "8",
+    "1",
+    "14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-seed14-expected"
+  ],
+  "binary_sha256": "e171c37629da08bf26633410501ff9b5082fb08e7dc4f8a2572052720b8a20bf",
+  "process_ns": 22968042,
+  "exit_code": 0,
+  "scope": "Independent execution only; no proof candidate inputs"
+}

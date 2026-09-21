@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 390s
+
+Build Summary: 4/4 steps succeeded; 6/6 tests passed
+test-ethereum-retained-campaign-geometry-v1 success
++- retained campaign geometry identity guard success
+   +- run test 6 passed 264ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 4s MaxRSS:414M
+

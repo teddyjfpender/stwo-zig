@@ -14,6 +14,8 @@ pub fn Namespace(comptime context: type) type {
         const Digest = context.d_Digest;
         const FORMAT_VERSION = context.d_FORMAT_VERSION;
         const SCHEMA_VERSION = context.d_SCHEMA_VERSION;
+        const PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION =
+            context.d_PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION;
         const CHILD_QUERY_COUNT = context.d_CHILD_QUERY_COUNT;
         const MAX_CHILD_FRI_ROUNDS = context.d_MAX_CHILD_FRI_ROUNDS;
         const CHILD_COMMITMENT_COUNT = context.d_CHILD_COMMITMENT_COUNT;
@@ -99,14 +101,24 @@ pub fn Namespace(comptime context: type) type {
             }
 
             pub fn validate(self: *const TemporalChildTranscriptReplayV2) Error!void {
+                const legacy = self.schema_version == SCHEMA_VERSION;
+                const proofless_empty = self.schema_version ==
+                    PROOFLESS_EMPTY_CHILD_REPLAY_SCHEMA_VERSION;
                 if (self.format_version != FORMAT_VERSION or
-                    self.schema_version != SCHEMA_VERSION or
-                    self.fri_round_count == 0 or
-                    self.fri_round_count > MAX_CHILD_FRI_ROUNDS or
-                    self.query_count != CHILD_QUERY_COUNT or
+                    (!legacy and !proofless_empty) or
                     self.relation_draw_count != CHILD_RELATION_DRAW_COUNT or
                     !allZero(&self.padding))
                 {
+                    return error.UnsupportedFormat;
+                }
+                if (legacy) {
+                    if (self.fri_round_count == 0 or
+                        self.fri_round_count > MAX_CHILD_FRI_ROUNDS or
+                        self.query_count != CHILD_QUERY_COUNT)
+                    {
+                        return error.UnsupportedFormat;
+                    }
+                } else if (self.fri_round_count != 0 or self.query_count != 0) {
                     return error.UnsupportedFormat;
                 }
                 inline for (.{
@@ -121,11 +133,16 @@ pub fn Namespace(comptime context: type) type {
                 try requireSha(self.manifest_sha_id);
                 try requireCanonical(self.composition_randomness);
                 try requireCanonical(self.oods_seed);
+                if (proofless_empty and !self.deep_randomness.isZero())
+                    return error.ChildTranscriptMismatch;
                 try requireCanonical(self.deep_randomness);
                 for (self.fri_alphas[0..self.fri_round_count]) |value|
                     try requireCanonical(value);
                 for (self.fri_alphas[self.fri_round_count..]) |value|
                     if (!value.isZero()) return error.ChildTranscriptMismatch;
+                if (proofless_empty)
+                    for (self.raw_queries) |query|
+                        if (query != 0) return error.ChildTranscriptMismatch;
                 if (!std.meta.eql(
                     self.replay_id,
                     transcriptReplayIdentity(self),

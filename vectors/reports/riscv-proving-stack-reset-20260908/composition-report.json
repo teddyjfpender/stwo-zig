@@ -1,0 +1,568 @@
+{
+  "composition_seconds": 311.785765875,
+  "scheduler": "pool",
+  "wall_accounting_exact": true,
+  "phases": [
+    {
+      "phase": "host_launch_or_inline",
+      "seconds": 292.196325958,
+      "wall_share": 0.9371701916473836
+    },
+    {
+      "phase": "semantic_dispatch",
+      "seconds": 13.579494833,
+      "wall_share": 0.0435539281111513
+    },
+    {
+      "phase": "lookup_dispatch",
+      "seconds": 4.705508708,
+      "wall_share": 0.015092121652168417
+    },
+    {
+      "phase": "accumulation",
+      "seconds": 1.193919917,
+      "wall_share": 0.003829295778302663
+    },
+    {
+      "phase": "device_preparation",
+      "seconds": 0.042747667,
+      "wall_share": 0.000137105896672455
+    },
+    {
+      "phase": "cleanup",
+      "seconds": 0.036573208,
+      "wall_share": 0.00011730236592860623
+    },
+    {
+      "phase": "device_merge",
+      "seconds": 0.019552666,
+      "wall_share": 6.27118622465882e-05
+    },
+    {
+      "phase": "preparation",
+      "seconds": 0.011459959,
+      "wall_share": 3.675587616336047e-05
+    },
+    {
+      "phase": "full_parity",
+      "seconds": 4.95e-05,
+      "wall_share": 1.587628603284133e-07
+    },
+    {
+      "phase": "scratch_release",
+      "seconds": 4.55e-05,
+      "wall_share": 1.4593353828167285e-07
+    },
+    {
+      "phase": "work_receipt",
+      "seconds": 3.9375e-05,
+      "wall_share": 1.262886388976015e-07
+    },
+    {
+      "phase": "partition_parity",
+      "seconds": 2.8125e-05,
+      "wall_share": 9.020617064114394e-08
+    },
+    {
+      "phase": "publication",
+      "seconds": 1.2e-05,
+      "wall_share": 3.848796614022141e-08
+    },
+    {
+      "phase": "host_wait",
+      "seconds": 8.459e-06,
+      "wall_share": 2.713080879834441e-08
+    }
+  ],
+  "host_components": [
+    {
+      "component_index": "112",
+      "constraints": "7215",
+      "eval_log": "19",
+      "evaluator": "0x1006b2e80",
+      "mode": "legacy",
+      "start_ns": "11035537584",
+      "end_ns": "289753800834",
+      "wall_ns": "278718263250",
+      "failed": "false"
+    },
+    {
+      "component_index": "103",
+      "constraints": "10",
+      "eval_log": "22",
+      "evaluator": "0x10076ce7c",
+      "mode": "legacy",
+      "start_ns": "3357380750",
+      "end_ns": "7109169167",
+      "wall_ns": "3751788417",
+      "failed": "false"
+    },
+    {
+      "component_index": "105",
+      "constraints": "5",
+      "eval_log": "22",
+      "evaluator": "0x100770394",
+      "mode": "legacy",
+      "start_ns": "7109169667",
+      "end_ns": "9947378292",
+      "wall_ns": "2838208625",
+      "failed": "false"
+    },
+    {
+      "component_index": "126",
+      "constraints": "6",
+      "eval_log": "22",
+      "evaluator": "0x1006c00fc",
+      "mode": "legacy",
+      "start_ns": "289760467375",
+      "end_ns": "292207768542",
+      "wall_ns": "2447301167",
+      "failed": "false"
+    },
+    {
+      "component_index": "90",
+      "constraints": "13",
+      "eval_log": "21",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "11494542",
+      "end_ns": "1822168709",
+      "wall_ns": "1810674167",
+      "failed": "false"
+    },
+    {
+      "component_index": "109",
+      "constraints": "1",
+      "eval_log": "21",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "10614846000",
+      "end_ns": "11002704584",
+      "wall_ns": "387858584",
+      "failed": "false"
+    },
+    {
+      "component_index": "107",
+      "constraints": "1",
+      "eval_log": "21",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "10057782209",
+      "end_ns": "10401804042",
+      "wall_ns": "344021833",
+      "failed": "false"
+    },
+    {
+      "component_index": "108",
+      "constraints": "1",
+      "eval_log": "20",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "10401804917",
+      "end_ns": "10614845375",
+      "wall_ns": "213040458",
+      "failed": "false"
+    },
+    {
+      "component_index": "99",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2930070917",
+      "end_ns": "3072302250",
+      "wall_ns": "142231333",
+      "failed": "false"
+    },
+    {
+      "component_index": "96",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2510619625",
+      "end_ns": "2651457209",
+      "wall_ns": "140837584",
+      "failed": "false"
+    },
+    {
+      "component_index": "100",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "3072303042",
+      "end_ns": "3213099917",
+      "wall_ns": "140796875",
+      "failed": "false"
+    },
+    {
+      "component_index": "101",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "3213100709",
+      "end_ns": "3352957292",
+      "wall_ns": "139856583",
+      "failed": "false"
+    },
+    {
+      "component_index": "98",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2790241375",
+      "end_ns": "2930070375",
+      "wall_ns": "139829000",
+      "failed": "false"
+    },
+    {
+      "component_index": "97",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2651457875",
+      "end_ns": "2790240875",
+      "wall_ns": "138783000",
+      "failed": "false"
+    },
+    {
+      "component_index": "91",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "1822169209",
+      "end_ns": "1960621250",
+      "wall_ns": "138452041",
+      "failed": "false"
+    },
+    {
+      "component_index": "95",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2372659250",
+      "end_ns": "2510619500",
+      "wall_ns": "137960250",
+      "failed": "false"
+    },
+    {
+      "component_index": "93",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2097583167",
+      "end_ns": "2235439375",
+      "wall_ns": "137856208",
+      "failed": "false"
+    },
+    {
+      "component_index": "94",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "2235439625",
+      "end_ns": "2372658750",
+      "wall_ns": "137219125",
+      "failed": "false"
+    },
+    {
+      "component_index": "92",
+      "constraints": "6",
+      "eval_log": "17",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "1960621292",
+      "end_ns": "2097582625",
+      "wall_ns": "136961333",
+      "failed": "false"
+    },
+    {
+      "component_index": "106",
+      "constraints": "1",
+      "eval_log": "19",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "9947378625",
+      "end_ns": "10057781667",
+      "wall_ns": "110403042",
+      "failed": "false"
+    },
+    {
+      "component_index": "110",
+      "constraints": "1",
+      "eval_log": "17",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "11002705000",
+      "end_ns": "11024314542",
+      "wall_ns": "21609542",
+      "failed": "false"
+    },
+    {
+      "component_index": "111",
+      "constraints": "1",
+      "eval_log": "16",
+      "evaluator": "0x10076e734",
+      "mode": "legacy",
+      "start_ns": "11024315000",
+      "end_ns": "11035537375",
+      "wall_ns": "11222375",
+      "failed": "false"
+    },
+    {
+      "component_index": "113",
+      "constraints": "1",
+      "eval_log": "14",
+      "evaluator": "0x1006b3b98",
+      "mode": "legacy",
+      "start_ns": "289753806125",
+      "end_ns": "289758955834",
+      "wall_ns": "5149709",
+      "failed": "false"
+    },
+    {
+      "component_index": "102",
+      "constraints": "6",
+      "eval_log": "12",
+      "evaluator": "0x100771e94",
+      "mode": "legacy",
+      "start_ns": "3352957625",
+      "end_ns": "3357380667",
+      "wall_ns": "4423042",
+      "failed": "false"
+    },
+    {
+      "component_index": "114",
+      "constraints": "1",
+      "eval_log": "11",
+      "evaluator": "0x1006b3b98",
+      "mode": "legacy",
+      "start_ns": "289758956250",
+      "end_ns": "289759858959",
+      "wall_ns": "902709",
+      "failed": "false"
+    },
+    {
+      "component_index": "121",
+      "constraints": "1173",
+      "eval_log": "2",
+      "evaluator": "0x1006baa18",
+      "mode": "legacy",
+      "start_ns": "289760176209",
+      "end_ns": "289760262875",
+      "wall_ns": "86666",
+      "failed": "false"
+    },
+    {
+      "component_index": "115",
+      "constraints": "212",
+      "eval_log": "2",
+      "evaluator": "0x1006b4cc8",
+      "mode": "legacy",
+      "start_ns": "289759859209",
+      "end_ns": "289759941625",
+      "wall_ns": "82416",
+      "failed": "false"
+    },
+    {
+      "component_index": "116",
+      "constraints": "212",
+      "eval_log": "2",
+      "evaluator": "0x1006b5b54",
+      "mode": "legacy",
+      "start_ns": "289759941917",
+      "end_ns": "289760023709",
+      "wall_ns": "81792",
+      "failed": "false"
+    },
+    {
+      "component_index": "122",
+      "constraints": "482",
+      "eval_log": "2",
+      "evaluator": "0x1006bb8a8",
+      "mode": "legacy",
+      "start_ns": "289760262875",
+      "end_ns": "289760330084",
+      "wall_ns": "67209",
+      "failed": "false"
+    },
+    {
+      "component_index": "124",
+      "constraints": "11",
+      "eval_log": "9",
+      "evaluator": "0x1006bdc28",
+      "mode": "legacy",
+      "start_ns": "289760376250",
+      "end_ns": "289760429042",
+      "wall_ns": "52792",
+      "failed": "false"
+    },
+    {
+      "component_index": "117",
+      "constraints": "237",
+      "eval_log": "2",
+      "evaluator": "0x1006b69e0",
+      "mode": "legacy",
+      "start_ns": "289760024000",
+      "end_ns": "289760072875",
+      "wall_ns": "48875",
+      "failed": "false"
+    },
+    {
+      "component_index": "123",
+      "constraints": "124",
+      "eval_log": "2",
+      "evaluator": "0x1006bcd9c",
+      "mode": "legacy",
+      "start_ns": "289760330084",
+      "end_ns": "289760376250",
+      "wall_ns": "46166",
+      "failed": "false"
+    },
+    {
+      "component_index": "118",
+      "constraints": "237",
+      "eval_log": "2",
+      "evaluator": "0x1006b7848",
+      "mode": "legacy",
+      "start_ns": "289760072959",
+      "end_ns": "289760114209",
+      "wall_ns": "41250",
+      "failed": "false"
+    },
+    {
+      "component_index": "125",
+      "constraints": "370",
+      "eval_log": "2",
+      "evaluator": "0x1006bf270",
+      "mode": "legacy",
+      "start_ns": "289760429084",
+      "end_ns": "289760467334",
+      "wall_ns": "38250",
+      "failed": "false"
+    },
+    {
+      "component_index": "119",
+      "constraints": "428",
+      "eval_log": "2",
+      "evaluator": "0x1006b86b0",
+      "mode": "legacy",
+      "start_ns": "289760114250",
+      "end_ns": "289760150959",
+      "wall_ns": "36709",
+      "failed": "false"
+    },
+    {
+      "component_index": "120",
+      "constraints": "134",
+      "eval_log": "2",
+      "evaluator": "0x1006b953c",
+      "mode": "legacy",
+      "start_ns": "289760151000",
+      "end_ns": "289760176167",
+      "wall_ns": "25167",
+      "failed": "false"
+    }
+  ],
+  "host_span_union_seconds": 292.196257544,
+  "host_spans_overlap_caller_phases": true,
+  "process_resource_samples": [
+    {
+      "phase": "host_launch_or_inline",
+      "elapsed_ns": "11459959",
+      "process_current_phys_bytes": "26979045464",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "device_preparation",
+      "elapsed_ns": "292207785917",
+      "process_current_phys_bytes": "27223134560",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "semantic_dispatch",
+      "elapsed_ns": "292250533584",
+      "process_current_phys_bytes": "27365495232",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "lookup_dispatch",
+      "elapsed_ns": "305830028417",
+      "process_current_phys_bytes": "27730842096",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "scratch_release",
+      "elapsed_ns": "310535537125",
+      "process_current_phys_bytes": "27706069488",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "host_wait",
+      "elapsed_ns": "310535582625",
+      "process_current_phys_bytes": "27706069488",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "partition_parity",
+      "elapsed_ns": "310535591084",
+      "process_current_phys_bytes": "27706069488",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "device_merge",
+      "elapsed_ns": "310535619209",
+      "process_current_phys_bytes": "27706069488",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "work_receipt",
+      "elapsed_ns": "310555171875",
+      "process_current_phys_bytes": "27635192256",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "accumulation",
+      "elapsed_ns": "310555211250",
+      "process_current_phys_bytes": "27635192256",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "full_parity",
+      "elapsed_ns": "311749131167",
+      "process_current_phys_bytes": "27668517360",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "publication",
+      "elapsed_ns": "311749180667",
+      "process_current_phys_bytes": "27668517360",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    },
+    {
+      "phase": "cleanup",
+      "elapsed_ns": "311749192667",
+      "process_current_phys_bytes": "27668517360",
+      "process_lifetime_peak_phys_bytes": "31878078080"
+    }
+  ],
+  "gpu_device_ms": [
+    {
+      "kind": "semantic",
+      "milliseconds": 101.008625
+    },
+    {
+      "kind": "lookup",
+      "milliseconds": 21.244625
+    }
+  ],
+  "note": "Device times and host spans overlap caller phases. Process memory samples are not per-component allocation ownership."
+}

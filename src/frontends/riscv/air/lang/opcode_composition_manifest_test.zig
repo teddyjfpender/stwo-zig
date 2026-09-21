@@ -23,19 +23,19 @@ const opcode_manifest_test_support = @import("opcode_composition_manifest_test_s
 
 test "E-022 composition manifest has the exact 17-family compatibility geometry" {
     const expected_main = [_]usize{
-        35, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 48, 39, 47, 67, 6,
+        35, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 50, 39, 47, 67, 6,
     };
     const expected_direct = [_]usize{
         22, 22, 70, 67, 36, 33, 18, 33, 9, 17, 23, 10, 63, 17, 24, 79, 2,
     };
     const expected_lookups = [_]usize{
-        18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3,
+        18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 17, 16, 22, 25, 3,
     };
     const expected_batch_sizes = [_]usize{
         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2,
     };
     const expected_batches = [_]usize{
-        9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 8, 16, 22, 25, 2,
+        9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 9, 16, 22, 25, 2,
     };
 
     try std.testing.expectEqual(@as(usize, 17), subject.FAMILY_COUNT);
@@ -62,11 +62,11 @@ test "E-022 composition manifest has the exact 17-family compatibility geometry"
         total_batches += item.lookup_batches;
         total_interaction += item.interaction_columns;
     }
-    try std.testing.expectEqual(@as(usize, 644), total_main);
+    try std.testing.expectEqual(@as(usize, 646), total_main);
     try std.testing.expectEqual(@as(usize, 545), total_direct);
-    try std.testing.expectEqual(@as(usize, 242), total_lookups);
-    try std.testing.expectEqual(@as(usize, 155), total_batches);
-    try std.testing.expectEqual(@as(usize, 620), total_interaction);
+    try std.testing.expectEqual(@as(usize, 243), total_lookups);
+    try std.testing.expectEqual(@as(usize, 156), total_batches);
+    try std.testing.expectEqual(@as(usize, 624), total_interaction);
     try std.testing.expectEqual(@as(usize, 67), subject.MAX_MAIN_COLUMNS);
     try std.testing.expectEqual(@as(usize, 79), subject.MAX_DIRECT_CONSTRAINTS);
     try std.testing.expectEqual(@as(usize, 25), subject.MAX_LOOKUP_EVENTS);
@@ -259,8 +259,8 @@ test "E-022 infrastructure cursor owns fixed geometry and O(1) canonical placeme
         .component_count = 17,
         .adapter_count = 34,
         .preprocessed_columns = 34,
-        .main_columns = 644,
-        .interaction_columns = 620,
+        .main_columns = 646,
+        .interaction_columns = 624,
     };
     var cursor = base_component_assembly.InfrastructureCursor.init(opcode_final);
 
@@ -297,8 +297,8 @@ test "E-022 infrastructure cursor owns fixed geometry and O(1) canonical placeme
         .infrastructure_count = 11,
         .adapter_count = 45,
         .preprocessed_columns = 64,
-        .main_columns = 1133,
-        .interaction_columns = 704,
+        .main_columns = 1135,
+        .interaction_columns = 708,
         .hash_count = 2,
         .seen_singletons = 2045,
         .last_order_rank = 10,
@@ -350,8 +350,8 @@ test "E-022 prover and verifier materialize the same 17-family placement plan" {
     const n_interaction: usize = @intCast(
         prover_workspace.statement.nInteractionColumns(),
     );
-    try std.testing.expectEqual(@as(usize, 1133), n_main);
-    try std.testing.expectEqual(@as(usize, 704), n_interaction);
+    try std.testing.expectEqual(@as(usize, 1135), n_main);
+    try std.testing.expectEqual(@as(usize, 708), n_interaction);
 
     const prover_components = try proof_finalize.assemble(
         prover_workspace,
@@ -454,8 +454,8 @@ test "E-022 prover and verifier materialize the same 17-family placement plan" {
         .component_count = 17,
         .adapter_count = 34,
         .preprocessed_columns = 34,
-        .main_columns = 644,
-        .interaction_columns = 620,
+        .main_columns = 646,
+        .interaction_columns = 624,
     };
     try std.testing.expectEqualDeep(expected_final, prover_cursor);
     try std.testing.expectEqualDeep(expected_final, verifier_cursor);
@@ -667,7 +667,7 @@ test "E-022 trace and witness geometry consumers retired their duplicate registr
         "pub const canonical_families = composition_manifest.TRANSCRIPT_ORDER;",
     );
     try std.testing.expectEqualDeep(subject.TRANSCRIPT_ORDER, witness_layout.canonical_families);
-    const expected_digest = "2163899f40e1bffb7f5d355b600ee4e013e7e4f63c205cedd01f6feb9d88f4f5";
+    const expected_digest = "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000";
     const actual_digest = std.fmt.bytesToHex(witness_layout.digest(), .lower);
     try std.testing.expectEqualStrings(expected_digest, &actual_digest);
     inline for (0..subject.FAMILY_COUNT) |index| {

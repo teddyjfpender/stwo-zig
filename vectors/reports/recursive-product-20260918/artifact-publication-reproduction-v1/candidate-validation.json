@@ -1,0 +1,10 @@
+{
+  "production_applied": false,
+  "macos_existing_tests_passed": 17,
+  "macos_new_regressions_passed": 3,
+  "unchanged_source_regressions_failed": 3,
+  "linux_target": "x86_64-linux-musl",
+  "linux_test_binary_emitted": true,
+  "linux_binary_sha256": "949b54d2563b87ebbcac9e62b66781242907094f1146693dfc25a428ca2b1a53",
+  "linux_runtime_executed": false
+}

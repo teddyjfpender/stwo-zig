@@ -1,0 +1,6 @@
+1/5 segment_leaf_statement_contract_test_root.test_0...OK
+2/5 recursion.segment_leaf_authority_v2_test.test.segment leaf V2 publishes every authenticated wire and native context word...OK
+3/5 recursion.segment_leaf_authority_v2_test.test.segment leaf V2 trace and relation writes fail atomically...OK
+4/5 recursion.segment_leaf_authority_v2_test.test.segment leaf V2 is explicitly not the frozen V1 statement row...OK
+5/5 air.memory_commitment.poseidon2_air.test_0...OK
+All 5 tests passed.

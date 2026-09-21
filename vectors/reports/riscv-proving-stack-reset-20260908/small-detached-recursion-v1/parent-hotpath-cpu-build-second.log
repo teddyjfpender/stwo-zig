@@ -1,0 +1,56 @@
+test-recursive-segment-v2-detached-parent-prepare
++- SegmentV2 detached parent preparation guard
+   +- run test stderr
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=194834 transcript_ns=151583 pcs_ns=1403121250 boundary_ns=9212458 composition_ns=6325125
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1419023334
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=153333 transcript_ns=70125 pcs_ns=1410225834 boundary_ns=9218416 composition_ns=6647167
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2845356167
+DETACHED_PARENT_RECURSIVE_STATEMENT rejected=45 host_admission_bypassed=true
+DETACHED_PARENT_ROW row=0 rows=7154 logical_bytes=343392
+DETACHED_PARENT_ROW row=1 rows=2852 logical_bytes=547584
+DETACHED_PARENT_ROW row=2 rows=2852 logical_bytes=422096
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21136 logical_bytes=1606336
+DETACHED_PARENT_ROW row=5 rows=19500 logical_bytes=1638000
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=68 logical_bytes=8704
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=62261 logical_bytes=5728012
+DETACHED_PARENT_ROW row=12 rows=0 logical_bytes=0
+DETACHED_PARENT_ROW row=13 rows=81313 logical_bytes=3252520
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6948 logical_bytes=2918160
+DETACHED_PARENT_ROW row=22 rows=20 logical_bytes=1520
+DETACHED_PARENT_ROW row=23 rows=98816 logical_bytes=34387968
+DETACHED_PARENT_ROW row=24 rows=812756 logical_bytes=84526624
+DETACHED_PARENT_ROW row=25 rows=23932 logical_bytes=8998432
+DETACHED_PARENT_ROW row=26 rows=6176 logical_bytes=1037568
+DETACHED_PARENT_ROW row=27 rows=2316 logical_bytes=259392
+DETACHED_PARENT_ROW row=28 rows=3088 logical_bytes=271744
+DETACHED_PARENT_ROW row=29 rows=145194 logical_bytes=17423280
+DETACHED_PARENT_ROW row=30 rows=1664349 logical_bytes=266295840
+DETACHED_PARENT_ROW row=31 rows=36806 logical_bytes=4711168
+DETACHED_PARENT_ROW row=32 rows=1493374 logical_bytes=304648296
+DETACHED_PARENT_ROW row=33 rows=53654 logical_bytes=9872336
+DETACHED_PARENT_PREPARATION rows_bytes=749054932 providers=185430 graph_ns=3295694292 snapshot_pending=true
+DETACHED_PARENT_EXACT_CLOSURE .{ .contribution_count = 13423683, .unmatched_tuple_count = 0, .unmatched_by_domain = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } }
+TUPLE_UNMATCHED domain=recursion_statement_word hash=a1ca830df2b522e983afa5c943b1c7d8d5ee99870ace4a13b96e4c0fa996a530 residual={ .{ .v = 1 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } } compact=true
+TUPLE_UNMATCHED domain=recursion_statement_word hash=a8b6508d15dc828dabc1258ed8e6b462863cd9adc27625df2af11893246e96b6 residual={ .{ .v = 2147483646 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } } compact=true
+DETACHED_PARENT_MAIN_FINALIZATION cold_columns_equal=true exact_closure_equal=true failed_columns_zeroed=true failed_state_unpublished=true retry_closed=true
+DETACHED_PARENT_ACTUAL_PREPARE preparation_ns=3859203250 child_owners_destroyed=true root_words=436 proof_verified=false
+
+Build Summary: 11/11 steps succeeded; 9/9 tests passed
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove success
+   +- compile exe recursive-segment-v2-detached-parent-prove ReleaseSafe native success 1m MaxRSS:4G
+test-recursive-compact-tuple-ledger success
++- Recursive compact tuple ledger guard success
+   +- run test 7 passed 690ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 5s MaxRSS:571M
+test-recursive-segment-v2-detached-parent-prepare success
++- SegmentV2 detached parent preparation guard success
+   +- run test 2 passed 25s MaxRSS:3G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

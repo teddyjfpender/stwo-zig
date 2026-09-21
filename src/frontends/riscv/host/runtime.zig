@@ -4,7 +4,7 @@
 //! The guest communicates via ECALL with syscall number in a7 (x17).
 
 const std = @import("std");
-const host_mod = @import("mod.zig");
+const host_mod = @import("interface.zig");
 const Cpu = @import("../runner/cpu.zig").Cpu;
 const Memory = @import("../runner/memory.zig").Memory;
 
@@ -12,7 +12,7 @@ const SyscallNr = host_mod.SyscallNr;
 const SyscallResult = host_mod.SyscallResult;
 const HostInterface = host_mod.HostInterface;
 const MemoryWrite = host_mod.MemoryWrite;
-const HintOracle = host_mod.HintOracle;
+const HintOracle = @import("hint_oracle.zig").HintOracle;
 
 /// File descriptor constants for WRITE syscall.
 const FD_STDOUT: u32 = 1;

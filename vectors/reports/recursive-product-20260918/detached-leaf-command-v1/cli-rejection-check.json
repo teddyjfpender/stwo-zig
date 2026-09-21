@@ -1,0 +1,41 @@
+{
+  "passed": true,
+  "binary": "/tmp/pr198-product-cpu-detached-leaf-command-20260918-v1/cpu/bin/recursive-segment-v2-detached-leaf-prove",
+  "cases": [
+    {
+      "args": [],
+      "expected_error": "InvalidArguments",
+      "exit_code": 1,
+      "output_created": false
+    },
+    {
+      "args": [
+        "--native-steps",
+        "1"
+      ],
+      "expected_error": "InvalidArguments",
+      "exit_code": 1,
+      "output_created": false
+    },
+    {
+      "args": [
+        "--memory-addresses",
+        "1"
+      ],
+      "expected_error": "SegmentOutputRequired",
+      "exit_code": 1,
+      "output_created": false
+    },
+    {
+      "args": [
+        "--memory-addresses",
+        "1",
+        "--segments-output",
+        "/var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/pr198-leaf-cli-rejection-4kqey73k/candidate"
+      ],
+      "expected_error": "MissingDetachedKeyAdmission",
+      "exit_code": 1,
+      "output_created": false
+    }
+  ]
+}

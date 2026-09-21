@@ -59,7 +59,7 @@ test "main trace profiling: infrastructure failure closes its scope" {
     defer program.deinit(allocator);
     const witness: CommitmentWitness = .{
         .boundary = null,
-        .program = program,
+        .program = commitment_witness.ProgramWitnessV1.fromOwned(program),
         .poseidon_calls = .empty,
         .merkle_rows = .empty,
     };

@@ -267,6 +267,11 @@ pub fn Cli(comptime spec: Spec) type {
             \\  bench          Benchmark the verified RISC-V proving path
             \\  verify         Verify a RISC-V proof artifact
             \\  applications   List the compiled frontend and backend
+            \\  ecdsa-csp-select --input PATH
+            \\  ecdsa-csp-bench --elf PATH --input PATH --proof-out PATH --report-out PATH
+            \\                   [--warmups 1 --samples 10 --workers 16 --profile-out PATH]
+            \\  ecdsa-csp-verify --elf PATH --input PATH --artifact PATH
+            \\  ECDSA commands use typed recovery guest proofs and fixed secure parameters.
             \\
             \\{s}
             \\

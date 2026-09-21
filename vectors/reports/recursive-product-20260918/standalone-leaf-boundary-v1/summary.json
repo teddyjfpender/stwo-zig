@@ -1,0 +1,23 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "source_freeze": false,
+  "closure_sources": 276,
+  "ownership_checks": 13,
+  "preimage_tests": 2,
+  "transcript_tests": 4,
+  "public_input_tests": 3,
+  "source_writer_substantive_tests": 2,
+  "capture_and_boundary_tests": 2,
+  "transport_tests": 4,
+  "retained_leaf_replay": {
+    "passed": true,
+    "cases": 52,
+    "verifier": "/tmp/pr198-leaf-command-20260918-v1/bin/recursive-segment-v2-detached-verify",
+    "verifier_sha256": "104e7ce1d4c77aa4346e1eab3e9fdfa367e70015c1eef0341b1b3ff65aec6cab"
+  },
+  "build_file_sha256": "5dd36046cff849ae2ab41e02b7f440ab68419b6f67db00ac17636aac1339e0ca",
+  "remaining": [
+    "Typed GPU interactions, 1/2/4/8 useful receipt qualification, and formal baseline migration remain incomplete."
+  ],
+  "complete_qualification": "../standalone-leaf-qualified-v1/cross-backend.json"
+}

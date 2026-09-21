@@ -4,7 +4,7 @@ const std = @import("std");
 const stwo_core = @import("stwo_core");
 const fields = stwo_core.fields;
 const QM31 = fields.qm31.QM31;
-const logup = @import("../../air/logup.zig");
+const logup = @import("../../air/logup_equations.zig");
 const universal = @import("universal_challenges.zig");
 
 pub fn auditPreparedDomainSums(

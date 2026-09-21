@@ -1,0 +1,18 @@
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test stderr
+SEGMENT_V2_DETACHED_CHILD transcript_operations=100 poseidon_calls=1484 sampled_values=2276 queried_values=6348 fri_layers=16 raw_queries=3 input_bytes=93420 caller_destroyed=true
+
+Build Summary: 11/11 steps succeeded; 5/5 tests passed
+test-recursive-segment-v2-witness-free-verifier success
++- SegmentV2 witness-free verifier guard success
+   +- run test 4 passed 699ms MaxRSS:13M
+      +- compile test ReleaseSafe native success 49s MaxRSS:2G
+test-recursive-segment-v2-detached-child success
++- SegmentV2 detached child guard success
+   +- run test 1 passed 1s MaxRSS:18M
+      +- compile test ReleaseSafe native success 53s MaxRSS:3G
+build-recursive-segment-v2-detached-verifier success
++- install recursive-segment-v2-detached-verify success
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native success 53s MaxRSS:3G
+

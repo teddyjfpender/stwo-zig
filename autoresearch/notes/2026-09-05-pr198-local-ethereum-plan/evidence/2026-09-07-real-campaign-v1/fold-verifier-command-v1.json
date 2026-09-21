@@ -1,0 +1,36 @@
+{
+  "recorded_at": "2026-09-07T19:54:57.172842+00:00",
+  "scope": "Explicit Ethereum-key mode in existing common-fold durable verifier; legacy namespace and transport preserved",
+  "build_steps_passed": 6,
+  "transport_tests_passed": 1,
+  "retained_proof_checks_passed": 4,
+  "source": {
+    "path": "src/integrations/riscv_cpu/recursive_common_fold_verifier_command_v2.zig",
+    "sha256": "cc65ac3babbdb494bd1ef922311f6e498c50cd9b6454a01c6842ec3df5f1648b"
+  },
+  "binary": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fold-verifier-product-v1/bin/recursive-common-fold-verify-v2",
+    "bytes": 4294928,
+    "sha256": "1e08ab2f9a1f803b944ea5cae1f0fe2612a794f286b10ffba0ea707969b9815f"
+  },
+  "files": {
+    "fold-verifier-command-v1-build.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/fold-verifier-command-v1-build.log",
+      "bytes": 512,
+      "sha256": "327352013ffb3d065608c417bf34a85a8a2441fed84f7a08e8db30d2eac27fe6"
+    },
+    "fold-verifier-command-v1-checks.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/fold-verifier-command-v1-checks.json",
+      "bytes": 4672,
+      "sha256": "3e2ad5ffd1a9572e1185707d21f399ee2ab41e0214a48b3b4fbcbe2056f5d43c"
+    },
+    "fold-verifier-command-v1-namespace-rejection.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/fold-verifier-command-v1-namespace-rejection.log",
+      "bytes": 36,
+      "sha256": "0f463f935dbc59120b5f178ce37737858b1cda0ec5c67a25a086ce15504d0f6a"
+    }
+  },
+  "ethereum_parent_proof_verified": false,
+  "whole_block_root_verified": false,
+  "active_worktree_build_not_full_source_snapshot": true
+}

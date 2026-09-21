@@ -15,6 +15,13 @@ const prover_types = @import("../prover/types.zig");
 const engine = @import("engine.zig");
 const protocol = @import("protocol.zig");
 
+/// Exact authenticated retirement authority accepted by the additive V2
+/// proof-shape preflight below. Exporting the type here keeps integration
+/// callers on the stable recursion facade rather than reaching into prover
+/// implementation modules.
+pub const RetirementSupplementV2 =
+    statement_validation.RetirementSupplementV2;
+
 const qm31 = stwo_core.fields.qm31;
 const verifier_types = stwo_core.verifier_types;
 
@@ -127,6 +134,52 @@ pub fn preflightShapeV2ForVerifierConfig(
         pcs_config,
         max_wire_bytes,
     );
+}
+
+/// Derive the same V2 proof shape after authenticating an exact heterogeneous
+/// external-retirement supplement. The ordinary entry point above remains
+/// closed: only an extension owner that supplies the independently validated
+/// row and memory-relation totals can admit a joined statement here.
+pub fn preflightShapeV2WithRetirementSupplementV2ForVerifierConfig(
+    statement: *const statement_v2.RiscVStatementV2,
+    supplement: RetirementSupplementV2,
+    pcs_config: stwo_core.pcs.PcsConfig,
+    max_wire_bytes: usize,
+) Error!postcard.proof_preflight.Shape {
+    if (max_wire_bytes == 0) return error.InvalidProofResourceLimit;
+    if (supplement.rows == 0) {
+        if (supplement.extra_memory_terms != 0 or
+            supplement.expected_memory_relation_terms != 0)
+        {
+            return error.InvalidStatement;
+        }
+        try statement_validation.validateV2(statement, .proof);
+    } else {
+        try statement_validation.validateV2WithRetirementSupplementV2(
+            statement,
+            .proof,
+            supplement,
+        );
+    }
+    return preflightShapeFromValidatedCore(
+        statement.core,
+        pcs_config,
+        max_wire_bytes,
+    );
+}
+
+/// Geometry admission for the explicit Ethereum circuit. Independent program
+/// Tree0 authority is checked by the enclosing native/profile verifier.
+pub fn preflightShapeV2WithCircuitProfileV1(
+    statement: *const statement_v2.RiscVStatementV2,
+    supplement: RetirementSupplementV2,
+    pcs_config: stwo_core.pcs.PcsConfig,
+    max_wire_bytes: usize,
+    circuit_profile: @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1,
+) Error!postcard.proof_preflight.Shape {
+    if (max_wire_bytes == 0) return error.InvalidProofResourceLimit;
+    try statement_validation.validateV2WithRetirementSupplementAndCircuitProfileV1(statement, .proof, supplement, circuit_profile);
+    return preflightShapeFromValidatedCore(statement.core, pcs_config, max_wire_bytes);
 }
 
 /// Allocation-free validation of one external Poseidon proof wire.

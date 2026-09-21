@@ -1,0 +1,27 @@
+[
+  {
+    "tag": "pc_hotspot",
+    "source": "src/tools/riscv/pc_hotspot/main.zig",
+    "binary": "riscv-pc-hotspot-observer"
+  },
+  {
+    "tag": "function_value",
+    "source": "src/tools/riscv/function_value/main.zig",
+    "binary": "riscv-function-value-observer"
+  },
+  {
+    "tag": "legacy_semantics",
+    "source": "src/tools/riscv/analyze_legacy_semantics/main.zig",
+    "binary": "riscv-analyze-legacy-semantic-observer"
+  },
+  {
+    "tag": "memcpy_hotspot",
+    "source": "src/tools/riscv/memcpy_hotspot/main.zig",
+    "binary": "riscv-memcpy-hotspot-observer"
+  },
+  {
+    "tag": "memcpy_admission",
+    "source": "src/tools/riscv/memcpy_admission/main.zig",
+    "binary": "riscv-memcpy-admission-observer"
+  }
+]

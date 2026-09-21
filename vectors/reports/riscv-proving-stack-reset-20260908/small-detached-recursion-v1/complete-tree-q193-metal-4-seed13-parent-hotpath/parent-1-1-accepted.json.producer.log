@@ -1,0 +1,35 @@
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=4924459 transcript_ns=204250 pcs_ns=1433271125 boundary_ns=27513916 composition_ns=12845167
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1478817416
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=4790500 transcript_ns=82750 pcs_ns=1422232000 boundary_ns=26836500 composition_ns=12924041
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2945715833
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=2946 logical_bytes=565632
+DETACHED_PARENT_ROW row=2 rows=2946 logical_bytes=436008
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21888 logical_bytes=1663488
+DETACHED_PARENT_ROW row=5 rows=20268 logical_bytes=1702512
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=42769 logical_bytes=3934748
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=104844 logical_bytes=4193760
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=1688781 logical_bytes=270204960
+DETACHED_PARENT_ROW row=31 rows=66530 logical_bytes=8515840
+DETACHED_PARENT_ROW row=32 rows=1611034 logical_bytes=328650936
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=781264388 providers=179992 graph_ns=3385241541 snapshot_pending=true
+DETACHED_PARENT_METAL dispatches=95 poseidon_commits=10 cpu_fallbacks=0 runtime_released=true manifest_sha256=21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-memory-continuation-span-v2","publication_mode":"intermediate","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[191,92,183,224,16,42,54,5,62,83,226,0,151,238,18,220,47,53,205,207,35,238,81,5,241,167,19,69,148,235,45,210],[69,174,199,232,228,117,127,144,10,114,162,187,173,64,191,182,130,105,240,156,104,153,193,99,175,177,36,14,141,244,223,211]],"artifacts":{"key_sha256":[124,237,90,217,212,234,43,8,213,60,165,46,83,120,119,202,161,159,103,102,53,32,56,48,202,81,249,219,101,203,3,250],"claims_sha256":[32,105,179,218,113,114,116,121,70,59,183,244,167,4,138,143,214,144,152,222,147,163,207,200,252,73,183,41,143,191,222,121],"proof_sha256":[242,122,42,188,89,86,211,235,19,70,110,34,77,124,43,54,26,93,252,46,202,167,171,172,188,193,212,14,233,211,68,170],"proof_bytes":2553028},"candidate_root_words_sha256":[148,85,103,172,51,142,38,108,25,209,55,211,229,221,22,227,220,3,25,85,114,119,55,215,158,17,124,131,50,240,156,217],"circuit_identity":[13,192,154,120,225,177,88,25,154,244,108,114,172,115,11,142,0,235,142,246,204,37,100,22,82,41,86,46,62,229,142,242],"preparation_ns":4001488708,"key_preparation_ns":1227253417,"proof_ns":10631620541,"request_ns":16141616375}

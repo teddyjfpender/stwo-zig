@@ -1,0 +1,28 @@
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript' failed
+error: while executing test 'recursive_segment_v2_detached_child_transcript.test.SegmentV2 detached child owns genuine capture and exact recorded transcript', the following test command failed:
+./.zig-cache/o/6c4d8fb43f2aaa272fdfa641fa5e59a2/test --cache-dir=./.zig-cache --seed=0xb47941a7 --listen=-
+
+Build Summary: 5/8 steps succeeded; 1 failed; 1/2 tests passed; 1 failed
+test-recursive-segment-v2-detached-child transitive failure
++- SegmentV2 detached child guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 58s MaxRSS:3G
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 1s MaxRSS:17M
+      +- compile test ReleaseSafe native success 5s MaxRSS:582M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/13dbdcea34b18189563766ddf6d5679b/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xb47941a7 -Ze21af9e5e4e18b57 --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-child test-recursive-segment-v2-detached-boundary -Doptimize=ReleaseSafe --summary all

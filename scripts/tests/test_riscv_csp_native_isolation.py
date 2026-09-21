@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import unittest
 from pathlib import Path
 
@@ -112,7 +113,7 @@ class NativeRecursionIsolationTests(unittest.TestCase):
         self.assertNotIn("recursion", registration.casefold())
 
     def test_standard_cli_command_selects_only_native_bench_mode(self) -> None:
-        source = csp.inspect.getsource(csp.benchmark_case)
+        source = inspect.getsource(csp.benchmark_case)
         self.assertIn('"bench"', source)
         for forbidden in (
             "--recursive",

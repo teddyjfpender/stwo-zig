@@ -1,0 +1,10 @@
+{
+  "executable": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-cpu-product-v7/bin/ethereum-prepared-leaf-cpu-v1",
+  "bytes": 7010208,
+  "sha256": "15c9a8bc741bb10d84a5435d9e04bac14179346f147203e8fefc696745d8f781",
+  "tests_passed": 9,
+  "test_log": "separated-budget-tree1-focused.log",
+  "compile_log": "separated-budget-tree1-build.log",
+  "compile_log_qualification": "Product compiled. Initial8/9testguard failed on missing test discovery; moved test into focused integration root andreran9/9. Only test relocation occurred after executable compile.",
+  "runtime_result": "pending"
+}

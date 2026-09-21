@@ -1,0 +1,12 @@
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test stderr
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=188 frames=190 permutations=1681 queries=193
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-program-v1 success
++- Common-fold transcript program proof identity guard success
+   +- run test 1 passed 12m MaxRSS:10G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

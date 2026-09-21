@@ -1,0 +1,126 @@
+{
+  "complete": false,
+  "requirements": [
+    {
+      "id": 1,
+      "requirement": "Repair baseline at owning contracts and review source before generated bindings and exports",
+      "status": "incomplete: functional/formal repairs passed, but current source conformance reports 120 violations; Linux artifact-store qualification unproven",
+      "evidence": [
+        "../formal-reviewed-revision-v1/summary.json",
+        "../../recursive-product-20260917/frontend-baseline-repairs.json",
+        "../../recursive-product-20260917/formal-source-binding-review.md",
+        "../../recursive-product-20260917/reviewed-cpu-api.json",
+        "source-conformance.log"
+      ]
+    },
+    {
+      "id": 2,
+      "requirement": "One pinned CPU/Metal/AOT complete four-segment command with producer exit, fresh verification, malformed proof and statement substitution",
+      "status": "verified on final complete-proof source",
+      "command": "python3 scripts/riscv_recursive_product.py --backend cpu|metal --output /tmp/NEW",
+      "evidence": [
+        "../../../..//scripts/riscv_recursive_product.py",
+        "../../../..//scripts/riscv_segment_v2_detached_tree_gate.py",
+        "summary.json",
+        "cpu-summary.json",
+        "metal-summary.json",
+        "qualified-source-snapshot.json"
+      ]
+    },
+    {
+      "id": 3,
+      "requirement": "Shared recursion preparation ownership, verifier-only dependencies and replaced production route retirement",
+      "status": "verified on final complete-proof source",
+      "evidence": [
+        "../shared-outer-transaction-qualified-v1/README.md",
+        "../canonical-producer-modules-v1/README.md",
+        "../public-route-retirement-v1/summary.json",
+        "../canonical-parent-retirement-v1/summary.json",
+        "pr198-wide-authority-closure-final.log",
+        "summary.json",
+        "cpu-summary.json",
+        "metal-summary.json",
+        "qualified-source-snapshot.json"
+      ]
+    },
+    {
+      "id": 4,
+      "requirement": "Separate protocol identity from source/build provenance",
+      "status": "verified on final complete-proof source",
+      "evidence": [
+        "../../recursive-product-20260917/protocol-identity-migration-status.json",
+        "../canonical-parent-retirement-v1/summary.json",
+        "summary.json",
+        "cpu-summary.json",
+        "metal-summary.json",
+        "qualified-source-snapshot.json"
+      ]
+    },
+    {
+      "id": 5,
+      "requirement": "Qualify AOT, selected lanes and typed GPU interactions individually with complete proofs",
+      "status": "verified on final complete-proof source",
+      "evidence": [
+        "../../recursive-product-20260917/metal-v2/summary.json",
+        "../../recursive-product-20260917/cpu-selected-v1/summary.json",
+        "../../recursive-product-20260917/metal-selected-v1/summary.json",
+        "../leaf-device-interactions-qualified-v1/summary.json",
+        "summary.json",
+        "cpu-summary.json",
+        "metal-summary.json",
+        "qualified-source-snapshot.json"
+      ]
+    },
+    {
+      "id": 6,
+      "requirement": "Useful 1/2/4/8 continuation, standalone roots and measured memory/verification before Ethereum",
+      "status": "verified on final complete-proof and continuation source",
+      "evidence": [
+        "../larger-memory-ladder-qualified-v1/README.md",
+        "../shared-producer-accounting-qualified-v1/summary.json",
+        "ladder-summary.json",
+        "ladder-measurements.json",
+        "README.md"
+      ]
+    },
+    {
+      "id": "typed",
+      "requirement": "Canonical native RV32IM typed opcode and infrastructure authority, including wide Poseidon",
+      "status": "verified on final complete-proof and continuation source",
+      "evidence": [
+        "frontend-authority-audit.md",
+        "pr198-wide-authority-focused-v3.log",
+        "pr198-wide-authority-closure-final.log",
+        "../typed-boundary-authority-v1/summary.json",
+        "../typed-trace-retirement-v1/README.md",
+        "../typed-compact-poseidon-authority-v1/README.md",
+        "ladder-summary.json",
+        "ladder-measurements.json",
+        "README.md"
+      ]
+    }
+  ],
+  "verified_receipt_sha256": {
+    "vectors/reports/recursive-product-20260917/frontend-baseline-repairs.json": "053a74360b7f06d740864b184e03103524abb51ec13f016573ddbe0fd5a35b93",
+    "vectors/reports/recursive-product-20260918/formal-reviewed-revision-v1/summary.json": "9652dc21c66a59bd3f33c9d65608c651fdc3d5776b836428f0c81477b84e23e7",
+    "vectors/reports/recursive-product-20260917/cpu-selected-v1/summary.json": "d14778e20dd244152ebb8957a5b3a5e52ff8b4571e0c9e775a6cd6e807c272e8",
+    "vectors/reports/recursive-product-20260917/metal-selected-v1/summary.json": "dc433766fc9b70bffc2799fc6c310dee04a2793492534f1ff44ff0a3522f7567",
+    "vectors/reports/recursive-product-20260918/leaf-device-interactions-qualified-v1/summary.json": "d8cb6befc650169e819932bdac2db3ca3f7d95b53d9feb5f42853f3d6cfcff12",
+    "vectors/reports/recursive-product-20260918/canonical-parent-retirement-v1/summary.json": "e86430bfef5fef9d74de1f33d991670d1283a947963b6263e7fa3bb5b38562d0",
+    "vectors/reports/recursive-product-20260918/public-route-retirement-v1/summary.json": "8db2ed7427d8b113e9edb41ede9ba05c51012d346477436031c5da2ea90d6527",
+    "vectors/reports/recursive-product-20260918/typed-boundary-authority-v1/summary.json": "bb9cff67ed53c24b9e0ec80fb3139c7b91e36e18867ac3f9d15b0358688aa93e"
+  },
+  "scope": "Canonical native RV32IM and detached recursive continuation; speed research deferred",
+  "production_security_qualified": false,
+  "baseline_audit_limitations": [
+    "The original triage includes repository-wide manual source ceilings. Current inspection confirms at least riscv_composition.zig (872), commit_backend.zig (1026), air/component.zig (998), and frontend build.zig (1256) still exceed the 850-line ceiling. The functional product gate does not prove the repository-wide static gate green.",
+    "The historical triage records unresolved Linux artifact-store behavior. Current CPU/Metal qualification is on macOS and does not establish Linux release qualification."
+  ],
+  "latest_user_priority": "Finish typed RV32IM and canonical recursion; defer speed research and unrelated cleanup. These limits must remain explicit in the completion decision.",
+  "handoff_comment": "https://github.com/teddyjfpender/stwo-zig/pull/198#issuecomment-5711530601",
+  "typed_recursion_implementation_qualified": true,
+  "remaining_required_audit_items": [
+    "Resolve or explicitly scope the retained repository-wide source-conformance failures at owning contracts; do not update the baseline merely to hide violations.",
+    "Reconcile historical Linux artifact-store failure with the supported platform/release contract."
+  ]
+}

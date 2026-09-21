@@ -1,0 +1,178 @@
+{
+  "schema": "stwo.ethereum.trusted-run-root-verification-preparation.v1",
+  "status": "prepared_only_waiting_for_actual_proof_acceptance",
+  "run": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3",
+  "expected_coordinate": {
+    "height": 0,
+    "index": 2
+  },
+  "pair_slot": 0,
+  "global_segment": 2,
+  "profile": "ordinary36_field",
+  "producer_pins": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/request.json",
+      "bytes": 7711,
+      "sha256": "fdbb6c7a8cbd6975f1c6e13309e7a8be28507018c6a286792fd9f81d2953b247"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/manifest.json",
+      "bytes": 1103100,
+      "sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/preparation-evidence.json",
+      "bytes": 3585,
+      "sha256": "c14e4322a5831c409d7d75c0fda78ec67122fb431b58d2eabf1ff97584e21344"
+    }
+  ],
+  "input_and_verifier_pins": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/native-inputs-v1.json",
+      "sha256": "689b557a4018bf568e1de5271279dd8220d37c0359d3bc0a77f0621506257216",
+      "bytes": 578
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/global-metadata-v1.json",
+      "sha256": "48dff72af060fb09b0db9e05902563efb0d321792114fed3fcb9fc4f0083ff23",
+      "bytes": 10726
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/program.elf",
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+      "bytes": 3412588
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+      "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+      "bytes": 70206
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+      "sha256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+      "bytes": 53442357
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+      "sha256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e",
+      "bytes": 50730870
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+      "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+      "bytes": 8641480
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+      "sha256": "77120ae24d5ef2846cd743baa447bdf7cf5f2641961413db326bd64a89d36907",
+      "bytes": 4555200
+    }
+  ],
+  "root_check_pins": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v2/source-manifest.json",
+      "bytes": 487,
+      "sha256": "e2c43db846afb5de399dc188a4dc3d5f40d363a2dfb06cfb6784f1beaaa1e8f4"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v2/ethereum_wrapper_root_check.py",
+      "bytes": 9604,
+      "sha256": "19c513e64e175b4474cc94ec2ddba6a854645cd7e0f98fd255e26bdd11011fab"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v2/zig_serial_build.py",
+      "bytes": 5750,
+      "sha256": "2c66348b36f878caec8ba286b207f75957fcd28ced795f1738545429fec09032"
+    }
+  ],
+  "launch_gate": {
+    "execution_path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/execution.json",
+    "require_terminal_exit_code": 0,
+    "expected_tests": [
+      "role0 retained corpus records and reopens its whole program admission",
+      "role0 saved Stage101 label input commitment is rejected",
+      "role0 saved Stage101 pair replays recursive wrapper"
+    ],
+    "require_guarded_passed_tests": 3,
+    "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/complete-proof.log",
+    "required_markers": [
+      "ETHEREUM_WRAPPER_SELECTED pair_slot=0 global_segment=2",
+      "ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=producer-destroyed",
+      "ETHEREUM_ROOT_INDEPENDENT serialized=true producer_destroyed=true native_inputs_used=false verified=true"
+    ],
+    "require_producer_allocator_active_bytes": 0,
+    "require_all_source_and_input_pins_unchanged": true,
+    "require_producer_allocator_snapshot": {
+      "allocations": 0,
+      "bytes": 0,
+      "untracked": 0
+    }
+  },
+  "key_admission": {
+    "source": "trusted terminal complete-proof.log only",
+    "marker": "ETHEREUM_ROOT_CANDIDATE path=<path> expected_key_sha256=<64hex> independently_verified=false",
+    "require_unique_path_pin_pair": true,
+    "require_candidate_parent": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/corpus/root-candidates",
+    "expected_key_sha256": null,
+    "candidate_directory": null,
+    "require_candidate_key_sha_matches_emitted_pin": true,
+    "forbidden": "Do not obtain the expected key pin by hashing a candidate-selected key.json or reuse a key from an unrelated run"
+  },
+  "public_custody": {
+    "origin": "The trusted frozen genuine test saves materialized.schedule.node_public before destroying producer and compares exact coordinate, statement_words and output_digest against root-only verification receipt before internal ROOT_INDEPENDENT success. Terminal guarded3/3 binds this operation to the selected native pair, materialization and trusted source.",
+    "source": "recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig:474,505,565",
+    "finalization": "After launch gate passes, snapshot exact candidate key.json/inputs.json/proof.bin hashes and expected node coordinate/statement_words/output_digest into a create-only finalized-request.json; height and index must equal independently predetermined0/2. Rehash immediately before and after root-check.",
+    "expected_statement_words": null,
+    "expected_output_digest": null,
+    "do_not_reimplement_poseidon_in_python": true
+  },
+  "command_template": {
+    "argv": [
+      "python3",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v2/ethereum_wrapper_root_check.py",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+      "<trusted-emitted-candidate-directory>",
+      "--expected-key-sha256",
+      "<trusted-emitted-key-sha256>",
+      "--output",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/independent-root-check-v1",
+      "--timeout",
+      "600"
+    ],
+    "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+    "initial_v1": false,
+    "unset_environment": [
+      "STWO_ZIG_BUILD_HELD_LOCK",
+      "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1"
+    ],
+    "scheduling": "Existing root check takes shared heavy build_lock per subprocess; root verifier cannot enter bounded-native-verifier lane. No --no-lock or held-lock bypass."
+  },
+  "acceptance": {
+    "required_cases": [
+      "genuine",
+      "wrong-key-pin",
+      "changed-claim",
+      "changed-nonce",
+      "changed-proof"
+    ],
+    "require_root_check_exit_code": 0,
+    "require_all_cases_passed": true,
+    "require_source_and_verifier_unchanged": true,
+    "genuine_receipt_endpoint": "verified_ethereum_field_leaf_wrapper",
+    "native_inputs_used": false,
+    "compare_exact_fields": [
+      "coordinate",
+      "statement_words",
+      "output_digest",
+      "key_sha256",
+      "proof_sha256",
+      "proof_bytes"
+    ],
+    "expected_coordinate": {
+      "height": 0,
+      "index": 2
+    },
+    "unknown_errors_or_resource_failures": "not successful rejection evidence"
+  },
+  "scope_limit": "No launch until root candidate plus internal guarded3/3 acceptance. A wrapper at height0/index2 is one recursive leaf, not the whole-block final root."
+}

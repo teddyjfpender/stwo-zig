@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "status": "prepared_not_launched_or_queued",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/manifest.json",
+    "bytes": 1104082,
+    "sha256": "e934e28a8e59eb1a4c7445e548dd939777fd6892778fa4814458d56f73683544"
+  },
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/source",
+  "shared_heavy_lock": "/tmp/stwo-zig-build.lock",
+  "unset_env": [
+    "STWO_ZIG_BUILD_HELD_LOCK"
+  ],
+  "acceptance_requires_exit_code": 0,
+  "ordering": "After parent releases lane and v19 real closure replay v8 is accepted, compile the new root-production mode. No proof or test execution.",
+  "live_run": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8",
+  "required_before_launch": [
+    "Parent releases shared heavy lane; live v8 closure must reach successful terminal acceptance.",
+    "Rehash all 5781 frozen source files and inherited evidence pins before and after compilation."
+  ],
+  "gate": "root-production-compile",
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/source/src/integrations/riscv_cpu",
+    "check-ethereum-root-production",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "expected_test_names": [
+    "role0 retained corpus records and reopens its whole program admission",
+    "role0 saved Stage101 label input commitment is rejected",
+    "role0 saved Stage101 pair produces a durable root and independently verifies after destruction"
+  ],
+  "expected_passed_count": 0,
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v20/root-production-compile.log",
+  "acceptance": "Terminal exit0 root production compile only; this instantiates the3test guarded root route but does not execute any test or proof.",
+  "inherited_validation": {
+    "source_manifest": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v19/manifest.json",
+      "bytes": 1103791,
+      "sha256": "e5467995260207c8e168aaf749aec5379fdf2b45ce1c88adf25d5a7688a34499"
+    },
+    "gate_results": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v19/results.json",
+      "bytes": 5213,
+      "sha256": "a30bfff680ca9fe6bfb6a9a65507586a91dd337c0c5073a097eb0229704cbcf8"
+    },
+    "real_closure_request": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/request.json",
+      "bytes": 7634,
+      "sha256": "be0071a0aabc301df3e2d3340ccccadc2ed4e6102cbc189abde02c920725d6f4"
+    },
+    "real_closure_terminal_acceptance_required": true,
+    "delta": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/freeze-evidence.json",
+      "bytes": 2755,
+      "sha256": "f44a7eb23f95042a8a4fb78fdc5571b09c37615432bc541e246263f7d8272ea5"
+    },
+    "scope": "Only helper/build root-production mode added; legacy composition capture owner restored byte-for-byte to accepted v15. Active preparation/Tree2/closure owners are identical to v19. Inherit ownership21/small3/complete compile and require real v8 closure acceptance; compile new root lifecycle only.",
+    "legacy_optimization_runtime_claim": false,
+    "repeat_unrelated_ownership_or_small_gates": false
+  }
+}

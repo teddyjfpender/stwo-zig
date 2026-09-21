@@ -187,7 +187,7 @@ class SchemaAuditTest(unittest.TestCase):
     def test_the_full_production_export_passes_the_audit(self):
         try:
             air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             self.skipTest(f"production AIR export unavailable: {error}")
         report = witnesses.audit_exported_families(air_ir_dir)
         self.assertIn("only supported node operations", report)
@@ -268,7 +268,7 @@ class MutationBatteryTest(unittest.TestCase):
     def setUpClass(cls):
         try:
             cls.air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             raise unittest.SkipTest(f"production AIR export unavailable: {error}")
 
     def test_every_mutation_is_refused_by_production(self):
@@ -396,7 +396,7 @@ class ExportProvenanceTest(unittest.TestCase):
     def test_the_real_export_passes_provenance(self):
         try:
             air_ir_dir = export_air()
-        except (OSError, subprocess.SubprocessError) as error:
+        except FileNotFoundError as error:
             self.skipTest(f"production AIR export unavailable: {error}")
         report = witnesses.check_export_provenance(air_ir_dir)
         self.assertIn("sha256", report)

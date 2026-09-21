@@ -1,0 +1,536 @@
+{
+  "findings": 103,
+  "unique_files": 102,
+  "by_owner": {
+    "scripts": 1,
+    "src/backends/cpu_scalar": 1,
+    "src/backends/metal": 8,
+    "src/frontends/riscv": 27,
+    "src/integrations/riscv_cpu": 50,
+    "src/integrations/riscv_metal": 2,
+    "src/prover/air": 4,
+    "src/prover/pcs": 2,
+    "src/prover/prove.zig": 1,
+    "src/prover_api/work_profile_execution.zig": 1,
+    "src/tools/riscv": 6
+  },
+  "all_size_limits": true,
+  "implementation_qualification": "README.md",
+  "items": [
+    {
+      "path": "src/backends/cpu_scalar/riscv_composition.zig",
+      "reason": "872 lines exceeds the 850-line manual-source ceiling",
+      "lines": 872
+    },
+    {
+      "path": "src/backends/metal/commit_backend.zig",
+      "reason": "1026 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1026
+    },
+    {
+      "path": "src/backends/metal/runtime.m",
+      "reason": "865 lines exceeds the 850-line manual-source ceiling",
+      "lines": 865
+    },
+    {
+      "path": "src/backends/metal/runtime/base_polynomial_composition.zig",
+      "reason": "1574 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1574
+    },
+    {
+      "path": "src/backends/metal/runtime/bindings.zig",
+      "reason": "1047 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1047
+    },
+    {
+      "path": "src/backends/metal/runtime/lifecycle_and_tree.m",
+      "reason": "860 lines exceeds the 850-line manual-source ceiling",
+      "lines": 860
+    },
+    {
+      "path": "src/backends/metal/runtime/merkle_epochs.m",
+      "reason": "1047 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1047
+    },
+    {
+      "path": "src/backends/metal/runtime/opening_operations.zig",
+      "reason": "857 lines exceeds the 850-line manual-source ceiling",
+      "lines": 857
+    },
+    {
+      "path": "src/backends/metal/runtime/quotients.m",
+      "reason": "1064 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1064
+    },
+    {
+      "path": "src/frontends/riscv/air/guest_precompile/bulk_memcpy_lifted_composition_diagnostic_v1.zig",
+      "reason": "1116 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1116
+    },
+    {
+      "path": "src/frontends/riscv/diagnostics/segment_manifest.zig",
+      "reason": "975 lines exceeds the 850-line manual-source ceiling",
+      "lines": 975
+    },
+    {
+      "path": "src/frontends/riscv/prover/guest_precompile/ethereum_candidate_leaf_orchestration_v1.zig",
+      "reason": "936 lines exceeds the 850-line manual-source ceiling",
+      "lines": 936
+    },
+    {
+      "path": "src/frontends/riscv/prover/incremental_ethereum_omit_orchestration_v4.zig",
+      "reason": "1393 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1393
+    },
+    {
+      "path": "src/frontends/riscv/prover/incremental_ethereum_verifier_v3.zig",
+      "reason": "1011 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1011
+    },
+    {
+      "path": "src/frontends/riscv/prover/main_trace_plan_execution_production_state.zig",
+      "reason": "856 lines exceeds the 850-line manual-source ceiling",
+      "lines": 856
+    },
+    {
+      "path": "src/frontends/riscv/prover/memory_provider_shards/degree5_ethereum_candidate_provider_v1.zig",
+      "reason": "858 lines exceeds the 850-line manual-source ceiling",
+      "lines": 858
+    },
+    {
+      "path": "src/frontends/riscv/prover/memory_provider_shards/degree5_ethereum_omit_provider_proof_v1.zig",
+      "reason": "1190 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1190
+    },
+    {
+      "path": "src/frontends/riscv/prover/memory_provider_shards/degree5_provider_order_proof_v2.zig",
+      "reason": "894 lines exceeds the 850-line manual-source ceiling",
+      "lines": 894
+    },
+    {
+      "path": "src/frontends/riscv/prover/memory_provider_shards/ethereum_omit_protocol_v1.zig",
+      "reason": "1455 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1455
+    },
+    {
+      "path": "src/frontends/riscv/prover/memory_provider_shards/provider_order_component.zig",
+      "reason": "1043 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1043
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/fri_merkle_anchor_witness.zig",
+      "reason": "853 lines exceeds the 850-line manual-source ceiling",
+      "lines": 853
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/relation_interaction_runtime.zig",
+      "reason": "853 lines exceeds the 850-line manual-source ceiling",
+      "lines": 853
+    },
+    {
+      "path": "src/frontends/riscv/recursion/air/universal_typed_component_test.zig",
+      "reason": "1043 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1043
+    },
+    {
+      "path": "src/frontends/riscv/recursion/binary_fri_outer_bundle_bundle_for_source_schedule_and_manifest.zig",
+      "reason": "869 lines exceeds the 850-line manual-source ceiling",
+      "lines": 869
+    },
+    {
+      "path": "src/frontends/riscv/recursion/detached_fri_core_part_03.zig",
+      "reason": "1140 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1140
+    },
+    {
+      "path": "src/frontends/riscv/recursion/detached_fri_core_part_11.zig",
+      "reason": "859 lines exceeds the 850-line manual-source ceiling",
+      "lines": 859
+    },
+    {
+      "path": "src/frontends/riscv/recursion/ethereum_leaf_context_v1.zig",
+      "reason": "967 lines exceeds the 850-line manual-source ceiling",
+      "lines": 967
+    },
+    {
+      "path": "src/frontends/riscv/recursion/incremental_ethereum_vm_composition_program_v4.zig",
+      "reason": "909 lines exceeds the 850-line manual-source ceiling",
+      "lines": 909
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recording_poseidon_channel_v4.zig",
+      "reason": "876 lines exceeds the 850-line manual-source ceiling",
+      "lines": 876
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig",
+      "reason": "932 lines exceeds the 850-line manual-source ceiling",
+      "lines": 932
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_heterogeneous_session_v3.zig",
+      "reason": "1453 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1453
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig",
+      "reason": "894 lines exceeds the 850-line manual-source ceiling",
+      "lines": 894
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_test.zig",
+      "reason": "871 lines exceeds the 850-line manual-source ceiling",
+      "lines": 871
+    },
+    {
+      "path": "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig",
+      "reason": "948 lines exceeds the 850-line manual-source ceiling",
+      "lines": 948
+    },
+    {
+      "path": "src/frontends/riscv/recursion/segment_outer_transaction_v2.zig",
+      "reason": "994 lines exceeds the 850-line manual-source ceiling",
+      "lines": 994
+    },
+    {
+      "path": "src/frontends/riscv/runner/guest_precompile/ethereum_candidate_execution_journal_v1.zig",
+      "reason": "1396 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1396
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_artifact_steps.zig",
+      "reason": "1083 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1083
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_segment_steps.zig",
+      "reason": "2758 lines exceeds the 850-line manual-source ceiling",
+      "lines": 2758
+    },
+    {
+      "path": "src/integrations/riscv_cpu/bulk_memcpy_current_selected_segment_authority_v1.zig",
+      "reason": "1171 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1171
+    },
+    {
+      "path": "src/integrations/riscv_cpu/bulk_memcpy_retained_replay_v1.zig",
+      "reason": "1304 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1304
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_block_leaf_materializer.zig",
+      "reason": "1132 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1132
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_candidate_degree5_provider_shared_batch_v1_test.zig",
+      "reason": "896 lines exceeds the 850-line manual-source ceiling",
+      "lines": 896
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_candidate_leaf_proof_test.zig",
+      "reason": "956 lines exceeds the 850-line manual-source ceiling",
+      "lines": 956
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_boundary_artifact_v4.zig",
+      "reason": "1008 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1008
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_boundary_authority_v1.zig",
+      "reason": "856 lines exceeds the 850-line manual-source ceiling",
+      "lines": 856
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_capture_postprocess_authority_v4.zig",
+      "reason": "951 lines exceeds the 850-line manual-source ceiling",
+      "lines": 951
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_capture_postprocess_command_v4.zig",
+      "reason": "1243 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1243
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_prepared_proof_transaction_v4.zig",
+      "reason": "1040 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1040
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_full_leaf_replay_command_v4.zig",
+      "reason": "1019 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1019
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1.zig",
+      "reason": "1288 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1288
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_proof_artifact_v1_test.zig",
+      "reason": "1018 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1018
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_leaf_route_v1.zig",
+      "reason": "1823 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1823
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_omitted_provider_transcript_v1_test.zig",
+      "reason": "1160 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1160
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_incremental_prepared_program_commitment_v1.zig",
+      "reason": "1020 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1020
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_matched_ab_rematerialization_authority_v1.zig",
+      "reason": "1025 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1025
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_poseidon_provider_hpc_v1.zig",
+      "reason": "961 lines exceeds the 850-line manual-source ceiling",
+      "lines": 961
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_poseidon_provider_stage_b_prefix_v2.zig",
+      "reason": "1405 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1405
+    },
+    {
+      "path": "src/integrations/riscv_cpu/ethereum_poseidon_v4_leaf_component_test_root.zig",
+      "reason": "1306 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1306
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig",
+      "reason": "1090 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1090
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_native_core_v4.zig",
+      "reason": "1090 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1090
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig",
+      "reason": "1102 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1102
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig",
+      "reason": "1099 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1099
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_transcript_program_v4_support.zig",
+      "reason": "1240 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1240
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_cohort_v4_complete.zig",
+      "reason": "893 lines exceeds the 850-line manual-source ceiling",
+      "lines": 893
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_fixture.zig",
+      "reason": "1266 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1266
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "reason": "1659 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1659
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_fold_campaign_final_proof_v2.zig",
+      "reason": "1379 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1379
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_fold_campaign_prefinal_v2_test.zig",
+      "reason": "1922 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1922
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig",
+      "reason": "1015 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1015
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig",
+      "reason": "1115 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1115
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_wrapper_padding_remint_v2_test.zig",
+      "reason": "1126 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1126
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_node_artifact_v1_test.zig",
+      "reason": "879 lines exceeds the 850-line manual-source ceiling",
+      "lines": 879
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_campaign_final_description_v2.zig",
+      "reason": "873 lines exceeds the 850-line manual-source ceiling",
+      "lines": 873
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_campaign_final_driver_v2.zig",
+      "reason": "974 lines exceeds the 850-line manual-source ceiling",
+      "lines": 974
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_campaign_genuine_stage102_tree_lifecycle_v4.zig",
+      "reason": "1511 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1511
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_campaign_genuine_three_leaf_tree_gate_v2.zig",
+      "reason": "1007 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1007
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_campaign_target_native_q193_pairs_v2.zig",
+      "reason": "1536 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1536
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_incremental_campaign_importer_v4.zig",
+      "reason": "1441 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1441
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_worker_campaign_consumers_v2.zig",
+      "reason": "1047 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1047
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_worker_campaign_real_leaf_v4.zig",
+      "reason": "965 lines exceeds the 850-line manual-source ceiling",
+      "lines": 965
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_worker_native_leaf_v4.zig",
+      "reason": "1030 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1030
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_pipeline_worker_v1.zig",
+      "reason": "1022 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1022
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig",
+      "reason": "895 lines exceeds the 850-line manual-source ceiling",
+      "lines": 895
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_temporal_ethereum_poseidon_h1_ingress_v1.zig",
+      "reason": "1297 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1297
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_temporal_secure_parent_artifact_v1.zig",
+      "reason": "1055 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1055
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig",
+      "reason": "2260 lines exceeds the 850-line manual-source ceiling",
+      "lines": 2260
+    },
+    {
+      "path": "src/integrations/riscv_metal/stage101_degree5_provider_sweep_v1.zig",
+      "reason": "1092 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1092
+    },
+    {
+      "path": "src/integrations/riscv_metal/stage101_leaf_autoresearch_v1.zig",
+      "reason": "1037 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1037
+    },
+    {
+      "path": "src/prover/air/accumulation.zig",
+      "reason": "1026 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1026
+    },
+    {
+      "path": "src/prover/air/component_parallel.zig",
+      "reason": "869 lines exceeds the 850-line manual-source ceiling",
+      "lines": 869
+    },
+    {
+      "path": "src/prover/air/component_programs.zig",
+      "reason": "1103 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1103
+    },
+    {
+      "path": "src/prover/air/component_prover.zig",
+      "reason": "928 lines exceeds the 850-line manual-source ceiling",
+      "lines": 928
+    },
+    {
+      "path": "src/prover/pcs/quotient_tile_executor.zig",
+      "reason": "930 lines exceeds the 850-line manual-source ceiling",
+      "lines": 930
+    },
+    {
+      "path": "src/prover/pcs/sampled_values.zig",
+      "reason": "903 lines exceeds the 850-line manual-source ceiling",
+      "lines": 903
+    },
+    {
+      "path": "src/prover/prove.zig",
+      "reason": "879 lines exceeds the 850-line manual-source ceiling",
+      "lines": 879
+    },
+    {
+      "path": "src/prover_api/work_profile_execution.zig",
+      "reason": "863 lines exceeds the 850-line manual-source ceiling",
+      "lines": 863
+    },
+    {
+      "path": "scripts/riscv_refinement_lib/sail_lean_bridge.py",
+      "reason": "863 lines exceeds the 850-line manual-source ceiling",
+      "lines": 863
+    },
+    {
+      "path": "src/tools/riscv/analyze_legacy_semantics/main.zig",
+      "reason": "1377 lines exceeds the 850-line manual-source ceiling",
+      "lines": 1377
+    },
+    {
+      "path": "src/tools/riscv/analyze_legacy_semantics/main.zig",
+      "reason": "active Zig command/test owner exceeds the 300-line ceiling",
+      "lines": 1377
+    },
+    {
+      "path": "src/tools/riscv/function_value/main.zig",
+      "reason": "active Zig command/test owner exceeds the 300-line ceiling",
+      "lines": 658
+    },
+    {
+      "path": "src/tools/riscv/memcpy_admission/main.zig",
+      "reason": "active Zig command/test owner exceeds the 300-line ceiling",
+      "lines": 741
+    },
+    {
+      "path": "src/tools/riscv/memcpy_hotspot/main.zig",
+      "reason": "active Zig command/test owner exceeds the 300-line ceiling",
+      "lines": 650
+    },
+    {
+      "path": "src/tools/riscv/pc_hotspot/main.zig",
+      "reason": "active Zig command/test owner exceeds the 300-line ceiling",
+      "lines": 639
+    }
+  ]
+}

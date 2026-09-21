@@ -1,0 +1,53 @@
+{
+  "status": "full proof passed",
+  "pending_sessions": [],
+  "common_fold_schema": 8,
+  "suffix_boundary_schema": 6,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_cohort_v2.zig": "8ae22b03fdcc01473187feb01c19ca2082a4d7197da921fa1a6ad32e223d0720",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "bed6c4f09f28b6a3a6d3e1eae94bada330acf90bf54cfbca87c2f8a8dd41ff98",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "62dc4cda4f5b4b27e5184934509769dbb697ef50fc377312a47abfaad2b29450",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "14ca963817f77eb4856122d9665133b9e0c4ce27fa25b3666b798e4d6cfee4bd",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "984217374cf284fe6048bf8a158da24c90ad0711b317356e27878734a6132350",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "aa3b5014b2b3d8645089d5f4345d9a73c9ea20f8307aeb2b00df79161a566c65",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "987f402f4c5bc3368c28baa47e3e9c0069338e3cc0bad867aa3c644c9d6a6112"
+  },
+  "check_log": "recursive-canonical-wire-check.log",
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "implemented": [
+    "Pin the already-validated canonical boundary header in transcript AIR using the unchanged native words.",
+    "Join each canonical child wire-boundary transcript value to its four row-18 composition inputs through existing payload AIR; remove those matched tuples from native suffix compensation.",
+    "Keep the native public-boundary semantic calculation and graph constraint until their replacement is constrained."
+  ],
+  "remaining": [
+    "Common-fold child boundary values remain native. Canonical boundary semantic calculation still includes 113 calls; the new join binds copies, not those public hash semantics.",
+    "Session SHA, legacy canonical claim SHA, native auxiliary inputs and common-fold fixed-key admission still prevent an independent root."
+  ],
+  "checks": {
+    "canonical_proof": "passed, 11s/87M; proof and capture bytes unchanged",
+    "source": "failed with eight unmatched producer tuples; composition row classification uses recursion claimed_sum kind 5 for public_wire_boundary, not VM kind 12",
+    "corrected_source": {
+      "status": "passed",
+      "steps": "4/4",
+      "tests": "1/1",
+      "test_time": "48s",
+      "test_max_rss": "5G",
+      "compile_time": "1m",
+      "compile_max_rss": "4G",
+      "semantic_join_contributions": 70060,
+      "unmatched_proof_inputs": 0,
+      "changed_boundary_input_rejected": true,
+      "components": 36,
+      "log": "recursive-canonical-wire-source-retry.log"
+    }
+  },
+  "correction": {
+    "paths": {
+      "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "6f9322e8d44ff39b331ff4b55699b394a7067e2976b2e9fa4ae2091a44a9ec28",
+      "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "0f700259cd9fab71d86beeb07042ea5c757fd209002ad1fd683c964120b7f1ce"
+    },
+    "change": "Bind canonical boundary at the existing recursion claimed_sum index 41."
+  },
+  "full_proof_receipt": "recursive-canonical-wire-checkpoint-proof-progress.json"
+}

@@ -1,0 +1,49 @@
+{
+  "status": "passed: byte compatibility, row18 custody and same-proof fresh-process replay",
+  "source_sha256": {
+    "src/frontends/riscv/recursion/binary_fri_outer_source_retain_non_path_poseidon_calls.zig": "91c1fd659c232964f2ba2a79a0d23d7386aedb40202758864d9fd383a6586eb2",
+    "src/frontends/riscv/recursion/binary_fri_outer_source_test.zig": "c2291adf689a0953ee19687ecb2931213a5a320f97c649330f251b29f627ef42",
+    "src/frontends/riscv/binary_fri_outer_source_test_root.zig": "d21d678460a7bf29c910079bed23025e125583cd3cf56755c419039fc8fbb13c",
+    "src/frontends/riscv/build.zig": "4cc37944bf2bfe6426141c02f81b5d78c113fc813e1a7b55ab64544811e740fe",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "ca9a10bd75b952b828a2aab53ee69288719434150a75347b97897e671fb9c481",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "344311e9f99cbbe1d0acaaf1d8303c69bcbf0486939de6f5e68d2f151fc2082a"
+  },
+  "sample": "recursive-checkpoint-replay-baseline.sample.txt",
+  "change": "One bulk SHA update for contiguous M31 storage on little-endian layouts with explicit size and offset checks; unchanged scalar fallback. No content validation is skipped.",
+  "checks": {
+    "status": "passed",
+    "log": "recursive-retained-digest-row18-check-3.log",
+    "tests": "2/2",
+    "test_time": "1s",
+    "max_rss": "82M",
+    "compile_time": "17s",
+    "compile_max_rss": "1G",
+    "byte_lengths_tested": 131,
+    "changed_backing_word_rejected": true
+  },
+  "test_repairs": [
+    "Explicit runtime struct type in the digest test fixture.",
+    "Register internal digest test in frontend-owned root rather than integration module.",
+    "Force split binary FRI test imports, restoring the existing row18 custody test."
+  ],
+  "replay_log": "recursive-checkpoint-batched-replay.log",
+  "replay_node_sha256": "84d65a4c881a39e5ba05fafd231ae9f374fa56f22801de38605a1418f8b57066",
+  "common_fold_schema": 8,
+  "baseline_checks_ns": 263136990291,
+  "optimized_replay_verified": true,
+  "csp_promotion": false,
+  "independent_root_verified": false,
+  "optimized_checks_ns": 162568444083,
+  "replay_session": 52032,
+  "replay_result": {
+    "build_steps": "4/4",
+    "tests": "1/1",
+    "max_rss": "6G",
+    "compile_time": "1m",
+    "compile_max_rss": "5G",
+    "fresh_fold_proving": false,
+    "cold_verified": true,
+    "relative_checks_time_reduction_percent": 38.21908356433752,
+    "scope": "Single before/after run of the same retained recursive bootstrap proof. Native child verification remains required. Not an Ethereum block proving measurement or a CSP promotion result."
+  }
+}

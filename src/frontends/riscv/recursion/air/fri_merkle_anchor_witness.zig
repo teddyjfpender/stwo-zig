@@ -26,7 +26,7 @@ pub const ProofKind = leaf.ProofKind;
 pub const SEGMENT_VERIFIER_ID = leaf.SEGMENT_VERIFIER_ID;
 pub const LEFT_RECURSION_VERIFIER_ID = leaf.LEFT_RECURSION_VERIFIER_ID;
 pub const RIGHT_RECURSION_VERIFIER_ID = leaf.RIGHT_RECURSION_VERIFIER_ID;
-pub const FRI_MERKLE_KIND: u32 = @intFromEnum(query_mapping.QueryPositionKind.fri_merkle);
+pub const FRI_MERKLE_KIND = @import("verifier_parameter_tags.zig").fri_anchor.FRI_MERKLE_KIND;
 
 pub const BINDING_FORMAT_VERSION: u16 = 1;
 pub const BINDING_DOMAIN = "stwo-zig/typed-air/recursion-fri-merkle-anchor-witness/v1\x00";
@@ -181,6 +181,29 @@ pub const Executor = struct {
             columns,
             opening_witness,
             self,
+            null,
+        );
+    }
+
+    /// Materialize only this admitted verifier lane; all other rows are zero.
+    pub fn generateMainForLaneInto(
+        self: *const Executor,
+        preprocessing: *const Preprocessed,
+        reference: Reference,
+        vm_plan: *const schedule.Plan,
+        recursion_plan: *const schedule.Plan,
+        columns: *[MAIN_COLUMN_COUNT][]M31,
+        opening_witness: OpeningWitness,
+        verifier_id: u32,
+    ) Error!void {
+        return preprocessing.generateMainInto(
+            reference,
+            vm_plan,
+            recursion_plan,
+            columns,
+            opening_witness,
+            self,
+            verifier_id,
         );
     }
 };
@@ -384,12 +407,15 @@ pub const Preprocessed = struct {
         columns: *[MAIN_COLUMN_COUNT][]M31,
         opening_witness: OpeningWitness,
         executor: *const Executor,
+        selected_lane: ?u32,
     ) Error!void {
+        if (selected_lane) |lane| if (lane > RIGHT_RECURSION_VERIFIER_ID) return error.InvalidWitness;
         try self.validateAgainst(reference, vm_plan, recursion_plan);
         try validateWitness(reference, opening_witness);
         _ = try preflightMain(columns, self, opening_witness, executor);
         for (columns) |column| @memset(column, M31.zero());
         for (self.rows, 0..) |row, row_index| {
+            if (selected_lane) |lane| if (row.verifier_id != lane) continue;
             const opening = selectOpening(row.verifier_id, opening_witness) orelse continue;
             writeMainRow(columns, row_index, materialize(reference, row, opening));
         }
@@ -490,7 +516,7 @@ fn hashPackedLeaf(
     return state[0..DIGEST_WORD_COUNT].*;
 }
 
-fn fillLaneRows(
+pub fn fillLaneRows(
     rows: []Row,
     cursor: *usize,
     profile: leaf.LaneProfile,
@@ -534,7 +560,7 @@ fn fillLaneRows(
     }
 }
 
-fn validateLaneRows(
+pub fn validateLaneRows(
     rows: []const Row,
     cursor: *usize,
     profile: leaf.LaneProfile,
@@ -588,7 +614,7 @@ fn validateLaneRows(
     if (cursor.* - start != count) return error.AuthorityMismatch;
 }
 
-fn findUniqueStep(plan: *const schedule.Plan, expected: schedule.VerifierStep) Error!u32 {
+pub fn findUniqueStep(plan: *const schedule.Plan, expected: schedule.VerifierStep) Error!u32 {
     var found: ?u32 = null;
     for (plan.steps, 0..) |step, sequence| if (std.meta.eql(step, expected)) {
         if (found != null) return error.ScheduleAuthorityMismatch;
@@ -611,7 +637,7 @@ fn validateAuthorities(
     try validatePlanGeometry(reference.recursion, recursion_plan);
 }
 
-fn validatePlanGeometry(profile: leaf.LaneProfile, plan: *const schedule.Plan) Error!void {
+pub fn validatePlanGeometry(profile: leaf.LaneProfile, plan: *const schedule.Plan) Error!void {
     var folded: u32 = 0;
     for (profile.layers, 0..) |layer, layer_index| {
         const geometry = try leaf.layerGeometry(profile.lifting_log_size, folded, layer);
@@ -649,7 +675,7 @@ fn validateWitness(reference: Reference, witness: OpeningWitness) Error!void {
     }
 }
 
-fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
+pub fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
     if (opening.raw_queries.len != profile.query_count or opening.layers.len != profile.layers.len)
         return error.InvalidWitness;
     for (profile.layers, opening.layers) |profile_layer, layer| {
@@ -663,7 +689,7 @@ fn validateOpening(profile: leaf.LaneProfile, opening: OpeningSet) Error!void {
     }
 }
 
-fn selectOpening(verifier_id: u32, witness: OpeningWitness) ?OpeningSet {
+pub fn selectOpening(verifier_id: u32, witness: OpeningWitness) ?OpeningSet {
     return switch (witness) {
         .segment_leaf => |opening| if (verifier_id == SEGMENT_VERIFIER_ID) opening else null,
         .binary_node => |opening| switch (verifier_id) {
@@ -695,11 +721,11 @@ fn validateRow(row: Row) Error!void {
     }
 }
 
-fn validateRowDirect(row: Row) direct.Error!void {
+pub fn validateRowDirect(row: Row) direct.Error!void {
     validateRow(row) catch return error.InvalidTraceRow;
 }
 
-fn writePreprocessedRow(
+pub fn writePreprocessedRow(
     columns: *[PREPROCESSED_COLUMN_COUNT][]M31,
     logical_row: usize,
     row: Row,
@@ -708,12 +734,12 @@ fn writePreprocessedRow(
     for (columns, values) |column, value| column[logical_row] = value;
 }
 
-fn writeMainRow(columns: *[MAIN_COLUMN_COUNT][]M31, logical_row: usize, row: MainRow) void {
+pub fn writeMainRow(columns: *[MAIN_COLUMN_COUNT][]M31, logical_row: usize, row: MainRow) void {
     const values = row.values();
     for (columns, values) |column, value| column[logical_row] = value;
 }
 
-fn zeroMainRow() MainRow {
+pub fn zeroMainRow() MainRow {
     return .{
         .enabler = M31.zero(),
         .position = M31.zero(),
@@ -787,7 +813,7 @@ fn objectRange(value: anytype) direct.Error!AddressRange {
         return error.AddressOverflow };
 }
 
-fn traceLogSize(row_count: usize) Error!u32 {
+pub fn traceLogSize(row_count: usize) Error!u32 {
     const result: u32 = @max(
         MIN_LOG_SIZE,
         @as(u32, @intCast(std.math.log2_int_ceil(usize, @max(row_count, 1)))),
@@ -796,7 +822,7 @@ fn traceLogSize(row_count: usize) Error!u32 {
     return result;
 }
 
-fn rowsDigest(rows: []const Row) digest.Digest {
+pub fn rowsDigest(rows: []const Row) digest.Digest {
     var hash = std.crypto.hash.sha2.Sha256.init(.{});
     hash.update(ROWS_DOMAIN);
     hashInt(&hash, u32, rows.len);

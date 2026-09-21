@@ -7,6 +7,7 @@ const qm31 = @import("stwo_core").fields.qm31;
 const canonic = @import("stwo_core").poly.circle.canonic;
 const domain_mod = @import("stwo_core").poly.circle.domain;
 const utils = @import("stwo_core").utils;
+const work_pool_mod = @import("../../work_pool.zig");
 
 const M31 = m31.M31;
 const QM31 = qm31.QM31;
@@ -19,6 +20,63 @@ pub const EvaluationError = error{
     ShapeMismatch,
     PointOnDomain,
 };
+
+/// Process-local evidence for the exact weight-construction schedule that ran.
+/// It is consumed by work accounting only and never enters a proof or codec.
+pub const BarycentricWeightReceipt = struct {
+    domain_size: usize,
+    denominator_factor_chunk_count: usize,
+    batch_inverse_chunk_count: usize,
+    scaling_chunk_count: usize,
+    field_inversion_count: usize,
+    batch_inverse_multiplication_count: usize,
+    used_parallel: bool,
+
+    pub fn validate(self: BarycentricWeightReceipt) EvaluationError!void {
+        if (self.domain_size == 0 or
+            self.denominator_factor_chunk_count == 0 or
+            self.denominator_factor_chunk_count > self.domain_size or
+            self.batch_inverse_chunk_count !=
+                self.denominator_factor_chunk_count or
+            self.scaling_chunk_count !=
+                self.denominator_factor_chunk_count or
+            self.field_inversion_count != self.batch_inverse_chunk_count or
+            self.used_parallel !=
+                (self.denominator_factor_chunk_count > 1))
+        {
+            return EvaluationError.ShapeMismatch;
+        }
+        const products = std.math.mul(
+            usize,
+            3,
+            self.domain_size,
+        ) catch return EvaluationError.ShapeMismatch;
+        const saved = std.math.mul(
+            usize,
+            2,
+            self.batch_inverse_chunk_count,
+        ) catch return EvaluationError.ShapeMismatch;
+        if (products < saved or
+            self.batch_inverse_multiplication_count != products - saved)
+        {
+            return EvaluationError.ShapeMismatch;
+        }
+    }
+};
+
+pub const BarycentricWeightResult = struct {
+    weights: []const QM31,
+    receipt: BarycentricWeightReceipt,
+};
+
+pub const BarycentricWeightOptions = struct {
+    // The inner-parallel experiment is opt-in. A genuine Stage101 A/B kept
+    // proof bytes identical but showed no wall-time gain, +1.5% CPU, and
+    // +0.56 GB RSS because it competed with the existing tree-level workers.
+    allow_parallel: bool = false,
+};
+
+const minimum_parallel_chunk_elements: usize = 4096;
 
 pub const BarycentricContext = struct {
     log_size: u32,
@@ -72,6 +130,21 @@ pub const BarycentricContext = struct {
         workspace: *BarycentricWorkspace,
         point: CirclePointQM31,
     ) (std.mem.Allocator.Error || EvaluationError)![]const QM31 {
+        return (try self.computeWeightsWithReceipt(
+            allocator,
+            workspace,
+            point,
+            .{},
+        )).weights;
+    }
+
+    pub fn computeWeightsWithReceipt(
+        self: *const BarycentricContext,
+        allocator: std.mem.Allocator,
+        workspace: *BarycentricWorkspace,
+        point: CirclePointQM31,
+        options: BarycentricWeightOptions,
+    ) (std.mem.Allocator.Error || EvaluationError)!BarycentricWeightResult {
         const n = self.domain_points.len;
         if (self.si_values.len != n) return EvaluationError.ShapeMismatch;
 
@@ -79,28 +152,58 @@ pub const BarycentricContext = struct {
         const denominators = workspace.denominators[0..n];
         const weights = workspace.weights[0..n];
         const factors = workspace.factors[0..n];
-
-        for (self.domain_points, self.si_values, 0..) |domain_point, si_i, i| {
-            const h = point.sub(domain_point);
-            const one_plus_x = QM31.one().add(h.x);
-            if (one_plus_x.isZero()) {
-                return EvaluationError.PointOnDomain;
-            }
-
-            // Equivalent to `si_i * pointVanishing(domain_point, point)` without
-            // per-element inversion: denominator is `si_i * h.y`, and we apply
-            // `1 + h.x` as a post-factor after the shared batch inverse.
-            denominators[i] = si_i.mul(h.y);
-            factors[i] = one_plus_x;
+        const pool = if (options.allow_parallel and
+            n >= 2 * minimum_parallel_chunk_elements)
+            work_pool_mod.getGlobalPool()
+        else
+            null;
+        const chunk_count = weightChunkCount(n, pool);
+        var failed = std.atomic.Value(bool).init(false);
+        var work: [work_pool_mod.MAX_WORKERS]BarycentricWeightChunk = undefined;
+        const chunk_len = (n + chunk_count - 1) / chunk_count;
+        for (work[0..chunk_count], 0..) |*chunk, chunk_index| {
+            const start = chunk_index * chunk_len;
+            const end = @min(n, start + chunk_len);
+            chunk.* = .{
+                .domain_points = self.domain_points[start..end],
+                .si_values = self.si_values[start..end],
+                .denominators = denominators[start..end],
+                .weights = weights[start..end],
+                .factors = factors[start..end],
+                .point = point,
+                .scale = QM31.zero(),
+                .failed = &failed,
+            };
         }
-
-        try batchInverseInto(denominators, weights);
-
+        runWeightWave(pool, work[0..chunk_count], BarycentricWeightChunk.fill);
+        if (failed.load(.acquire)) return EvaluationError.PointOnDomain;
+        runWeightWave(
+            pool,
+            work[0..chunk_count],
+            BarycentricWeightChunk.invert,
+        );
+        if (failed.load(.acquire)) return EvaluationError.PointOnDomain;
         const vn_p = self.cosetVanishingAtPoint(point);
-        for (weights, factors) |*weight, factor| {
-            weight.* = vn_p.mul(weight.*).mul(factor);
-        }
-        return weights;
+        for (work[0..chunk_count]) |*chunk| chunk.scale = vn_p;
+        runWeightWave(pool, work[0..chunk_count], BarycentricWeightChunk.applyScale);
+
+        const product_count = std.math.mul(usize, 3, n) catch
+            return EvaluationError.ShapeMismatch;
+        const saved_products = std.math.mul(usize, 2, chunk_count) catch
+            return EvaluationError.ShapeMismatch;
+        if (product_count < saved_products)
+            return EvaluationError.ShapeMismatch;
+        const receipt = BarycentricWeightReceipt{
+            .domain_size = n,
+            .denominator_factor_chunk_count = chunk_count,
+            .batch_inverse_chunk_count = chunk_count,
+            .scaling_chunk_count = chunk_count,
+            .field_inversion_count = chunk_count,
+            .batch_inverse_multiplication_count = product_count - saved_products,
+            .used_parallel = chunk_count > 1,
+        };
+        try receipt.validate();
+        return .{ .weights = weights, .receipt = receipt };
     }
 
     fn cosetVanishingAtPoint(self: *const BarycentricContext, point: CirclePointQM31) QM31 {
@@ -139,19 +242,103 @@ pub const BarycentricWorkspace = struct {
         len: usize,
     ) std.mem.Allocator.Error!void {
         if (self.denominators.len < len) {
-            if (self.denominators.len != 0) allocator.free(self.denominators);
-            self.denominators = try allocator.alloc(QM31, len);
+            self.denominators = if (self.denominators.len == 0)
+                try allocator.alloc(QM31, len)
+            else
+                try allocator.realloc(self.denominators, len);
         }
         if (self.weights.len < len) {
-            if (self.weights.len != 0) allocator.free(self.weights);
-            self.weights = try allocator.alloc(QM31, len);
+            self.weights = if (self.weights.len == 0)
+                try allocator.alloc(QM31, len)
+            else
+                try allocator.realloc(self.weights, len);
         }
         if (self.factors.len < len) {
-            if (self.factors.len != 0) allocator.free(self.factors);
-            self.factors = try allocator.alloc(QM31, len);
+            self.factors = if (self.factors.len == 0)
+                try allocator.alloc(QM31, len)
+            else
+                try allocator.realloc(self.factors, len);
         }
     }
 };
+
+const BarycentricWeightChunk = struct {
+    domain_points: []const CirclePointQM31,
+    si_values: []const QM31,
+    denominators: []QM31,
+    weights: []QM31,
+    factors: []QM31,
+    point: CirclePointQM31,
+    scale: QM31,
+    failed: *std.atomic.Value(bool),
+
+    fn fill(self: *BarycentricWeightChunk) void {
+        for (self.domain_points, self.si_values, 0..) |
+            domain_point,
+            si_i,
+            index,
+        | {
+            const h = self.point.sub(domain_point);
+            const one_plus_x = QM31.one().add(h.x);
+            if (one_plus_x.isZero()) {
+                self.failed.store(true, .release);
+                continue;
+            }
+
+            // Equivalent to `si_i * pointVanishing(domain_point, point)`
+            // without per-element inversion. The saved `1 + h.x` factor is
+            // applied only after this chunk's Montgomery inverse.
+            self.denominators[index] = si_i.mul(h.y);
+            self.factors[index] = one_plus_x;
+        }
+    }
+
+    fn invert(self: *BarycentricWeightChunk) void {
+        batchInverseInto(self.denominators, self.weights) catch
+            self.failed.store(true, .release);
+    }
+
+    fn applyScale(self: *BarycentricWeightChunk) void {
+        for (self.weights, self.factors) |*weight, factor|
+            weight.* = self.scale.mul(weight.*).mul(factor);
+    }
+};
+
+fn weightChunkCount(
+    domain_size: usize,
+    pool: ?*work_pool_mod.WorkPool,
+) usize {
+    const active = pool orelse return 1;
+    const useful = (domain_size + minimum_parallel_chunk_elements - 1) /
+        minimum_parallel_chunk_elements;
+    return @max(@as(usize, 1), @min(
+        domain_size,
+        useful,
+        active.workerCount(),
+        work_pool_mod.MAX_WORKERS,
+    ));
+}
+
+fn runWeightWave(
+    pool: ?*work_pool_mod.WorkPool,
+    work: []BarycentricWeightChunk,
+    comptime run: fn (*BarycentricWeightChunk) void,
+) void {
+    std.debug.assert(work.len != 0);
+    const active = pool orelse {
+        run(&work[0]);
+        return;
+    };
+    if (work.len == 1) {
+        run(&work[0]);
+        return;
+    }
+    var wait_group: std.Thread.WaitGroup = .{};
+    for (work[1..]) |*chunk|
+        active.spawnWg(&wait_group, run, .{chunk});
+    run(&work[0]);
+    wait_group.wait();
+}
 
 fn batchInverseInto(values: []const QM31, out: []QM31) EvaluationError!void {
     if (values.len != out.len) return EvaluationError.ShapeMismatch;

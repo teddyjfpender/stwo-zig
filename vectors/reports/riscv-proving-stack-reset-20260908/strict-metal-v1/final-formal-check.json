@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "source_map_sha256": "ca62d0d28ba5a5c807699af6cc48aa85a30af5b72df9fa26a97b1be101265905",
+  "sources_checked": 15,
+  "whole_permutation_formally_refined": false,
+  "proof_system_soundness": false,
+  "commands": [
+    {
+      "argv": [
+        "lake",
+        "build",
+        "RiscvRefinement.Recursion.CompactPoseidon",
+        "RiscvRefinement.Recursion.FrameworkBoundary"
+      ],
+      "elapsed_seconds": 0.3442582080606371,
+      "returncode": 0,
+      "output": "Build completed successfully (4 jobs).\n"
+    },
+    {
+      "argv": [
+        "lake",
+        "env",
+        "lean",
+        "RiscvRefinement/Recursion/AxiomAudit.lean"
+      ],
+      "elapsed_seconds": 2.2823965831194073,
+      "returncode": 0,
+      "output": "RECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.lowered_eq_fifthPower\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.lowered_eq_fifthPower propext\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.claim_boundary Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.row_boundary Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.accepted_output\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.accepted_output propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.accepted_output Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.honest_witness\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.honest_witness propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.honest_witness Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.secure_claim_boundary Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.rows_boundary Quot.sound\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.sum_constant\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.sum_constant propext\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context Quot.sound\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.CompactPoseidon.unchanged_context propext\nRECURSIVE_AIR_THEOREM RiscvRefinement.Recursion.FrameworkBoundary.telescope\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.telescope propext\nRECURSIVE_AIR_AXIOM RiscvRefinement.Recursion.FrameworkBoundary.telescope Quot.sound\nRECURSIVE_AIR_CHECKED 10\n"
+    }
+  ],
+  "public_theorems_checked": 10,
+  "local_algebra_checked": true
+}

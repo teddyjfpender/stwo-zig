@@ -1,0 +1,84 @@
+test-ethereum-air-preflight
++- Ethereum genuine AIR preflight guard
+   +- run test stderr
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47000331083 process_cpu_ns=49544814083 parallelism_milli=1054 peak_footprint_bytes=288408416 energy_nj=228483172281 instructions=1099425910488 cycles=196581283060 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1265704709 process_cpu_ns=1265590375 parallelism_milli=999 peak_footprint_bytes=288408416 energy_nj=6405467541 instructions=27903755360 cycles=5027974174 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=5188955542 process_cpu_ns=5188185167 parallelism_milli=999 peak_footprint_bytes=1957103920 energy_nj=25537743590 instructions=86717143772 cycles=20604665865 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=40178708 public_ns=298884000 transcript_ns=138098542 profile_ns=28625 program_ns=69653875 prepare_ns=70425292 fri_ns=3836173791 seal_ns=39125292 total_ns=4492571375 nodes=540192 node_bytes=10803840 output_bytes=176 binding_bytes=2468976 schedule_bytes=8051316 evaluation_bytes=8643072 input_bytes=617244 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=74 bytes=856174946 peak=1893502489 allocated=3177384412 freed=2321209466 untracked=0
+ETHEREUM_AIR_DEGREE component=control direct_bound=0 logup_bound=2 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_air direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_binding direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_state direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_word direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=transcript_payload direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_check direct_bound=2 logup_bound=2 declared=2 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=pow_frame direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=relation_challenge direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=verifier_randomness direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_input direct_bound=2 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=statement_semantics_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_input direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_io_hash direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_claim_semantics_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_AIR_DEGREE component=vm_public_logup_control direct_bound=3 logup_bound=3 declared=4 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=18 committed_rows=262144 logical_rows=154833 begin=true
+ETHEREUM_AIR_DEGREE component=vm_air_composition_input direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=18 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=19 committed_rows=256 logical_rows=138 begin=true
+ETHEREUM_AIR_DEGREE component=vm_air_composition_control direct_bound=0 logup_bound=2 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=19 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=20 committed_rows=1024 logical_rows=579 begin=true
+ETHEREUM_AIR_DEGREE component=query_bits direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=20 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=21 committed_rows=16384 logical_rows=9264 begin=true
+ETHEREUM_AIR_DEGREE component=query_mapping direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=21 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=22 committed_rows=32 logical_rows=27 begin=true
+ETHEREUM_AIR_DEGREE component=merkle_root direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=22 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=23 committed_rows=1048576 logical_rows=994143 begin=true
+ETHEREUM_AIR_DEGREE component=trace_merkle direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=23 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=24 committed_rows=16777216 logical_rows=8402046 begin=true
+ETHEREUM_AIR_DEGREE component=pcs_deep_input direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=24 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=25 committed_rows=65536 logical_rows=34740 begin=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_leaf direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=25 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=26 committed_rows=16384 logical_rows=8685 begin=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_node direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=26 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=27 committed_rows=4096 logical_rows=2895 begin=true
+ETHEREUM_AIR_DEGREE component=fri_merkle_anchor direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=27 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=28 committed_rows=4096 logical_rows=4053 begin=true
+ETHEREUM_AIR_DEGREE component=fri_verifier_control direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=28 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=29 committed_rows=262144 logical_rows=211989 begin=true
+ETHEREUM_AIR_DEGREE component=fri_verifier_input direct_bound=3 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=29 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=30 committed_rows=16777216 logical_rows=9669038 begin=true
+ETHEREUM_AIR_DEGREE component=qm31_mul direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=30 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=31 committed_rows=32768 logical_rows=18039 begin=true
+ETHEREUM_AIR_DEGREE component=qm31_inv direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=31 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=32 committed_rows=16777216 logical_rows=9427050 begin=true
+ETHEREUM_AIR_DEGREE component=linear_ops direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=32 direct_roots=true padding=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=33 committed_rows=32768 logical_rows=24897 begin=true
+ETHEREUM_AIR_DEGREE component=merkle_path direct_bound=2 logup_bound=3 declared=3 candidate=false conservative=true
+ETHEREUM_NATIVE_AIR_PREFLIGHT component=33 direct_roots=true padding=true
+ETHEREUM_AIR_PREFLIGHT checked_components=34 direct_roots=true adapter_parameters=true padding=true provider_rows_checked=false wrapper_verified=false
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=101466684791 process_cpu_ns=103934067875 parallelism_milli=1024 peak_footprint_bytes=17835931208 energy_nj=486540594818 instructions=2013149864985 cycles=412598690923 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-air-preflight success
++- Ethereum genuine AIR preflight guard success
+   +- run test 1 passed 1m MaxRSS:17G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

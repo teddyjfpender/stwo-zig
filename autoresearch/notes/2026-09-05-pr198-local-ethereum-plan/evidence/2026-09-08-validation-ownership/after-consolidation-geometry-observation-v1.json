@@ -1,0 +1,25 @@
+{
+  "recorded_at": "2026-09-08T07:24:35.480533+00:00",
+  "source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "test_pid": 50708,
+  "sample_seconds": 1,
+  "sample_interval_ms": 10,
+  "sample_file": "after-consolidation-geometry-sample.txt",
+  "sample_sha256": "11c3e63383dc1f09eb7af32c7642389eb9fef5d47696aec47879a00d1e5ad94c",
+  "observed_phase": "Geometry.init before Complete construction",
+  "main_thread_samples": 90,
+  "observed_stack": [
+    "Geometry.init",
+    "transcript_program_v4_support.derive",
+    "FreshInput.validate",
+    "FreshVerifiedCapture.validate",
+    "VerifiedPublicSums.initWithCircuitProfile",
+    "incremental_public_logup.auditWithCircuitProfile",
+    "continuation Merkle compensation inversions"
+  ],
+  "interpretation": "Full source admission remains expensive during construction; this sample does not measure total phase attribution or show the boundary consolidation failed",
+  "limitations": [
+    "Final preparation/closure timings pending",
+    "No speedup inferred from this one-second sample"
+  ]
+}

@@ -119,6 +119,9 @@ pub const VmSource = union(enum) {
     /// declaration-ordered detailed claims above and is constrained against
     /// their exact per-component aggregation by the VM composition graph.
     transcript_claimed_sum: SecureCoordinate,
+    /// Opt-in VM statement-root transport. Appended to preserve V1 tags.
+    statement_word: u32,
+    native_continuation_root: u1,
 };
 
 pub const RecursionSource = union(enum) {
@@ -135,6 +138,13 @@ pub const RecursionSource = union(enum) {
     /// claimed-sum lookup namespace. Appending the tag preserves frozen V1
     /// source tags and default-zero profiles preserve its exact schedule.
     public_wire_boundary: SecureCoordinate,
+    /// Canonical transcript claim vector, distinct from the physical
+    /// declaration-ordered claims above. This tag is append-only: profiles
+    /// with a zero count retain every legacy tag, input index, and identity.
+    transcript_claimed_sum: SecureCoordinate,
+    /// Header/digest word of the 450-word field-node ABI. Body words reuse
+    /// statement_word. The lookup index is 412 + the full node word index.
+    field_public_word: u32,
 };
 
 pub fn InputBinding(comptime Source: type) type {
@@ -153,6 +163,11 @@ pub const InputProfile = struct {
     relation_challenge_count: u32,
     transcript_claimed_sum_count: u32 = 0,
     public_wire_boundary_count: u32 = 0,
+    field_public_extra_word_count: u32 = 0,
+    /// Zero preserves every legacy VM input index and digest. Two appends
+    /// entry/exit roots at canonical statement coordinates.
+    vm_statement_root_count: u32 = 0,
+    vm_native_continuation_roots: bool = false,
 };
 
 pub const VmLane = struct {
@@ -311,7 +326,7 @@ pub const RecursionInput = struct {
 };
 
 pub fn computeGraphDigest(nodes: []const Node, outputs: []const u32) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(GRAPH_DOMAIN);
     hashInt(&hash, u16, GRAPH_FORMAT_VERSION);
     hashInt(&hash, u32, nodes.len);
@@ -326,7 +341,7 @@ pub fn computeReferenceDigest(
     recursion_lanes: []const RecursionLane,
     additional_anchors: []const AnchorLane,
 ) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u16, REFERENCE_FORMAT_VERSION);
     hashInt(&hash, u32, vm.circuit_id);
@@ -421,6 +436,10 @@ pub fn validateBindingsTargetInputs(
 }
 
 pub fn vmInputCount(profile: InputProfile) Error!usize {
+    if (profile.field_public_extra_word_count != 0) return error.InvalidInputSource;
+    if (profile.vm_statement_root_count != 0 and profile.vm_statement_root_count != 2)
+        return error.InvalidInputSource;
+    if (profile.vm_native_continuation_roots and profile.vm_statement_root_count != 2) return error.InvalidInputSource;
     var count: usize = 1;
     count = try addProduct(count, profile.sampled_value_count, SECURE_VALUE_WORD_COUNT);
     count = try addProduct(count, profile.claimed_sum_count, SECURE_VALUE_WORD_COUNT);
@@ -432,13 +451,21 @@ pub fn vmInputCount(profile: InputProfile) Error!usize {
     count = try addProduct(count, profile.relation_challenge_count, RELATION_CHALLENGE_WORD_COUNT);
     count = std.math.add(usize, count, 2 * SECURE_VALUE_WORD_COUNT) catch
         return error.ArithmeticOverflow;
-    return count;
+    return addProduct(count, profile.vm_statement_root_count, 1);
 }
 
 pub fn recursionInputCount(profile: InputProfile) Error!usize {
+    if (profile.vm_statement_root_count != 0 or profile.vm_native_continuation_roots) return error.InvalidInputSource;
+    if (profile.field_public_extra_word_count != 0 and profile.field_public_extra_word_count != 38)
+        return error.InvalidInputSource;
     var count: usize = 1 + 3 + statement.CANONICAL_WORD_COUNT;
     count = try addProduct(count, profile.sampled_value_count, SECURE_VALUE_WORD_COUNT);
     count = try addProduct(count, profile.claimed_sum_count, SECURE_VALUE_WORD_COUNT);
+    count = try addProduct(
+        count,
+        profile.transcript_claimed_sum_count,
+        SECURE_VALUE_WORD_COUNT,
+    );
     count = try addProduct(
         count,
         profile.public_wire_boundary_count,
@@ -447,7 +474,7 @@ pub fn recursionInputCount(profile: InputProfile) Error!usize {
     count = try addProduct(count, profile.relation_challenge_count, RELATION_CHALLENGE_WORD_COUNT);
     count = std.math.add(usize, count, 2 * SECURE_VALUE_WORD_COUNT) catch
         return error.ArithmeticOverflow;
-    return count;
+    return addProduct(count, profile.field_public_extra_word_count, 1);
 }
 
 pub fn addProduct(base: usize, lhs: u32, rhs: u32) Error!usize {
@@ -473,6 +500,9 @@ pub fn expectedVmSource(profile: InputProfile, source_index: usize) ?VmSource {
     if (index < SECURE_VALUE_WORD_COUNT) return .{ .composition_randomness = @intCast(index) };
     index -= SECURE_VALUE_WORD_COUNT;
     if (index < SECURE_VALUE_WORD_COUNT) return .{ .oods_point = @intCast(index) };
+    index -= SECURE_VALUE_WORD_COUNT;
+    if (profile.vm_statement_root_count == 2 and index < 2)
+        return if (profile.vm_native_continuation_roots) .{ .native_continuation_root = @intCast(index) } else .{ .statement_word = @import("vm_statement_roots.zig").word_indices[index] };
     return null;
 }
 
@@ -488,6 +518,12 @@ pub fn expectedRecursionSource(profile: InputProfile, source_index: usize) ?Recu
         return source_value;
     if (secureSource(RecursionSource, .claimed_sum, profile.claimed_sum_count, &index)) |source_value|
         return source_value;
+    if (secureSource(
+        RecursionSource,
+        .transcript_claimed_sum,
+        profile.transcript_claimed_sum_count,
+        &index,
+    )) |source_value| return source_value;
     if (secureSource(
         RecursionSource,
         .public_wire_boundary,
@@ -507,6 +543,9 @@ pub fn expectedRecursionSource(profile: InputProfile, source_index: usize) ?Recu
     if (index < SECURE_VALUE_WORD_COUNT) return .{ .composition_randomness = @intCast(index) };
     index -= SECURE_VALUE_WORD_COUNT;
     if (index < SECURE_VALUE_WORD_COUNT) return .{ .oods_point = @intCast(index) };
+    index -= SECURE_VALUE_WORD_COUNT;
+    if (index < profile.field_public_extra_word_count)
+        return .{ .field_public_word = @intCast(if (index < 6) index else index + statement.CANONICAL_WORD_COUNT) };
     return null;
 }
 
@@ -547,6 +586,8 @@ pub fn challengeSource(
 pub fn vmSourceIndices(source_value: VmSource) [2]u32 {
     return switch (source_value) {
         .segment_selector => .{ 0, 0 },
+        .statement_word => |word| .{ word, 0 },
+        .native_continuation_root => |side| .{ side, 0 },
         .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| .{ coordinate.item_index, coordinate.word_index },
         .relation_challenge => |coordinate| .{ coordinate.challenge, coordinate.word_index },
         .composition_randomness, .oods_point => |word_index| .{ 0, word_index },
@@ -558,7 +599,8 @@ pub fn recursionSourceIndices(source_value: RecursionSource) [2]u32 {
         .parent_binary_selector => .{ 0, 0 },
         .child_kind_selector => |kind| .{ @intFromEnum(kind), 0 },
         .statement_word => |word_index| .{ word_index, 0 },
-        .sampled_value, .claimed_sum => |coordinate| .{ coordinate.item_index, coordinate.word_index },
+        .field_public_word => |word_index| .{ @as(u32, @intCast(statement.CANONICAL_WORD_COUNT)) +% word_index, 0 },
+        .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| .{ coordinate.item_index, coordinate.word_index },
         .relation_challenge => |coordinate| .{ coordinate.challenge, coordinate.word_index },
         .composition_randomness, .oods_point => |word_index| .{ 0, word_index },
         .public_wire_boundary => |coordinate| .{ coordinate.item_index, coordinate.word_index },
@@ -594,6 +636,12 @@ pub fn hashProfile(hash: anytype, profile: InputProfile) void {
         hashInt(hash, u32, 0x5057_4244); // "PWBD"
         hashInt(hash, u32, profile.public_wire_boundary_count);
     }
+    if (profile.field_public_extra_word_count != 0) {
+        hashInt(hash, u32, 0x4650_4558); // "FPEX"
+        hashInt(hash, u32, profile.field_public_extra_word_count);
+    }
+    @import("vm_statement_roots.zig").hashProfileExtension(hash, profile.vm_statement_root_count);
+    @import("vm_statement_roots.zig").hashNativeProfileExtension(hash, profile.vm_native_continuation_roots);
 }
 
 pub fn hashVmSource(hash: anytype, source_value: VmSource) void {

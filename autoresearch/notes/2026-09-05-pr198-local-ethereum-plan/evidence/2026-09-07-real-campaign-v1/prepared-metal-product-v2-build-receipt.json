@@ -1,0 +1,27 @@
+{
+  "schema": "stwo.ethereum.frozen-product.v1",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-source-v2/manifest.json",
+    "bytes": 1095514,
+    "sha256": "4c7babe602d3be6fe105923715d76c8765ca5fe421571f0d21aac56c8d14a173"
+  },
+  "build_log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v2/build.log",
+    "bytes": 831,
+    "sha256": "ec14d1bedf3c1255c9b01182781951c846489aa4ab0fdff436aa674fde41f0cb"
+  },
+  "exit_code": 0,
+  "elapsed_ns_including_lock_wait": 832559912916,
+  "optimization": "ReleaseSafe",
+  "source_scope": "Built only from immutable complete source copy; all source files rehashed before and after build",
+  "executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v2/bin/ethereum-prepared-leaf-metal-v1",
+    "bytes": 11079344,
+    "sha256": "d2a679d967ee17082b144d5a413e1437ece5d738d6c97abfb3f658a46be97e2e"
+  },
+  "benchmark_executable": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v2/bin/stage101-metal-autoresearch-v1",
+    "bytes": 12816064,
+    "sha256": "6533ff87e5554c45b22b1a7fbcbe0995b58c267f88a987bc9c15b9c4f6e815e6"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "head": "51646b444176237a6640f438a032d137af5200b9",
+  "source_patch_sha256": "5f2f6c66683c3d7dc64bc2ac352ef64d5abda4003d080bc23dc5958843b59000",
+  "retained_binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/census-baseline-cpu",
+  "binary_sha256": "ccf1f7836a8eb3ff8c7d652ef72cc394b15f66b0146babf691ec8b0a290d931e",
+  "build_argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "run-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all",
+    "--",
+    "--native-steps",
+    "4"
+  ]
+}

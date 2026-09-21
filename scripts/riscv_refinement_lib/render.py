@@ -16,6 +16,7 @@ from . import (
     air_program_lean as air_program_lean_source,
     air_program_registry_lean,
     codec,
+    load_store_program_lean,
     sail,
 )
 from .model import LEAN_TOOLCHAIN, PILOT_OPCODES, SCHEMA_VERSION, Paths, RefinementError
@@ -455,7 +456,9 @@ def _generator_digests(paths: Paths) -> dict[str, str]:
     return result
 
 
-def _proof_digests(paths: Paths) -> dict[str, str]:
+def _proof_digests(
+    paths: Paths, rendered: dict[Path, bytes] | None = None,
+) -> dict[str, str]:
     result: dict[str, str] = {}
     relatives = set(PROOF_PATHS)
     for tree in PROOF_TREES:
@@ -482,7 +485,13 @@ def _proof_digests(paths: Paths) -> dict[str, str]:
         path = paths.root / relative
         if path.is_symlink() or not path.is_file():
             raise RefinementError(f"missing proof source {relative}")
-        result[relative] = codec.sha256_file(path)
+        generated = None
+        if rendered is not None and path.is_relative_to(paths.formal):
+            generated = rendered.get(path.relative_to(paths.formal))
+        # A generated bridge can also belong to the proof-source closure.
+        # Bind this generation, not the stale file that it will replace.
+        result[relative] = (codec.sha256_bytes(generated) if generated is not None
+                            else codec.sha256_file(path))
     return result
 
 
@@ -699,6 +708,8 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
             air_program_lean,
         Path("RiscvRefinement/Air/Generated/Programs.lean"):
             air_program_registry,
+        Path("RiscvRefinement/Air/Bridge/LoadStoreProgram.lean"):
+            load_store_program_lean.render(air_programs["lb"]),
         Path("RiscvRefinement/Sail/Generated/Pilot.lean"): sail_lean,
     }
     manifest: dict[str, Any] = {
@@ -728,7 +739,7 @@ def artifacts(paths: Paths, evidence: sail.SailEvidence) -> dict[Path, bytes]:
         ],
         "production_sources": source_digests,
         "generators": _generator_digests(paths),
-        "proof_sources": _proof_digests(paths),
+        "proof_sources": _proof_digests(paths, outputs),
         "sail": sail.provenance(evidence),
         "artifacts": {
             relative.as_posix(): codec.sha256_bytes(data)

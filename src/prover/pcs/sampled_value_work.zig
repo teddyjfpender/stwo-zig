@@ -11,6 +11,9 @@ const work_profile = @import("stwo_prover_api").work_profile;
 
 pub const Audit = struct {
     counters: work_profile.Counters = .{},
+    barycentric_weight_vector_count: u64 = 0,
+    barycentric_weight_chunk_count: u64 = 0,
+    barycentric_batch_inversion_count: u64 = 0,
     complete: bool = true,
 
     pub fn merge(self: *Audit, other: Audit) void {
@@ -22,6 +25,18 @@ pub const Audit = struct {
             self.complete = false;
             return;
         };
+        self.barycentric_weight_vector_count = checkedAddU64(
+            self.barycentric_weight_vector_count,
+            other.barycentric_weight_vector_count,
+        ) orelse return self.invalidate();
+        self.barycentric_weight_chunk_count = checkedAddU64(
+            self.barycentric_weight_chunk_count,
+            other.barycentric_weight_chunk_count,
+        ) orelse return self.invalidate();
+        self.barycentric_batch_inversion_count = checkedAddU64(
+            self.barycentric_batch_inversion_count,
+            other.barycentric_batch_inversion_count,
+        ) orelse return self.invalidate();
     }
 
     /// Optimized secure-circle doubling schedule:
@@ -154,30 +169,132 @@ pub const Audit = struct {
         log_size: u32,
         fold_count: u32,
     ) void {
+        self.observePointFolds(fold_count);
+        self.observeBarycentricWeights(log_size);
+        self.observeBarycentricDot(log_size);
+    }
+
+    /// Constructs one reusable barycentric weight vector for a domain point.
+    pub fn observeBarycentricWeights(self: *Audit, log_size: u32) void {
         const domain_size = pow2(log_size) orelse {
             self.complete = false;
             return;
         };
-        self.observePointFolds(fold_count);
+        const batch_multiplications = checkedAdd(
+            checkedMul(domain_size - 1, 3) orelse return self.invalidate(),
+            1,
+        ) orelse return self.invalidate();
+        self.observeBarycentricWeightsExecution(
+            log_size,
+            1,
+            1,
+            batch_multiplications,
+        );
+    }
+
+    /// Records the exact process-local chunk schedule returned by
+    /// `BarycentricContext.computeWeightsWithReceipt`. Runtime chunk and
+    /// inversion counts are evidence, not estimates from the worker budget.
+    pub fn observeBarycentricWeightsExecution(
+        self: *Audit,
+        log_size: u32,
+        chunk_count: usize,
+        inversion_count: usize,
+        batch_inverse_multiplication_count: usize,
+    ) void {
+        const domain_size = pow2(log_size) orelse {
+            self.complete = false;
+            return;
+        };
+        if (chunk_count == 0 or chunk_count > domain_size or
+            inversion_count != chunk_count)
+        {
+            return self.invalidate();
+        }
+        const product_count = checkedMul(domain_size, 3) orelse
+            return self.invalidate();
+        const saved_products = checkedMul(chunk_count, 2) orelse
+            return self.invalidate();
+        if (product_count < saved_products or
+            batch_inverse_multiplication_count !=
+                product_count - saved_products)
+        {
+            return self.invalidate();
+        }
 
         // Per-domain denominator: one point subtraction, `1+h.x`, and si*h.y.
         self.addScaled(3, 5, 0, domain_size);
 
-        // Classic batch inverse as implemented by batchInverseInto:
-        // prefix n-1, one terminal product, reverse 2(n-1), one inversion.
-        const inverse_multiplications = checkedAdd(
-            checkedMul(domain_size - 1, 3) orelse return self.invalidate(),
-            1,
-        ) orelse return self.invalidate();
-        self.addOperations(0, inverse_multiplications, 1);
+        // Every contiguous chunk executes the exact classic Montgomery
+        // schedule: `3*m - 2` multiplications and one inversion.
+        self.addOperations(
+            0,
+            batch_inverse_multiplication_count,
+            inversion_count,
+        );
 
         // Shifted point plus the log_size-1 doubleX chain.
         self.addOperations(2, 4, 0);
         if (log_size > 1) self.addScaled(2, 1, 0, log_size - 1);
 
-        // Apply vn and the saved post-factor, then evaluate the base column.
+        // Apply vn and the saved post-factor.
         self.addScaled(0, 2, 0, domain_size);
+        if (!self.complete) return;
+
+        self.barycentric_weight_vector_count = checkedAddU64(
+            self.barycentric_weight_vector_count,
+            1,
+        ) orelse return self.invalidate();
+        self.barycentric_weight_chunk_count = checkedAddU64(
+            self.barycentric_weight_chunk_count,
+            std.math.cast(u64, chunk_count) orelse return self.invalidate(),
+        ) orelse return self.invalidate();
+        self.barycentric_batch_inversion_count = checkedAddU64(
+            self.barycentric_batch_inversion_count,
+            std.math.cast(u64, inversion_count) orelse
+                return self.invalidate(),
+        ) orelse return self.invalidate();
+    }
+
+    /// Applies one already-constructed weight vector to one base-field column.
+    pub fn observeBarycentricDot(self: *Audit, log_size: u32) void {
+        const domain_size = pow2(log_size) orelse {
+            self.complete = false;
+            return;
+        };
         self.addScaled(1, 1, 0, domain_size);
+    }
+
+    /// Merges a versioned backend receipt only after the backend completed its
+    /// single resident epoch.  The receipt owns the device-specific inverse
+    /// tree and reduction schedule; rebuilding those counts from an idealized
+    /// host algorithm would make this profile non-exact.
+    pub fn observeBarycentricBackendExecution(
+        self: *Audit,
+        execution: work_profile.SampledBarycentricExecution,
+    ) void {
+        const work = execution.exactWork() catch return self.invalidate();
+        self.counters = self.counters.add(work) catch return self.invalidate();
+        self.barycentric_weight_vector_count = checkedAddU64(
+            self.barycentric_weight_vector_count,
+            execution.point_plan_count,
+        ) orelse return self.invalidate();
+        const inversion_count = checkedAddU64(
+            execution.direct_inversion_count,
+            checkedMulU64(execution.inverse_tree_block_count, 32) orelse
+                return self.invalidate(),
+        ) orelse return self.invalidate();
+        self.barycentric_batch_inversion_count = checkedAddU64(
+            self.barycentric_batch_inversion_count,
+            inversion_count,
+        ) orelse return self.invalidate();
+        self.barycentric_weight_chunk_count = checkedAddU64(
+            self.barycentric_weight_chunk_count,
+            checkedAddU64(
+                execution.inverse_tree_block_count,
+                execution.direct_inversion_count,
+            ) orelse return self.invalidate(),
+        ) orelse return self.invalidate();
     }
 
     fn addProductPair(
@@ -248,6 +365,14 @@ fn checkedMul(lhs: usize, rhs: usize) ?usize {
     return std.math.mul(usize, lhs, rhs) catch null;
 }
 
+fn checkedAddU64(lhs: u64, rhs: u64) ?u64 {
+    return std.math.add(u64, lhs, rhs) catch null;
+}
+
+fn checkedMulU64(lhs: u64, rhs: u64) ?u64 {
+    return std.math.mul(u64, lhs, rhs) catch null;
+}
+
 fn addScaledValue(base: usize, value: usize, scale: anytype) ?usize {
     const encoded_scale = std.math.cast(usize, scale) orelse return null;
     return checkedAdd(base, checkedMul(value, encoded_scale) orelse return null);
@@ -289,6 +414,41 @@ test "sampled work: barycentric context and evaluation match the live schedule" 
     try std.testing.expectEqual(@as(u64, 29), evaluation.counters.field_additions);
     try std.testing.expectEqual(@as(u64, 53), evaluation.counters.field_multiplications);
     try std.testing.expectEqual(@as(u64, 1), evaluation.counters.field_inversions);
+}
+
+test "sampled work: shared barycentric weights remove over 99 percent of inversions" {
+    const shared_column_count: usize = 256;
+    const sampled_point_count: usize = 2;
+
+    var legacy: Audit = .{};
+    for (0..shared_column_count) |_| {
+        for (0..sampled_point_count) |_| {
+            legacy.observeBarycentricWeights(10);
+            legacy.observeBarycentricDot(10);
+        }
+    }
+
+    var shared: Audit = .{};
+    for (0..sampled_point_count) |_| shared.observeBarycentricWeights(10);
+    for (0..shared_column_count * sampled_point_count) |_|
+        shared.observeBarycentricDot(10);
+
+    try std.testing.expect(legacy.complete);
+    try std.testing.expect(shared.complete);
+    try std.testing.expectEqual(
+        @as(u64, shared_column_count * sampled_point_count),
+        legacy.counters.field_inversions,
+    );
+    try std.testing.expectEqual(
+        @as(u64, sampled_point_count),
+        shared.counters.field_inversions,
+    );
+    // 2 / 512 = 0.390625%, so the cached plan eliminates 99.609375% of
+    // inversions while preserving every per-column dot product.
+    try std.testing.expect(
+        shared.counters.field_inversions * 100 <
+            legacy.counters.field_inversions,
+    );
 }
 
 test "sampled work: merge is fail-closed" {

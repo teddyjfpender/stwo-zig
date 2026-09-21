@@ -16,10 +16,10 @@
 //! shared before it is multiplied into every materialization equality.
 
 const std = @import("std");
-const direct_program = @import("materialization_direct_program.zig");
+const direct_program = @import("direct_polynomial_program.zig");
 const identity = @import("degree3_materializer_identity.zig");
 const expr = @import("expr.zig");
-const fixed_direct = @import("materialization_fixed_direct.zig");
+const fixed_direct = @import("fixed_polynomial_program.zig");
 const ir = @import("ir.zig");
 const types = @import("types.zig");
 const validator = @import("validate.zig");

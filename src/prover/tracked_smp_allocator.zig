@@ -1,0 +1,174 @@
+//! Shared producer allocation ownership accounting.
+//! Historical diagnostic/error names remain stable for existing consumers.
+const std = @import("std");
+
+/// Thin counter around the production SMP allocator. Unlike
+/// `std.testing.allocator`, large graph release does not collect stack traces.
+/// Net allocations and bytes must both return to zero, including on errors.
+pub const TrackedSmpAllocator = struct {
+    pub const SnapshotV4 = struct {
+        active_allocations: usize,
+        active_bytes: usize,
+        peak_active_bytes: usize,
+        total_allocated_bytes: u128,
+        total_freed_bytes: u128,
+        untracked_active_allocations: usize,
+    };
+
+    const Record = struct { byte_count: usize, return_address: usize };
+    const backing = std.heap.smp_allocator;
+    // ponytail: one lock protects accounting and allocator address reuse;
+    // shard the tracker only if profiling shows contention here.
+    mutex: std.Thread.Mutex = .{},
+    records: std.AutoHashMapUnmanaged(usize, Record) = .empty,
+    active_bytes: usize = 0,
+    peak_active_bytes: usize = 0,
+    total_allocated_bytes: u128 = 0,
+    total_freed_bytes: u128 = 0,
+
+    pub fn allocator(self: *TrackedSmpAllocator) std.mem.Allocator {
+        return .{ .ptr = self, .vtable = &vtable };
+    }
+
+    pub fn isEmpty(self: *TrackedSmpAllocator) bool {
+        const value = self.snapshot();
+        return value.active_allocations == 0 and value.active_bytes == 0 and
+            value.total_allocated_bytes == value.total_freed_bytes;
+    }
+
+    /// Explicit teardown check after every owner borrowing this allocator dies.
+    pub fn requireEmpty(self: *TrackedSmpAllocator) !void {
+        if (self.isEmpty()) return;
+        self.dumpLeaks();
+        return error.EthereumRuntimeAllocatorLeak;
+    }
+
+    pub fn peakBytes(self: *TrackedSmpAllocator) usize {
+        return self.snapshot().peak_active_bytes;
+    }
+
+    pub fn snapshot(self: *TrackedSmpAllocator) SnapshotV4 {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        return .{
+            .active_allocations = self.records.count(),
+            .active_bytes = self.active_bytes,
+            .peak_active_bytes = self.peak_active_bytes,
+            .total_allocated_bytes = self.total_allocated_bytes,
+            .total_freed_bytes = self.total_freed_bytes,
+            .untracked_active_allocations = 0,
+        };
+    }
+
+    pub fn dumpLeaks(self: *TrackedSmpAllocator) void {
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.dumpLocked();
+    }
+
+    fn dumpLocked(self: *TrackedSmpAllocator) void {
+        var entries = self.records.iterator();
+        var shown: usize = 0;
+        while (entries.next()) |entry| {
+            if (shown == 16) break;
+            std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE ptr=0x{x} bytes={d} caller=0x{x}\n", .{ entry.key_ptr.*, entry.value_ptr.byte_count, entry.value_ptr.return_address });
+            shown += 1;
+        }
+        if (self.records.count() > shown)
+            std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_LIVE omitted={d}\n", .{self.records.count() - shown});
+    }
+
+    fn failLocked(self: *TrackedSmpAllocator, operation: []const u8, pointer: usize, expected: usize, actual: usize) noreturn {
+        std.debug.print("ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR_INVALID operation={s} ptr=0x{x} expected_bytes={d} actual_bytes={d} active={d} active_bytes={d}\n", .{ operation, pointer, expected, actual, self.records.count(), self.active_bytes });
+        self.dumpLocked();
+        @panic("role0 genuine tracked allocator ownership mismatch");
+    }
+
+    fn requireLive(self: *TrackedSmpAllocator, memory: []u8) Record {
+        const pointer = @intFromPtr(memory.ptr);
+        const record = self.records.get(pointer) orelse self.failLocked("unknown-pointer", pointer, 0, memory.len);
+        if (record.byte_count != memory.len) self.failLocked("size-mismatch", pointer, record.byte_count, memory.len);
+        return record;
+    }
+
+    fn updateBytes(self: *TrackedSmpAllocator, old: usize, new: usize) void {
+        if (new >= old) {
+            const delta = new - old;
+            self.active_bytes = std.math.add(usize, self.active_bytes, delta) catch @panic("tracked allocation bytes overflow");
+            self.total_allocated_bytes = std.math.add(u128, self.total_allocated_bytes, delta) catch @panic("tracked allocation total overflow");
+            self.peak_active_bytes = @max(self.peak_active_bytes, self.active_bytes);
+        } else {
+            const delta = old - new;
+            self.active_bytes = std.math.sub(usize, self.active_bytes, delta) catch @panic("tracked allocation bytes underflow");
+            self.total_freed_bytes = std.math.add(u128, self.total_freed_bytes, delta) catch @panic("tracked freed total overflow");
+        }
+    }
+
+    // Metadata uses the backing allocator, never this wrapper. Release it at
+    // zero live allocations so existing owner cleanup also releases the map.
+    fn releaseEmptyRecords(self: *TrackedSmpAllocator) void {
+        if (self.records.count() == 0) {
+            self.records.deinit(backing);
+            self.records = .empty;
+        }
+    }
+
+    const vtable: std.mem.Allocator.VTable = .{ .alloc = alloc, .resize = resize, .remap = remap, .free = free };
+
+    fn alloc(context: *anyopaque, len: usize, alignment: std.mem.Alignment, return_address: usize) ?[*]u8 {
+        const self: *TrackedSmpAllocator = @ptrCast(@alignCast(context));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        self.records.ensureUnusedCapacity(backing, 1) catch return null;
+        const result = backing.rawAlloc(len, alignment, return_address) orelse {
+            self.releaseEmptyRecords();
+            return null;
+        };
+        const pointer = @intFromPtr(result);
+        if (self.records.contains(pointer)) self.failLocked("duplicate-allocation", pointer, 0, len);
+        self.records.putAssumeCapacity(pointer, .{ .byte_count = len, .return_address = return_address });
+        self.updateBytes(0, len);
+        return result;
+    }
+
+    fn resize(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, return_address: usize) bool {
+        const self: *TrackedSmpAllocator = @ptrCast(@alignCast(context));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        _ = self.requireLive(memory);
+        if (!backing.rawResize(memory, alignment, new_len, return_address)) return false;
+        self.records.getPtr(@intFromPtr(memory.ptr)).?.byte_count = new_len;
+        self.updateBytes(memory.len, new_len);
+        return true;
+    }
+
+    fn remap(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, new_len: usize, return_address: usize) ?[*]u8 {
+        const self: *TrackedSmpAllocator = @ptrCast(@alignCast(context));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        const record = self.requireLive(memory);
+        // Reserve before moving: bookkeeping failure must leave memory owned
+        // by the caller at its original address and size.
+        self.records.ensureUnusedCapacity(backing, 1) catch return null;
+        const result = backing.rawRemap(memory, alignment, new_len, return_address) orelse return null;
+        const old_pointer = @intFromPtr(memory.ptr);
+        const new_pointer = @intFromPtr(result);
+        if (new_pointer != old_pointer and self.records.contains(new_pointer))
+            self.failLocked("remap-pointer-collision", new_pointer, 0, new_len);
+        std.debug.assert(self.records.remove(old_pointer));
+        self.records.putAssumeCapacity(new_pointer, .{ .byte_count = new_len, .return_address = record.return_address });
+        self.updateBytes(memory.len, new_len);
+        return result;
+    }
+
+    fn free(context: *anyopaque, memory: []u8, alignment: std.mem.Alignment, return_address: usize) void {
+        const self: *TrackedSmpAllocator = @ptrCast(@alignCast(context));
+        self.mutex.lock();
+        defer self.mutex.unlock();
+        _ = self.requireLive(memory);
+        std.debug.assert(self.records.remove(@intFromPtr(memory.ptr)));
+        self.updateBytes(memory.len, 0);
+        backing.rawFree(memory, alignment, return_address);
+        self.releaseEmptyRecords();
+    }
+};

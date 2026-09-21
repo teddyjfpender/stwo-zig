@@ -1,0 +1,8 @@
+{
+  "src/integrations/riscv_cpu/recursive_segment_v2_leaf_key_setup_runner.zig": "e3094c518e0c1be866b96aba9a0380b795e94255518c18133201fb452dd67960",
+  "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "aaea1ee86fe7605882abd0ff8428bde31536b5ded422d30a3743cacfdb38785f",
+  "scripts/riscv_segment_v2_tree_key_setup.py": "5cf6c440a39ddc24d36f53b49d902cdb7f31d1384059fdd5b1aaffc0cc079667",
+  "scripts/riscv_segment_v2_statement_substitution.py": "5d15df57ef2f13e7081d113a4f12db727ffcbc8ddd9dfefc6722f799816edf12",
+  "scripts/riscv_segment_v2_detached_tree_gate.py": "c76ac045738c6eb8f4b60ffc7ac53387fc0a30a3069c62b9a836e0dc82366232",
+  "scripts/riscv_segment_v2_detached_parent_gate.py": "b30d49826b9fa5787535c6dbe19d361099e9a6a70121b149a9121324edeb44c4"
+}

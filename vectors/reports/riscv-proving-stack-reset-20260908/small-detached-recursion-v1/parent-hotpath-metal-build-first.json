@@ -1,0 +1,7 @@
+{
+  "build_exit_code": 0,
+  "log_sha256": "c9dcf5d4493d1c6a43172ce22743a46e924413ba5c0208212eabb2ad80c9c655",
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/parent-hotpath-first-metal-prove",
+  "binary_sha256": "b98c3c5c65d9065123a2b4b298e2bb6f2daafdb88bd46ff84465a392bd13cbff",
+  "note": "Build passed; scratch runner initially used CPU executable basename when copying. Correct Metal executable copied after build, before source edits. Original elapsed timer was lost in that copy exception."
+}

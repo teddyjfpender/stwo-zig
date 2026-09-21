@@ -1,0 +1,56 @@
+{
+  "load_store": {
+    "profile_sha256": [
+      "ed415c21e4d7d9c4262efd2b4f304fb749db78e1901f58a99dd586fe70ad4931",
+      "7a572654e8686206deae52fa3eb2c1b86d94cc1ed60c64041767e6f0e1fdf304"
+    ],
+    "program_sha256": [
+      "ec8aefea7299e84a480524c3848c1ccc73241caea4e89f983f7c2605e6b04e90",
+      "3257ffcf1f911056a0724255043536e7820607159c4ea8b7e490b65dc16b7316"
+    ],
+    "physical_main_columns": [
+      "48",
+      "50"
+    ],
+    "logical_input_nodes": [
+      "52",
+      "53"
+    ],
+    "effects": [
+      "16",
+      "17"
+    ],
+    "lookup_events": [
+      "16",
+      "17"
+    ],
+    "lookup_batches": [
+      "8",
+      "9"
+    ],
+    "interaction_columns": [
+      "32",
+      "36"
+    ],
+    "expression_dag_nodes": [
+      "312",
+      "319"
+    ],
+    "expression_dag_edges": [
+      "476",
+      "486"
+    ],
+    "expression_dag_shared_nodes": [
+      "73",
+      "75"
+    ],
+    "constraint_effect_reachable_nodes": [
+      "303",
+      "309"
+    ],
+    "nodes_outside_constraint_effect_closure": [
+      "9",
+      "10"
+    ]
+  }
+}

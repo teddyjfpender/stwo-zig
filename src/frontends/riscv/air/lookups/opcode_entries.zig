@@ -117,8 +117,8 @@ test "opcode lookup caller-owned and by-value paths are exact" {
 }
 
 test "opcode lookup matrix preserves reviewed family geometry" {
-    const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3 };
-    const expected_batches = [_]usize{ 9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 8, 16, 22, 25, 2 };
+    const expected_entries = [_]usize{ 18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 17, 16, 22, 25, 3 };
+    const expected_batches = [_]usize{ 9, 8, 10, 8, 7, 6, 5, 6, 4, 6, 9, 4, 9, 16, 22, 25, 2 };
     for (0..trace.N_FAMILIES) |index| {
         const family: trace.OpcodeFamily = @enumFromInt(index);
         try std.testing.expectEqual(expected_entries[index], entryCount(family));
@@ -154,7 +154,7 @@ test "opcode lookup vectors preserve exact domain order and batching" {
         // jal
         &.{ .program_access, .registers_state, .registers_state, .range_check_8_8, .range_check_m31, .memory_access, .memory_access, .range_check_20 },
         // load_store
-        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_m31, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_m31, .range_check_m31 },
+        &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .range_check_20, .range_check_m31, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_m31, .range_check_m31, .range_check_8_8 },
         // mul
         &.{ .program_access, .registers_state, .registers_state, .memory_access, .memory_access, .range_check_20, .memory_access, .memory_access, .range_check_20, .range_check_8_11, .range_check_8_11, .range_check_8_11, .range_check_8_11, .memory_access, .memory_access, .range_check_20 },
         // mulh

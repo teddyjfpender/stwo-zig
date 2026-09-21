@@ -1,0 +1,28 @@
+test-recursive-segment-v2-detached-routing
++- SegmentV2 detached routing guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_segment_v2_detached_routing_test.test.SegmentV2 detached routing preserves exact source and graph export multiplicities' failed: detached routing input=c73a0e906b7cc3c4bc01d0211ed1dbafffee16a548276c5e543b327aa61f5d27 poseidon=7ea0b8e40c8b757e94023b2e407a2baf303d10cf133b1cfdc0b1c667ef24f46e
+slices differ. first difference occurs at index 0 (0x0)
+
+============ expected this output: =============  len: 32 (0x20)
+
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  ................
+
+============= instead found this: ==============  len: 32 (0x20)
+
+C7 3A 0E 90 6B 7C C3 C4  BC 01 D0 21 1E D1 DB AF  .:..k|.....!....
+FF EE 16 A5 48 27 6C 5E  54 3B 32 7A A6 1F 5D 27  ....H'l^T;2z..]'
+
+================================================
+error: while executing test 'recursive_segment_v2_detached_routing_test.test.SegmentV2 detached routing preserves exact source and graph export multiplicities', the following test command failed:
+./.zig-cache/o/c147f4498c74a586b137f8c321c1a726/test --cache-dir=./.zig-cache --seed=0xbf89b3a3 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-segment-v2-detached-routing transitive failure
++- SegmentV2 detached routing guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 5s MaxRSS:490M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/eb3c060662c54b2b30b614fc1779b93c/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xbf89b3a3 -Ze29a649e34132050 --maxrss 25769803776 -j1 test-recursive-segment-v2-detached-routing -Doptimize=ReleaseSafe --summary all

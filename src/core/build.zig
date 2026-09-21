@@ -65,12 +65,62 @@ pub fn build(b: *std.Build) void {
         check_only,
         "pcs/quotients/tests.zig",
     ));
+    const geometry_root = b.createModule(.{
+        .root_source_file = b.path("air_components_test_root.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    const geometry_tests = b.addTest(.{
+        .root_module = geometry_root,
+        .filters = &GeometryTestGuard.expected_names,
+    });
+    const geometry_step = b.step("test-air-components", "Run component geometry and allocation rollback with exact test discovery");
+    if (check_only) {
+        geometry_step.dependOn(&geometry_tests.step);
+    } else {
+        const geometry_run = b.addRunArtifact(geometry_tests);
+        geometry_run.has_side_effects = true;
+        const guard = b.allocator.create(GeometryTestGuard) catch @panic("out of memory");
+        guard.* = .{
+            .step = std.Build.Step.init(.{
+                .id = .custom,
+                .name = "core component geometry test identity guard",
+                .owner = b,
+                .makeFn = GeometryTestGuard.make,
+            }),
+            .run = geometry_run,
+        };
+        guard.step.dependOn(&geometry_run.step);
+        geometry_step.dependOn(&guard.step);
+    }
 
     test_step.dependOn(fields_step);
     test_step.dependOn(crypto_step);
     test_step.dependOn(fri_step);
     test_step.dependOn(pcs_step);
+    test_step.dependOn(geometry_step);
 }
+
+const GeometryTestGuard = struct {
+    const expected_names = [_][]const u8{ "air components: orchestration", "pcs utils: concat cols" };
+    step: std.Build.Step,
+    run: *std.Build.Step.Run,
+
+    fn make(step: *std.Build.Step, _: std.Build.Step.MakeOptions) anyerror!void {
+        const self: *GeometryTestGuard = @fieldParentPtr("step", step);
+        const metadata = self.run.cached_test_metadata orelse
+            return step.fail("component geometry run reported no test metadata", .{});
+        if (metadata.names.len != expected_names.len)
+            return step.fail("component geometry gate requires exactly {d} tests; found {d}", .{ expected_names.len, metadata.names.len });
+        for (expected_names) |expected_name| {
+            var found: usize = 0;
+            for (0..metadata.names.len) |index| {
+                if (std.mem.endsWith(u8, metadata.testName(@intCast(index)), expected_name)) found += 1;
+            }
+            if (found != 1) return step.fail("component geometry gate requires exactly one '{s}' test; found {d}", .{ expected_name, found });
+        }
+    }
+};
 
 const FocusedTest = struct {
     step: []const u8,

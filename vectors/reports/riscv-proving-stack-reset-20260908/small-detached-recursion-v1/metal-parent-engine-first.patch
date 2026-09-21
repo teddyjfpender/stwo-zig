@@ -1,0 +1,146 @@
+diff --git a/scripts/riscv_segment_v2_detached_parent_gate.py b/scripts/riscv_segment_v2_detached_parent_gate.py
+index d385cdc8..dcd9697e 100644
+--- a/scripts/riscv_segment_v2_detached_parent_gate.py
++++ b/scripts/riscv_segment_v2_detached_parent_gate.py
+@@ -45,10 +45,14 @@ def main() -> None:
+     parser.add_argument("--child-family", choices=("segment", "parent"), default="segment")
+     parser.add_argument("--producer", type=Path, help="produce a new candidate before fresh verification")
+     parser.add_argument("--producer-sha256", type=digest)
++    parser.add_argument("--metal-aot-bundle", type=Path)
++    parser.add_argument("--metal-aot-manifest-sha256", type=digest)
+     parser.add_argument("--parent-key", type=Path, help="independently admitted key, required for production")
+     parser.add_argument("--left", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
+     parser.add_argument("--right", nargs=3, metavar=("BUNDLE", "KEY_SHA256", "EXPECTED_WIRE"))
+     args = parser.parse_args()
++    if bool(args.metal_aot_bundle) != bool(args.metal_aot_manifest_sha256) or (args.metal_aot_bundle and not args.producer):
++        parser.error("Metal production requires producer, AOT bundle and manifest pin")
+     strong = args.proof_profile == "recursive_q193_v1"
+     suffix = "q193" if strong else "development_q3"
+     boundary_errors = ("DetachedParentClaimClosureMismatch", "InvalidDetachedInteractionPow") if strong else "DetachedParentClaimClosureMismatch"
+@@ -90,7 +94,8 @@ def main() -> None:
+         if unchanged[path] != pin:
+             parser.error(f"independent SHA256 pin mismatch: {path}")
+     output.parent.mkdir(parents=True, exist_ok=True)
+-    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile, "development_only": True,
++    report = {"gate_sha256": sha256(Path(__file__)), "proof_profile": args.proof_profile,
++              "proving_backend": "metal" if args.metal_aot_bundle else ("cpu" if args.producer else "not_observed"), "development_only": True,
+               "verifier_sha256": args.verifier_sha256, "key_sha256": args.key_sha256,
+               "expected_root_sha256": args.expected_root_sha256,
+               "original_files": {str(path): pin for path, pin in unchanged.items()},
+@@ -150,6 +155,9 @@ def main() -> None:
+             argv = [str(args.producer.resolve()), "--profile", profile, str(bundle),
+                     *args.left, *args.right, "--parent-key", str(args.parent_key.resolve()),
+                     "--parent-key-sha256", args.key_sha256, "--proof-profile", args.proof_profile]
++            if args.metal_aot_bundle:
++                argv[1:1] = ["--aot-bundle", str(args.metal_aot_bundle.resolve()),
++                             "--aot-manifest-sha256", args.metal_aot_manifest_sha256]
+             log = output.with_name(output.name + ".producer.log")
+             production = {"argv": argv, "log": str(log), "exited_before_verification": False}
+             report["producer"] = production
+@@ -171,6 +179,13 @@ def main() -> None:
+                 if lifecycle.get(field) != value:
+                     raise RuntimeError(f"parent producer lifecycle mismatch: {field}")
+             production["lifecycle"] = lifecycle
++            if args.metal_aot_bundle:
++                matches = re.findall(r"^DETACHED_PARENT_METAL dispatches=(\d+) poseidon_commits=(\d+) cpu_fallbacks=(\d+) runtime_released=true manifest_sha256=([0-9a-f]{64})$",
++                                     log.read_text(), re.MULTILINE)
++                if len(matches) != 1 or int(matches[0][0]) == 0 or int(matches[0][1]) == 0 or matches[0][3] != args.metal_aot_manifest_sha256:
++                    raise RuntimeError("missing authenticated Metal parent dispatch and shutdown evidence")
++                production["metal"] = dict(dispatches=int(matches[0][0]), poseidon_commits=int(matches[0][1]),
++                                          cpu_fallbacks=int(matches[0][2]), manifest_sha256=matches[0][3], runtime_released=True)
+             if sha256(artifacts[0]) != args.key_sha256:
+                 raise RuntimeError("produced parent key differs from independent admission")
+             unchanged.update({path: sha256(path) for path in artifacts})
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
+index c03c9a97..0fd13c4b 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig
+@@ -78,12 +78,16 @@ pub const CandidateReportV1 = struct {
+ };
+ 
+ pub fn run(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
++    return runWithEngine(proof.CpuEngine, allocator, args);
++}
++
++pub fn runWithEngine(comptime Engine: type, allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
+     var timer = try std.time.Timer.start();
+-    var report = try runInner(allocator, args);
++    var report = try runInner(Engine, allocator, args);
+     report.request_ns = timer.read(); // Includes candidate/key/producer cleanup.
+     return report;
+ }
+-fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
++fn runInner(comptime Engine: type, allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1 {
+     try requireNewOutput(args.output);
+     var admitted_key: ?*command.OwnedKeyV1 = null;
+     defer if (admitted_key) |key| key.deinit();
+@@ -122,7 +126,7 @@ fn runInner(allocator: std.mem.Allocator, args: ArgumentsV1) !CandidateReportV1
+         expected = prepared.expected;
+         child_pins = prepared.child_key_sha256;
+         preparation_ns = prepared.preparation_ns;
+-        break :blk try proof.produceWithProfile(allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
++        break :blk try proof.produceWithEngine(Engine, allocator, prepared.cohort, &expected, child_pins, prepared.publication_mode, if (admitted_key) |key| key.key() else null, args.proof_profile);
+     };
+     // The cohort and every original proof/prover component have been destroyed.
+     // Only durable candidate bytes and fixed claims survive this boundary.
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
+index 68667de4..5e70816c 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig
+@@ -8,9 +8,8 @@ const cohort = @import("recursive_segment_v2_detached_parent_cohort.zig");
+ const protocol = @import("recursive_segment_v2_detached_parent_protocol.zig");
+ const verifier = @import("recursive_segment_v2_detached_parent_verifier.zig");
+ const storage = @import("recursive_segment_v2_outer_engine_storage.zig");
+-const Engine = @import("recursive_segment_v2_outer_engine.zig").Engine;
++pub const CpuEngine = recursion.engine.ProverEngineForBackend(@import("stwo_cpu_backend").CpuBackend);
+ const stage_profile = @import("stwo_prover_api").stage_profile;
+-const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
+ pub const Candidate = struct {
+     allocator: std.mem.Allocator,
+     key_json: []u8,
+@@ -31,9 +30,14 @@ pub fn produce(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expec
+ }
+ 
+ pub fn produceWithProfile(allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
++    return produceWithEngine(CpuEngine, allocator, prepared, expected, child_key_sha256, mode, admitted_key, profile);
++}
++
++pub fn produceWithEngine(comptime Engine: type, allocator: std.mem.Allocator, prepared: *cohort.PreparedV1, expected: *const protocol.ExpectedV1, child_key_sha256: [2][32]u8, mode: protocol.PublicationMode, admitted_key: ?*const protocol.KeyV1, profile: protocol.ProfileV1) !Candidate {
++    const TreeStorage = storage.TreeStorageForManifest(Engine, cohort.manifest_mod);
+     try recursion.span_continuation_v1.validate(expected, mode);
+     var timer = try std.time.Timer.start();
+-    var recorder = stage_profile.Recorder.initWithOptions(allocator, "cpu", "detached-recursive-parent", .{ .capture_tasks = false });
++    var recorder = stage_profile.Recorder.initWithOptions(allocator, if (Engine == CpuEngine) "cpu" else "device", "detached-recursive-parent", .{ .capture_tasks = false });
+     defer recorder.deinit();
+     const diagnostic: ?*stage_profile.Recorder = if (std.process.hasEnvVarConstant("STWO_RISCV_RECURSIVE_PARENT_PROFILE")) &recorder else null;
+     var phase = try stage_profile.StageScope.begin(diagnostic, "parent.fixed", "Fixed columns and key admission");
+diff --git a/src/integrations/riscv_metal/build.zig b/src/integrations/riscv_metal/build.zig
+index f76108fd..d4b5828e 100644
+--- a/src/integrations/riscv_metal/build.zig
++++ b/src/integrations/riscv_metal/build.zig
+@@ -151,6 +151,25 @@ pub fn build(b: *std.Build) void {
+     b.step("build-recursive-segment-v2-concrete-outer-proof", "Install the shared small recursive CPU/Metal proof driver")
+         .dependOn(&b.addInstallArtifact(small_recursive_executable, .{}).step);
+ 
++    const detached_parent_runner = b.createModule(.{
++        .root_source_file = b.path("recursive_segment_v2_detached_parent_producer_runner.zig"),
++        .target = target,
++        .optimize = optimize,
++    });
++    detached_parent_runner.addImport("stwo_metal_backend", metal_backend);
++    detached_parent_runner.addImport("stwo_riscv_frontend", frontend);
++    detached_parent_runner.addImport("stwo_riscv_cpu_integration", b.dependency(
++        "stwo_riscv_cpu_integration",
++        dependency_options,
++    ).module("stwo_riscv_cpu_integration"));
++    const detached_parent_exe = b.addExecutable(.{
++        .name = "recursive-segment-v2-detached-parent-prove-metal",
++        .root_module = detached_parent_runner,
++    });
++    linkMetalFrameworks(detached_parent_exe);
++    b.step("build-recursive-segment-v2-detached-parent-producer", "Build the shared detached parent transaction on authenticated Metal")
++        .dependOn(&b.addInstallArtifact(detached_parent_exe, .{}).step);
++
+     const tests = b.addTest(.{ .root_module = integration });
+     const ethereum_node_root = b.createModule(.{
+         .root_source_file = b.path("ethereum_node_proof_v1_runner.zig"),

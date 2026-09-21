@@ -13,6 +13,10 @@ const stage_profile = api.stage_profile;
 pub const ProveOptions = api.ProveOptions;
 pub const CpuCompositionContentionPolicy = api.CpuCompositionContentionPolicy;
 pub const CpuCompositionExecutionRequest = api.CpuCompositionExecutionRequest;
+pub const ProveDiagnostic = api.ProveDiagnostic;
+pub const CompositionSubphase = api.CompositionSubphase;
+pub const EvaluationDiagnostic = api.EvaluationDiagnostic;
+pub const EvaluationStage = api.EvaluationStage;
 pub const assertProverEngine = api.assertProverEngine;
 
 /// Builds a complete proving engine from a PCS backend and protocol types.
@@ -178,6 +182,63 @@ pub fn ProverEngine(
                 options.recorder,
                 options.composition_stage,
                 options.cpu_composition_execution,
+            );
+        }
+
+        /// Append-only diagnosed transaction; ordinary `prove` remains the
+        /// stable engine contract and produces identical proof bytes.
+        pub fn proveDiagnosed(
+            allocator: std.mem.Allocator,
+            components: []const component.ComponentProver,
+            channel: *C,
+            scheme: Scheme,
+            options: ProveOptions,
+            diagnostic: *?ProveDiagnostic,
+        ) !ExtendedProof {
+            diagnostic.* = null;
+            return prove_mod.proveExWithExecutionDiagnosed(
+                B,
+                H,
+                MC,
+                allocator,
+                components,
+                channel,
+                scheme,
+                options.include_all_preprocessed_columns,
+                options.recorder,
+                options.composition_stage,
+                options.cpu_composition_execution,
+                diagnostic,
+            );
+        }
+
+        /// As `proveDiagnosed`, retaining an unverified proof on the final OODS
+        /// mismatch without converting the error into success. `failed` must
+        /// initially be null. The caller owns and deinitializes any output;
+        /// success and earlier failures leave it null. The scheme is consumed.
+        pub fn proveDiagnosedRetainingFailure(
+            allocator: std.mem.Allocator,
+            components: []const component.ComponentProver,
+            channel: *C,
+            scheme: Scheme,
+            options: ProveOptions,
+            diagnostic: *?ProveDiagnostic,
+            failed: *?ExtendedProof,
+        ) !ExtendedProof {
+            return prove_mod.proveExWithExecutionDiagnosedRetainingFailure(
+                B,
+                H,
+                MC,
+                allocator,
+                components,
+                channel,
+                scheme,
+                options.include_all_preprocessed_columns,
+                options.recorder,
+                options.composition_stage,
+                options.cpu_composition_execution,
+                diagnostic,
+                failed,
             );
         }
     };

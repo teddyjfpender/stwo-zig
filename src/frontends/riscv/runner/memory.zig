@@ -10,11 +10,24 @@ const PAGE_BITS = 16;
 const PAGE_SIZE = 1 << PAGE_BITS;
 const PAGE_COUNT = 1 << (32 - PAGE_BITS);
 const PAGE_MASK = PAGE_SIZE - 1;
+const WORDS_PER_PAGE = PAGE_SIZE / @sizeOf(u32);
+const INITIALIZATION_BYTES_PER_PAGE = WORDS_PER_PAGE / 8;
 const Page = [PAGE_SIZE]u8;
+const InitializationPage = [INITIALIZATION_BYTES_PER_PAGE]u8;
 
 pub const Memory = struct {
     pages: []?*Page,
+    /// Sparse one-bit-per-word presence pages make the store hot path an
+    /// indexed load instead of a hash lookup. The hash map remains the
+    /// iterable canonical inventory used only when a word is first observed.
+    initialized_word_pages: []?*InitializationPage,
     initialized_words: std.AutoHashMap(u32, void),
+    initialized_word_count: usize,
+    /// Canonical inventory retained across segment boundaries. Newly
+    /// initialized words accumulate separately so the boundary path sorts
+    /// only the delta instead of the complete ELF/input image every time.
+    sorted_initialized_words: std.ArrayList(u32),
+    pending_initialized_words: std.ArrayList(u32),
     allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) Memory {
@@ -24,10 +37,20 @@ pub const Memory = struct {
     /// Fallible constructor used by transactional extension execution.
     pub fn initFallible(allocator: std.mem.Allocator) error{OutOfMemory}!Memory {
         const pages = try allocator.alloc(?*Page, PAGE_COUNT);
+        errdefer allocator.free(pages);
         @memset(pages, null);
+        const initialized_word_pages = try allocator.alloc(
+            ?*InitializationPage,
+            PAGE_COUNT,
+        );
+        @memset(initialized_word_pages, null);
         return .{
             .pages = pages,
+            .initialized_word_pages = initialized_word_pages,
             .initialized_words = std.AutoHashMap(u32, void).init(allocator),
+            .initialized_word_count = 0,
+            .sorted_initialized_words = .empty,
+            .pending_initialized_words = .empty,
             .allocator = allocator,
         };
     }
@@ -36,8 +59,14 @@ pub const Memory = struct {
         for (self.pages) |maybe_page| {
             if (maybe_page) |page| self.allocator.destroy(page);
         }
+        for (self.initialized_word_pages) |maybe_page| {
+            if (maybe_page) |page| self.allocator.destroy(page);
+        }
         self.allocator.free(self.pages);
+        self.allocator.free(self.initialized_word_pages);
         self.initialized_words.deinit();
+        self.sorted_initialized_words.deinit(self.allocator);
+        self.pending_initialized_words.deinit(self.allocator);
         self.* = undefined;
     }
 
@@ -49,6 +78,67 @@ pub const Memory = struct {
     ) !void {
         var iterator = self.initialized_words.keyIterator();
         while (iterator.next()) |addr| try addresses.put(addr.*, {});
+    }
+
+    /// Return every initialized aligned word exactly once in ascending order.
+    ///
+    /// Memory initialization is append-only. Keeping the stable prefix and
+    /// merging only the newly observed delta makes repeated proof-segment
+    /// boundaries linear instead of repeatedly sorting the full guest image.
+    pub fn canonicalAlignedWordAddresses(
+        self: *Memory,
+    ) error{ OutOfMemory, InitializationInventoryMismatch }![]const u32 {
+        if (self.initialized_word_count != self.initialized_words.count() or
+            self.sorted_initialized_words.items.len +
+                self.pending_initialized_words.items.len != self.initialized_word_count)
+        {
+            return error.InitializationInventoryMismatch;
+        }
+        if (self.pending_initialized_words.items.len == 0)
+            return self.sorted_initialized_words.items;
+
+        std.mem.sortUnstable(
+            u32,
+            self.pending_initialized_words.items,
+            {},
+            std.sort.asc(u32),
+        );
+        var merged: std.ArrayList(u32) = .empty;
+        errdefer merged.deinit(self.allocator);
+        try merged.ensureTotalCapacity(
+            self.allocator,
+            self.sorted_initialized_words.items.len +
+                self.pending_initialized_words.items.len,
+        );
+
+        var stable_index: usize = 0;
+        var pending_index: usize = 0;
+        while (stable_index < self.sorted_initialized_words.items.len or
+            pending_index < self.pending_initialized_words.items.len)
+        {
+            const take_stable = pending_index == self.pending_initialized_words.items.len or
+                (stable_index < self.sorted_initialized_words.items.len and
+                    self.sorted_initialized_words.items[stable_index] <
+                        self.pending_initialized_words.items[pending_index]);
+            if (take_stable) {
+                merged.appendAssumeCapacity(
+                    self.sorted_initialized_words.items[stable_index],
+                );
+                stable_index += 1;
+            } else {
+                merged.appendAssumeCapacity(
+                    self.pending_initialized_words.items[pending_index],
+                );
+                pending_index += 1;
+            }
+        }
+        if (merged.items.len != self.initialized_word_count)
+            return error.InitializationInventoryMismatch;
+
+        self.sorted_initialized_words.deinit(self.allocator);
+        self.sorted_initialized_words = merged;
+        self.pending_initialized_words.clearAndFree(self.allocator);
+        return self.sorted_initialized_words.items;
     }
 
     // ----- Byte access -----
@@ -134,16 +224,26 @@ pub const Memory = struct {
         var missing_words: usize = 0;
         for (addresses) |addr| {
             std.debug.assert(addr & 3 == 0);
-            if (!self.initialized_words.contains(addr)) missing_words += 1;
+            if (!self.alignedWordIsInitialized(addr)) missing_words += 1;
         }
         try self.initialized_words.ensureUnusedCapacity(@intCast(missing_words));
+        try self.pending_initialized_words.ensureUnusedCapacity(
+            self.allocator,
+            missing_words,
+        );
 
         for (addresses) |addr| {
             const index = pageIndex(addr);
-            if (self.pages[index] != null) continue;
-            const page = try self.allocator.create(Page);
-            @memset(page, 0);
-            self.pages[index] = page;
+            if (self.pages[index] == null) {
+                const page = try self.allocator.create(Page);
+                @memset(page, 0);
+                self.pages[index] = page;
+            }
+            if (self.initialized_word_pages[index] == null) {
+                const page = try self.allocator.create(InitializationPage);
+                @memset(page, 0);
+                self.initialized_word_pages[index] = page;
+            }
         }
     }
 
@@ -154,11 +254,18 @@ pub const Memory = struct {
         self: *const Memory,
         addr: u32,
     ) bool {
-        if (addr & 3 != 0 or self.pages[pageIndex(addr)] == null) return false;
-        if (self.initialized_words.contains(addr)) return true;
+        const index = pageIndex(addr);
+        if (addr & 3 != 0 or self.pages[index] == null or
+            self.initialized_word_pages[index] == null)
+        {
+            return false;
+        }
+        if (self.alignedWordIsInitialized(addr)) return true;
         const maximum_entries = self.initialized_words.capacity() *
             std.hash_map.default_max_load_percentage / 100;
-        return maximum_entries - self.initialized_words.count() >= 1;
+        return maximum_entries - self.initialized_words.count() >= 1 and
+            self.pending_initialized_words.capacity -
+                self.pending_initialized_words.items.len >= 1;
     }
 
     /// Commit one aligned write after `prepareAlignedWordWrites` covered its
@@ -171,7 +278,13 @@ pub const Memory = struct {
         page[offset + 1] = @truncate(val >> 8);
         page[offset + 2] = @truncate(val >> 16);
         page[offset + 3] = @truncate(val >> 24);
-        self.initialized_words.putAssumeCapacity(addr, {});
+        if (!self.alignedWordIsInitialized(addr)) {
+            const initialized = self.initialized_words.getOrPutAssumeCapacity(addr);
+            std.debug.assert(!initialized.found_existing);
+            self.pending_initialized_words.appendAssumeCapacity(addr);
+            self.initialized_word_count += 1;
+            self.markWordInitializedAssumePage(addr);
+        }
     }
 
     // ----- Bulk access -----
@@ -236,24 +349,77 @@ pub const Memory = struct {
 
     fn ensurePage(self: *Memory, addr: u32) *Page {
         const index = pageIndex(addr);
+        _ = self.ensureInitializationPage(index);
         if (self.pages[index]) |page| return page;
-        const page = self.allocator.create(Page) catch
+        const created = self.allocator.create(Page) catch
             @panic("Memory.ensurePage: allocation failed");
-        @memset(page, 0);
-        self.pages[index] = page;
-        return page;
+        @memset(created, 0);
+        self.pages[index] = created;
+        return created;
     }
 
     fn markInitializedRange(self: *Memory, base_addr: u32, len: usize) void {
         var remaining = len;
         var addr = base_addr;
         while (remaining != 0) {
-            self.initialized_words.put(addr & ~@as(u32, 3), {}) catch
-                @panic("Memory: initialized-word allocation failed");
+            const aligned = addr & ~@as(u32, 3);
+            if (!self.alignedWordIsInitialized(aligned)) {
+                const initialized = self.initialized_words.getOrPut(aligned) catch
+                    @panic("Memory: initialized-word allocation failed");
+                if (!initialized.found_existing) {
+                    self.pending_initialized_words.append(self.allocator, aligned) catch
+                        @panic("Memory: initialized-word inventory allocation failed");
+                    self.initialized_word_count += 1;
+                }
+                self.markWordInitialized(aligned);
+            }
             const advance = @min(remaining, 4 - @as(usize, @intCast(addr & 3)));
             addr +%= @intCast(advance);
             remaining -= advance;
         }
+    }
+
+    /// Constant-time presence authority for an aligned word. Typed retirement
+    /// uses this instead of hashing the address on every load/store.
+    pub inline fn alignedWordIsInitialized(
+        self: *const Memory,
+        aligned_addr: u32,
+    ) bool {
+        std.debug.assert(aligned_addr & 3 == 0);
+        const page = self.initialized_word_pages[pageIndex(aligned_addr)] orelse
+            return false;
+        const word_index: usize = @intCast((aligned_addr & PAGE_MASK) >> 2);
+        const mask: u8 = @as(u8, 1) << @intCast(word_index & 7);
+        return page[word_index >> 3] & mask != 0;
+    }
+
+    fn markWordInitialized(self: *Memory, aligned_addr: u32) void {
+        _ = self.ensureInitializationPage(pageIndex(aligned_addr));
+        self.markWordInitializedAssumePage(aligned_addr);
+    }
+
+    inline fn markWordInitializedAssumePage(
+        self: *Memory,
+        aligned_addr: u32,
+    ) void {
+        std.debug.assert(aligned_addr & 3 == 0);
+        const page = self.initialized_word_pages[pageIndex(aligned_addr)] orelse
+            unreachable;
+        const word_index: usize = @intCast((aligned_addr & PAGE_MASK) >> 2);
+        const mask: u8 = @as(u8, 1) << @intCast(word_index & 7);
+        page[word_index >> 3] |= mask;
+    }
+
+    fn ensureInitializationPage(
+        self: *Memory,
+        index: usize,
+    ) *InitializationPage {
+        if (self.initialized_word_pages[index]) |page| return page;
+        const page = self.allocator.create(InitializationPage) catch
+            @panic("Memory.ensureInitializationPage: allocation failed");
+        @memset(page, 0);
+        self.initialized_word_pages[index] = page;
+        return page;
     }
 
     inline fn pageIndex(addr: u32) usize {
@@ -286,6 +452,44 @@ test "Memory readByte returns 0 for untouched addresses" {
     defer mem.deinit();
 
     try std.testing.expectEqual(@as(u8, 0), mem.readByte(0x42));
+}
+
+test "Memory canonical initialized inventory merges only new words" {
+    var mem = Memory.init(std.testing.allocator);
+    defer mem.deinit();
+
+    mem.writeU32(0x3008, 3);
+    mem.writeU32(0x1004, 1);
+    mem.writeU32(0x2000, 2);
+    const first = try mem.canonicalAlignedWordAddresses();
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0x1004, 0x2000, 0x3008 },
+        first,
+    );
+
+    mem.writeByte(0x2001, 9); // Existing aligned word is not re-enqueued.
+    mem.writeU32(0x2004, 4);
+    mem.writeU32(0x0800, 0);
+    const second = try mem.canonicalAlignedWordAddresses();
+    try std.testing.expectEqualSlices(
+        u32,
+        &.{ 0x0800, 0x1004, 0x2000, 0x2004, 0x3008 },
+        second,
+    );
+    try std.testing.expectEqual(@as(usize, 0), mem.pending_initialized_words.items.len);
+}
+
+test "Memory canonical inventory rejects count divergence" {
+    var mem = Memory.init(std.testing.allocator);
+    defer mem.deinit();
+
+    mem.writeU32(0x1000, 1);
+    mem.initialized_word_count = 0;
+    try std.testing.expectError(
+        error.InitializationInventoryMismatch,
+        mem.canonicalAlignedWordAddresses(),
+    );
 }
 
 test "Memory little-endian byte order" {

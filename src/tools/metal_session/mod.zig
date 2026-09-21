@@ -3,6 +3,7 @@
 pub const artifact_manifest = @import("artifacts/manifest.zig");
 pub const artifact_store = @import("artifacts/store.zig");
 pub const artifact_views = @import("artifacts/views.zig");
+pub const persistent_artifacts = @import("stwo_artifact_store");
 pub const protocol = @import("protocol.zig");
 
 test "api signature: Metal session parser returns an owned parsed request" {

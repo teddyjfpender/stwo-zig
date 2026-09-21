@@ -1,0 +1,16 @@
+test-recursion-quotient-domains
++- stwo_riscv_frontend test count floor
+   +- run test 7/8 passed, 1 failed
+error: 'recursion.air.universal_typed_component_test.test.Ethereum typed quotient domains recover released coefficients with exact polynomial parity' failed: QUOTIENT_RECOVERY_PARITY trace_log=6 retained=false source_log=7 quotient_log=8 tower_matches=true error=InvalidProofShape
+QUOTIENT_RECOVERY_COEFFICIENT index=16 actual=1999441802 expected=311
+error: while executing test 'recursion.air.universal_typed_component_test.test.Ethereum typed quotient domains reject recovered high degree before truncation', the following test command failed:
+./.zig-cache/o/74a77d2b49cf18de15bfba0c854620cf/test --cache-dir=./.zig-cache --seed=0xd37dd827 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 7/8 tests passed; 1 failed
+test-recursion-quotient-domains transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 7/8 passed, 1 failed
+      +- compile test ReleaseSafe native success 10s MaxRSS:770M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ba0efa0ac3b3db74cbe8f4a38b65aa8c/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xd37dd827 -Z2b8a5c5d543c4249 --maxrss 25769803776 -j1 test-recursion-quotient-domains -Doptimize=ReleaseSafe --summary all

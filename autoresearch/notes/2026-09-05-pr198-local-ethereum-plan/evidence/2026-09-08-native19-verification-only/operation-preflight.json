@@ -1,0 +1,28 @@
+{
+  "timestamp_utc": "2026-09-08 08:31:13 UTC",
+  "request_sha256": "f280392c76c47a860f10a6326a6665ea9d1311eb40b7f0900354b79492f31073",
+  "custody_checked": 12,
+  "source_files_checked": 16,
+  "accepted_indices_before": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    120
+  ]
+}

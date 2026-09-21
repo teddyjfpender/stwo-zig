@@ -1,0 +1,44 @@
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test
+      +- compile test ReleaseSafe native 2 errors
+recursive_temporal_secure_parent_native_engine_v1.zig:1844:33: error: no field named 'wire_boundary' in struct 'recursive_common_fold_secure_cohort_v2.CohortForLiveV2(.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2330, .queried_value_count = 421126, .trace_path_count = 772, .fri_layer_count = 4, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 },recursive_common_fold_q193_bootstrap_v2.BootstrapLiveV2,recursive_common_fold_fixed_wire_v2.TypesForLive(.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2330, .queried_value_count = 421126, .trace_path_count = 772, .fri_layer_count = 4, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 },recursive_common_fold_q193_bootstrap_v2.BootstrapLiveV2,recursive_common_fold_q193_bootstrap_v2.BootstrapFixedPolicyV2),recursive_common_fold_q193_bootstrap_v2.BootstrapManifestPolicyV2).AuditedInteractionsV2'
+    hashInt(&hash, u64, audited.wire_boundary.tuple_count);
+                                ^~~~~~~~~~~~~
+recursive_common_fold_secure_cohort_v2.zig:127:43: note: struct declared here
+        pub const AuditedInteractionsV2 = struct {
+                                          ^~~~~~
+referenced by:
+    verifyBytesImpl: recursive_temporal_secure_parent_native_engine_v1.zig:1401:50
+    verifyBytes: recursive_temporal_secure_parent_native_engine_v1.zig:1228:35
+    4 reference(s) hidden; use '-freference-trace=6' to see all references
+recursive_temporal_secure_parent_native_engine_v1.zig:1844:33: error: no field named 'wire_boundary' in struct 'recursive_common_fold_secure_cohort_v2.CohortForLiveV2(.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2330, .queried_value_count = 421126, .trace_path_count = 772, .fri_layer_count = 4, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 },recursive_common_fold_q193_bootstrap_v2.BootstrapLiveV2,recursive_common_fold_fixed_wire_v2.TypesForLive(.{ .commitment_count = 4, .claimed_sum_count = 36, .sampled_value_count = 2330, .queried_value_count = 421126, .trace_path_count = 772, .fri_layer_count = 4, .query_count = 193, .maximum_fold_width = 16, .last_layer_coefficient_count = 1, .maximum_merkle_depth = 17 },recursive_common_fold_q193_bootstrap_v2.BootstrapLiveV2,recursive_common_fold_q193_bootstrap_v2.BootstrapFixedPolicyV2),recursive_common_fold_q193_bootstrap_v2.BootstrapManifestPolicyV2).AuditedInteractionsV2'
+    hashInt(&hash, u64, audited.wire_boundary.tuple_count);
+                                ^~~~~~~~~~~~~
+recursive_common_fold_secure_cohort_v2.zig:127:43: note: struct declared here
+        pub const AuditedInteractionsV2 = struct {
+                                          ^~~~~~
+error: the following command failed with 2 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep stwo_riscv_cpu_integration --dep stwo_artifact_store --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_engine -Mstwo_cpu_backend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backends/cpu_scalar/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mstwo_riscv_frontend=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/mod.zig -OReleaseSafe --dep stwo_artifact_store --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep stwo_cpu_backend --dep stwo_riscv_frontend --dep interop_postcard -Mstwo_riscv_cpu_integration=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/mod.zig -OReleaseSafe -Mstwo_artifact_store=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/artifact_store/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig -OReleaseSafe -Mtyped_air_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/embedded.zig -OReleaseSafe -Mtyped_air_h009_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -OReleaseSafe -Mtyped_air_h010_artifacts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "common-fold q193 transcript program matches the cold verifier" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=70207333 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 4/8 steps succeeded; 1 failed; 1/1 tests passed
+test-recursive-common-fold-transcript-program-v1 transitive failure
++- Common-fold transcript program proof identity guard transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 2 errors
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:87M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/843d5e9ed195118664d20eb1051fc395/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0xf4cf6eb6 -Z547f4a0cdb043624 --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-program-v1 test-recursive-common-canonical-empty-universal-v2-proof -Doptimize=ReleaseSafe --summary all

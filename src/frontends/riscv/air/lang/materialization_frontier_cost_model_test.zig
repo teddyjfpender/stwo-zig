@@ -1,7 +1,7 @@
 const std = @import("std");
 const model = @import("materialization_frontier_cost_model.zig");
 const frontier_digest = @import("materialization_frontier_digest.zig");
-const poseidon = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon = @import("typed_poseidon2_fixed_polynomials.zig");
 
 test "cost-model identities pin the optional and Poseidon direct programs" {
     const semantic_only = model.semanticOnly();

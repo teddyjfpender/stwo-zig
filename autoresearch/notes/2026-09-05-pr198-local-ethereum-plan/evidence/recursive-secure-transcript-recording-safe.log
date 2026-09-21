@@ -1,0 +1,12 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 7s MaxRSS:70M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

@@ -8,6 +8,7 @@ from .core import (
     M31,
     WitnessError,
     _limbs,
+    check_constraints,
     check_range_lookups,
     check_witness,
     evaluate,
@@ -193,6 +194,8 @@ def load_row(
         "imm_felt": displacement % M31,
         "src_msb": negative,
         "shift_amount": offset,
+        "aligned_addr_quarter": aligned // 4,
+        "aligned_addr_low20": (aligned // 4) & ((1 << 20) - 1),
         "src_addr_selector": aligned,
         "dst_addr_selector": rd,
         "markers_0": markers[0],
@@ -211,14 +214,14 @@ def load_row(
         "destination_inverse": modular_inverse(rd) if rd else 0,
         # Synthesized lookup-argument aliases, each pinned by its own
         # defining constraint in the exported AIR.
-        "bus_value_48": LOAD_OPCODE_IDS[selector],
-        "bus_value_49": pc + 4,
-        "bus_value_50": clock + 1,
-        "bus_value_51": (clock - 1) * 4 + 1,
-        "bus_value_52": 1,
-        "bus_value_53": (clock - 1) * 4 + 3,
-        "bus_value_54": 0,
-        "bus_value_55": (clock - 1) * 4 + 2,
+        "bus_value_50": LOAD_OPCODE_IDS[selector],
+        "bus_value_51": pc + 4,
+        "bus_value_52": clock + 1,
+        "bus_value_53": (clock - 1) * 4 + 1,
+        "bus_value_54": 1,
+        "bus_value_55": (clock - 1) * 4 + 3,
+        "bus_value_56": 0,
+        "bus_value_57": (clock - 1) * 4 + 2,
     }
     assignment[f"is_{selector}"] = 1
     for index in range(4):
@@ -268,16 +271,10 @@ LH_WITNESSES: tuple[tuple[str, int, int, int, int, int], ...] = (
     ("top-admitted-address", 0x3FFFFC, 0, 0xFFFF7FFF, 7, 0x00007FFF),
 )
 
-#: The largest halfword-aligned effective address an admitted row can carry.
-#:
-#: The production AIR bounds addresses twice: the base-address
-#: ``range_check_m31`` forces the high limb of `rs1` below 128, and the
-#: aligned-address ``range_check_20`` request carries ``aligned / 4``, so
-#: ``aligned < 2 ** 22``. A true 32-bit address wrap is therefore *not
-#: reachable* in an admitted production row. Architectural wrap is real and the
-#: Sail side defines it; the AIR narrows it away. An LH theorem must carry that
-#: range premise explicitly rather than claim the AIR derives wrap behaviour.
-MAX_ADMITTED_ALIGNED_ADDRESS = (2**20 - 1) * 4
+#: Largest aligned word address in the one-GiB production profile.
+#: The aligned quarter has checked low 20 and high eight bits. The separate
+#: doubled base-high lookup bounds rs1 below 2**30, preventing M31 aliasing.
+MAX_ADMITTED_ALIGNED_ADDRESS = (2**28 - 1) * 4
 
 
 def check_lh_witnesses(air_ir_dir: Path) -> str:
@@ -483,6 +480,8 @@ def store_row(
         "imm_felt": displacement % M31,
         "src_msb": 0,
         "shift_amount": offset,
+        "aligned_addr_quarter": aligned // 4,
+        "aligned_addr_low20": (aligned // 4) & ((1 << 20) - 1),
         "src_addr_selector": r2,
         "dst_addr_selector": aligned,
         "markers_0": markers[0],
@@ -499,14 +498,14 @@ def store_row(
         "is_sw": 1 if selector == "sw" else 0,
         "destination_nonzero": nonzero,
         "destination_inverse": modular_inverse(r2) if r2 else 0,
-        "bus_value_48": {"sb": 24, "sh": 25, "sw": 26}[selector],
-        "bus_value_49": pc + 4,
-        "bus_value_50": clock + 1,
-        "bus_value_51": (clock - 1) * 4 + 1,
-        "bus_value_52": 0,
-        "bus_value_53": (clock - 1) * 4 + 2,
-        "bus_value_54": 1,
-        "bus_value_55": (clock - 1) * 4 + 3,
+        "bus_value_50": {"sb": 24, "sh": 25, "sw": 26}[selector],
+        "bus_value_51": pc + 4,
+        "bus_value_52": clock + 1,
+        "bus_value_53": (clock - 1) * 4 + 1,
+        "bus_value_54": 0,
+        "bus_value_55": (clock - 1) * 4 + 2,
+        "bus_value_56": 1,
+        "bus_value_57": (clock - 1) * 4 + 3,
     }
     for index in range(4):
         assignment[f"rs1_value_{index}"] = source[index]
@@ -619,7 +618,7 @@ def address_aliasing_row(
     modulo 2^32. A base just under the field modulus plus a small displacement
     wraps the *field* and lands on a small aligned address while the
     architectural 32-bit address is somewhere else entirely. Production
-    constraint root 61 now pins the base's high byte to zero on active rows,
+    base lookup now checks twice the high byte against a seven-bit table,
     so this assignment is deliberately not reachable.
     """
     field_address = (base + displacement) % M31
@@ -640,6 +639,8 @@ def address_aliasing_row(
         "imm_felt": displacement % M31,
         "src_msb": 0,
         "shift_amount": 0,
+        "aligned_addr_quarter": field_address // 4,
+        "aligned_addr_low20": (field_address // 4) & ((1 << 20) - 1),
         "src_addr_selector": field_address,
         "dst_addr_selector": rd,
         # The markers are free bits on a word access; production leaves them
@@ -658,14 +659,14 @@ def address_aliasing_row(
         "is_sw": 0,
         "destination_nonzero": 1,
         "destination_inverse": modular_inverse(rd),
-        "bus_value_48": 21,
-        "bus_value_49": pc + 4,
-        "bus_value_50": clock + 1,
-        "bus_value_51": (clock - 1) * 4 + 1,
-        "bus_value_52": 1,
-        "bus_value_53": (clock - 1) * 4 + 3,
-        "bus_value_54": 0,
-        "bus_value_55": (clock - 1) * 4 + 2,
+        "bus_value_50": 21,
+        "bus_value_51": pc + 4,
+        "bus_value_52": clock + 1,
+        "bus_value_53": (clock - 1) * 4 + 1,
+        "bus_value_54": 1,
+        "bus_value_55": (clock - 1) * 4 + 3,
+        "bus_value_56": 0,
+        "bus_value_57": (clock - 1) * 4 + 2,
     }
     for index in range(4):
         assignment[f"rs1_value_{index}"] = source[index]
@@ -677,32 +678,35 @@ def address_aliasing_row(
 
 
 def check_address_aliasing_rejected(air_ir_dir: Path) -> str:
-    """Require the historical aliasing row to fail at exactly the new root.
+    """Require rejection by the doubled base-high lookup alone.
 
-    Checking the exact refusing root makes this a regression for the source
-    fix, not merely a test that some unrelated later constraint happens to
-    reject a stale witness.
+    The row satisfies the current committed-address binding. Checking every
+    constraint and every other range request isolates the actual anti-aliasing
+    authority rather than accepting rejection of a stale witness.
     """
     assignment, architectural, field_address = address_aliasing_row()
     payload = load_family(air_ir_dir, "load_store")
     values = evaluate(payload, assignment)
-    unsatisfied = [
-        index
-        for index, root in enumerate(payload["constraints"])
-        if values[root] != 0
-    ]
-    if unsatisfied != [61]:
+    check_constraints(payload, values)
+    lookup = payload["lookups"][7]
+    actual = [values[node] for node in lookup["tuple"]]
+    expected = [ALIASING_BASE & 255, 2 * (ALIASING_BASE >> 24)]
+    if (lookup["domain"] != "range_check_m31" or
+            values[lookup["numerator"]] != M31 - 1 or actual != expected or
+            actual[1] < 128):
         raise WitnessError(
-            "the historical load_store aliasing row must be rejected by "
-            f"constraint root 61 alone; observed roots {unsatisfied}"
+            "historical aliasing row must fail active doubled base-high lookup 7; "
+            f"observed tuple {actual}"
         )
-    checked = check_range_lookups(payload, values)
+    other_requests = dict(payload)
+    other_requests["lookups"] = payload["lookups"][:7] + payload["lookups"][8:]
+    checked = check_range_lookups(other_requests, values)
     if architectural == field_address:
         raise WitnessError("the aliasing row no longer diverges; update this check")
     return (
         "load_store address-aliasing regression: historical base "
         f"{ALIASING_BASE:#010x} + {ALIASING_DISPLACEMENT} is architecturally "
         f"{architectural:#010x} but would alias to {field_address:#010x} in "
-        f"M31; production constraint root 61 rejects it, with {checked} active "
-        "range requests otherwise valid"
+        f"M31; doubled base-high lookup 7 rejects it, with {checked} other active "
+        "range requests and all constraint roots valid"
     )

@@ -1,0 +1,19 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 57s
+test-ethereum-retained-first-segment-v1
++- retained first segment identity guard
+   +- run test 0/1 passed, 1 failed
+error: 'ethereum_retained_first_segment_v1_test.test.real retained Ethereum first segment authenticates memory clock projection' failed: RETAINED_MEMORY_CLOCK_MISMATCH segment=0 address=0x200e630 clock=49491 rw_present=false rw_value=null rw_clock=null program_value=null is_rw=false is_program=false rw_count=691061 clock_count=396380 layout=.{ .program_base = 1024, .program_end = 2918700, .data_base = 33554432, .data_end = 33613352, .stack_bottom = 16777216, .stack_top = 33554432, .io_base = 8388608, .io_end = 16777217, .input_base = 8388608, .input_end = 12582912, .output_len_addr = 12582916, .output_data_addr = 12582920, .output_base = 12582916, .output_end = 16777216 }
+RETAINED_MEMORY_CLOCK_ACCESS .{ .clk = 12373, .pc = 6960, .opcode = .SW, .rd = 0, .rs1 = 10, .rs2 = 11, .imm = 0, .rs1_val = 33613360, .rs2_val = 1, .rs1_prev_clk = 49453, .rs2_prev_clk = 49478, .rd_prev_val = 0, .rd_prev_clk = 0, .rd_val = 0, .mem_addr = 33613360, .mem_val = 1, .mem_prev_word = 0, .mem_next_word = 1, .mem_prev_clk = 0, .is_load = false, .is_store = true, .branch_taken = false, .next_pc = 6964, .inst_word = 11870243 }
+expected error.FirstRetainedSegmentChecked, found error.MemoryClockMissing
+error: while executing test 'ethereum_retained_first_segment_v1_test.test.real retained Ethereum first segment authenticates memory clock projection', the following test command failed:
+./.zig-cache/o/593e5ff7d2736c300fcd9e00bbc38642/test --cache-dir=./.zig-cache --seed=0x76592cc0 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-retained-first-segment-v1 transitive failure
++- retained first segment identity guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 22s MaxRSS:835M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/774f9cd7aca8475fdf925566019a6e05/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x76592cc0 -Z57ee0bda5fe9a0b9 --maxrss 25769803776 -j1 test-ethereum-retained-first-segment-v1 -Doptimize=ReleaseSafe --summary all

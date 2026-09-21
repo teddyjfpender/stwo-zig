@@ -1,0 +1,68 @@
+{
+  "recorded_at": "2026-09-08T08:04:20.765481+00:00",
+  "scope": "Producer-half cohort preparation through serialization and complete producer destruction; excludes native cold opening/campaign/materialization, compilation and cold verifier half",
+  "before_source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "after_source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "runs": {
+    "before": {
+      "phases": {
+        "prepare": {
+          "ns": 1795987445292,
+          "process_cpu_ns": 1743012168125
+        },
+        "tree2_generate": {
+          "ns": 170699444167,
+          "process_cpu_ns": 169235538292
+        },
+        "producer_closure": {
+          "ns": 15833,
+          "process_cpu_ns": 15125
+        },
+        "serialize": {
+          "ns": 553584,
+          "process_cpu_ns": 351125
+        },
+        "producer_destroy": {
+          "ns": 14592867916,
+          "process_cpu_ns": 4382698208
+        }
+      },
+      "wall_ns": 1981280326792,
+      "cpu_ns": 1916630770875
+    },
+    "after": {
+      "phases": {
+        "prepare": {
+          "ns": 1623176270334,
+          "process_cpu_ns": 1562339613416
+        },
+        "tree2_generate": {
+          "ns": 217860487625,
+          "process_cpu_ns": 214857021917
+        },
+        "producer_closure": {
+          "ns": 25583,
+          "process_cpu_ns": 24709
+        },
+        "serialize": {
+          "ns": 610375,
+          "process_cpu_ns": 433500
+        },
+        "producer_destroy": {
+          "ns": 31153664291,
+          "process_cpu_ns": 6638297708
+        }
+      },
+      "wall_ns": 1872191058208,
+      "cpu_ns": 1783835391250
+    }
+  },
+  "producer_wall_reduction_percent": 5.505998677160059,
+  "tree2_wall_increase_percent": 27.628117764613833,
+  "limitations": [
+    "Single diagnostic pair, not a quiet-host performance promotion",
+    "Tree2 generation and destruction slowed; cause not attributed from phase clocks alone",
+    "After independent cold acceptance remains pending",
+    "New source-v7 ownership changes are excluded"
+  ]
+}

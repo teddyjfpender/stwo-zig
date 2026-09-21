@@ -1,0 +1,7 @@
+{
+  "binary": "src/integrations/riscv_cpu/.zig-cache/o/f67ec2034b9c421318589d939880340b/recursive-segment-v2-concrete-outer-proof",
+  "binary_sha256": "2f79407b7224b7228799434b9a6d1b036bca1533e91a1b5224a327c788b6b50a",
+  "sampled": true,
+  "exit_code": 0,
+  "scope": "Timing perturbation for stack attribution, not a throughput measurement; sample scheduled after noncore receipt to overlap outer verification."
+}

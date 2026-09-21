@@ -1,0 +1,38 @@
+{
+  "status": "passed",
+  "pending_sessions": [],
+  "log": "recursive-statement-input-proof.log",
+  "common_fold_cohort_schema": 6,
+  "canonical_capture_schema": 2,
+  "common_fold_capture_schema": 2,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig": "5a09acf556bf3eeee8b0d5bd3d4557085bef3c767dbeb066d5850f477583c39e",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "c68a04a08d9b89bca3ab509fd7aa4a8b5349bc055e41cce1e1075735dcd5ee60",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "2852a513152a8864d2e34b1e1f58a153a12acc49c6e33c2dfbd4ca35c334697c",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "b7611551693bfbfbe81ac38f3486fe8ba902a0bcc2b99b2f983a8e44cb43692c",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "0e1ac08e825ed539b14a16f36a5c578dddc8b95771f001f6bf93474a0de174a9",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "a79fcaa849d57b667f0fecc1ef77a521f0afeee28bf0fcde1ca6bc695f3b7661",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "1788676e002413cefe8beddf6f9710d041b4aa5a8b71e5f6ffeda5a43494c3c7",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "9089a289c7ab0c9d806b35ab8a6f8cfc7de44911a06cc06aa1c603611d67b0ac",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "d365f40ac4e9a916564c9ba19f66ee7853bf1378ebd350bf773fb9a1fa3f9966",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "dc1bb85450e9f5559bb71b47d6918309f893fb74c8b5e7f1d439384b0a4d6800"
+  },
+  "full_proof_verified": true,
+  "independent_root_verified": false,
+  "scope": "Combined provider subclaim transcript binding, corrected tuple test, and statement inputs without graph literals. Native dynamic boundary and SHA dependencies remain.",
+  "verified": {
+    "steps": "4/4",
+    "tests": "1/1",
+    "test_time": "12m",
+    "test_max_rss": "9G",
+    "compile_time": "1m",
+    "compile_max_rss": "5G",
+    "producer_destroyed": true,
+    "fresh_verification": true,
+    "preserving_total_partial_mutation_rejected": true,
+    "operations": 183,
+    "frames": 185,
+    "permutations": 1768,
+    "queries": 193
+  }
+}

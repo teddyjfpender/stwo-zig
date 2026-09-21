@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "source_ownership_tests": 35,
+  "removed_facade_exports": 5,
+  "dedicated_parent_module": true,
+  "producer_integration_sources": 24
+}

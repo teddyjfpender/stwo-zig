@@ -1,0 +1,12 @@
+{
+  "native_table_interactions": {
+    "tables_per_child": 6,
+    "children": 4,
+    "successful_device_dispatches": 96
+  },
+  "parent_typed_interactions": {
+    "components_per_parent": 29,
+    "parents": 3,
+    "successful_device_dispatches": 348
+  }
+}

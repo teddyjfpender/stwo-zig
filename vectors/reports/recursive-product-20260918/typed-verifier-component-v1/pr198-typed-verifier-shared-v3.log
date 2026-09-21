@@ -1,0 +1,7 @@
+1/6 recursion_air_test_root.test_0...OK
+2/6 recursion.segment_statement_outer_source_test.test_0...OK
+3/6 recursion.air.universal_typed_component_test.test.R-012 generic adapter closes row 33 on every domain row...OK
+4/6 recursion.air.universal_typed_component_test.test.R-012 row 29 keeps the pinned cubic quotient budget despite conservative profiling...OK
+5/6 recursion.air.universal_typed_component_test.test.R-012 one compiler-owned adapter factory admits all 34 typed logical rows...OK
+6/6 recursion.air.universal_typed_component_test.test.R-012 generic adapter verifier point path consumes manifest offsets...OK
+All 6 tests passed.

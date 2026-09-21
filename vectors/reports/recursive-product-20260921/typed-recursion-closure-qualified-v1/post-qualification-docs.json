@@ -1,0 +1,7 @@
+{
+  "implementation_unchanged": true,
+  "changed_documentation": [
+    "design/riscv-proving-stack/canonical-typed-recursion.md",
+    "design/riscv-proving-stack/small-detached-recursion-goal.md"
+  ]
+}

@@ -42,7 +42,10 @@ pub fn polynomials(scheme: anytype, allocator: std.mem.Allocator) !TreeVec([]con
 }
 
 pub fn trace(scheme: anytype, allocator: std.mem.Allocator) !component_prover.Trace {
-    return .{ .polys = try polynomials(scheme, allocator) };
+    return .{
+        .polys = try polynomials(scheme, allocator),
+        .quotient_values_allocator = scheme.quotient_values_allocator,
+    };
 }
 
 /// Returns one borrowed backend resource handle per commitment tree. Keeping

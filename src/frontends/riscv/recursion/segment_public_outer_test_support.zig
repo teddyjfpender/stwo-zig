@@ -43,7 +43,11 @@ pub const Fixture = struct {
     vm_plan: schedule.Plan,
 
     pub fn init(allocator: std.mem.Allocator) !Fixture {
-        const support_fixture = try public_data_support.Fixture.init();
+        return initWithRegister7(allocator, 0);
+    }
+
+    pub fn initWithRegister7(allocator: std.mem.Allocator, value: u32) !Fixture {
+        const support_fixture = try public_data_support.Fixture.initWithRegister7(value);
         const source = support_fixture.rightSource();
         const words = try public_data_support.encode(allocator, &source);
         defer allocator.free(words);

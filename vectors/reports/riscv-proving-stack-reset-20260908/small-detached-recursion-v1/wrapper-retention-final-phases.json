@@ -1,0 +1,574 @@
+{
+  "scope": "diagnostic q193 two-child wrapper profiles; not paired timing data",
+  "sample": {
+    "path": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-final-metal-interaction.sample.txt",
+    "backend": "metal",
+    "pid": 33837,
+    "duration_seconds": 1,
+    "capture_phase": "first wrapper interaction generation",
+    "attribution": "NativeSegmentCoreV2.prepareInteractions -> fillInteractionImpl -> auditPreparedDomainSums; repeated row-pair evaluation and batch inversion",
+    "warning": "sampling overlaps first Metal wrapper; exclude from performance comparisons"
+  },
+  "backends": {
+    "cpu": [
+      {
+        "schema_version": 1,
+        "runtime": "cpu",
+        "example": "detached-recursive-wrapper",
+        "stages": [
+          {
+            "id": "wrapper.cohort",
+            "label": "Admitted wrapper cohort",
+            "seconds": 1.948561,
+            "children": null
+          },
+          {
+            "id": "wrapper.fixed",
+            "label": "Fixed columns and key admission",
+            "seconds": 0.644594,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_fill",
+            "label": "Main column allocation and filling",
+            "seconds": 0.148004,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_commit",
+            "label": "Main commitment",
+            "seconds": 0.618205,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_fill",
+            "label": "Interaction transcript and filling",
+            "seconds": 2.680561,
+            "children": null
+          },
+          {
+            "id": "wrapper.closure",
+            "label": "Global lookup closure",
+            "seconds": 0.208478,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_commit",
+            "label": "Interaction transcript and commitment",
+            "seconds": 0.33277,
+            "children": null
+          },
+          {
+            "id": "wrapper.components",
+            "label": "Typed component assembly",
+            "seconds": 0.285955,
+            "children": null
+          },
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 2e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 1.9e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 1.086046,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.002519,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.096864,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 0.000364,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 0.05165,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 0.000812,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 0.17824,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 0.374181,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.015188,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.002618,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.000594,
+            "children": null
+          },
+          {
+            "id": "wrapper.serialize",
+            "label": "Canonical proof serialization",
+            "seconds": 0.005319,
+            "children": null
+          }
+        ]
+      },
+      {
+        "schema_version": 1,
+        "runtime": "cpu",
+        "example": "detached-recursive-wrapper",
+        "stages": [
+          {
+            "id": "wrapper.cohort",
+            "label": "Admitted wrapper cohort",
+            "seconds": 1.917791,
+            "children": null
+          },
+          {
+            "id": "wrapper.fixed",
+            "label": "Fixed columns and key admission",
+            "seconds": 0.637492,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_fill",
+            "label": "Main column allocation and filling",
+            "seconds": 0.147686,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_commit",
+            "label": "Main commitment",
+            "seconds": 0.615734,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_fill",
+            "label": "Interaction transcript and filling",
+            "seconds": 2.59081,
+            "children": null
+          },
+          {
+            "id": "wrapper.closure",
+            "label": "Global lookup closure",
+            "seconds": 0.205907,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_commit",
+            "label": "Interaction transcript and commitment",
+            "seconds": 0.328822,
+            "children": null
+          },
+          {
+            "id": "wrapper.components",
+            "label": "Typed component assembly",
+            "seconds": 0.280702,
+            "children": null
+          },
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 2e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 2.3e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 1.09803,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.002521,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.099575,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 0.000316,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 0.051613,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 0.000815,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 0.182426,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 0.775537,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.01474,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.002561,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.00039,
+            "children": null
+          },
+          {
+            "id": "wrapper.serialize",
+            "label": "Canonical proof serialization",
+            "seconds": 0.005375,
+            "children": null
+          }
+        ]
+      }
+    ],
+    "metal": [
+      {
+        "schema_version": 1,
+        "runtime": "device",
+        "example": "detached-recursive-wrapper",
+        "stages": [
+          {
+            "id": "wrapper.cohort",
+            "label": "Admitted wrapper cohort",
+            "seconds": 1.942415,
+            "children": null
+          },
+          {
+            "id": "wrapper.fixed",
+            "label": "Fixed columns and key admission",
+            "seconds": 0.401113,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_fill",
+            "label": "Main column allocation and filling",
+            "seconds": 0.148902,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_commit",
+            "label": "Main commitment",
+            "seconds": 0.372083,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_fill",
+            "label": "Interaction transcript and filling",
+            "seconds": 2.787859,
+            "children": null
+          },
+          {
+            "id": "wrapper.closure",
+            "label": "Global lookup closure",
+            "seconds": 0.210407,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_commit",
+            "label": "Interaction transcript and commitment",
+            "seconds": 0.198147,
+            "children": null
+          },
+          {
+            "id": "wrapper.components",
+            "label": "Typed component assembly",
+            "seconds": 0.283038,
+            "children": null
+          },
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 1e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 1.3e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 1.089502,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.00496,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.023433,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 0.000423,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 0.030951,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 0.0008,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 0.05023,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 0.005002,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.002374,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.006112,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.000593,
+            "children": null
+          },
+          {
+            "id": "wrapper.serialize",
+            "label": "Canonical proof serialization",
+            "seconds": 0.0054,
+            "children": null
+          }
+        ]
+      },
+      {
+        "schema_version": 1,
+        "runtime": "device",
+        "example": "detached-recursive-wrapper",
+        "stages": [
+          {
+            "id": "wrapper.cohort",
+            "label": "Admitted wrapper cohort",
+            "seconds": 1.915964,
+            "children": null
+          },
+          {
+            "id": "wrapper.fixed",
+            "label": "Fixed columns and key admission",
+            "seconds": 0.393866,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_fill",
+            "label": "Main column allocation and filling",
+            "seconds": 0.145526,
+            "children": null
+          },
+          {
+            "id": "wrapper.main_commit",
+            "label": "Main commitment",
+            "seconds": 0.370739,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_fill",
+            "label": "Interaction transcript and filling",
+            "seconds": 2.587746,
+            "children": null
+          },
+          {
+            "id": "wrapper.closure",
+            "label": "Global lookup closure",
+            "seconds": 0.203078,
+            "children": null
+          },
+          {
+            "id": "wrapper.interaction_commit",
+            "label": "Interaction transcript and commitment",
+            "seconds": 0.196205,
+            "children": null
+          },
+          {
+            "id": "wrapper.components",
+            "label": "Typed component assembly",
+            "seconds": 0.278247,
+            "children": null
+          },
+          {
+            "id": "draw_random_coeff",
+            "label": "Draw random coefficient",
+            "seconds": 2e-06,
+            "children": null
+          },
+          {
+            "id": "composition_trace_extract",
+            "label": "Composition trace extract",
+            "seconds": 1.6e-05,
+            "children": null
+          },
+          {
+            "id": "composition_evaluation",
+            "label": "Composition evaluation",
+            "seconds": 1.106229,
+            "children": null
+          },
+          {
+            "id": "composition_interpolate_and_split",
+            "label": "Composition interpolate and split",
+            "seconds": 0.0055,
+            "children": null
+          },
+          {
+            "id": "composition_commit",
+            "label": "Composition commit",
+            "seconds": 0.016159,
+            "children": null
+          },
+          {
+            "id": "oods_point_and_mask_points",
+            "label": "OODS point and mask points",
+            "seconds": 0.000416,
+            "children": null
+          },
+          {
+            "id": "sampled_value_evaluation",
+            "label": "Sampled-value evaluation",
+            "seconds": 0.027522,
+            "children": null
+          },
+          {
+            "id": "sampled_value_channel_mix",
+            "label": "Sampled-value channel mix",
+            "seconds": 0.000804,
+            "children": null
+          },
+          {
+            "id": "fri_quotient_build_and_commit",
+            "label": "FRI quotient build + commit (lazy)",
+            "seconds": 0.052536,
+            "children": null
+          },
+          {
+            "id": "proof_of_work",
+            "label": "Proof of work",
+            "seconds": 0.005032,
+            "children": null
+          },
+          {
+            "id": "fri_decommit",
+            "label": "FRI decommit",
+            "seconds": 0.002426,
+            "children": null
+          },
+          {
+            "id": "trace_decommit",
+            "label": "Trace decommit",
+            "seconds": 0.006778,
+            "children": null
+          },
+          {
+            "id": "constraint_check_and_assembly",
+            "label": "Constraint check and assembly",
+            "seconds": 0.000381,
+            "children": null
+          },
+          {
+            "id": "wrapper.serialize",
+            "label": "Canonical proof serialization",
+            "seconds": 0.0054,
+            "children": null
+          }
+        ]
+      }
+    ]
+  }
+}

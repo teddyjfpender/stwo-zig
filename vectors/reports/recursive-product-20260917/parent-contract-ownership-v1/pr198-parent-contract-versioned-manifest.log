@@ -1,0 +1,4 @@
+1/3 recursion_air_core_test_root.test_0...OK
+2/3 recursion.air.ethereum_initial_input_manifest_v1_test.test.Ethereum initial manifest appends exact typed lanes and rejects drift...OK
+3/3 recursion.air.ethereum_initial_input_manifest_v1_test.test.Ethereum initial manifest requires both new component claims...OK
+All 3 tests passed.

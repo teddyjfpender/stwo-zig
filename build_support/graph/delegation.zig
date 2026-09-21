@@ -205,6 +205,20 @@ fn commandFor(
         b.fmt("-Dproduct-scope={s}", .{scope}),
         b.fmt("-Doptimize={s}", .{@tagName(optimize)}),
     });
+    // The root build runner does not expose its -j/--maxrss settings to
+    // std.Build. The serial wrapper carries them across this process boundary.
+    if (b.graph.env_map.get("STWO_ZIG_BUILD_MAXRSS")) |value| {
+        const limit = std.fmt.parseUnsigned(u64, value, 10) catch
+            @panic("STWO_ZIG_BUILD_MAXRSS must be a positive integer");
+        if (limit == 0) @panic("STWO_ZIG_BUILD_MAXRSS must be positive");
+        command.addArgs(&.{ "--maxrss", value });
+    }
+    if (b.graph.env_map.get("STWO_ZIG_BUILD_JOBS")) |value| {
+        const jobs = std.fmt.parseUnsigned(u32, value, 10) catch
+            @panic("STWO_ZIG_BUILD_JOBS must be a positive integer");
+        if (jobs == 0) @panic("STWO_ZIG_BUILD_JOBS must be positive");
+        command.addArg(b.fmt("-j{d}", .{jobs}));
+    }
     if (std.mem.eql(u8, scope, "aggregate"))
         command.addArg(b.fmt("-Daggregate-metal={s}", .{if (options.aggregate_metal) "true" else "false"}));
     if (std.mem.eql(u8, scope, "verification")) {

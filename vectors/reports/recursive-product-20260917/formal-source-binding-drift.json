@@ -1,0 +1,32 @@
+{
+  "src/core/fields/m31.zig": {
+    "recorded": "cb5122f72960fd8bc5fb21f5690e3de5038ab8bbeb47aa345160058e28af2e57",
+    "actual": "6f6393f878cdf4e5474163dc3ddc8e8f758180f603482f1e275185fac5e8b4cd",
+    "recorded_revision": "4c8d79d18b2344e8a6e3ef66049782d22938df55"
+  },
+  "src/frontends/riscv/access_clock.zig": {
+    "recorded": "c718b4235eebda75c18521e6835d6eff0cc872d4facb890452c3b02398f13656",
+    "actual": "6cc01e0c2fdbe92c295ce57289a1707ce9e27ca99b14c2a19732559156ad578b",
+    "recorded_revision": "a8d4fd61ab4fab7fc5e07050da437997ae71f497"
+  },
+  "src/frontends/riscv/air/extract/symbolic.zig": {
+    "recorded": "6ef4cdc8b030989d22d74ce46665b024180aeb2705b16fffed8ca544f3115fad",
+    "actual": "a09ddf9ba200f7e9c80d2b7d287690202d795907feae6ec1cfec394f06f157ab",
+    "recorded_revision": "a0e594e62146202fb8b758a350b271ad624b7ad1"
+  },
+  "src/frontends/riscv/air/lookups/entry.zig": {
+    "recorded": "b304989c184b0cddcdb8f6e7474edb8ff33c72253ec2b153f4dc90f08c9701e4",
+    "actual": "158f7e3fcf7666f800e97c0e394355d0261d6c813a333dfcdeec6d796f8c7db9",
+    "recorded_revision": "c11cf4b304b2afe72e3cf17ecafc2b0ab658593c"
+  },
+  "src/frontends/riscv/air/lookups/opcode_entries.zig": {
+    "recorded": "3945cfe078773c42cd1df719916cf056d08fce42bbd7e3e9a00377f671e9e1a8",
+    "actual": "48e2ff887540579cd3eabf20ac1b129541f7bb64bdeee5618f0fba3611daace1",
+    "recorded_revision": "c11cf4b304b2afe72e3cf17ecafc2b0ab658593c"
+  },
+  "src/frontends/riscv/opcode_manifest.zig": {
+    "recorded": "c84cf83b759add723abb4aabeb02064813b491a76ca57fe98bde75777144cb1b",
+    "actual": "bc4adb2263c2970eb82e04a564d4880eaaff4a7fd06eece16aeb46f7e97706f3",
+    "recorded_revision": "6b0089d79e2f84cf266a4108d33d1caa2054e7bb"
+  }
+}

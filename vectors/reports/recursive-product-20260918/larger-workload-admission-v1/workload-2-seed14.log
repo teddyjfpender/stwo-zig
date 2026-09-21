@@ -1,0 +1,3 @@
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=14 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 initial_word=14 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=12 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1188
+SEGMENT_V2_WORKLOAD_ADMISSION segments=2 addresses=16 keys_created=0 proofs_created=0

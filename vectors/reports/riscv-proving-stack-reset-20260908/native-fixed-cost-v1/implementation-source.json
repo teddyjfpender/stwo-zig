@@ -1,0 +1,31 @@
+{
+  "implementation_commit": "ad273a96721e1ccc1dd62a861fac11b44d0c680d",
+  "changed_source_sha256": {
+    "scripts/riscv_csp_paired_benchmark.py": "c4113bd51437f4d62764d1b1788f47c16341c33ddfeb4977744736e3949216f5",
+    "scripts/riscv_small_recursive_benchmark.py": "c5489fb2f04278cfe72d22694509b7e0c2c9cc11d6fb527273efad591c159aa1",
+    "scripts/tests/test_riscv_csp_paired_benchmark.py": "832974c0203e66cdf2851586df49dbb8739072dddcb1a841fab4dbc0e0fd47ca",
+    "src/backends/cpu_scalar/riscv_composition.zig": "a3c70b1350b5987bdbdf2e0982e708392aba964fe4308d7686210c975644d2e6",
+    "src/frontends/riscv/air/memory_commitment/poseidon2.zig": "ddd088dbbe0047779e6fa611464faaa2e70fe9dbf8eaf7c825a6a7f5ebbf6308",
+    "src/frontends/riscv/build.zig": "0a45ac391b3088b8153a2149b350166b250571a183be1442e9073e7eb317c1c8",
+    "src/frontends/riscv/poseidon_merkle_test_root.zig": "1267f9210ad664946a10d5f0b49c772fc8cd834b4e3c880d00f3722f0d3c738f",
+    "src/frontends/riscv/prover/interaction_trace_generation.zig": "2ff4741aa5c7e55122daaf132f57065aefea6295743641de821a8f28bb300ad9",
+    "src/frontends/riscv/prover/preprocessed.zig": "005473b815ca576773bf7aac28deaaa03b6b671beb2e9787a59db2d730ccdd7c",
+    "src/frontends/riscv/recursion/poseidon2_channel.zig": "f36d5ee3e24c2973d1f26a0214395aaa091015b7ef820650d2ebe2a38391cd06",
+    "src/frontends/riscv/runner/guest_precompile/test_elf.zig": "65fb6f25320348d056f92a869a081cdedc2ad04828b3b9e223b77bc297768efa",
+    "src/frontends/riscv/test_inventory_test.zig": "6ad57629e6e64ba6863a80acd0abeefa71044a607fc290dd05a39ac8d2e3abcc",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "a41341d1dd9875504df431e8c82006b836e45e018c4c79858ef84e3b4fc47e9c",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "71da2fda7d14e7db742aca085b97dadb8f4d7315e24cc2044fd8c16999a8b9bb",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": "57a6cf7e706a29b15548d45337c95325138262e1a276c05044e4fb476fc6e577",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig": "51a6350532800fcfe70989b2091df1efe9c8e8d4d49010165f066416de7301ef",
+    "src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig": "0d672c54e7d085820ee405d4455abf38a0fbbabe4c7e596f4bd76f3c4e8fbf4c",
+    "src/integrations/riscv_cpu/recursive_segment_v2_native_profile.zig": "92d59ec66ce54c54935a2f1c3ab8fe210e78dcc65308d56debfde7ba9674264e",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": "5d4bf434d56823ffa1ce070cc8afffb42f5047425b0b28913dc683690cd39998",
+    "src/integrations/riscv_metal/build.zig": "f59f46ebb7bd8aaadcc05ff6a18db8411f9f5918a9a2b2e42ecc42e07d41759d",
+    "src/integrations/riscv_metal/recursive_segment_v2_concrete_outer_proof_runner.zig": "b743620be61b033f2a9e7f6764d1ef25b7ecd4a575aa4d5d994753ae2410d9f6",
+    "src/prover/pcs/columns/preparation.zig": "e70726733862f0bb8d427d4c5e97d3dcbd6a533fbcad2c9c872cd964004046a5",
+    "src/prover/pcs/commit_polys.zig": "33518dadcb0d963f8bcf0fc537b6e9a8eb3a793b386aa4d2eaa563ee1984a43b",
+    "src/prover/pcs/deferred_commit.zig": "1e1815feae90fe32140ca4b6dc39a29dcff7dafd0632c13191f7b51d568a3e47",
+    "src/prover/vcs_lifted/leaves.zig": "be8a6619efcdbe7b6b287f89beac5ff9edb3660d2bd5a12a308373223ca999ba"
+  },
+  "scope": "Compiled production sources are byte-identical; later test-root additions do not enter the proof runners."
+}

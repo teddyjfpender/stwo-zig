@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-ethereum-validation-ownership success
++- Ethereum validation ownership guard success
+   +- run test 5 passed 266ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 16s MaxRSS:1G
+

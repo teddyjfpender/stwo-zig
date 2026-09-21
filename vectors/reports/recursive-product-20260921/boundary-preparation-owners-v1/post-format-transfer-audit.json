@@ -1,0 +1,146 @@
+{
+  "passed": true,
+  "normalization": "Whitespace and pub visibility only",
+  "declarations": [
+    {
+      "owner": "graph",
+      "declaration": "InputSource"
+    },
+    {
+      "owner": "graph",
+      "declaration": "InputBinding"
+    },
+    {
+      "owner": "graph",
+      "declaration": "ProviderBinding"
+    },
+    {
+      "owner": "graph",
+      "declaration": "WordCounter"
+    },
+    {
+      "owner": "graph",
+      "declaration": "NativeCalls"
+    },
+    {
+      "owner": "graph",
+      "declaration": "NativeSponge"
+    },
+    {
+      "owner": "graph",
+      "declaration": "Inputs"
+    },
+    {
+      "owner": "graph",
+      "declaration": "base"
+    },
+    {
+      "owner": "graph",
+      "declaration": "U32"
+    },
+    {
+      "owner": "graph",
+      "declaration": "asScalar"
+    },
+    {
+      "owner": "graph",
+      "declaration": "digestConstants"
+    },
+    {
+      "owner": "graph",
+      "declaration": "GraphCalls"
+    },
+    {
+      "owner": "graph",
+      "declaration": "GraphSponge"
+    },
+    {
+      "owner": "graph",
+      "declaration": "ContextWords"
+    },
+    {
+      "owner": "graph",
+      "declaration": "AuthoritySink"
+    },
+    {
+      "owner": "identity",
+      "declaration": "identityOffset"
+    },
+    {
+      "owner": "identity",
+      "declaration": "embeddedIdentityInputs"
+    },
+    {
+      "owner": "identity",
+      "declaration": "SymbolicSlots"
+    },
+    {
+      "owner": "identity",
+      "declaration": "bindIdentity"
+    },
+    {
+      "owner": "identity",
+      "declaration": "recordEmbeddedIdentities"
+    },
+    {
+      "owner": "identity",
+      "declaration": "recordRetainedIdentities"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "constrainSegmentIndexBound"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "testIndexBounds"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "MemoryCounter"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "NativeMemoryHasher"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "GraphMemoryHasher"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "rangedByte"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "recordContinuationRoots"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "ClockBits"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "integerBits"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "bitsEqual"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "bitsLess"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "ClockPredicate"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "recordClockCanonicality"
+    },
+    {
+      "owner": "continuation",
+      "declaration": "testClockCanonicality"
+    }
+  ]
+}

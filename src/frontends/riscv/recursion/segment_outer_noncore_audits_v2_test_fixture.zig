@@ -39,7 +39,7 @@ const transcript_source = dependency_0.transcript_source;
 const universal = dependency_0.universal;
 
 test "non-core custody rebuilds and installs the exact 22 Tree-2 rows" {
-    var fixture = try Fixture.init(std.testing.allocator);
+    const fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();
 
     var audits = [_]relation_interaction.DomainAudit{zeroAudit()} **
@@ -156,20 +156,23 @@ pub const Fixture = struct {
     statement_claims: statement_components.ClaimsV2,
     public_claims: public_components.Claims,
 
-    pub fn init(allocator: std.mem.Allocator) !Fixture {
-        var public_fixture = try public_support.Fixture.init(allocator);
-        errdefer public_fixture.deinit();
-        var plan = try testPlan(allocator);
-        errdefer plan.deinit();
-        var program = try transcript.Program.init(
+    pub fn init(allocator: std.mem.Allocator) !*Fixture {
+        const self = try allocator.create(Fixture);
+        errdefer allocator.destroy(self);
+        self.allocator = allocator;
+        self.public_fixture = try public_support.Fixture.init(allocator);
+        errdefer self.public_fixture.deinit();
+        self.plan = try testPlan(allocator);
+        errdefer self.plan.deinit();
+        self.program = try transcript.Program.init(
             allocator,
-            &plan,
+            &self.plan,
             config,
-            &public_fixture.owned_public.data,
+            &self.public_fixture.owned_public.data,
             &public_support.component_descs,
             &public_support.infra_descs,
         );
-        errdefer program.deinit();
+        errdefer self.program.deinit();
         const trace_commitments = [_]channel.Digest{
             public_data_support.id("noncore-tree-0"),
             public_data_support.id("noncore-tree-1"),
@@ -187,10 +190,10 @@ pub const Fixture = struct {
             public_data_support.id("noncore-fri-3"),
         };
         const coefficients = [_]QM31{qm31(200)};
-        var execution = try transcript.execute(
+        self.execution = try transcript.execute(
             allocator,
-            &program,
-            &public_fixture.owned_public.data,
+            &self.program,
+            &self.public_fixture.owned_public.data,
             .{
                 .trace_commitments = &trace_commitments,
                 .interaction_pow = 0,
@@ -201,274 +204,238 @@ pub const Fixture = struct {
                 .pcs_pow = 0,
             },
         );
-        errdefer execution.deinit();
-        const evidence = try execution.evidence(&program);
-        const transcript_prepared = try transcript_source.preflight(
-            &program,
-            &execution,
+        errdefer self.execution.deinit();
+        const evidence = try self.execution.evidence(&self.program);
+        self.transcript_prepared = try transcript_source.preflight(
+            &self.program,
+            &self.execution,
             &evidence,
-            &plan,
+            &self.plan,
             config,
-            &public_fixture.owned_public.data,
+            &self.public_fixture.owned_public.data,
             &public_support.component_descs,
             &public_support.infra_descs,
         );
 
         const statement_manifest = try statement_source.preflight(
-            &public_fixture.owned_public.data,
-            &public_fixture.source_prepared,
-            &transcript_prepared,
-            program.statement_authority_id,
+            &self.public_fixture.owned_public.data,
+            &self.public_fixture.source_prepared,
+            &self.transcript_prepared,
+            self.program.statement_authority_id,
         );
-        var statement_destinations = try OwnedStatementDestinations.init(
+        self.statement_destinations = try OwnedStatementDestinations.init(
             allocator,
             statement_manifest,
         );
-        errdefer statement_destinations.deinit();
-        var statement_source_authority = try statement_source.AuthorityV2.init(
+        errdefer self.statement_destinations.deinit();
+        self.statement_source_authority = try statement_source.AuthorityV2.init(
             allocator,
         );
-        errdefer statement_source_authority.deinit();
+        errdefer self.statement_source_authority.deinit();
         var statement_source_workspace = statement_source.WorkspaceV2{};
-        var statement_prepared: statement_source.PreparedV2 = undefined;
+        self.statement_prepared = undefined;
         try statement_source.prepareInto(
-            &statement_prepared,
+            &self.statement_prepared,
             &statement_source_workspace,
-            &statement_source_authority,
-            statement_destinations.destinations(),
-            &public_fixture.owned_public.data,
-            &public_fixture.source_prepared,
-            &transcript_prepared,
-            program.statement_authority_id,
+            &self.statement_source_authority,
+            self.statement_destinations.destinations(),
+            &self.public_fixture.owned_public.data,
+            &self.public_fixture.source_prepared,
+            &self.transcript_prepared,
+            self.program.statement_authority_id,
         );
-        const public_prepared = try public_source.preflight(
-            public_fixture.inputs(),
+        self.public_prepared = try public_source.preflight(
+            self.public_fixture.inputs(),
         );
 
         const boundary_shape = try boundary_authority.preflight(
-            &public_fixture.owned_public.data,
-            &public_fixture.keys,
+            &self.public_fixture.owned_public.data,
+            &self.public_fixture.keys,
         );
-        var boundary_authority_value = try boundary_authority.AuthorityV2.init(
+        self.boundary_authority = try boundary_authority.AuthorityV2.init(
             allocator,
         );
-        errdefer boundary_authority_value.deinit();
-        var boundary_workspace = try boundary_authority.WorkspaceV2.init(
-            allocator,
-            &boundary_shape.manifest,
-        );
-        errdefer boundary_workspace.deinit();
-        var boundary_traces = try OwnedBoundaryTraces.init(
+        errdefer self.boundary_authority.deinit();
+        self.boundary_workspace = try boundary_authority.WorkspaceV2.init(
             allocator,
             &boundary_shape.manifest,
         );
-        errdefer boundary_traces.deinit();
-        var relations = universal.UniversalRelations.dummy();
-        var input_provider_sources = try input_provider_support.VerifiedSources.init(
+        errdefer self.boundary_workspace.deinit();
+        self.boundary_traces = try OwnedBoundaryTraces.init(
             allocator,
-            &public_fixture.owned_public.data,
+            &boundary_shape.manifest,
         );
-        errdefer input_provider_sources.deinit();
-        var boundary_prepared: boundary_authority.PreparedNativeVerifierOuterAuthorityV2 =
+        errdefer self.boundary_traces.deinit();
+        self.relations = universal.UniversalRelations.dummy();
+        self.input_provider_sources = try input_provider_support.VerifiedSources.init(
+            allocator,
+            &self.public_fixture.owned_public.data,
+        );
+        errdefer self.input_provider_sources.deinit();
+        self.boundary_prepared =
             undefined;
         try boundary_authority.prepareNativeVerifierInto(
-            &boundary_prepared,
-            &boundary_workspace,
-            &boundary_authority_value,
-            boundary_traces.traces(),
-            &public_fixture.owned_public.data,
-            &public_fixture.keys,
-            &public_fixture.relations,
-            &public_fixture.native_sums,
-            &input_provider_sources.receipt,
+            &self.boundary_prepared,
+            &self.boundary_workspace,
+            &self.boundary_authority,
+            self.boundary_traces.traces(),
+            &self.public_fixture.owned_public.data,
+            &self.public_fixture.keys,
+            &self.public_fixture.relations,
+            &self.public_fixture.native_sums,
+            &self.input_provider_sources.receipt,
             &input_provider_support.component_descs,
             &input_provider_support.infra_descs,
-            &relations,
+            &self.relations,
         );
 
-        var input_provider_owner =
+        self.input_provider_owner =
             try input_provider_authority.AuthorityV2.init(allocator);
-        errdefer input_provider_owner.deinit();
-        const input_provider_workspace =
+        errdefer self.input_provider_owner.deinit();
+        self.input_provider_workspace =
             try allocator.create(input_provider_authority.WorkspaceV2);
-        errdefer allocator.destroy(input_provider_workspace);
-        input_provider_workspace.* =
+        errdefer allocator.destroy(self.input_provider_workspace);
+        self.input_provider_workspace.* =
             try input_provider_authority.WorkspaceV2.init(allocator);
-        errdefer input_provider_workspace.deinit();
-        const input_provider_trace = try allocator.create(InputProviderTrace);
-        errdefer allocator.destroy(input_provider_trace);
-        input_provider_trace.* = .{};
-        var input_provider_prepared: input_provider_authority.PreparedAuthorityV2 = undefined;
+        errdefer self.input_provider_workspace.deinit();
+        self.input_provider_trace = try allocator.create(InputProviderTrace);
+        errdefer allocator.destroy(self.input_provider_trace);
+        self.input_provider_trace.* = .{};
+        self.input_provider_prepared = undefined;
         try input_provider_authority.prepareInto(
-            &input_provider_prepared,
-            input_provider_workspace,
-            &input_provider_owner,
-            input_provider_trace.trace(),
+            &self.input_provider_prepared,
+            self.input_provider_workspace,
+            &self.input_provider_owner,
+            self.input_provider_trace.trace(),
             .{
-                .capture = &boundary_prepared,
-                .vm_context = &input_provider_sources.vm_context,
+                .capture = &self.boundary_prepared,
+                .vm_context = &self.input_provider_sources.vm_context,
             },
-            &relations,
+            &self.relations,
         );
 
-        const manifest = try buildManifest(
-            &transcript_prepared,
-            &statement_prepared,
-            &public_prepared,
-            &boundary_prepared,
+        self.manifest = try buildManifest(
+            &self.transcript_prepared,
+            &self.statement_prepared,
+            &self.public_prepared,
+            &self.boundary_prepared,
         );
-        try manifest.validateAgainstSources(
-            &transcript_prepared.manifest,
-            &statement_prepared.manifest,
-            &public_prepared.manifest,
-            &boundary_prepared.manifest,
+        try manifest_mod.validateAgainstSources(
+            &self.manifest,
+            &self.transcript_prepared.manifest,
+            &self.statement_prepared.manifest,
+            &self.public_prepared.manifest,
+            &self.boundary_prepared.manifest,
         );
-        var transcript_owner = try transcript_components.Source.init(
+        self.transcript_owner = try transcript_components.Source.init(
             allocator,
-            &transcript_prepared,
-            &manifest,
+            &self.transcript_prepared,
+            &self.manifest,
         );
-        errdefer transcript_owner.deinit();
-        var transcript_workspace = try transcript_components.Workspace.init(
+        errdefer self.transcript_owner.deinit();
+        self.transcript_workspace = try transcript_components.Workspace.init(
             allocator,
-            &transcript_prepared,
+            &self.transcript_prepared,
         );
-        errdefer transcript_workspace.deinit();
-        try transcript_workspace.prepare(
-            &transcript_owner,
-            &transcript_prepared,
-            &manifest,
+        errdefer self.transcript_workspace.deinit();
+        try self.transcript_workspace.prepare(
+            &self.transcript_owner,
+            &self.transcript_prepared,
+            &self.manifest,
             .{
-                .program = &program,
-                .execution = &execution,
+                .program = &self.program,
+                .execution = &self.execution,
                 .evidence = &evidence,
-                .plan = &plan,
+                .plan = &self.plan,
                 .pcs_config = config,
-                .data = &public_fixture.owned_public.data,
+                .data = &self.public_fixture.owned_public.data,
                 .component_descs = &public_support.component_descs,
                 .infra_descs = &public_support.infra_descs,
             },
         );
-        var statement_owner = try statement_components.AuthorityV2.init(
+        self.statement_owner = try statement_components.AuthorityV2.init(
             allocator,
         );
-        errdefer statement_owner.deinit();
-        var statement_workspace = try statement_components.WorkspaceV2.init(
+        errdefer self.statement_owner.deinit();
+        self.statement_workspace = try statement_components.WorkspaceV2.init(
             allocator,
-            &statement_prepared,
+            &self.statement_prepared,
         );
-        errdefer statement_workspace.deinit();
-        var public_owner = try public_components.Source.init(
+        errdefer self.statement_workspace.deinit();
+        self.public_owner = try public_components.Source.init(
             allocator,
-            &public_prepared,
-            &manifest,
+            &self.public_prepared,
+            &self.manifest,
         );
-        errdefer public_owner.deinit();
-        var public_workspace = try public_components.Workspace.init(
+        errdefer self.public_owner.deinit();
+        self.public_workspace = try public_components.Workspace.init(
             allocator,
-            &public_prepared,
+            &self.public_prepared,
         );
-        errdefer public_workspace.deinit();
-        try public_workspace.prepare(
-            &public_owner,
-            &public_prepared,
-            &manifest,
-            public_fixture.inputs(),
+        errdefer self.public_workspace.deinit();
+        try self.public_workspace.prepare(
+            &self.public_owner,
+            &self.public_prepared,
+            &self.manifest,
+            self.public_fixture.inputs(),
         );
 
-        var tree2 = try OwnedTree.init(allocator, &manifest);
-        errdefer tree2.deinit();
-        const transcript_claims = try transcript_components.fillInteractionInto(
-            &transcript_owner,
-            &transcript_workspace,
-            &transcript_prepared,
-            &manifest,
-            &relations,
-            tree2.columns,
+        self.tree2 = try OwnedTree.init(allocator, &self.manifest);
+        errdefer self.tree2.deinit();
+        self.transcript_claims = try transcript_components.fillInteractionInto(
+            &self.transcript_owner,
+            &self.transcript_workspace,
+            &self.transcript_prepared,
+            &self.manifest,
+            &self.relations,
+            self.tree2.columns,
         );
-        const statement_claims = try statement_components.fillInteractionInto(
-            &statement_owner,
-            &statement_workspace,
-            &statement_prepared,
-            statement_destinations.logical_rows,
-            &manifest,
-            &relations,
-            tree2.columns,
+        self.statement_claims = try statement_components.fillInteractionInto(
+            &self.statement_owner,
+            &self.statement_workspace,
+            &self.statement_prepared,
+            self.statement_destinations.logical_rows,
+            &self.manifest,
+            &self.relations,
+            self.tree2.columns,
         );
-        const public_claims = try public_components.fillInteractionInto(
-            &public_owner,
-            &public_workspace,
-            &public_prepared,
-            &manifest,
-            &relations,
-            tree2.columns,
+        self.public_claims = try public_components.fillInteractionInto(
+            &self.public_owner,
+            &self.public_workspace,
+            &self.public_prepared,
+            &self.manifest,
+            &self.relations,
+            self.tree2.columns,
         );
 
-        var range_workspace = try range_authority.WorkspaceV2.init(allocator);
-        errdefer range_workspace.deinit(allocator);
+        self.range_workspace = try range_authority.WorkspaceV2.init(allocator);
+        errdefer self.range_workspace.deinit(allocator);
         const range_sources = range_authority.SourcesV2{
-            .statement = &statement_prepared,
-            .logical_rows = statement_destinations.logical_rows,
+            .statement = &self.statement_prepared,
+            .logical_rows = self.statement_destinations.logical_rows,
         };
-        var range_prepared = try range_authority.PreparedV2.init(
+        self.range_prepared = try range_authority.PreparedV2.init(
             allocator,
-            &range_workspace,
+            &self.range_workspace,
             range_sources,
         );
-        errdefer range_prepared.deinit();
-        const provider_relations = try shared_provider.SharedProviderRelations.init(
-            &relations,
+        errdefer self.range_prepared.deinit();
+        self.provider_relations = try shared_provider.SharedProviderRelations.init(
+            &self.relations,
         );
-        var range_interaction = try range_prepared.generateProviderInteraction(
+        self.range_interaction = try self.range_prepared.generateProviderInteraction(
             allocator,
-            &provider_relations,
+            &self.provider_relations,
         );
-        errdefer range_interaction.deinit();
-        var range_owner = try range_authority.ProviderAuthorityV2.init(allocator);
-        errdefer range_owner.deinit();
+        errdefer self.range_interaction.deinit();
+        self.range_owner = try range_authority.ProviderAuthorityV2.init(allocator);
+        errdefer self.range_owner.deinit();
 
-        copyRangeTree2(&tree2, &manifest, &range_interaction);
-        copyBoundaryTree2(&tree2, &manifest, &boundary_traces);
-        copyInputProviderTree2(&tree2, &manifest, input_provider_trace);
+        copyRangeTree2(&self.tree2, &self.manifest, &self.range_interaction);
+        copyBoundaryTree2(&self.tree2, &self.manifest, &self.boundary_traces);
+        copyInputProviderTree2(&self.tree2, &self.manifest, self.input_provider_trace);
 
-        return .{
-            .allocator = allocator,
-            .public_fixture = public_fixture,
-            .plan = plan,
-            .program = program,
-            .execution = execution,
-            .transcript_prepared = transcript_prepared,
-            .statement_destinations = statement_destinations,
-            .statement_source_authority = statement_source_authority,
-            .statement_prepared = statement_prepared,
-            .public_prepared = public_prepared,
-            .boundary_authority = boundary_authority_value,
-            .boundary_workspace = boundary_workspace,
-            .boundary_traces = boundary_traces,
-            .boundary_prepared = boundary_prepared,
-            .input_provider_sources = input_provider_sources,
-            .input_provider_owner = input_provider_owner,
-            .input_provider_workspace = input_provider_workspace,
-            .input_provider_trace = input_provider_trace,
-            .input_provider_prepared = input_provider_prepared,
-            .manifest = manifest,
-            .transcript_owner = transcript_owner,
-            .transcript_workspace = transcript_workspace,
-            .statement_owner = statement_owner,
-            .statement_workspace = statement_workspace,
-            .public_owner = public_owner,
-            .public_workspace = public_workspace,
-            .relations = relations,
-            .provider_relations = provider_relations,
-            .range_workspace = range_workspace,
-            .range_prepared = range_prepared,
-            .range_owner = range_owner,
-            .range_interaction = range_interaction,
-            .tree2 = tree2,
-            .transcript_claims = transcript_claims,
-            .statement_claims = statement_claims,
-            .public_claims = public_claims,
-        };
+        return self;
     }
 
     pub fn deinit(self: *Fixture) void {
@@ -497,7 +464,9 @@ pub const Fixture = struct {
         self.program.deinit();
         self.plan.deinit();
         self.public_fixture.deinit();
+        const allocator = self.allocator;
         self.* = undefined;
+        allocator.destroy(self);
     }
 
     pub fn inputs(self: *const Fixture) subject.InputsV2 {

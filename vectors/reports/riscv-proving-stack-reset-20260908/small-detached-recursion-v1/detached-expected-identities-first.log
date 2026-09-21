@@ -1,0 +1,13 @@
+test-recursive-segment-v2-detached-boundary
++- SegmentV2 detached boundary guard
+   +- run test stderr
+detached expected boundary: inputs=11240 nodes=34780 outputs=6908 provider_calls=243 rejected=29
+detached expected boundary: inputs=11240 nodes=34780 outputs=6908 provider_calls=243 rejected=29
+detached expected boundary: inputs=11316 nodes=34996 outputs=6940 provider_calls=245 rejected=29
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-detached-boundary success
++- SegmentV2 detached boundary guard success
+   +- run test 1 passed 707ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 6s MaxRSS:588M
+

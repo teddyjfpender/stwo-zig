@@ -1,0 +1,1 @@
+riscv_metal configure closure mismatch: missing=['test-riscv-metal-recursive-aot', 'test-riscv-metal-recursive-resident'], extra=[]

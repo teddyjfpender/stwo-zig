@@ -1,0 +1,56 @@
+{
+  "head": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "completed": {
+    "formal_build_jobs": 124,
+    "audited_theorems": 4642,
+    "opcode_coverage": 46,
+    "formal_mutation_controls": 2,
+    "cpu_descriptor_source_count": 2577,
+    "product_closure_unit_tests": 20,
+    "pinned_sail_spike_toolchain": true,
+    "prepared_evaluation_owner_tests": 2,
+    "test_inventory_tests": 2,
+    "ethereum_generated_shader_parity": true,
+    "recursive_generated_shader_parity": true,
+    "canonical_expression_tests": 4
+  },
+  "cpu_descriptor_repair": {
+    "file": "build_support/products/riscv_cpu_policy.zig",
+    "reason": "Declare existing stwo_artifact_store build import and owned source prefix."
+  },
+  "pending": {
+    "live_bridge_refresh": "/tmp/pr198-formal-live-bridge-refresh.log",
+    "cpu_product_gate": "/tmp/pr198-cpu-product-baseline-v2.log"
+  },
+  "not_claimed": [
+    "full baseline green",
+    "full generated Sail bridge rebuilt",
+    "strict end-to-end GPU qualification",
+    "production security",
+    "complete goal"
+  ],
+  "generated_shader_metadata_repair": {
+    "files": [
+      "src/backends/metal/shaders/recursive_framework_v1.metal",
+      "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1.metal"
+    ],
+    "matching_generators_updated": true,
+    "executable_bodies_unchanged": true,
+    "regeneration_checks": "passed"
+  },
+  "cpu_product_attempt_v1": {
+    "tests_passed": 3506,
+    "tests_skipped": 13,
+    "compile_targets_failed": 3,
+    "cause": "Two omitted aliases in relocated test exercise; fixed, both focused tests and inventory pass."
+  },
+  "canonical_identity_migration": {
+    "status": "in_progress",
+    "implemented": "Content-addressed expression roots independent of arena insertion order. No protocol admission changes yet.",
+    "remaining": [
+      "Bind ordered constraints, lookup tuples and interactions, input roles and geometry.",
+      "Deliberate checked legacy compatibility and native/recursive admission.",
+      "Fresh full proof and substitution controls."
+    ]
+  }
+}

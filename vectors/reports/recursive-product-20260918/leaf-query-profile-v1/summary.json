@@ -1,0 +1,20 @@
+{
+  "status": "focused_profile_contract_checks_passed",
+  "ownership_checks": 12,
+  "golden_reference_digest_unchanged": true,
+  "reference_type_shared_with_witness": true,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/query_bits_profile.zig": "6673d97cb246f7f1646ed4124e55930611bae82705213181979eb48d6b6f6060",
+    "src/frontends/riscv/recursion/air/query_bits_witness.zig": "c3a9269dee31bd1a7a151b35997dafaf77cd2f5f8878c97415a9bb6bab977961",
+    "src/frontends/riscv/recursion/air/query_bits_test.zig": "2f0c776b7dce66aab69d1ae0bfb02536338ae311c8147cfd4da2d4e6b1d20151",
+    "src/integrations/riscv_cpu/recursive_segment_v2_verifier_components.zig": "be65626b7a4983713848fce513d02a51427c54458c3ef9fa825b077220ed215d",
+    "scripts/tests/test_product_closure.py": "88ca7f665335e1943f6e70612393a344fcbf0f605e965b9e74087b63a1456e8b"
+  },
+  "remaining_leaf_dependencies": [
+    "SegmentV2 manifest mixes authority construction, proof gate and metadata.",
+    "Native component parameters obtain constants through witness modules.",
+    "Boundary/provider adapters still instantiate prover-capable components.",
+    "Leaf transcript and standalone command still enter broad integration/frontend facades."
+  ],
+  "complete_leaf_isolation": false
+}

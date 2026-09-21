@@ -2,13 +2,14 @@
 
 const dependency_0 = @import("segment_statement_v2_contract.zig");
 const dependency_1 = @import("segment_statement_v2_canonical_wire_view_v2.zig");
+const transcript_layout = @import("segment_statement_v2_transcript_layout.zig");
 
 const BaseStatementWords = dependency_0.BaseStatementWords;
 const ByteLeaf = dependency_1.ByteLeaf;
 const CanonicalWireViewV2 = dependency_1.CanonicalWireViewV2;
 const CompletionKindV2 = dependency_0.CompletionKindV2;
 const CompletionV2 = dependency_0.CompletionV2;
-const Cpu = dependency_0.Cpu;
+const Cpu = @import("../runner/cpu.zig").Cpu;
 const Digest = dependency_0.Digest;
 const Error = dependency_0.Error;
 const FIXED_CANONICAL_WORDS = dependency_0.FIXED_CANONICAL_WORDS;
@@ -22,6 +23,7 @@ const MEMORY_STATE_ID_DOMAIN = dependency_0.MEMORY_STATE_ID_DOMAIN;
 const RangeV2 = dependency_0.RangeV2;
 const RetainedSectionV2 = dependency_0.RetainedSectionV2;
 const SECTION_HEADER_WORDS = dependency_0.SECTION_HEADER_WORDS;
+const SnapshotIdentity = dependency_0.SnapshotIdentity;
 const StatementV2 = dependency_0.StatementV2;
 const Tag = dependency_0.Tag;
 const WIRE_ID_DOMAIN = dependency_0.WIRE_ID_DOMAIN;
@@ -38,11 +40,12 @@ const executedLeaf = dependency_0.executedLeaf;
 const jobIdAssumeCanonical = dependency_0.jobIdAssumeCanonical;
 const m31 = dependency_0.m31;
 const memoryClockIdentity = dependency_1.memoryClockIdentity;
-const memory_state = dependency_0.memory_state;
+const memory_state = @import("../runner/memory_state.zig");
 const nonZeroWordCount = dependency_1.nonZeroWordCount;
 const requireDigest = dependency_0.requireDigest;
-const runner_result = dependency_0.runner_result;
+const runner_result = @import("../runner/result.zig");
 const snapshotIdentity = dependency_1.snapshotIdentity;
+const snapshotIdentityReusingRoot = dependency_1.snapshotIdentityReusingRoot;
 const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
 const validateClockBoundary = dependency_1.validateClockBoundary;
@@ -80,6 +83,8 @@ pub const SourceV2 = struct {
         base_statement: span_statement.SpanStatement,
         result: *const runner_result.SegmentResult,
     ) Error!SourceV2 {
+        if (result.clock_frame != .global_continuous)
+            return error.ClockFrameMismatch;
         if (!std.meta.eql(result.segment_role, result.rw_memory.segment_role))
             return error.InvalidSegmentRole;
         const completion = if (result.completion_reason) |reason|
@@ -151,6 +156,14 @@ pub const SourceV2 = struct {
         }
 
         try validateMemoryWords(self.memory_words, self.segment_role, range.end);
+        // The Span boundary and native sparse projection must name the same
+        // memory state. This checks actual source bytes, not a cached receipt.
+        const entry_snapshot = dependency_1.snapshotDigest(self.memory_words, .initial_word);
+        const exit_snapshot = dependency_1.snapshotDigest(self.memory_words, .final_word);
+        if (!std.meta.eql(executed.entry.rw_memory, entry_snapshot.id) or
+            !std.meta.eql(executed.exit.rw_memory, exit_snapshot.id))
+            return error.MemorySnapshotMismatch;
+
         try validateClockBoundary(
             self.entry_register_clocks,
             self.entry_memory_clocks,
@@ -168,9 +181,6 @@ pub const SourceV2 = struct {
 
     pub fn statement(self: *const SourceV2) Error!StatementV2 {
         try self.validate();
-        const base_words = try self.base_statement.canonicalWords();
-        const executed = try executedLeaf(self.base_statement);
-        const range = try sourceRange(self, executed);
         const entry_snapshot = snapshotIdentity(
             self.memory_words,
             .initial_word,
@@ -179,6 +189,41 @@ pub const SourceV2 = struct {
             self.memory_words,
             .final_word,
         );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    /// Reuses roots only after the exact current sparse projections reproduce
+    /// both retained snapshot identities and counts. This is the restart path
+    /// for a cold-authenticated STWESG31/PublicDataV2 boundary: it avoids an
+    /// O(nonzero-bytes * tree-depth) Poseidon traversal without accepting a
+    /// detached root or skipping any canonical tuple validation.
+    pub fn statementReusingRoots(
+        self: *const SourceV2,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!StatementV2 {
+        try self.validate();
+        const entry_snapshot = try snapshotIdentityReusingRoot(
+            retained_entry,
+            self.memory_words,
+            .initial_word,
+        );
+        const exit_snapshot = try snapshotIdentityReusingRoot(
+            retained_exit,
+            self.memory_words,
+            .final_word,
+        );
+        return self.statementFromSnapshots(entry_snapshot, exit_snapshot);
+    }
+
+    fn statementFromSnapshots(
+        self: *const SourceV2,
+        entry_snapshot: SnapshotIdentity,
+        exit_snapshot: SnapshotIdentity,
+    ) Error!StatementV2 {
+        const base_words = try self.base_statement.canonicalWords();
+        const executed = try executedLeaf(self.base_statement);
+        const range = try sourceRange(self, executed);
         const entry_memory_clock_id = memoryClockIdentity(self.entry_memory_clocks);
         const exit_memory_clock_id = memoryClockIdentity(self.exit_memory_clocks);
         const job_id = jobIdAssumeCanonical(&base_words);
@@ -267,36 +312,47 @@ pub const SourceV2 = struct {
         destination: []M31,
     ) Error!CanonicalWireViewV2 {
         const statement_v2 = try self.statement();
-        const expected = try checkedWireWordCount(
-            statement_v2.entry_snapshot_count,
-            statement_v2.exit_snapshot_count,
-            statement_v2.entry_memory_clock_count,
-            statement_v2.exit_memory_clock_count,
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    /// Canonical encoder paired with `statementReusingRoots`. The emitted
+    /// bytes are identical to `encodeCanonical`; only the root derivation work
+    /// is elided after exact sparse identity/count replay succeeds.
+    pub fn encodeCanonicalReusingRoots(
+        self: *const SourceV2,
+        destination: []M31,
+        retained_entry: SnapshotIdentity,
+        retained_exit: SnapshotIdentity,
+    ) Error!CanonicalWireViewV2 {
+        const statement_v2 = try self.statementReusingRoots(
+            retained_entry,
+            retained_exit,
         );
-        if (destination.len != expected) return error.CanonicalLengthMismatch;
+        return self.encodeWithStatement(destination, statement_v2);
+    }
+
+    fn encodeWithStatement(
+        self: *const SourceV2,
+        destination: []M31,
+        statement_v2: StatementV2,
+    ) Error!CanonicalWireViewV2 {
+        const layout = try transcript_layout.Layout.fromStatement(&statement_v2);
+        if (destination.len != layout.wordCount()) return error.CanonicalLengthMismatch;
 
         var writer = Writer{ .words = destination };
         statement_v2.writeFixed(&writer);
-        const entry_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .entry_memory_state, self.memory_words, .initial_word);
-        const exit_snapshot = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_snapshot_count,
-        };
-        writeSnapshotSection(&writer, .exit_memory_state, self.memory_words, .final_word);
-        const entry_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.entry_memory_clock_count,
-        };
-        writeClockSection(&writer, .entry_memory_clocks, self.entry_memory_clocks);
-        const exit_memory_clocks = RetainedSectionV2{
-            .payload_start = writer.at + SECTION_HEADER_WORDS,
-            .count = statement_v2.exit_memory_clock_count,
-        };
-        writeClockSection(&writer, .exit_memory_clocks, self.exit_memory_clocks);
+        const entry_snapshot = layout.section(.entry_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.entry_snapshot.tag(), self.memory_words, .initial_word);
+        const exit_snapshot = layout.section(.exit_snapshot);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_snapshot.payload_start);
+        writeSnapshotSection(&writer, transcript_layout.Section.exit_snapshot.tag(), self.memory_words, .final_word);
+        const entry_memory_clocks = layout.section(.entry_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == entry_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.entry_memory_clocks.tag(), self.entry_memory_clocks);
+        const exit_memory_clocks = layout.section(.exit_memory_clocks);
+        std.debug.assert(writer.at + transcript_layout.SECTION_HEADER_WORDS == exit_memory_clocks.payload_start);
+        writeClockSection(&writer, transcript_layout.Section.exit_memory_clocks.tag(), self.exit_memory_clocks);
         std.debug.assert(writer.at == destination.len);
         return .{
             .words = destination,
@@ -308,16 +364,6 @@ pub const SourceV2 = struct {
             .wire_id = channel.hashCanonicalWords(destination, WIRE_ID_DOMAIN),
         };
     }
-};
-
-pub const AdjacentReceiptV2 = struct {
-    format_version: u16 = FORMAT_VERSION,
-    session_id: Digest,
-    job_id: Digest,
-    shared_boundary_lineage_id: Digest,
-    left_wire_id: Digest,
-    right_wire_id: Digest,
-    identity: Digest,
 };
 
 pub fn sourceRange(self: *const SourceV2, executed: span_statement.ExecutedSpan) Error!RangeV2 {
@@ -411,253 +457,14 @@ pub fn requireCompletionMemoryLink(source: *const SourceV2) Error!void {
     return error.CompletionMismatch;
 }
 
-pub const WireByteIterator = struct {
-    view: *const CanonicalWireViewV2,
-    section: RetainedSectionV2,
-    entry_index: usize = 0,
-    byte_index: u3 = 0,
-    current: ?ByteLeaf = null,
-
-    pub fn init(
-        view: *const CanonicalWireViewV2,
-        section: RetainedSectionV2,
-    ) WireByteIterator {
-        var result = WireByteIterator{ .view = view, .section = section };
-        result.advance();
-        return result;
-    }
-
-    pub fn consume(self: *WireByteIterator) ByteLeaf {
-        const result = self.current.?;
-        self.advance();
-        return result;
-    }
-
-    fn advance(self: *WireByteIterator) void {
-        self.current = null;
-        while (self.entry_index < self.section.count) {
-            const entry = self.view.sparseEntry(self.section, self.entry_index);
-            while (self.byte_index < 4) {
-                const byte_index = self.byte_index;
-                self.byte_index += 1;
-                const shift: u5 = @as(u5, byte_index) * 8;
-                const byte: u8 = @truncate(entry.value >> shift);
-                if (byte == 0) continue;
-                self.current = .{
-                    .index = entry.address + @as(u32, byte_index),
-                    .value = byte,
-                };
-                return;
-            }
-            self.entry_index += 1;
-            self.byte_index = 0;
-        }
-    }
-};
-
-pub fn readFixed(words: *const [FIXED_CANONICAL_WORDS]M31) Error!StatementV2 {
-    var reader = Reader{ .words = words };
-    try reader.tag(.segment_statement_v2);
-    const format_version = try reader.u16Value();
-    const schema_version = try reader.u16Value();
-    const flags = try reader.u16Value();
-    const session_id = try reader.digest();
-    const job_id = try reader.digest();
-    const position_id = try reader.digest();
-    const entry_lineage_id = try reader.digest();
-    const exit_lineage_id = try reader.digest();
-    const lineage_id = try reader.digest();
-    const base_statement_id = try reader.digest();
-    var base_statement_words: BaseStatementWords = undefined;
-    for (&base_statement_words) |*destination| destination.* = try reader.canonicalM31();
-    const entry_snapshot_id = try reader.digest();
-    const entry_snapshot_count = try reader.u32Value();
-    const entry_continuation_root = try reader.u32Value();
-    const exit_snapshot_id = try reader.digest();
-    const exit_snapshot_count = try reader.u32Value();
-    const exit_continuation_root = try reader.u32Value();
-    const entry_memory_clock_id = try reader.digest();
-    const entry_memory_clock_count = try reader.u32Value();
-    const exit_memory_clock_id = try reader.digest();
-    const exit_memory_clock_count = try reader.u32Value();
-    var entry_register_clocks: [32]u32 = undefined;
-    for (&entry_register_clocks) |*clock| clock.* = try reader.u32Value();
-    var exit_register_clocks: [32]u32 = undefined;
-    for (&exit_register_clocks) |*clock| clock.* = try reader.u32Value();
-    const completion = try readCompletion(&reader);
-    std.debug.assert(reader.at == words.len);
-    const result = StatementV2{
-        .format_version = format_version,
-        .schema_version = schema_version,
-        .flags = flags,
-        .session_id = session_id,
-        .job_id = job_id,
-        .position_id = position_id,
-        .entry_lineage_id = entry_lineage_id,
-        .exit_lineage_id = exit_lineage_id,
-        .lineage_id = lineage_id,
-        .base_statement_id = base_statement_id,
-        .base_statement_words = base_statement_words,
-        .entry_snapshot_id = entry_snapshot_id,
-        .entry_snapshot_count = entry_snapshot_count,
-        .entry_continuation_root = entry_continuation_root,
-        .exit_snapshot_id = exit_snapshot_id,
-        .exit_snapshot_count = exit_snapshot_count,
-        .exit_continuation_root = exit_continuation_root,
-        .entry_memory_clock_id = entry_memory_clock_id,
-        .entry_memory_clock_count = entry_memory_clock_count,
-        .exit_memory_clock_id = exit_memory_clock_id,
-        .exit_memory_clock_count = exit_memory_clock_count,
-        .entry_register_clocks = entry_register_clocks,
-        .exit_register_clocks = exit_register_clocks,
-        .completion = completion,
-    };
-    try result.validate();
-    var canonical: [FIXED_CANONICAL_WORDS]M31 = undefined;
-    var writer = Writer{ .words = &canonical };
-    result.writeFixed(&writer);
-    std.debug.assert(writer.at == canonical.len);
-    if (!m31WordsEqual(&canonical, words)) return error.DigestMismatch;
-    return result;
-}
-
-pub fn readCompletion(reader: *Reader) Error!?CompletionV2 {
-    const raw_tag = try reader.word();
-    if (raw_tag == @intFromEnum(Tag.completion_absent)) {
-        try reader.zeroes(7);
-        return null;
-    }
-    if (raw_tag != @intFromEnum(Tag.completion_present))
-        return error.CanonicalTagMismatch;
-    const kind_raw = try reader.word();
-    const kind = std.meta.intToEnum(CompletionKindV2, kind_raw) catch
-        return error.UnsupportedCompletion;
-    return .{
-        .kind = kind,
-        .address = try reader.u32Value(),
-        .value = try reader.u32Value(),
-        .clock = try reader.u32Value(),
-    };
-}
-
-pub const RetainedKind = enum { sparse_state, memory_clock };
-
-pub fn readRetainedSection(
-    reader: *Reader,
-    expected_tag: Tag,
-    expected_count: u32,
-    kind: RetainedKind,
-    clock_cycle: u32,
-) Error!RetainedSectionV2 {
-    try reader.tag(expected_tag);
-    const count = try reader.u32Value();
-    if (count != expected_count or count > MAX_SPARSE_BOUNDARY_ENTRIES)
-        return error.RetainedBoundaryMismatch;
-    const payload_start = reader.at;
-    var previous: ?u32 = null;
-    for (0..count) |_| {
-        const address = try reader.u32Value();
-        const value = try reader.u32Value();
-        if ((address & 3) != 0 or address > MAX_RW_ADDRESS_EXCLUSIVE - 4)
-            return error.InvalidMemoryAddress;
-        if (previous) |prior| {
-            if (address == prior) return error.DuplicateBoundaryAddress;
-            if (address < prior) return error.RetainedBoundaryMismatch;
-        }
-        previous = address;
-        switch (kind) {
-            .sparse_state => if (value == 0) return error.NonCanonicalSparseZero,
-            .memory_clock => if (!clockWithinBoundary(value, clock_cycle, false))
-                return error.BoundaryClockOutOfRange,
-        }
-    }
-    return .{ .payload_start = payload_start, .count = count };
-}
-
-pub fn snapshotSectionIdentity(
-    view: *const CanonicalWireViewV2,
-    section: RetainedSectionV2,
-) Digest {
-    var hasher = IdentityHasher.init(MEMORY_STATE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.u32Value(section.count);
-    for (0..section.count) |index| {
-        const entry = view.sparseEntry(section, index);
-        hasher.u32Value(entry.address);
-        hasher.u32Value(entry.value);
-    }
-    return hasher.finalize();
-}
-
-pub fn validateWireClockProgress(view: *const CanonicalWireViewV2) Error!void {
-    var exit_at: usize = 0;
-    for (0..view.entry_memory_clocks.count) |index| {
-        const entry = view.clockEntry(view.entry_memory_clocks, index);
-        while (exit_at < view.exit_memory_clocks.count) {
-            const exit = view.clockEntry(view.exit_memory_clocks, exit_at);
-            if (exit.address >= entry.address) break;
-            exit_at += 1;
-        }
-        if (exit_at == view.exit_memory_clocks.count)
-            return error.BoundaryClockMismatch;
-        const exit = view.clockEntry(view.exit_memory_clocks, exit_at);
-        if (exit.address != entry.address or exit.clock < entry.clock)
-            return error.BoundaryClockMismatch;
-    }
-}
-
-pub fn m31WordsEqual(left: []const M31, right: []const M31) bool {
-    if (left.len != right.len) return false;
-    for (left, right) |lhs, rhs| if (!lhs.eql(rhs)) return false;
-    return true;
-}
-
-pub const Reader = struct {
-    words: []const M31,
-    at: usize = 0,
-
-    fn word(self: *Reader) Error!u32 {
-        if (self.at >= self.words.len) return error.CanonicalLengthMismatch;
-        const value = self.words[self.at].toU32();
-        self.at += 1;
-        if (value >= m31.Modulus) return error.CanonicalWordNonCanonical;
-        return value;
-    }
-
-    fn canonicalM31(self: *Reader) Error!M31 {
-        const value = try self.word();
-        return M31.fromCanonical(value);
-    }
-
-    fn tag(self: *Reader, expected: Tag) Error!void {
-        if (try self.word() != @intFromEnum(expected))
-            return error.CanonicalTagMismatch;
-    }
-
-    fn limb(self: *Reader) Error!u32 {
-        const value = try self.word();
-        if (value > std.math.maxInt(u16))
-            return error.CanonicalIntegerLimbOutOfRange;
-        return value;
-    }
-
-    fn u16Value(self: *Reader) Error!u16 {
-        return std.math.cast(u16, try self.word()) orelse
-            error.CanonicalIntegerLimbOutOfRange;
-    }
-
-    fn u32Value(self: *Reader) Error!u32 {
-        return try self.limb() | (try self.limb() << 16);
-    }
-
-    fn digest(self: *Reader) Error!Digest {
-        var result: Digest = undefined;
-        for (&result) |*destination| destination.* = try self.word();
-        return result;
-    }
-
-    fn zeroes(self: *Reader, count: usize) Error!void {
-        for (0..count) |_| if (try self.word() != 0)
-            return error.CanonicalPaddingNonZero;
-    }
-};
+const wire = @import("segment_statement_v2_wire.zig");
+pub const AdjacentReceiptV2 = wire.AdjacentReceiptV2;
+pub const WireByteIterator = wire.WireByteIterator;
+pub const readFixed = wire.readFixed;
+pub const readCompletion = wire.readCompletion;
+pub const RetainedKind = wire.RetainedKind;
+pub const readRetainedSection = wire.readRetainedSection;
+pub const snapshotSectionIdentity = wire.snapshotSectionIdentity;
+pub const validateWireClockProgress = wire.validateWireClockProgress;
+pub const m31WordsEqual = wire.m31WordsEqual;
+pub const Reader = wire.Reader;

@@ -1,6 +1,7 @@
 //! Internal segment statement outer source v2 authority shard; use segment_statement_outer_source_v2.zig publicly.
 
 pub const std = @import("std");
+pub const register_bytes = @import("segment_register_byte_layout_v1.zig");
 pub const stwo_core = @import("stwo_core");
 
 pub const M31 = stwo_core.fields.m31.M31;
@@ -33,15 +34,14 @@ pub const AirAuthenticationError = @typeInfo(@typeInfo(@TypeOf(
     Air.authenticate,
 )).@"fn".return_type.?).error_union.error_set;
 
-pub const FORMAT_VERSION: u16 = 3;
-pub const SCHEMA_VERSION: u16 = 2;
-pub const MANIFEST_VERSION: u16 = 3;
-pub const FROZEN_ROW_10: u8 = @intFromEnum(roster.Component.statement_input);
-pub const ROUTING_ROW_11: u8 =
-    @intFromEnum(roster.Component.statement_semantics_input);
+pub const FORMAT_VERSION: u16 = 5;
+pub const SCHEMA_VERSION: u16 = 4;
+pub const MANIFEST_VERSION: u16 = 5;
+pub const FROZEN_ROW_10 = @import("segment_statement_outer_geometry_v2.zig").FROZEN_ROW_10;
+pub const ROUTING_ROW_11 = @import("segment_statement_outer_geometry_v2.zig").ROUTING_ROW_11;
 pub const RANGE_PROVIDER_ROW_35: u8 =
     @intFromEnum(roster.Component.range_check_8_8);
-pub const STATEMENT_SOURCE_COMPONENT_36: u8 = roster.COMPONENT_COUNT;
+pub const STATEMENT_SOURCE_COMPONENT_36 = @import("segment_statement_outer_geometry_v2.zig").STATEMENT_SOURCE_COMPONENT_36;
 pub const PUBLIC_LOGUP_SOURCE_COMPONENT_37: u8 = roster.COMPONENT_COUNT + 1;
 pub const VM_PUBLIC_LOGUP_ROW_16: u8 =
     @intFromEnum(roster.Component.vm_public_logup_input);
@@ -68,45 +68,10 @@ pub const WIRE_HASH_AIR_VERIFIED = false;
 pub const AUTHORITY_HASH_AIR_VERIFIED = false;
 pub const PRODUCTION_ACTIVATION = false;
 
-pub const OverrideActivationV2 = enum(u8) {
-    explicitly_inactive = 0,
-    active_v2_override = 1,
-    appended_boundary_source = 2,
-};
-
-/// Exact manifest handoff for the central 38-component V2 roster. Geometry is
-/// exported from each authoritative AIR and is never transcribed by callers.
-pub const ComponentOverrideV2 = struct {
-    component_index: u8,
-    activation: OverrideActivationV2,
-    preprocessed_columns: u16,
-    main_columns: u16,
-    interaction_columns: u16,
-    direct_constraints: u16,
-    interaction_batches: u16,
-    relation_events: u16,
-    protocol_constraint_degree: u8,
-    profiled_constraint_degree: u8,
-    semantic_digest: Sha256Digest,
-};
-
-pub const COMPONENT_OVERRIDE_TABLE_V2 = [_]ComponentOverrideV2{
-    overrideFor(
-        row10_air,
-        FROZEN_ROW_10,
-        .explicitly_inactive,
-    ),
-    overrideFor(
-        Air,
-        ROUTING_ROW_11,
-        .active_v2_override,
-    ),
-    overrideFor(
-        air_v2.Statement,
-        STATEMENT_SOURCE_COMPONENT_36,
-        .appended_boundary_source,
-    ),
-};
+const geometry = @import("segment_statement_outer_geometry_v2.zig");
+pub const OverrideActivationV2 = geometry.OverrideActivationV2;
+pub const ComponentOverrideV2 = geometry.ComponentOverrideV2;
+pub const COMPONENT_OVERRIDE_TABLE_V2 = geometry.COMPONENT_OVERRIDE_TABLE_V2;
 
 /// Auditable producer/consumer multiplicities for the V2 statement boundary.
 /// Source 37 now publishes its exact circuit-44 bridge into rows 12--14. Its
@@ -122,6 +87,12 @@ pub const ClosureLedgerV2 = struct {
     row11_statement_payload_consumes: u32,
     row11_boundary_wire_emits: u32,
     row15_boundary_wire_consumes: u32,
+    row11_register_byte_emits: u32,
+    row15_register_byte_consumes: u32,
+    row11_memory_byte_emits: u32,
+    row15_memory_byte_consumes: u32,
+    row11_memory_selector_emits: u32,
+    row15_memory_selector_consumes: u32,
     boundary_bridge_circuit_id: u32 = Air.BOUNDARY_BRIDGE_CIRCUIT_ID,
     source37_custom_logup_consumes: u32 = source_v2.LOGUP_PUBLICATION_WORD_COUNT,
     source37_verifier_id: u32 = source_v2.SEGMENT_V2_VERIFIER_ID,
@@ -143,6 +114,12 @@ pub const ClosureLedgerV2 = struct {
             self.row11_boundary_wire_emits == 0 or
             self.row11_boundary_wire_emits !=
                 self.row15_boundary_wire_consumes or
+            self.row11_register_byte_emits != register_bytes.BYTE_COUNT or
+            self.row15_register_byte_consumes != self.row11_register_byte_emits or
+            self.row11_memory_byte_emits % 4 != 0 or
+            self.row15_memory_byte_consumes != self.row11_memory_byte_emits or
+            self.row11_memory_selector_emits != self.row11_memory_byte_emits or
+            self.row15_memory_selector_consumes != self.row11_memory_selector_emits or
             self.boundary_bridge_circuit_id !=
                 public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID or
             self.source37_custom_logup_consumes !=
@@ -170,8 +147,8 @@ comptime {
         PUBLIC_LOGUP_SOURCE_COMPONENT_37 != 37 or
         VM_PUBLIC_LOGUP_ROW_16 != 16 or
         HEADER_LIMB_COUNT != 8 or
-        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 7 or
-        Air.INTERACTION_BATCH_COUNT != 4 or Air.INTERACTION_COLUMN_COUNT != 16 or
+        WIRE_ID_LIMB_COUNT != 16 or Air.RELATION_EVENT_COUNT != 11 or
+        Air.INTERACTION_BATCH_COUNT != 6 or Air.INTERACTION_COLUMN_COUNT != 24 or
         Air.BOUNDARY_BRIDGE_CIRCUIT_ID !=
             public_source_v2.BOUNDARY_BRIDGE_CIRCUIT_ID)
     {
@@ -205,6 +182,8 @@ pub const ManifestV2 = struct {
     routing_row_11: u8 = ROUTING_ROW_11,
     range_provider_row_35: u8 = RANGE_PROVIDER_ROW_35,
     wire_word_count: u32,
+    register_byte_count: u32 = register_bytes.BYTE_COUNT,
+    memory_byte_count: u32,
     context_word_count: u32 = source_v2.CONTEXT_WORD_COUNT,
     header_limb_count: u32 = HEADER_LIMB_COUNT,
     logical_row_count: u32,
@@ -229,6 +208,8 @@ pub const ManifestV2 = struct {
             self.routing_row_11 != ROUTING_ROW_11 or
             self.range_provider_row_35 != RANGE_PROVIDER_ROW_35 or
             self.context_word_count != source_v2.CONTEXT_WORD_COUNT or
+            self.register_byte_count != register_bytes.BYTE_COUNT or
+            self.memory_byte_count % 4 != 0 or self.memory_byte_count > self.wire_word_count or
             self.header_limb_count != HEADER_LIMB_COUNT or
             self.wire_id_limb_request_count != WIRE_ID_LIMB_COUNT or
             !self.range_request_source_complete or
@@ -285,6 +266,12 @@ pub const PreprocessedRowV2 = struct {
     verifier_b_index: u32,
     expected_header: u32,
     boundary_bridge_mask: u32,
+    register_byte_bridge_mask: u32 = 0,
+    register_low_byte_index: u32 = 0,
+    register_high_byte_index: u32 = 0,
+    memory_byte_bridge_mask: u32 = 0,
+    memory_low_selector_index: u32 = 0,
+    memory_high_selector_index: u32 = 0,
 
     pub fn values(self: PreprocessedRowV2) [Air.PREPROCESSED_COLUMN_COUNT]M31 {
         return .{
@@ -304,6 +291,12 @@ pub const PreprocessedRowV2 = struct {
             felt(self.verifier_b_index),
             felt(self.expected_header),
             felt(self.boundary_bridge_mask),
+            felt(self.register_byte_bridge_mask),
+            felt(self.register_low_byte_index),
+            felt(self.register_high_byte_index),
+            felt(self.memory_byte_bridge_mask),
+            felt(self.memory_low_selector_index),
+            felt(self.memory_high_selector_index),
         };
     }
 };
@@ -319,6 +312,10 @@ pub const MainRowV2 = struct {
     verifier_a_high_byte: M31,
     verifier_b_low_byte: M31,
     verifier_b_high_byte: M31,
+    memory_low_inverse: M31 = M31.zero(),
+    memory_high_inverse: M31 = M31.zero(),
+    memory_low_nonzero: M31 = M31.zero(),
+    memory_high_nonzero: M31 = M31.zero(),
 
     pub fn values(self: MainRowV2) [Air.PHYSICAL_MAIN_COLUMN_COUNT]M31 {
         return .{
@@ -332,6 +329,10 @@ pub const MainRowV2 = struct {
             self.verifier_a_high_byte,
             self.verifier_b_low_byte,
             self.verifier_b_high_byte,
+            self.memory_low_inverse,
+            self.memory_high_inverse,
+            self.memory_low_nonzero,
+            self.memory_high_nonzero,
         };
     }
 };
@@ -453,6 +454,8 @@ pub fn manifestId(manifest: *const ManifestV2) Digest {
     hash.scalar(manifest.routing_row_11);
     hash.scalar(manifest.range_provider_row_35);
     hash.u32Value(manifest.wire_word_count);
+    hash.u32Value(manifest.register_byte_count);
+    hash.u32Value(manifest.memory_byte_count);
     hash.u32Value(manifest.context_word_count);
     hash.u32Value(manifest.header_limb_count);
     hash.u32Value(manifest.logical_row_count);
@@ -537,25 +540,7 @@ pub fn requireDigest(value: Digest) Error!void {
     if (aggregate == 0) return error.AuthorityMismatch;
 }
 
-pub fn overrideFor(
-    comptime ComponentAir: type,
-    comptime component_index: u8,
-    comptime activation: OverrideActivationV2,
-) ComponentOverrideV2 {
-    return .{
-        .component_index = component_index,
-        .activation = activation,
-        .preprocessed_columns = ComponentAir.PREPROCESSED_COLUMN_COUNT,
-        .main_columns = ComponentAir.PHYSICAL_MAIN_COLUMN_COUNT,
-        .interaction_columns = ComponentAir.INTERACTION_COLUMN_COUNT,
-        .direct_constraints = ComponentAir.DIRECT_CONSTRAINT_COUNT,
-        .interaction_batches = ComponentAir.INTERACTION_BATCH_COUNT,
-        .relation_events = ComponentAir.RELATION_EVENT_COUNT,
-        .protocol_constraint_degree = ComponentAir.REFERENCE_MAXIMUM_CONSTRAINT_DEGREE,
-        .profiled_constraint_degree = ComponentAir.MAXIMUM_CONSTRAINT_DEGREE,
-        .semantic_digest = ComponentAir.SEMANTIC_DIGEST,
-    };
-}
+pub const overrideFor = geometry.overrideFor;
 
 pub fn isZeroSha(value: Sha256Digest) bool {
     var aggregate: u8 = 0;

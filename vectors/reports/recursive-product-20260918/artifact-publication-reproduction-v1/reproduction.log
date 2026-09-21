@@ -1,0 +1,4 @@
+1/1 publication_repro.test.publication returns a resolvable cached identity...FAIL (ArtifactStoreCorrupt)
+0 passed; 0 skipped; 1 failed.
+error: the following test command failed with exit code 1:
+.zig-cache/o/74536b53e2519dde4251448473b94166/test --seed=0x29e9c8a7

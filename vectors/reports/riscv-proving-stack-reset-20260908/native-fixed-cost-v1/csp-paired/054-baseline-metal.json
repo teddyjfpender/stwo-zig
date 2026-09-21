@@ -1,0 +1,328 @@
+{
+  "captured_at": "2026-09-08T17:58:49.617391+00:00",
+  "coverage": {
+    "supported_targets": [
+      "sha256",
+      "keccak",
+      "poseidon2_m31",
+      "ecdsa_secp256k1"
+    ],
+    "unsupported_targets": {
+      "ecdsa_p256": "The RISC-V zkVM comparison lane is secp256k1; CSP circuit lanes use P-256.",
+      "poseidon": "Classic Poseidon is a separate permutation and is not relabelled as Poseidon2.",
+      "poseidon2_bn254": "The field-native M31 extension is not CSP's BN254 Poseidon2 workload."
+    }
+  },
+  "host": {
+    "architecture": "arm64",
+    "cpu": "Apple M4 Max",
+    "gpu": {
+      "core_count": 32,
+      "metal_support": "spdisplays_metal3",
+      "name": "Apple M4 Max",
+      "unified_memory": true
+    },
+    "host_architecture": "arm64",
+    "kernel": "24.3.0",
+    "logical_cpu_count": 14,
+    "low_power_mode": false,
+    "memory_bytes": 38654705664,
+    "os": "Darwin",
+    "os_version": "15.3.1",
+    "power_source": "AC Power",
+    "python": "3.14.6"
+  },
+  "host_matches_official_csp": false,
+  "host_mismatch_reasons": [
+    "CSP publication host requires Apple M1",
+    "CSP publication host requires 8 logical CPUs",
+    "CSP publication host requires 16 GiB RAM",
+    "CSP publication host requires an Apple M1 GPU",
+    "CSP publication host requires 8 GPU cores"
+  ],
+  "identities": {
+    "prover_build_identity": {
+      "abi": "none",
+      "arch": "aarch64",
+      "cpu_model": "apple_m4",
+      "optimize": "ReleaseFast",
+      "os": "macos"
+    },
+    "prover_executable": "zig-out/bin/stwo-zig-riscv-metal",
+    "prover_executable_sha256": "ee7029c59de63a8de2049abbdb0a9deb46b4f51daa9574b16de19fd0e06eb673",
+    "trace_executable": "zig-out/bin/riscv-trace-dump",
+    "trace_executable_sha256": "c3634dbc3e74069b2b58e28b096531a79a24ab253e67897394a90bf2a59837b9",
+    "trace_provenance": {
+      "build_identity_published": false,
+      "implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "implementation_dirty": false,
+      "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+      "surface": "public-values diagnostic provenance",
+      "unvalidated": [
+        "target architecture, operating system, ABI, and CPU model",
+        "optimize mode"
+      ],
+      "unvalidated_reason": "the trace dumper publishes no `applications` registry, so the target and optimize checks the prover CLI receives have no source here; it contributes cycle counts, not timings",
+      "witness_layout_sha256": "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000"
+    },
+    "zig_version": "0.15.2"
+  },
+  "limitations": [
+    "The secure profile's 96-bit total is heuristic pending the external PCS/FRI/Fiat-Shamir accounting review.",
+    "Peak footprint includes mandatory self-verification; proving dominates the observed peak, but this is conservative relative to CSP's prove-only memory process.",
+    "No result is uploaded to EthProofs by this command.",
+    "This host differs from CSP's AWS mac2.metal Apple M1/8-core/16-GiB publication host, so timings are host-qualified and not directly rankable against published EthProofs rows.",
+    "Rows were produced with the metal backend; GPU-dependent timings are qualified by host.gpu, and the committed CPU report remains the canonical CSP evidence."
+  ],
+  "measurement_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+  "measurements": [
+    {
+      "backend": "metal",
+      "cycles": 164403,
+      "evidence": {
+        "artifact_bytes": 1795532,
+        "artifact_sha256": "a7529b90d6df2ad1e2e3bc5da2953a2fcf3aea47b37f480951d2319b2e2b0249",
+        "expected_output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+        "output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "proof_sha256": "93ec05a4eeb6f25c8c9aba7b867852f5c942bbdbcd40a345dcf1d12aa469b5ae",
+        "public_values_sha256": "ec75c6eed639f7270937004426ae9824d1e2e40eb0e00bf5d7703f72925611c7",
+        "resident_polynomial_telemetry": {
+          "base_batch_dispatches": 5,
+          "declines": 0,
+          "eligible_base_components": 70,
+          "eligible_lookup_components": 70,
+          "lookup_batch_dispatches": 5,
+          "verified_samples_with_dispatch": 5
+        },
+        "retained_verify_receipt": {
+          "artifact_kind": "stwo_riscv_proof",
+          "artifact_schema_version": 4,
+          "executable_sha256": "ee7029c59de63a8de2049abbdb0a9deb46b4f51daa9574b16de19fd0e06eb673",
+          "implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+          "implementation_dirty": false,
+          "proof_bytes": 891745,
+          "proof_sha256": "93ec05a4eeb6f25c8c9aba7b867852f5c942bbdbcd40a345dcf1d12aa469b5ae",
+          "release_status": "release_gated",
+          "schema": "riscv_verify_v1",
+          "security_policy": "secure",
+          "statement_sha256": "4515e82790e5cc956fa1d9defb6579a6acdf60183dac6f3be41fdbfa14b62b86",
+          "status": "verified",
+          "transcript_state_blake2s": "6b820b5b27770597c8a6ff1c5138171e4077b20d48adefe9da12bdf459bd8508"
+        },
+        "retained_verify_wall_ns": 172130625,
+        "statement_sha256": "4515e82790e5cc956fa1d9defb6579a6acdf60183dac6f3be41fdbfa14b62b86",
+        "status": "verified"
+      },
+      "input_size": 4,
+      "memory": {
+        "includes_mandatory_self_verification": true,
+        "scope": "self-process lifetime peak across verified samples",
+        "source": "darwin.proc_pid_rusage.RUSAGE_INFO_V6"
+      },
+      "num_constraints": 0,
+      "peak_memory": 1825344464,
+      "preprocessing_size": 14408,
+      "proof_duration": 499411984,
+      "proof_size": 891745,
+      "protocol": {
+        "name": "secure",
+        "pcs_config": {
+          "fri_config": {
+            "fold_step": 1,
+            "log_blowup_factor": 1,
+            "log_last_layer_degree_bound": 0,
+            "n_queries": 70
+          },
+          "lifting_log_size": null,
+          "pow_bits": 26
+        }
+      },
+      "prover_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "recursion_enabled": false,
+      "system": "stwo-zig-riscv",
+      "target": "poseidon2_m31",
+      "timing": {
+        "mean_execution_seconds": 0.0099365418,
+        "mean_proving_seconds": 0.43560184179999994,
+        "mean_verification_seconds": 0.0706483918,
+        "mean_witness_seconds": 0.05387360000000001,
+        "median_end_to_end_seconds": 0.582409917,
+        "outer_command_wall_ns": 3579406000,
+        "proof_definition": "execution + witness + proof generation",
+        "source": "production CLI internal stage timers",
+        "verified_end_to_end_sample_seconds": [
+          0.5926375,
+          0.590265959,
+          0.56892075,
+          0.573029333,
+          0.582409917
+        ],
+        "verify_definition": "production proof verification"
+      },
+      "uses_precompile": false,
+      "verify_duration": 70648392
+    }
+  ],
+  "methodology": {
+    "canonical_inputs": true,
+    "canonical_sizes": [
+      2,
+      4,
+      8,
+      12,
+      16,
+      32,
+      128,
+      256,
+      512,
+      1024,
+      2048
+    ],
+    "num_constraints": "0 means not exposed; cycles are authoritative",
+    "official_csp_host": {
+      "cpu": "Apple M1",
+      "gpu": {
+        "chip": "Apple M1",
+        "core_count": 8
+      },
+      "instance": "mac2.metal",
+      "logical_cpu_count": 8,
+      "memory_bytes": 17179869184,
+      "provider": "AWS"
+    },
+    "peak_memory": "production process lifetime physical-footprint peak",
+    "preprocessing_size": "retained RV32IM ELF bytes",
+    "proof_duration": "mean execution + witness + proof generation",
+    "proof_scope": "native RISC-V leaf STARK; recursion and outer proving disabled",
+    "proof_size": "Postcard proof bytes, excluding schema-v4 JSON framing",
+    "target_sizes": {
+      "ecdsa_secp256k1": [
+        32
+      ],
+      "keccak": [
+        128,
+        256,
+        512,
+        1024,
+        2048
+      ],
+      "poseidon2_m31": [
+        2,
+        4,
+        8,
+        12,
+        16
+      ],
+      "sha256": [
+        128,
+        256,
+        512,
+        1024,
+        2048
+      ]
+    },
+    "uses_precompile": false,
+    "verify_duration": "mean production verification"
+  },
+  "negative_validation": [],
+  "power_condition_reasons": [],
+  "power_conditions_admissible": true,
+  "repository_head": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+  "result_class": "host-qualified-non-comparable",
+  "run": {
+    "backend": "metal",
+    "complete_matrix": false,
+    "environment_overrides": {
+      "STWO_ZIG_MERKLE_WORKERS": "16",
+      "STWO_ZIG_WORKERS": "16"
+    },
+    "experimental": false,
+    "recursion_enabled": false,
+    "recursion_environment_prefix": "STWO_RECURSION_",
+    "release_status": "release_gated",
+    "removed_recursion_environment_variables": [],
+    "samples": 5,
+    "sizes": [
+      4
+    ],
+    "targets": [
+      "poseidon2_m31"
+    ],
+    "warmups": 1,
+    "workers": 16
+  },
+  "schema": "stwo_riscv_csp_benchmark_v4",
+  "security": {
+    "csp_minimum_bits": 96,
+    "eligibility": "parameter_threshold_met_accounting_review_pending",
+    "pcs_config": {
+      "fri_config": {
+        "fold_step": 1,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70
+      },
+      "lifting_log_size": null,
+      "pow_bits": 26
+    },
+    "profile": "secure"
+  },
+  "source_audit": {
+    "status": "not_requested"
+  },
+  "suite_manifest": "vectors/riscv_csp/manifest-v2.json",
+  "suite_manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+  "summary": {
+    "all_metal_resident_polynomial_dispatches_verified": true,
+    "all_negative_fixtures_rejected": true,
+    "all_outputs_match": true,
+    "all_peak_memory_available": true,
+    "all_proofs_verified": true,
+    "all_recursion_disabled": true,
+    "row_count": 1,
+    "target_count": 1
+  },
+  "system": {
+    "arithm": "AIR",
+    "field_curve": "M31",
+    "id": "stwo-zig-riscv",
+    "iop": "Circle FRI",
+    "is_audited": "not_audited",
+    "is_maintained": true,
+    "is_pq": true,
+    "is_zk": false,
+    "is_zkvm": true,
+    "isa": "RISC-V RV32IM",
+    "pcs": "Circle-PCS",
+    "proving_system": "Circle STARK",
+    "security_bits": 96,
+    "security_status": "heuristic_pending_external_review"
+  },
+  "upstream": {
+    "commit": "269c43cc32d3127e3d9ce74d20652887d894cca3",
+    "commit_date": "2026-06-30T16:31:37+08:00",
+    "extended_input_adapter": {
+      "path": "vectors/riscv_csp/upstream_fixture_dump.rs",
+      "sha256": "32fd265cc990a80167bbd1428cc1a24df2ee264616264b46f002707b93e23801"
+    },
+    "guest_dependency_revision": "5a2e9d6e888fc8953bf50b59aeb3d8bcdc0d9d57",
+    "input_generator": {
+      "algorithm": "CSP seeded SHA-256, Keccak, M31, and secp256k1 generators",
+      "path": "utils/src/lib.rs",
+      "sha256": "8be25b688abe926e265330f9bf517a96f0e3029d3a2ce799abf069085556a0a3"
+    },
+    "repository": "https://github.com/privacy-ethereum/csp-benchmarks",
+    "rust_toolchain": {
+      "channel": "nightly-2026-03-04",
+      "path": "rust-toolchain.toml",
+      "rustc_commit": "d9563937fa3b030c5845811113505070109414d2",
+      "sha256": "a7903e7ef8155e8e544bb7910d33614d7088788d2a036c004096ac9c11f2f16e"
+    },
+    "size_metadata": {
+      "path": "utils/src/metadata.rs",
+      "sha256": "4b4a5775bb979ee7f0c2abcbd4a0e0cc7687b3689273dd16dd039042297e26d8"
+    }
+  }
+}

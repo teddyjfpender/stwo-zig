@@ -1,0 +1,30 @@
+{
+  "scope": "Parent read-only operation-count model, not measured runtime or a change enabled in CPUbaseline.",
+  "histogram": "real-selected-cpu-success-column-histograms.json",
+  "assumptions": {
+    "hasher_bytes": 72,
+    "prefix_budget_bytes": 100663296,
+    "prefix_log": 20
+  },
+  "modeled_absorbs": [
+    {
+      "tree": 0,
+      "predecessor": 122774656,
+      "reused_prefix": 72443008,
+      "reduction_percent": 40.99514479600741
+    },
+    {
+      "tree": 1,
+      "predecessor": 4388763584,
+      "reused_prefix": 4313266112,
+      "reduction_percent": 1.7202446783699865
+    },
+    {
+      "tree": 2,
+      "predecessor": 902809088,
+      "reused_prefix": 751814144,
+      "reduction_percent": 16.725013738452756
+    }
+  ],
+  "interpretation": "Largest real Tree1 provider group limits reuse; wrapper speedup must not be transferred. MatchedMetalbaseline and amortizedauthenticatedprogramAIR are higher-value next measurements."
+}

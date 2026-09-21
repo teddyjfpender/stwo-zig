@@ -1,0 +1,245 @@
+{
+  "recursive_segment_v2_leaf_outer": {
+    "target": "recursive_segment_v2_leaf_outer.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_temporal_quad_fixture.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_temporal_octet_fixture.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_leaf_key_setup_runner.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_height3_real_proof_test.zig"
+    ]
+  },
+  "recursive_segment_v2_noncore_owner": {
+    "target": "recursive_segment_v2_noncore_owner.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_test_root.zig"
+    ]
+  },
+  "recursive_segment_v2_outer_cohort": {
+    "target": "recursive_segment_v2_outer_cohort.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_test_root.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_segment_v2_outer_admission_v2": {
+    "target": "recursive_segment_v2_outer_admission_v2.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig"
+    ]
+  },
+  "recursive_segment_v2_outer_engine": {
+    "target": "recursive_segment_v2_outer_engine.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_segment_v2_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_segment_v2_tuple_closure_diagnostic": {
+    "target": "recursive_segment_v2_tuple_closure_diagnostic.zig",
+    "consumers": []
+  },
+  "recursive_segment_v2_verified_artifact": {
+    "target": "recursive_segment_v2_verified_artifact.zig",
+    "consumers": []
+  },
+  "recursive_segment_v2_verified_publication": {
+    "target": "recursive_segment_v2_verified_publication.zig",
+    "consumers": []
+  },
+  "recursive_segment_v2_temporal_child_authority": {
+    "target": "recursive_segment_v2_temporal_child_authority.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_pair_authority_v2": {
+    "target": "recursive_temporal_pair_authority_v2.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_parent_verified_artifact_v1": {
+    "target": "recursive_temporal_parent_verified_artifact_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_recursive_admission_v1": {
+    "target": "recursive_temporal_parent_recursive_admission_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_transcript_prefix_v1": {
+    "target": "recursive_temporal_parent_transcript_prefix_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_pair_authority_v1": {
+    "target": "recursive_temporal_parent_pair_authority_v1.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_height3_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_level2_transcript_v1": {
+    "target": "recursive_temporal_level2_transcript_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_level2_prefix_v1": {
+    "target": "recursive_temporal_level2_prefix_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_level2_composition_v1": {
+    "target": "recursive_temporal_level2_composition_v1.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_level2_suffix_v1": {
+    "target": "recursive_temporal_level2_suffix_v1.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_level2_verifier_input_v1": {
+    "target": "recursive_temporal_level2_verifier_input_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_level2_cohort_v1": {
+    "target": "recursive_temporal_level2_cohort_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_verified_node_v1": {
+    "target": "recursive_temporal_verified_node_v1.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_height3_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_verified_parent_capture_v1": {
+    "target": "recursive_temporal_verified_parent_capture_v1.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_multilevel_real_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_height3_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_child_transcript_authority_v1": {
+    "target": "recursive_temporal_child_transcript_authority_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_leaf_or_empty_v1": {
+    "target": "recursive_temporal_leaf_or_empty_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_topology_v1": {
+    "target": "recursive_temporal_topology_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_ethereum_leaf_descriptor_v1": {
+    "target": "recursive_temporal_ethereum_leaf_descriptor_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_ethereum_leaf_bridge_v1": {
+    "target": "recursive_temporal_ethereum_leaf_bridge_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_verified_reducer_v1": {
+    "target": "recursive_temporal_verified_reducer_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_empty_parent_transcript_v1": {
+    "target": "recursive_temporal_empty_parent_transcript_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_empty_parent_source_v1": {
+    "target": "recursive_temporal_empty_parent_source_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_node_profile_v1": {
+    "target": "recursive_temporal_node_profile_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_proof_security_v1": {
+    "target": "recursive_temporal_proof_security_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_heterogeneous_pair_v1": {
+    "target": "recursive_temporal_heterogeneous_pair_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_statement_plan_v1": {
+    "target": "recursive_temporal_statement_plan_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_profile_plan_transport_v1": {
+    "target": "recursive_temporal_profile_plan_transport_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_nonfri_source_v2": {
+    "target": "recursive_temporal_nonfri_source_v2.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig",
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_parent_prefix_runtime": {
+    "target": "recursive_temporal_parent_prefix_runtime.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_parent_row35_owner_v1": {
+    "target": "recursive_temporal_parent_row35_owner_v1.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_manifest_v3": {
+    "target": "recursive_temporal_parent_manifest_v3.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_parent_row18_source_v3": {
+    "target": "recursive_temporal_parent_row18_source_v3.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_temporal_parent_suffix_v3": {
+    "target": "recursive_temporal_parent_suffix_v3.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_verifier_input_publication_v3": {
+    "target": "recursive_temporal_parent_verifier_input_publication_v3.zig",
+    "consumers": []
+  },
+  "recursive_temporal_parent_cohort_v3": {
+    "target": "recursive_temporal_parent_cohort_v3.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_temporal_parent_real_proof_test.zig"
+    ]
+  },
+  "recursive_parent_statement_source": {
+    "target": "recursive_parent_statement_source.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_parent_statement_source_test.zig"
+    ]
+  },
+  "recursive_parent_statement_air_source": {
+    "target": "recursive_parent_statement_air_source.zig",
+    "consumers": [
+      "src/integrations/riscv_cpu/recursive_parent_statement_source_test.zig"
+    ]
+  },
+  "recursive_temporal_child_authority": {
+    "target": "recursive_temporal_child_authority.zig",
+    "consumers": []
+  }
+}

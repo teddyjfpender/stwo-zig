@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "source_ownership_tests": 36,
+  "merkle_tests_passed": 150,
+  "merkle_tests_skipped": 1,
+  "compact_tests_passed": 127,
+  "profile_tests_passed": 21,
+  "inventory_tests_passed": 2,
+  "canonical_merkle_profile_admission": true,
+  "allocation_failure_sweep_passed": true
+}

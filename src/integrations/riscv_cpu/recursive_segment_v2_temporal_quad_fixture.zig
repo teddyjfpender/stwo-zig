@@ -4,10 +4,9 @@
 
 const std = @import("std");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
-const subject = integration.recursive_segment_v2_leaf_outer;
+const subject = @import("recursive_segment_v2_leaf_outer.zig");
 const runner = frontend.runner;
 const recursion = frontend.recursion;
 const span = recursion.span_statement;
@@ -56,44 +55,44 @@ pub fn runTemporalQuadGateWithHook(
     const states = [5]span.MachineState{
         try ingress.machineState(
             results[0].entry_cpu,
-            ingress.digest("recursive-v2-quad-rw-entry"),
+            recursion.segment_statement_v2.snapshotDigest(results[0].rw_memory.words, .initial_word).id,
             ingress.digest("recursive-v2-quad-io-entry"),
         ),
         try ingress.machineState(
             results[0].exit_cpu,
-            ingress.digest("recursive-v2-quad-rw-1"),
+            recursion.segment_statement_v2.snapshotDigest(results[0].rw_memory.words, .final_word).id,
             ingress.digest("recursive-v2-quad-io-1"),
         ),
         try ingress.machineState(
             results[1].exit_cpu,
-            ingress.digest("recursive-v2-quad-rw-2"),
+            recursion.segment_statement_v2.snapshotDigest(results[1].rw_memory.words, .final_word).id,
             ingress.digest("recursive-v2-quad-io-2"),
         ),
         try ingress.machineState(
             results[2].exit_cpu,
-            ingress.digest("recursive-v2-quad-rw-3"),
+            recursion.segment_statement_v2.snapshotDigest(results[2].rw_memory.words, .final_word).id,
             ingress.digest("recursive-v2-quad-io-3"),
         ),
         try ingress.machineState(
             results[3].exit_cpu,
-            ingress.digest("recursive-v2-quad-rw-exit"),
+            recursion.segment_statement_v2.snapshotDigest(results[3].rw_memory.words, .final_word).id,
             ingress.digest("recursive-v2-quad-io-exit"),
         ),
     };
     const entry_states = [3]span.MachineState{
         try ingress.machineState(
             results[1].entry_cpu,
-            ingress.digest("recursive-v2-quad-rw-1"),
+            recursion.segment_statement_v2.snapshotDigest(results[1].rw_memory.words, .initial_word).id,
             ingress.digest("recursive-v2-quad-io-1"),
         ),
         try ingress.machineState(
             results[2].entry_cpu,
-            ingress.digest("recursive-v2-quad-rw-2"),
+            recursion.segment_statement_v2.snapshotDigest(results[2].rw_memory.words, .initial_word).id,
             ingress.digest("recursive-v2-quad-io-2"),
         ),
         try ingress.machineState(
             results[3].entry_cpu,
-            ingress.digest("recursive-v2-quad-rw-3"),
+            recursion.segment_statement_v2.snapshotDigest(results[3].rw_memory.words, .initial_word).id,
             ingress.digest("recursive-v2-quad-io-3"),
         ),
     };

@@ -1,0 +1,18 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=metal memory_addresses=1 initial_register7=0
+SEGMENT_V2_NATIVE_METAL_AOT profile=recursive_framework_v1 manifest_sha256=98bf89b952444539c9ed950e2e6b89475a0e842db3bad861a24fcb8c87f599c3 source_sha256=c567d3234643bb7f99572377026a36667aedd33f503ceedc39bd382529b0f00b metallib_sha256=7d8254ab3bab5443ee8679a313396a0aafffb164aa57d2366639fc9be73f4b92 initialization_ns=62772791
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=35 cumulative_cycles=35 loads=11 stores=11 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=108c
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 228 exact sparse-node calls, poseidon_log_size=8, merkle_log_size=8
+info: resident framework composition: components=6 groups=5 gpu_ms=0.911
+info: resident RISC-V semantic composition: 7 components, 7 kernels, 0.639 ms GPU
+info: resident RISC-V lookup composition: 4 components, 4 kernels, 0.288 ms GPU
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=metal scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=462767284 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1319627 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=602628208 transport_ns=10165292 verify_ns=289213000 recursive_prepare_ns=740411958 proof_bytes=1319627 transcript_calls=1164 verifier_core_calls=58865 outer_proof_created=false
+SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment=0 dispatches=82 poseidon_commits=9
+SEGMENT_V2_DETACHED_GEOMETRY profile=recursive_q193_v1 cohort_ns=1568986458 poseidon_calls=60045 tree0_evaluation_bytes=187176192 tree1_evaluation_bytes=242896640 tree2_evaluation_bytes=110733312 excludes=pcs_expansion_commitments_and_metadata before_tree_allocation=true
+info: resident framework composition: components=38 groups=15 gpu_ms=7.384
+info: resident RISC-V semantic composition: 4 components, 4 kernels, 4.466 ms GPU
+info: resident RISC-V lookup composition: 1 components, 1 kernels, 0.135 ms GPU
+SEGMENT_V2_TWO_CHILD_RECURSIVE_METAL segment=0 dispatches=132 poseidon_commits=9 composition_dispatches=0 fri_circle_dispatches=1 fri_line_dispatches=18 cpu_fallbacks=0 framework_dispatches=38 host_composition_components=0
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=35 completed=true directory=/private/tmp/pr198-single-independent-setup-20260918-v1/metal-tree/leaves/child-0 native_backend=metal recursive_backend=metal proof_bytes=2497739 native_ingress_ns=1643341375 outer_prepare_ns=1873627125 outer_prove_ns=2728515625 transaction_ns=6260538917 producer_peak_bytes=2241159601 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=metal recursive_backend=metal owners_destroyed=true parent_proof_created=false

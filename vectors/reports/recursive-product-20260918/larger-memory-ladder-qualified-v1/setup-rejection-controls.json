@@ -1,0 +1,17 @@
+[
+  {
+    "name": "wrong-key-receipt-pin",
+    "rejected_before_output": true,
+    "reason": "independent input pin mismatch"
+  },
+  {
+    "name": "missing-boundary",
+    "rejected_before_output": true,
+    "reason": "segment children require"
+  },
+  {
+    "name": "other-expected-statement",
+    "rejected_before_output": true,
+    "reason": "leaf key setup used another expected statement"
+  }
+]

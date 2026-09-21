@@ -1,0 +1,13 @@
+{
+  "observed_at": "2026-09-08T05:25:24.601518+00:00",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "live_process": "  PID STAT  ELAPSED  %CPU    RSS\n40352 R    01:08:49  97.5 10535440\n",
+  "phases": [
+    "ETHEREUM_WRAPPER_RESOURCES phase=preprocessed wall_ns=290764590458 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=34289062632 source=darwin_proc_pid_rusage_v6",
+    "ETHEREUM_WRAPPER_RESOURCES phase=main.allocate wall_ns=31614359375 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=34294854656 source=darwin_proc_pid_rusage_v6"
+  ],
+  "source_arena_bytes": 11824971072,
+  "footprint_change_during_allocation_bytes": 5792024,
+  "scope": "Full preprocessing and selected mapped main allocation completed; main fill/commit, whole wrapper and independent acceptance still pending",
+  "wrapper_accepted": false
+}

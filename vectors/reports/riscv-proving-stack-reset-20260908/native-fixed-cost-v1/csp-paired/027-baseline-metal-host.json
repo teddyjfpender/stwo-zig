@@ -1,0 +1,46 @@
+{
+  "admissible": false,
+  "observed": {
+    "idle_percent": [
+      83.1,
+      86.19,
+      87.46
+    ],
+    "load_1m": [
+      5.79,
+      5.79,
+      5.79
+    ],
+    "maximum_normalized_load_1m": 0.4135714285714286,
+    "median_idle_percent": 86.19,
+    "minimum_idle_percent": 83.1,
+    "normalized_load_1m": [
+      0.4135714285714286,
+      0.4135714285714286,
+      0.4135714285714286
+    ],
+    "thermal": {
+      "kernel_thermal_pressure": null,
+      "provider": "darwin_top_pmset_v1",
+      "thermal_clear": true,
+      "thermal_line_count": 3,
+      "thermal_output_sha256": "96de6076213225f787270bff80efd2011e0ad142953c37697dc547f77d302892"
+    }
+  },
+  "policy": "paired_steady_state_v1",
+  "power_admissible": true,
+  "reasons": [
+    "minimum CPU idle is below 90%",
+    "median CPU idle is below 95%"
+  ],
+  "schema": "stwo_native_ab_quiet_host_preflight_v1",
+  "thresholds": {
+    "load_threshold_enforced": false,
+    "maximum_normalized_load_1m": 0.2,
+    "median_idle_percent": 95.0,
+    "minimum_idle_percent": 90.0,
+    "sample_count": 3,
+    "sample_interval_seconds": 1,
+    "thermal_warning_state": "clear"
+  }
+}

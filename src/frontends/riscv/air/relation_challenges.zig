@@ -13,6 +13,16 @@ pub const RELATION_COUNT: usize = 12;
 pub const CHALLENGES_PER_RELATION: usize = 2;
 pub const DRAW_COUNT: usize = RELATION_COUNT * CHALLENGES_PER_RELATION;
 
+/// One linear-combination authority shared by native evaluation and symbolic
+/// protocol identity recording. The caller supplies admitted alpha powers.
+pub fn combineGeneric(comptime S: type, z: S, powers: anytype, values: anytype) S {
+    var result = S.zero();
+    for (values, powers) |value, power| {
+        result = result.add(power.mul(value));
+    }
+    return result.sub(z);
+}
+
 pub fn RelationElements(comptime arity: usize) type {
     return struct {
         z: QM31,
@@ -54,11 +64,7 @@ pub fn RelationElements(comptime arity: usize) type {
         /// challenges remain concrete QM31 values; recursive recorders provide
         /// their own relation type with the same method surface.
         pub fn combine(self: Self, values: [arity]QM31) QM31 {
-            var result = QM31.zero();
-            for (values, self.alpha_powers) |value, power| {
-                result = result.add(power.mul(value));
-            }
-            return result.sub(self.z);
+            return combineGeneric(QM31, self.z, self.alpha_powers, values);
         }
     };
 }

@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "at": "2026-09-07T18:28:52.505253+00:00",
+  "focused_tests_passed": 6,
+  "compile_s": 11,
+  "compile_max_rss_report": "762M",
+  "test_wall_ms": 570,
+  "test_max_rss_report": "5M",
+  "logs_sha256": {
+    "ethereum-completion-opening-v1.log": "055935e3eda22a20a48f4f1c9912278de654a369c476fe343f2b40a4f665f23e",
+    "ethereum-completion-opening-v2.log": "28dab94f1060a265a97ae0b74a83177398766ed9181f8d31d1d4ebd98ce72029"
+  },
+  "actual_fixture_closure": "queued",
+  "complete_opening_wrapper_proof": false,
+  "full_real_program_wrapper_proof": false,
+  "terminal_wrapper_admission": false,
+  "default_bounded64_unchanged": true,
+  "native_descriptor_and_transcript_unchanged": true,
+  "opening_version": 1,
+  "digest_canonical_M31_lanes": 8,
+  "generic_collision_bits_approx": 124,
+  "real_program_rows": 729419,
+  "real_program_opening_depth": 20,
+  "real_program_path_words": 180,
+  "projected_tree_and_row_allocation_bytes": 84614920,
+  "actual_real_program_opening_measurement": false
+}

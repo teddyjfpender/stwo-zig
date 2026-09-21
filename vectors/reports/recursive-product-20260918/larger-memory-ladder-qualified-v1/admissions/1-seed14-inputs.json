@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "memory_addresses": 16,
+  "initial_memory_word": 14,
+  "leaf_expected": [
+    {
+      "path": "../inputs/525a7fbed548c21135ab6783edf55532fef7ac946ad28f7b39e8df52d4688703.json",
+      "sha256": "525a7fbed548c21135ab6783edf55532fef7ac946ad28f7b39e8df52d4688703"
+    }
+  ],
+  "parents": []
+}

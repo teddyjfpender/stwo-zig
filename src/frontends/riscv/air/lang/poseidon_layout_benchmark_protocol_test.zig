@@ -2,7 +2,7 @@ const std = @import("std");
 const reviewed = @import("typed_air_h009_artifacts");
 const frontier = @import("materialization_frontier_manifest.zig");
 const protocol = @import("poseidon_layout_benchmark_protocol.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 const vector = @import("poseidon_layout_benchmark_vector.zig");
 
 test "H-010 protocol authenticates the exact reviewed H-009 artifact" {

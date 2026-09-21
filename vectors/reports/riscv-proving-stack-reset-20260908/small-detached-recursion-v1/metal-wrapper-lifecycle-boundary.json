@@ -1,0 +1,7 @@
+{
+  "input": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-metal-seed13-lifecycle-accepted.json.producer.log",
+  "input_sha256": "7fb1210ad08e5bfd303648a5ade2fcbd1e8bd0f8c1650b6f1998ec0fb07d0ee5",
+  "legacy_cpu_wrapper_lifecycle_passed": true,
+  "false_metal_wrapper_label_rejected": true,
+  "rejection": "producer did not use Metal for both recursive wrappers"
+}

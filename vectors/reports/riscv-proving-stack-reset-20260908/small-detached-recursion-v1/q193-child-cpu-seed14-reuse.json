@@ -1,0 +1,25 @@
+{
+  "argv": [
+    ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-prove",
+    "--memory-addresses",
+    "1",
+    "--segments-output",
+    "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-cpu-seed14-reuse",
+    "--initial-memory-word",
+    "14",
+    "--proof-profile",
+    "recursive_q193_v1",
+    "--child-0-key",
+    "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-key.json",
+    "--child-0-key-sha256",
+    "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+    "--child-1-key",
+    "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-key.json",
+    "--child-1-key-sha256",
+    "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 32.488873459165916,
+  "maximum_rss_bytes": 2604351488,
+  "producer_sha256": "c67817eba752f72a31eb0a4b193b8c4a63cdf188c7802ee2d016852777b93771"
+}

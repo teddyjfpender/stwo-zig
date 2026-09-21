@@ -1,0 +1,21 @@
+{
+  "base_head": "a8f1c054cd18a8c18cfc4338a4d46dcc58175205",
+  "binary": ".git/local-riscv-proving-stack/parent-interaction-v1/parent-prove-cpu",
+  "binary_sha256": "5e592ff2b31ded06bd2756ccff8f004e59258d2d9f40790a0533e6673ab5d312",
+  "files": {
+    "src/backends/metal/runtime.m": "7faad3529ec885a9383a429a68cc24089695483a58187a9ff09ddb69da8892b3",
+    "src/backends/metal/runtime/framework_polynomial_codegen.zig": "7ab501bf293f3b89efcc9f1f6286b3015291bb10a1b59e33287c7a06823a6095",
+    "src/backends/metal/shaders/aot_profile.zig": "4c9d2b5dc2c53000d539e67f2f64e016c2cb8bae6140c01b4683665bac330318",
+    "src/frontends/riscv/air/lookups/tables/component.zig": "7ae2e5b6952c6b03158e12c23c84d7ebd2eedc4e7834e37e3734842e83e4170d",
+    "src/frontends/riscv/air/lookups/tables/interaction.zig": "12f93bf6e712ee098f59c6b322f3eaebd07762a4a1ca016612f49ab700dc513f",
+    "src/frontends/riscv/air/lookups/tables/mod.zig": "140899b593769110db0719650ca8baf07e4b9a3c525d283f695b168c6e721cbd",
+    "src/frontends/riscv/build.zig": "88107da5c06b1afc7df1c42f3aff1a2c947c70aca4999293afc91981dcf2b7a1",
+    "src/frontends/riscv/lookup_table_interaction_test_root.zig": "62d662dc62711a598242b84a976cce2690c889cddda3442c0b2f65dd1398c318",
+    "src/frontends/riscv/test_inventory.zig": "30e519f14a4868503938c4daf0377a405633f595653a13d92ecf9e5f82dc6cef",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "e5ab430b7cd2e793b9f50352aa8cf29638553cc671237476372b188e224be24f",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_cohort.zig": "77fa5f6fa4915921882d432429f69393fbd926853a0ba57a53d8e00d30f73b47",
+    "src/tests/riscv/recursive_framework_aot_test.zig": "c530ac09b429aa9cbec94b5e76b5ac851d6c7cf4eb30ed8bed31303ef61d8e32"
+  },
+  "scope": "Post-build worktree observation only: compilation overlapped a temporary native writer edit whose bytes enter the compact Poseidon circuit identity. Candidate rejected DetachedParentManifestMismatch before proof production. This binary is NOT admitted and is excluded from timings.",
+  "admission_passed": false
+}

@@ -1,0 +1,7 @@
+1/6 poseidon2_universal_degree3_test_root.test_0...OK
+2/6 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon matches legacy permutation and all relation modes...OK
+3/6 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 Poseidon constrains all permutation columns even in padding...OK
+4/6 air.memory_commitment.poseidon2_universal_degree3_v1_test.test.universal degree3 provider saves padded cells without raising quotient degree...OK
+5/6 air.memory_commitment.poseidon2_narrow_backend_v1_test.test.universal degree3 Poseidon backend preserves native direct and independent prefix constraints...OK
+6/6 air.memory_commitment.poseidon2_narrow_backend_v1_test.test.universal degree3 backend constrains modes and padding independently of selector...OK
+All 6 tests passed.

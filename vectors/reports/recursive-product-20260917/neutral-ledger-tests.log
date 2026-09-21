@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 7/7 tests passed
+test-recursive-compact-tuple-ledger success
++- Recursive compact tuple ledger guard success
+   +- run test 7 passed 783ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 4s MaxRSS:514M
+

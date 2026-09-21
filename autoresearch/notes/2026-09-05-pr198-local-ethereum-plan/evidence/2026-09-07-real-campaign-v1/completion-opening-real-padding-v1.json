@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "status": "failed before proof",
+  "gate": "real pair1/2 typed AIR preflight",
+  "error": "InvalidCompletionProgramTable",
+  "cause": "Native declared ROM includes47 canonical unreachable LLVM unimp padding rows; completion tree correctly excludes them, but owner incorrectly required equal row counts",
+  "declared_rows": 729419,
+  "executable_completion_rows": 729372,
+  "elf_sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16",
+  "fix": "Exact ordered executable projection, skipping only shared canonical declared-padding opcode while retaining native descriptor and full ELF pin",
+  "regression": "Actual pinned fixture ELF owner with one declared padding word; same native descriptor, excluded completion PC rejects",
+  "log_sha256": "bd89067919cbc2d38e808c743e9213efb0618f9833da5ac252e3a39aa29294f0",
+  "actual_wrapper_proof": false
+}

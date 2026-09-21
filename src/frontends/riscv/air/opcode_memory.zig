@@ -1,4 +1,4 @@
-//! Opcode-side `memory_access` LogUp columns and constraints.
+//! Committed opcode memory-access layouts and register-boundary validation.
 //!
 //! Every Stark-V RV32IM family has at most three register/RW-memory accesses
 //! per row. Fixed slots keep the proof shape independent of opcode counts;
@@ -14,15 +14,12 @@ const diagnostic_hints = @import("diagnostic_hints.zig");
 /// reporting without reaching across the frontend package boundary.
 pub const diagnostic_wiring_source = @embedFile("opcode_memory.zig");
 const memory_logup = @import("memory_logup.zig");
-const relation_challenges = @import("relation_challenges.zig");
 const trace_columns = @import("trace_columns.zig");
 const trace_mod = @import("../runner/trace.zig");
 const decode = @import("../isa/decode.zig");
 const access_clock = @import("../access_clock.zig");
 
 pub const N_ACCESSES: usize = 3;
-pub const N_COLUMNS: usize = N_ACCESSES * 4;
-pub const Previous = [N_ACCESSES][4][]M31;
 
 /// Physical encoding of one opcode-side register or memory access.
 ///
@@ -205,52 +202,6 @@ pub const RegisterBoundary = struct {
     last_clock: [32]u32 = .{0} ** 32,
 };
 
-pub const Generated = struct {
-    columns: [N_COLUMNS][]M31,
-    previous: Previous,
-    claims: [N_ACCESSES]QM31,
-
-    pub fn deinit(self: *Generated, allocator: std.mem.Allocator) void {
-        freeColumns(allocator, &self.columns);
-        for (&self.previous) |*set| freeColumns(allocator, set);
-        self.* = undefined;
-    }
-};
-
-pub fn generate(
-    allocator: std.mem.Allocator,
-    rows: []const trace_mod.TraceRow,
-    family: trace_mod.OpcodeFamily,
-    log_size: u32,
-    relation: *const relation_challenges.RelationElements(7),
-) !Generated {
-    var result: Generated = undefined;
-    var initialized: usize = 0;
-    errdefer {
-        freeColumns(allocator, result.columns[0 .. initialized * 4]);
-        for (result.previous[0..initialized]) |*set| freeColumns(allocator, set);
-    }
-
-    for (0..N_ACCESSES) |slot| {
-        const has_access = slot < accessCount(family);
-        var accesses: []memory_logup.AccessWitness = &.{};
-        if (has_access) accesses = try allocator.alloc(memory_logup.AccessWitness, rows.len);
-        defer if (has_access) allocator.free(accesses);
-        if (has_access) {
-            for (rows, accesses) |row, *access| access.* = accessFromTrace(row, family, slot);
-        }
-
-        const generated = try memory_logup.generate(allocator, accesses, log_size, relation);
-        for (generated.columns, 0..) |column, coordinate| {
-            result.columns[slot * 4 + coordinate] = column;
-        }
-        result.previous[slot] = generated.previous_columns;
-        result.claims[slot] = generated.claimed;
-        initialized += 1;
-    }
-    return result;
-}
-
 /// Reconstruct one access from the committed main row. This is the sole
 /// verifier-side family layout map for the memory-access relation.
 pub fn accessFromMain(
@@ -314,30 +265,6 @@ pub fn accessFromMain(
         derivedClock(instruction_clock, accessOrdinal(family, slot)),
         is_active,
     );
-}
-
-pub fn constraints(
-    family: trace_mod.OpcodeFamily,
-    main: []const QM31,
-    is_active: QM31,
-    is_first: QM31,
-    sums: [N_ACCESSES]QM31,
-    previous: [N_ACCESSES]QM31,
-    claims: [N_ACCESSES]QM31,
-    relation: *const relation_challenges.RelationElements(7),
-) ![N_ACCESSES]QM31 {
-    var result: [N_ACCESSES]QM31 = undefined;
-    for (&result, 0..) |*constraint, slot| {
-        const access = try accessFromMain(family, main, slot, is_active);
-        constraint.* = memory_logup.pairConstraint(
-            sums[slot],
-            previous[slot],
-            is_first,
-            claims[slot],
-            memory_logup.rowPair(relation, access),
-        );
-    }
-    return result;
 }
 
 /// Failure modes of `deriveRegisterBoundary`.
@@ -456,31 +383,6 @@ fn rawAccessMode(family: trace_mod.OpcodeFamily, slot: usize) AccessMode {
     };
 }
 
-fn accessFromTrace(
-    row: trace_mod.TraceRow,
-    family: trace_mod.OpcodeFamily,
-    slot: usize,
-) memory_logup.AccessWitness {
-    if (family == .load_store) return switch (slot) {
-        0 => if (row.is_store)
-            memoryAccess(row, .third)
-        else
-            rdAccess(row, .second),
-        1 => rs1Access(row, .first),
-        2 => if (row.is_load)
-            memoryAccess(row, .third)
-        else
-            rs2Access(row, .second),
-        else => unreachable,
-    };
-    const ordinal = accessOrdinal(family, slot);
-    return switch (accessKind(family, slot)) {
-        .rd => rdAccess(row, ordinal),
-        .rs1 => rs1Access(row, ordinal),
-        .rs2 => rs2Access(row, ordinal),
-    };
-}
-
 const AccessKind = enum { rd, rs1, rs2 };
 
 const TraceAccess = struct {
@@ -517,20 +419,6 @@ fn accessOrdinal(
     };
 }
 
-fn rdAccess(
-    row: trace_mod.TraceRow,
-    ordinal: access_clock.Ordinal,
-) memory_logup.AccessWitness {
-    return witness(
-        0,
-        row.rd,
-        row.rd_prev_clk,
-        row.rd_prev_val,
-        access_clock.encode(row.clk, ordinal),
-        row.rd_val,
-    );
-}
-
 fn rdTrace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     return .{
         .addr = row.rd,
@@ -541,20 +429,6 @@ fn rdTrace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     };
 }
 
-fn rs1Access(
-    row: trace_mod.TraceRow,
-    ordinal: access_clock.Ordinal,
-) memory_logup.AccessWitness {
-    return witness(
-        0,
-        row.rs1,
-        row.rs1_prev_clk,
-        row.rs1_val,
-        access_clock.encode(row.clk, ordinal),
-        row.rs1_val,
-    );
-}
-
 fn rs1Trace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
     return .{
         .addr = row.rs1,
@@ -563,20 +437,6 @@ fn rs1Trace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess 
         .clock = access_clock.encode(row.clk, ordinal),
         .next = row.rs1_val,
     };
-}
-
-fn rs2Access(
-    row: trace_mod.TraceRow,
-    ordinal: access_clock.Ordinal,
-) memory_logup.AccessWitness {
-    return witness(
-        0,
-        row.rs2,
-        row.rs2_prev_clk,
-        row.rs2_val,
-        access_clock.encode(row.clk, ordinal),
-        row.rs2_val,
-    );
 }
 
 fn rs2Trace(row: trace_mod.TraceRow, ordinal: access_clock.Ordinal) TraceAccess {
@@ -602,39 +462,6 @@ fn observe(boundary: *RegisterBoundary, seen: *[32]bool, access: TraceAccess) !v
         return error.InvalidRegisterAccessChain;
     boundary.last_clock[index] = access.clock;
     boundary.final[index] = access.next;
-}
-
-fn memoryAccess(
-    row: trace_mod.TraceRow,
-    ordinal: access_clock.Ordinal,
-) memory_logup.AccessWitness {
-    return witness(
-        1,
-        row.mem_addr & ~@as(u32, 3),
-        row.mem_prev_clk,
-        row.mem_prev_word,
-        access_clock.encode(row.clk, ordinal),
-        row.mem_next_word,
-    );
-}
-
-fn witness(
-    addr_space: u1,
-    addr: u32,
-    previous_clock: u32,
-    previous_value: u32,
-    clock: u32,
-    next_value: u32,
-) memory_logup.AccessWitness {
-    return .{
-        .addr_space = base(addr_space),
-        .addr = base(addr),
-        .previous_clock = base(previous_clock),
-        .previous = limbs(previous_value),
-        .clock = base(clock),
-        .next = limbs(next_value),
-        .enabler = QM31.one(),
-    };
 }
 
 fn fromMainAccess(
@@ -681,21 +508,8 @@ fn disabledAccess() memory_logup.AccessWitness {
     };
 }
 
-fn limbs(value: u32) [4]QM31 {
-    return .{
-        base(@as(u8, @truncate(value))),
-        base(@as(u8, @truncate(value >> 8))),
-        base(@as(u8, @truncate(value >> 16))),
-        base(@as(u8, @truncate(value >> 24))),
-    };
-}
-
 fn base(value: anytype) QM31 {
     return QM31.fromBase(M31.fromU64(@as(u64, value)));
-}
-
-fn freeColumns(allocator: std.mem.Allocator, columns: []const []M31) void {
-    for (columns) |column| allocator.free(column);
 }
 
 test "opcode memory: committed load/store selectors choose address spaces" {

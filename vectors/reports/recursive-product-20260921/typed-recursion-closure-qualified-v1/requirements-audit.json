@@ -1,0 +1,68 @@
+{
+  "status": "typed_recursion_qualification_passed_broader_baseline_open",
+  "full_goal_complete": false,
+  "requirements": [
+    {
+      "item": 1,
+      "requirement": "Repair baseline at owning contracts",
+      "status": "incomplete",
+      "evidence": [
+        "../session-host-closure-v1/README.md",
+        "../../recursive-product-20260918/formal-reviewed-revision-v1/summary.json"
+      ],
+      "remaining": "Repository source conformance still has 103 size findings; not part of the current typed/recursion cleanup batch."
+    },
+    {
+      "item": 2,
+      "requirement": "Pinned complete CPU/Metal/AOT proof and fresh hostile verification",
+      "status": "current_source_complete_products_passed",
+      "evidence": [
+        "qualified-source-snapshot.json",
+        "source-replay.json",
+        "pinned-inputs-recheck.json",
+        "cpu-summary.json",
+        "metal-summary.json"
+      ]
+    },
+    {
+      "item": 3,
+      "requirement": "Shared recursion ownership, verifier-only dependencies, replaced routes removed under proof gate",
+      "status": "focused_checks_and_complete_products_passed",
+      "evidence": [
+        "source-changes.json",
+        "../session-host-closure-v1/README.md",
+        "../legacy-executor-deletion-v1/README.md",
+        "../infrastructure-opcode-retirement-v1/README.md"
+      ]
+    },
+    {
+      "item": 4,
+      "requirement": "Protocol identity separate from provenance",
+      "status": "current_source_complete_product_parity_passed",
+      "evidence": [
+        "../../recursive-product-20260917/canonical-identity-v2/cross-backend.json"
+      ]
+    },
+    {
+      "item": 5,
+      "requirement": "AOT, selected-lane and typed GPU interactions individually qualified",
+      "status": "historical_stages_and_current_gpu_integration_passed",
+      "evidence": [
+        "../../recursive-product-20260917/cpu-selected-v1/summary.json",
+        "../../recursive-product-20260917/metal-selected-v1/summary.json",
+        "../typed-recursion-final-qualified-v1/metal-summary.json",
+        "metal-summary.json"
+      ],
+      "note": "Current run rebuilds matching AOT and requires native, leaf and parent GPU interaction dispatches; it is not a speed experiment."
+    },
+    {
+      "item": 6,
+      "requirement": "Useful authenticated 1/2/4/8 continuation, fresh root verification and memory/economics",
+      "status": "current_source_ladder_and_root_measurements_passed",
+      "evidence": [
+        "ladder-summary.json",
+        "ladder-measurements.json"
+      ]
+    }
+  ]
+}

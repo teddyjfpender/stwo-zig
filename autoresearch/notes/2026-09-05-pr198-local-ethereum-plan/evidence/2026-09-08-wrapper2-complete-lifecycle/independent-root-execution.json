@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "exit_code": 0,
+  "wall_seconds": 2.1663371669128537,
+  "receipt": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/independent-root-check-extended-v2/receipt.json",
+    "bytes": 17266,
+    "sha256": "a0f85e09b6b7892a3a4c493b987a61c920928a14fde5292a40c8a9773491abd9"
+  },
+  "log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v4/post-publication-rejection-plan-v2/checker.log",
+    "bytes": 11017,
+    "sha256": "b07aca8b7cf7c1c8e50a36ecd48fa478a724458d3472e789c2ed169a05d09dbb"
+  },
+  "source_and_candidate_pins_unchanged": true
+}

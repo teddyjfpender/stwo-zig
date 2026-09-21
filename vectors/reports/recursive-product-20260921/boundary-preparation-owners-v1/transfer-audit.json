@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "normalization": "Only pub visibility changes; all moved executable chunks exact.",
+  "moves": [
+    {
+      "owner": "src/frontends/riscv/recursion/detached_boundary_graph_v1.zig",
+      "unchanged_chunks": 2
+    },
+    {
+      "owner": "src/frontends/riscv/recursion/detached_boundary_identity_v1.zig",
+      "unchanged_chunks": 2
+    },
+    {
+      "owner": "src/frontends/riscv/recursion/detached_boundary_continuation_v1.zig",
+      "unchanged_chunks": 3
+    }
+  ]
+}

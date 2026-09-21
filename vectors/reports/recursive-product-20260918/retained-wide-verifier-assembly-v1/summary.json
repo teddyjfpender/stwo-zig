@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "cases": 27,
+  "serialized_parents": 1,
+  "verifier_sha256": "050af45baad1656e0823fcf765f61b78354957e89c52963c50bbd68ff988e46a",
+  "scope": "Fresh verifier replay of independently pinned retained wide Poseidon parent-of-parent root, with hostile cases; no new proof production.",
+  "source_artifacts": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/parent-hotpath-final-cpu-ab-1-before"
+}

@@ -1,0 +1,22 @@
+test-compact-poseidon-authority
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+air/logup.zig:407:26: error: no module named 'stwo_prover_engine' available within module 'root'
+const eval_mod = @import("stwo_prover_engine").poly.circle.evaluation;
+                         ^~~~~~~~~~~~~~~~~~~~
+referenced by:
+    test.geometry: trace-order shift equals evaluation at point minus coset step: air/logup.zig:433:24
+    logup: air/memory_commitment/poseidon2_air.zig:13:23
+    6 reference(s) hidden; use '-freference-trace=8' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/compact_poseidon_authority_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-compact-poseidon-authority transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/5bb445c8898444db09f2580e2ed8fee1/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xae1c20e7 -Z8deb93c47930f576 --maxrss 25769803776 -j1 test-compact-poseidon-authority -Doptimize=ReleaseSafe --summary all

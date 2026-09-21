@@ -210,8 +210,9 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             // Sort query values into Merkle order and deduplicate folded
             // positions. The proof keeps its original order for FRI answers.
             var dedup_cols = try allocator.alloc([]M31, n_cols);
+            var dedup_cols_initialized: usize = 0;
             defer {
-                for (dedup_cols) |col| allocator.free(col);
+                for (dedup_cols[0..dedup_cols_initialized]) |col| allocator.free(col);
                 allocator.free(dedup_cols);
             }
             for (col_indices, 0..) |col_idx, j| {
@@ -227,6 +228,7 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
                     }
                 }
                 dedup_cols[j] = try dedup.toOwnedSlice(allocator);
+                dedup_cols_initialized += 1;
             }
 
             const Pair = struct { idx: usize, hash: H.Hash };
@@ -237,16 +239,16 @@ pub fn MerkleVerifierLifted(comptime H: type) type {
             defer allocator.free(col_pos);
             @memset(col_pos, 0);
 
+            const row = try allocator.alloc(M31, n_cols);
+            defer allocator.free(row);
             for (unique_positions.items) |pos| {
-                var row = std.ArrayList(M31).empty;
-                defer row.deinit(allocator);
                 for (dedup_cols, 0..) |col, col_i| {
                     if (col_pos[col_i] >= col.len) return MerkleVerificationError.WitnessTooShort;
-                    try row.append(allocator, col[col_pos[col_i]]);
+                    row[col_i] = col[col_pos[col_i]];
                     col_pos[col_i] += 1;
                 }
                 var hasher = H.defaultWithInitialState();
-                hasher.updateLeaf(row.items);
+                hasher.updateLeaf(row);
                 try prev_layer.append(allocator, .{ .idx = pos, .hash = hasher.finalize() });
             }
 
@@ -391,10 +393,17 @@ fn maxLogSize(values: []const u32) u32 {
 }
 
 test "vcs_lifted verifier: verifies simple proof" {
+    try verifySimpleProofWithAllocator(std.testing.allocator);
+}
+
+test "vcs_lifted verifier: every allocation failure preserves capture and releases columns" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, verifySimpleProofWithAllocator, .{});
+}
+
+fn verifySimpleProofWithAllocator(alloc: std.mem.Allocator) !void {
     const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
     const Decommitment = MerkleDecommitmentLifted(Hasher);
     const Verifier = MerkleVerifierLifted(Hasher);
-    const alloc = std.testing.allocator;
 
     const query_positions = [_]usize{ 1, 3 };
     const queried_values = [_][]const M31{
@@ -430,14 +439,18 @@ test "vcs_lifted verifier: verifies simple proof" {
     var decommitment = Decommitment{ .hash_witness = try alloc.dupe(Hasher.Hash, &[_]Hasher.Hash{ leaf0, leaf2 }) };
     defer decommitment.deinit(alloc);
 
-    var capture: MerklePathCapture(Hasher) = undefined;
-    try verifier.verifyWithPathCapture(
+    const sentinel = MerklePathCapture(Hasher){ .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{} };
+    var capture = sentinel;
+    verifier.verifyWithPathCapture(
         alloc,
         query_positions[0..],
         queried_values[0..],
         decommitment,
         &capture,
-    );
+    ) catch |err| {
+        try std.testing.expectEqualDeep(sentinel, capture);
+        return err;
+    };
     defer capture.deinit(alloc);
 
     try std.testing.expectEqual(@as(u32, 2), capture.path_depth);
@@ -536,4 +549,22 @@ test "vcs_lifted verifier: rejects queried column count mismatch" {
         MerkleVerificationError.InvalidQueryShape,
         verifier.verify(alloc, &[_]usize{1}, queried_values[0..], decommitment),
     );
+}
+
+test "vcs_lifted verifier: duplicate mismatch releases only initialized columns" {
+    const Hasher = @import("blake2_merkle.zig").Blake2sMerkleHasher;
+    const Verifier = MerkleVerifierLifted(Hasher);
+    const alloc = std.testing.allocator;
+    var verifier = try Verifier.init(alloc, [_]u8{0} ** 32, &.{ 2, 2, 2, 2 });
+    defer verifier.deinit(alloc);
+    const positions = [_]usize{ 3, 1, 3 };
+    const same = [_]M31{ M31.fromCanonical(30), M31.fromCanonical(10), M31.fromCanonical(30) };
+    const changed = [_]M31{ M31.fromCanonical(40), M31.fromCanonical(20), M31.fromCanonical(41) };
+    // Reject after two complete deduplicated columns, with a fourth slot still
+    // uninitialized. This previously freed an arbitrary slice on the error path.
+    const columns = [_][]const M31{ &same, &same, &changed, &same };
+    const sentinel = MerklePathCapture(Hasher){ .positions = &.{}, .path_depth = std.math.maxInt(u32), .siblings = &.{} };
+    var capture = sentinel;
+    try std.testing.expectError(error.DuplicateQueryMismatch, verifier.verifyWithPathCapture(alloc, &positions, &columns, .{ .hash_witness = &.{} }, &capture));
+    try std.testing.expectEqualDeep(sentinel, capture);
 }

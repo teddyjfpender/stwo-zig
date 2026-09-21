@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded; 30/30 tests passed
+test-framework-polynomial-codegen success
++- run test 12 passed 279ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 4s MaxRSS:411M
+test-composition-task-profile success
++- run test 18 passed 830ms MaxRSS:58M
+   +- compile test ReleaseSafe native success 8s MaxRSS:577M
+

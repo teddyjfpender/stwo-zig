@@ -2,6 +2,7 @@ const std = @import("std");
 const runtime = @import("../runtime.zig");
 const ffi = @import("bindings.zig");
 const protocol_mode = @import("protocol_mode.zig");
+const direct_merkle_offset_plan = @import("direct_merkle_offset_plan.zig");
 
 const M31 = @import("stwo_core").fields.m31.M31;
 
@@ -324,6 +325,46 @@ pub fn leafAbsorb(
     return gpu_ms;
 }
 
+pub fn leafAbsorbForHash(
+    self: *Runtime,
+    arena: ResidentBuffer,
+    column_offsets: []const u32,
+    column_logs: []const u32,
+    state_offset: u32,
+    lifting_log: u32,
+    first_column: u32,
+    is_final: bool,
+    prefix_bytes: u32,
+    leaf_seed: [8]u32,
+    hash_family: u32,
+) MetalError!f64 {
+    if (column_offsets.len == 0 or column_offsets.len > 16 or
+        column_offsets.len != column_logs.len or
+        (prefix_bytes != 0 and prefix_bytes != lifted_merkle_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2))
+        return MetalError.CommitmentFailed;
+    var gpu_ms: f64 = 0;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    if (!ffi.stwo_zig_metal_leaf_absorb_v2(
+        self.handle,
+        arena.handle,
+        column_offsets.ptr,
+        column_logs.ptr,
+        @intCast(column_offsets.len),
+        state_offset,
+        lifting_log,
+        first_column,
+        @intFromBool(is_final),
+        prefix_bytes,
+        &leaf_seed,
+        hash_family,
+        &gpu_ms,
+        &message,
+        message.len,
+    )) return MetalError.CommitmentFailed;
+    return gpu_ms;
+}
+
 pub fn leafAbsorbCompact(
     self: *Runtime,
     arena: ResidentBuffer,
@@ -368,6 +409,51 @@ pub fn leafAbsorbCompact(
     return gpu_ms;
 }
 
+pub fn leafAbsorbCompactForHash(
+    self: *Runtime,
+    arena: ResidentBuffer,
+    column_offsets: []const u32,
+    column_logs: []const u32,
+    source_state_offset: u32,
+    source_state_log: u32,
+    destination_state_offset: u32,
+    destination_log: u32,
+    first_column: u32,
+    is_final: bool,
+    prefix_bytes: u32,
+    leaf_seed: [8]u32,
+    hash_family: u32,
+) MetalError!f64 {
+    if (column_offsets.len == 0 or column_offsets.len > 16 or
+        column_offsets.len != column_logs.len or
+        (first_column != 0 and source_state_log > destination_log) or
+        (prefix_bytes != 0 and prefix_bytes != lifted_merkle_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2))
+        return MetalError.CommitmentFailed;
+    var gpu_ms: f64 = 0;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    if (!ffi.stwo_zig_metal_leaf_absorb_compact_v2(
+        self.handle,
+        arena.handle,
+        column_offsets.ptr,
+        column_logs.ptr,
+        @intCast(column_offsets.len),
+        source_state_offset,
+        source_state_log,
+        destination_state_offset,
+        destination_log,
+        first_column,
+        @intFromBool(is_final),
+        prefix_bytes,
+        &leaf_seed,
+        hash_family,
+        &gpu_ms,
+        &message,
+        message.len,
+    )) return MetalError.CommitmentFailed;
+    return gpu_ms;
+}
+
 pub fn parentSeeded(
     self: *Runtime,
     arena: ResidentBuffer,
@@ -382,6 +468,33 @@ pub fn parentSeeded(
         std.log.err("Metal seeded parent hash failed: {s}", .{std.mem.sliceTo(&message, 0)});
         return MetalError.CommitmentFailed;
     }
+    return gpu_ms;
+}
+
+pub fn parentSeededForHash(
+    self: *Runtime,
+    arena: ResidentBuffer,
+    child_offset: u32,
+    destination_offset: u32,
+    parent_count: u32,
+    node_seed: [8]u32,
+    hash_family: u32,
+) MetalError!f64 {
+    if (hash_family != 1 and hash_family != 2) return MetalError.CommitmentFailed;
+    var gpu_ms: f64 = 0;
+    var message: [1024]u8 = [_]u8{0} ** 1024;
+    if (!ffi.stwo_zig_metal_parent_seeded_v2(
+        self.handle,
+        arena.handle,
+        child_offset,
+        destination_offset,
+        parent_count,
+        &node_seed,
+        hash_family,
+        &gpu_ms,
+        &message,
+        message.len,
+    )) return MetalError.CommitmentFailed;
     return gpu_ms;
 }
 
@@ -454,6 +567,32 @@ pub fn commitColumns(
         leaf_seed,
         node_seed,
         domain_prefix_bytes,
+        1,
+        null,
+    );
+}
+
+pub fn commitColumnsForHash(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    columns: []const []const u32,
+    log_sizes: []const u32,
+    lifting_log_size: u32,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+) (MetalError || std.mem.Allocator.Error)!Tree {
+    return commitColumnsConfigured(
+        self,
+        allocator,
+        columns,
+        log_sizes,
+        lifting_log_size,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        hash_family,
         null,
     );
 }
@@ -478,6 +617,33 @@ pub fn commitColumnsWithBacking(
         leaf_seed,
         node_seed,
         domain_prefix_bytes,
+        1,
+        backings,
+    );
+}
+
+pub fn commitColumnsWithBackingForHash(
+    self: *Runtime,
+    allocator: std.mem.Allocator,
+    columns: []const []const u32,
+    log_sizes: []const u32,
+    lifting_log_size: u32,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+    backings: []const []M31,
+) (MetalError || std.mem.Allocator.Error)!Tree {
+    return commitColumnsConfigured(
+        self,
+        allocator,
+        columns,
+        log_sizes,
+        lifting_log_size,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        hash_family,
         backings,
     );
 }
@@ -491,10 +657,12 @@ fn commitColumnsConfigured(
     leaf_seed: [8]u32,
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
+    hash_family: u32,
     backings: ?[]const []M31,
 ) (MetalError || std.mem.Allocator.Error)!Tree {
     if (columns.len == 0 or columns.len != log_sizes.len) return MetalError.InvalidColumns;
-    if (!validDomainPrefixBytes(domain_prefix_bytes)) return MetalError.InvalidColumns;
+    if (!validDomainPrefixBytes(domain_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2)) return MetalError.InvalidColumns;
 
     const order = try allocator.alloc(usize, columns.len);
     defer allocator.free(order);
@@ -526,6 +694,11 @@ fn commitColumnsConfigured(
         sorted_lengths[sorted_index] = column.len;
         sorted_log_sizes[sorted_index] = log_size;
     }
+    // Mirror the direct runtime's contiguous upload layout with checked u64
+    // arithmetic before crossing the C ABI. Backed aliases may have a wider
+    // span, which lifecycle_and_tree.m validates against their exact pointers.
+    _ = direct_merkle_offset_plan.PlanV1.initContiguous(sorted_lengths) catch
+        return MetalError.InvalidColumns;
 
     const backing_ptrs = if (backings) |values| blk: {
         const ptrs = try allocator.alloc([*]const u32, values.len);
@@ -541,7 +714,7 @@ fn commitColumnsConfigured(
     defer if (backing_lengths) |lengths| allocator.free(lengths);
 
     var message: [1024]u8 = [_]u8{0} ** 1024;
-    const tree = ffi.stwo_zig_metal_merkle_commit(
+    const tree = ffi.stwo_zig_metal_merkle_commit_v2(
         self.handle,
         sorted_columns.ptr,
         sorted_lengths.ptr,
@@ -554,6 +727,7 @@ fn commitColumnsConfigured(
         &leaf_seed,
         &node_seed,
         domain_prefix_bytes,
+        hash_family,
         &message,
         message.len,
     ) orelse {

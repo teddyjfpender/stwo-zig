@@ -2,76 +2,28 @@
 
 const dependency_0 = @import("segment_statement_v2_contract.zig");
 
-const ClockEntryV2 = dependency_0.ClockEntryV2;
 const CompletionV2 = dependency_0.CompletionV2;
 const Digest = dependency_0.Digest;
 const Error = dependency_0.Error;
 const FORMAT_VERSION = dependency_0.FORMAT_VERSION;
 const IdentityHasher = dependency_0.IdentityHasher;
-const M31 = dependency_0.M31;
 const MAX_RW_ADDRESS_EXCLUSIVE = dependency_0.MAX_RW_ADDRESS_EXCLUSIVE;
 const MAX_SPARSE_BOUNDARY_ENTRIES = dependency_0.MAX_SPARSE_BOUNDARY_ENTRIES;
 const MEMORY_CLOCK_ID_DOMAIN = dependency_0.MEMORY_CLOCK_ID_DOMAIN;
 const MEMORY_STATE_ID_DOMAIN = dependency_0.MEMORY_STATE_ID_DOMAIN;
 const MIN_CANONICAL_WORDS = dependency_0.MIN_CANONICAL_WORDS;
 const RETAINED_ENTRY_WORDS = dependency_0.RETAINED_ENTRY_WORDS;
-const RetainedSectionV2 = dependency_0.RetainedSectionV2;
 const SnapshotIdentity = dependency_0.SnapshotIdentity;
-const SparseEntryV2 = dependency_0.SparseEntryV2;
-const StatementV2 = dependency_0.StatementV2;
 const Tag = dependency_0.Tag;
 const Writer = dependency_0.Writer;
 const clockWithinBoundary = dependency_0.clockWithinBoundary;
 const memory_poseidon2 = dependency_0.memory_poseidon2;
-const memory_state = dependency_0.memory_state;
-const readEncodedU32 = dependency_0.readEncodedU32;
-const runner_result = dependency_0.runner_result;
+const memory_state = @import("../runner/memory_state.zig");
+const runner_result = @import("../runner/result.zig");
 const std = dependency_0.std;
 const validateRegisterClocks = dependency_0.validateRegisterClocks;
 
-/// Allocation-free authenticated view over one canonical variable-length V2
-/// wire.  Offsets refer to retained four-word `(u32,u32)` entries.
-pub const CanonicalWireViewV2 = struct {
-    words: []const M31,
-    statement: StatementV2,
-    entry_snapshot: RetainedSectionV2,
-    exit_snapshot: RetainedSectionV2,
-    entry_memory_clocks: RetainedSectionV2,
-    exit_memory_clocks: RetainedSectionV2,
-    wire_id: Digest,
-
-    pub fn sparseEntry(
-        self: *const CanonicalWireViewV2,
-        section: RetainedSectionV2,
-        index: usize,
-    ) SparseEntryV2 {
-        std.debug.assert(index < section.count);
-        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
-        return .{
-            .address = readEncodedU32(self.words[start..][0..2]),
-            .value = readEncodedU32(self.words[start + 2 ..][0..2]),
-        };
-    }
-
-    pub fn clockEntry(
-        self: *const CanonicalWireViewV2,
-        section: RetainedSectionV2,
-        index: usize,
-    ) ClockEntryV2 {
-        std.debug.assert(index < section.count);
-        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
-        return .{
-            .address = readEncodedU32(self.words[start..][0..2]),
-            .clock = readEncodedU32(self.words[start + 2 ..][0..2]),
-        };
-    }
-
-    /// One canonical transcript frame.  Callers cannot alter framing by
-    /// splitting variable sections into a different sequence of mix calls.
-    pub fn mixInto(self: *const CanonicalWireViewV2, transcript: anytype) void {
-        transcript.mixCanonicalM31Words(self.words);
-    }
-};
+pub const CanonicalWireViewV2 = dependency_0.CanonicalWireViewV2;
 
 pub fn completionFromRunner(
     reason: runner_result.CompletionReason,
@@ -92,6 +44,15 @@ pub fn completionFromRunner(
 }
 
 pub const SnapshotSide = enum { initial_word, final_word };
+
+/// The identity/count portion of a sparse memory snapshot.  Keeping this
+/// separate from the Poseidon continuation root lets a trusted streaming
+/// caller reuse the already-authenticated exit root at the next segment's
+/// identical entry boundary without hashing the same sparse tree twice.
+pub const SnapshotDigest = struct {
+    id: Digest,
+    count: u32,
+};
 
 pub fn validateMemoryWords(
     words: []const memory_state.WordState,
@@ -147,6 +108,19 @@ pub fn snapshotIdentity(
     words: []const memory_state.WordState,
     comptime side: SnapshotSide,
 ) SnapshotIdentity {
+    const digest = snapshotDigest(words, side);
+    var iterator = SourceByteIterator(side).init(words);
+    return .{
+        .id = digest.id,
+        .count = digest.count,
+        .root = continuationRoot(&iterator),
+    };
+}
+
+pub fn snapshotDigest(
+    words: []const memory_state.WordState,
+    comptime side: SnapshotSide,
+) SnapshotDigest {
     const count = nonZeroWordCount(words, side);
     var hasher = IdentityHasher.init(MEMORY_STATE_ID_DOMAIN);
     hasher.scalar(FORMAT_VERSION);
@@ -157,11 +131,30 @@ pub fn snapshotIdentity(
         hasher.u32Value(word.addr);
         hasher.u32Value(value);
     }
-    var iterator = SourceByteIterator(side).init(words);
     return .{
         .id = hasher.finalize(),
         .count = @intCast(count),
-        .root = continuationRoot(&iterator),
+    };
+}
+
+/// Reuse is admitted only when the current exact sparse projection has the
+/// same canonical digest and count as the previously authenticated boundary.
+/// The root is never accepted as a detached caller scalar.
+pub fn snapshotIdentityReusingRoot(
+    previous: SnapshotIdentity,
+    words: []const memory_state.WordState,
+    comptime side: SnapshotSide,
+) Error!SnapshotIdentity {
+    const digest = snapshotDigest(words, side);
+    if (!std.meta.eql(previous.id, digest.id) or
+        previous.count != digest.count)
+    {
+        return error.MemorySnapshotMismatch;
+    }
+    return .{
+        .id = digest.id,
+        .count = digest.count,
+        .root = previous.root,
     };
 }
 
@@ -176,11 +169,6 @@ pub fn nonZeroWordCount(
     return count;
 }
 
-pub const ByteLeaf = struct {
-    index: u32,
-    value: u32,
-};
-
 pub fn SourceByteIterator(comptime side: SnapshotSide) type {
     return struct {
         words: []const memory_state.WordState,
@@ -190,13 +178,13 @@ pub fn SourceByteIterator(comptime side: SnapshotSide) type {
 
         const Self = @This();
 
-        fn init(words: []const memory_state.WordState) Self {
+        pub fn init(words: []const memory_state.WordState) Self {
             var result = Self{ .words = words };
             result.advance();
             return result;
         }
 
-        fn consume(self: *Self) ByteLeaf {
+        pub fn consume(self: *Self) ByteLeaf {
             const result = self.current.?;
             self.advance();
             return result;
@@ -229,38 +217,6 @@ pub fn SourceByteIterator(comptime side: SnapshotSide) type {
 /// Allocation-free root of the zero-normalized all-RW byte map.  Empty
 /// subtrees are skipped in O(1); work is O(nonzero_bytes * tree_depth) with a
 /// fixed 30-frame stack and no attacker-sized temporary storage.
-pub fn continuationRoot(iterator: anytype) u32 {
-    const root = continuationSubtreeRoot(
-        iterator,
-        0,
-        0,
-        MAX_RW_ADDRESS_EXCLUSIVE,
-    );
-    std.debug.assert(iterator.current == null);
-    return root;
-}
-
-pub fn continuationSubtreeRoot(
-    iterator: anytype,
-    depth: u32,
-    start: u32,
-    width: u32,
-) u32 {
-    const leaf = iterator.current orelse
-        return memory_poseidon2.DEFAULT_HASHES[depth];
-    std.debug.assert(leaf.index >= start);
-    const end = @as(u64, start) + width;
-    if (leaf.index >= end) return memory_poseidon2.DEFAULT_HASHES[depth];
-    if (depth == 30) {
-        std.debug.assert(width == 1 and leaf.index == start);
-        return iterator.consume().value;
-    }
-    const half = width / 2;
-    const left = continuationSubtreeRoot(iterator, depth + 1, start, half);
-    const right = continuationSubtreeRoot(iterator, depth + 1, start + half, half);
-    return memory_poseidon2.hashPair(left, right);
-}
-
 pub fn memoryClockIdentity(entries: []const runner_result.MemoryAccessClock) Digest {
     var hasher = IdentityHasher.init(MEMORY_CLOCK_ID_DOMAIN);
     hasher.scalar(FORMAT_VERSION);
@@ -318,3 +274,9 @@ pub fn writeClockSection(
         writer.u32Value(entry.clock);
     }
 }
+
+const wire = @import("segment_statement_v2_wire.zig");
+pub const ByteLeaf = wire.ByteLeaf;
+pub const continuationRoot = wire.continuationRoot;
+pub const continuationSubtreeRoot = wire.continuationSubtreeRoot;
+pub const continuationSubtreeRootWithHasher = wire.continuationSubtreeRootWithHasher;

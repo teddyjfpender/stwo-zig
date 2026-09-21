@@ -21,6 +21,21 @@ const StatementRelation = struct {
     pub const Runtime = boundary_air.Statement.Runtime;
 };
 
+test "V2 provider geometry follows the authenticated claim inventory" {
+    const catalog = try catalog_mod.buildWithProviderShape(
+        fixtureLogSizes(),
+        boundaryComponents(8),
+        try provider_authority.Shape.init(88),
+    );
+    const manifest = try subject.assemble(&catalog, authorityIds());
+    try manifest.validate();
+    try std.testing.expectEqual(@as(u32, 9), manifest.placements[38].?.geometry.log_size);
+    const small = try fixtureCatalog(fixtureLogSizes());
+    for (catalog.entries[0..38], small.entries[0..38]) |actual, expected|
+        try std.testing.expectEqualDeep(expected, actual);
+    try std.testing.expect(!std.mem.eql(u8, &catalog.identity, &small.identity));
+}
+
 test "V2 catalog append-fixes all 39 rows without moving rows zero through 37" {
     const log_sizes = fixtureLogSizes();
     const universal = try universal_manifest.build(log_sizes);
@@ -273,7 +288,7 @@ test "catalog manifest ordering claims identities and geometry reject mutation" 
     var bad_provider_geometry = catalog;
     bad_provider_geometry.entries[38].geometry.log_size -= 1;
     try std.testing.expectError(
-        error.InvalidCatalogGeometry,
+        error.CatalogIdentityMismatch,
         bad_provider_geometry.validate(),
     );
 

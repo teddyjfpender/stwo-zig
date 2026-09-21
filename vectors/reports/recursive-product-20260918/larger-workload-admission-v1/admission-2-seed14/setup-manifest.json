@@ -1,0 +1,1 @@
+{"version":1,"memory_addresses":16,"initial_memory_word":14,"proof_profile":"recursive_q193_v1","expected":[{"path":"child-0-expected.json","sha256":"2c3bbc505b9b0157bec807cd4e66f2ba027179d1dd1c52b10ea6e38765bf049f"},{"path":"child-1-expected.json","sha256":"a149d0281063eda1aa13e78392dc4eb5f5f91a2f7a06b8d5211774ab5d1941c4"}]}

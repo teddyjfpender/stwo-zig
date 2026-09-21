@@ -86,3 +86,6 @@ pub const BundleForSourceAndManifest = shard_0.BundleForSourceAndManifest;
 /// call ranges differ from frozen SegmentV2. The schedule contract is resolved
 /// entirely at comptime, preserving the same direct hot loops as V2.
 pub const BundleForSourceScheduleAndManifest = shard_1.BundleForSourceScheduleAndManifest;
+
+/// Extract fixed component parameters from prepared logical rows.
+pub const parametersFromRows = shard_2.parametersFromRows;

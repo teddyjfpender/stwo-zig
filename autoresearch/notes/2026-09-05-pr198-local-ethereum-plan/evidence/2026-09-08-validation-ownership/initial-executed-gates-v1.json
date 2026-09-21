@@ -1,0 +1,33 @@
+{
+  "status": "initial_boundary_revision_passed_later_consolidation_pending",
+  "gates": [
+    {
+      "name": "ownership",
+      "passed": 5,
+      "compile_seconds": 16,
+      "test_milliseconds": 266
+    },
+    {
+      "name": "complete-proof-compile",
+      "build_steps_passed": 2,
+      "compile_report": "2m MaxRSS5G"
+    },
+    {
+      "name": "small-composition",
+      "passed": 3,
+      "test_milliseconds": 936
+    },
+    {
+      "name": "prepared-wrapper",
+      "passed": 8,
+      "test_milliseconds": 263
+    },
+    {
+      "name": "symbolic-public-boundary",
+      "passed": 9,
+      "test_milliseconds": 272
+    }
+  ],
+  "proof_limits": "Small complete STARK lifecycle passed; no actual real wrapper accepted. Later six-file boundary consolidation is not covered by these earlier gates.",
+  "real_replay_compile_failure": "void JSON field; fixed in frozen devex-validation-source-v3 with explicit required codec regression, currently running"
+}

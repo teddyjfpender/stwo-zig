@@ -1,0 +1,11 @@
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=9 provider_calls=3298 alias_rejected=true undersized_rejected=true
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 14s MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

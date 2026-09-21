@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T01:59:20.118379+00:00",
+  "status": "passed",
+  "exit_code": 0,
+  "test_count": 13,
+  "command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_public_sums_v1_test.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "Ethereum compact initial policy",
+    "--test-filter",
+    "Ethereum initial input packet",
+    "--test-filter",
+    "Ethereum initial admitted shape",
+    "--test-filter",
+    "Ethereum schema4 frame",
+    "--test-filter",
+    "Ethereum public sum fixed program removes only native program root anchor"
+  ],
+  "lock": "/tmp/stwo-zig-build.lock",
+  "reported_lock_wait_seconds": 29,
+  "log_file": "compact-policy-v3.log",
+  "log_sha256": "8f0879cce76ae35745c0275589a6eaa4d9ad3c8b6f56825bca5640eebefea1ee",
+  "change": "Pass null native_roots in legacy fixed-program anchor regression; production admitted-root caller unchanged.",
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig": "84e7b7e72e206dbcda193a5895fdee2aa2a5f4319f29fccdc1b7f4a1b74722a9",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_public_sums_v1.zig": "22a288e20ee1f69ad1cff03cb35763b7066eaa0575b14fdd3ac5d699531cf40c",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_public_sums_v1_test.zig": "4dca8ffc7393dce17a3ef6e58ebf7179e63dbe0304de27b4281c8de6a2762230",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_input_rows_v1.zig": "336b1e983e06b0b15d36fd4a0359429e2d279f841dbf94e8e2a8240ebf3581e4",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_input_rows_v1_test.zig": "a39e9310e1f87435797fb2020fa477fb51aca4281ec1719c1533a8cc738e831a",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_initial_input_packet_v1_test.zig": "b3449eff17de15e21796549147f165d18d7003f5500a0832e6be6703eb4c146b",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_field_frame_plan_v4.zig": "442a0962d432f1d9b5961e3829e589a8122efd244abd01ade4f5a0add594b6a2"
+  },
+  "coverage": [
+    "compact initial claim shape 675173 input words / output capacity12:3649 graph inputs,45402 nodes,4552 outputs; opening inputs27,packet inputs52",
+    "genuine completion and packet limb mutation rejection",
+    "initial and legacy field frame routing and native encoding parity",
+    "genuine40-word production lane writer and shared320-request range closure",
+    "exact2025519 claim source uses and duplicate role publisher rejection",
+    "legacy fixed-program root-anchor behavior"
+  ],
+  "limitations": [
+    "No complete initial segment0 wrapper proof or independent root verification.",
+    "OwnedV1 admission constructor and initWithInitialRows integration are not exercised by the pure writer fixture.",
+    "No CSP full-proof or performance promotion claim."
+  ]
+}

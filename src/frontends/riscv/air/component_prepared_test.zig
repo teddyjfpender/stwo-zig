@@ -313,7 +313,6 @@ const PreparedStateLayout = struct {
     accumulators: []prover_air_accumulation.ColumnAccumulator,
     eval_log_size: u32,
     eval_size: usize,
-    opcode_main_sources: usize,
 };
 
 test "component: prepared memory domain ownership is explicit and fail closed" {
@@ -539,4 +538,25 @@ test "component: prepared evaluator rejects malformed geometry before running" {
             &accumulator,
         ),
     );
+}
+
+test "component: infrastructure work profiles bind program and memory policy" {
+    const relations = relation_challenges.Relations.dummy();
+    var digests: [4][32]u8 = undefined;
+    for (0..4) |index| {
+        var component = testMemoryComponent(&relations);
+        if (index < 2) {
+            component.kind = .program;
+            component.desc.n_columns = @import("program/commitment.zig").N_MAIN_COLUMNS;
+            if (index == 1) component.fixed_program_columns = .{ 2, 3, 4, 5, 6, 7 };
+        } else if (index == 3) {
+            component.memory_boundary_policy = .full_state_split_multiplicity_v3;
+        }
+        const adapter = component.asProverComponent();
+        const composition = (try adapter.compositionWorkProfile(std.testing.allocator)).?;
+        _ = (try adapter.oodsWorkProfile(std.testing.allocator, component.maxConstraintLogDegreeBound())).?;
+        digests[index] = composition.authority_digest;
+        for (digests[0..index]) |earlier|
+            try std.testing.expect(!std.mem.eql(u8, &earlier, &digests[index]));
+    }
 }

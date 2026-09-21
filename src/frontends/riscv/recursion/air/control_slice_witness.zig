@@ -468,6 +468,14 @@ fn logSize(row_count: usize) Error!u32 {
     return result;
 }
 
+/// Append-only construction seam for versioned control preprocessors whose
+/// left and right recursive lanes have distinct verifier schedules.  The
+/// legacy two-profile owner above keeps its byte/API behavior unchanged; the
+/// heterogeneous owner reuses this exact domain rule instead of cloning it.
+pub fn logSizeForRowCount(row_count: usize) Error!u32 {
+    return logSize(row_count);
+}
+
 fn appendPublicRows(
     destination: []Row,
     at: *usize,
@@ -569,6 +577,17 @@ fn rowFor(
     return row;
 }
 
+/// Encodes one already-selected verifier step through the canonical control
+/// row authority.  This is deliberately narrower than exporting the private
+/// selection loops: versioned preprocessors still own their exact lane order.
+pub fn rowForVerifierStep(
+    step: schedule.VerifierStep,
+    sequence: usize,
+    verifier_id: u32,
+) Error!Row {
+    return rowFor(step, sequence, verifier_id);
+}
+
 fn activeCount(vm_count: u32, recursion_count: u32, kind: ProofKind) usize {
     return switch (kind) {
         .segment_leaf => vm_count,
@@ -611,6 +630,18 @@ fn generateRows(
         validateRow,
         writeRow,
     );
+}
+
+/// Shared allocation-free writer for an independently validated versioned
+/// control-row owner.  `protected` keeps the owner live for the complete
+/// direct-witness transaction and mirrors the legacy generation boundary.
+pub fn generateValidatedRows(
+    protected: anytype,
+    columns: *[COLUMN_COUNT][]M31,
+    rows: []const Row,
+    log_size: u32,
+) direct.Error!void {
+    return generateRows(protected, columns, rows, log_size);
 }
 
 fn writeRow(columns: *[COLUMN_COUNT][]M31, logical_row: usize, row: Row) void {

@@ -1,0 +1,12 @@
+{
+  "scope": "Explicit bootstrap admission for partial two-leaf subtree of reviewed actual job; not a final root or production-security profile.",
+  "segments": 8,
+  "pair": 0,
+  "profile": "tiny-memory-span-v2",
+  "key_sha256": "892ade6f9cc77e3dab885afd8717c248062b1d5e27c47cdc62ba18d0c5d3c5c7",
+  "expected_span_sha256": "30a97cc0153e052b6d4414af891da7946fc1b760f48461d6355cf28ec739a1dd",
+  "child_keys": [
+    "5eb049a679aaa64e7f7cdf5bad4cfc8e8e3623d6e5329cbf64da030fcf5c712d",
+    "b48c66d6ace18c769219da2cb89f01979962fa6d5ce19940701580dec388ab29"
+  ]
+}

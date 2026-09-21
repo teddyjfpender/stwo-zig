@@ -1,0 +1,47 @@
+{
+  "scope": "Component-level admitted-AOT qualification; leaf proof dispatch is not yet integrated.",
+  "passed": true,
+  "complete_proof_qualified": false,
+  "leaf_proof_dispatch_integrated": false,
+  "production_security_qualified": false,
+  "profiles": {
+    "leaf": {
+      "components": 37,
+      "cases": 74,
+      "live_rows": [
+        512,
+        509
+      ],
+      "trace_rows": 512,
+      "column_and_claim_parity": true,
+      "rejection_preserves_destination": true,
+      "recovery_column_and_claim_parity": true,
+      "successful_dispatches_asserted": 592
+    },
+    "parent": {
+      "components": 29,
+      "cases": 58,
+      "live_rows": [
+        512,
+        509
+      ],
+      "trace_rows": 512,
+      "column_and_claim_parity": true,
+      "rejection_preserves_destination": true,
+      "recovery_column_and_claim_parity": true,
+      "successful_dispatches_asserted": 464
+    }
+  },
+  "additional_exports": 105,
+  "previous_additional_exports": 93,
+  "previous_declarations_unchanged": true,
+  "core_exports": 166,
+  "total_aot_exports": 271,
+  "aot_manifest_sha256": "76c5e1036d5c53669f40de69f851b12002d24c2e14b649faae246db1e378dfd7",
+  "aot_metallib_sha256": "0f264c9df0747b7331e3f0cb69bb22b67d8feef4af854095e4d533cac2402de2",
+  "local_aot_bundle": "/tmp/pr198-leaf-interaction-aot-bundle-v1",
+  "focused_storage_tests": 16,
+  "ownership_tests": 14,
+  "source_patch_gzip_sha256": "01721243934eaf09d526c20fee3566b53e7ce4e30030514cd0a92b6bd78e6f87",
+  "source_snapshot_sha256": "985cc32c10e2ca750049874b381e6651cc61df621a2f28ace4b4e24b31089e3b"
+}

@@ -1,0 +1,37 @@
+test-recursion-segment-native-sum-v2
++- stwo_riscv_frontend test count floor
+   +- run test 316/318 passed, 1 failed, 1 skipped
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+error: 'recursion.segment_public_native_sum_authority_v2_test.test.SegmentV2 native-sum register inputs preserve graph and preprocessing across canonical statements' failed
+error: while executing test 'air.lookups.tables.schema.test.preprocessed columns use deterministic committed bit-reversed order', the following test command failed:
+./.zig-cache/o/1842c69bb8cf1a680578944e27c763a7/test --cache-dir=./.zig-cache --seed=0xc8a2b089 --listen=-
+test-recursion-segment-statement-source-v2
++- run test 359/361 passed, 1 failed, 1 skipped
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+error: 'recursion.segment_statement_outer_source_v2_test.test.V2 row-11 closes boundary words and exact ProgramV2 statement payloads' failed
+error: while executing test 'air.public_logup.test.public LogUp: relation domains are independent and total is their sum', the following test command failed:
+./.zig-cache/o/eee4a70e605a83ea069422c18ad3484a/test --cache-dir=./.zig-cache --seed=0xc8a2b089 --listen=-
+test-recursion-segment-public-source-v2
++- run test stderr
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+
+Build Summary: 5/10 steps succeeded; 2 failed; 992/997 tests passed; 3 skipped; 2 failed
+test-recursion-segment-statement-source-v2 transitive failure
++- run test 359/361 passed, 1 failed, 1 skipped
+   +- compile test ReleaseSafe native success 1m MaxRSS:4G
+test-recursion-segment-native-sum-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test 316/318 passed, 1 failed, 1 skipped
+      +- compile test ReleaseSafe native success 21s MaxRSS:1G
+test-recursion-segment-public-source-v2 success
++- run test 317 passed 1 skipped 508ms MaxRSS:3M
+   +- compile test ReleaseSafe native success 20s MaxRSS:1G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/a9c0dbae7b82150e6563dea9785332e3/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0xc8a2b089 -Za1c1c34e3803a842 --maxrss 25769803776 -j1 test-recursion-segment-statement-source-v2 test-recursion-segment-native-sum-v2 test-recursion-segment-public-source-v2 -Doptimize=ReleaseSafe --summary all

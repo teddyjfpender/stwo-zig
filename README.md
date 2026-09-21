@@ -48,7 +48,7 @@ an official-oracle-gated Cairo CPU frontend, and independently owned GPU product
 ## Quick Start
 
 Core packages require **Zig 0.15.x**. Repository policy and release tooling use
-**Python 3**; optional Rust parity/oracle tooling uses `nightly-2025-07-14`.
+**Python 3.10 or newer**; optional Rust parity/oracle tooling uses `nightly-2025-07-14`.
 
 ```sh
 zig build test-stwo-core -Doptimize=ReleaseFast
@@ -56,6 +56,18 @@ zig build test-stwo-prover -Doptimize=ReleaseFast
 zig build test-native-cpu-product -Doptimize=ReleaseFast
 zig build test-native-metal -Doptimize=ReleaseFast  # macOS with Metal
 ```
+
+For large RISC-V builds on a laptop, use the serialized build wrapper:
+
+```sh
+python3 scripts/zig_serial_build.py stwo-zig-riscv-cpu -Doptimize=ReleaseFast
+```
+
+It queues competing wrapper invocations, defaults to one job per build level,
+and forwards its RAM-based scheduling budget through the focused sub-builds.
+Use `--maxrss BYTES` or `-jN` to override those defaults. The RSS budget governs
+Zig's declared step estimates; it does not cap a compiler process's actual memory.
+These build settings do not change prover worker policy or proof identities.
 
 ### Product support
 

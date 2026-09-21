@@ -1,0 +1,4426 @@
+{
+  "scope": "tiny two-segment native-plus-wrapper production and fresh verification; parent excluded",
+  "change": "wrapper coefficient retention never -> always; same profiler support in both binaries",
+  "host_gate": "local serial diagnostic comparison, not formal quiet-host CSP promotion",
+  "runs": [
+    {
+      "name": "q193-cpu-never-profile",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-profile/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-profile/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-profile.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 34132851875,
+      "maximum_rss_bytes": 2605973504,
+      "producer_ns": 32724596750,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-profile/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3748701375",
+          "outer_prepare_ns": "2640034459",
+          "outer_prove_ns": "9842514333",
+          "transaction_ns": "16257283875",
+          "producer_peak_bytes": "2139109000",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-profile/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3461566375",
+          "outer_prepare_ns": "2650365291",
+          "outer_prove_ns": "10315686792",
+          "transaction_ns": "16457956208",
+          "producer_peak_bytes": "2118757152",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 3e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.1e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.095482,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002525,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.10017,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000454,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 3.667156,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000819,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.179509,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.37305,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.015945,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.003911,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.00058,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.100671,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002645,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.104648,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000441,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 3.704211,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.00081,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.206593,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.785664,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.015991,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.002817,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000387,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-always-profile",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-profile/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-profile/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-profile.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 26885355000,
+      "maximum_rss_bytes": 2895626240,
+      "producer_ns": 25505920250,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-profile/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3832380333",
+          "outer_prepare_ns": "2678971792",
+          "outer_prove_ns": "6181790916",
+          "transaction_ns": "12718184333",
+          "producer_peak_bytes": "2634970912",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-profile/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3399981792",
+          "outer_prepare_ns": "2584014042",
+          "outer_prove_ns": "6466321417",
+          "transaction_ns": "12476149166",
+          "producer_peak_bytes": "2625095448",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.6e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.086721,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002571,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.097685,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000345,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.052605,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000832,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.182326,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.374521,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.015028,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.004511,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000612,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.099735,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.002576,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.098522,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000359,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.052949,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.00081,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.18523,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.773159,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.016999,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.004005,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000376,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-never-profile",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-profile/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-profile/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-profile.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21671669625,
+      "maximum_rss_bytes": 2541109248,
+      "producer_ns": 20277249167,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-profile/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2702885042",
+          "outer_prepare_ns": "2357791416",
+          "outer_prove_ns": "5161602584",
+          "transaction_ns": "10250021916",
+          "producer_peak_bytes": "2241428272",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-profile/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2458069292",
+          "outer_prepare_ns": "2329468083",
+          "outer_prove_ns": "5064434042",
+          "transaction_ns": "9877343167",
+          "producer_peak_bytes": "2231552808",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.094424,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005809,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.022047,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000442,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.031289,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000805,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.054228,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.00503,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002544,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.007354,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000453,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.7e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.107829,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005542,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.01348,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000413,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.027507,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000808,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.050513,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.005016,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002386,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.006574,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000402,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-always-profile",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-profile/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-profile/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-profile.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21725750458,
+      "maximum_rss_bytes": 3185557504,
+      "producer_ns": 20351117875,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-profile/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2538666834",
+          "outer_prepare_ns": "2353447958",
+          "outer_prove_ns": "5227392292",
+          "transaction_ns": "10146752625",
+          "producer_peak_bytes": "3104136024",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-profile/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2581753458",
+          "outer_prepare_ns": "2331544666",
+          "outer_prove_ns": "5143449500",
+          "transaction_ns": "10081481291",
+          "producer_peak_bytes": "3094260560",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 1.9e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.096327,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.005845,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.021708,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000439,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.034444,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.001086,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.077921,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.005269,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002987,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.007384,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000439,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.2e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 1.100934,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.006142,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.018409,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000412,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.030456,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000818,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.074491,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 0.005107,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.002359,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.007895,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000377,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-never-profile",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-profile/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-profile/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-profile.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 8151573125,
+      "maximum_rss_bytes": 1072840704,
+      "producer_ns": 7773816541,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-profile/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2601260375",
+          "outer_prepare_ns": "393146666",
+          "outer_prove_ns": "988465500",
+          "transaction_ns": "3987108792",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-profile/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2417994416",
+          "outer_prepare_ns": "378379917",
+          "outer_prove_ns": "969580208",
+          "transaction_ns": "3770006041",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 3.7e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.053979,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000292,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.013385,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000417,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.373854,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000796,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.035788,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000606,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.000429,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000466,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 4.4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.054002,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000295,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.01331,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000418,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.375321,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000797,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.035895,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000693,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.000452,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000365,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-always-profile",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-profile/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-profile/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-profile.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 7467427708,
+      "maximum_rss_bytes": 1074102272,
+      "producer_ns": 7094781084,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-profile/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2584833166",
+          "outer_prepare_ns": "396878750",
+          "outer_prove_ns": "618162125",
+          "transaction_ns": "3604012583",
+          "producer_peak_bytes": "137590446",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-profile/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2436369333",
+          "outer_prepare_ns": "390424791",
+          "outer_prove_ns": "602297834",
+          "transaction_ns": "3432239917",
+          "producer_peak_bytes": "136637612",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 4e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.053402,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000284,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.014271,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000312,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.005116,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000809,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.03569,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000708,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.000589,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000436,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "cpu",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 4.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.053595,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.000302,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.013474,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000352,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.005235,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000798,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.036738,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000686,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.000548,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000363,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-never-profile",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-profile/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-profile/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-profile.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 5554609834,
+      "maximum_rss_bytes": 573194240,
+      "producer_ns": 5182654875,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-profile/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1637750708",
+          "outer_prepare_ns": "368646000",
+          "outer_prove_ns": "575208375",
+          "transaction_ns": "2585174250",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-profile/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1584265000",
+          "outer_prepare_ns": "375901083",
+          "outer_prove_ns": "558219834",
+          "transaction_ns": "2522552500",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 2.3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.054468,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001371,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.00274,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000454,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.003392,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000792,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.024345,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000668,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.002553,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.00045,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.054638,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001405,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.003295,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000397,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.004017,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000794,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.023457,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000687,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.002572,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000356,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-always-profile",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": true,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-profile/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-profile/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-profile.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 5582057834,
+      "maximum_rss_bytes": 573587456,
+      "producer_ns": 5205790208,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-profile/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1639853542",
+          "outer_prepare_ns": "385220750",
+          "outer_prove_ns": "573816208",
+          "transaction_ns": "2602875167",
+          "producer_peak_bytes": "148286406",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-profile/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1566300459",
+          "outer_prepare_ns": "360405708",
+          "outer_prove_ns": "564207333",
+          "transaction_ns": "2494098708",
+          "producer_peak_bytes": "147333572",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.054371,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001423,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.002504,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000427,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.00373,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.001084,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.024386,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.0007,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.002641,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000457,
+              "children": null
+            }
+          ]
+        },
+        {
+          "schema_version": 1,
+          "runtime": "device",
+          "example": "detached-recursive-wrapper",
+          "stages": [
+            {
+              "id": "draw_random_coeff",
+              "label": "Draw random coefficient",
+              "seconds": 2e-06,
+              "children": null
+            },
+            {
+              "id": "composition_trace_extract",
+              "label": "Composition trace extract",
+              "seconds": 3e-05,
+              "children": null
+            },
+            {
+              "id": "composition_evaluation",
+              "label": "Composition evaluation",
+              "seconds": 0.055354,
+              "children": null
+            },
+            {
+              "id": "composition_interpolate_and_split",
+              "label": "Composition interpolate and split",
+              "seconds": 0.001514,
+              "children": null
+            },
+            {
+              "id": "composition_commit",
+              "label": "Composition commit",
+              "seconds": 0.002366,
+              "children": null
+            },
+            {
+              "id": "oods_point_and_mask_points",
+              "label": "OODS point and mask points",
+              "seconds": 0.000384,
+              "children": null
+            },
+            {
+              "id": "sampled_value_evaluation",
+              "label": "Sampled-value evaluation",
+              "seconds": 0.004527,
+              "children": null
+            },
+            {
+              "id": "sampled_value_channel_mix",
+              "label": "Sampled-value channel mix",
+              "seconds": 0.000796,
+              "children": null
+            },
+            {
+              "id": "fri_quotient_build_and_commit",
+              "label": "FRI quotient build + commit (lazy)",
+              "seconds": 0.0235,
+              "children": null
+            },
+            {
+              "id": "proof_of_work",
+              "label": "Proof of work",
+              "seconds": 1e-06,
+              "children": null
+            },
+            {
+              "id": "fri_decommit",
+              "label": "FRI decommit",
+              "seconds": 0.000716,
+              "children": null
+            },
+            {
+              "id": "trace_decommit",
+              "label": "Trace decommit",
+              "seconds": 0.00262,
+              "children": null
+            },
+            {
+              "id": "constraint_check_and_assembly",
+              "label": "Constraint check and assembly",
+              "seconds": 0.000375,
+              "children": null
+            }
+          ]
+        }
+      ],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-never-round-0",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-0/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-0/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-0.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 34023710333,
+      "maximum_rss_bytes": 2605760512,
+      "producer_ns": 32629548375,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-0/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3776839917",
+          "outer_prepare_ns": "2682411541",
+          "outer_prove_ns": "9874068042",
+          "transaction_ns": "16359512958",
+          "producer_peak_bytes": "2139109000",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-0/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3409890541",
+          "outer_prepare_ns": "2597781458",
+          "outer_prove_ns": "10187008667",
+          "transaction_ns": "16219835708",
+          "producer_peak_bytes": "2118757152",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-always-round-0",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-0/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-0/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-0.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 26610956500,
+      "maximum_rss_bytes": 2898558976,
+      "producer_ns": 25205533416,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-0/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3729586583",
+          "outer_prepare_ns": "2611897541",
+          "outer_prove_ns": "6195800750",
+          "transaction_ns": "12563019709",
+          "producer_peak_bytes": "2634970912",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-0/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3435006417",
+          "outer_prepare_ns": "2614840000",
+          "outer_prove_ns": "6545581250",
+          "transaction_ns": "12622625291",
+          "producer_peak_bytes": "2625095448",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-never-round-0",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-0/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-0/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-0.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21675713250,
+      "maximum_rss_bytes": 2541043712,
+      "producer_ns": 20250366625,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-0/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2561474291",
+          "outer_prepare_ns": "2393448833",
+          "outer_prove_ns": "5189402292",
+          "transaction_ns": "10172300292",
+          "producer_peak_bytes": "2241428272",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-0/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2481485500",
+          "outer_prepare_ns": "2365980666",
+          "outer_prove_ns": "5086187959",
+          "transaction_ns": "9960611458",
+          "producer_peak_bytes": "2231552808",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-always-round-0",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-0/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-0/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-0.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 22515340625,
+      "maximum_rss_bytes": 3186573312,
+      "producer_ns": 21107985500,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-0/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2655652000",
+          "outer_prepare_ns": "2410706708",
+          "outer_prove_ns": "5320225875",
+          "transaction_ns": "10434484500",
+          "producer_peak_bytes": "3104135528",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-0/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2548594500",
+          "outer_prepare_ns": "2380772958",
+          "outer_prove_ns": "5575291584",
+          "transaction_ns": "10550367208",
+          "producer_peak_bytes": "3094260064",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-never-round-0",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-0/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-0/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-0.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 8595183459,
+      "maximum_rss_bytes": 1072480256,
+      "producer_ns": 8211673875,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-0/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2761027459",
+          "outer_prepare_ns": "384965709",
+          "outer_prove_ns": "998512166",
+          "transaction_ns": "4147554333",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-0/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2669438917",
+          "outer_prepare_ns": "388599000",
+          "outer_prove_ns": "975327291",
+          "transaction_ns": "4036350208",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-always-round-0",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-0/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-0/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-0.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 7532070250,
+      "maximum_rss_bytes": 1074069504,
+      "producer_ns": 7170333667,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-0/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2663313792",
+          "outer_prepare_ns": "395140042",
+          "outer_prove_ns": "631237625",
+          "transaction_ns": "3692880583",
+          "producer_peak_bytes": "137590446",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-0/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2469444000",
+          "outer_prepare_ns": "384801334",
+          "outer_prove_ns": "596834166",
+          "transaction_ns": "3454094125",
+          "producer_peak_bytes": "136637612",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-never-round-0",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-0/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-0/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-0.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 6168719875,
+      "maximum_rss_bytes": 573194240,
+      "producer_ns": 5807260625,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-0/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1940680000",
+          "outer_prepare_ns": "376482542",
+          "outer_prove_ns": "582361708",
+          "transaction_ns": "2902935834",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-0/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1830419167",
+          "outer_prepare_ns": "362888041",
+          "outer_prove_ns": "577950875",
+          "transaction_ns": "2774599250",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-always-round-0",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 0,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-0/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-0/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-0.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 6192676417,
+      "maximum_rss_bytes": 572604416,
+      "producer_ns": 5802363583,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-0/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1912382416",
+          "outer_prepare_ns": "375800792",
+          "outer_prove_ns": "584079042",
+          "transaction_ns": "2875605625",
+          "producer_peak_bytes": "148285750",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-0/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1860855917",
+          "outer_prepare_ns": "369703000",
+          "outer_prove_ns": "567300833",
+          "transaction_ns": "2801982792",
+          "producer_peak_bytes": "147332916",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-always-round-1",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-1/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-1/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-1.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 26744327875,
+      "maximum_rss_bytes": 2894561280,
+      "producer_ns": 25364025250,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-1/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3955434167",
+          "outer_prepare_ns": "2633902292",
+          "outer_prove_ns": "6185978833",
+          "transaction_ns": "12799238541",
+          "producer_peak_bytes": "2634970912",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-1/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3386951333",
+          "outer_prepare_ns": "2574186958",
+          "outer_prove_ns": "6525853708",
+          "transaction_ns": "12513802542",
+          "producer_peak_bytes": "2625095448",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-never-round-1",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-1/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-1/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-1.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 33764287167,
+      "maximum_rss_bytes": 2605105152,
+      "producer_ns": 32370223000,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-1/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3765510083",
+          "outer_prepare_ns": "2590484875",
+          "outer_prove_ns": "9832977625",
+          "transaction_ns": "16215248125",
+          "producer_peak_bytes": "2139109000",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-1/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3406520333",
+          "outer_prepare_ns": "2573720292",
+          "outer_prove_ns": "10124231416",
+          "transaction_ns": "16129116834",
+          "producer_peak_bytes": "2118757152",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-always-round-1",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-1/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-1/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-1.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21931698750,
+      "maximum_rss_bytes": 3185426432,
+      "producer_ns": 20542157417,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-1/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2569174584",
+          "outer_prepare_ns": "2410411041",
+          "outer_prove_ns": "5222448709",
+          "transaction_ns": "10227442042",
+          "producer_peak_bytes": "3104135528",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-1/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2721644292",
+          "outer_prepare_ns": "2335967667",
+          "outer_prove_ns": "5125416292",
+          "transaction_ns": "10207333500",
+          "producer_peak_bytes": "3094260064",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-never-round-1",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-1/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-1/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-1.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21660495209,
+      "maximum_rss_bytes": 2540060672,
+      "producer_ns": 20263645000,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-1/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2730618709",
+          "outer_prepare_ns": "2354588542",
+          "outer_prove_ns": "5148398791",
+          "transaction_ns": "10261735708",
+          "producer_peak_bytes": "2241428272",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-1/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2528777208",
+          "outer_prepare_ns": "2324849542",
+          "outer_prove_ns": "5032203667",
+          "transaction_ns": "9911995792",
+          "producer_peak_bytes": "2231552808",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-always-round-1",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-1/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-1/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-1.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 7397923625,
+      "maximum_rss_bytes": 1074003968,
+      "producer_ns": 7037966541,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-1/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2588166208",
+          "outer_prepare_ns": "392220625",
+          "outer_prove_ns": "617386000",
+          "transaction_ns": "3600831083",
+          "producer_peak_bytes": "137590446",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-1/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2398145750",
+          "outer_prepare_ns": "380362625",
+          "outer_prove_ns": "595494584",
+          "transaction_ns": "3377013375",
+          "producer_peak_bytes": "136637612",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-never-round-1",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-1/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-1/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-1.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 8203007709,
+      "maximum_rss_bytes": 1071611904,
+      "producer_ns": 7833897792,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-1/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2598078792",
+          "outer_prepare_ns": "383692917",
+          "outer_prove_ns": "981464458",
+          "transaction_ns": "3966274084",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-1/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2489422500",
+          "outer_prepare_ns": "379385917",
+          "outer_prove_ns": "964586500",
+          "transaction_ns": "3836468417",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-always-round-1",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-1/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-1/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-1.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 5563028458,
+      "maximum_rss_bytes": 573079552,
+      "producer_ns": 5200355208,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-1/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1644205208",
+          "outer_prepare_ns": "363442625",
+          "outer_prove_ns": "576474291",
+          "transaction_ns": "2587366125",
+          "producer_peak_bytes": "148285750",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-1/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1600758458",
+          "outer_prepare_ns": "359149708",
+          "outer_prove_ns": "566811417",
+          "transaction_ns": "2529721750",
+          "producer_peak_bytes": "147332916",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-never-round-1",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 1,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-1/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-1/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-1.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 6053719417,
+      "maximum_rss_bytes": 573046784,
+      "producer_ns": 5691325625,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-1/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1821773458",
+          "outer_prepare_ns": "375638834",
+          "outer_prove_ns": "581946875",
+          "transaction_ns": "2782641708",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-1/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1841788959",
+          "outer_prepare_ns": "365898292",
+          "outer_prove_ns": "577891708",
+          "transaction_ns": "2788678125",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-never-round-2",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-2/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-2/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-2.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 33928094583,
+      "maximum_rss_bytes": 2603237376,
+      "producer_ns": 32554366500,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-2/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3919580375",
+          "outer_prepare_ns": "2619531625",
+          "outer_prove_ns": "9806710292",
+          "transaction_ns": "16371286625",
+          "producer_peak_bytes": "2139109000",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-never-round-2/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3431450250",
+          "outer_prepare_ns": "2581546333",
+          "outer_prove_ns": "10130905334",
+          "transaction_ns": "16168452958",
+          "producer_peak_bytes": "2118757152",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-cpu-always-round-2",
+      "profile": "q193",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-2/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-2/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-2.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 26961770000,
+      "maximum_rss_bytes": 2894004224,
+      "producer_ns": 25549573292,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-2/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "3761903583",
+          "outer_prepare_ns": "2613100167",
+          "outer_prove_ns": "6317053292",
+          "transaction_ns": "12724612042",
+          "producer_peak_bytes": "2634970912",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-cpu-always-round-2/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "3663791375",
+          "outer_prepare_ns": "2615639500",
+          "outer_prove_ns": "6475379166",
+          "transaction_ns": "12779755625",
+          "producer_peak_bytes": "2625095448",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-never-round-2",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-2/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-2/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-2.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21749111750,
+      "maximum_rss_bytes": 2540503040,
+      "producer_ns": 20353716750,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-2/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2574398084",
+          "outer_prepare_ns": "2419792375",
+          "outer_prove_ns": "5252374250",
+          "transaction_ns": "10275566500",
+          "producer_peak_bytes": "2241428272",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-never-round-2/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2493597333",
+          "outer_prepare_ns": "2370460375",
+          "outer_prove_ns": "5103974208",
+          "transaction_ns": "9996786583",
+          "producer_peak_bytes": "2231552808",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "q193-metal-always-round-2",
+      "profile": "q193",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "recursive_q193_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-2/child-0",
+        "--key-sha256",
+        "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-2/child-1",
+        "--adjacent-key-sha256",
+        "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-2.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 21953538583,
+      "maximum_rss_bytes": 3184263168,
+      "producer_ns": 20549709791,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-2/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2487266",
+          "native_ingress_ns": "2687654125",
+          "outer_prepare_ns": "2379513417",
+          "outer_prove_ns": "5273912167",
+          "transaction_ns": "10366446959",
+          "producer_peak_bytes": "3104135528",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/q193-metal-always-round-2/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "2491187",
+          "native_ingress_ns": "2505464667",
+          "outer_prepare_ns": "2352046750",
+          "outer_prove_ns": "5194268000",
+          "transaction_ns": "10079888209",
+          "producer_peak_bytes": "3094260064",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 18,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-never-round-2",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-2/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-2/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-2.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 8189833917,
+      "maximum_rss_bytes": 1073168384,
+      "producer_ns": 7816461000,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-2/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2574130792",
+          "outer_prepare_ns": "383057209",
+          "outer_prove_ns": "988200500",
+          "transaction_ns": "3948465167",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-never-round-2/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2474986292",
+          "outer_prepare_ns": "393491417",
+          "outer_prove_ns": "972595541",
+          "transaction_ns": "3844035958",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-cpu-always-round-2",
+      "profile": "development",
+      "backend": "cpu",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "cpu",
+        "--recursive-backend",
+        "cpu",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-2/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-2/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-2.json"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 7711384125,
+      "maximum_rss_bytes": 1074348032,
+      "producer_ns": 7321126459,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-2/child-0",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "2618443167",
+          "outer_prepare_ns": "392034625",
+          "outer_prove_ns": "649296041",
+          "transaction_ns": "3662801958",
+          "producer_peak_bytes": "137590446",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-cpu-always-round-2/child-1",
+          "native_backend": "cpu",
+          "recursive_backend": "cpu",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "2591542209",
+          "outer_prepare_ns": "392798125",
+          "outer_prove_ns": "621026917",
+          "transaction_ns": "3609117375",
+          "producer_peak_bytes": "136637612",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-never-round-2",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "never",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-2/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-2/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-2.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 5669195167,
+      "maximum_rss_bytes": 594444288,
+      "producer_ns": 5287609709,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-2/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1672346459",
+          "outer_prepare_ns": "374112083",
+          "outer_prove_ns": "585683625",
+          "transaction_ns": "2636303917",
+          "producer_peak_bytes": "130657659",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-never-round-2/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1626850250",
+          "outer_prepare_ns": "362419875",
+          "outer_prove_ns": "572496125",
+          "transaction_ns": "2564755875",
+          "producer_peak_bytes": "130653371",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    },
+    {
+      "name": "development-metal-always-round-2",
+      "profile": "development",
+      "backend": "metal",
+      "variant": "always",
+      "diagnostic": false,
+      "round": 2,
+      "argv": [
+        "python3",
+        "scripts/riscv_segment_v2_detached_gate.py",
+        "--proof-profile",
+        "development_q3_v1",
+        "--verifier",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/q193-child-first-verify",
+        "--producer",
+        ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+        "--native-backend",
+        "metal",
+        "--recursive-backend",
+        "metal",
+        "--initial-memory-word",
+        "13",
+        "--bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-2/child-0",
+        "--key-sha256",
+        "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "--expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-0-expected-wire.json",
+        "--adjacent-bundle",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-2/child-1",
+        "--adjacent-key-sha256",
+        "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "--adjacent-expected-wire",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-2-admission/child-1-expected-wire.json",
+        "--output",
+        "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-2.json",
+        "--aot-bundle",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/aot-m4",
+        "--aot-manifest-sha256",
+        "21332158b1e1202b9c4171b057d4fb3fbd43d96c22d50012267f55e45e2193e5"
+      ],
+      "exit_code": 0,
+      "complete_gate_ns": 5637106416,
+      "maximum_rss_bytes": 573341696,
+      "producer_ns": 5261540292,
+      "children": [
+        {
+          "segment": "0",
+          "first_cycle": "0",
+          "retired_cycles": "64",
+          "completed": "false",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-2/child-0",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92732",
+          "native_ingress_ns": "1655728875",
+          "outer_prepare_ns": "376674292",
+          "outer_prove_ns": "586158042",
+          "transaction_ns": "2621926500",
+          "producer_peak_bytes": "148285750",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        },
+        {
+          "segment": "1",
+          "first_cycle": "64",
+          "retired_cycles": "34",
+          "completed": "true",
+          "directory": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/wrapper-retention-ab/development-metal-always-round-2/child-1",
+          "native_backend": "metal",
+          "recursive_backend": "metal",
+          "proof_bytes": "92109",
+          "native_ingress_ns": "1601116875",
+          "outer_prepare_ns": "368334666",
+          "outer_prove_ns": "566035792",
+          "transaction_ns": "2538557709",
+          "producer_peak_bytes": "147332916",
+          "producer_live_bytes_after_destroy": "0",
+          "status": "unverified_candidate",
+          "parent_proof_created": "false"
+        }
+      ],
+      "cases": 17,
+      "stages": [],
+      "artifact_sha256": {
+        "child-0/key.json": "a0c39b4d4fcc7f94cd37d62dd671f90bfc778cb879bff29ea7bbdd2172539aaa",
+        "child-0/claims.json": "0a9def2835d8b2c70806e033c712dd2617c906ed0b30818204d5a9439eb72bca",
+        "child-0/proof.bin": "808b846c8de0d998967271486c66559e074949775bafbf911db68e1aef3c646d",
+        "child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "child-1/key.json": "02697d47111fa4cec96b3c2d701f59940eb070d8b94a9c45d63db8f331f20517",
+        "child-1/claims.json": "ff732d2b82df9b264713de93ff5fdd835eeb13387d50df5feb6a0efbeefc25ae",
+        "child-1/proof.bin": "d7e7f68d1bef76d50cb207b86e7970529fb90a2c9ccc9bc8c834c89f9d7b0f9a",
+        "child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3"
+      },
+      "unchanged_artifacts": true
+    }
+  ],
+  "passed": true,
+  "binaries": {
+    "never": {
+      "path": ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+      "sha256": "fde8daf186a8efbe4f7f429fcd8ee92353210cd13185cea9c0236982233c102d"
+    },
+    "always": {
+      "path": ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-always-prove",
+      "sha256": "4cbbfcd8a15acb9e43227db39640d11f41b82a25f0d256ba310fc0863242d2d6"
+    }
+  }
+}

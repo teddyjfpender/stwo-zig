@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 17/17 tests passed
+test-composition-task-profile success
++- run test 17 passed 438ms MaxRSS:56M
+   +- compile test ReleaseSafe native success 5s MaxRSS:557M
+

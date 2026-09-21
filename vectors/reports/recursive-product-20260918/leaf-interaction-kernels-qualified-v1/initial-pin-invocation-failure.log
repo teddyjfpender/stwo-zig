@@ -1,0 +1,29 @@
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+test-riscv-metal-recursive-resident
++- run test 0/5 passed, 5 failed
+error: 'recursive_framework_resident_test.test.recursive framework AOT executes native table interactions with exact columns claims and recovery' failed
+error: 'recursive_framework_resident_test.test.recursive framework AOT executes exported typed AIR on resident trees with native parity and rejection controls' failed
+error: 'recursive_framework_resident_test.test.recursive framework AOT executes production table bridge with native parity' failed
+error: 'recursive_framework_resident_test.test.recursive framework AOT executes parent interaction catalog with CPU column and claim parity' failed
+error: 'recursive_framework_resident_test.test.recursive framework AOT executes leaf interaction catalog with CPU column and claim parity' failed
+error: while executing test 'recursive_framework_resident_test.test.recursive framework AOT executes leaf interaction catalog with CPU column and claim parity', the following test command failed:
+./.zig-cache/products/riscv_metal/o/b1bbf0a1b2767b9f6da9bfb561a86190/test --cache-dir=./.zig-cache/products/riscv_metal --seed=0xc89c9e23 --listen=-
+
+Build Summary: 1/3 steps succeeded; 1 failed; 0/5 tests passed; 5 failed
+test-riscv-metal-recursive-resident transitive failure
++- run test 0/5 passed, 5 failed
+
+error: the following build command failed with exit code 1:
+.zig-cache/products/riscv_metal/o/08e18ddff7130adc50b0e34ee9c9549a/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/build_support .zig-cache/products/riscv_metal /Users/theodorepender/.cache/zig --seed 0xc89c9e23 -Z073d733027abdd69 test-riscv-metal-recursive-resident -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_metal -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Dmetal-core-aot-bundle=/Users/theodorepender/code/cryptography/stwo-zig/zig-out/share/stwo-zig/metal/core -Dimplementation-commit=1358234f1e8a2ac34241658dcd3505bad5feb1fc -Dimplementation-dirty=true -Dimplementation-tree=410b495147b4d73e1d55ed3ce353e6e2248520cd -Dimplementation-dirty-content-sha256=38767014d2ea6b3086098cc8a6428fd631f25d0d110d9d0be7cc0b79b74be693
+test-riscv-metal-recursive-resident
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+error: the following command exited with error code 1:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build test-riscv-metal-recursive-resident --build-file /Users/theodorepender/code/cryptography/stwo-zig/build_support/internal_build.zig --cache-dir .zig-cache/products/riscv_metal -p /Users/theodorepender/code/cryptography/stwo-zig/zig-out -Drepository-root=/Users/theodorepender/code/cryptography/stwo-zig -Dproduct-scope=riscv_metal -Doptimize=ReleaseSafe --maxrss 25769803776 -j1 -Dmetal-core-aot-bundle=/Users/theodorepender/code/cryptography/stwo-zig/zig-out/share/stwo-zig/metal/core -Dimplementation-commit=1358234f1e8a2ac34241658dcd3505bad5feb1fc -Dimplementation-dirty=true -Dimplementation-tree=410b495147b4d73e1d55ed3ce353e6e2248520cd -Dimplementation-dirty-content-sha256=38767014d2ea6b3086098cc8a6428fd631f25d0d110d9d0be7cc0b79b74be693
+
+Build Summary: 1/3 steps succeeded; 1 failed
+test-riscv-metal-recursive-resident transitive failure
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig failure
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 10s MaxRSS:436M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/8bd768dd9f607b97c1a9c252c32b19f9/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig .zig-cache /Users/theodorepender/.cache/zig --seed 0x44ec106e -Z313a24fb0bf7d2b7 --maxrss 25769803776 -j1 test-riscv-metal-recursive-resident -Doptimize=ReleaseSafe --summary all

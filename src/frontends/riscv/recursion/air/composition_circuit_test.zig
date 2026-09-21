@@ -183,6 +183,76 @@ test "R-012 authenticated composition DAG compiles exact row-18 authority" {
     try std.testing.expectEqual(@as(usize, 437), preprocessing.rows.len);
 }
 
+test "R-012 recursion transcript claims are append-only and zero-count stable" {
+    const explicit_legacy = circuit.InputProfile{
+        .sampled_value_count = 0,
+        .claimed_sum_count = 0,
+        .relation_challenge_count = 0,
+        .transcript_claimed_sum_count = 0,
+        .public_wire_boundary_count = 0,
+    };
+    try std.testing.expectEqualDeep(PROFILE, explicit_legacy);
+    var field_profile = explicit_legacy;
+    field_profile.field_public_extra_word_count = 38;
+    const legacy_count = try circuit.recursionInputCount(explicit_legacy);
+    try std.testing.expectEqual(legacy_count + 38, try circuit.recursionInputCount(field_profile));
+    for (0..legacy_count) |index|
+        try std.testing.expectEqualDeep(circuit.expectedRecursionSource(explicit_legacy, index), circuit.expectedRecursionSource(field_profile, index));
+    for (0..38) |index| {
+        const expected: u32 = @intCast(if (index < 6) index else index + 412);
+        const source = circuit.expectedRecursionSource(field_profile, legacy_count + index).?;
+        try std.testing.expectEqualDeep(circuit.RecursionSource{ .field_public_word = expected }, source);
+        try std.testing.expectEqualDeep([2]u32{ 412 + expected, 0 }, circuit.recursionSourceIndices(source));
+    }
+    try std.testing.expect(circuit.expectedRecursionSource(field_profile, legacy_count + 38) == null);
+    try std.testing.expectError(error.InvalidInputSource, circuit.vmInputCount(field_profile));
+    field_profile.field_public_extra_word_count = 37;
+    try std.testing.expectError(error.InvalidInputSource, circuit.recursionInputCount(field_profile));
+    try std.testing.expectEqual(
+        @as(usize, 424),
+        try circuit.recursionInputCount(explicit_legacy),
+    );
+    try std.testing.expectEqual(
+        @as(u8, 8),
+        @intFromEnum(std.meta.activeTag(circuit.RecursionSource{
+            .public_wire_boundary = .{ .item_index = 0, .word_index = 0 },
+        })),
+    );
+    try std.testing.expectEqual(
+        @as(u8, 9),
+        @intFromEnum(std.meta.activeTag(circuit.RecursionSource{
+            .transcript_claimed_sum = .{ .item_index = 0, .word_index = 0 },
+        })),
+    );
+
+    const extended = circuit.InputProfile{
+        .sampled_value_count = 1,
+        .claimed_sum_count = 2,
+        .relation_challenge_count = 0,
+        .transcript_claimed_sum_count = 3,
+        .public_wire_boundary_count = 1,
+    };
+    const prefix = 1 + 3 + 412;
+    try std.testing.expectEqual(
+        @as(usize, prefix + 4 + 8 + 12 + 4 + 8),
+        try circuit.recursionInputCount(extended),
+    );
+    try std.testing.expectEqualDeep(
+        circuit.RecursionSource{ .transcript_claimed_sum = .{
+            .item_index = 0,
+            .word_index = 0,
+        } },
+        circuit.expectedRecursionSource(extended, prefix + 4 + 8).?,
+    );
+    try std.testing.expectEqualDeep(
+        circuit.RecursionSource{ .public_wire_boundary = .{
+            .item_index = 2,
+            .word_index = 0,
+        } },
+        circuit.expectedRecursionSource(extended, prefix + 4 + 8 + 12).?,
+    );
+}
+
 test "R-012 composition compiler rejects graph reference and schedule mutations" {
     var fixture = try Fixture.init(std.testing.allocator);
     defer fixture.deinit();

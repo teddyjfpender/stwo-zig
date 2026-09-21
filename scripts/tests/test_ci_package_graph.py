@@ -25,8 +25,8 @@ POLICY = json.loads((ROOT / "conformance/ci-touchpoints-v1.json").read_text(enco
 # The workspace validator's edge count. A change here means a real dependency
 # was added or removed; update the number deliberately, with the closure
 # consequences reviewed.
-EXPECTED_PACKAGES = 22
-EXPECTED_EDGES = 73
+EXPECTED_PACKAGES = 23
+EXPECTED_EDGES = 76
 
 
 def contract(package: str, dependencies: dict[str, str]) -> str:
@@ -180,8 +180,18 @@ class RepositoryGraphTest(unittest.TestCase):
     def test_core_change_selects_every_dependent_package_lane(self) -> None:
         lanes, _ = graph.selection(["src/core/fields/m31.zig"], self.packages, self.bindings)
         # Every package except the two with no path to stwo_core.
-        detached = {"metal_session"}
+        detached = {"metal_session", "artifact_store"}
         self.assertEqual(lanes, frozenset(set(self.bindings) - detached))
+
+    def test_artifact_store_change_reaches_its_consuming_integrations(self) -> None:
+        lanes, unowned = graph.selection(
+            ["src/artifact_store/mod.zig"], self.packages, self.bindings
+        )
+        self.assertEqual(lanes, frozenset({
+            "artifact_store", "metal_session", "cairo_metal_integration",
+            "riscv_cpu_integration", "riscv_metal_integration",
+        }))
+        self.assertEqual(unowned, frozenset())
 
     def test_cairo_only_change_avoids_riscv_and_native_lanes(self) -> None:
         lanes, _ = graph.selection(["src/frontends/cairo/air.zig"], self.packages, self.bindings)

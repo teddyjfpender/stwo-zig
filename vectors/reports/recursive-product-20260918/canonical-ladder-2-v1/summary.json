@@ -1,0 +1,79 @@
+{
+  "segments": 2,
+  "passed": true,
+  "development_only": true,
+  "production_security_qualified": false,
+  "source_snapshot": "../leaf-key-setup-qualified-v1/source-snapshot.json",
+  "source_patch": "../leaf-key-setup-qualified-v1/source.patch.gz",
+  "admission_sha256": "d7523e61f167db14cf6a86d5531269dcd75a7c7a11bc5694983e5d786eb08cfd",
+  "setup_root_proof_created": false,
+  "setup_intermediate_proofs": 0,
+  "backends": {
+    "cpu": {
+      "local_evidence": "/tmp/pr198-canonical-2-cpu-tree-20260918-v1",
+      "cases": 82,
+      "gates": {
+        "leaf-0-accepted.json": 13,
+        "leaf-1-accepted.json": 13,
+        "parent-1-0-accepted.json": 28,
+        "substitution-0.json": 14,
+        "substitution-1.json": 14
+      },
+      "artifacts": {
+        "leaves/child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "leaves/child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "leaves/child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "leaves/child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "leaves/child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "leaves/child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3",
+        "leaves/child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "leaves/child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "parent-1-0/key.json": "0b83d34db512a7c363378abad3b8c5f877a34bafebbb47a816a1b2bc995f8d17",
+        "parent-1-0/claims.json": "e33537675561160dd378eb6aaac90eba4942382c3295c049217b6d846ae97701",
+        "parent-1-0/candidate-rootwords.json": "2a307683be2012d18456bfc050dbf450e91a0fc22da8c4c26f95a4bdc6586724",
+        "parent-1-0/proof.bin": "d9e5dab8428658897dcde30ae56459bbb5b27e5f9b62cc7b7de5c52fa21ea198"
+      },
+      "leaf_production_ns": 17879390459,
+      "parent_production_ns": 10983053417,
+      "maximum_rss_bytes": 3882418176,
+      "root_proof_bytes": 2424350,
+      "root_verify_ns": 65217542,
+      "root_request_ns": 66772041,
+      "timing_scope": "Single observations; full gate includes lock waits and hostile cases. RSS is maximum child process RSS, not summed live memory."
+    },
+    "metal": {
+      "local_evidence": "/tmp/pr198-canonical-2-metal-tree-20260918-v1",
+      "cases": 82,
+      "gates": {
+        "leaf-0-accepted.json": 13,
+        "leaf-1-accepted.json": 13,
+        "parent-1-0-accepted.json": 28,
+        "substitution-0.json": 14,
+        "substitution-1.json": 14
+      },
+      "artifacts": {
+        "leaves/child-0/key.json": "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+        "leaves/child-0/expected-wire.json": "8135faa5fb21d31cb73aea806c8d01f522d3b5cce6a0e688eb9de9321d283f3b",
+        "leaves/child-0/claims.json": "e2db1a6015310e34379ba5a989d923a118bab45525d93d30682a2623ed82f5a3",
+        "leaves/child-0/proof.bin": "94c056f6ee8045d092bddb9792e8b8202e8acdab21e3b9f94f20b255f9050f1f",
+        "leaves/child-1/key.json": "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+        "leaves/child-1/expected-wire.json": "f858b5d3fd49d20ea39552d3d91d24b52cfc5ab65481edaff6f2194d4e9ed7d3",
+        "leaves/child-1/claims.json": "385d7d6183ef7f3125cfa940f1f467543e77890c32a8451a1b339f131dba0e3f",
+        "leaves/child-1/proof.bin": "f3fde5a41cba94891b60baa12ee06c3d75a05852b2170d6609e62b58c3d3555c",
+        "parent-1-0/key.json": "0b83d34db512a7c363378abad3b8c5f877a34bafebbb47a816a1b2bc995f8d17",
+        "parent-1-0/claims.json": "e33537675561160dd378eb6aaac90eba4942382c3295c049217b6d846ae97701",
+        "parent-1-0/candidate-rootwords.json": "2a307683be2012d18456bfc050dbf450e91a0fc22da8c4c26f95a4bdc6586724",
+        "parent-1-0/proof.bin": "d9e5dab8428658897dcde30ae56459bbb5b27e5f9b62cc7b7de5c52fa21ea198"
+      },
+      "leaf_production_ns": 12757762916,
+      "parent_production_ns": 8664357667,
+      "maximum_rss_bytes": 4350459904,
+      "root_proof_bytes": 2424350,
+      "root_verify_ns": 66602167,
+      "root_request_ns": 68311458,
+      "timing_scope": "Single observations; full gate includes lock waits and hostile cases. RSS is maximum child process RSS, not summed live memory."
+    }
+  },
+  "identical_artifacts": 12,
+  "source_unchanged_through_qualification": true
+}

@@ -1,0 +1,168 @@
+{
+  "status": "verified_and_published",
+  "segment_index": 120,
+  "segment_count": 121,
+  "claim_admission": "fixed_program_narrow_v5",
+  "cpu_reference_supplied": false,
+  "full_block_coverage": false,
+  "request_seconds": 216.46,
+  "producer_ns": 71978323709,
+  "prove_ns": 60151820875,
+  "fresh_verify_ns": 65970608333,
+  "peak_footprint_bytes": 12430042208,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "host_admission_limit_bytes": 34359738368,
+    "process_cap_enforced": false,
+    "sample_interval_seconds": 2,
+    "limits_scope": "Composition and PCS admission budgets are distinct from host admission; process footprint sampling is observational and does not enforce a cap"
+  },
+  "device_dispatches": 91,
+  "host_fallback_total": 3,
+  "host_fallback_scope": "Only aggregate count was printed; no per-operation subtype claim.",
+  "artifact": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.stwief04",
+    "bytes": 100960686,
+    "sha256": "730fee53e827a72a3d6a65ef45b9fa2a82e47a1451a20acb78fbc8e7653f550e"
+  },
+  "global_metadata": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-segment120-production-v2/segment-000120.metadata.json",
+    "bytes": 16789,
+    "sha256": "e4f1dbac90e319219a96913b5bffe70e9f458560e581b3db320038c8c30d8d13"
+  },
+  "exclusive_depth2_phases": {
+    "source_column_pack": {
+      "seconds": 0.48446999999999996,
+      "count": 3
+    },
+    "merkle_commit": {
+      "seconds": 16.080199999999998,
+      "count": 3
+    },
+    "riscv_opcode_trace_generation": {
+      "seconds": 4.724552,
+      "count": 1
+    },
+    "riscv_interaction_opcode": {
+      "seconds": 2.265525,
+      "count": 1
+    },
+    "riscv_interaction_program": {
+      "seconds": 0.730412,
+      "count": 1
+    },
+    "riscv_interaction_memory": {
+      "seconds": 0.469575,
+      "count": 1
+    },
+    "riscv_interaction_merkle": {
+      "seconds": 0.984661,
+      "count": 1
+    },
+    "riscv_interaction_poseidon": {
+      "seconds": 0.557764,
+      "count": 1
+    },
+    "riscv_interaction_clock": {
+      "seconds": 0.893514,
+      "count": 1
+    },
+    "riscv_interaction_tables": {
+      "seconds": 0.119552,
+      "count": 1
+    },
+    "draw_random_coeff": {
+      "seconds": 2e-06,
+      "count": 1
+    },
+    "composition_trace_extract": {
+      "seconds": 7.9e-05,
+      "count": 1
+    },
+    "composition_evaluation": {
+      "seconds": 14.911553,
+      "count": 1
+    },
+    "composition_interpolate_and_split": {
+      "seconds": 0.00585,
+      "count": 1
+    },
+    "composition_commit": {
+      "seconds": 0.051457,
+      "count": 1
+    },
+    "oods_point_and_mask_points": {
+      "seconds": 0.001748,
+      "count": 1
+    },
+    "sampled_value_evaluation": {
+      "seconds": 0.191819,
+      "count": 1
+    },
+    "sampled_value_channel_mix": {
+      "seconds": 0.014076,
+      "count": 1
+    },
+    "fri_quotient_build_and_commit": {
+      "seconds": 0.428021,
+      "count": 1
+    },
+    "proof_of_work": {
+      "seconds": 0.005491,
+      "count": 1
+    },
+    "fri_decommit": {
+      "seconds": 0.00521,
+      "count": 1
+    },
+    "trace_decommit": {
+      "seconds": 0.131919,
+      "count": 1
+    },
+    "constraint_check_and_assembly": {
+      "seconds": 0.003326,
+      "count": 1
+    }
+  },
+  "independent_fresh_verifier_status": "passed",
+  "files": {
+    "plan.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-plan.json",
+      "bytes": 3368,
+      "sha256": "092efbc9ae0b23f49970756ee8a6c23127ee2978f278281fb2767a9a627cce0c"
+    },
+    "receipt.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-receipt.json",
+      "bytes": 2834,
+      "sha256": "a0e6c5c76d278b24057b1cea5116df5a7c4f617d5215c921f799b0c3ffb77476"
+    },
+    "environment.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-environment.json",
+      "bytes": 45,
+      "sha256": "0e894d349d96246bf351968205ba1f33e10aabd666c9a55cf61b8d73bace1f8c"
+    },
+    "stderr-and-time.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-stderr-and-time.log",
+      "bytes": 5649,
+      "sha256": "ab10f16f1855dbc392a572c19d7dec79297c5973b65e0d6a2bb99f2c29d0a671"
+    },
+    "stdout.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "run.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-run.py",
+      "bytes": 6404,
+      "sha256": "5b1e1aaca620681e1500a6d5cba18731d0a36a288d66663e16900d07f4ac01ca"
+    },
+    "process-samples.ndjson": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-terminal-metal-field5-v2-process-samples.ndjson",
+      "bytes": 14939,
+      "sha256": "391261fb9b1167fd6f42289bad3860d55b78f9f4788337c37c214fe3fe574653"
+    }
+  },
+  "independent_fresh_verifier_evidence": "real-terminal-metal-field5-fresh-v1.json"
+}

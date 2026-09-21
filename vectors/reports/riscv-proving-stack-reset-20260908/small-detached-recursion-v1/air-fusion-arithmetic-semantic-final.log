@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 2s
+test-recursion-arithmetic-fusion
++- run test stderr
+qm31_mul_add_v1 semantic digest: eb8d491f5b07bf17fb4b6b4e7c408da1289dd1907b66926547bd39d204b0f849
+
+Build Summary: 3/3 steps succeeded; 17/17 tests passed
+test-recursion-arithmetic-fusion success
++- run test 17 passed 292ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 6s MaxRSS:580M
+

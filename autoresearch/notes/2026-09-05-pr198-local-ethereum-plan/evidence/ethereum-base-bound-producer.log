@@ -1,0 +1,18 @@
+test-ethereum-native-base-bound-producer
++- schema3 native Ethereum proof lifecycle guard
+   +- run test stderr
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=0 bytes=8649106 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/base-bound-v3/7984f63fe4e285cdfb6a59ca877435edadade565de3540c5c73dc019a85af559.bin
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=1 bytes=8954248 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/base-bound-v3/9fe54ac33fa51210fa82974f339de5b2ec8df35e4916a05b8ea6351eb0a82088.bin
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=stage101_build source=darwin_proc_pid_rusage_v6 wall_ns=78367212792 process_cpu_ns=101028158792 parallelism_milli=1289 peak_footprint_bytes=1179403824 energy_nj=436942255912 instructions=1966132923052 cycles=392993589791 workers=1 host_byte_budget=8589934592
+ETHEREUM_BASE_BOUND_NATIVE producer_destroyed=true source=disk profile_schema=3
+ETHEREUM_BASE_BOUND_NATIVE leaf=0 sha256=7984f63fe4e285cdfb6a59ca877435edadade565de3540c5c73dc019a85af559 bytes=8649106 freshly_verified=true profile_schema=3
+ETHEREUM_BASE_BOUND_NATIVE leaf=1 sha256=9fe54ac33fa51210fa82974f339de5b2ec8df35e4916a05b8ea6351eb0a82088 bytes=8954248 freshly_verified=true profile_schema=3
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46771896834 process_cpu_ns=49492916041 parallelism_milli=1058 peak_footprint_bytes=1179403824 energy_nj=229625315568 instructions=1099514546363 cycles=195656701813 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=125139126042 process_cpu_ns=150521111959 parallelism_milli=1202 peak_footprint_bytes=1179403824 energy_nj=666567571480 instructions=3065647563272 cycles=588650422508 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-native-base-bound-producer success
++- schema3 native Ethereum proof lifecycle guard success
+   +- run test 1 passed 2m MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

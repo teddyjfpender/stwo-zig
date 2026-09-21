@@ -1,6 +1,8 @@
 //! Backend-scoped secure-composition dispatch for the Metal backend.
 
 const std = @import("std");
+const execution_policy = @import("../execution_policy.zig");
+const telemetry = @import("../telemetry.zig");
 const core = @import("stwo_core");
 const prover = @import("stwo_prover_engine");
 const work_profile = @import("stwo_prover_api").work_profile;
@@ -40,23 +42,26 @@ pub fn computeCompositionEvaluationWithWorkCapture(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     work_capture: ?*composition_work.Capture,
 ) !?prover.secure_column.SecureColumnByCoords {
-    if (try base_polynomial.evaluateWithWorkCapture(
+    if (try base_polynomial.evaluateWithWorkCaptureAndTwiddles(
         allocator,
         components,
         random_coeff,
         trace,
         residency_handles,
+        composition_twiddles,
         work_capture,
     )) |evaluation| return evaluation;
-    const twiddle_tree = composition_twiddles orelse return null;
-    return secure_composition.evaluateLargeRecurrenceComposition(
-        allocator,
-        components,
-        random_coeff,
-        trace,
-        residency_handles,
-        twiddle_tree,
-    );
+    if (composition_twiddles) |twiddle_tree| {
+        if (try secure_composition.evaluateLargeRecurrenceComposition(
+            allocator,
+            components,
+            random_coeff,
+            trace,
+            residency_handles,
+            twiddle_tree,
+        )) |evaluation| return evaluation;
+    }
+    return declineToHost(try execution_policy.requested(), components.len);
 }
 
 /// Execution-aware entry point used by profiled proofs. Resident work remains
@@ -71,26 +76,29 @@ pub fn computeCompositionEvaluationWithExecution(
     composition_twiddles: ?prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
     execution: composition_execution.Execution,
 ) !?prover.secure_column.SecureColumnByCoords {
-    if (try base_polynomial.evaluateWithExecution(
+    if (try base_polynomial.evaluateWithExecutionAndTwiddles(
         allocator,
         components,
         random_coeff,
         trace,
         residency_handles,
+        composition_twiddles,
         execution,
     )) |evaluation| return evaluation;
     if (execution.task_recorder != null) {
         return error.ProfiledMetalCompositionDeclined;
     }
-    const twiddle_tree = composition_twiddles orelse return null;
-    return secure_composition.evaluateLargeRecurrenceComposition(
-        allocator,
-        components,
-        random_coeff,
-        trace,
-        residency_handles,
-        twiddle_tree,
-    );
+    if (composition_twiddles) |twiddle_tree| {
+        if (try secure_composition.evaluateLargeRecurrenceComposition(
+            allocator,
+            components,
+            random_coeff,
+            trace,
+            residency_handles,
+            twiddle_tree,
+        )) |evaluation| return evaluation;
+    }
+    return declineToHost(try execution_policy.requested(), components.len);
 }
 
 pub fn interpolateSecureComposition(
@@ -99,12 +107,30 @@ pub fn interpolateSecureComposition(
     domain: core.poly.circle.domain.CircleDomain,
     twiddle_tree: prover.poly.twiddles.TwiddleTree([]const core.fields.m31.M31),
 ) !work_profile.M31InterpolationBackendResult {
-    return secure_composition.interpolateLargeSecureComposition(
+    const result = try secure_composition.interpolateLargeSecureComposition(
         allocator,
         values,
         domain,
         twiddle_tree,
     );
+    if (result == .declined) try execution_policy.admitHost(.circle_interpolation);
+    return result;
+}
+
+fn declineToHost(mode: execution_policy.Mode, component_count: usize) !?prover.secure_column.SecureColumnByCoords {
+    if (component_count != 0) {
+        try mode.admitHost(.composition);
+        telemetry.recordN(.cpu_composition_component, @intCast(component_count));
+    }
+    return null;
+}
+
+test "strict Metal composition rejects a capability-free host decline" {
+    // The same terminal boundary covers both execution-aware and ordinary
+    // hooks, including the formerly invisible zero-eligible-components case.
+    try std.testing.expectError(error.MetalHostCompositionForbidden, declineToHost(.require_gpu, 31));
+    try std.testing.expectEqual(@as(?prover.secure_column.SecureColumnByCoords, null), try declineToHost(.require_gpu, 0));
+    try std.testing.expectEqual(@as(?prover.secure_column.SecureColumnByCoords, null), try declineToHost(.hybrid, 31));
 }
 
 test "profiled Metal composition fails closed when the resident route declines" {

@@ -1,0 +1,56 @@
+{
+  "status": "focused_checks_passed_complete_gate_pending",
+  "table_verifier_source_count": 92,
+  "generic_poseidon_verifier_source_count": 85,
+  "source_guard_scope": "Factories plus actual compact equations, explicit core/scalar/schema allowlist",
+  "runner_witness_prover_dependencies": false,
+  "full_standalone_verifier_separation_complete": false,
+  "checks": {
+    "tables": {
+      "passed": true,
+      "tests_including_wrappers": 7,
+      "log": "pr198-table-verifier-both-components.log"
+    },
+    "table_equations_domain": {
+      "passed": true,
+      "tests_including_wrappers": 7,
+      "log": "pr198-table-verifier-equations-domain.log"
+    },
+    "poseidon": {
+      "passed": true,
+      "tests_including_wrappers": 5,
+      "log": "pr198-native-poseidon-verifier-v2.log"
+    },
+    "poseidon_point": {
+      "passed": true,
+      "tests_including_wrappers": 2,
+      "log": "pr198-native-poseidon-verifier-point.log"
+    },
+    "ownership": {
+      "passed": true,
+      "tests_including_wrappers": 11,
+      "log": "pr198-native-verifier-ownership-final.log"
+    }
+  },
+  "source_sha256": {
+    "air/component_point_support.zig": "764824b6b730abca72728ffb0900d225ca601bf99d52638f2823996cd7a5e388",
+    "air/logup.zig": "3faab9e88fd4415ae86e4cad95de3f7c10264f520b947b801b41303258cbee4e",
+    "air/logup_equations.zig": "a2cb2b38a353cb9181144c0d795e729b6b81d6c118494dcb5805882aa9d8676d",
+    "recursion/air/universal_typed_verifier_support.zig": "4e2d2546903c1148cf31cff9aeab83bb4b35d26b716cc12f15487ddfece3f732",
+    "air/lookups/tables/component.zig": "fd7191c718b75a1ed826124ddd593552a0413a7b1c2faac800d4dd1e83459102",
+    "air/lookups/tables/interaction.zig": "987837845fb8aba423896a69e899bbfbc9e71a07a4fb11c3cf967a654e8e73aa",
+    "air/lookups/tables/equations.zig": "d1a1b3ebfd21ee8ec6e05845372da1dc3d8a9da957a79db07cadafe42ebd147f",
+    "air/lookups/tables/verifier.zig": "d0f228ed3bdfcf813b7204c171c1b31dea288ca9d5f25bc7d0cd845bf7a05ba6",
+    "air/lookups/tables/component_prepared_test.zig": "3237458b7be1059705ad8a65701ef305bc71e7b6d75ee9d27b156aeeffa9abad",
+    "air/lookups/tables/mod.zig": "f9ddd56ffea90824651cb60d877c550d6ad03bf7d6165b2eae1a57b42a48a11d",
+    "air/memory_commitment/poseidon2_degree3_component.zig": "0b3455cba94dfeeb3d4f2c894a3f31997ab8a5b459d5bd4d00b0b912ed2b9add",
+    "air/memory_commitment/poseidon2_degree3_verifier.zig": "ca291cf7d16b9be95fcb94629a22be1b30dc100882341d4bb9ae209586e04785",
+    "air/memory_commitment/poseidon2_universal_degree3_v1_test.zig": "a302a8d55a9c69e188474027d5a54a74fa77704f9d6ac9f92c33f8a1a6a6c34e",
+    "air/memory_commitment/mod.zig": "0aa15ee657de78102c276cec1ce43b57c92f498692cf57c0c495b35a8a93b82b"
+  },
+  "next": [
+    "Separate retained wide Poseidon provider.",
+    "Assemble verifier-only parent component collection.",
+    "Qualify the combined component batch with complete CPU/Metal proofs."
+  ]
+}

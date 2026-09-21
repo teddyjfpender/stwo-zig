@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 9s
+
+Build Summary: 3/3 steps succeeded
+build-recursive-segment-v2-detached-verifier success
++- install recursive-segment-v2-detached-verify success
+   +- compile exe recursive-segment-v2-detached-verify ReleaseSafe native success 33s MaxRSS:2G
+

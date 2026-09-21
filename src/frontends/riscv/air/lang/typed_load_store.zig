@@ -1,8 +1,9 @@
 //! Native direct and effect authorship for RV32 load/store.
 //!
 //! Production AIR, witness selection, commitment geometry, and transcripts are
-//! unchanged. All 48 physical columns, 63 direct roots, and 16 ordered relation
-//! events are independently authored. A closed conditional-access proof binds
+//! retained as an authenticated prefix. All 50 physical columns, 63 direct
+//! roots, and 17 ordered relation events are independently authored. A closed
+//! conditional-access proof binds
 //! the committed address selectors and dynamic clock/gap aliases without
 //! changing any tuple polynomial or allocating another trace column.
 
@@ -20,15 +21,15 @@ const source = @import("source.zig");
 const types = @import("types.zig");
 const validate_mod = @import("validate.zig");
 
-pub const MAIN_COLUMN_COUNT: usize = 48;
+pub const MAIN_COLUMN_COUNT: usize = 50;
 pub const SEMANTIC_CONSTRAINT_COUNT = constraints_mod.SEMANTIC_CONSTRAINT_COUNT;
 pub const DIRECT_CONSTRAINT_COUNT = constraints_mod.DIRECT_CONSTRAINT_COUNT;
-pub const LOOKUP_COUNT: usize = 16;
+pub const LOOKUP_COUNT: usize = 17;
 pub const LOOKUP_BATCH_SIZE: u8 = 2;
 pub const MAX_LOOKUP_ARITY: usize = 7;
 pub const OPCODE_IDS = [8]u32{ 19, 20, 22, 23, 21, 24, 25, 26 };
 pub const SEMANTIC_DIGEST_HEX =
-    "ec8aefea7299e84a480524c3848c1ccc73241caea4e89f983f7c2605e6b04e90";
+    "3257ffcf1f911056a0724255043536e7820607159c4ea8b7e490b65dc16b7316";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid typed load/store semantic digest",
@@ -99,6 +100,8 @@ pub const Columns = struct {
     result: [4]types.ValueId,
     destination_nonzero: types.ValueId,
     destination_inverse: types.ValueId,
+    aligned_addr_quarter: types.ValueId,
+    aligned_addr_low20: types.ValueId,
 
     pub fn physical(self: Columns) [MAIN_COLUMN_COUNT]types.ValueId {
         return .{
@@ -150,6 +153,8 @@ pub const Columns = struct {
             self.result[3],
             self.destination_nonzero,
             self.destination_inverse,
+            self.aligned_addr_quarter,
+            self.aligned_addr_low20,
         };
     }
 };
@@ -170,6 +175,7 @@ pub const Events = struct {
     destination: AccessEvents,
     lb_sign_range: types.EffectId,
     lh_sign_range: types.EffectId,
+    aligned_address_high_range: types.EffectId,
 };
 
 pub const ValidationError = validate_mod.Error || relation.Error || error{
@@ -200,7 +206,7 @@ pub const Definition = struct {
             self.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT or
             self.arena.conditional_access_plans.items.len != 1 or
             self.arena.range_refinements.items.len != 5 or
-            self.arena.fixed_table_requests.items.len != 4)
+            self.arena.fixed_table_requests.items.len != 5)
         {
             return error.InvalidLoadStoreDefinition;
         }
@@ -267,6 +273,7 @@ fn validateEventOrder(definition: *const Definition) ValidationError!void {
         definition.events.destination.gap,
         definition.events.lb_sign_range,
         definition.events.lh_sign_range,
+        definition.events.aligned_address_high_range,
     };
     for (event_ids, 0..) |event, index| if (types.idIndex(event) != index)
         return error.InvalidLoadStoreDefinition;
@@ -300,6 +307,12 @@ pub fn build(allocator: std.mem.Allocator, location: Location) !Definition {
         .result = try byteInputs(&arena, "result", span),
         .destination_nonzero = try arena.input("rd_nonzero", .bit, span),
         .destination_inverse = try arena.input("rd_inv", .felt, span),
+        .aligned_addr_quarter = try arena.input(
+            "aligned_addr_quarter",
+            try types.Type.boundedField(28),
+            span,
+        ),
+        .aligned_addr_low20 = try arena.input("aligned_addr_low20", .uint20, span),
     };
     const is_active = try arena.input("is_active", .selector, span);
     const model = try constraints_mod.author(&arena, columns, is_active, span);
@@ -355,16 +368,27 @@ fn authorEffects(
         .emit = rs1_group.emit,
         .gap = rs1_group.clock_gap,
     };
-    const aligned = try range_refinement.rangeCheck20(
+    const aligned = try range_refinement.rangeCheck20Typed(
         arena,
-        model.aligned_addr_quarter,
+        c.aligned_addr_low20,
         active,
+        span,
+    );
+    const high_source = try arena.mul(
+        try arena.sub(c.aligned_addr_quarter, c.aligned_addr_low20, span),
+        try arena.constantField(1 << 11, span),
+        span,
+    );
+    const zero_byte = try arena.constantUnsigned(.byte, 0, span);
+    const doubled_base_high = try arena.mul(
+        c.rs1.value[3],
+        try arena.constantField(2, span),
         span,
     );
     const base = try range_refinement.rangeCheckM31(
         arena,
         c.rs1.value[0],
-        c.rs1.value[3],
+        doubled_base_high,
         active,
         span,
     );
@@ -460,8 +484,8 @@ fn authorEffects(
         .memory_address = model.mem_addr,
         .shift_amount = c.shift_amount,
         .register_index = c.r2_idx,
-        .word_source = model.aligned_addr_quarter,
-        .word_index = aligned.values[0],
+        .word_source = model.aligned_addr_quarter_source,
+        .word_index = c.aligned_addr_quarter,
         .base_low = base.values[0],
         .base_high = base.values[1],
         .source_address_constraint = model.constraints[constraints_mod.SOURCE_ADDRESS_CONSTRAINT_INDEX],
@@ -474,7 +498,6 @@ fn authorEffects(
         .destination_gap = destination_gap,
         .source_span = span,
     });
-    const zero_byte = try arena.constantUnsigned(.byte, 0, span);
     const lb_sign = try range_refinement.rangeCheckM31(
         arena,
         zero_byte,
@@ -489,6 +512,13 @@ fn authorEffects(
         c.is_lh,
         span,
     );
+    const aligned_high = try range_refinement.rangeCheck88FirstRefined(
+        arena,
+        high_source,
+        zero_byte,
+        active,
+        span,
+    );
     return .{
         .program_fetch = program_fetch,
         .retirement = retirement,
@@ -499,6 +529,7 @@ fn authorEffects(
         .destination = destination_events,
         .lb_sign_range = lb_sign.effect,
         .lh_sign_range = lh_sign.effect,
+        .aligned_address_high_range = aligned_high.effect,
     };
 }
 

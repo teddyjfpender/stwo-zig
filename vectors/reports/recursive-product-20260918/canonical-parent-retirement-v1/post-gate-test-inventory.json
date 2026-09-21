@@ -1,0 +1,8 @@
+{
+  "changed_files": [
+    "src/frontends/riscv/test_inventory.zig"
+  ],
+  "sha256": "9e324b5998894d81ead1497c659e4cbf0e86514fd8000030a39ef11d3fb6981c",
+  "checks": 2,
+  "passed": true
+}

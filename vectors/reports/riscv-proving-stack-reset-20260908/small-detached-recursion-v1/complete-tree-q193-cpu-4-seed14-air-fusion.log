@@ -1,0 +1,19 @@
+passed complete 4-segment cpu tree; report=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-air-fusion/report.json
+       83.88 real       355.74 user         6.22 sys
+          3896393728  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             3854197  page reclaims
+                 408  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 207  voluntary context switches
+              185566  involuntary context switches
+           732463280  instructions retired
+           367574470  cycles elapsed
+            50037384  peak memory footprint

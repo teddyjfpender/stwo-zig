@@ -1,0 +1,19 @@
+{
+  "status": "focused_retained_replay_and_complete_cpu_metal_gates_passed",
+  "closure_sources": 124,
+  "pinned_key_checks": 1,
+  "transcript_tests": 4,
+  "expected_public_claim_tests": 3,
+  "source_custody_substantive_tests": 3,
+  "ownership_checks": 12,
+  "retained_leaf_replay": {
+    "passed": true,
+    "cases": 52,
+    "verifier": "/tmp/pr198-leaf-statement-contract-20260918-v1/bin/recursive-segment-v2-detached-verify",
+    "verifier_sha256": "23e0f5d90ed57d39d74ae606a334a01d08ab32d100de9ded5ddc9634356c0a5e"
+  },
+  "complete_production_qualification": "../standalone-leaf-qualified-v1/cross-backend.json",
+  "remaining": [
+    "Standalone separation completed and qualified by standalone-leaf-boundary-v1; broader receipt ladder and typed GPU integration remain incomplete."
+  ]
+}

@@ -20,6 +20,14 @@ const INVENTORY = @embedFile("test_inventory.zig");
 /// Files that hold tests and are deliberately absent from the inventory.
 const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{
+        .path = "recursion_poseidon_degree3_test_root.zig",
+        .why = "backend-neutral semantic root, also consumed by scripts/recursive_poseidon_degree3_proof.py",
+    },
+    .{
+        .path = "poseidon_merkle_test_root.zig",
+        .why = "focused complete Poseidon Merkle scalar/SIMD parity root, run by test-poseidon-merkle",
+    },
+    .{
         .path = "mod.zig",
         .why = "the module root; the compiler always collects the root file's tests",
     },
@@ -124,6 +132,22 @@ const excluded = [_]struct { path: []const u8, why: []const u8 }{
     .{
         .path = "div_private_test_root.zig",
         .why = "focused private-cutover evidence root",
+    },
+    .{
+        .path = "hash_component_prepared_test_root.zig",
+        .why = "focused prepared hash-component evidence root",
+    },
+    .{
+        .path = "lookup_source_ingest_test_root.zig",
+        .why = "focused lookup source-ingest evidence root",
+    },
+    .{
+        .path = "lookup_table_interaction_test_root.zig",
+        .why = "focused lookup-table interaction evidence root",
+    },
+    .{
+        .path = "opcode_interaction_test_root.zig",
+        .why = "focused opcode-interaction evidence root",
     },
 };
 

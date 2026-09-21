@@ -1,0 +1,72 @@
+{
+  "schema": "stwo.local-ethereum.path-proof-progress.v1",
+  "base_head": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_state": "uncommitted PR198 engineering tree",
+  "source_sha256": {
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_v1.zig": "665d89fabbf50894d75e23f11f67f0460321b584788f820717ca47bcbacaf9c4",
+    "src/frontends/riscv/air/memory_commitment/ethereum_path_v1.zig": "780a7279ec8a325ee2608e04c41099b00a4af960a0d5c5d5976cc1f2b6012594",
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_component_v1.zig": "73b60dd58b54c2256d857aca639f6da03b9ec5a8b46dbf8dafdb4fcd7f7885b3",
+    "src/frontends/riscv/air/memory_commitment/ethereum_node_proof_v1.zig": "9e4da042dd0102189ece174dc2a64227810b02c564d5ea68a6127741bc476c44",
+    "src/integrations/riscv_cpu/ethereum_node_proof_v1_runner.zig": "50b77ca3f1413a58e8b121026c8525cbfb46621d37538c02e2181cc56cc8c258",
+    "src/integrations/riscv_metal/ethereum_node_proof_v1_runner.zig": "559dba631b3e5935eb6386cb22c7956f141cb4215f22dc627099b6b30e9c25d4"
+  },
+  "node_rows": 30,
+  "provider_rows": 120,
+  "caller_log_size": 5,
+  "provider_log_size": 7,
+  "caller_constraints": 106,
+  "caller_main_columns": 161,
+  "preprocessed_columns": 12,
+  "main_columns": 606,
+  "interaction_columns": 16,
+  "pcs": {
+    "pow_bits": 0,
+    "log_blowup_factor": 1,
+    "log_last_layer_degree_bound": 0,
+    "n_queries": 3,
+    "security_admitted": false
+  },
+  "proof_bytes": 31000,
+  "cpu_and_metal_serialized_sha256": "10bdc30e0dcd2bf6aec985d51fbac3758db6b591170c33be9c533d6a1b7274a3",
+  "artifact": ".git/local-ethereum/path-proof-v1/metal.bin",
+  "fresh_cpu_process_verified_after_metal_producer_exit": true,
+  "metal_producer_dispatches": 22,
+  "metal_producer_reported_fallbacks": 0,
+  "focused_debug_tests": 5,
+  "focused_release_safe_tests": 5,
+  "negative_checks": [
+    "all nine public leaf and root lanes",
+    "public path index and memory/program domain",
+    "nonboolean height with balanced provider claims",
+    "broken adjacent path link with balanced provider claims",
+    "changed ninth public root lane with balanced provider claims",
+    "unbound squeeze output",
+    "changed claims",
+    "corrupted serialized proof"
+  ],
+  "release_safe_single_run": {
+    "cpu_produce_ns": 5140625,
+    "cpu_fresh_verify_ns": 1945917,
+    "cpu_exercise_peak_rss_report": "6M",
+    "metal_produce_ns": 16045375,
+    "metal_fresh_verify_ns": 1370167,
+    "metal_exercise_peak_rss_report": "41M",
+    "metal_producer_peak_rss_report": "37M",
+    "separate_cpu_verifier_peak_rss_report": "3M",
+    "benchmark_admissible": false,
+    "scope": "tiny diagnostic fixture and low-security PCS; allocations differ by backend; startup excluded from stage timers"
+  },
+  "public_path_bound": true,
+  "vm_leaf_encoding_bound": false,
+  "vm_memory_program_link_bound": false,
+  "ethereum_leaf_complete": false,
+  "current_source_csp_promotion_ab_complete": false,
+  "logs": [
+    "ethereum-path-v1-tests-debug.log",
+    "ethereum-path-v1-tests-safe.log",
+    "ethereum-path-v1-cpu-safe.log",
+    "ethereum-path-v1-metal-safe.log",
+    "ethereum-path-v1-metal-producer.log",
+    "ethereum-path-v1-cpu-fresh-process.log"
+  ]
+}

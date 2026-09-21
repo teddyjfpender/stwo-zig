@@ -1,0 +1,17 @@
+{
+  "status": "live_commitment_sample_not_proof_acceptance",
+  "pid": 35684,
+  "sample_seconds": 2,
+  "sample_file": "ethereum-wrapper2-after-ledger-sample-v1.txt",
+  "sample_sha256": "4cef9dcd712f4595c57b850c64c540308f6438461ee7b789a58f1d9227e80d0b",
+  "observed_stack": [
+    "secure_cohort.initWithPreparationEngine",
+    "pcs.commit_ops.commitOwnedStreamingWithRecorder",
+    "streaming_committer.finalizeBoundedTailRangeReusing",
+    "memory_commitment.poseidon2.permute"
+  ],
+  "reported_physical_footprint": "31.0G",
+  "reported_peak_physical_footprint": "52.4G",
+  "interpretation": "Native PCS Merkle hashing during admitted preprocessing; this sample does not measure Poseidon AIR generation or STARK verification",
+  "action": "Continue unchanged real proof; retain for post-delivery bottleneck comparison"
+}

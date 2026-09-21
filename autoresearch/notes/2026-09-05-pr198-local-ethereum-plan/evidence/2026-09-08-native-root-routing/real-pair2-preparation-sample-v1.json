@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "scope": "one-second preparation sample of live real-pair2 AIR check, not whole-request attribution",
+  "pid": 27409,
+  "samples": 85,
+  "continuation_tree_compensation_samples": 80,
+  "stack": "runWrapper -> OwnedWitnessV4.initWithCircuitProfile -> incremental_public_logup_v4.auditWithCircuitProfile -> addContinuationTreeCompensation -> subtractMerkleInverse -> QM31.inv",
+  "physical_footprint_reported": "1.8G",
+  "peak_footprint_reported": "2.8G",
+  "rss_is_distinct": true,
+  "sample_sha256": "c26d0c940bd61e8cad5a6304ab16538c7e23176a043990b9140b3be1ac5c75b9",
+  "action": "retain as measured optimization candidate after functioning proof route; allow current real gate to finish",
+  "wrapper_verified": false
+}

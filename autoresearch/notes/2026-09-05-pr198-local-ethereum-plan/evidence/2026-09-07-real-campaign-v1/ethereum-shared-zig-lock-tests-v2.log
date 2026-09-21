@@ -1,0 +1,18 @@
+test_host_budget_reserves_memory_and_caps_large_hosts (scripts.tests.test_zig_serial_build.SerialBuildTests.test_host_budget_reserves_memory_and_caps_large_hosts) ... ok
+test_limits_stop_at_runtime_argument_separator (scripts.tests.test_zig_serial_build.SerialBuildTests.test_limits_stop_at_runtime_argument_separator) ... ok
+test_main_passes_limits_to_root_and_delegated_builds (scripts.tests.test_zig_serial_build.SerialBuildTests.test_main_passes_limits_to_root_and_delegated_builds) ... ok
+test_both_wrappers_wait_for_shared_lock_and_propagate_child_exit (scripts.tests.test_zig_serial_build.SerializedSubprocessTests.test_both_wrappers_wait_for_shared_lock_and_propagate_child_exit) ... ok
+test_nested_protocol_wrapper_uses_explicit_parent_lock_without_deadlock (scripts.tests.test_zig_serial_build.SerializedSubprocessTests.test_nested_protocol_wrapper_uses_explicit_parent_lock_without_deadlock) ... ok
+test_protocol_missing_lock_path_rejects_before_running_zig (scripts.tests.test_zig_serial_build.SerializedSubprocessTests.test_protocol_missing_lock_path_rejects_before_running_zig) ... ok
+test_protocol_no_lock_is_explicit_and_preserves_all_zig_arguments (scripts.tests.test_zig_serial_build.SerializedSubprocessTests.test_protocol_no_lock_is_explicit_and_preserves_all_zig_arguments) ... ok
+test_serial_no_lock_clears_inherited_ownership_marker (scripts.tests.test_zig_serial_build.SerializedSubprocessTests.test_serial_no_lock_clears_inherited_ownership_marker) ... ok
+test_every_module_scope_uses_its_authoritative_contract_dependencies (scripts.tests.test_zig_protocol_command.ZigProtocolCommandTests.test_every_module_scope_uses_its_authoritative_contract_dependencies) ... ok
+test_filter_text_is_not_an_optimization_option (scripts.tests.test_zig_protocol_command.ZigProtocolCommandTests.test_filter_text_is_not_an_optimization_option) ... ok
+test_optimization_is_scoped_before_every_module (scripts.tests.test_zig_protocol_command.ZigProtocolCommandTests.test_optimization_is_scoped_before_every_module) ... ok
+test_protocol_modules_are_wired_in_dependency_order (scripts.tests.test_zig_protocol_command.ZigProtocolCommandTests.test_protocol_modules_are_wired_in_dependency_order) ... ok
+test_test_command_preserves_trailing_zig_arguments (scripts.tests.test_zig_protocol_command.ZigProtocolCommandTests.test_test_command_preserves_trailing_zig_arguments) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 1.698s
+
+OK

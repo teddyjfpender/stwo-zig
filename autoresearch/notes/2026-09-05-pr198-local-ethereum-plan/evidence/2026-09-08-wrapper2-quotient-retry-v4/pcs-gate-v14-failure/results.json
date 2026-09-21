@@ -1,0 +1,16 @@
+[
+  {
+    "gate": "pcs-retained",
+    "status": "failed",
+    "exit_code": 1,
+    "wall_seconds": 16.53138020914048,
+    "counts": [
+      [
+        "14",
+        "14"
+      ]
+    ],
+    "log_sha256": "57c36a68f4a5aa26d715ac2949e205ad9287604177e0c5fb449ac6668da62b11",
+    "source_files_rehashed": 5780
+  }
+]

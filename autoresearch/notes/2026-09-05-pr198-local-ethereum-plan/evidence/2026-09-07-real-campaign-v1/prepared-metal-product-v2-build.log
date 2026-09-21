@@ -1,0 +1,17 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 615s
+
+Build Summary: 12/12 steps succeeded; 21/21 tests passed
+test-ethereum-prepared-leaf-metal-v1 success
++- run test 3 passed 384ms MaxRSS:6M
+   +- compile test ReleaseSafe native success 4s MaxRSS:546M
+install-ethereum-prepared-leaf-metal-v1 success
++- install ethereum-prepared-leaf-metal-v1 success
+   +- compile exe ethereum-prepared-leaf-metal-v1 ReleaseSafe native success 1m MaxRSS:5G
+test-stage101-leaf-autoresearch-v1 success
++- run test 18 passed 333ms MaxRSS:5M
+   +- compile test ReleaseSafe native success 11s MaxRSS:799M
+install-stage101-leaf-autoresearch-v1 success
++- install stage101-metal-autoresearch-v1 success
+   +- compile exe stage101-metal-autoresearch-v1 ReleaseSafe native success 1m MaxRSS:5G
+

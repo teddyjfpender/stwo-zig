@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "status": "prepared_not_launched_or_queued_waiting_for_wrapper2_independent_acceptance",
+  "scope": "Geometry only for actual global3 from retained native context3/4; compare all dimensions with independently admitted accepted wrapper2 key before wrapper3 production",
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/source/src/integrations/riscv_cpu",
+    "test-ethereum-wrapper-geometry",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ETHEREUM_WRAPPER_PAIR_SLOT": "0",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v3/progress.log"
+  },
+  "unset_env": [
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1",
+    "STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY_SHA256",
+    "STWO_ZIG_BUILD_HELD_LOCK",
+    "STWO_ETHEREUM_PROOF_CORPUS",
+    "STWO_ETHEREUM_PCS_SCRATCH_DIR",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256"
+  ],
+  "required_env": {
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY": "Set only from finalized successful independent checker genuine bundle key after its expected pin matches trusted wrapper2 run emission",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY_SHA256": "Same independently verified key pin, originally admitted by trusted source-v11 wrapper2 emission"
+  },
+  "required_expected_key_receipt": null,
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/manifest.json",
+  "source_manifest_sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a",
+  "inputs": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/native-inputs-v1.json",
+      "bytes": 575,
+      "sha256": "ad25bf6279fc3905c454bd72c2265fce60985762f323e1187b85faa4cad7f35a"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/global-metadata-v1.json",
+      "bytes": 10817,
+      "sha256": "1579f617124d497aa68342c8102ef849c936229c35700d49f70e97bd0fd66230"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/program.elf",
+      "bytes": 3412588,
+      "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e.bin",
+      "bytes": 50730870,
+      "sha256": "2011d8e57ac735148a3118d3f4dfc01aa1ee4407d9bdadfc04148301de36a18e"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-3-4-v1/6b1b172be94be95904aa7f23c905ab9d23c8c4cf5e886498d95a06b590c7283c.bin",
+      "bytes": 50122902,
+      "sha256": "6b1b172be94be95904aa7f23c905ab9d23c8c4cf5e886498d95a06b590c7283c"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+      "bytes": 70206,
+      "sha256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+    }
+  ],
+  "candidate_global_segment": 3,
+  "context_global_segments": [
+    3,
+    4
+  ],
+  "proof_verified": false,
+  "semantic_compile_passed": false,
+  "geometry_compatible": null,
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v3/geometry.log",
+  "acceptance": [
+    "Require predecessor guarded3/3 internal acceptance plus successful pinned external root checker (all5 cases, unchanged inputs/binary). Finalize create-only launch request: record exact receipt+key hashes, remove required-key names from unset_env, insert their values into env.",
+    "Verify source manifest and all retained input pins before launch",
+    "Run only after current wrapper2 job; shared /tmp/stwo-zig-build.lock; no proof launched by this request",
+    "Require guarded terminal exit0 with both named tests passed and global_segment=3 compatible=true",
+    "ETHEREUM_WRAPPER_GEOMETRY_EXPECTED and ETHEREUM_WRAPPER_WIRE_DIMENSIONS must contain exactly equal ten-field dimensions",
+    "Any mismatch blocks wrapper3 proof; this diagnostic is never proof acceptance",
+    "No full sibling or parent proof compatibility claim from dimension equality alone; wrapper3 must later independently verify and parent AIR verify both actual children."
+  ],
+  "geometry_allocation_scope": "Reuses Geometry.init authenticated plan and witness backing; skips additional typed AIR row audit, tuple ledger, source commitments and PCS.",
+  "supersedes_request_sha256": "aa9f962e19b1661da85a233bb2dfc11c4ba83fc5f297768975a4612da079efbd",
+  "test_discovery": "Both required names are explicit test declarations in the genuine root; no imported-test discovery dependency",
+  "expected_test_names": [
+    "role0 saved Stage101 pair checks wrapper geometry against pinned child key",
+    "Ethereum wrapper geometry gate rejects every incompatible wire dimension"
+  ],
+  "predecessor_wrapper_run": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3",
+  "predecessor_independent_verifier_plan": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/independent-verification-preparation-v1/plan.json",
+    "bytes": 9249,
+    "sha256": "e72aa4645f16e0c59fff3aaa80176c3d7a6143f5f42bc7e72f4f2062632c8ceb"
+  },
+  "expected_coordinate": {
+    "height": 0,
+    "index": 3
+  },
+  "expected_sibling_coordinate": {
+    "height": 0,
+    "index": 2
+  },
+  "source_accepted_by_real_proof": false,
+  "ordering": "Wrapper2 guarded3/3 internal acceptance, then independently accepted checker receipt, then this geometry gate, then wrapper3 production and actual parent. Nothing launched or queued now.",
+  "compatibility_scope": "Necessary exact equality of all10 fixed-wire dimensions from authenticated Geometry/manifest under fixed PCS config. This rejects incompatible width/depth/FRI dimensions BEFORE wrapper3 proof. It does NOT prove equal key/session/AIR identities, authenticate wrapper3 proof, or complete parent admission. Retain those checks for actual wrapper3 and parent."
+}

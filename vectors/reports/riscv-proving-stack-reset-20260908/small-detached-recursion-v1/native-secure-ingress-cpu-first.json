@@ -1,0 +1,13 @@
+{
+  "argv": [
+    ".git/local-riscv-proving-stack/small-detached-recursion-v1/native-secure-ingress-first-cpu",
+    "--memory-addresses",
+    "1",
+    "--native-ingress-profile",
+    "protocol_v1"
+  ],
+  "binary_sha256": "c7e59eb8f3cb4b1948575cce88c1a540bfcd96557a418b7481ccfc0049363836",
+  "exit_code": 0,
+  "elapsed_seconds": 4.481522666988894,
+  "maximum_rss_bytes": 1056849920
+}

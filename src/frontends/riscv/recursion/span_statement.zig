@@ -29,6 +29,8 @@ pub const JobContext = shard_0.JobContext;
 pub const SlotSpan = shard_0.SlotSpan;
 pub const EdgeClaim = shard_0.EdgeClaim;
 pub const ExecutedSpan = shard_0.ExecutedSpan;
+/// Join consecutive execution spans independently of binary proof-tree slots.
+pub const foldExecuted = shard_0.foldExecuted;
 pub const SpanBody = shard_0.SpanBody;
 pub const SpanStatement = shard_1.SpanStatement;
 pub const RootStatement = shard_1.RootStatement;

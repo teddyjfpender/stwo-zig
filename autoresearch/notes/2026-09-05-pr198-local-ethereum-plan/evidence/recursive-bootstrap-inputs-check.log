@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 115s
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-bootstrap-inputs-v2 success
++- run test 1 passed 260ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 3s MaxRSS:397M
+

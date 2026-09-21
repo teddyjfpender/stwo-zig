@@ -23,12 +23,11 @@ from __future__ import annotations
 
 import argparse
 import datetime as dt
-import inspect
 import json
+import math
 import os
 import subprocess
 import sys
-import tempfile
 import time
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Sequence
@@ -79,23 +78,37 @@ from scripts.riscv_csp_benchmark_lib.source_audit import (  # noqa: E402
 )
 from scripts.riscv_csp_benchmark_lib.validation import (  # noqa: E402
     summarize_evidence,
+    phase_seconds as _phase_seconds,
+    peak_memory as _peak_memory,
     validate_artifact,
     validate_benchmark_report,
     validate_resident_polynomial_telemetry,
     validate_verify_receipt,
 )
 
+from scripts.riscv_csp_benchmark_lib.evidence import EvidenceRun, prove_negative_case
+from scripts.riscv_csp_benchmark_lib.workloads import require_execution_mode, workload_inventory
 
-SCHEMA = "stwo_riscv_csp_benchmark_v4"
-# v4 binds the native-only execution boundary. v3 added power conditions and
-# executable provenance; retained evidence keeps its original schema name: a
-# report is relabelled by regeneration, never by editing the label.
+
+SCHEMA = "stwo_riscv_csp_benchmark_v5"
+# v5 binds proof public I/O, proves negative fixtures, and retains raw evidence.
+# Historical reports retain their original schema; regenerate to upgrade.
 SUPERSEDED_SCHEMAS = (
     "stwo_riscv_csp_benchmark_v2",
     "stwo_riscv_csp_benchmark_v3",
+    "stwo_riscv_csp_benchmark_v4",
 )
 MAX_EXECUTION_STEPS = 10_000_000
 RECURSION_ENV_PREFIX = "STWO_RECURSION_"
+
+
+def report_path(path: Path) -> str:
+    """Keep local paths portable without rejecting external CLI inputs."""
+    path = path.resolve()
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def _run(
@@ -144,6 +157,7 @@ def _execute_guest(
     expected_cycles: int,
     trace_cli: Path,
     timeout: int,
+    env: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     completed = _run(
         [
@@ -156,6 +170,7 @@ def _execute_guest(
             str(MAX_EXECUTION_STEPS),
         ],
         timeout=timeout,
+        env=env,
     )
     if len(completed.stdout) > MAX_CAPTURE_BYTES:
         raise BenchmarkError(f"{label}: public values are oversized")
@@ -179,8 +194,9 @@ def _execute_guest(
     }
 
 
-def execute_case(case: Case, trace_cli: Path, timeout: int) -> dict[str, Any]:
+def execute_case(case: Case, trace_cli: Path, timeout: int, *, env=None) -> dict[str, Any]:
     return _execute_guest(
+        env=env,
         label=f"{case.target}/{case.input_size}",
         guest_path=case.guest_path,
         input_path=case.input_path,
@@ -189,72 +205,6 @@ def execute_case(case: Case, trace_cli: Path, timeout: int) -> dict[str, Any]:
         trace_cli=trace_cli,
         timeout=timeout,
     )
-
-
-def execute_negative_case(
-    case: NegativeCase,
-    trace_cli: Path,
-    timeout: int,
-) -> dict[str, Any]:
-    evidence = _execute_guest(
-        label=f"negative/{case.name}",
-        guest_path=case.guest_path,
-        input_path=case.input_path,
-        expected_digest=case.expected_digest,
-        expected_cycles=case.expected_cycles,
-        trace_cli=trace_cli,
-        timeout=timeout,
-    )
-    return {
-        "name": case.name,
-        "target": case.target,
-        "status": "rejected_as_expected",
-        "input_sha256": case.input_sha256,
-        "output_digest": evidence["output_digest"],
-        "cycles": evidence["cycles"],
-        "public_values_sha256": evidence["public_values_sha256"],
-    }
-
-
-def _phase_seconds(report: Mapping[str, Any]) -> tuple[float, float]:
-    phase_names = (
-        "mean_execution_seconds",
-        "mean_witness_seconds",
-        "mean_proving_seconds",
-        "mean_verification_seconds",
-    )
-    phases: dict[str, float] = {}
-    for name in phase_names:
-        value = report.get(name)
-        if (
-            not isinstance(value, (int, float))
-            or isinstance(value, bool)
-            or value < 0
-        ):
-            raise BenchmarkError(f"benchmark report has invalid {name}")
-        phases[name] = float(value)
-    prove = (
-        phases["mean_execution_seconds"]
-        + phases["mean_witness_seconds"]
-        + phases["mean_proving_seconds"]
-    )
-    return prove, phases["mean_verification_seconds"]
-
-
-def _peak_memory(report: Mapping[str, Any]) -> tuple[int | None, str]:
-    resources = report.get("resources")
-    if not isinstance(resources, dict):
-        return None, "benchmark report has no resources object"
-    if resources.get("availability") != "available":
-        reason = resources.get("unavailable_reason")
-        return None, str(reason or "resource telemetry unavailable")
-    after = resources.get("after_verified_samples")
-    if not isinstance(after, dict):
-        return None, "resource telemetry has no after-samples snapshot"
-    value = after.get("lifetime_max_phys_footprint_bytes")
-    if not isinstance(value, int) or isinstance(value, bool) or value <= 0:
-        return None, "resource telemetry has no positive peak footprint"
-    return value, str(resources.get("source") or "unknown")
 
 
 def native_benchmark_environment(
@@ -304,7 +254,7 @@ def benchmark_case(
     env: Mapping[str, str],
     work_dir: Path,
 ) -> tuple[dict[str, Any], str]:
-    execution = execute_case(case, trace_cli, timeout)
+    execution = execute_case(case, trace_cli, timeout, env=env)
     stem = f"{case.target}_{case.input_size}"
     bench_path = work_dir / f"{stem}.bench.json"
     artifact_path = work_dir / f"{stem}.proof.json"
@@ -332,6 +282,7 @@ def benchmark_case(
     wall_start = time.monotonic_ns()
     completed = _run(command, env=env, timeout=timeout)
     wall_duration_ns = time.monotonic_ns() - wall_start
+    (work_dir / f"{stem}.prover.log").write_bytes(completed.stdout + completed.stderr)
     report = load_json(bench_path)
     if not isinstance(report, dict):
         raise BenchmarkError(f"{case.target}/{case.input_size}: report is not an object")
@@ -379,6 +330,7 @@ def benchmark_case(
         env=env,
         timeout=timeout,
     )
+    (work_dir / f"{stem}.verify.json").write_bytes(verify.stdout)
     retained_verify_wall_ns = time.monotonic_ns() - verify_start
     try:
         receipt = json.loads(verify.stdout, object_pairs_hook=_strict_object)
@@ -408,6 +360,7 @@ def benchmark_case(
         or any(
             not isinstance(value, (int, float))
             or isinstance(value, bool)
+            or not math.isfinite(value)
             or value <= 0
             for value in sample_seconds
         )
@@ -415,6 +368,9 @@ def benchmark_case(
         raise BenchmarkError(f"{case.target}/{case.input_size}: sample series drifted")
     evidence = {
         "status": "verified",
+        "public_io_bound_to_proof": True,
+        "artifact_path": report_path(artifact_path),
+        "benchmark_report_path": report_path(bench_path),
         "input_sha256": case.input_sha256,
         "guest_sha256": case.guest_sha256,
         "output_digest": execution["output_digest"],
@@ -444,6 +400,8 @@ def benchmark_case(
         "num_constraints": 0,
         "peak_memory": peak_memory,
         "uses_precompile": case.uses_precompile,
+        "execution_mode": "software",
+        "proof_scope": "riscv_guest",
         "evidence": evidence,
         "timing": {
             "source": "production CLI internal stage timers",
@@ -529,28 +487,16 @@ def _resolve_backend_paths(args: argparse.Namespace) -> tuple[Path, Path]:
 
 
 def _resolve_admission(cli: Path, backend: str) -> riscv_cli_admission.Admission:
-    """Authenticate the product registry of the executable about to run.
-
-    ``riscv_cli_admission`` is a shared module owned by another change; until
-    it accepts a ``backend`` parameter, CPU admission is byte-for-byte the
-    historical call and any non-CPU backend fails closed rather than being
-    admitted through the CPU-only registry contract.
-    """
-    parameters = inspect.signature(riscv_cli_admission.resolve).parameters
-    if "backend" in parameters:
-        return riscv_cli_admission.resolve(cli, cwd=ROOT, backend=backend)
-    if backend == "cpu":
-        return riscv_cli_admission.resolve(cli, cwd=ROOT)
-    raise BenchmarkError(
-        f"riscv_cli_admission cannot authenticate a {backend} product "
-        "registry yet; refusing to admit a non-CPU backend through the "
-        "CPU-only registry contract"
-    )
+    return riscv_cli_admission.resolve(cli, cwd=ROOT, backend=backend)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
+    parser.add_argument("--execution-mode", choices=("software", "precompile"), default="software",
+                        help="Full guest path: software or typed ECDSA precompile with proved software fallback")
+    parser.add_argument("--list-workloads", action="store_true",
+                        help="List authenticated workloads and integration availability without building")
     parser.add_argument("--backend", choices=tuple(BACKENDS), default="cpu")
     parser.add_argument("--cli", type=Path, default=None)
     parser.add_argument("--trace-cli", type=Path, default=DEFAULT_TRACE_CLI)
@@ -586,6 +532,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not selected:
         raise BenchmarkError("benchmark selection is empty")
 
+    if args.list_workloads:
+        print(json.dumps(workload_inventory(selected), indent=2))
+        return 0
+    require_execution_mode(args.execution_mode)
+    selected_benchmark = benchmark_case
+    if args.execution_mode == "precompile":
+        from functools import partial
+        from scripts.riscv_csp_benchmark_lib.precompile import benchmark_case as accelerated
+        selected_benchmark = partial(accelerated, run=_run, software_benchmark=selected_benchmark,
+                                     workers=args.workers or 16)
+    print(f"[scope] {args.execution_mode} full guest proofs; secure 70 queries / 26 PoW bits", flush=True)
     spec = BACKENDS[args.backend]
     cli, report_out = _resolve_backend_paths(args)
     trace_cli = args.trace_cli.resolve()
@@ -603,10 +560,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     build_identity = read_build_identity(cli)
     validate_build_identity(build_identity)
     repository_head = _git_output("rev-parse", "HEAD")
+    env, environment_overrides, removed_recursion_environment_variables = (
+        native_benchmark_environment(os.environ, args.workers)
+    )
     trace_provenance = read_trace_provenance(
         trace_cli,
         min(selected, key=lambda case: case.expected_cycles),
         repository_head=repository_head,
+        env=env,
         max_steps=MAX_EXECUTION_STEPS,
         timeout=args.timeout,
     )
@@ -620,11 +581,6 @@ def main(argv: Sequence[str] | None = None) -> int:
         case for case in all_negative_cases if case.target in targets
     ]
     negative_evidence: list[dict[str, Any]] = []
-    for case in selected_negative:
-        print(f"[negative] {case.name}: execute and reject", flush=True)
-        negative_evidence.append(
-            execute_negative_case(case, trace_cli, args.timeout)
-        )
 
     host = collect_host()
     host_matches, host_mismatch = official_host_match(host, backend=args.backend)
@@ -637,21 +593,31 @@ def main(argv: Sequence[str] | None = None) -> int:
             "(system_profiler SPDisplaysDataType); refusing to record "
             "GPU-dependent timings without GPU identity"
         )
-    env, environment_overrides, removed_recursion_environment_variables = (
-        native_benchmark_environment(os.environ, args.workers)
-    )
+
 
     rows: list[dict[str, Any]] = []
     commits: set[str] = set()
-    with tempfile.TemporaryDirectory(prefix="stwo-riscv-csp-") as temporary:
-        work_dir = Path(temporary)
+    evidence_run = EvidenceRun(report_out)
+    print(f"evidence: {evidence_run.directory}", flush=True)
+    with evidence_run:
+        work_dir = evidence_run.directory
+        for case in selected_negative:
+            print(f"[negative] {case.name}: execute, prove rejection, independently verify", flush=True)
+            item, commit = prove_negative_case(
+                case, all_cases, cli, trace_cli, benchmark=selected_benchmark,
+                backend=args.backend, timeout=args.timeout, admission=admission,
+                env=env, work_dir=work_dir,
+            )
+            negative_evidence.append(item)
+            commits.add(commit)
+            evidence_run.record("negative", item)
         for index, case in enumerate(selected, start=1):
             print(
                 f"[{index}/{len(selected)}] {case.target}/{case.input_size}: "
                 f"execute, prove, verify",
                 flush=True,
             )
-            row, commit = benchmark_case(
+            row, commit = selected_benchmark(
                 case,
                 cli,
                 trace_cli,
@@ -665,6 +631,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             commits.add(commit)
             rows.append(row)
+            evidence_run.record("measurement", row)
             peak = row["peak_memory"]
             memory = "unavailable" if peak is None else f"{peak / 1024**3:.2f}GiB"
             print(
@@ -685,11 +652,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"binary commit {measurement_commit} differs from repository HEAD {repository_head}"
         )
 
-    complete_matrix = (
-        targets == TARGET_ORDER
-        and sizes == CANONICAL_SIZES
-        and len(rows) == sum(len(values) for values in TARGET_SIZES.values())
-    )
+    complete_matrix = {(case.target, case.input_size) for case in selected} == {
+        (case.target, case.input_size) for case in all_cases
+    }
     memory_available = all(row["peak_memory"] is not None for row in rows)
     limitations = [
         "The secure profile's 96-bit total is heuristic pending the external "
@@ -698,6 +663,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         "the observed peak, but this is conservative relative to CSP's prove-only "
         "memory process.",
         "No result is uploaded to EthProofs by this command.",
+        "All rows include full guest proofs. Precompile mode uses typed recovery with "
+        "guest key matching and low-S enforcement; unsupported inputs receive software proofs.",
     ]
     if not host_matches:
         limitations.append(
@@ -719,11 +686,11 @@ def main(argv: Sequence[str] | None = None) -> int:
 
     captured_at = dt.datetime.now(dt.timezone.utc).astimezone().isoformat()
     report = {
-        "schema": SCHEMA,
+        "schema": SCHEMA if args.execution_mode == "software" else "stwo_riscv_csp_accelerated_benchmark_v1",
         "captured_at": captured_at,
         "measurement_commit": measurement_commit,
         "repository_head": repository_head,
-        "suite_manifest": str(args.manifest.resolve().relative_to(ROOT)),
+        "suite_manifest": report_path(args.manifest),
         "suite_manifest_sha256": sha256_file(args.manifest.resolve()),
         "upstream": manifest["upstream"],
         "source_audit": source_audit,
@@ -741,7 +708,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             "is_pq": True,
             "is_maintained": True,
             "is_audited": "not_audited",
-            "isa": "RISC-V RV32IM",
+            "isa": "RISC-V RV32IM" if args.execution_mode == "software" else "RISC-V RV32IM + typed Ethereum recovery v1",
         },
         "security": {
             "profile": "secure",
@@ -755,11 +722,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             "target_sizes": {
                 target: list(TARGET_SIZES[target]) for target in TARGET_ORDER
             },
-            "uses_precompile": False,
+            "uses_precompile": any(row["uses_precompile"] for row in rows),
+            "execution_mode": args.execution_mode,
+            "negative_validation": "full guest proof of rejection plus independent verification",
             "proof_scope": "native RISC-V leaf STARK; recursion and outer proving disabled",
             "proof_duration": "mean execution + witness + proof generation",
             "verify_duration": "mean production verification",
-            "proof_size": "Postcard proof bytes, excluding schema-v4 JSON framing",
+            "proof_size": "serialized STARK proof bytes, excluding artifact framing and public metadata",
             "preprocessing_size": "retained RV32IM ELF bytes",
             "peak_memory": "production process lifetime physical-footprint peak",
             "num_constraints": "0 means not exposed; cycles are authoritative",
@@ -801,14 +770,16 @@ def main(argv: Sequence[str] | None = None) -> int:
             "experimental": admission.experimental,
         },
         "identities": {
-            "prover_executable": str(cli.relative_to(ROOT)),
+            "prover_executable": report_path(cli),
             "prover_executable_sha256": sha256_file(cli),
             "prover_build_identity": build_identity,
-            "trace_executable": str(trace_cli.relative_to(ROOT)),
+            "trace_executable": report_path(trace_cli),
             "trace_executable_sha256": sha256_file(trace_cli),
             "trace_provenance": trace_provenance,
             "zig_version": _command_text(["zig", "version"]),
         },
+        "evidence_directory": report_path(evidence_run.directory),
+        "workloads": workload_inventory(selected),
         "coverage": {
             "supported_targets": list(TARGET_ORDER),
             "unsupported_targets": manifest["unsupported_targets"],
@@ -819,6 +790,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "measurements": rows,
     }
     _atomic_write_json(report_out, report)
+    evidence_run.finish(report_out)
     print(f"report: {report_out}", flush=True)
     return 0
 

@@ -1,0 +1,18 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 4s
+test-recursive-segment-v2-detached-parent-capture
++- Detached parent recursive capture guard
+   +- run test stderr
+DETACHED_PARENT_BOUNDARY rejected_public_words=436 rejected_noncanonical_zero=true
+DETACHED_PARENT_CAPTURE active_rows=30 physical_claims=36 sampled_values=2149 graph_nodes=38307 rejected_claims_and_samples=45 public_transcript_limbs=872 input_destroyed=true parent_verified=true consumer_proof_created=false
+
+Build Summary: 8/8 steps succeeded; 5/5 tests passed
+test-recursive-segment-v2-detached-parent-capture success
++- Detached parent recursive capture guard success
+   +- run test 1 passed 3s MaxRSS:708M
+      +- compile test ReleaseSafe native success 49s MaxRSS:2G
+test-recursive-segment-v2-detached-transcript success
++- SegmentV2 detached transcript guard success
+   +- run test 4 passed 266ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:597M
+

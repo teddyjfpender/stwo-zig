@@ -158,14 +158,19 @@ fn validateRanges(
     arena: *const ir.Arena,
     proof: program.ConditionalAccessPlanProof,
 ) Error!void {
-    try requireType(arena, proof.word_index, .uint20);
+    try requireType(arena, proof.word_index, try types.Type.boundedField(28));
     try requireType(arena, proof.base_low, .byte);
     try requireType(arena, proof.base_high, try types.Type.boundedField(7));
+    const aligned_values = arena.effectValues(proof.aligned_range) orelse
+        return error.InvalidConditionalAccessEffect;
+    if (aligned_values.len != 1) return error.InvalidConditionalAccessEffect;
+    const aligned_low20 = aligned_values[0];
+    try requireType(arena, aligned_low20, .uint20);
     try requireFixedRange(
         arena,
         proof.aligned_range,
         .range_check_20,
-        &.{proof.word_index},
+        &.{aligned_low20},
         proof.active,
     );
     try requireFixedRange(
@@ -175,20 +180,134 @@ fn validateRanges(
         &.{ proof.base_low, proof.base_high },
         proof.active,
     );
-    if (!hasFixedRefinement(
-        arena,
-        proof.word_source,
-        proof.word_index,
-        proof.aligned_range,
-        0,
-        proof.active,
-    ) or !hasFixedRefinementTarget(
-        arena,
-        proof.base_high,
-        proof.base_range,
-        1,
-        proof.active,
-    )) return error.InvalidConditionalAccessProof;
+    if (!hasWideWordBinding(arena, proof, aligned_low20) or
+        !hasBoundedBaseBinding(arena, proof))
+    {
+        return error.InvalidConditionalAccessProof;
+    }
+}
+
+/// Authenticate the 28-bit committed word index without trusting its semantic
+/// type. One direct root binds it to the selector-derived address polynomial;
+/// the named low20 request plus one unique `(high8, 0)` request prove the exact
+/// decomposition `word = low20 + 2^20 * high8`.
+fn hasWideWordBinding(
+    arena: *const ir.Arena,
+    proof: program.ConditionalAccessPlanProof,
+    low20: types.ValueId,
+) bool {
+    if (!isInput(arena, proof.word_index) or !isInput(arena, low20)) return false;
+
+    var equality_count: usize = 0;
+    for (arena.constraintsView()) |constraint| {
+        if (constraint.gate != null or constraint.category != .semantic) continue;
+        const product = binary(arena, constraint.root, .mul) orelse continue;
+        const difference = if (product.lhs == proof.active_source)
+            binary(arena, product.rhs, .sub)
+        else if (product.rhs == proof.active_source)
+            binary(arena, product.lhs, .sub)
+        else
+            null;
+        const exact = difference orelse continue;
+        if (exact.lhs == proof.word_index and exact.rhs == proof.word_source)
+            equality_count += 1;
+    }
+    if (equality_count != 1) return false;
+
+    var high_count: usize = 0;
+    for (arena.range_refinements.items) |item| switch (item.premise) {
+        .fixed_table_field => |fixed| {
+            if (fixed.field_index != 0 or fixed.liveness != proof.active or
+                !isWideHighSource(arena, item.source, proof.word_index, low20))
+            {
+                continue;
+            }
+            const effect = arena.effect(fixed.effect) orelse return false;
+            const values = arena.effectValues(fixed.effect) orelse return false;
+            if (effect.kind != .range_request or effect.liveness != proof.active or
+                effect.access_ordinal != null or
+                !bindingIs(effect.binding, .range_check_8_8, .request) or
+                values.len != 2 or values[0] != item.target or
+                !isTypedZero(arena, values[1], .byte) or
+                !fixedProofOwns(arena, fixed.effect, proof.active))
+            {
+                return false;
+            }
+            high_count += 1;
+        },
+        else => {},
+    };
+    return high_count == 1;
+}
+
+fn hasBoundedBaseBinding(
+    arena: *const ir.Arena,
+    proof: program.ConditionalAccessPlanProof,
+) bool {
+    const first_values = arena.effectValues(proof.first_effect) orelse return false;
+    if (first_values.len != 7 or proof.base_low != first_values[3]) return false;
+    const base_top = first_values[6];
+    var count: usize = 0;
+    for (arena.range_refinements.items) |item| {
+        if (item.target != proof.base_high) continue;
+        const fixed = switch (item.premise) {
+            .fixed_table_field => |value| value,
+            else => return false,
+        };
+        if (fixed.effect != proof.base_range or fixed.field_index != 1 or
+            fixed.liveness != proof.active or
+            !isScaledBy(arena, item.source, base_top, 2))
+        {
+            return false;
+        }
+        count += 1;
+    }
+    return count == 1;
+}
+
+fn isWideHighSource(
+    arena: *const ir.Arena,
+    value: types.ValueId,
+    word: types.ValueId,
+    low20: types.ValueId,
+) bool {
+    const product = binary(arena, value, .mul) orelse return false;
+    const difference_value = if (isConstant(arena, product.lhs, 1 << 11))
+        product.rhs
+    else if (isConstant(arena, product.rhs, 1 << 11))
+        product.lhs
+    else
+        return false;
+    const difference = binary(arena, difference_value, .sub) orelse return false;
+    return difference.lhs == word and difference.rhs == low20;
+}
+
+fn isScaledBy(
+    arena: *const ir.Arena,
+    value: types.ValueId,
+    source_value: types.ValueId,
+    scale: u32,
+) bool {
+    const product = binary(arena, value, .mul) orelse return false;
+    return (product.lhs == source_value and isConstant(arena, product.rhs, scale)) or
+        (product.rhs == source_value and isConstant(arena, product.lhs, scale));
+}
+
+fn isInput(arena: *const ir.Arena, value: types.ValueId) bool {
+    const node = arena.node(value) orelse return false;
+    return switch (node.key.op) {
+        .input => true,
+        else => false,
+    };
+}
+
+fn isTypedZero(
+    arena: *const ir.Arena,
+    value: types.ValueId,
+    wanted_type: types.Type,
+) bool {
+    const node = arena.node(value) orelse return false;
+    return std.meta.eql(node.key.ty, wanted_type) and isConstant(arena, value, 0);
 }
 
 fn requireAddressConstraint(

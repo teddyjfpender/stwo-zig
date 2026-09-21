@@ -1,0 +1,227 @@
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index fbe8702e..37da8dbc 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -48,6 +48,7 @@ fn run(comptime Metal: type) !void {
+         try @import("recursive_segment_v2_two_segment_test_support.zig").checkSegmentLadder(allocator);
+         return;
+     }
++    var native_ingress_profile: ?@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile = null;
+     var steps: ?usize = null;
+     var memory_addresses: ?usize = null;
+     var segment_count: ?usize = null;
+@@ -65,7 +66,10 @@ fn run(comptime Metal: type) !void {
+         if (at + 1 == args.len) return error.InvalidArguments;
+         const key = args[at];
+         const value = args[at + 1];
+-        if (std.mem.eql(u8, key, "--native-steps")) {
++        if (std.mem.eql(u8, key, "--native-ingress-profile")) {
++            if (native_ingress_profile != null) return error.DuplicateArgument;
++            native_ingress_profile = std.meta.stringToEnum(@import("recursive_segment_v2_leaf_outer_proof_test.zig").NativeProfile, value) orelse return error.InvalidNativeProfile;
++        } else if (std.mem.eql(u8, key, "--native-steps")) {
+             if (steps != null) return error.DuplicateArgument;
+             steps = std.fmt.parseInt(usize, value, 10) catch return error.InvalidNativeStepCount;
+         } else if (std.mem.eql(u8, key, "--memory-addresses")) {
+@@ -113,10 +117,12 @@ fn run(comptime Metal: type) !void {
+             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
+             aot_manifest = digest;
+         } else {
+-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--native-ingress-profile development_q1|protocol_v1 (memory workload only, no outer proof)] [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+             return error.InvalidArguments;
+         }
+     }
++    if (native_ingress_profile != null and (memory_addresses == null or two_segment_output != null or initial_register7 != null or steps != null))
++        return error.ConflictingNativeProfileArguments;
+     const selected_segments = segment_count orelse 2;
+     if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
+     for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
+@@ -137,13 +143,15 @@ fn run(comptime Metal: type) !void {
+         else => return error.InvalidNativeStepCount,
+     }
+     std.debug.print(
+-        "SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
+-        .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
++        "SEGMENT_V2_LADDER mode={s} requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x}\n",
++        .{ if (native_ingress_profile != null) "native_ingress_only" else "narrow_complete_proof", selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 },
+     );
+     switch (backend) {
+         .cpu => {
+             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
+-            if (two_segment_output) |directory|
++            if (native_ingress_profile) |profile|
++                try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, profile)
++            else if (two_segment_output) |directory|
+                 try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
+             else if (memory_addresses) |count|
+                 try gate.runMemoryProof(allocator, count)
+@@ -181,7 +189,13 @@ fn run(comptime Metal: type) !void {
+                     .{ std.fmt.bytesToHex(manifest, .lower), std.fmt.bytesToHex(identity.source_sha256, .lower), std.fmt.bytesToHex(identity.metallib_sha256.?, .lower), timer.read() },
+                 );
+                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
+-                if (two_segment_output) |directory| {
++                if (native_ingress_profile) |profile| {
++                    const before = try Backend.telemetrySnapshot();
++                    try @import("recursive_segment_v2_two_segment_proof_test_support.zig").checkNativeProfile(NativeEngine, allocator, memory_addresses.?, profile);
++                    const delta = (try Backend.telemetrySnapshot()).delta(before);
++                    try delta.requireMetalDispatch();
++                    try Backend.shutdown();
++                } else if (two_segment_output) |directory| {
+                     try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
+                     try Backend.shutdown();
+                 } else if (memory_addresses) |count|
+@@ -192,6 +206,10 @@ fn run(comptime Metal: type) !void {
+             }
+         },
+     }
++    if (native_ingress_profile) |profile| {
++        std.debug.print("SEGMENT_V2_NATIVE_INGRESS status=verified profile={s} native_backend={s} owners_destroyed=true outer_proof_created=false\n", .{ @tagName(profile), @tagName(backend) });
++        return;
++    }
+     if (two_segment_output != null) {
+         std.debug.print("SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend={s} owners_destroyed=true parent_proof_created=false\n", .{@tagName(backend)});
+         return;
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+index e2090e84..3c54e6a0 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig
+@@ -901,6 +901,33 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     statement: span.SpanStatement,
+     keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+ ) !subject.PreparedNativeV2LeafOuter {
++    return prepareTemporalNativeLeafWithProfile(NativeEngine, allocator, result, statement, keys, .development_q1);
++}
++
++/// Exact native profile selection. The recursive wrapper and its own security
++/// admission are separate; selecting protocol_v1 here does not upgrade them.
++pub const NativeProfile = enum {
++    development_q1,
++    protocol_v1,
++
++    pub fn pcsConfig(self: NativeProfile) stwo_core.pcs.PcsConfig {
++        return switch (self) {
++            .development_q1 => test_config,
++            .protocol_v1 => protocol.PCS_CONFIG,
++        };
++    }
++};
++
++pub fn prepareTemporalNativeLeafWithProfile(
++    comptime NativeEngine: type,
++    allocator: std.mem.Allocator,
++    result: *const runner.SegmentResult,
++    statement: span.SpanStatement,
++    keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
++    native_profile: NativeProfile,
++) !subject.PreparedNativeV2LeafOuter {
++    const pcs_config = native_profile.pcsConfig();
++    var phase_timer = try std.time.Timer.start();
+     const source = try segment_v2.SourceV2.fromSegmentResult(
+         digest("recursive-v2-session"),
+         statement,
+@@ -918,7 +945,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     var output = try prover.proveRiscVSegmentV2WithEngine(
+         NativeEngine,
+         native_allocator,
+-        test_config,
++        pcs_config,
+         result,
+         null,
+         public_data,
+@@ -926,6 +953,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     var native_output_owned = true;
+     defer if (native_output_owned) output.deinit(native_allocator);
+ 
++    const prove_ns = phase_timer.lap();
+     var proof_bytes: std.ArrayList(u8) = .empty;
+     defer proof_bytes.deinit(allocator);
+     try postcard.serializeProof(
+@@ -953,7 +981,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     try recursion.proof_ingress.validateV2ForVerifierConfig(
+         proof_bytes.items,
+         &native_statement,
+-        test_config,
++        pcs_config,
+         proof_bytes.items.len,
+     );
+     var proof_stream = std.io.fixedBufferStream(proof_bytes.items);
+@@ -967,13 +995,14 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     if (proof_stream.pos != proof_bytes.items.len)
+         return error.InvalidProofShape;
+ 
++    const transport_ns = phase_timer.lap();
+     var capture: subject.NativeCapture = undefined;
+     var verifier_channel = Engine.Channel{};
+     decoded_proof_moved = true;
+     try prover.verifyRiscVSegmentV2WithEngineUsingChannelAndCapture(
+         Engine,
+         allocator,
+-        test_config,
++        pcs_config,
+         native_statement,
+         decoded_proof,
+         native_claim,
+@@ -984,9 +1013,10 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     defer if (!capture_moved) capture.deinit(allocator);
+     try capture.validate();
+ 
++    const verify_ns = phase_timer.lap();
+     var profile = try recursion.captured_fri.Owned.init(
+         allocator,
+-        recursion.captured_fri.ProfileConfig.fromPcs(test_config),
++        recursion.captured_fri.ProfileConfig.fromPcs(pcs_config),
+         &capture.proof,
+     );
+     defer profile.deinit();
+@@ -1022,7 +1052,7 @@ pub fn prepareTemporalNativeLeafWithEngine(
+         allocator,
+         allocator,
+         &capture,
+-        test_config,
++        pcs_config,
+         native_claim.interaction_pow,
+         keys,
+         recursion.air.universal_challenges.UniversalRelations.dummy(),
+@@ -1031,6 +1061,13 @@ pub fn prepareTemporalNativeLeafWithEngine(
+     capture_moved = true;
+     errdefer prepared.deinit();
+     try prepared.validate();
++    std.debug.print("SEGMENT_V2_NATIVE_PROFILE profile={s} segment={d} queries={d} fold_step={d} pcs_pow_bits={d} interaction_pow_bits={d} prove_ns={d} transport_ns={d} verify_ns={d} recursive_prepare_ns={d} proof_bytes={d} transcript_calls={d} verifier_core_calls={d} outer_proof_created=false\n", .{
++        @tagName(native_profile),                          result.segment_index,  pcs_config.fri_config.n_queries,
++        pcs_config.fri_config.fold_step,                   pcs_config.pow_bits,   profile.interaction_pow_bits,
++        prove_ns,                                          transport_ns,          verify_ns,
++        phase_timer.read(),                                proof_bytes.items.len, prepared.transcript_execution.poseidonCalls().len,
++        prepared.rows_18_34_core.core_poseidon_call_count,
++    });
+     return prepared;
+ }
+ 
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+index 40103650..8d894771 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+@@ -204,3 +204,24 @@ fn produceChild(
+     });
+     return candidate_receipt;
+ }
++
++/// First native segment of the same memory ladder, crossing the production
++/// profile through serialization, producer destruction and fresh CPU capture.
++/// No outer STARK is constructed: this measures the admitted native input and
++/// recursive geometry before allocating a stronger wrapper.
++pub fn checkNativeProfile(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, profile: ingress.NativeProfile) !void {
++    var segments = try @import("recursive_segment_v2_memory_workload_test_support.zig").materialize(2, allocator, address_count, 13);
++    defer for (&segments) |*segment| segment.deinit();
++    const results = [2]*const frontend.runner.SegmentResult{ &segments[0].base, &segments[1].base };
++    try workload.validateSegments(2, results, address_count, 13);
++    const statements = try workload.fixtureStatementsForSegments(2, allocator, results);
++    const keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
++        ingress.digest("recursive-v2-segment-vk"),
++        ingress.digest("recursive-v2-parent-vk"),
++    );
++    var prepared = try ingress.prepareTemporalNativeLeafWithProfile(NativeEngine, allocator, results[0], statements[0], keys, profile);
++    defer prepared.deinit();
++    if (!std.meta.eql(prepared.pcs_config, profile.pcsConfig()) or
++        prepared.captured_fri.interaction_pow_bits != recursion.protocol.INTERACTION_POW_BITS)
++        return error.NativeSecurityProfileMismatch;
++}

@@ -12,6 +12,7 @@ const prover = @import("stwo_prover_engine");
 const combined_commit = @import("combined_commit.zig");
 const commit_memory = @import("commit_memory.zig");
 const metal_merkle = @import("../merkle_tree.zig");
+const hash_domain = @import("../hash_domain.zig");
 const ownership_testing = @import("ownership_testing.zig");
 const precommitted_work = @import("precommitted_work.zig");
 const shared_runtime = @import("../shared_runtime.zig");
@@ -22,6 +23,101 @@ const ColumnEvaluation = prover.pcs.ColumnEvaluation;
 const CircleCoefficients = prover.poly.circle.CircleCoefficients;
 const ColumnSource = prover.pcs.ColumnSource;
 const BackingTeardownToken = prover.pcs.BackingTeardownToken;
+
+pub const StagedPoseidonTrafficReceiptV1 = struct {
+    column_count: u32,
+    lifting_log_size: u32,
+    wide_column_reads: u64,
+    staged_column_reads: u64,
+    avoided_column_reads: u64,
+    wide_leaf_permutations: u64,
+    staged_leaf_permutations: u64,
+    avoided_leaf_permutations: u64,
+    retained_state_words: u64,
+    terminal_digest_words: u64,
+};
+
+// Until a Tree2-sized device benchmark demonstrates a win, require enough
+// eliminated permutations to amortize two 16-plane state slabs and the
+// terminal packing pass. This is shape-derived and independent of any block,
+// campaign, or fixed column count.
+const minimum_staged_poseidon_permutations_avoided: u64 = 1 << 20;
+
+pub fn admitsStagedPoseidonTrafficV1(receipt: StagedPoseidonTrafficReceiptV1) bool {
+    return receipt.avoided_leaf_permutations >=
+        minimum_staged_poseidon_permutations_avoided;
+}
+
+/// Exact traffic model for the ABI22 sorted-log staged Poseidon leaf encoder.
+/// Null means the wide path remains authoritative (including Tree2-sized
+/// inventories of at most sixteen columns).
+pub fn stagedPoseidonTrafficReceiptV1(
+    sorted_column_logs: []const u32,
+    lifting_log_size: u32,
+) ?StagedPoseidonTrafficReceiptV1 {
+    if (sorted_column_logs.len <= 16 or lifting_log_size >= 31 or
+        sorted_column_logs[sorted_column_logs.len - 1] != lifting_log_size)
+        return null;
+    var distinct_logs: u32 = 1;
+    var staged_column_reads: u64 = 0;
+    var staged_leaf_permutations: u64 = 0;
+    var group_start: usize = 0;
+    while (group_start < sorted_column_logs.len) {
+        const group_log = sorted_column_logs[group_start];
+        if (group_log > lifting_log_size or
+            (group_start != 0 and sorted_column_logs[group_start - 1] > group_log))
+            return null;
+        var group_end = group_start + 1;
+        while (group_end < sorted_column_logs.len and
+            sorted_column_logs[group_end] == group_log)
+            group_end += 1;
+        if (group_start != 0) distinct_logs += 1;
+        const rows = @as(u64, 1) << @intCast(group_log);
+        const group_count: u64 = @intCast(group_end - group_start);
+        staged_column_reads = std.math.add(
+            u64,
+            staged_column_reads,
+            std.math.mul(u64, rows, group_count) catch return null,
+        ) catch return null;
+        const first_column: u64 = @intCast(group_start);
+        const completed_rate_blocks = (first_column + group_count) / 8 - first_column / 8;
+        staged_leaf_permutations = std.math.add(
+            u64,
+            staged_leaf_permutations,
+            std.math.mul(u64, rows, completed_rate_blocks) catch return null,
+        ) catch return null;
+        group_start = group_end;
+    }
+    if (distinct_logs < 2) return null;
+    const lifting_rows = @as(u64, 1) << @intCast(lifting_log_size);
+    staged_leaf_permutations = std.math.add(
+        u64,
+        staged_leaf_permutations,
+        lifting_rows,
+    ) catch return null; // the canonical terminator permutation
+    const column_count: u64 = @intCast(sorted_column_logs.len);
+    const wide_column_reads = std.math.mul(u64, lifting_rows, column_count) catch return null;
+    const wide_leaf_permutations = std.math.mul(
+        u64,
+        lifting_rows,
+        column_count / 8 + 1,
+    ) catch return null;
+    if (staged_column_reads >= wide_column_reads or
+        staged_leaf_permutations > wide_leaf_permutations)
+        return null;
+    return .{
+        .column_count = std.math.cast(u32, sorted_column_logs.len) orelse return null,
+        .lifting_log_size = lifting_log_size,
+        .wide_column_reads = wide_column_reads,
+        .staged_column_reads = staged_column_reads,
+        .avoided_column_reads = wide_column_reads - staged_column_reads,
+        .wide_leaf_permutations = wide_leaf_permutations,
+        .staged_leaf_permutations = staged_leaf_permutations,
+        .avoided_leaf_permutations = wide_leaf_permutations - staged_leaf_permutations,
+        .retained_state_words = std.math.mul(u64, lifting_rows, 32) catch return null,
+        .terminal_digest_words = std.math.mul(u64, lifting_rows, 16) catch return null,
+    };
+}
 
 fn releaseArenaReservation(_: ?*anyopaque, bytes: u64) void {
     commit_memory.release(bytes);
@@ -178,6 +274,9 @@ fn prepareAndCommitBackedHeterogeneous(
     source: ColumnSource,
     work_recorder: if (capture_work) *precommitted_work.Recorder else void,
 ) !?combined_commit.PreparedCommitment(H) {
+    const maybe_domain = comptime hash_domain.parameters(H);
+    if (comptime maybe_domain == null) return null;
+    const domain = maybe_domain.?;
     if (retention_policy != .always or log_blowup_factor != 1 or
         !source.isMaterialized() or owned_columns.len == 0 or
         @sizeOf(H.Hash) != 32)
@@ -312,6 +411,26 @@ fn prepareAndCommitBackedHeterogeneous(
 
     var lifting_log_size: u32 = 0;
     for (owned_columns) |column| lifting_log_size = @max(lifting_log_size, column.log_size + 1);
+    const order = try allocator.alloc(usize, owned_columns.len);
+    defer allocator.free(order);
+    for (order, 0..) |*entry, index| entry.* = index;
+    std.sort.heap(usize, order, owned_columns, canonicalColumnLessThan);
+    const merkle_offsets = try allocator.alloc(u32, owned_columns.len);
+    defer allocator.free(merkle_offsets);
+    const merkle_logs = try allocator.alloc(u32, owned_columns.len);
+    defer allocator.free(merkle_logs);
+    for (order, merkle_offsets, merkle_logs) |column_index, *offset, *log_size| {
+        offset.* = std.math.cast(u32, evaluation_offsets[column_index]) orelse return null;
+        log_size.* = owned_columns[column_index].log_size + 1;
+    }
+    const staged_traffic = if (domain.family == .poseidon2_m31)
+        stagedPoseidonTrafficReceiptV1(merkle_logs, lifting_log_size)
+    else
+        null;
+    const staged_poseidon = if (staged_traffic) |receipt|
+        admitsStagedPoseidonTrafficV1(receipt)
+    else
+        false;
     const layer_offsets = try allocator.alloc(u32, @intCast(lifting_log_size + 1));
     defer allocator.free(layer_offsets);
     cursor = std.mem.alignForward(usize, cursor, 64);
@@ -329,6 +448,23 @@ fn prepareAndCommitBackedHeterogeneous(
     }
     const merkle_workspace_end = cursor;
 
+    // Two disjoint full-capacity state slabs let each larger log lift from the
+    // prior group without an in-flight read/write alias. They remain alive
+    // through the terminal state-to-digest dispatch in the same command epoch.
+    var staged_state_offsets = [_]u32{0} ** 2;
+    if (staged_poseidon) {
+        const state_words = std.math.mul(
+            usize,
+            @as(usize, 1) << @intCast(lifting_log_size),
+            16,
+        ) catch return null;
+        for (&staged_state_offsets) |*state_offset| {
+            cursor = std.mem.alignForward(usize, cursor, 64);
+            state_offset.* = std.math.cast(u32, cursor) orelse return null;
+            cursor = std.math.add(usize, cursor, state_words) catch return null;
+        }
+    }
+
     // Every transform encoder precedes the Merkle encoder in one command
     // buffer, so the Merkle layers may safely overwrite these temporary slabs.
     var twiddle_cursor = merkle_workspace_start;
@@ -343,19 +479,6 @@ fn prepareAndCommitBackedHeterogeneous(
     if (twiddle_cursor > merkle_workspace_end) return null;
     const total_words = std.mem.alignForward(usize, cursor, page_words);
     if (total_words <= original_arena.len or total_words > std.math.maxInt(u32)) return null;
-
-    const order = try allocator.alloc(usize, owned_columns.len);
-    defer allocator.free(order);
-    for (order, 0..) |*entry, index| entry.* = index;
-    std.sort.heap(usize, order, owned_columns, canonicalColumnLessThan);
-    const merkle_offsets = try allocator.alloc(u32, owned_columns.len);
-    defer allocator.free(merkle_offsets);
-    const merkle_logs = try allocator.alloc(u32, owned_columns.len);
-    defer allocator.free(merkle_logs);
-    for (order, merkle_offsets, merkle_logs) |column_index, *offset, *log_size| {
-        offset.* = std.math.cast(u32, evaluation_offsets[column_index]) orelse return null;
-        log_size.* = owned_columns[column_index].log_size + 1;
-    }
 
     var lease = shared_runtime.acquireExisting() catch return null;
     defer lease.deinit();
@@ -400,15 +523,28 @@ fn prepareAndCommitBackedHeterogeneous(
             group.forward_twiddle_offset,
         ) catch return null;
     }
-    var merkle_plan = lease.runtime.prepareResidentMerkle(
-        merkle_offsets,
-        merkle_logs,
-        lifting_log_size,
-        layer_offsets,
-        H.leafSeed(),
-        H.nodeSeed(),
-        H.domainPrefixBytes(),
-    ) catch return null;
+    var merkle_plan = if (staged_poseidon)
+        lease.runtime.prepareStagedPoseidonResidentMerkleV1(
+            merkle_offsets,
+            merkle_logs,
+            lifting_log_size,
+            layer_offsets,
+            domain.leaf_seed,
+            domain.node_seed,
+            domain.domain_prefix_bytes,
+            staged_state_offsets,
+        ) catch return null
+    else
+        lease.runtime.prepareResidentMerkleForHash(
+            merkle_offsets,
+            merkle_logs,
+            lifting_log_size,
+            layer_offsets,
+            domain.leaf_seed,
+            domain.node_seed,
+            domain.domain_prefix_bytes,
+            @intFromEnum(domain.family),
+        ) catch return null;
     defer merkle_plan.deinit();
 
     // Allocate all returned descriptor storage before the ownership boundary.
@@ -536,6 +672,17 @@ fn prepareAndCommitBackedHeterogeneous(
         .metal_heterogeneous_commit_staging_byte_avoided,
         evaluation_words * @sizeOf(M31),
     );
+    if (staged_poseidon) {
+        const traffic = staged_traffic.?;
+        std.log.debug(
+            "Metal staged Poseidon leaves: {} column reads avoided, {} leaf permutations avoided, {} retained-state bytes",
+            .{
+                traffic.avoided_column_reads,
+                traffic.avoided_leaf_permutations,
+                traffic.retained_state_words * @sizeOf(M31),
+            },
+        );
+    }
     std.log.debug(
         "Metal heterogeneous commit epoch: {d:.3}ms, {} log groups, {} dispatches, {} command buffer, {} wait, {} arena bytes, {} staging bytes avoided",
         .{

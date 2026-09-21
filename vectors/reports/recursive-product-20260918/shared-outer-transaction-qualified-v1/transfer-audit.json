@@ -1,0 +1,133 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "name": "binary_verified_publication",
+      "equivalent_tokens": true,
+      "current_sha256": "18d84c2fcc13829432efa2bc547b6e5bb2f3f1b28c39c90499b38b2a95f51c58"
+    },
+    {
+      "name": "segment_verified_publication_v2",
+      "equivalent_tokens": true,
+      "current_sha256": "497434040cc7227acbca0dbc6515bc6b39d5fd3708c4ebc9565c8aa3f463916b"
+    },
+    {
+      "name": "segment_verified_artifact_v2",
+      "equivalent_tokens": true,
+      "current_sha256": "c253701c0bcbfcdce96f09536267b124697ad86212655676de9e85e040448efd"
+    },
+    {
+      "name": "segment_outer_transaction_support_v2",
+      "equivalent_tokens": true,
+      "current_sha256": "ab3da4b5b4f4648c49df4b5fcadd1758a0ddb2752724b29bc218a8099a76dba2"
+    },
+    {
+      "name": "segment_outer_transaction_v2",
+      "equivalent_tokens": true,
+      "current_sha256": "f86312dfee9b120244c18695f4b781561753ab4038b37d9d4c46b19cd0f553d2"
+    },
+    {
+      "name": "identity:CanonicalProofIdentityV1",
+      "equivalent_tokens": true,
+      "current_sha256": "ceb04d380bd97c15e537d568d684a36cbc4379505387de2c8dd7ebc719b5bd42"
+    },
+    {
+      "name": "identity:CanonicalProofIdentityStreamV1",
+      "equivalent_tokens": true,
+      "current_sha256": "1317145cc99ca7bafdc651ba346e4c249b4141759a5050cea07a2e41b1f6006a"
+    },
+    {
+      "name": "identity:requireNativeDigest",
+      "equivalent_tokens": true,
+      "current_sha256": "cc1c981289011ca3a52d79cb61dc68fcfd58efb18e5105fb095e7b7d2694a9d7"
+    },
+    {
+      "name": "identity:requireSha256Digest",
+      "equivalent_tokens": true,
+      "current_sha256": "56c2751b6b9a792e2c647f3a007e35f507f83510045a57b4647f1d3c10560807"
+    },
+    {
+      "name": "public-wire:type",
+      "equivalent_tokens": true,
+      "current_sha256": "1152a4754601240e8a2a6deefb209ece1ef31b4169e55f8169ee1a4c410c2d3a"
+    },
+    {
+      "name": "public-wire:publicWireBoundaryIdentity",
+      "equivalent_tokens": true,
+      "current_sha256": "db79192492d232bf0c9f9a2f6c7d9ac32f84544d97fbe5b5878ebea8616a286b"
+    },
+    {
+      "name": "public-wire:requireCanonical",
+      "equivalent_tokens": true,
+      "current_sha256": "165c5a0167d561e15cc20a49562dba3852af4a5463c60c51b3c1fd8d2a1168a2"
+    },
+    {
+      "name": "public-wire:allZero",
+      "equivalent_tokens": true,
+      "current_sha256": "b8dc1137f0052bf9a97223106ce64f6c882a70df2790b132629145a2309ff45a"
+    },
+    {
+      "name": "public-wire:hashQM31",
+      "equivalent_tokens": true,
+      "current_sha256": "39b1b30351ffd903933c38e29f4842da0ec839da94c57448365fa6646438fb5d"
+    },
+    {
+      "name": "public-wire:hashInt",
+      "equivalent_tokens": true,
+      "current_sha256": "961ee0ae2d5bab9ff6504b585e12fb6d063202ca7b95e50a1b0f2999abc9a434"
+    },
+    {
+      "name": "public-wire:PUBLIC_WIRE_BOUNDARY_FORMAT_VERSION",
+      "equivalent_tokens": true,
+      "current_sha256": "513427b5c224533baa8385349773c0e10da9580c2c10974d4582ef0aed34b4c9"
+    },
+    {
+      "name": "public-wire:PUBLIC_WIRE_BOUNDARY_ID_DOMAIN",
+      "equivalent_tokens": true,
+      "current_sha256": "0f263a2041b883dd6d82b49b231f34bbdfbb86c22770249831a5b429bdcce912"
+    },
+    {
+      "name": "engine-protocol:Hasher",
+      "equivalent_tokens": true,
+      "current_sha256": "c00912cba8c2affbd3684ea072aee64134f5ee076c2968b680f5afa77636aeb6"
+    },
+    {
+      "name": "engine-protocol:MerkleChannel",
+      "equivalent_tokens": true,
+      "current_sha256": "fc3e8cc43743c05b9e8e5129dd27e504fe56edb011cecd7f9609b49296d14255"
+    },
+    {
+      "name": "engine-protocol:Channel",
+      "equivalent_tokens": true,
+      "current_sha256": "f768903346aed3fad7822e931dd7a9124d4cea73ab57d0137abf09e42b2a2e2e"
+    },
+    {
+      "name": "engine-protocol:Proof",
+      "equivalent_tokens": true,
+      "current_sha256": "57a9b2df9e4faff8ba41f7e339d4396de8466bd08f6e700e7372d271193da7c1"
+    },
+    {
+      "name": "engine-protocol:ExtendedProof",
+      "equivalent_tokens": true,
+      "current_sha256": "50287ff2b054606922a5a4f6fa66ba0694ad7a0c1a29f620bb2e9463023b330b"
+    },
+    {
+      "name": "native-mask:secp256k1",
+      "equivalent_tokens": true,
+      "current_sha256": "2bc558e0170f36988b2dc066dc5e651922577fb1ba13b190878e2c782c62bb78"
+    },
+    {
+      "name": "native-mask:keccakf",
+      "equivalent_tokens": true,
+      "current_sha256": "96d39cad6d932545dd88f21eba88db16e9358845cc89f296c8046f530f50b401"
+    }
+  ],
+  "transformations": [
+    "explicit dependencies and backend/diagnostic parameters",
+    "facade aliases and retained named test wrappers",
+    "shared canonical identity returns its exact six possible errors; binary publication retains its full error union",
+    "public-wire Error drops a redundant catalog union already included in manifest Error",
+    "shared nominal public-wire type and helpers replace previous definitions",
+    "protocol-only hash/channel and native OODS mask constants retain exact definitions"
+  ]
+}

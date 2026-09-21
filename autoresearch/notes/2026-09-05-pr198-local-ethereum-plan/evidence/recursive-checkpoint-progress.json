@@ -1,0 +1,51 @@
+{
+  "previous_goal_turn_classification": "verified wait",
+  "current_goal_turn_classification": "progress",
+  "status": "separate saved-proof replay passed",
+  "pending_sessions": [],
+  "implemented": [
+    "Optional completed-proof checkpoint in existing shared CAS before test-only diagnostics.",
+    "Separate replay target rebuilds canonical child fixtures and invokes current cold verifier, then shares the full transcript AIR checks.",
+    "Explicit replay label excludes fresh fold proving; default full target remains fresh."
+  ],
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "eece2de09892a6822bf721df708f97bab782349ea64b89ff6aa2bd24634ba9f7",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "798d8f5d6efb8fe50c507e19d49e8de3c57634f787de8185e8d1cfec158c0ccd",
+    "src/integrations/riscv_cpu/README.md": "27d8b727dd91b2e918997cde183ce1d1d5e686085584df9dfe767b4d88ac8858"
+  },
+  "compile_log": "recursive-checkpoint-compile.log",
+  "full_checkpoint_roundtrip_verified": false,
+  "independent_root_verified": false,
+  "remaining": [
+    "Run compiled checkpoint producer and separate replay process, verify failure for missing or incompatible artifacts.",
+    "Session SHA and native dynamic boundary dependencies; common-fold fixed key; full Ethereum leaf and block bundle; Zisk endpoint comparison; current-tree CSP gate."
+  ],
+  "prior_full_proof": "recursive-claim-values-proof-progress.json: passed, 12m/9G; source hashes remain separate from these test changes",
+  "compile_verified": true,
+  "negative_admission_checks": {
+    "status": "passed",
+    "missing_node": true,
+    "malformed_node": true,
+    "missing_store": true,
+    "logs": [
+      "recursive-checkpoint-missing-check.log",
+      "recursive-checkpoint-invalid-check.log",
+      "recursive-checkpoint-missing-store-check.log"
+    ]
+  },
+  "diagnostic_fix": "Initial negative check returned failure without the error name; add the existing marked stage helper at replay entry. Session 82468 then passed all three expected-rejection checks.",
+  "post_compile_test_sha256": "984217374cf284fe6048bf8a158da24c90ad0711b317356e27878734a6132350",
+  "post_compile_test_scope": "Includes later canonical-wire test call; this hash is not the previously compiled snapshot.",
+  "positive_roundtrip_receipt": "recursive-canonical-wire-checkpoint-proof-progress.json",
+  "checkpoint_node_sha256": "84d65a4c881a39e5ba05fafd231ae9f374fa56f22801de38605a1418f8b57066",
+  "checkpoint_replay_verified": true,
+  "replay_baseline": {
+    "steps": "4/4",
+    "tests": "1/1",
+    "test_time": "4m",
+    "test_max_rss": "6G",
+    "checks_ns": 263136990291,
+    "log": "recursive-checkpoint-positive-replay.log",
+    "sample": "recursive-checkpoint-replay-baseline.sample.txt"
+  }
+}

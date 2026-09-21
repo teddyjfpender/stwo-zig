@@ -1,0 +1,10 @@
+{
+  "head": "53dc8d200704cd00ff5191c4c89f58e4f57e6adf",
+  "patch_sha256": "c8be99ae9f75e2eaaf1e6aec05acd68d1aa3c517e9fdd29f810e8980271ab721",
+  "untracked_sources": {
+    "src/integrations/riscv_cpu/recursive_segment_v2_workload_runner.zig": "33aa6d4f6843c2606daf265d7430345ba6b97df389c58f1651d231459f49c036"
+  },
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-first-metal-producer",
+  "binary_sha256": "f810d62e32c152a0a566bec7f506bc3ee3bcf43ac5cfa01bff29005d3fd99a79",
+  "source_unchanged_through_build": true
+}

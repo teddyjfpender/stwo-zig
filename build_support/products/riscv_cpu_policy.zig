@@ -5,6 +5,12 @@ const shared_shell = @import("riscv_shared_shell.zig");
 
 pub const source_closure = product_policy.SourceClosure{
     .entry_roots = &.{
+        "src/tools/riscv/analyze_legacy_semantics/main.zig",
+        "src/tools/riscv/function_value/main.zig",
+        "src/tools/riscv/memcpy_admission/main.zig",
+        "src/tools/riscv/memcpy_hotspot/main.zig",
+        "src/tools/riscv/pc_hotspot/main.zig",
+
         "src/products/riscv_cpu/main.zig",
         "src/stwo_riscv_cpu.zig",
         "src/tools/riscv/poseidon2_pair/main.zig",
@@ -16,9 +22,15 @@ pub const source_closure = product_policy.SourceClosure{
         "src/frontends/riscv/refinement_ir_export_test.zig",
         "src/frontends/riscv/refinement_program_export_test.zig",
         "src/frontends/riscv/sail_oracle_test_root.zig",
+        "src/integrations/riscv_cpu/degree5_poseidon_proof_test.zig",
+        "src/integrations/riscv_cpu/degree5_provider_proof_v1_test.zig",
+        "src/integrations/riscv_cpu/degree_bounded_poseidon_proof_test.zig",
+        "src/integrations/riscv_cpu/memory_provider_shard_benchmark.zig",
+        "src/integrations/riscv_cpu/memory_provider_shard_proof_test.zig",
     },
     .named_imports = &([_]product_policy.NamedImport{
         .{ .name = "stwo", .source = "src/stwo_riscv_cpu.zig" },
+        .{ .name = "stwo_artifact_store", .source = "src/artifact_store/mod.zig" },
         .{ .name = "stwo_backend_contracts", .source = "src/backend/mod.zig" },
         .{ .name = "stwo_core", .source = "src/core/mod.zig" },
         .{ .name = "stwo_cpu_backend", .source = "src/backends/cpu_scalar/mod.zig" },
@@ -50,6 +62,7 @@ pub const source_closure = product_policy.SourceClosure{
         "src/products/riscv_cpu/capabilities.zig",
     },
     .allowed_prefixes = &.{
+        "src/artifact_store",
         "src/core",
         "src/backend",
         "src/backends/cpu_scalar",
@@ -62,6 +75,12 @@ pub const source_closure = product_policy.SourceClosure{
         "src/interop/postcard",
         "src/interop/riscv_artifact",
         "src/tools/riscv/trace",
+        "src/tools/riscv/analyze_legacy_semantics",
+        "src/tools/riscv/function_value",
+        "src/tools/riscv/memcpy_admission",
+        "src/tools/riscv/memcpy_hotspot",
+        "src/tools/riscv/pc_hotspot",
+
         "src/tools/riscv/poseidon2_pair",
         "src/tools/riscv/recursive_csp_producer",
         "src/tools/riscv/recursive_csp_shape_inspector",

@@ -1,0 +1,44 @@
+[negative] ecdsa_secp256k1_bad_signature: execute and reject
+[power] CSP-comparable timings require AC power (observed: Battery Power)
+[1/16] sha256/128: execute, prove, verify
+  prove=1.546s verify=0.290s proof=816.9KiB rss=1.29GiB
+[2/16] sha256/256: execute, prove, verify
+  prove=1.271s verify=0.276s proof=825.9KiB rss=1.28GiB
+[3/16] sha256/512: execute, prove, verify
+  prove=1.032s verify=0.258s proof=820.1KiB rss=1.33GiB
+[4/16] sha256/1024: execute, prove, verify
+  prove=1.241s verify=0.271s proof=818.2KiB rss=1.36GiB
+[5/16] sha256/2048: execute, prove, verify
+  prove=1.117s verify=0.258s proof=836.4KiB rss=1.42GiB
+[6/16] keccak/128: execute, prove, verify
+  prove=2.259s verify=0.258s proof=820.0KiB rss=1.29GiB
+[7/16] keccak/256: execute, prove, verify
+  prove=1.224s verify=0.277s proof=820.4KiB rss=1.30GiB
+[8/16] keccak/512: execute, prove, verify
+  prove=1.027s verify=0.250s proof=822.2KiB rss=1.34GiB
+[9/16] keccak/1024: execute, prove, verify
+  prove=1.022s verify=0.241s proof=818.4KiB rss=1.41GiB
+[10/16] keccak/2048: execute, prove, verify
+  prove=1.317s verify=0.264s proof=871.9KiB rss=1.60GiB
+[11/16] poseidon2_m31/2: execute, prove, verify
+  prove=0.956s verify=0.235s proof=849.6KiB rss=1.30GiB
+[12/16] poseidon2_m31/4: execute, prove, verify
+  prove=1.059s verify=0.245s proof=870.8KiB rss=1.39GiB
+[13/16] poseidon2_m31/8: execute, prove, verify
+  prove=1.599s verify=0.283s proof=910.6KiB rss=1.57GiB
+[14/16] poseidon2_m31/12: execute, prove, verify
+  prove=1.300s verify=0.285s proof=982.1KiB rss=1.73GiB
+[15/16] poseidon2_m31/16: execute, prove, verify
+  prove=2.157s verify=0.317s proof=1068.8KiB rss=1.90GiB
+[16/16] ecdsa_secp256k1/32: execute, prove, verify
+  prove=6.018s verify=0.315s proof=3282.4KiB rss=8.59GiB
+Traceback (most recent call last):
+  File "/private/tmp/pr198-csp-clean-source-v1/scripts/riscv_csp_benchmark.py", line 828, in <module>
+    raise SystemExit(main())
+                     ~~~~^^
+  File "/private/tmp/pr198-csp-clean-source-v1/scripts/riscv_csp_benchmark.py", line 804, in main
+    "prover_executable": str(cli.relative_to(ROOT)),
+                             ~~~~~~~~~~~~~~~^^^^^^
+  File "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py", line 490, in relative_to
+    raise ValueError(f"{str(self)!r} is not in the subpath of {str(other)!r}")
+ValueError: '/private/tmp/pr198-csp-clean-products-v1/bin/stwo-zig-riscv-cpu' is not in the subpath of '/private/tmp/pr198-csp-clean-source-v1'

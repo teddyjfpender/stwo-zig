@@ -1,4 +1,5 @@
 import RiscvRefinement.Air.Generated.Programs
+import RiscvRefinement.Air.Family.LoadStoreAddressRange
 import RiscvRefinement.Air.Bridge.MulBridge
 import RiscvRefinement.Air.Bridge.TeamACommon
 import RiscvRefinement.Opcodes.LoadStore
@@ -13,8 +14,8 @@ The public theorems in this module start from acceptance of an exact generated
 `LocalProgram`.  `LoadStoreHolds`, the architectural refinement, and the exact
 ordered relation tuples are conclusions.
 
-The current generated family has 48 columns, 301 localized nodes, 63 direct
-constraints, and 16 lookups.  The eight programs share the same nodes and
+The current generated family has 50 columns, 308 localized nodes, 63 direct
+constraints, and 17 lookups.  The eight programs share the same nodes and
 events; their committed manifest identity is the only evaluator metadata that
 differs.
 -/
@@ -83,8 +84,9 @@ structure Witness (row : LoadStoreRow) where
   destinationAddress : M31
   sourceAddress : M31
   destinationInverse : M31
+  alignedLow20 : M31 := M31.reduce (row.alignedQuarter % 1048576)
 
-/-- Exact compact 48-column order shared by all eight generated programs. -/
+/-- Exact compact 50-column order shared by all eight generated programs. -/
 def columns (row : LoadStoreRow) (witness : Witness row) : Nat → M31
   | 0 => M31.reduce row.clock
   | 1 => bitVecM31 row.pc
@@ -134,6 +136,8 @@ def columns (row : LoadStoreRow) (witness : Witness row) : Nat → M31
   | 45 => bitVecM31 row.result.limb3
   | 46 => boolM31 row.destinationNonzero
   | 47 => witness.destinationInverse
+  | 48 => M31.reduce row.alignedQuarter
+  | 49 => witness.alignedLow20
   | _ => 0
 
 def evaluation
@@ -194,7 +198,7 @@ structure Bindings
     (witness : Witness row) : Prop where
   nextPcProjection :
     bitVecM31 row.claimedNextPc =
-      (evaluation kind row witness).nodes.getSymbolic 293
+      (evaluation kind row witness).nodes.getSymbolic 303
 
 abbrev Acceptance
     (kind : Kind)
@@ -207,12 +211,7 @@ abbrev Acceptance
 /-! ## Exact direct-constraint extraction -/
 
 def constraintRoots : Array Nat :=
-  #[96, 98, 100, 102, 104, 106, 108, 110, 112, 114, 116, 118,
-    120, 122, 124, 131, 136, 140, 142, 144, 149, 151, 153, 155,
-    158, 161, 164, 167, 170, 173, 176, 179, 180, 181, 185, 187,
-    189, 191, 193, 195, 197, 199, 202, 205, 210, 215, 219, 223,
-    227, 231, 233, 235, 237, 246, 247, 248, 249, 251, 252, 253,
-    254, 255, 95]
+  #[101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121, 123, 125, 127, 129, 136, 141, 145, 147, 149, 154, 156, 158, 160, 163, 166, 169, 172, 175, 178, 181, 184, 185, 186, 190, 192, 194, 196, 198, 200, 202, 204, 207, 210, 215, 220, 224, 228, 232, 236, 238, 240, 242, 251, 252, 253, 254, 256, 257, 258, 259, 261, 100]
 
 set_option maxHeartbeats 800000 in
 set_option maxRecDepth 30000 in
@@ -838,7 +837,7 @@ set_option maxRecDepth 30000 in
 private theorem baseSelectorNodeProjection
     (row : LoadStoreRow)
     (witness : Witness row) :
-    (baseEvaluation row witness).nodes.getSymbolic 292 =
+    (baseEvaluation row witness).nodes.getSymbolic 302 =
       opcodeField row := by
   rfl
 
@@ -846,7 +845,7 @@ set_option maxRecDepth 30000 in
 private theorem baseSelectorNode
     (row : LoadStoreRow)
     (witness : Witness row) :
-    (baseEvaluation row witness).nodes.getSymbolic 292 =
+    (baseEvaluation row witness).nodes.getSymbolic 302 =
       M31.reduce row.opcodeId := by
   rw [
     baseSelectorNodeProjection row witness,
@@ -873,7 +872,7 @@ private theorem evaluationOpcodeSelectorNode
     (row : LoadStoreRow)
     (witness : Witness row) :
     (evaluation kind row witness).opcodeSelector =
-      (evaluation kind row witness).nodes.getSymbolic 292 := by
+      (evaluation kind row witness).nodes.getSymbolic 302 := by
   cases kind <;> rfl
 
 set_option maxRecDepth 30000 in
@@ -892,7 +891,7 @@ private theorem acceptedSelectorNode
     (witness : Witness row)
     (active :
       (evaluation kind row witness).activeSelectorsAccepted = true) :
-    (baseEvaluation row witness).nodes.getSymbolic 292 =
+    (baseEvaluation row witness).nodes.getSymbolic 302 =
       M31.reduce (manifestId kind) := by
   have selectorsAccepted := active
   simp only [
@@ -907,8 +906,8 @@ private theorem acceptedSelectorNode
         M31.reduce (manifestId kind) := by
     simpa only [beq_iff_eq] using opcodeAccepted
   calc
-    (baseEvaluation row witness).nodes.getSymbolic 292 =
-        (evaluation kind row witness).nodes.getSymbolic 292 := by
+    (baseEvaluation row witness).nodes.getSymbolic 302 =
+        (evaluation kind row witness).nodes.getSymbolic 302 := by
       rw [evaluationNodesShared kind row witness]
     _ = (evaluation kind row witness).opcodeSelector :=
       (evaluationOpcodeSelectorNode kind row witness).symm
@@ -1223,8 +1222,10 @@ structure DirectEquations
     (1 - loadField row) * bitVecM31 row.result.limb2 = 0
   storeResult3 :
     (1 - loadField row) * bitVecM31 row.result.limb3 = 0
-  baseHigh :
-    activeField row * bitVecM31 row.rs1Next.limb3 = 0
+  alignedQuarterBinding :
+    activeField row * (M31.reduce row.alignedQuarter -
+      ((M31.reduce row.sourceSelector + M31.reduce row.destinationSelector -
+        bitVecM31 row.r2Idx) * M31.reduce 536870912)) = 0
   selector : activeField row - 1 = 0
 
 macro "load_store_root " kind:term ", " row:term ", " witness:term ", "
@@ -1247,69 +1248,69 @@ private theorem directEquations
     DirectEquations row witness := by
   exact {
     signCanonical := by
-      load_store_root kind, row, witness, direct, 116
+      load_store_root kind, row, witness, direct, 121
     shiftAmount := by
-      load_store_root kind, row, witness, direct, 131
-    sourceSelector := by
       load_store_root kind, row, witness, direct, 136
+    sourceSelector := by
+      load_store_root kind, row, witness, direct, 141
     destinationSelector := by
-      load_store_root kind, row, witness, direct, 140
+      load_store_root kind, row, witness, direct, 145
     byteMarker := by
-      load_store_root kind, row, witness, direct, 142
+      load_store_root kind, row, witness, direct, 147
     halfMarker := by
-      load_store_root kind, row, witness, direct, 144
-    halfShift := by
       load_store_root kind, row, witness, direct, 149
+    halfShift := by
+      load_store_root kind, row, witness, direct, 154
     byteExtension1 := by
-      load_store_root kind, row, witness, direct, 151
+      load_store_root kind, row, witness, direct, 156
     byteExtension2 := by
-      load_store_root kind, row, witness, direct, 153
-    byteExtension3 := by
-      load_store_root kind, row, witness, direct, 155
-    byteLoad0 := by
       load_store_root kind, row, witness, direct, 158
+    byteExtension3 := by
+      load_store_root kind, row, witness, direct, 160
+    byteLoad0 := by
+      load_store_root kind, row, witness, direct, 163
     byteStore0 := by
-      load_store_root kind, row, witness, direct, 161
+      load_store_root kind, row, witness, direct, 166
     byteLoad1 := by
-      load_store_root kind, row, witness, direct, 164
+      load_store_root kind, row, witness, direct, 169
     byteStore1 := by
-      load_store_root kind, row, witness, direct, 167
+      load_store_root kind, row, witness, direct, 172
     byteLoad2 := by
-      load_store_root kind, row, witness, direct, 170
+      load_store_root kind, row, witness, direct, 175
     byteStore2 := by
-      load_store_root kind, row, witness, direct, 173
+      load_store_root kind, row, witness, direct, 178
     byteLoad3 := by
-      load_store_root kind, row, witness, direct, 176
-    byteStore3 := by
-      load_store_root kind, row, witness, direct, 179
-    halfExtension2 := by
-      load_store_root kind, row, witness, direct, 180
-    halfExtension3 := by
       load_store_root kind, row, witness, direct, 181
-    halfLoadLow0 := by
+    byteStore3 := by
+      load_store_root kind, row, witness, direct, 184
+    halfExtension2 := by
       load_store_root kind, row, witness, direct, 185
+    halfExtension3 := by
+      load_store_root kind, row, witness, direct, 186
+    halfLoadLow0 := by
+      load_store_root kind, row, witness, direct, 190
     halfLoadLow1 := by
-      load_store_root kind, row, witness, direct, 187
+      load_store_root kind, row, witness, direct, 192
     halfLoadHigh0 := by
-      load_store_root kind, row, witness, direct, 189
+      load_store_root kind, row, witness, direct, 194
     halfLoadHigh1 := by
-      load_store_root kind, row, witness, direct, 191
+      load_store_root kind, row, witness, direct, 196
     halfStoreLow0 := by
-      load_store_root kind, row, witness, direct, 193
+      load_store_root kind, row, witness, direct, 198
     halfStoreLow1 := by
-      load_store_root kind, row, witness, direct, 195
+      load_store_root kind, row, witness, direct, 200
     halfStoreHigh2 := by
-      load_store_root kind, row, witness, direct, 197
-    halfStoreHigh3 := by
-      load_store_root kind, row, witness, direct, 199
-    word0 := by
       load_store_root kind, row, witness, direct, 202
+    halfStoreHigh3 := by
+      load_store_root kind, row, witness, direct, 204
+    word0 := by
+      load_store_root kind, row, witness, direct, 207
     word1 := by
-      load_store_root kind, row, witness, direct, 205
-    word2 := by
       load_store_root kind, row, witness, direct, 210
-    word3 := by
+    word2 := by
       load_store_root kind, row, witness, direct, 215
+    word3 := by
+      load_store_root kind, row, witness, direct, 220
     base0 := by simp [LoadStoreRow.rs1Next]
     base1 := by simp [LoadStoreRow.rs1Next]
     base2 := by simp [LoadStoreRow.rs1Next]
@@ -1319,37 +1320,37 @@ private theorem directEquations
     source2 := by simp [LoadStoreRow.srcNext]
     source3 := by simp [LoadStoreRow.srcNext]
     preserve0 := by
-      load_store_root kind, row, witness, direct, 219
+      load_store_root kind, row, witness, direct, 224
     preserve1 := by
-      load_store_root kind, row, witness, direct, 223
+      load_store_root kind, row, witness, direct, 228
     preserve2 := by
-      load_store_root kind, row, witness, direct, 227
+      load_store_root kind, row, witness, direct, 232
     preserve3 := by
-      load_store_root kind, row, witness, direct, 231
+      load_store_root kind, row, witness, direct, 236
     destinationZero := by
-      load_store_root kind, row, witness, direct, 235
+      load_store_root kind, row, witness, direct, 240
     destinationInverse := by
-      load_store_root kind, row, witness, direct, 237
+      load_store_root kind, row, witness, direct, 242
     loadDestination0 := by
-      load_store_root kind, row, witness, direct, 246
-    loadDestination1 := by
-      load_store_root kind, row, witness, direct, 247
-    loadDestination2 := by
-      load_store_root kind, row, witness, direct, 248
-    loadDestination3 := by
-      load_store_root kind, row, witness, direct, 249
-    storeResult0 := by
       load_store_root kind, row, witness, direct, 251
-    storeResult1 := by
+    loadDestination1 := by
       load_store_root kind, row, witness, direct, 252
-    storeResult2 := by
+    loadDestination2 := by
       load_store_root kind, row, witness, direct, 253
-    storeResult3 := by
+    loadDestination3 := by
       load_store_root kind, row, witness, direct, 254
-    baseHigh := by
-      load_store_root kind, row, witness, direct, 255
+    storeResult0 := by
+      load_store_root kind, row, witness, direct, 256
+    storeResult1 := by
+      load_store_root kind, row, witness, direct, 257
+    storeResult2 := by
+      load_store_root kind, row, witness, direct, 258
+    storeResult3 := by
+      load_store_root kind, row, witness, direct, 259
+    alignedQuarterBinding := by
+      load_store_root kind, row, witness, direct, 261
     selector := by
-      load_store_root kind, row, witness, direct, 95
+      load_store_root kind, row, witness, direct, 100
   }
 
 /-! ## Direct semantic consequences -/
@@ -1558,17 +1559,6 @@ private theorem sourceReadOnlyOfEquations
   · apply m31EqOfSubZero
     simpa [active] using equations.source3
 
-private theorem baseHighZeroOfEquations
-    (kind : Kind)
-    (row : LoadStoreRow)
-    (witness : Witness row)
-    (flags : FlagFacts kind row)
-    (equations : DirectEquations row witness) :
-    row.rs1Next.limb3 = 0 := by
-  have active := activeFieldOfFlags kind row flags
-  apply byteZero
-  simpa [active] using equations.baseHigh
-
 private theorem destinationFlagOfEquations
     (row : LoadStoreRow)
     (witness : Witness row)
@@ -1733,7 +1723,7 @@ private theorem halfShiftPolynomialNonzero
         value = 4 ∨ value = 5 ∨ value = 6 := by
     omega
   rcases values with
-    rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   · decide
   · exact (notOne rfl).elim
   · decide
@@ -2466,7 +2456,7 @@ private theorem memoryAddressOfEquations
     (admission : Admission row)
     (flags : FlagFacts kind row)
     (equations : DirectEquations row witness)
-    (alignedQuarterRange : row.alignedQuarter < 2 ^ 20) :
+    (alignedQuarterRange : row.alignedQuarter < 2 ^ 28) :
     (row.rs1Next.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount := by
   have alignedField :=
@@ -2569,15 +2559,27 @@ private def rangeM31Lookup
   tableId := some .rangeCheckM31
   accessOrdinal := none
 
+private def alignedHighField (row : LoadStoreRow) (witness : Witness row) : M31 :=
+  (M31.reduce row.alignedQuarter - witness.alignedLow20) * M31.reduce 2048
+
+private def range88Lookup (ordinal : Nat) (numerator low high : M31) : EvaluatedLookup where
+  ordinal := ordinal
+  domain := .rangeCheck88
+  numerator := numerator
+  tuple := #[low, high]
+  role := .request
+  tableId := some .rangeCheck88
+  accessOrdinal := none
+
 private def fixedLookupOrdinals : Array Nat :=
-  #[68, 69, 70, 73, 76, 77, 78]
+  #[68, 69, 70, 73, 76, 77, 78, 79]
 
 private def fixedRawLookup : Nat → LookupEvent
   | 68 => {
       ordinal := 68
       domain := .rangeCheck20
-      numerator := 269
-      tuple := #[262]
+      numerator := 279
+      tuple := #[268]
       role := .request
       tableId := some .rangeCheck20
       liveness := .nonzeroNumerator
@@ -2586,8 +2588,8 @@ private def fixedRawLookup : Nat → LookupEvent
   | 69 => {
       ordinal := 69
       domain := .rangeCheck20
-      numerator := 269
-      tuple := #[94]
+      numerator := 279
+      tuple := #[49]
       role := .request
       tableId := some .rangeCheck20
       liveness := .nonzeroNumerator
@@ -2596,8 +2598,8 @@ private def fixedRawLookup : Nat → LookupEvent
   | 70 => {
       ordinal := 70
       domain := .rangeCheckM31
-      numerator := 269
-      tuple := #[13, 16]
+      numerator := 279
+      tuple := #[13, 305]
       role := .request
       tableId := some .rangeCheckM31
       liveness := .nonzeroNumerator
@@ -2606,8 +2608,8 @@ private def fixedRawLookup : Nat → LookupEvent
   | 73 => {
       ordinal := 73
       domain := .rangeCheck20
-      numerator := 269
-      tuple := #[265]
+      numerator := 279
+      tuple := #[271]
       role := .request
       tableId := some .rangeCheck20
       liveness := .nonzeroNumerator
@@ -2616,8 +2618,8 @@ private def fixedRawLookup : Nat → LookupEvent
   | 76 => {
       ordinal := 76
       domain := .rangeCheck20
-      numerator := 269
-      tuple := #[268]
+      numerator := 279
+      tuple := #[274]
       role := .request
       tableId := some .rangeCheck20
       liveness := .nonzeroNumerator
@@ -2626,8 +2628,8 @@ private def fixedRawLookup : Nat → LookupEvent
   | 77 => {
       ordinal := 77
       domain := .rangeCheckM31
-      numerator := 299
-      tuple := #[62, 297]
+      numerator := 306
+      tuple := #[64, 277]
       role := .request
       tableId := some .rangeCheckM31
       liveness := .nonzeroNumerator
@@ -2636,10 +2638,20 @@ private def fixedRawLookup : Nat → LookupEvent
   | 78 => {
       ordinal := 78
       domain := .rangeCheckM31
-      numerator := 300
-      tuple := #[62, 298]
+      numerator := 307
+      tuple := #[64, 278]
       role := .request
       tableId := some .rangeCheckM31
+      liveness := .nonzeroNumerator
+      accessOrdinal := none
+    }
+  | 79 => {
+      ordinal := 79
+      domain := .rangeCheck88
+      numerator := 279
+      tuple := #[99, 64]
+      role := .request
+      tableId := some .rangeCheck88
       liveness := .nonzeroNumerator
       accessOrdinal := none
     }
@@ -2655,17 +2667,17 @@ private def fixedRawLookup : Nat → LookupEvent
     }
 
 private def expectedFixedLookup
-    (row : LoadStoreRow) : Nat → EvaluatedLookup
+    (row : LoadStoreRow) (witness : Witness row) : Nat → EvaluatedLookup
   | 68 =>
       range20Lookup 68 (some 1) (-activeField row)
         (clockGapField row 1 row.rs1PreviousClock)
   | 69 =>
       range20Lookup 69 none (-activeField row)
-        (alignedQuarterField row)
+        witness.alignedLow20
   | 70 =>
       rangeM31Lookup 70 (-activeField row)
         (bitVecM31 row.rs1Next.limb0)
-        (bitVecM31 row.rs1Next.limb3)
+        (bitVecM31 row.rs1Next.limb3 * M31.reduce 2)
   | 73 =>
       range20Lookup 73 (some 2) (-activeField row)
         (sourceClockGapField row)
@@ -2682,6 +2694,7 @@ private def expectedFixedLookup
         0
         (bitVecM31 row.result.limb1 -
           boolM31 row.srcMsb * M31.reduce 128)
+  | 79 => range88Lookup 79 (-activeField row) (alignedHighField row witness) 0
   | ordinal =>
       range20Lookup ordinal none 0 0
 
@@ -2713,7 +2726,7 @@ private theorem fixedRawLookupSelected
   have choices := member
   simp [fixedLookupOrdinals] at choices
   rcases choices with
-    rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals
     rw [programEventsShared]
     rfl
@@ -2741,19 +2754,19 @@ private theorem evaluatedFixedLookupsA
     (row : LoadStoreRow)
     (witness : Witness row) :
     evaluatedSelectedLookup kind row witness (fixedRawLookup 68) =
-        expectedFixedLookup row 68 ∧
+        expectedFixedLookup row witness 68 ∧
       evaluatedSelectedLookup kind row witness (fixedRawLookup 69) =
-        expectedFixedLookup row 69 ∧
+        expectedFixedLookup row witness 69 ∧
       evaluatedSelectedLookup kind row witness (fixedRawLookup 70) =
-        expectedFixedLookup row 70 ∧
+        expectedFixedLookup row witness 70 ∧
       evaluatedSelectedLookup kind row witness (fixedRawLookup 73) =
-        expectedFixedLookup row 73 := by
+        expectedFixedLookup row witness 73 := by
   simp [
     evaluatedSelectedLookup, fixedRawLookup, expectedFixedLookup,
     LocalProgram.evalNodesSymbolic, programNodesShared, Programs.lb,
     LocalExprNode.evalAllSymbolic, LocalExprNode.evalSymbolic,
     LocalValues.getSymbolic, newestValueSymbolic, columns,
-    range20Lookup, rangeM31Lookup,
+    range20Lookup, rangeM31Lookup, range88Lookup, alignedHighField,
     accessClockField, Air.Bridge.TeamACommon.accessClockField,
     clockGapField, sourceAccessClockField,
     sourceClockGapField, alignedQuarterField,
@@ -2766,17 +2779,19 @@ private theorem evaluatedFixedLookupsB
     (row : LoadStoreRow)
     (witness : Witness row) :
     evaluatedSelectedLookup kind row witness (fixedRawLookup 76) =
-        expectedFixedLookup row 76 ∧
+        expectedFixedLookup row witness 76 ∧
       evaluatedSelectedLookup kind row witness (fixedRawLookup 77) =
-        expectedFixedLookup row 77 ∧
+        expectedFixedLookup row witness 77 ∧
       evaluatedSelectedLookup kind row witness (fixedRawLookup 78) =
-        expectedFixedLookup row 78 := by
+        expectedFixedLookup row witness 78 ∧
+      evaluatedSelectedLookup kind row witness (fixedRawLookup 79) =
+        expectedFixedLookup row witness 79 := by
   simp [
     evaluatedSelectedLookup, fixedRawLookup, expectedFixedLookup,
     LocalProgram.evalNodesSymbolic, programNodesShared, Programs.lb,
     LocalExprNode.evalAllSymbolic, LocalExprNode.evalSymbolic,
     LocalValues.getSymbolic, newestValueSymbolic, columns,
-    range20Lookup, rangeM31Lookup,
+    range20Lookup, rangeM31Lookup, range88Lookup, alignedHighField,
     accessClockField, Air.Bridge.TeamACommon.accessClockField,
     destinationAccessClockField,
     destinationClockGapField,
@@ -2790,19 +2805,19 @@ private theorem fixedProjectionAt
     (ordinal : Nat)
     (member : ordinal ∈ fixedLookupOrdinals) :
     (evaluation kind row witness).lookup? ordinal =
-      some (expectedFixedLookup row ordinal) := by
+      some (expectedFixedLookup row witness ordinal) := by
   obtain ⟨h76, h77, h78, h81⟩ :=
     evaluatedFixedLookupsA kind row witness
-  obtain ⟨h84, h85, h86⟩ :=
+  obtain ⟨h84, h85, h86, h79⟩ :=
     evaluatedFixedLookupsB kind row witness
   have evaluated :
       evaluatedSelectedLookup kind row witness
           (fixedRawLookup ordinal) =
-        expectedFixedLookup row ordinal := by
+        expectedFixedLookup row witness ordinal := by
     have choices := member
     simp [fixedLookupOrdinals] at choices
     rcases choices with
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals assumption
   exact
     (selectedFixedLookupProjection
@@ -2822,13 +2837,13 @@ structure ExactFixedProjection
     (evaluation kind row witness).lookup? 69 =
       some
         (range20Lookup 69 none (-activeField row)
-          (alignedQuarterField row))
+          witness.alignedLow20)
   baseRange :
     (evaluation kind row witness).lookup? 70 =
       some
         (rangeM31Lookup 70 (-activeField row)
           (bitVecM31 row.rs1Next.limb0)
-          (bitVecM31 row.rs1Next.limb3))
+          (bitVecM31 row.rs1Next.limb3 * M31.reduce 2))
   sourceClock :
     (evaluation kind row witness).lookup? 73 =
       some
@@ -2854,6 +2869,10 @@ structure ExactFixedProjection
           (bitVecM31 row.result.limb1 -
             boolM31 row.srcMsb * M31.reduce 128))
 
+  alignedHigh :
+    (evaluation kind row witness).lookup? 79 =
+      some (range88Lookup 79 (-activeField row) (alignedHighField row witness) 0)
+
 private theorem evaluationLookupShared
     (kind : Kind)
     (row : LoadStoreRow)
@@ -2877,9 +2896,10 @@ theorem exactFixedProjection
         73 ∈ fixedLookupOrdinals ∧
         76 ∈ fixedLookupOrdinals ∧
         77 ∈ fixedLookupOrdinals ∧
-        78 ∈ fixedLookupOrdinals := by
+        78 ∈ fixedLookupOrdinals ∧
+        79 ∈ fixedLookupOrdinals := by
     simp [fixedLookupOrdinals]
-  obtain ⟨h76, h77, h78, h81, h84, h85, h86⟩ := members
+  obtain ⟨h76, h77, h78, h81, h84, h85, h86, h79⟩ := members
   exact {
     baseClock :=
       fixedProjectionAt kind row witness 68 h76
@@ -2895,6 +2915,7 @@ theorem exactFixedProjection
       fixedProjectionAt kind row witness 77 h85
     halfSign :=
       fixedProjectionAt kind row witness 78 h86
+    alignedHigh := fixedProjectionAt kind row witness 79 h79
   }
 
 private theorem negOneLive :
@@ -2980,6 +3001,29 @@ private theorem rangeM31BoundsOfLookup
   exact
     (rangeCheckM31RequestHolds_iff ordinal low high).mp
       (by simpa [rangeM31Lookup, active] using request)
+
+private theorem range88RequestHolds_iff (ordinal : Nat) (low high : M31) :
+    (range88Lookup ordinal (-(1 : M31)) low high).fixedRequestHolds = true ↔
+      low.val < 256 ∧ high.val < 256 := by
+  simp only [range88Lookup, EvaluatedLookup.fixedRequestHolds,
+    EvaluatedLookup.isLive, negOneLive, ↓reduceIte,
+    EvaluatedLookup.fixedMembership, Option.map, Option.getD,
+    FixedTableId.contains, M31.toNat, decide_eq_true_eq,
+    Bool.and_eq_true, Nat.reducePow]
+
+private theorem range88BoundsOfLookup
+    (kind : Kind) (row : LoadStoreRow) (witness : Witness row)
+    (flags : FlagFacts kind row) (ordinal : Nat) (low high : M31)
+    (fixed : (evaluation kind row witness).fixedLookupsHold = true)
+    (selected : (evaluation kind row witness).lookup? ordinal =
+      some (range88Lookup ordinal (-activeField row) low high)) :
+    low.val < 256 ∧ high.val < 256 := by
+  have request := SymbolicEvaluation.fixedRequestHolds_of_lookup
+    (evaluation kind row witness) ordinal
+    (range88Lookup ordinal (-activeField row) low high) fixed selected
+  have active := activeFieldOfFlags kind row flags
+  exact (range88RequestHolds_iff ordinal low high).mp
+    (by simpa [active] using request)
 
 private theorem signResidualBoundOfLookup
     (kind : Kind)
@@ -3142,14 +3186,12 @@ private theorem byteFieldValue (value : Byte) :
 structure FixedConsequences (row : LoadStoreRow) : Prop where
   baseGap :
     (clockGapField row 1 row.rs1PreviousClock).val < 2 ^ 20
-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
-  baseHighLimbRange : row.rs1Next.limb3.toNat < 128
-  baseLimbsCanonical :
-    row.rs1Next.limb0.toNat ≠ 255 ∨
-      row.rs1Next.limb3.toNat ≠ 127
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+  baseHighLimbRange : row.rs1Next.limb3.toNat < 64
   sourceGap : (sourceClockGapField row).val < 2 ^ 20
   destinationGap : (destinationClockGapField row).val < 2 ^ 20
 
+set_option maxRecDepth 30000 in
 private theorem fixedConsequences
     (kind : Kind)
     (row : LoadStoreRow)
@@ -3162,7 +3204,7 @@ private theorem fixedConsequences
   have baseBounds :=
     rangeM31BoundsOfLookup kind row witness flags 70
       (bitVecM31 row.rs1Next.limb0)
-      (bitVecM31 row.rs1Next.limb3)
+      (bitVecM31 row.rs1Next.limb3 * M31.reduce 2)
       fixed projection.baseRange
   refine {
     baseGap :=
@@ -3171,7 +3213,6 @@ private theorem fixedConsequences
         fixed projection.baseClock
     alignedQuarterRange := ?_
     baseHighLimbRange := ?_
-    baseLimbsCanonical := ?_
     sourceGap :=
       range20BoundOfLookup kind row witness flags 73 (some 2)
         (sourceClockGapField row)
@@ -3181,22 +3222,23 @@ private theorem fixedConsequences
         (destinationClockGapField row)
         fixed projection.destinationClock
   }
-  · have range :=
-      range20BoundOfLookup kind row witness flags 69 none
-        (alignedQuarterField row)
+  · have lowRange :=
+      range20BoundOfLookup kind row witness flags 69 none witness.alignedLow20
         fixed projection.alignedQuarter
-    rw [alignedQuarterFieldImage row,
-      M31.reduce_val_of_lt row.alignedQuarter
-        admission.alignedQuarterCanonical] at range
-    exact range
-  · simpa [byteFieldValue] using baseBounds.2.1
-  · by_cases low : row.rs1Next.limb0.toNat = 255
-    · apply Or.inr
-      intro high
-      have sumBound := baseBounds.2.2
-      rw [byteFieldValue, byteFieldValue, low, high] at sumBound
-      omega
-    · exact Or.inl low
+    have highRange := (range88BoundsOfLookup kind row witness flags 79
+      (alignedHighField row witness) 0 fixed projection.alignedHigh).1
+    have bound := LoadStoreAddressRange.quarter_lt_two_pow_28
+      (M31.reduce row.alignedQuarter) witness.alignedLow20 lowRange highRange
+    rw [M31.reduce_val_of_lt _ admission.alignedQuarterCanonical] at bound
+    exact bound
+  · have highRange : (M31.reduce 2 * bitVecM31 row.rs1Next.limb3).val < 128 := by
+      change ((M31.reduce 2).val * (bitVecM31 row.rs1Next.limb3).val) % M31.modulus < 128
+      have bound : ((bitVecM31 row.rs1Next.limb3).val * (M31.reduce 2).val) % M31.modulus < 128 :=
+        baseBounds.2.1
+      simpa [Nat.mul_comm] using bound
+    have bound := LoadStoreAddressRange.field_doubled_base_high
+      (bitVecM31 row.rs1Next.limb3) (by simpa [byteFieldValue] using row.rs1Next.limb3.isLt) highRange
+    simpa [byteFieldValue] using bound
 
 private theorem validClockOfGap
     (row : LoadStoreRow)
@@ -3374,7 +3416,7 @@ set_option maxHeartbeats 0 in
 private theorem baseNextPcNode
     (row : LoadStoreRow)
     (witness : Witness row) :
-    (baseEvaluation row witness).nodes.getSymbolic 293 =
+    (baseEvaluation row witness).nodes.getSymbolic 303 =
       bitVecM31 row.pc + M31.reduce 4 := by
   rfl
 
@@ -3397,7 +3439,7 @@ private theorem nextPcResultOfBindings
     rw [evaluationNodesShared kind row witness] at projection
     calc
       bitVecM31 row.claimedNextPc =
-          (baseEvaluation row witness).nodes.getSymbolic 293 :=
+          (baseEvaluation row witness).nodes.getSymbolic 303 :=
         projection
       _ = bitVecM31 row.pc + M31.reduce 4 :=
         baseNextPcNode row witness
@@ -3462,9 +3504,6 @@ theorem loadStoreHoldsOfAccepted
       simpa [m31Modulus, M31.modulus_eq] using
         admission.immediateCanonical
     baseHighLimbRange := fixed.baseHighLimbRange
-    baseHighLimbZero :=
-      baseHighZeroOfEquations kind row witness flags equations
-    baseLimbsCanonical := fixed.baseLimbsCanonical
     byteLoadExtension :=
       byteLoadExtensionOfEquations kind row witness flags equations
     byteLoadSelect :=
@@ -3713,8 +3752,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 63 => {
       ordinal := 63
       domain := .programAccess
-      numerator := 269
-      tuple := #[1, 292, 12, 24, 25]
+      numerator := 279
+      tuple := #[1, 302, 12, 24, 25]
       role := .request
       tableId := none
       liveness := .nonzeroNumerator
@@ -3723,7 +3762,7 @@ private def relationRawLookup : Nat → LookupEvent
   | 64 => {
       ordinal := 64
       domain := .registersState
-      numerator := 269
+      numerator := 279
       tuple := #[1, 0]
       role := .consume
       tableId := none
@@ -3733,8 +3772,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 65 => {
       ordinal := 65
       domain := .registersState
-      numerator := 55
-      tuple := #[293, 294]
+      numerator := 57
+      tuple := #[303, 304]
       role := .emit
       tableId := none
       liveness := .nonzeroNumerator
@@ -3743,8 +3782,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 66 => {
       ordinal := 66
       domain := .memoryAccess
-      numerator := 269
-      tuple := #[62, 12, 17, 13, 14, 15, 16]
+      numerator := 279
+      tuple := #[64, 12, 17, 13, 14, 15, 16]
       role := .consume
       tableId := none
       liveness := .nonzeroNumerator
@@ -3753,8 +3792,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 67 => {
       ordinal := 67
       domain := .memoryAccess
-      numerator := 55
-      tuple := #[62, 12, 260, 13, 14, 15, 16]
+      numerator := 57
+      tuple := #[64, 12, 266, 13, 14, 15, 16]
       role := .emit
       tableId := none
       liveness := .nonzeroNumerator
@@ -3763,8 +3802,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 71 => {
       ordinal := 71
       domain := .memoryAccess
-      numerator := 269
-      tuple := #[79, 28, 23, 19, 20, 21, 22]
+      numerator := 279
+      tuple := #[85, 28, 23, 19, 20, 21, 22]
       role := .consume
       tableId := none
       liveness := .nonzeroNumerator
@@ -3773,8 +3812,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 72 => {
       ordinal := 72
       domain := .memoryAccess
-      numerator := 55
-      tuple := #[79, 28, 263, 19, 20, 21, 22]
+      numerator := 57
+      tuple := #[85, 28, 269, 19, 20, 21, 22]
       role := .emit
       tableId := none
       liveness := .nonzeroNumerator
@@ -3783,8 +3822,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 74 => {
       ordinal := 74
       domain := .memoryAccess
-      numerator := 269
-      tuple := #[61, 29, 7, 3, 4, 5, 6]
+      numerator := 279
+      tuple := #[63, 29, 7, 3, 4, 5, 6]
       role := .consume
       tableId := none
       liveness := .nonzeroNumerator
@@ -3793,8 +3832,8 @@ private def relationRawLookup : Nat → LookupEvent
   | 75 => {
       ordinal := 75
       domain := .memoryAccess
-      numerator := 55
-      tuple := #[61, 29, 266, 8, 9, 10, 11]
+      numerator := 57
+      tuple := #[63, 29, 272, 8, 9, 10, 11]
       role := .emit
       tableId := none
       liveness := .nonzeroNumerator
@@ -3868,7 +3907,7 @@ private theorem relationRawLookupSelected
   have choices := member
   simp [relationLookupOrdinals] at choices
   rcases choices with
-    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+    rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
   all_goals
     rw [programEventsShared]
     rfl
@@ -3961,7 +4000,7 @@ private theorem relationProjectionAt
     have choices := member
     simp [relationLookupOrdinals] at choices
     rcases choices with
-      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
+      rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl | rfl
     all_goals assumption
   exact
     (selectedRelationLookupProjection
@@ -4172,56 +4211,56 @@ def lbProgramIdentity : ProgramIdentity where
   mnemonic := "lb"
   family := .loadStore
   contentDigest :=
-    "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
+    "dc7a7abc306d0bd0473b115f4cf674efb660caf9dc90c3e900f64e5542b14876"
 
 def lhProgramIdentity : ProgramIdentity where
   manifestId := 20
   mnemonic := "lh"
   family := .loadStore
   contentDigest :=
-    "0691332a3cd4fb3b4e8d6f58b4f7ea4d76c860d657138b8d997049f57045532e"
+    "7bb6c5d2c1b8e9caf0f9adf3aa97c040cb769e80447ba80e6dbe9ef7dae9b2bc"
 
 def lwProgramIdentity : ProgramIdentity where
   manifestId := 21
   mnemonic := "lw"
   family := .loadStore
   contentDigest :=
-    "5f71a5a3cdd16bf69b4b7c8db5371a7d1ba6e60c7dd5942537e6f6f08c3d2f60"
+    "5f6a7b3e4f5aea8a79aa5b8693e8b2516412f39cee1b64b1a90c26d1a80a5b08"
 
 def lbuProgramIdentity : ProgramIdentity where
   manifestId := 22
   mnemonic := "lbu"
   family := .loadStore
   contentDigest :=
-    "6ce43657650ebd382bd55113bd5253a73b492811fbcfe0a93937e9f0d95e2a6b"
+    "9ec5aa1688ea41bb12419d84dc420da34ed5c9083c063cc26291b3725958ff31"
 
 def lhuProgramIdentity : ProgramIdentity where
   manifestId := 23
   mnemonic := "lhu"
   family := .loadStore
   contentDigest :=
-    "6497611117cfb2e2662f36d777c5ff10f45cfb8c4fba1e880e6e5d7570862e79"
+    "ce6fc0e203cce0a691d6d99cda40c98424f69a76a9448771f82ff12a24aa2a2e"
 
 def sbProgramIdentity : ProgramIdentity where
   manifestId := 24
   mnemonic := "sb"
   family := .loadStore
   contentDigest :=
-    "a888ec576c933b71e3c60a96b5ef040d942c688519f07c14fa0fcc6adcfa1213"
+    "7ae3b2a6309aee6b356644d35b9c8171e0fa22ade38eb892c3f702a0cb549cda"
 
 def shProgramIdentity : ProgramIdentity where
   manifestId := 25
   mnemonic := "sh"
   family := .loadStore
   contentDigest :=
-    "2b4c68e3d924b8fac221840d913ea14353df3d1e81f7cea231691ab68cacc456"
+    "2f6f2551983cd14f16aa827a30296b08bc9a2280f66f47906c28468b9c6da976"
 
 def swProgramIdentity : ProgramIdentity where
   manifestId := 26
   mnemonic := "sw"
   family := .loadStore
   contentDigest :=
-    "c9fd8e5aab6f0c079cbbcf896c28a0aa49ee33045fdcd727ec4c7c1d2a3cd4f7"
+    "56ad34410d630f12fb7c77bc41a92f696e26b567bc90af14200c7682ee2c363f"
 
 structure ExactSelectorIdentity
     (program : LocalProgram)

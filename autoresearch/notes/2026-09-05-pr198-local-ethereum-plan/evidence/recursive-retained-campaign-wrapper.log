@@ -1,0 +1,24 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 8s
+test-ethereum-incremental-leaf-wrapper-v4-replay
++- saved Ethereum pair recursive wrapper replay guard
+   +- run test failure
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47182990291 process_cpu_ns=49638174958 parallelism_milli=1052 peak_footprint_bytes=288408368 energy_nj=230848163803 instructions=1102290381818 cycles=196886881824 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1246254000 process_cpu_ns=1245107208 parallelism_milli=999 peak_footprint_bytes=288408368 energy_nj=6487591753 instructions=27907277727 cycles=4953695892 workers=1 host_byte_budget=8589934592
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=5256492542 process_cpu_ns=5245752667 parallelism_milli=997 peak_footprint_bytes=1957054744 energy_nj=27827430679 instructions=95378904242 cycles=20840298436 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38478000 public_ns=291481083 transcript_ns=135881125 profile_ns=25167 program_ns=66270083 prepare_ns=56035458 fri_ns=3944662292 seal_ns=39108083 total_ns=4571944166 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=53 bytes=856163262 peak=1893491093 allocated=3176223540 freed=2320060278 untracked=0
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper', the following command terminated with signal 15 (expected exited with code 0):
+./.zig-cache/o/f30f28077f81c21310e17f279a71dbc9/test --cache-dir=./.zig-cache --seed=0x10e654ed --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/1 tests passed
+test-ethereum-incremental-leaf-wrapper-v4-replay transitive failure
++- saved Ethereum pair recursive wrapper replay guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/05330d8dc2f0f911737f71fba1cd228e/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x10e654ed -Zab4f28cf3c050320 --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-wrapper-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

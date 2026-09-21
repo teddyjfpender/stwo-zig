@@ -40,6 +40,9 @@ pub fn Operations(comptime H: type) type {
                     .pool_ptr = null,
                 };
                 if (builtin.single_threaded or max_workers <= 1) return;
+                if (work_pool_mod.getGlobalPool()) |active| {
+                    if (active.workerCount() <= 1) return;
+                }
 
                 if (reuse_pool) {
                     if (Self.sharedThreadPool()) |shared_pool| {
@@ -76,6 +79,7 @@ pub fn Operations(comptime H: type) type {
         /// competing pools.
         pub fn sharedThreadPool() ?*ThreadPool {
             if (work_pool_mod.getGlobalPool()) |global_pool| {
+                if (global_pool.workerCount() <= 1) return null;
                 return &global_pool.pool;
             }
 

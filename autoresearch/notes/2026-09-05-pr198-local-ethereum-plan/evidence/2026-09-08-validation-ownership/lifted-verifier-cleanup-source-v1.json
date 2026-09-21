@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T08:52:59.821375+00:00",
+  "status": "source_fmt_ast_passed_no_workload_launched",
+  "files": [
+    {
+      "path": "src/core/vcs_lifted/verifier.zig",
+      "sha256": "5af7cbedea64caa835aad9ffb37b3cecf57defdf80c96336634e009937acb5fa"
+    },
+    {
+      "path": "src/core/vcs_lifted_verifier_test_root.zig",
+      "sha256": "306defe7ddbcd1b3ada71bc91948a2210312c70b755278bbf3cb79cd3adb0919"
+    }
+  ],
+  "correctness_fix": "dedup_cols cleanup frees only initialized owned prefix after partial allocation failure or DuplicateQueryMismatch; prefix advances only after successful toOwnedSlice",
+  "performance_change": "one exact-width M31 row buffer reused for all unique query leaf hashes, replacing per-query ArrayList growth/deallocation",
+  "semantic_boundary": "query ordering, duplicate-value equality checks, sorted column ordering, leaf hashing contents, witness consumption and transactional capture publication unchanged; no protocol/default changes",
+  "test_root": "comptime import at src/core keeps relative imports inside module root and discovers filtered verifier tests",
+  "tests": [
+    "vcs_lifted verifier: verifies simple proof",
+    "vcs_lifted verifier: every allocation failure preserves capture and releases columns",
+    "vcs_lifted verifier: captured paths preserve input order and duplicates",
+    "vcs_lifted verifier: rejects queried column count mismatch",
+    "vcs_lifted verifier: duplicate mismatch releases only initialized columns"
+  ],
+  "allocation_regression": "existing successful proof/path fixture runs with checkAllAllocationFailures; sentinel capture must be untouched on allocation failure",
+  "malformed_duplicate_regression": "third of four sorted columns disagrees for repeated query; two owned prefix columns must be freed and uninitialized fourth slice must not be touched; capture sentinel unchanged",
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/core/vcs_lifted_verifier_test_root.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "vcs_lifted verifier:"
+  ],
+  "complete_consumer_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-small-composition-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "promotion": "CSP16-case CPU/Metal A/B remains required later; no latency/memory promotion claimed",
+  "execution": "No workload launched while frozenv11 proof55152 holds shared heavy lock. Frozen files unchanged."
+}

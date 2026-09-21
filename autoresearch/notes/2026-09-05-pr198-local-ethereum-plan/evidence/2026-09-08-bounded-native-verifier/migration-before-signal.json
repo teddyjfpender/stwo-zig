@@ -1,0 +1,31 @@
+{
+  "controller_samples": [
+    [
+      "35106",
+      "35105",
+      "S",
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -m scripts.ethereum_full_leaf_bundle_producer --prover /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v7/bin/ethereum-prepared-leaf-metal-v1 --verifier /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1 --materialization /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json --publication-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4 --selected-leaf-admission-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1 --output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2 --claim-admission fixed_program_narrow_v5 --backend metal --aot-bundle /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle --aot-manifest-sha256 320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 --workers 1 --host-byte-budget 17179869184 --pcs-retained-byte-budget 25769803776 --host-byte-limit 34359738368 --timeout-seconds 14400"
+    ],
+    [
+      "35106",
+      "35105",
+      "S",
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -m scripts.ethereum_full_leaf_bundle_producer --prover /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v7/bin/ethereum-prepared-leaf-metal-v1 --verifier /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1 --materialization /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json --publication-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4 --selected-leaf-admission-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1 --output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2 --claim-admission fixed_program_narrow_v5 --backend metal --aot-bundle /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle --aot-manifest-sha256 320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 --workers 1 --host-byte-budget 17179869184 --pcs-retained-byte-budget 25769803776 --host-byte-limit 34359738368 --timeout-seconds 14400"
+    ],
+    [
+      "35106",
+      "35105",
+      "S",
+      "/opt/homebrew/Cellar/python@3.14/3.14.6/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python -m scripts.ethereum_full_leaf_bundle_producer --prover /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/prepared-leaf-metal-product-v7/bin/ethereum-prepared-leaf-metal-v1 --verifier /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/fixed-program-native-verifier-v6/bin/ethereum-full-leaf-bundle-verify-v1 --materialization /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json --publication-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/capture/publication-parent/ethereum-incremental-capture-v4 --selected-leaf-admission-root /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-selected-admissions-v1 --output /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2 --claim-admission fixed_program_narrow_v5 --backend metal --aot-bundle /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ethereum-fixed-program-narrow-aot-v1/bundle --aot-manifest-sha256 320f1b944927e173c5d2972ab0cb69f68129d135f40838976c2cde653bf180c3 --workers 1 --host-byte-budget 17179869184 --pcs-retained-byte-budget 25769803776 --host-byte-limit 34359738368 --timeout-seconds 14400"
+    ]
+  ],
+  "wrapper_pid": 40352,
+  "host": {
+    "source": "darwin.memory_pressure.Q",
+    "physical_bytes": 38654705664,
+    "available_bytes": 18940805775
+  },
+  "source_files_checked": 16,
+  "accepted_proofs_checked": 20,
+  "candidate19_pinned": true
+}

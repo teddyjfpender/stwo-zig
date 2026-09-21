@@ -1,0 +1,25 @@
+{
+  "scope": "read-only retained transition geometry; not complete prepared proof estimate or measured allocation",
+  "selected_admission_sha256": "e1a0b1bfa1b2fab7b61d8d208c362633a217f1d87827613dc5848835472cc68b",
+  "segment_index": 9,
+  "touched_word_count": 79973,
+  "changed_word_count": 38798,
+  "frontier_node_count": 503,
+  "entry_hash_calls": 321276,
+  "exit_hash_calls": 157174,
+  "total_hash_calls": 478450,
+  "retained_max_shard_log": 19,
+  "minimum_provider_trace_rows": 524288,
+  "native_poseidon_main_columns": 445,
+  "pcs_blowup_log": 1,
+  "poseidon_main_source_lower_bound_bytes": 933232640,
+  "poseidon_main_retained_lde_lower_bound_bytes": 1866465280,
+  "exclusions": [
+    "preprocessed and interaction columns",
+    "other native memory components",
+    "core AIR and all Ethereum providers",
+    "Merkle nodes, FRI, quotient and FFT scratch",
+    "live replay/witness and allocator storage"
+  ],
+  "admission": "Actual field4 full Tree0/1/2 plus bridge preflight runs after prepared geometry, before Engine allocation; no full estimate has yet been reached."
+}

@@ -1,0 +1,32 @@
+test-recursive-segment-v2-concrete-outer-proof
++- SegmentV2 concrete outer-proof identity guard
+   +- run test stderr
+SEGMENT_V2_NATIVE_MEMORY backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=458184140 producer_live_bytes_after_destroy=0 canonical_proof_bytes=24261
+
+V2_NATIVE_CORE_STAGE stage=core_init elapsed_ms=85.007
+V2_NATIVE_CORE_STAGE stage=provider elapsed_ms=22.886
+V2_NATIVE_CORE_STAGE stage=interaction elapsed_ms=24.455
+V2_NATIVE_CORE_STAGE stage=independent elapsed_ms=134.236
+
+V2_NONCORE_OWNER_REAL rows=22 init_ms=87.477 publish_01_ms=0.611 interaction_ms=57.615 publish_2_ms=0.255 cached_validate_ns=85909458 cached_validate_iterations=4 hot_allocations=0/0/0 cold_independent_audit_replays=1
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=28334 tree0_prepare_ns=24324083 tree0_commit_ns=135423167 tree1_prepare_ns=24649750 tree1_commit_ns=122565416 transcript_prefix_ns=44366125 interaction_generate_ns=156625500 interaction_admit_closure_ns=68363750 transcript_tree2_commit_ns=87274542 components_ns=71713958 diagnostic_ns=42 stark_ns=627881750 phase_sum_ns=1363216417
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=13500 preprocessed_root_ns=168628834 transcript_prefix_ns=44588666 interaction_regenerate_ns=133800375 interaction_validate_claims_ns=22205459 closure_ns=46998916 transcript_after_ns=24117750 components_ns=36541000 publication_authority_ns=22184459 stark_ns=91692625 publication_total_ns=27977833 phase_sum_ns=618749417
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=78420 canonical_proof_bytes=91749 canonicalize_ms=3.885 prove_ms=1363.245 verify_ms=624.181 publication_ms=3.992 producer_prepare_ms=257.082 producer_destroy_ms=1.055 verifier_prepare_ms=269.116 decode_ms=9.895 stark_verify_ms=91.693 transaction_ms=2575.723 artifact_rejections_ms=39.591 producer_peak_bytes=99412620 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=91749 verification=native_assisted_fresh_decode draws=1 cols=577/1010/532 workers=1
+
+SEGMENT_V2_OUTER_DIMENSIONS commitments=4 claims=39 samples=2287 queried_values=6381 trace_paths=12 fri_layers=16 queries=3 max_fold=2 last_layer_coefficients=1 max_merkle_depth=17
+
+V3_ROW18_DIFFERENTIAL sum39={ .{ .v = 1495344062 }, .{ .v = 90280292 }, .{ .v = 1314587746 }, .{ .v = 1378391237 } } statement_public={ .{ .v = 978920992 }, .{ .v = 782285099 }, .{ .v = 312581032 }, .{ .v = 1517568147 } } wire_boundary={ .{ .v = 652139585 }, .{ .v = 2057203355 }, .{ .v = 832895901 }, .{ .v = 769092410 } } legacy_residual={ .{ .v = 326781407 }, .{ .v = 872565391 }, .{ .v = 1627168778 }, .{ .v = 748475737 } } segment_residual={ .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 }, .{ .v = 0 } }
+
+V2_POSEIDON_RECURSIVE_INGRESS cycles=1 prove_ms=10138.532 verify_ms=2097.563 transcript_calls=900 authority_calls=14 core_calls=294 proof_bytes=24261 core_cols=338/760/276 core_constraints=862 complete_provider_calls=1208 complete_provider_log=11 core_init_ms=85.007 provider_ms=22.886 interaction_ms=24.455 independent_ms=134.236
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-concrete-outer-proof success
++- SegmentV2 concrete outer-proof identity guard success
+   +- run test 1 passed 19s MaxRSS:1G
+      +- compile test ReleaseSafe native success 2m MaxRSS:8G
+

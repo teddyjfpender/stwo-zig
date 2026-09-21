@@ -1,0 +1,54 @@
+{
+  "recorded_at": "2026-09-08T02:00:03.653767+00:00",
+  "prior_terminal": "synthetic context gate CallCountMismatch, before real producer",
+  "cause": "9828 external calls did not fit the two authenticated cycles in shared fixture",
+  "fix": "only geometry fixture authenticated span10000/job20000; production checks unchanged",
+  "live_context_gate": "2/2 passed",
+  "frozen_source_manifest_sha256": "3b9ab4c9b99a6de7de90d49168d898c6e4dad4cb35d26fe49888b05ba3c3a6ec",
+  "frozen_source_files": 5759,
+  "next": "Frozen gate then Metal7/verifier6 then real11 and fresh verification before campaign imports",
+  "real_leaf11_accepted": true,
+  "evidence": {
+    "ethereum-keccak-context-log18-v1.log": {
+      "sha256": "19460f609a00e79953f7ff06107a1659f8ffaa70a1c6fa9b1500beec45a62022",
+      "bytes": 479
+    },
+    "ethereum-keccak-context-log18-v2.log": {
+      "sha256": "61548bc837490b58e719ceafe57de3ec5013d988e131cc5155eb5040a56d915f",
+      "bytes": 316
+    },
+    "build_ethereum_keccak_recovery_v7.py": {
+      "sha256": "e23fd999c93a2775e8930ed38d269e026c077b094a02a70983784f980412c997",
+      "bytes": 1449
+    },
+    "build_prepared_metal_frozen_v7.py": {
+      "sha256": "fa81cae846d7f56df92084869db572fc489d86560c085abd19e46c72c52548ad",
+      "bytes": 1810
+    },
+    "build_ethereum_keccak_verifier_v6.py": {
+      "sha256": "6e005b4f9314447ec9098ebe798e1cf6f3659cf4daaee635932a34f7eee5e3e9",
+      "bytes": 1806
+    },
+    "run_ethereum_real_metal_leaf11_log18_v2.py": {
+      "sha256": "9702900aac8c4e01b11f9377806e4f1909dd915a3da5b5b3be5cdba6825435aa",
+      "bytes": 6420
+    },
+    "verify_ethereum_real_metal_leaf11_log18_v2.py": {
+      "sha256": "e73a1aa970d1e284432db2a5410295de657f747a2539fe37e3e9b6548dd51583",
+      "bytes": 3342
+    },
+    "prepare_ethereum_metal_campaign_log18_v3.py": {
+      "sha256": "2dbb37558906a0f3ecfa1c059bf05d4ceaf55e2920a05ddb4bf85fa960fecb45",
+      "bytes": 5502
+    }
+  },
+  "frozen_context_gate": "2/2 passed",
+  "metal_product": "prepared-leaf-metal-product-v7",
+  "metal_product_tests": "3/3 passed",
+  "metal_product_build_ns": 106901609458,
+  "native_verifier_product": "fixed-program-native-verifier-v6",
+  "native_verifier_build": "3/3 build steps passed",
+  "real_leaf11_status": "producer and separate fresh verifier passed",
+  "campaign_status": "explicitly migrated and live",
+  "acceptance_artifact": "real11-native-recovery-acceptance-v1.json"
+}

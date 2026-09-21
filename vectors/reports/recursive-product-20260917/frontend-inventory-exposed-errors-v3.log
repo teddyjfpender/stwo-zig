@@ -1,0 +1,21 @@
+test
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test Debug native 1 errors
+prover/guest_precompile/ethereum_segment_poseidon2_proof_artifact.zig:648:22: error: error set is discarded
+    _ = encodeFailure(
+        ~~~~~~~~~~~~~^
+referenced by:
+    test_0: test_inventory.zig:765:17
+    test_0: mod.zig:87:17
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -ODebug --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -ODebug -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -ODebug --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -ODebug --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -ODebug --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -ODebug -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -ODebug -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -ODebug -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -ODebug --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -ODebug --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test Debug native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0ba1b841977fbbcbd15d8dec2ad32549/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x2bc31906 -Z785271f006b598cb --maxrss 25769803776 -j1 test -Doptimize=Debug --summary all

@@ -1,0 +1,19 @@
+1/18 fields_test_root.test_0...OK
+2/18 fields.cm31.test.cm31: mul and square match schoolbook reference...OK
+3/18 fields.cm31.test.cm31: inverse...OK
+4/18 fields.cm31.test.cm31: basic ops parity sanity...OK
+5/18 fields.cm31.test.cm31: randomized field laws...OK
+6/18 fields.m31.test.m31: bounded product reduction matches generic reduction...OK
+7/18 fields.m31.test.m31: generic reduction canonicalizes the full u64 range...OK
+8/18 fields.m31.test.m31: packed four-term dot product matches scalar accumulation...OK
+9/18 fields.m31.test.m31: packed reduction edge cases...OK
+10/18 fields.mod.test.fields: batch inverse matches scalar inverse (m31)...OK
+11/18 fields.mod.test.fields: batch inverse chunked matches batch inverse (m31)...OK
+12/18 fields.mod.test.fields: packed QM31 batch inverse matches scalar inverse...OK
+13/18 fields.qm31.test.qm31: mul and square match schoolbook reference...OK
+14/18 fields.qm31.test.qm31: sparse base multiplication and squaring preserve generic field results...OK
+15/18 fields.qm31.test.qm31: inverse...OK
+16/18 fields.qm31.test.qm31: basic ops parity sanity...OK
+17/18 fields.qm31.test.qm31: m31 array roundtrip...OK
+18/18 fields.qm31.test.qm31: randomized field laws...OK
+All 18 tests passed.

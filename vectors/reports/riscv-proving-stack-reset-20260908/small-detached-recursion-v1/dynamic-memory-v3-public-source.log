@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 6/6 tests passed
+test-recursion-segment-public-source-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 6 passed 680ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 6s MaxRSS:523M
+

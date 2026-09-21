@@ -1,0 +1,22 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu/.zig-cache/o/87cb08a32281a12657ac8658ac6b39d5/test",
+  "binary_sha256": "245cb5ac5baf90db8769955450653eb0f917f4af974e5e8813758f1af7015cae",
+  "test_name": "recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.Ethereum cohort replay publication preserves absent and present initial claims",
+  "command": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v3/source/src/integrations/riscv_cpu/.zig-cache/o/87cb08a32281a12657ac8658ac6b39d5/test",
+    "--listen=-",
+    "--seed=0xf7eb47ed"
+  ],
+  "protocol": "query_test_metadata(4), run_test(5, selected exact index), exit(0)",
+  "compilation": false,
+  "real_replay": false,
+  "zig_version": "0.15.2",
+  "metadata_test_names": [
+    "recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.Ethereum cohort replay publication preserves absent and present initial claims",
+    "recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort"
+  ],
+  "test_index": 0,
+  "result_flags": 1,
+  "passed": false,
+  "exit_code": 0
+}

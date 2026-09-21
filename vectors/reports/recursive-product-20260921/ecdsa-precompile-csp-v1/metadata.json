@@ -1,0 +1,27 @@
+{
+  "scope": "typed ECDSA provider proof; public call counterpart; no RISC-V caller/memory composition",
+  "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+  "input_bytes": 161,
+  "pcs_config": {
+    "pow_bits": 26,
+    "fri_config": {
+      "log_blowup_factor": 1,
+      "log_last_layer_degree_bound": 0,
+      "n_queries": 70,
+      "fold_step": 1
+    },
+    "lifting_log_size": null
+  },
+  "source_base_head": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "dirty_worktree": true,
+  "source_file_count": 5089,
+  "zig_version": "0.15.2",
+  "host": "Apple M5 Max",
+  "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=35192931)\t30%; charging; 2:10 remaining present: true\n",
+  "samples_per_backend": 10,
+  "warmups_per_backend": 1,
+  "independent_verification_each_sample": true,
+  "optimization": "none; exact-parameter baseline already below 1 second",
+  "aot_bundle": "/tmp/pr198-csp-clean-source-v1/zig-out/share/stwo-zig/metal/core",
+  "aot_manifest_sha256": "6bbabc6cd4200c82c34510ad3523304dcc692dd4ff9e0a93ec255b350dfe3f6c  stwo_zig_core.manifest.json"
+}

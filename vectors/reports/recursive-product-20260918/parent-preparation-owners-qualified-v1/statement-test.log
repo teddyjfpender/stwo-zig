@@ -1,0 +1,14 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 109s
+test-recursive-segment-v2-detached-parent-statement
++- SegmentV2 detached parent statement guard
+   +- run test stderr
+detached-parent-v2-adjacency raw_word_mutations=228 unequal_word_swap=true decrement=true host_admission_bypassed=true
+detached-parent-statement child_words=412/412 published_words=436 nodes=80805 outputs=22268 arithmetic_mutations=45 boundary_producers_destroyed=true proof_verified=false
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-detached-parent-statement success
++- SegmentV2 detached parent statement guard success
+   +- run test 1 passed 274ms MaxRSS:17M
+      +- compile test ReleaseSafe native cached 90ms MaxRSS:36M
+

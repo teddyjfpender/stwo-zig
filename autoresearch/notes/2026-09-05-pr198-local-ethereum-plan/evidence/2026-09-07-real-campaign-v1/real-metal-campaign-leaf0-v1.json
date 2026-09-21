@@ -1,0 +1,201 @@
+{
+  "status": "produced_and_independently_verified",
+  "segment_index": 0,
+  "segment_count": 121,
+  "full_block_verified": false,
+  "claim_admission": "fixed_program_narrow_v5",
+  "cpu_reference_supplied": false,
+  "producer_child_process_ns": 460760383833,
+  "complete_request_ns": 459654105875,
+  "prove_ns": 282436750167,
+  "in_request_fresh_verify_ns": 77780807166,
+  "producer_lifetime_peak_footprint_bytes": 38800103144,
+  "process_cap_enforced": false,
+  "device_dispatches": 102,
+  "host_fallback_total": 3,
+  "fallback_scope": "Aggregate only; no per-operation subtype claim",
+  "retained_lde_lower_bound_bytes": 24512287728,
+  "source_column_bytes": 12256143864,
+  "preflight_excludes": [
+    "merkle",
+    "fri",
+    "quotient",
+    "twiddles",
+    "witness",
+    "allocator"
+  ],
+  "independent_fresh": {
+    "child_process_ns": 90854367542,
+    "request_ns": 90802423875,
+    "native_verify_ns": 87330526041,
+    "peak_footprint_bytes": 2390509824,
+    "worker_count": 1,
+    "retained_admission_destroyed_before_proof": true
+  },
+  "artifact": {
+    "bytes": 41293029,
+    "sha256": "d52e9577b23b79b16afc9da1c6c55b324d8872c3f447deab18e0b3a439a2d532"
+  },
+  "exclusive_depth2_phases": {
+    "source_column_pack": {
+      "seconds": 3.047162,
+      "count": 3
+    },
+    "merkle_commit": {
+      "seconds": 71.855568,
+      "count": 3
+    },
+    "riscv_opcode_trace_generation": {
+      "seconds": 13.875602,
+      "count": 1
+    },
+    "riscv_interaction_opcode": {
+      "seconds": 2.960753,
+      "count": 1
+    },
+    "riscv_interaction_program": {
+      "seconds": 0.764819,
+      "count": 1
+    },
+    "riscv_interaction_memory": {
+      "seconds": 1.979014,
+      "count": 1
+    },
+    "riscv_interaction_merkle": {
+      "seconds": 3.028724,
+      "count": 1
+    },
+    "riscv_interaction_poseidon": {
+      "seconds": 1.915644,
+      "count": 1
+    },
+    "riscv_interaction_clock": {
+      "seconds": 1.839856,
+      "count": 1
+    },
+    "riscv_interaction_tables": {
+      "seconds": 0.127496,
+      "count": 1
+    },
+    "draw_random_coeff": {
+      "seconds": 2e-06,
+      "count": 1
+    },
+    "composition_trace_extract": {
+      "seconds": 0.000288,
+      "count": 1
+    },
+    "composition_evaluation": {
+      "seconds": 36.823201,
+      "count": 1
+    },
+    "composition_interpolate_and_split": {
+      "seconds": 0.163083,
+      "count": 1
+    },
+    "composition_commit": {
+      "seconds": 0.284456,
+      "count": 1
+    },
+    "oods_point_and_mask_points": {
+      "seconds": 0.002523,
+      "count": 1
+    },
+    "sampled_value_evaluation": {
+      "seconds": 0.729782,
+      "count": 1
+    },
+    "sampled_value_channel_mix": {
+      "seconds": 0.014612,
+      "count": 1
+    },
+    "fri_quotient_build_and_commit": {
+      "seconds": 88.349049,
+      "count": 1
+    },
+    "proof_of_work": {
+      "seconds": 0.016152,
+      "count": 1
+    },
+    "fri_decommit": {
+      "seconds": 0.022352,
+      "count": 1
+    },
+    "trace_decommit": {
+      "seconds": 18.803357,
+      "count": 1
+    },
+    "constraint_check_and_assembly": {
+      "seconds": 0.006086,
+      "count": 1
+    }
+  },
+  "sample_scope": "One83-sample main-thread observation saw computeLazyQuotients waiting for Metal completion; not a wall-time percentage or evidence of paging. Footprint samples are observational and start after producer entry.",
+  "files": {
+    "producer-request.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-producer-request.json",
+      "bytes": 1789,
+      "sha256": "bfc4cc5b187221a128a861c15428f194855d35f2a5ebfbf6918dd9cfb6b25051"
+    },
+    "producer-execution.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-producer-execution.json",
+      "bytes": 42,
+      "sha256": "07b96fe24cf27f187616af9de57c6fc20b63cf4b64b4bd636fb880e20f7b2956"
+    },
+    "producer-stderr.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-producer-stderr.log",
+      "bytes": 4985,
+      "sha256": "eb43e8182564add3855bf774a63c8895e2f3f2be5be098f4701e73ac06f341b7"
+    },
+    "producer-stdout.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-producer-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "producer-leaf.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-producer-leaf.json",
+      "bytes": 16598,
+      "sha256": "d09ccf4236a6cc7ff533daa2dd7e4d351cebd9cbb5c554df9fd7d9640d2cba90"
+    },
+    "fresh-request.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-fresh-request.json",
+      "bytes": 956,
+      "sha256": "225b7ed66f3aac821523ad4245f05abe865443f1564d001c00fbbdba9a010b6e"
+    },
+    "fresh-execution.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-fresh-execution.json",
+      "bytes": 41,
+      "sha256": "9f1bb9e9e5eefb1d784b92ac54440e129deaba1113d96527b7a16d0d6b9b5890"
+    },
+    "fresh-stderr.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-fresh-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fresh-stdout.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-fresh-stdout.json",
+      "bytes": 1160,
+      "sha256": "7200e82c789c7e198871cad245b28ee64530a3ae9a8035259cbe7fc2aa22a969"
+    },
+    "leaf0-observer-v1.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-leaf0-observer-v1.py",
+      "bytes": 1336,
+      "sha256": "fc07ebdf4e48d33ce045f60c3dd025acda963722626f5094f970e32c05fe1081"
+    },
+    "leaf0-process-samples-v1.ndjson": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-leaf0-process-samples-v1.ndjson",
+      "bytes": 22699,
+      "sha256": "d1f474e552c811ab8b0ceff72b80033358796c43e1d38277da6235624241c2ae"
+    },
+    "leaf0-observer-receipt-v1.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-leaf0-observer-receipt-v1.json",
+      "bytes": 312,
+      "sha256": "c31f04ee99e38f3a2a8d4452e30b74ce39fb37ed018d74568ce723749d358be7"
+    },
+    "leaf0-live-sample-v1.txt": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-metal-campaign-leaf0-v1-leaf0-live-sample-v1.txt",
+      "bytes": 59281,
+      "sha256": "08b5d95392b9bb96450162a899d05211e8f750e11da673db64ef6e833e1b1c1f"
+    }
+  }
+}

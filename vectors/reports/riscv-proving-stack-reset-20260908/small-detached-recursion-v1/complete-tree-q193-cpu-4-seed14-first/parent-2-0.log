@@ -1,0 +1,3 @@
+[segment-v2-parent-complete-proof] another build holds /tmp/stwo-zig-build.lock; waiting
+[segment-v2-parent-complete-proof] acquired after 27s
+passed 27 fresh-process parent cases; report=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-4-seed14-first/parent-2-0-accepted.json

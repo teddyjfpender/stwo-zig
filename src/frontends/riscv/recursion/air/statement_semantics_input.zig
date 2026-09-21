@@ -268,6 +268,16 @@ pub fn semanticIdentity(allocator: std.mem.Allocator) !digest.Identity {
 }
 
 fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+    return buildDefinitionForProfile(allocator, false);
+}
+
+/// Shared constraints and source relations for the opt-in Ethereum byte
+/// routing profile. Additional preprocessing precedes parameters physically.
+pub fn buildByteRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    return (try buildDefinitionForProfile(allocator, true)).arena;
+}
+
+fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime route_bytes: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -297,6 +307,15 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .statement_scope = preprocessed_values[11],
         .word_index = preprocessed_values[12],
     };
+    var byte_routes: [4]types.ValueId = undefined;
+    if (route_bytes) {
+        for (&byte_routes, [_][]const u8{
+            "recursion_statement_semantics_input_low_byte_node",
+            "recursion_statement_semantics_input_low_byte_uses",
+            "recursion_statement_semantics_input_high_byte_node",
+            "recursion_statement_semantics_input_high_byte_uses",
+        }) |*value, name| value.* = try arena.input(name, .felt, span);
+    }
     var parameter_values: [PARAMETER_COUNT]types.ValueId = undefined;
     for (&parameter_values, PARAMETER_NAMES, 0..) |*value, name, index| {
         value.* = try arena.input(name, if (index <= 2) .selector else .felt, span);
@@ -389,6 +408,17 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
             .weight = active_integer,
         },
     }, span);
+
+    if (route_bytes) {
+        inline for (.{ main.low_byte, main.high_byte }, 0..) |byte, index| {
+            _ = try relation_effect.append(&arena, .{
+                .domain = .recursion_wire,
+                .role = .emit,
+                .values = &.{ preprocessed.circuit_id, byte_routes[index * 2], byte, parameters.zero, parameters.zero, parameters.zero },
+                .weight = try arena.mul(preprocessed.row_mask, byte_routes[index * 2 + 1], span),
+            }, span);
+        }
+    }
 
     return .{
         .arena = arena,

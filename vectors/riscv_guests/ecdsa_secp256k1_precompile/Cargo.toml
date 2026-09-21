@@ -1,0 +1,19 @@
+[package]
+name = "ecdsa-secp256k1-precompile-guest"
+version = "0.1.0"
+edition = "2024"
+
+[[bin]]
+name = "ecdsa_secp256k1_precompile"
+path = "src/main.rs"
+
+[features]
+recovery-odd = []
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = true
+codegen-units = 1
+
+[workspace]

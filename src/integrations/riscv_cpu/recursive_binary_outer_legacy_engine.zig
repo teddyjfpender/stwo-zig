@@ -41,10 +41,10 @@ const canonicalProofIdentity = support.canonicalProofIdentity;
 const ProofExecutionPool = support.ProofExecutionPool;
 const assertCohortContract = support.assertCohortContract;
 const assertManifestContract = support.assertManifestContract;
-const moveOwnedForVerifier = support.moveOwnedForVerifier;
+const moveOwnedForVerifier = recursion.verifier_tree.moveOwnedForVerifier;
 const rejectTransactionOutputAlias = support.rejectTransactionOutputAlias;
 const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
-const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
+const commitVerifierTreeForManifest = recursion.verifier_tree.commitVerifierTreeForManifest;
 const TreeStorageForManifest = support.TreeStorageForManifest;
 
 pub fn proveAndVerifyCurrent(

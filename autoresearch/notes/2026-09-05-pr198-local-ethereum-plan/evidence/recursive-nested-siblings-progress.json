@@ -1,0 +1,114 @@
+{
+  "status": "both sibling proof tests passed",
+  "input_session": 3840,
+  "source_sha256": {
+    "src/frontends/riscv/air/memory_commitment/poseidon2_air.zig": "15375049f7982841181972e39002dd3f7f067fafbec98a8e42012576133b9ca1",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_air_runtime.zig": "e19b73bfbdac20bc67a4a2fbaf1de67e6d1ddd60e0b67847ab3078b0e32b49e6",
+    "src/frontends/riscv/recursion/air/composition_circuit_reference.zig": "f93244eeb1d7a6b51bcee88e15026db84712d6b422fb7c2f6de29a7962cf711b",
+    "src/frontends/riscv/recursion/air/composition_circuit_row.zig": "549573d986b74ff373106d20b4faa2c5659cb0ba2990b24571f5a8ed247f5969",
+    "src/frontends/riscv/recursion/air/composition_circuit_test.zig": "617158793b68631472d80adcfedbc88c3840010fac0e0f5adcbcbe0168696235",
+    "src/frontends/riscv/recursion/air/fixed_wire_v3.zig": "b414a768cb8116c8f8a8588b160ce3d54cdfe9203dd37dfb9ac62f51c309c309",
+    "src/frontends/riscv/recursion/air/vm_air_composition_input_witness.zig": "fb88a9f09102e1cbadbc421bb9cfaf305d31b310f2742158b9730fd08079a621",
+    "src/frontends/riscv/recursion/binary_fri_outer_source_composition_source_value.zig": "d4ed55023ec4b0612914024ecc38ae475f6d8ed4938093caa41478111665f6eb",
+    "src/frontends/riscv/recursion/binary_fri_outer_source_test_capture_fixture.zig": "2d7812b2ff2cda789cf39046e0071a622af4b8656d9fd69faf1da3f230f8a20b",
+    "src/frontends/riscv/recursion/binary_fri_outer_source_trusted_composition_profile_v1.zig": "87e42b58859a471a1bbfcf12c8016cfca0f8dd195adbf98e794a8ab8bc0ae19f",
+    "src/frontends/riscv/recursion/binary_fri_outer_source_validate_captured_against_wire.zig": "1b5f4d92675c646ab5d38985b2fad545a95cee763443adfcb0f64e9543890f11",
+    "src/frontends/riscv/recursion/binary_global_closure_outer_source.zig": "c804c8baab4e5c635044404bd026078c125851ecb654e44c601bb7a60bb1fdc7",
+    "src/frontends/riscv/recursion/recursion_air_composition_circuit_contract.zig": "e5da6dd339a84c8a19e98d03dec0dd976b506c4b6f3553f9af5244116754ca4f",
+    "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_circuit_view_v3.zig": "931bbe121e06e03f602aaf0fc307bed4a81ccb4c00a30baa555cffd14b7ace0b",
+    "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_program_roster_v3.zig": "c282934f2c7ce4667dddd860625a2ed01301709fabe0d501f1480b8bd7444a5d",
+    "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_test.zig": "5bc90f05f397572fcb308d0823b5c2f8c686eda536165f74bb13c9796d93baf4",
+    "src/frontends/riscv/recursion/recursion_air_composition_circuit_v3_write_inputs_from_validated_profile_and_policy.zig": "c4331a8bfa8316b70030ffbb99e8b1c7c02ab1225f4f0f9759f55557df0ae029",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_boundary_v3.zig": "b81a2c00dc5f9d8ad2b916004bab53ebc8949d47ca672588530dd4ba6e51286c",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_boundary_v3_test.zig": "bfbecf8a1627a8ff876c14d747a8d2b36fe2f307eca8301c2f481f52c7c05195",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_campaign_composition_capture_v2.zig": "223b341e94125841227a6046162d7b82b511a18c6f3e271e441782a4198bba4c",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig": "3a6ea77c44e8f05b1829b36a31429e07fc6691518a1429729c8fde0b3be6625a",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_proof_v2_test.zig": "cd24b5926bf91fc7099e7074b8c121f1dec180faaa8cf8a6fd4b1fc94bd2e3eb",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig": "f4fb7d3ac6f61aa9e9597a0dd4aaa5b9b6aa77fee19260fab35a6232504c8795",
+    "src/integrations/riscv_cpu/recursive_common_fold_catalog_v3.zig": "08332725940cfbfeb57968f99c60db8e7fc390f257002a03fff2514f0a5ee553",
+    "src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig": "aad94e68e67f807dc65d51e7a65b42904819950b2d071b8ab347a06ed59a97f3",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "8f8f6f8f6e7dfee9cd81a160751742704758648bcdac1562c6c3ac8ecbb848fa",
+    "src/integrations/riscv_cpu/recursive_common_fold_fixed_wire_v2.zig": "79c1840d65357c7dc9c346bb41227bcd8761c6fa20b007c4ae2b05f9e5dd0174",
+    "src/integrations/riscv_cpu/recursive_common_fold_public_output_v3.zig": "95a8625a5bf150517da08c7887f1d8149bb9fa4b1ab9a0e632551d47d33b62b8",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "2da4bc9fa9b38a2e933bc5fda6eba05526e41a1c42cf49832737c8b8abd61737",
+    "src/integrations/riscv_cpu/recursive_common_fold_secure_cohort_v2.zig": "64f4b4a15951227053daebbdc841f56db7d0925877fd937c556ad8f5a2b75f12",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_closure_v2.zig": "8a7163266ea84cd4012a69f3a0c045875cbc0b9a7f2bbb3696c7da893b3e1089",
+    "src/integrations/riscv_cpu/recursive_common_fold_suffix_input_boundary_v2.zig": "265d84439471b49ad415380ed3c8fdabbaabbfb0a7efe11aac6a38e4ee049971",
+    "src/integrations/riscv_cpu/recursive_field_statement_word_v3_test.zig": "481e5d991d1e8a1eb1502c19e561eb24ab12065fa256b8d70ce82b13131246ba",
+    "src/integrations/riscv_cpu/recursive_fixed_wire_v3_test.zig": "a852bc675b62cd1b0195af75049fad9d0404d9e7e9dc3be372a8e8f95975a108",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_program_v1.zig": "30d94b5aedaaa9b4604f322d5cf7dff8b40bda0ee719a53aaa57a9216ecdf776",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1.zig": "03592d3b0f9147e9f9c01a0d65588083718e8cc1d652d251efb87230509f3034",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "c93f4de7c4f8f89f9aa02f8c316910ece0204ac91ce2f118870e84b761d091cb",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_artifact_v1.zig": "ac41a8331c3a1bbb979cf0b61a5ca816fa4858bcf5a0fd15b9dec67b0f71d126",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig": "610d7f302fdcd059edf8f9eddce137fc02c05c008c879df4e9b99d2c847ee133",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_cohort_v2.zig": "10220a3c2394d490182430b12735d8540886be3c5d64a6d4593a05c345502f5c",
+    "src/integrations/riscv_cpu/recursive_common_canonical_empty_universal_manifest_v2.zig": "48a85b8e6310a261e6430e8f69d696e7c9592e7af37d621100f54816a4487a86",
+    "src/frontends/riscv/recursion/air/field_statement_word_v3.zig": "5b05930c6fdceb45e009e9bd73cdd51491742a8e7988be8e4b5e5eadcb538d05",
+    "src/integrations/riscv_cpu/recursive_common_fold_detached_verifier_v2.zig": "486823eb7673273dcb77a10bde5fb75641c38c6b92fb7ce5f61082f3b89894da",
+    "src/integrations/riscv_cpu/recursive_common_fold_detached_verifier_v2_test.zig": "b71fd0d31c4d160c39026854c79d3b1954b9c201c06ee4c76b402b2a0d1b6720",
+    "src/integrations/riscv_cpu/recursive_common_fold_verifier_command_v2.zig": "97a07af5b06d3fdc1ac3dad00eff91aa434acca6cce7ed24854646269162f38e",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "fe88e78e3fa84a428e06f1554da46fee824e788bff078ef86379fc34df6f8ee9",
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_test_inputs.zig": "66f7c16636ad839addef93cb16bf2e62478faf681c6224b705fa68ed3e39faef"
+  },
+  "sibling_coordinates": [
+    [
+      1,
+      106
+    ],
+    [
+      1,
+      107
+    ]
+  ],
+  "leaf_pairs": [
+    [
+      212,
+      213
+    ],
+    [
+      214,
+      215
+    ]
+  ],
+  "parent_coordinate": [
+    2,
+    53
+  ],
+  "sibling_proofs_verified": true,
+  "nested_parent_verified": false,
+  "independent_key_admission": false,
+  "csp_promotion": false,
+  "input_gate": {
+    "exit_code": 0,
+    "steps": "3/3",
+    "tests": "1/1",
+    "runtime": "260ms/1M",
+    "compile": "3s/397M"
+  },
+  "runs": [
+    {
+      "coordinate": [
+        1,
+        106
+      ],
+      "leaf_pair": [
+        212,
+        213
+      ],
+      "exit_code": 0,
+      "log": "recursive-sibling-106-proof.log"
+    },
+    {
+      "coordinate": [
+        1,
+        107
+      ],
+      "leaf_pair": [
+        214,
+        215
+      ],
+      "exit_code": 0,
+      "log": "recursive-sibling-107-proof.log"
+    }
+  ]
+}

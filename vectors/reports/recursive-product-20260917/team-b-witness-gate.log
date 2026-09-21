@@ -1,0 +1,13 @@
+export provenance: 17 families, sha256 1e3094c83a517608; no production AIR source is newer than the export
+schema audit: 17 exported families use only supported node operations; 5 lookup domains range-checked, 4 deliberately skipped bus domains, none ignored
+load_store compact reads: base and source consumed/emitted lookups reuse eight single-copy value columns; no previous/next duplicates
+LH non-vacuity: 7 witnesses reachable in the exported production AIR
+per-opcode load non-vacuity: 15 LB/LBU/LHU/LW witnesses reachable in the exported production AIR; sign- and zero-extension discriminated on the same negative datum, LW equals the memory word at four aligned addresses
+DIV non-vacuity: 15 witnesses reachable in the exported production AIR, covering every exceptional case
+REM/REMU non-vacuity: 13 witnesses reachable in the exported production AIR; the remainder takes the dividend's sign, divisor zero yields the dividend, signed overflow yields zero
+multiply non-vacuity: 12 witnesses reachable in the exported production AIR
+shift non-vacuity: 13 witnesses reachable in the exported production AIR
+register-shift non-vacuity: 9 witnesses reachable in the exported production AIR, including masked rs2 amounts
+store non-vacuity: 10 witnesses reachable in the exported production AIR, unselected bytes preserved at every byte and half offset
+mutation counter-check: 28 tampered rows across 5 families all refused by the production AIR
+load_store address-aliasing regression: historical base 0x7ffffffb + 8 is architecturally 0x80000003 but would alias to 0x00000004 in M31; doubled base-high lookup 7 rejects it, with 5 other active range requests and all constraint roots valid

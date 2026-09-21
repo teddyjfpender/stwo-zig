@@ -1,0 +1,2 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=metal memory_addresses=1 initial_register7=0
+error: MetalHostWitnessGenerationForbidden

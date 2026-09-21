@@ -1,0 +1,13 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 30s
+Native core metallib accepted: 166 exact kernel exports, zero function constants, AOT/JIT kernel parity
+
+Build Summary: 7/7 steps succeeded
+stwo-zig-riscv-cpu success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:4G
+stwo-riscv-metal success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 1m MaxRSS:5G
+   +- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 17s MaxRSS:823M
+riscv-trace-dump success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 44s MaxRSS:3G
+

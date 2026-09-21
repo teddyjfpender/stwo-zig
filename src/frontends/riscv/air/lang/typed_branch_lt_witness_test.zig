@@ -195,7 +195,6 @@ test "typed BRANCH_LT matches legacy and ordered relation authority on seeded co
 test "typed BRANCH_LT production source is singular pinned and allocator-free" {
     const witness_source = @embedFile("typed_branch_lt_witness.zig");
     const trace_source = @embedFile("../../runner/trace.zig");
-    const execute_source = @embedFile("../../runner/execute.zig");
     const retirement_source = @embedFile("../../runner/generated_retirement.zig");
     const constraint_source = @embedFile("../constraint_program_constructors.zig");
     const semantics_registry = @embedFile("../semantics/mod.zig");
@@ -210,11 +209,6 @@ test "typed BRANCH_LT production source is singular pinned and allocator-free" {
         trace_source,
         ".branch_lt => typed_branch_lt_witness.writeActiveRow",
     ) == null);
-    try std.testing.expect(std.mem.indexOf(
-        u8,
-        execute_source,
-        ".BLT, .BLTU, .BGE, .BGEU => return error.GeneratedRetirementRequired",
-    ) != null);
     try std.testing.expect(std.mem.indexOf(
         u8,
         retirement_source,

@@ -1,0 +1,45 @@
+{
+  "status": "passed",
+  "proof_source_commit": "7757605cee19a6d01918a3a6de7fff366fabd634",
+  "source_sha256": "3aec645118afe63470202ef424b3e352352000ff0621e176d6af368b3256b1f0",
+  "binary": "src/integrations/riscv_cpu/.zig-cache/o/6af5e109ff75f7787d235c438ab02bec/test",
+  "binary_sha256": "3f25394adc20a62bdb1a114c0835e90cf5f104008ed76fd85f5a94d92089bc71",
+  "pid": 88081,
+  "candidate_sha256": "76ce3cdd4cc269b5d6bcffcd0a3d9a45d4861fc3566ab27870ada277d15a6dc3",
+  "producer_constructed": false,
+  "separate_process": true,
+  "requested_materialization_proving_workers": 1,
+  "merkle_workers_override": null,
+  "log": "/tmp/ethereum-raw-clock-fresh-process.log",
+  "progress": "/tmp/ethereum-raw-clock-fresh-process-progress.log",
+  "scope": "native-assisted schema7 wrapper candidate replay; not standalone root",
+  "tests_passed": 1,
+  "wrapper_verified": true,
+  "phases": {
+    "role0_postprocess": {
+      "source": "darwin_proc_pid_rusage_v6",
+      "wall_ns": 55713435209,
+      "process_cpu_ns": 55598929292,
+      "parallelism_milli": 997,
+      "peak_footprint_bytes": 32167861792,
+      "energy_nj": 302546665059,
+      "instructions": 1231981517396,
+      "cycles": 221385193715,
+      "workers": 1,
+      "host_byte_budget": 8589934592
+    },
+    "total": {
+      "source": "darwin_proc_pid_rusage_v6",
+      "wall_ns": 477487553667,
+      "process_cpu_ns": 885549296500,
+      "parallelism_milli": 1854,
+      "peak_footprint_bytes": 32167861792,
+      "energy_nj": 3839021204436,
+      "instructions": 16324324162837,
+      "cycles": 3340053057890,
+      "workers": 1,
+      "host_byte_budget": 8589934592
+    }
+  },
+  "log_sha256": "61093a0167107d299d884a27c6eca7f3b518eca007f75858897a78d81a9a81ac"
+}

@@ -1,0 +1,6 @@
+1/5 recursion_framework_export_test_root.test_0...OK
+2/5 recursion.air.range_check_8_8_bridge_test.test.range framework export preserves native mapped inputs zero roots and independent recurrence...OK
+3/5 recursion.air.range_check_8_8_bridge_test.test.range framework admission rejects selector claim shape identity and malformed source...OK
+4/5 recursion.air.range_check_8_8_bridge_test.test.range framework honest residual detects selector claim tuple multiplicity and previous mutations...OK
+5/5 recursion.air.range_check_8_8_bridge_test.test.range framework exports clean partial owned allocations...OK
+All 5 tests passed.

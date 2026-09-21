@@ -1,6 +1,13 @@
 //! Internal pcs deep circuit authority shard; use pcs_deep_circuit.zig publicly.
 
 pub const std = @import("std");
+const builtin = @import("builtin");
+
+// Test-only counts at the shared deep evaluation replay, including calls from
+// mutable and prepared circuit owners. Nodes are attempted audit inventory.
+var evaluation_audit_attempts = std.atomic.Value(u64).init(0);
+var evaluation_audit_completions = std.atomic.Value(u64).init(0);
+var evaluation_audit_nodes = std.atomic.Value(u64).init(0);
 pub const stwo_core = @import("stwo_core");
 pub const M31 = stwo_core.fields.m31.M31;
 pub const m31 = stwo_core.fields.m31;
@@ -13,7 +20,7 @@ pub const sample_point_layout = @import("../sample_point_layout.zig");
 pub const SECURE_WORD_COUNT: usize = input_mod.SECURE_WORD_COUNT;
 pub const M31_BIT_COUNT: usize = input_mod.M31_BIT_COUNT;
 pub const MAX_DOMAIN_LOG: u32 = input_mod.MAX_LOG_SIZE;
-pub const MAX_SAMPLE_COUNT_PER_COLUMN: u8 = 2;
+pub const MAX_SAMPLE_COUNT_PER_COLUMN: u8 = 6;
 // V1 remains valid: layout tags 0/1/2 are byte-identical to its former
 // count-only encoding. Reverse order uses tag 3, which V1 previously rejected,
 // and its distinct profile digest also binds the correspondingly distinct
@@ -165,6 +172,16 @@ pub const Witness = struct {
 };
 
 pub const Circuit = struct {
+    pub const testing = if (builtin.is_test) struct {
+        pub fn snapshot() struct { attempts: u64, completions: u64, nodes: u64 } {
+            return .{
+                .attempts = evaluation_audit_attempts.load(.monotonic),
+                .completions = evaluation_audit_completions.load(.monotonic),
+                .nodes = evaluation_audit_nodes.load(.monotonic),
+            };
+        }
+    } else struct {};
+
     allocator: std.mem.Allocator,
     trees: []TreeProfile,
     column_log_storage: []u32,
@@ -319,6 +336,11 @@ pub const Circuit = struct {
         };
     }
 
+    pub fn validateEvaluation(self: *const Circuit, evaluation: *const Evaluation) Error!void {
+        try self.validate();
+        try self.validateEvaluationHot(evaluation);
+    }
+
     /// Allocation-free replay used at the proof boundary after cold authority
     /// admission. Every non-input node and every designated zero output is
     /// rechecked, so mutated evaluation storage cannot enter lowering.
@@ -326,6 +348,10 @@ pub const Circuit = struct {
         self: *const Circuit,
         evaluation: *const Evaluation,
     ) Error!void {
+        if (builtin.is_test) {
+            _ = evaluation_audit_attempts.fetchAdd(1, .monotonic);
+            _ = evaluation_audit_nodes.fetchAdd(self.nodes.len, .monotonic);
+        }
         if (evaluation.values.len != self.nodes.len or
             !std.mem.eql(u8, &evaluation.circuit_identity, &self.identity_digest))
         {
@@ -355,6 +381,7 @@ pub const Circuit = struct {
             if (!evaluation.values[output].isZero())
                 return error.UnsatisfiedCircuit;
         }
+        if (builtin.is_test) _ = evaluation_audit_completions.fetchAdd(1, .monotonic);
     }
 
     pub fn inputValuesInto(
@@ -363,16 +390,21 @@ pub const Circuit = struct {
         destination: []M31,
     ) Error!void {
         try self.validateEvaluationHot(evaluation);
-        if (destination.len != self.bindings.len)
-            return error.BindingCountMismatch;
-        for (self.bindings, destination) |binding, *value| {
-            if (binding.node_id >= evaluation.values.len)
-                return error.InvalidWitness;
-            value.* = evaluation.values[binding.node_id].tryIntoM31() catch
-                return error.InputIsNotBaseField;
-        }
+        try copyInputValues(self.bindings, evaluation.values, destination);
     }
 };
+
+/// Copy already accepted node values into the canonical base-field input order.
+/// Evaluation/circuit admission belongs to the caller; bounds and canonicality
+/// remain checked here for both mutable and immutable evaluation owners.
+pub fn copyInputValues(bindings: []const InputBinding, values: []const QM31, destination: []M31) Error!void {
+    if (destination.len != bindings.len) return error.BindingCountMismatch;
+    for (bindings, destination) |binding, *value| {
+        if (binding.node_id >= values.len) return error.InvalidWitness;
+        value.* = values[binding.node_id].tryIntoM31() catch
+            return error.InputIsNotBaseField;
+    }
+}
 
 pub const Evaluation = struct {
     allocator: std.mem.Allocator,
@@ -384,9 +416,8 @@ pub const Evaluation = struct {
         self.* = undefined;
     }
 
-    pub fn validateAgainst(self: *const Evaluation, circuit: *const Circuit) Error!void {
-        try circuit.validate();
-        try circuit.validateEvaluationHot(self);
+    pub fn validateAgainst(self: *const Evaluation, circuit: anytype) Error!void {
+        try circuit.validateEvaluation(self);
     }
 };
 

@@ -1,0 +1,17 @@
+{
+  "timestamp": "2026-09-08T06:09:25.593449+00:00",
+  "manifest_sha256": "0478cbc2348aaf94fea2363fa6d847d1ef1ecf53851521f7b1c65d599f7b69ff",
+  "source_files": 16,
+  "command": [
+    "python3",
+    "-m",
+    "unittest",
+    "scripts.tests.test_ethereum_bounded_verifier",
+    "scripts.tests.test_ethereum_full_leaf_bundle_producer",
+    "-q"
+  ],
+  "exit_code": 0,
+  "tests": 37,
+  "tests_log_sha256": "f3ec22bacbc066069ae83241f2f99dca667727f84630543936e0682d654dc149",
+  "real_verifier_launched": false
+}

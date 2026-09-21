@@ -1,0 +1,217 @@
+{
+  "schema_version": 1,
+  "status": "retained_baseline_not_reset_measurement",
+  "checkpoint": "87a3965f",
+  "segment": 19,
+  "campaign_segments": 121,
+  "local_cycles": 2097152,
+  "backend": "metal",
+  "source_receipts": [
+    {
+      "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/request.json",
+      "bytes": 1790,
+      "sha256": "15fb81cfa70583fda5df4d24eca0fe8547ec12a6490277434fcc08b367d90c09"
+    },
+    {
+      "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/execution.json",
+      "bytes": 42,
+      "sha256": "5b41d050af8402a599bd2b6b3f95afcfa7e63557223955d9fcae31c139c7f2ba"
+    },
+    {
+      "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/stderr.log",
+      "bytes": 4984,
+      "sha256": "0db006b723efca4177915a2579c7aa1593558fab0b237d8ba34041cf9b717ce2"
+    },
+    {
+      "path": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v2/attempts/leaf-000019-0000/leaf.json",
+      "bytes": 16622,
+      "sha256": "b1c8539a22484cb1dff1d3fed31532e394b2246d272e19c7edbc651c5c8f7929"
+    }
+  ],
+  "stages": [
+    {
+      "depth": 0,
+      "id": "stage101_leaf_transaction",
+      "seconds": 387.475228
+    },
+    {
+      "depth": 1,
+      "id": "stage101_input_admission",
+      "seconds": 3.634431
+    },
+    {
+      "depth": 1,
+      "id": "stage101_compact_replay",
+      "seconds": 0.368461
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prepared_proof_transaction",
+      "seconds": 30.508933
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prove",
+      "seconds": 351.933753
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.027175
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 0.249849
+    },
+    {
+      "depth": 2,
+      "id": "riscv_opcode_trace_generation",
+      "seconds": 4.113791
+    },
+    {
+      "depth": 3,
+      "id": "riscv_infrastructure_trace_generation",
+      "seconds": 3.950075
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.81867
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 8.362364
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_opcode",
+      "seconds": 2.820694
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_program",
+      "seconds": 0.712143
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_memory",
+      "seconds": 0.786457
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_merkle",
+      "seconds": 0.858905
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_poseidon",
+      "seconds": 0.481134
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_clock",
+      "seconds": 1.758613
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_tables",
+      "seconds": 0.119101
+    },
+    {
+      "depth": 2,
+      "id": "source_column_pack",
+      "seconds": 0.97899
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 8.295864
+    },
+    {
+      "depth": 2,
+      "id": "draw_random_coeff",
+      "seconds": 1e-06
+    },
+    {
+      "depth": 2,
+      "id": "composition_trace_extract",
+      "seconds": 0.000357
+    },
+    {
+      "depth": 2,
+      "id": "composition_evaluation",
+      "seconds": 259.335809
+    },
+    {
+      "depth": 2,
+      "id": "composition_interpolate_and_split",
+      "seconds": 0.024947
+    },
+    {
+      "depth": 2,
+      "id": "composition_commit",
+      "seconds": 0.052994
+    },
+    {
+      "depth": 2,
+      "id": "oods_point_and_mask_points",
+      "seconds": 0.002828
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_evaluation",
+      "seconds": 0.367868
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_channel_mix",
+      "seconds": 0.014527
+    },
+    {
+      "depth": 2,
+      "id": "fri_quotient_build_and_commit",
+      "seconds": 0.63659
+    },
+    {
+      "depth": 2,
+      "id": "proof_of_work",
+      "seconds": 0.005081
+    },
+    {
+      "depth": 2,
+      "id": "fri_decommit",
+      "seconds": 0.009326
+    },
+    {
+      "depth": 2,
+      "id": "trace_decommit",
+      "seconds": 0.274216
+    },
+    {
+      "depth": 2,
+      "id": "constraint_check_and_assembly",
+      "seconds": 0.003763
+    },
+    {
+      "depth": 1,
+      "id": "stage101_encode",
+      "seconds": 0.235514
+    }
+  ],
+  "proving_seconds": 351.929739458,
+  "composition_seconds": 259.335809,
+  "complete_request_seconds": 544.138102292,
+  "composition_share_of_proving": 0.7368965447461131,
+  "capture_admission_seconds": 102.71730475,
+  "gpu_semantic_ms": 86.391,
+  "gpu_lookup_ms": 18.585,
+  "peak_footprint_bytes": 31859924488,
+  "timing_caveats": [
+    "Nested stage durations overlap; only compare or sum same-depth disjoint intervals.",
+    "GPU milliseconds exclude host preparation, fallback evaluation, synchronization and reduction.",
+    "Retained source predates reset instrumentation; no current-head or CSP A/B claim.",
+    "Per-component elapsed attribution and peak allocation ownership remain unmeasured."
+  ]
+}

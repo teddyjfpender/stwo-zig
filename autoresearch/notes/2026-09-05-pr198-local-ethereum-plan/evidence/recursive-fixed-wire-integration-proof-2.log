@@ -1,0 +1,31 @@
+test-recursive-common-canonical-empty-universal-v2-proof
++- Canonical-empty universal q193 proof identity guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+SECURE_TRANSCRIPT_SHARED_RECORDING record_ns=70304542 extra_preprocessed_lookups=0
+SECURE_REPLAY_RECORDING operations=174 frames=176 permutations=1649 words=12344 queries=193
+CANONICAL_EMPTY_Q193_STAGE=wrapper.cold-decode error=InvalidSecureTemporalParentArtifact
+test-recursive-common-fold-transcript-program-v1
++- Common-fold transcript program proof identity guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+COMMON_FOLD_CHECKPOINT node_sha256=b49bb17032b1531c9ed4b85598c46742f7d1f1df064487c4658ef2fd04f47a45
+COMMON_FOLD_STATEMENT_PROVIDER words=900 range_requests=3564 native_statement_boundary=false statement_fold_air=true
+COMMON_FOLD_FRESH_VERIFICATION producer_destroyed=true verified=true
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=182 frames=184 permutations=1761 queries=193
+
+Build Summary: 8/8 steps succeeded; 2/2 tests passed
+test-recursive-common-fold-transcript-program-v1 success
++- Common-fold transcript program proof identity guard success
+   +- run test 1 passed 8m MaxRSS:10G
+      +- compile test ReleaseSafe native success 1m MaxRSS:5G
+test-recursive-common-canonical-empty-universal-v2-proof success
++- Canonical-empty universal q193 proof identity guard success
+   +- run test 1 passed 11s MaxRSS:87M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

@@ -1,0 +1,6 @@
+1/5 poseidon2_protocol_identity_test_root.test_0...OK
+2/5 poseidon2_protocol_identity_test_root.test.canonical recursive provider admits new identities and explicit retained compact identities...OK
+3/5 poseidon2_protocol_identity_test_root.test.canonical recursive provider rejects forged identities geometry and borrowed challenge changes...OK
+4/5 poseidon2_protocol_identity_test_root.test.canonical parent preparation preserves independently admitted legacy manifests...OK
+5/5 air.memory_commitment.poseidon2_air.test_0...OK
+All 5 tests passed.

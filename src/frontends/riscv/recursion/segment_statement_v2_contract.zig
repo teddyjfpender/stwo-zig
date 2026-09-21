@@ -1,4 +1,5 @@
-//! Internal segment statement v2 authority shard; use segment_statement_v2.zig publicly.
+//! Shared SegmentV2 statement data and validation, independent of runner conversion.
+//! The public segment_statement_v2.zig facade also exposes source-side helpers.
 
 pub const std = @import("std");
 pub const stwo_core = @import("stwo_core");
@@ -9,12 +10,10 @@ pub const access_clock = @import("../access_clock.zig");
 pub const isa_profile = @import("../isa/profile.zig");
 pub const public_data = @import("../air/public_data.zig");
 pub const memory_poseidon2 = @import("../air/memory_commitment/poseidon2.zig");
-pub const memory_state = @import("../runner/memory_state.zig");
-pub const runner_result = @import("../runner/result.zig");
-pub const Cpu = @import("../runner/cpu.zig").Cpu;
 pub const channel = @import("poseidon2_channel.zig");
 pub const protocol = @import("protocol.zig");
 pub const span_statement = @import("span_statement.zig");
+const identity_preimage = @import("segment_statement_v2_identity_preimage.zig");
 
 pub const Digest = channel.Digest;
 pub const BaseStatementWords = span_statement.StatementWords;
@@ -112,6 +111,7 @@ pub const Error = span_statement.Error || error{
     CanonicalPaddingNonZero,
     CanonicalTagMismatch,
     CanonicalWordNonCanonical,
+    ClockFrameMismatch,
     CompletionForbidden,
     CompletionMissing,
     CompletionMismatch,
@@ -249,6 +249,12 @@ pub const StatementV2 = struct {
         const decoded_base = try self.base();
         const executed = try executedLeaf(decoded_base);
         const range = try statementRange(decoded_base, executed);
+        // Snapshot identities are recomputed from the retained canonical
+        // sections by wire admission. Bind the Span's public boundary to them.
+        if (!std.meta.eql(executed.entry.rw_memory, self.entry_snapshot_id) or
+            !std.meta.eql(executed.exit.rw_memory, self.exit_snapshot_id))
+            return error.MemorySnapshotMismatch;
+
         const expected_job_id = jobIdAssumeCanonical(&self.base_statement_words);
         const expected_base_id = baseStatementIdAssumeCanonical(
             &self.base_statement_words,
@@ -424,18 +430,18 @@ pub fn clockWithinBoundary(clock: u32, cycle: u32, allow_zero: bool) bool {
     return access_clock.isWithinExecution(clock, cycle, allow_zero);
 }
 
+fn hashIdentity(input: identity_preimage.Input) Digest {
+    var hasher = IdentityHasher.init(identity_preimage.domain(std.meta.activeTag(input)));
+    identity_preimage.emit(&hasher, input);
+    return hasher.finalize();
+}
+
 pub fn jobIdAssumeCanonical(words: *const BaseStatementWords) Digest {
-    return channel.hashCanonicalWords(
-        words[span_statement.canonical_layout.job_start..span_statement.canonical_layout.slot_start],
-        JOB_ID_DOMAIN,
-    );
+    return hashIdentity(.{ .job = words });
 }
 
 pub fn baseStatementIdAssumeCanonical(words: *const BaseStatementWords) Digest {
-    var canonical: [V1_PROJECTION_WORD_COUNT]u32 = undefined;
-    for (&canonical, words) |*destination, word|
-        destination.* = word.toU32();
-    return protocol.statementId(&canonical);
+    return hashIdentity(.{ .base_statement = words });
 }
 
 pub fn derivePositionId(
@@ -446,18 +452,14 @@ pub fn derivePositionId(
     range: RangeV2,
     slots: span_statement.SlotSpan,
 ) Digest {
-    var hasher = IdentityHasher.init(POSITION_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.u32Value(segment_index);
-    hasher.u32Value(segment_count);
-    hasher.u32Value(range.start);
-    hasher.u32Value(range.end);
-    hasher.u64Value(slots.first);
-    hasher.scalar(slots.height);
-    hasher.u64Value(slots.nodeIndex());
-    return hasher.finalize();
+    return hashIdentity(.{ .position = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .segment_index = segment_index,
+        .segment_count = segment_count,
+        .range = range,
+        .slots = slots,
+    } });
 }
 
 pub fn deriveBoundaryLineageId(
@@ -471,20 +473,18 @@ pub fn deriveBoundaryLineageId(
     memory_clock_id: Digest,
     memory_clock_count: u32,
 ) Digest {
-    var hasher = IdentityHasher.init(BOUNDARY_LINEAGE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.u32Value(boundary_index);
-    hasher.u32Value(cycle);
-    hasher.m31s(machine_words);
-    hasher.digest(snapshot.id);
-    hasher.u32Value(snapshot.count);
-    hasher.scalar(snapshot.root);
-    for (register_clocks) |clock| hasher.u32Value(clock);
-    hasher.digest(memory_clock_id);
-    hasher.u32Value(memory_clock_count);
-    return hasher.finalize();
+    std.debug.assert(machine_words.len == span_statement.MACHINE_STATE_CANONICAL_WORDS);
+    return hashIdentity(.{ .entry_lineage = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .boundary_index = boundary_index,
+        .cycle = cycle,
+        .machine_words = machine_words[0..span_statement.MACHINE_STATE_CANONICAL_WORDS],
+        .snapshot = snapshot,
+        .register_clocks = register_clocks,
+        .memory_clock_id = memory_clock_id,
+        .memory_clock_count = memory_clock_count,
+    } });
 }
 
 pub fn deriveSegmentLineageId(
@@ -495,15 +495,14 @@ pub fn deriveSegmentLineageId(
     exit_lineage_id: Digest,
     base_statement_id: Digest,
 ) Digest {
-    var hasher = IdentityHasher.init(SEGMENT_LINEAGE_ID_DOMAIN);
-    hasher.scalar(FORMAT_VERSION);
-    hasher.digest(session_id);
-    hasher.digest(job_id);
-    hasher.digest(position_id);
-    hasher.digest(entry_lineage_id);
-    hasher.digest(exit_lineage_id);
-    hasher.digest(base_statement_id);
-    return hasher.finalize();
+    return hashIdentity(.{ .lineage = .{
+        .session_id = session_id,
+        .job_id = job_id,
+        .position_id = position_id,
+        .entry_lineage_id = entry_lineage_id,
+        .exit_lineage_id = exit_lineage_id,
+        .base_statement_id = base_statement_id,
+    } });
 }
 
 pub fn writeCompletion(writer: *Writer, completion: ?CompletionV2) void {
@@ -606,5 +605,49 @@ pub const IdentityHasher = struct {
 
     pub fn finalize(self: *IdentityHasher) Digest {
         return self.inner.finalize();
+    }
+};
+
+/// Allocation-free authenticated view over one canonical variable-length V2
+/// wire.  Offsets refer to retained four-word `(u32,u32)` entries.
+pub const CanonicalWireViewV2 = struct {
+    words: []const M31,
+    statement: StatementV2,
+    entry_snapshot: RetainedSectionV2,
+    exit_snapshot: RetainedSectionV2,
+    entry_memory_clocks: RetainedSectionV2,
+    exit_memory_clocks: RetainedSectionV2,
+    wire_id: Digest,
+
+    pub fn sparseEntry(
+        self: *const CanonicalWireViewV2,
+        section: RetainedSectionV2,
+        index: usize,
+    ) SparseEntryV2 {
+        std.debug.assert(index < section.count);
+        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
+        return .{
+            .address = readEncodedU32(self.words[start..][0..2]),
+            .value = readEncodedU32(self.words[start + 2 ..][0..2]),
+        };
+    }
+
+    pub fn clockEntry(
+        self: *const CanonicalWireViewV2,
+        section: RetainedSectionV2,
+        index: usize,
+    ) ClockEntryV2 {
+        std.debug.assert(index < section.count);
+        const start = section.payload_start + index * RETAINED_ENTRY_WORDS;
+        return .{
+            .address = readEncodedU32(self.words[start..][0..2]),
+            .clock = readEncodedU32(self.words[start + 2 ..][0..2]),
+        };
+    }
+
+    /// One canonical transcript frame.  Callers cannot alter framing by
+    /// splitting variable sections into a different sequence of mix calls.
+    pub fn mixInto(self: *const CanonicalWireViewV2, transcript: anytype) void {
+        transcript.mixCanonicalM31Words(self.words);
     }
 };

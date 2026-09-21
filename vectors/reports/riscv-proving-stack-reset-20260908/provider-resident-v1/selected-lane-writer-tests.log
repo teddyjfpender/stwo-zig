@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 19s
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-recursion-selected-lane-writers success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 329ms MaxRSS:5M
+      +- compile test ReleaseFast native success 8s MaxRSS:530M
+

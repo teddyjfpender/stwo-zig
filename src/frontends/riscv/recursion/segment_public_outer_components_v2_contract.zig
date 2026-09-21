@@ -297,26 +297,7 @@ pub const Owners = struct {
     }
 };
 
-pub const Parameters = struct {
-    publication_header: [HeaderAdapter.PARAMETER_COLUMN_COUNT]M31,
-    native_public_sums: [SumsAdapter.PARAMETER_COLUMN_COUNT]M31,
-    publication_seal: [SealAdapter.PARAMETER_COLUMN_COUNT]M31,
-    boundary_bridge: [BoundaryAdapter.PARAMETER_COLUMN_COUNT]M31,
-    native_challenges: [ChallengesAdapter.PARAMETER_COLUMN_COUNT]M31,
-    control_relay: [ControlAdapter.PARAMETER_COLUMN_COUNT]M31,
-
-    pub fn segmentV2() Parameters {
-        const zero = [_]M31{M31.zero()};
-        return .{
-            .publication_header = zero,
-            .native_public_sums = zero,
-            .publication_seal = zero,
-            .boundary_bridge = zero,
-            .native_challenges = zero,
-            .control_relay = .{},
-        };
-    }
-};
+pub const Parameters = @import("segment_leaf_parameters_v2.zig").PublicParameters;
 
 pub const Source = struct {
     allocator: std.mem.Allocator,

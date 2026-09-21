@@ -1,0 +1,33 @@
+{
+  "scope": "Isolated diagnosis only: revert lease line; print exact failing clock branch; retain original deterministic ELF; run original first test only",
+  "changes": [
+    {
+      "path": "src/frontends/riscv/recursion/segment_leaf_local_verified_link_v3.zig",
+      "before_sha256": "36444b6c0f1e410f173fe5182156787f0943b83b8948859adcc3771f2dc3a577",
+      "after_sha256": "8c29e8fd150d027bf9e5ecfc91b54ce08401ade1a06facedbd97943baadfa74b",
+      "before": "const view = try local.authenticatedView();",
+      "after": "const view = try segment_v2.authenticateCanonicalWire(local.words());"
+    },
+    {
+      "path": "src/frontends/riscv/air/statement_v2.zig",
+      "before_sha256": "d0e76869c05f3b3ad421c1d1d476e495d7eb6a660a9597c1cdea4687b426acfa",
+      "after_sha256": "3548e28710acf751a04f7c1a650dfb23e3930029d98e442911df583c229bb9d7",
+      "before": ") catch return error.SegmentResultMismatch;\n        if (result.execution_trace.step_count",
+      "after": ") catch |err| {\n            std.debug.print(\"NATIVE_V2_CLOCK_DIAG frame={s} first={d} cycles={d} actual_origin={d} actual_last={d} row_first={d} row_last={d} error={s}\\n\", .{@tagName(result.clock_frame), result.global_first_cycle, result.cycle_count, result.execution_trace.clock_origin, result.execution_trace.last_retirement_clock, rows[0].clk, rows[rows.len-1].clk, @errorName(err)});\n            return error.SegmentResultMismatch;\n        };\n        if (result.execution_trace.step_count"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/build_proof_steps.zig",
+      "before_sha256": "81176369fd4b95ed2007b614f92e9431246c5e29fec87a82ecad7a836ed7166d",
+      "after_sha256": "10ccc9ab825aeee4290ccbf32d9985371a4b4ddf46958d9b0a4864ef39202fd0",
+      "before": "        \"native V2 proves a rebased leaf-local V3 segment without widening the AIR\",\n",
+      "after": ""
+    },
+    {
+      "path": "src/integrations/riscv_cpu/segment_v2_native_proof_test.zig",
+      "before_sha256": "65ee5467d89ecdaf840cc86e6f328a54c069068fb8456fe879ff60757ed5078a",
+      "after_sha256": "5fbab09ddfa05c9691519b73fdd1aec1fc9a3d6f431130a873424ff23e224246",
+      "before": "    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});",
+      "after": "    try std.fs.cwd().writeFile(.{ .sub_path = \"native-v2-fixture.elf\", .data = &elf });\n    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});"
+    }
+  ]
+}

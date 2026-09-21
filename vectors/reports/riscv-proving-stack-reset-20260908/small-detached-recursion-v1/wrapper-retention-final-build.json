@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_seconds": 174.06037470907904,
+  "source_patch_sha256": "ed0ae78cd732628c34e7a9d74f57803ec1120d4356c67dd227b27362335338e1",
+  "binary": ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-final-prove",
+  "binary_sha256": "e89b8168c73901c46c08fa8faa57f8d49c7afe57411e64d2b730e536e6a681df"
+}

@@ -1,0 +1,11 @@
+test-secp256k1-precompile-proof
++- secp256k1 native proof identity guard
+   +- run test stderr
+secp256k1 proof timings: witness=8.684ms pp=0.714ms main=12.984ms interaction-gen=15.220ms interaction-commit=16.517ms prove=91.220ms verify=2.745ms
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-secp256k1-precompile-proof success
++- secp256k1 native proof identity guard success
+   +- run test 1 passed 155ms MaxRSS:63M
+      +- compile test ReleaseFast native cached 86ms MaxRSS:36M
+

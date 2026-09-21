@@ -2,6 +2,14 @@
 
 pub const boundary = @import("boundary.zig");
 pub const hash_component = @import("hash_component.zig");
+pub const hash_runtime_program = @import("hash_runtime_program.zig");
+pub const incremental_frontier_v1 = @import("incremental_frontier_v1.zig");
+pub const incremental_frontier_component_v1 = @import("incremental_frontier_component_v1.zig");
+pub const incremental_transition_v1 = @import("incremental_transition_v1.zig");
+pub const incremental_bridge_v2 = @import("incremental_bridge_v2.zig");
+pub const incremental_bridge_component_v2 = @import("incremental_bridge_component_v2.zig");
+pub const incremental_transition_v2 = @import("incremental_transition_v2.zig");
+pub const incremental_boundary_interaction_v3 = @import("incremental_boundary_interaction_v3.zig");
 pub const interaction = @import("interaction.zig");
 pub const merkle_node = @import("merkle_node.zig");
 pub const poseidon2 = @import("poseidon2.zig");
@@ -13,3 +21,9 @@ test {
     const std = @import("std");
     std.testing.refAllDecls(@This());
 }
+
+pub const poseidon2_universal_degree3_v1 = @import("poseidon2_universal_degree3_v1.zig");
+pub const poseidon2_universal_backend_v1 = @import("poseidon2_narrow_backend_v1.zig").Universal;
+pub const poseidon2_universal_component_v1 = @import("poseidon2_universal_component_v1.zig");
+pub const poseidon2_degree3_verifier = @import("poseidon2_degree3_verifier.zig");
+pub const poseidon2_wide_equations = @import("poseidon2_wide_equations.zig");

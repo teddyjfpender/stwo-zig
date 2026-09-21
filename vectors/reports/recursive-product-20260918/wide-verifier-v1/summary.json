@@ -1,0 +1,52 @@
+{
+  "status": "focused_checks_passed_complete_gate_pending",
+  "new_verifier_adapter_duplicated": false,
+  "verifier_factory": "poseidon2_degree3_verifier.Component(poseidon2_wide_equations)",
+  "retained_layout": {
+    "main_columns": 445,
+    "constraints_with_interaction": 432
+  },
+  "checks": {
+    "native_equations": {
+      "passed": true,
+      "tests_including_wrappers": 7,
+      "log": "pr198-wide-equations-native-v2.log"
+    },
+    "point_parity": {
+      "passed": true,
+      "tests_including_wrappers": 3,
+      "log": "pr198-wide-compact-verifier-parity.log"
+    },
+    "legacy_permutation_parity": {
+      "passed": true,
+      "tests_including_wrappers": 2,
+      "log": "pr198-wide-equations-parity.log"
+    },
+    "provider_admission": {
+      "passed": true,
+      "tests_including_wrappers": 6,
+      "log": "pr198-wide-equations-provider-admission.log"
+    },
+    "ownership": {
+      "passed": true,
+      "tests_including_wrappers": 11,
+      "log": "pr198-wide-verifier-ownership-final.log"
+    }
+  },
+  "source_sha256": {
+    "poseidon2_air.zig": "e2a2ed0051bbff1380131b16714472993224c52ae1431cd42848cab215b2602b",
+    "poseidon2_air_runtime.zig": "defb03f92ec9152fce1c42ebd610c0837bb55bbc69d76bb0990df0a8b6585855",
+    "poseidon2_layout.zig": "f51c0964fcfb04f393f0bb747a968c9e267bd08ca393fc35a2b4053cfc106c3b",
+    "poseidon2_wide_equation_kernel.zig": "4a1d1d5cb670b08c208e15628be76f59959bcee1af3f9cee439df67e68a73930",
+    "poseidon2_wide_equations.zig": "462fff23439ad1563481842fc8e15aae9b28ce6b5849342fcb6f100b6b7fdec0",
+    "poseidon2_universal_degree3_v1_test.zig": "04490eeaf77424aa51816fce90ba58ccdd4e86054700497ec4c1927c0b47a1b5",
+    "mod.zig": "039d311249a568ba37e6ac53e01b26591144e8b90022aaa9a1952227b55a4b8b"
+  },
+  "full_standalone_verifier_separation_complete": false,
+  "next": [
+    "Separate shared provider challenge and identity admission from witness-backed helpers.",
+    "Assemble verifier-only parent components using typed, table, compact and wide factories.",
+    "Qualify the combined batch with complete CPU/Metal proof gates."
+  ],
+  "discarded_test_attempt": "/tmp/pr198-wide-equations-native.log ran only a wrapper; not counted as AIR coverage."
+}

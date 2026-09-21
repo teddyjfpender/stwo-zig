@@ -78,6 +78,7 @@ class InteropCliCommandTests(unittest.TestCase):
             "-Mstwo_metal_session=src/tools/metal_session/mod.zig",
             command,
         )
+        self.assertIn("-Mstwo_artifact_store=src/artifact_store/mod.zig", command)
         self.assertIn(
             "-Mstwo_cairo_metal_integration=src/integrations/cairo_metal/mod.zig",
             command,

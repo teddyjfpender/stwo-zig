@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "checked_source_files": 5756,
+  "changed_from_ordinary_v4": [
+    "src/integrations/riscv_cpu/ethereum_wrapper_composition_proof_v1_test.zig",
+    "src/integrations/riscv_cpu/recursive_binary_outer_support.zig",
+    "src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig",
+    "src/prover/pcs/columns/circle_transforms.zig",
+    "src/prover/pcs/columns/preparation.zig",
+    "src/prover/pcs/commit_ops.zig",
+    "src/prover/pcs/retained_column_storage_test.zig"
+  ],
+  "source_pin_mismatches": [],
+  "contains_runtime_python_cache": false,
+  "ordinary_v4_base_preserved": true,
+  "initial38_changes_included": false
+}

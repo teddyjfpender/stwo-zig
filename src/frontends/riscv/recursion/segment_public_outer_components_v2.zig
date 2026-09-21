@@ -38,3 +38,5 @@ pub const fillInteractionInto = shard_3.fillInteractionInto;
 /// Cold diagnostic decomposition of the exact rows used for Tree 2. Rows
 /// 12--17 intentionally own no row-35 range contribution.
 pub const auditInteractionDomains = shard_3.auditInteractionDomains;
+
+pub const fillInteractionIntoWithGenerator = shard_3.fillInteractionIntoWithGenerator;

@@ -1,0 +1,378 @@
+src/frontends/riscv/air/incremental_public_logup_v4.zig:10:35: error: import of file outside module path
+const execution_profile = @import("../isa/execution_profile.zig");
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/incremental_public_logup_v4.zig:17:32: error: import of file outside module path
+const CircuitProfile = @import("../prover/ethereum_circuit_profile_v1.zig").CircuitProfileV1;
+                               ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/incremental_public_logup_v4.zig:386:29: error: import of file outside module path
+    const custom0 = @import("../isa/custom0.zig");
+                            ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data.zig:12:25: error: import of file outside module path
+const profile = @import("../isa/profile.zig");
+                        ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data.zig:13:30: error: import of file outside module path
+const access_clock = @import("../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2.zig:34:25: error: import of file outside module path
+const profile = @import("../isa/profile.zig");
+                        ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2.zig:35:28: error: import of file outside module path
+const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement_v2.zig:22:25: error: import of file outside module path
+const channel = @import("../recursion/poseidon2_channel.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement_v2.zig:23:28: error: import of file outside module path
+const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement_v2.zig:24:31: error: import of file outside module path
+const runner_result = @import("../runner/result.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement_v2.zig:579:28: error: import of file outside module path
+    words: []const @import("../runner/memory_state.zig").WordState,
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:6:30: error: import of file outside module path
+const memory_state = @import("../runner/memory_state.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:7:31: error: import of file outside module path
+const runner_result = @import("../runner/result.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:8:21: error: import of file outside module path
+const Cpu = @import("../runner/cpu.zig").Cpu;
+                    ^~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:9:25: error: import of file outside module path
+const channel = @import("../recursion/poseidon2_channel.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:10:26: error: import of file outside module path
+const protocol = @import("../recursion/protocol.zig");
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:11:28: error: import of file outside module path
+const segment_v2 = @import("../recursion/segment_statement_v2.zig");
+                           ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/public_data_v2_test_support.zig:12:22: error: import of file outside module path
+const span = @import("../recursion/span_statement.zig");
+                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/decode.zig:8:25: error: import of file outside module path
+const custom0 = @import("../../isa/custom0.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/decode.zig:9:28: error: import of file outside module path
+const isa_decode = @import("../../isa/decode.zig");
+                           ^~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/decode.zig:10:35: error: import of file outside module path
+const execution_profile = @import("../../isa/execution_profile.zig");
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/decode.zig:11:33: error: import of file outside module path
+const opcode_manifest = @import("../../opcode_manifest.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/boundary.zig:13:30: error: import of file outside module path
+const memory_state = @import("../../runner/memory_state.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/boundary.zig:14:31: error: import of file outside module path
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/interaction.zig:6:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_logup.zig:13:23: error: import of file outside module path
+const infra = @import("../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_logup.zig:14:30: error: import of file outside module path
+const access_clock = @import("../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/sparse_merkle.zig:10:31: error: import of file outside module path
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement.zig:17:27: error: import of file outside module path
+const trace_mod = @import("../runner/trace.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/statement_v2_authority_preimage.zig:6:25: error: import of file outside module path
+const channel = @import("../recursion/poseidon2_channel.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/opcode.zig:3:26: error: import of file outside module path
+const manifest = @import("../../opcode_manifest.zig");
+                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/logup.zig:450:29: error: import of file outside module path
+const permutation = @import("../infra_trace/permutation.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/semantics/common.zig:10:30: error: import of file outside module path
+const access_clock = @import("../../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/component.zig:43:27: error: import of file outside module path
+const trace_mod = @import("../runner/trace.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/merkle_node.zig:12:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/opcode_entries.zig:8:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/opcode_interaction.zig:20:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/opcode_interaction.zig:23:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/tables/schema.zig:6:23: error: import of file outside module path
+const infra = @import("../../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/clock_update_interaction.zig:7:23: error: import of file outside module path
+const infra = @import("../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/clock_update_interaction.zig:8:29: error: import of file outside module path
+const state_chain = @import("../runner/state_chain.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/poseidon2_air.zig:11:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/memory_commitment/poseidon2_air.zig:17:31: error: import of file outside module path
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/interaction.zig:6:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/opcode_composition_manifest.zig:20:33: error: import of file outside module path
+const opcode_manifest = @import("../../opcode_manifest.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/semantics/control_common.zig:8:30: error: import of file outside module path
+const access_clock = @import("../../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/component_prepared_execution.zig:14:27: error: import of file outside module path
+const trace_mod = @import("../runner/trace.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/interaction_gen.zig:22:23: error: import of file outside module path
+const infra = @import("../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/interaction_gen.zig:30:27: error: import of file outside module path
+const trace_mod = @import("../runner/trace.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/opcode_memory.zig:19:27: error: import of file outside module path
+const trace_mod = @import("../runner/trace.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/opcode_memory.zig:20:24: error: import of file outside module path
+const decode = @import("../isa/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/opcode_memory.zig:21:30: error: import of file outside module path
+const access_clock = @import("../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/commitment.zig:5:23: error: import of file outside module path
+const infra = @import("../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/commitment.zig:6:30: error: import of file outside module path
+const memory_state = @import("../../runner/memory_state.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/commitment.zig:8:31: error: import of file outside module path
+const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
+                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/commitment.zig:9:25: error: import of file outside module path
+const profile = @import("../../isa/profile.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/semantic_eval.zig:12:23: error: import of file outside module path
+const trace = @import("../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/constraint_program.zig:32:23: error: import of file outside module path
+const trace = @import("../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/extract/runtime_program.zig:18:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/lookup_batch_execution.zig:20:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/opcode_interaction_validation.zig:6:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lookups/tables/counter.zig:6:23: error: import of file outside module path
+const infra = @import("../../../infra_trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_auipc_authority.zig:15:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_auipc_authority.zig:16:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_base_alu_imm_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_base_alu_imm_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_base_alu_reg_authority.zig:14:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_base_alu_reg_authority.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_eq_authority.zig:14:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_eq_authority.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_lt_authority.zig:14:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_lt_authority.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_div_authority.zig:12:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_div_authority.zig:13:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_fence_authority.zig:18:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_fence_authority.zig:19:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_authority.zig:13:30: error: import of file outside module path
+const access_clock = @import("../../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_authority.zig:14:29: error: import of file outside module path
+const isa_profile = @import("../../isa/profile.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_authority.zig:15:29: error: import of file outside module path
+const state_chain = @import("../../runner/state_chain.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_authority.zig:16:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_authority.zig:17:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_authority.zig:12:30: error: import of file outside module path
+const access_clock = @import("../../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_authority.zig:13:29: error: import of file outside module path
+const isa_profile = @import("../../isa/profile.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_authority.zig:14:29: error: import of file outside module path
+const state_chain = @import("../../runner/state_chain.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_authority.zig:15:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_authority.zig:16:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_load_store_authority.zig:10:30: error: import of file outside module path
+const access_clock = @import("../../access_clock.zig");
+                             ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_load_store_authority.zig:12:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_load_store_authority.zig:13:29: error: import of file outside module path
+const state_chain = @import("../../runner/state_chain.zig");
+                            ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_load_store_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_imm_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_imm_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_reg_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_reg_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lui_authority.zig:19:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lui_authority.zig:20:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mul_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mul_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mulh_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mulh_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig:13:24: error: import of file outside module path
+const decode = @import("../../runner/decode.zig");
+                       ^~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/table.zig:4:33: error: import of file outside module path
+const opcode_manifest = @import("../../opcode_manifest.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/program/table.zig:5:25: error: import of file outside module path
+const profile = @import("../../isa/profile.zig");
+                        ^~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/extract/model.zig:29:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/shadow_program.zig:15:23: error: import of file outside module path
+const trace = @import("../../runner/trace.zig");
+                      ^~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/static_profile_registry.zig:17:33: error: import of file outside module path
+const opcode_manifest = @import("../../opcode_manifest.zig");
+                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_auipc_witness.zig:13:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_base_alu_reg_witness.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_eq_witness.zig:14:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_branch_lt_witness.zig:10:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_div_witness.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_fence_witness.zig:11:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jal_witness.zig:13:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_jalr_witness.zig:17:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_load_store_witness.zig:11:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_imm_witness.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lt_reg_witness.zig:10:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_lui_witness.zig:20:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mul_witness.zig:13:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_mulh_witness.zig:16:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_imm_witness.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_shifts_reg_witness.zig:15:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~
+src/frontends/riscv/air/lang/typed_addi_witness.zig:20:27: error: import of file outside module path
+const trace_row = @import("../../runner/trace_row.zig");
+                          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~

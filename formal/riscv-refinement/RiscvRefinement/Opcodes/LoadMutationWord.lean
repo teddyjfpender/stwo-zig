@@ -241,7 +241,7 @@ the conclusion it refutes is guarded on `is_lw`.
 structure HoldsWithoutWordLoad (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive : 0 < row.clock
-  /-- C00 and C70: `active * (active - 1) = 0` together with the placement
+  /-- C00 and C62: `active * (active - 1) = 0` together with the placement
   residual `active - 1 = 0`, so exactly one opcode flag is set. -/
   selectorSum : row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -260,26 +260,21 @@ structure HoldsWithoutWordLoad (row : LoadStoreRow) : Prop where
   halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
   /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
-  /-- L06: the aligned word address divided by four is a 20-bit value, so the
-  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
+  /-- L06/L16 check the low 20 and high eight bits of the aligned quarter;
+  C61 binds that committed quarter to the selector-derived word address. -/
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 jointly: whichever of the two address selectors carries the
   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
-  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
-  hand side is below `2^22 + 4`, hence already canonical. -/
+  base field, and C61 pins that selector to `4 * aligned_quarter`. The right
+  hand side is below `2^30`, hence already canonical. -/
   memoryAddress :
     (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
-  component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
-  exactly what keeps `compose(rs1_next)` below the modulus. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+  component, twice `rs1_next_3` is a seven-bit value. -/
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -392,8 +387,6 @@ theorem loadStoreHolds_weakens_wordLoad
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect
@@ -483,7 +476,7 @@ this is the control that separates `LHU` from `LH`.
 structure HoldsWithoutHalfLoadExtension (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive : 0 < row.clock
-  /-- C00 and C70: `active * (active - 1) = 0` together with the placement
+  /-- C00 and C62: `active * (active - 1) = 0` together with the placement
   residual `active - 1 = 0`, so exactly one opcode flag is set. -/
   selectorSum : row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -502,26 +495,21 @@ structure HoldsWithoutHalfLoadExtension (row : LoadStoreRow) : Prop where
   halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
   /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
-  /-- L06: the aligned word address divided by four is a 20-bit value, so the
-  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
+  /-- L06/L16 check the low 20 and high eight bits of the aligned quarter;
+  C61 binds that committed quarter to the selector-derived word address. -/
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 jointly: whichever of the two address selectors carries the
   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
-  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
-  hand side is below `2^22 + 4`, hence already canonical. -/
+  base field, and C61 pins that selector to `4 * aligned_quarter`. The right
+  hand side is below `2^30`, hence already canonical. -/
   memoryAddress :
     (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
-  component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
-  exactly what keeps `compose(rs1_next)` below the modulus. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+  component, twice `rs1_next_3` is a seven-bit value. -/
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -630,8 +618,6 @@ theorem loadStoreHolds_weakens_halfLoadExtension
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect
@@ -720,7 +706,7 @@ halfword `0x2211` instead. This is the `LHU` counterpart of the family's
 structure HoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
   /-- The instruction clock of a placed row. -/
   clockPositive : 0 < row.clock
-  /-- C00 and C70: `active * (active - 1) = 0` together with the placement
+  /-- C00 and C62: `active * (active - 1) = 0` together with the placement
   residual `active - 1 = 0`, so exactly one opcode flag is set. -/
   selectorSum : row.selectorSum = 1
   /-- C10: `(1 - is_signed) * src_msb = 0`. -/
@@ -739,26 +725,21 @@ structure HoldsWithoutHalfLoadHigh (row : LoadStoreRow) : Prop where
   halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
   /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
-  /-- L06: the aligned word address divided by four is a 20-bit value, so the
-  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
+  /-- L06/L16 check the low 20 and high eight bits of the aligned quarter;
+  C61 binds that committed quarter to the selector-derived word address. -/
+  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
   /-- C16 and C17 jointly: whichever of the two address selectors carries the
   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
-  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
-  hand side is below `2^22 + 4`, hence already canonical. -/
+  base field, and C61 pins that selector to `4 * aligned_quarter`. The right
+  hand side is below `2^30`, hence already canonical. -/
   memoryAddress :
     (row.rs1Previous.value + row.immFelt) % m31Modulus =
       row.alignedAddress + row.shiftAmount
   /-- `imm_felt` is a base-field element. -/
   immFeltRange : row.immFelt < m31Modulus
   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
-  component, `rs1_next_3` is a seven-bit value. -/
-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
-  baseHighLimbZero : row.rs1Previous.limb3 = 0
-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
-  exactly what keeps `compose(rs1_next)` below the modulus. -/
-  baseLimbsCanonical :
-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
+  component, twice `rs1_next_3` is a seven-bit value. -/
+  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
   byteLoadExtension :
     row.isByteLoad = true →
@@ -865,8 +846,6 @@ theorem loadStoreHolds_weakens_halfLoadHigh
   memoryAddress := holds.memoryAddress
   immFeltRange := holds.immFeltRange
   baseHighLimbRange := holds.baseHighLimbRange
-  baseHighLimbZero := holds.baseHighLimbZero
-  baseLimbsCanonical := holds.baseLimbsCanonical
   byteLoadExtension := holds.byteLoadExtension
   byteLoadSelect := holds.byteLoadSelect
   byteStoreSelect := holds.byteStoreSelect

@@ -7,7 +7,8 @@ typedef struct {
     uint32_t power_word_offset;
     uint32_t power_word_count;
     uint32_t output_index;
-    uint32_t denominator_inverses[2];
+    uint32_t denominator_count;
+    uint32_t denominator_inverses[8];
 } StwoZigBasePolynomialDispatch;
 
 typedef struct {
@@ -83,6 +84,9 @@ bool stwo_zig_metal_base_polynomial_batch(
     void *runtime_ptr,
     void *const *tree_ptrs,
     uint32_t tree_count,
+    void *composition_domain_buffer,
+    const uint32_t *composition_domain_host_begin,
+    size_t composition_domain_word_count,
     const uint32_t *const *main_columns,
     uint32_t total_main_columns,
     const StwoZigBasePolynomialDispatch *dispatches,
@@ -173,6 +177,10 @@ bool stwo_zig_metal_base_polynomial_batch(
                 item->main_column_count > total_main_columns - item->main_column_offset ||
                 item->output_index >= output_count ||
                 outputs[item->output_index].row_count != item->row_count ||
+                (item->denominator_count != 2u &&
+                 item->denominator_count != 4u &&
+                 item->denominator_count != 8u) ||
+                item->denominator_count > item->row_count ||
                 item->power_word_count == 0u ||
                 item->power_word_offset > total_power_words ||
                 item->power_word_count > total_power_words - item->power_word_offset) {
@@ -186,8 +194,10 @@ bool stwo_zig_metal_base_polynomial_batch(
             bool mainResident = true;
             for (uint32_t column = 0u; column < item->main_column_count; ++column) {
                 StwoZigResidentColumnBinding columnBinding = {0};
-                if (!stwo_zig_tree_resident_column(
-                        trees,
+                if (!stwo_zig_polynomial_input_column(
+                        trees, composition_domain_buffer,
+                        composition_domain_host_begin,
+                        composition_domain_word_count,
                         main_columns[item->main_column_offset + column],
                         item->row_count,
                         &columnBinding)) {
@@ -203,8 +213,11 @@ bool stwo_zig_metal_base_polynomial_batch(
                     break;
                 }
             }
-            if (!mainResident || !stwo_zig_tree_resident_column(
-                    trees, item->selector, item->row_count, &selectorBinding)) {
+            if (!mainResident || !stwo_zig_polynomial_input_column(
+                    trees, composition_domain_buffer,
+                    composition_domain_host_begin,
+                    composition_domain_word_count,
+                    item->selector, item->row_count, &selectorBinding)) {
                 [encoder endEncoding];
                 write_error(error_message, error_message_len,
                             @"Base-polynomial input is not proof-resident");
@@ -234,12 +247,21 @@ bool stwo_zig_metal_base_polynomial_batch(
             [encoder setBytes:&item->denominator_inverses
                        length:sizeof(item->denominator_inverses)
                       atIndex:5];
+            [encoder setBytes:&item->denominator_count
+                       length:sizeof(item->denominator_count)
+                      atIndex:6];
             NSUInteger width = MIN(
                 plan.pipeline.maxTotalThreadsPerThreadgroup,
                 plan.pipeline.threadExecutionWidth * 8u
             );
             [encoder dispatchThreads:MTLSizeMake(item->row_count, 1u, 1u)
                 threadsPerThreadgroup:MTLSizeMake(width, 1u, 1u)];
+            // Generated jobs at the same evaluation log read/add/write the
+            // same output buffer. Metal does not make those dependent buffer
+            // accesses visible merely because dispatch calls are encoded in
+            // sequence, so every later writer requires the completed result.
+            if (index + 1u < dispatch_count)
+                [encoder memoryBarrierWithScope:MTLBarrierScopeBuffers];
         }
         [encoder endEncoding];
         [command commit];

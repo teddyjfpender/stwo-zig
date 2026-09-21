@@ -20,14 +20,14 @@ pub const MIN_LOG_SIZE: u32 = 4;
 pub const MAX_LOG_SIZE: u32 = 30;
 pub const SECURE_VALUE_WORD_COUNT: u32 = 4;
 pub const RELATION_CHALLENGE_WORD_COUNT: u32 = 8;
-pub const SAMPLED_VALUE_KIND: u32 = 6;
-pub const VM_CLAIMED_SUM_KIND: u32 = 12;
-pub const RECURSION_CLAIMED_SUM_KIND: u32 = 5;
-pub const TRANSCRIPT_CLAIMED_SUM_KIND: u32 = 5;
-pub const CHALLENGE_SCOPE: u32 = 1;
-pub const COMPOSITION_RANDOMNESS_KIND: u32 = 1;
-pub const OODS_POINT_KIND: u32 = 2;
-pub const SEGMENT_VERIFIER_ID: u32 = 0;
+pub const SAMPLED_VALUE_KIND = @import("verifier_parameter_tags.zig").vm_input.SAMPLED_VALUE_KIND;
+pub const VM_CLAIMED_SUM_KIND = @import("verifier_parameter_tags.zig").vm_input.VM_CLAIMED_SUM_KIND;
+pub const RECURSION_CLAIMED_SUM_KIND = @import("verifier_parameter_tags.zig").vm_input.RECURSION_CLAIMED_SUM_KIND;
+pub const TRANSCRIPT_CLAIMED_SUM_KIND = @import("verifier_parameter_tags.zig").vm_input.TRANSCRIPT_CLAIMED_SUM_KIND;
+pub const CHALLENGE_SCOPE = @import("verifier_parameter_tags.zig").vm_input.CHALLENGE_SCOPE;
+pub const COMPOSITION_RANDOMNESS_KIND = @import("verifier_parameter_tags.zig").vm_input.COMPOSITION_RANDOMNESS_KIND;
+pub const OODS_POINT_KIND = @import("verifier_parameter_tags.zig").vm_input.OODS_POINT_KIND;
+pub const SEGMENT_VERIFIER_ID = @import("verifier_parameter_tags.zig").vm_input.SEGMENT_VERIFIER_ID;
 pub const MAIN_COLUMN_COUNT = component.PHYSICAL_MAIN_COLUMN_COUNT;
 pub const PREPROCESSED_COLUMN_COUNT = component.PREPROCESSED_COLUMN_COUNT;
 pub const ProofKind = circuit.ProofKind;
@@ -240,8 +240,26 @@ pub const Preprocessed = struct {
         reference: *const circuit.Reference,
     ) (Error || circuit.Error)!Preprocessed {
         var compiled = try circuit.compile(allocator, reference);
+        return initTakingCompiled(&compiled);
+    }
+
+    /// Adopts a schedule compiled from the same independently authenticated
+    /// graph. Ownership transfers on entry, including every error path.
+    pub fn initTakingCompiled(
+        compiled_source: *circuit.CompiledSchedule,
+    ) (Error || circuit.Error)!Preprocessed {
+        var compiled = compiled_source.*;
+        compiled_source.* = undefined;
         errdefer compiled.deinit();
+        try circuit.validateCompiledRows(compiled.rows);
+        const expected = circuit.computeScheduleDigest(
+            compiled.reference_digest,
+            compiled.rows,
+        );
+        if (!std.mem.eql(u8, &expected, &compiled.authority_digest))
+            return error.AuthorityMismatch;
         const log_size = try traceLogSize(compiled.rows.len);
+        const allocator = compiled.allocator;
         const reference_digest = compiled.reference_digest;
         const authority_digest = compiled.authority_digest;
         const rows = compiled.releaseRows();
@@ -502,21 +520,25 @@ fn validateRow(row: Row) Error!void {
 
 fn validateVmSource(source_value: VmSource) Error!void {
     switch (source_value) {
+        .statement_word => |word| if (!@import("vm_statement_roots.zig").contains(word))
+            return error.InvalidInputSource,
         .sampled_value, .claimed_sum, .transcript_claimed_sum => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,
-        .segment_selector => {},
+        .segment_selector, .native_continuation_root => {},
     }
 }
 
 fn validateRecursionSource(source_value: RecursionSource) Error!void {
     switch (source_value) {
-        .sampled_value, .claimed_sum, .public_wire_boundary => |coordinate| try validateSecure(coordinate),
+        .sampled_value, .claimed_sum, .transcript_claimed_sum, .public_wire_boundary => |coordinate| try validateSecure(coordinate),
         .relation_challenge => |coordinate| try validateChallenge(coordinate),
         .composition_randomness, .oods_point => |word_index| if (word_index >= SECURE_VALUE_WORD_COUNT)
             return error.InvalidInputSource,
         .statement_word => |word_index| if (word_index >= statement.CANONICAL_WORD_COUNT)
+            return error.InvalidInputSource,
+        .field_public_word => |word_index| if (!(word_index < 6 or (word_index >= 418 and word_index < 450)))
             return error.InvalidInputSource,
         .parent_binary_selector, .child_kind_selector => {},
     }

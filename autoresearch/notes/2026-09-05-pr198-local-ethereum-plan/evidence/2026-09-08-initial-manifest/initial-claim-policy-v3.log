@@ -1,0 +1,12 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 4266s
+1/2 recursion.vm_public_semantics_circuit_test.test.Ethereum initial claim policy keeps exact canonical shape with bounded graph inputs...OK
+2/2 recursion.vm_public_semantics_circuit_test.test.Ethereum initial claim policy constrains headers native roots and input edge...  claim semantic output[164] node=1092 value=1/0/0/0
+  claim semantic output[275] node=1347 value=4/0/0/0
+  claim semantic output[165] node=1093 value=1/0/0/0
+  claim semantic output[78] node=931 value=1/0/0/0
+  claim semantic output[153] node=1074 value=1/0/0/0
+  claim semantic output[267] node=1324 value=2147483579/0/0/0
+  claim semantic output[276] node=1350 value=1/0/0/0
+OK
+All 2 tests passed.

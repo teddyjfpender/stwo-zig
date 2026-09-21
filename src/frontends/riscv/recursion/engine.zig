@@ -11,11 +11,11 @@ const prover_engine = @import("stwo_prover_engine").engine;
 const poseidon2 = @import("poseidon2_channel.zig");
 const native_scheduled = @import("native_scheduled_channel.zig");
 
-pub const Hasher = poseidon2.MerkleHasher;
-pub const MerkleChannel = poseidon2.MerkleChannel;
-pub const Channel = poseidon2.Channel;
-pub const Proof = stwo_core.proof.StarkProof(Hasher);
-pub const ExtendedProof = stwo_core.proof.ExtendedStarkProof(Hasher);
+pub const Hasher = @import("engine_protocol.zig").Hasher;
+pub const MerkleChannel = @import("engine_protocol.zig").MerkleChannel;
+pub const Channel = @import("engine_protocol.zig").Channel;
+pub const Proof = @import("engine_protocol.zig").Proof;
+pub const ExtendedProof = @import("engine_protocol.zig").ExtendedProof;
 
 pub fn ProverEngineForBackend(comptime Backend: type) type {
     return prover_engine.ProverEngine(

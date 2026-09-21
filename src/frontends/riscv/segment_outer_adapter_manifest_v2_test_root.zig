@@ -6,3 +6,8 @@ test "segment V2 outer manifest declarations compile" {
     std.testing.refAllDeclsRecursive(subject);
     std.testing.refAllDeclsRecursive(focused);
 }
+
+// Keep focused cases discoverable when a name filter omits the declaration gate.
+test {
+    _ = focused;
+}

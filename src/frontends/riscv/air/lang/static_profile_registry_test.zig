@@ -14,36 +14,36 @@ test "AIR static profile registry: all native family definitions have exact auth
             .native_definition,
     );
     try std.testing.expectEqualDeep(registry.Totals{
-        .physical_main_columns = 644,
-        .logical_input_nodes = 677,
+        .physical_main_columns = 646,
+        .logical_input_nodes = 678,
         .constraint_roots = 545,
-        .effects = 242,
-        .lookup_events = 242,
-        .lookup_batches = 155,
-        .interaction_columns = 620,
-        .expression_dag_nodes = 3079,
-        .expression_dag_edges = 4370,
-        .expression_dag_shared_nodes = 649,
-        .constraint_effect_reachable_nodes = 3034,
-        .nodes_outside_constraint_effect_closure = 45,
+        .effects = 243,
+        .lookup_events = 243,
+        .lookup_batches = 156,
+        .interaction_columns = 624,
+        .expression_dag_nodes = 3086,
+        .expression_dag_edges = 4380,
+        .expression_dag_shared_nodes = 651,
+        .constraint_effect_reachable_nodes = 3040,
+        .nodes_outside_constraint_effect_closure = 46,
         .maximum_logical_constraint_degree = 3,
         .maximum_lookup_numerator_degree = 2,
         .maximum_lookup_denominator_degree = 2,
         .maximum_modeled_interaction_degree = 3,
     }, report.totals);
     try std.testing.expectEqualStrings(
-        "0dd67acd8705f77a5c482a8d3706b38929d799091b3971e995b20dcc44f56772",
+        "8410e177c95cdc288f16c60ae3506e233bfbc673cc4228ed8ea7f0f3c486fa40",
         &std.fmt.bytesToHex(report.report_digest, .lower),
     );
 
     const expected_widths = [_]u32{
-        35, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 48, 39, 47, 67, 6,
+        35, 35, 60, 51, 44, 37, 30, 37, 18, 29, 41, 20, 50, 39, 47, 67, 6,
     };
     const expected_roots = [_]u32{
         22, 22, 70, 67, 36, 33, 18, 33, 9, 17, 23, 10, 63, 17, 24, 79, 2,
     };
     const expected_lookups = [_]u32{
-        18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 16, 16, 22, 25, 3,
+        18, 16, 20, 16, 14, 11, 9, 11, 7, 12, 18, 8, 17, 16, 22, 25, 3,
     };
     const expected_batch_sizes = [_]u8{
         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 1, 1, 2,
@@ -96,7 +96,7 @@ test "AIR static profile registry: canonical TSV is deterministic and family ord
     var output_digest: [Sha256.digest_length]u8 = undefined;
     Sha256.hash(tsv, &output_digest, .{});
     try std.testing.expectEqualStrings(
-        "d4b187cbdf5baee61f4eb2541acf1d69e8e84ddae91007b574ec4a6663a18c6b",
+        "e61540ffbb0ebc35379fb1bc2d0c160e4c9f707b584687b53d4486b7f54f0f2a",
         &std.fmt.bytesToHex(output_digest, .lower),
     );
 }

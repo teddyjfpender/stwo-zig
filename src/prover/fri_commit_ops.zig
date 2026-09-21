@@ -35,6 +35,21 @@ pub fn CommitOps(
         const InnerLayerProver = Owner.InnerLayerProver;
         const lazy_inverse_workspace =
             if (@hasDecl(B, "lazyFriFoldInverseWorkspace")) B.lazyFriFoldInverseWorkspace else false;
+        const retain_packed_opening_columns =
+            if (@hasDecl(B, "retainFriPackedOpeningColumns"))
+                B.retainFriPackedOpeningColumns
+            else
+                false;
+        const FoldCommitment = struct {
+            merkle_tree: B.MerkleTree(H),
+            retained_packing: ?PackedSecureColumns = null,
+
+            fn deinit(self: *@This(), allocator: std.mem.Allocator) void {
+                self.merkle_tree.deinit(allocator);
+                if (self.retained_packing) |*owner| owner.deinit(allocator);
+                self.* = undefined;
+            }
+        };
 
         fn observeHostCircleFold(
             audit: *FriProtocolWorkAudit,
@@ -102,16 +117,17 @@ pub fn CommitOps(
             column: secure_column.SecureColumnByCoords,
             fold_step: u32,
         ) !FirstLayerProver {
-            var merkle_tree = try commitSecureColumnForFold(
+            const committed = try commitSecureColumnForFold(
                 allocator,
                 column,
                 fold_step,
             );
-            MC.mixRoot(channel, merkle_tree.root());
+            MC.mixRoot(channel, committed.merkle_tree.root());
             return .{
                 .domain = domain,
                 .column = column,
-                .merkle_tree = merkle_tree,
+                .merkle_tree = committed.merkle_tree,
+                .retained_packing = committed.retained_packing,
             };
         }
 
@@ -129,9 +145,11 @@ pub fn CommitOps(
                 try SecureColumnByCoords.uninitialized(allocator, provider.domain_size);
             errdefer column.deinit(allocator);
 
-            var merkle_tree = if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
+            const committed = if (comptime @hasDecl(B, "commitLazyMerkle")) blk: {
                 if (!shouldPack(column.len(), fold_step)) {
-                    break :blk try B.commitLazyMerkle(H, allocator, provider, &column);
+                    break :blk FoldCommitment{
+                        .merkle_tree = try B.commitLazyMerkle(H, allocator, provider, &column),
+                    };
                 }
                 if (comptime @hasDecl(B, "computeLazyQuotients")) {
                     try B.computeLazyQuotients(allocator, provider, &column);
@@ -155,7 +173,7 @@ pub fn CommitOps(
                     fold_step,
                 );
             };
-            MC.mixRoot(channel, merkle_tree.root());
+            MC.mixRoot(channel, committed.merkle_tree.root());
             if (work_audit) |audit| {
                 const used_lazy_merkle = @hasDecl(B, "commitLazyMerkle") and
                     !shouldPack(column.len(), fold_step);
@@ -168,7 +186,8 @@ pub fn CommitOps(
             return .{
                 .domain = domain,
                 .column = column,
-                .merkle_tree = merkle_tree,
+                .merkle_tree = committed.merkle_tree,
+                .retained_packing = committed.retained_packing,
             };
         }
 
@@ -503,22 +522,25 @@ pub fn CommitOps(
                 const this_fold_step: u32 = @intCast(@min(config.fold_step, remaining_folds));
                 const used_pending_fused_tree = pending_tree != null;
 
-                var merkle_tree = pending_tree orelse
+                var committed = if (pending_tree) |tree|
+                    FoldCommitment{ .merkle_tree = tree }
+                else
                     try commitSecureColumnForFold(
                         allocator,
                         secure_values,
                         this_fold_step,
                     );
                 pending_tree = null;
-                errdefer if (!layer_appended) merkle_tree.deinit(allocator);
+                errdefer if (!layer_appended) committed.deinit(allocator);
 
-                MC.mixRoot(channel, merkle_tree.root());
+                MC.mixRoot(channel, committed.merkle_tree.root());
                 const fold_alpha = channel.drawSecureFelt();
 
                 const layer = InnerLayerProver{
                     .domain = layer_evaluation.domain(),
                     .column = secure_values,
-                    .merkle_tree = merkle_tree,
+                    .merkle_tree = committed.merkle_tree,
+                    .retained_packing = committed.retained_packing,
                     .fold_step = this_fold_step,
                 };
                 try layers.append(allocator, layer);
@@ -713,7 +735,7 @@ pub fn CommitOps(
             allocator: std.mem.Allocator,
             column: secure_column.SecureColumnByCoords,
             fold_step: u32,
-        ) !B.MerkleTree(H) {
+        ) !FoldCommitment {
             if (!shouldPack(column.len(), fold_step)) {
                 const column_refs = [_][]const M31{
                     column.columns[0],
@@ -721,13 +743,23 @@ pub fn CommitOps(
                     column.columns[2],
                     column.columns[3],
                 };
-                return B.commitMerkle(H, allocator, &column_refs);
+                return .{
+                    .merkle_tree = try B.commitMerkle(H, allocator, &column_refs),
+                };
             }
 
             var packed_columns = try PackedSecureColumns.init(allocator, column);
-            defer packed_columns.deinit(allocator);
+            errdefer packed_columns.deinit(allocator);
             const refs = packed_columns.refs();
-            return B.commitMerkle(H, allocator, &refs);
+            const merkle_tree = try B.commitMerkle(H, allocator, &refs);
+            if (comptime retain_packed_opening_columns) {
+                return .{
+                    .merkle_tree = merkle_tree,
+                    .retained_packing = packed_columns,
+                };
+            }
+            packed_columns.deinit(allocator);
+            return .{ .merkle_tree = merkle_tree };
         }
     };
 }

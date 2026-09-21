@@ -38,17 +38,14 @@ AUTHORING_FILES = frozenset({
     "cost_aware_materializer_adversarial_test.zig",
     "cost_aware_materializer_test.zig",
     "materialization_cost.zig",
-    "materialization_cost_direct.zig",
     "materialization_cost_direct_test.zig",
     "materialization_cost_test.zig",
     "materialization_cut_set.zig",
     "materialization_cut_set_test.zig",
     "materialization_direct_benchmark.zig",
     "materialization_direct_benchmark_test.zig",
-    "materialization_direct_program.zig",
     "materialization_direct_program_test.zig",
     "materialization_fixed_cost_test.zig",
-    "materialization_fixed_direct.zig",
     "materialization_fixed_direct_test.zig",
     "materialization_frontier_command.zig",
     "materialization_frontier_cost_model.zig",
@@ -72,7 +69,6 @@ AUTHORING_FILES = frozenset({
     "poseidon_layout_benchmark_protocol_test.zig",
     "poseidon_layout_benchmark_rss.zig",
     "poseidon_layout_benchmark_vector.zig",
-    "typed_poseidon2_fixed_direct.zig",
     "typed_poseidon2_frontier_artifact.zig",
     "typed_poseidon2_frontier_artifact_test.zig",
     "typed_poseidon2_layout_executor.zig",
@@ -84,6 +80,7 @@ EXPLICIT_NON_AUTHORITY_CONSUMERS = frozenset({
     Path("frontends/riscv/materialization_frontier_tool.zig"),
     Path("frontends/riscv/poseidon_layout_benchmark_tool.zig"),
     Path("frontends/riscv/test_inventory.zig"),
+    Path("frontends/riscv/polynomial_compiler_test_root.zig"),
 })
 ARTIFACT_TEST = LANG_ROOT / "typed_poseidon2_frontier_artifact_test.zig"
 LAYOUT_EXECUTOR_TEST = LANG_ROOT / "typed_poseidon2_layout_executor_test.zig"

@@ -142,7 +142,7 @@ test "R-012 FRI verifier control hot seal is immutable while cold seal detects p
     var preprocessing = try witness.Preprocessed.init(std.testing.allocator, reference);
     defer preprocessing.deinit();
 
-    fixture.vm_plan.steps[0] = .bind_statement;
+    @constCast(fixture.vm_plan.steps)[0] = .bind_statement;
     // The proof-time path consumes only the independently sealed row table and
     // therefore does not need to allocate to recompute the full plan digest.
     try preprocessing.validateAgainst(reference);

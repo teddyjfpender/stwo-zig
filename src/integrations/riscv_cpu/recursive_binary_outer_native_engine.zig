@@ -50,13 +50,13 @@ const canonicalProofIdentity = support.canonicalProofIdentity;
 const ProofExecutionPool = support.ProofExecutionPool;
 const assertNativeCohortContract = support.assertNativeCohortContract;
 const assertManifestContract = support.assertManifestContract;
-const moveOwnedForVerifier = support.moveOwnedForVerifier;
+const moveOwnedForVerifier = recursion.verifier_tree.moveOwnedForVerifier;
 const rejectNativeTransactionOutputAlias = support.rejectNativeTransactionOutputAlias;
 const rejectNativeArtifactTransactionOutputAlias =
     support.rejectNativeArtifactTransactionOutputAlias;
 const rejectV3TransactionOutputAlias = support.rejectV3TransactionOutputAlias;
 const nativeDigestCanonicalNonzero = support.nativeDigestCanonicalNonzero;
-const commitVerifierTreeForManifest = support.commitVerifierTreeForManifest;
+const commitVerifierTreeForManifest = recursion.verifier_tree.commitVerifierTreeForManifest;
 const TreeStorageForManifest = support.TreeStorageForManifest;
 const mintTemporalVerifierSuccessEvidence =
     contract.mintTemporalVerifierSuccessEvidence;
@@ -503,13 +503,15 @@ pub fn NativeEngineKernelForManifest(
                 &provider_relations,
             );
 
-            const context = cohort.suffix.contextReceipt();
-            const recursive_admission = try temporal_admission.prepare(
+            const context = try cohort.publicationContext();
+            const statement_words = try cohort.recursiveStatementWords();
+            const recursive_admission = try temporal_admission.prepareFromBoundaries(
                 manifest,
-                &cohort.prefix.statement_rows.parent_words,
+                statement_words,
                 context.parent_vk_id,
                 &claims,
-                &audited,
+                audited.wire_boundary,
+                audited.verifier_input_boundary,
                 pre_core_channel,
                 &capture,
             );

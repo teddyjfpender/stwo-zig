@@ -1,0 +1,7 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 2s
+1/4 canonical_digest_test.test.canonical expression identity ignores unrelated nodes and insertion order...OK
+2/4 canonical_digest_test.test.canonical expression identity rejects malformed operands and field values...OK
+3/4 symbolic.test.symbolic scalar interns structurally equal subexpressions once...OK
+4/4 symbolic.test.symbolic replay reproduces field arithmetic including wraparound...OK
+All 4 tests passed.

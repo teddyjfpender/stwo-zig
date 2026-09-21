@@ -50,12 +50,13 @@ pub fn Runtime(comptime contract: anytype) type {
                 main_count_u32,
             ) catch return error.CountOverflow;
 
+            var result_owns_allocations = false;
             const windows = try allocator.alloc(RowWindow, 4);
-            errdefer allocator.free(windows);
+            errdefer if (!result_owns_allocations) allocator.free(windows);
             const columns = try allocator.alloc(MaskColumn, column_count);
-            errdefer allocator.free(columns);
+            errdefer if (!result_owns_allocations) allocator.free(columns);
             const shifted_columns = try allocator.alloc(ShiftedColumn, shifted_count);
-            errdefer allocator.free(shifted_columns);
+            errdefer if (!result_owns_allocations) allocator.free(shifted_columns);
 
             const semantic_owner = ownerFor(imported.family, .semantic);
             const interaction_owner = ownerFor(imported.family, .interaction);
@@ -175,6 +176,7 @@ pub fn Runtime(comptime contract: anytype) type {
                 .plan_digest = .{0} ** 32,
             };
             result.plan_digest = result.identityDigest();
+            result_owns_allocations = true;
             errdefer result.deinit();
             try result.validate(imported, layout);
             return result;

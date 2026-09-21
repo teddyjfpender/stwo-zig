@@ -1,0 +1,2030 @@
+--- a/formal/riscv-refinement/RiscvRefinement/Air/Family/LoadStore.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Air/Family/LoadStore.lean
+@@ -277,28 +277,19 @@
+   halfShiftAmount : row.isHalf = true → 2 * row.shiftAmount + 1 = row.shiftId
+   /-- C15, word branch: neither `opcode_b` nor `opcode_h` fires. -/
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+-  /-- L06: the aligned word address divided by four is a 20-bit value, so the
+-  modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
+-  /-- C16 and C17 jointly: whichever of the two address selectors carries the
+-  memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+-  base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+-  hand side is below `2^22 + 4`, hence already canonical. -/
++  /-- L06 and L16 range-check low 20 and high eight bits of the committed
++  aligned quarter. C61 binds that quarter to the address selectors. -/
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
++  /-- C16/C17 and C61 bind the effective field address to the aligned address
++  and byte offset. Their sum is below 2^30 and therefore canonical. -/
+   memoryAddress :
+     (row.rs1Previous.value + row.immFelt) % m31Modulus =
+       row.alignedAddress + row.shiftAmount
+   /-- `imm_felt` is a base-field element. -/
+   immFeltRange : row.immFelt < m31Modulus
+-  /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+-  component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  /-- C69: every placed row pins the high byte of the base register to zero.
+-  This keeps the full signed-12-bit address calculation inside the M31 field. -/
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  /-- L07 checks twice the byte-valued base high limb against a seven-bit
++  table. This bounds the base below 2^30; there is no high-byte-zero root. -/
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+--- a/formal/riscv-refinement/RiscvRefinement/Air/Bridge/MulhProgram.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Air/Bridge/MulhProgram.lean
+@@ -52,6 +52,7 @@
+   | rangeCheck20
+   | rangeCheck811
+   | rangeCheckM31
++  | rangeCheck88
+ deriving DecidableEq, Repr
+ 
+ structure MulhLookup where
+@@ -114,6 +115,11 @@
+         !(decide (low.toNat = 255) && decide (high.toNat = 127))
+   | _ => false
+ 
++/-- Membership in the two-byte fixed range table. -/
++def rangeCheck88Contains : List M31 → Bool
++  | [low, high] => decide (low.toNat < 256) && decide (high.toNat < 256)
++  | _ => false
++
+ /-- One request lands inside the fixed table it names. Requests against the
+ three bus relations are not fixed-table requests and impose nothing here. -/
+ def MulhCircuit.fixedRequestHolds
+@@ -122,6 +128,7 @@
+   | .rangeCheck20 => rangeCheck20Contains (circuit.lookupTuple columns entry)
+   | .rangeCheck811 => rangeCheck811Contains (circuit.lookupTuple columns entry)
+   | .rangeCheckM31 => rangeCheckM31Contains (circuit.lookupTuple columns entry)
++  | .rangeCheck88 => rangeCheck88Contains (circuit.lookupTuple columns entry)
+   | _ => true
+ 
+ /-- Every *live* fixed-table request lands inside its table. A LogUp term whose
+--- a/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreProgram.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreProgram.lean
+@@ -1,34 +1,12 @@
+--- GENERATED FILE. DO NOT EDIT.
+--- Source: generated/air/lb.air-ir-v2.json
+--- Content digest: 129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80
+--- This exact circuit is interpreted by the shared MulhCircuit evaluator.
+-
++-- GENERATED STAGING FILE from the freshly exported lb.unsigned.json.
++-- Content digest: 70bebb0aba68c5d8be2db65810313e48d0d75fc7c4e5a1a340bb88f60f8e92da
+ import RiscvRefinement.Air.Bridge.MulhProgram
+-
+ namespace RiscvRefinement.Air.Bridge
+-
+-/-- Content digest of the canonical production AIR export encoded below. -/
+-def loadStoreProgramIrDigest : String :=
+-  "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
+-
+--- 48 columns, 301 nodes, 63 constraints, 16 lookups.
++def loadStoreProgramIrDigest : String := "70bebb0aba68c5d8be2db65810313e48d0d75fc7c4e5a1a340bb88f60f8e92da"
+ def loadStoreCircuit : MulhCircuit where
+   family := "load_store"
+   modulus := 2147483647
+-  columns := [
+-    "clk", "pc", "dst_addr", "dst_previous_0",
+-    "dst_previous_1", "dst_previous_2", "dst_previous_3", "dst_previous_clock",
+-    "dst_next_0", "dst_next_1", "dst_next_2", "dst_next_3",
+-    "rs1_addr", "rs1_value_0", "rs1_value_1", "rs1_value_2",
+-    "rs1_value_3", "rs1_previous_clock", "src_addr", "src_value_0",
+-    "src_value_1", "src_value_2", "src_value_3", "src_previous_clock",
+-    "r2_idx", "imm_felt", "src_msb", "shift_amount",
+-    "src_addr_selector", "dst_addr_selector", "markers_0", "markers_1",
+-    "markers_2", "markers_3", "is_lb", "is_lh",
+-    "is_lbu", "is_lhu", "is_lw", "is_sb",
+-    "is_sh", "is_sw", "result_0", "result_1",
+-    "result_2", "result_3", "destination_nonzero", "destination_inverse"
+-  ]
++  columns := ["clk", "pc", "dst_addr", "dst_previous_0", "dst_previous_1", "dst_previous_2", "dst_previous_3", "dst_previous_clock", "dst_next_0", "dst_next_1", "dst_next_2", "dst_next_3", "rs1_addr", "rs1_value_0", "rs1_value_1", "rs1_value_2", "rs1_value_3", "rs1_previous_clock", "src_addr", "src_value_0", "src_value_1", "src_value_2", "src_value_3", "src_previous_clock", "r2_idx", "imm_felt", "src_msb", "shift_amount", "src_addr_selector", "dst_addr_selector", "markers_0", "markers_1", "markers_2", "markers_3", "is_lb", "is_lh", "is_lbu", "is_lhu", "is_lw", "is_sb", "is_sh", "is_sw", "result_0", "result_1", "result_2", "result_3", "destination_nonzero", "destination_inverse", "aligned_addr_quarter", "aligned_addr_low20"]
+   nodes := [
+     .col 0, -- 0
+     .col 1, -- 1
+@@ -78,307 +56,305 @@
+     .col 45, -- 45
+     .col 46, -- 46
+     .col 47, -- 47
+-    .const 1, -- 48
+-    .add 34 35, -- 49
+-    .add 49 36, -- 50
+-    .add 50 37, -- 51
+-    .add 51 38, -- 52
+-    .add 52 39, -- 53
+-    .add 53 40, -- 54
+-    .add 54 41, -- 55
+-    .add 36 34, -- 56
+-    .add 56 39, -- 57
+-    .add 37 35, -- 58
+-    .add 58 40, -- 59
+-    .add 39 40, -- 60
+-    .add 60 41, -- 61
+-    .const 0, -- 62
+-    .add 62 30, -- 63
+-    .mul 30 62, -- 64
+-    .add 62 64, -- 65
+-    .add 63 31, -- 66
+-    .mul 31 48, -- 67
+-    .add 65 67, -- 68
+-    .add 66 32, -- 69
+-    .const 2, -- 70
+-    .mul 32 70, -- 71
+-    .add 68 71, -- 72
+-    .add 69 33, -- 73
+-    .const 3, -- 74
+-    .mul 33 74, -- 75
+-    .add 72 75, -- 76
+-    .add 34 36, -- 77
+-    .add 35 37, -- 78
+-    .sub 55 61, -- 79
+-    .const 256, -- 80
+-    .mul 16 80, -- 81
+-    .add 81 15, -- 82
+-    .mul 82 80, -- 83
+-    .add 83 14, -- 84
+-    .mul 84 80, -- 85
+-    .add 85 13, -- 86
+-    .add 86 25, -- 87
+-    .mul 49 26, -- 88
+-    .const 255, -- 89
+-    .mul 88 89, -- 90
+-    .add 28 29, -- 91
+-    .sub 91 24, -- 92
+-    .const 536870912, -- 93
+-    .mul 92 93, -- 94
+-    .sub 55 48, -- 95
+-    .mul 55 95, -- 96
+-    .sub 34 48, -- 97
+-    .mul 34 97, -- 98
+-    .sub 35 48, -- 99
+-    .mul 35 99, -- 100
+-    .sub 36 48, -- 101
+-    .mul 36 101, -- 102
+-    .sub 37 48, -- 103
+-    .mul 37 103, -- 104
+-    .sub 38 48, -- 105
+-    .mul 38 105, -- 106
+-    .sub 39 48, -- 107
+-    .mul 39 107, -- 108
+-    .sub 40 48, -- 109
+-    .mul 40 109, -- 110
+-    .sub 41 48, -- 111
+-    .mul 41 111, -- 112
+-    .sub 26 48, -- 113
+-    .mul 26 113, -- 114
+-    .sub 48 49, -- 115
+-    .mul 115 26, -- 116
+-    .sub 30 48, -- 117
+-    .mul 30 117, -- 118
+-    .sub 31 48, -- 119
+-    .mul 31 119, -- 120
+-    .sub 32 48, -- 121
+-    .mul 32 121, -- 122
+-    .sub 33 48, -- 123
+-    .mul 33 123, -- 124
+-    .mul 57 76, -- 125
+-    .sub 76 48, -- 126
+-    .mul 59 126, -- 127
+-    .const 1073741824, -- 128
+-    .mul 127 128, -- 129
+-    .add 125 129, -- 130
+-    .sub 27 130, -- 131
+-    .sub 87 27, -- 132
+-    .mul 79 132, -- 133
+-    .mul 61 24, -- 134
+-    .add 133 134, -- 135
+-    .sub 28 135, -- 136
+-    .mul 79 24, -- 137
+-    .mul 61 132, -- 138
+-    .add 137 138, -- 139
+-    .sub 29 139, -- 140
+-    .sub 48 73, -- 141
+-    .mul 57 141, -- 142
+-    .sub 70 73, -- 143
+-    .mul 59 143, -- 144
+-    .sub 48 76, -- 145
+-    .mul 59 145, -- 146
+-    .const 5, -- 147
+-    .sub 147 76, -- 148
+-    .mul 146 148, -- 149
+-    .sub 90 43, -- 150
+-    .mul 77 150, -- 151
+-    .sub 90 44, -- 152
+-    .mul 77 152, -- 153
+-    .sub 90 45, -- 154
+-    .mul 77 154, -- 155
+-    .sub 42 19, -- 156
+-    .mul 77 156, -- 157
+-    .mul 157 30, -- 158
+-    .sub 8 19, -- 159
+-    .mul 39 159, -- 160
+-    .mul 160 30, -- 161
+-    .sub 42 20, -- 162
+-    .mul 77 162, -- 163
+-    .mul 163 31, -- 164
+-    .sub 9 19, -- 165
+-    .mul 39 165, -- 166
+-    .mul 166 31, -- 167
+-    .sub 42 21, -- 168
+-    .mul 77 168, -- 169
+-    .mul 169 32, -- 170
+-    .sub 10 19, -- 171
+-    .mul 39 171, -- 172
+-    .mul 172 32, -- 173
+-    .sub 42 22, -- 174
+-    .mul 77 174, -- 175
+-    .mul 175 33, -- 176
+-    .sub 11 19, -- 177
+-    .mul 39 177, -- 178
+-    .mul 178 33, -- 179
+-    .mul 78 152, -- 180
+-    .mul 78 154, -- 181
+-    .mul 148 93, -- 182
+-    .mul 126 93, -- 183
+-    .mul 78 182, -- 184
+-    .mul 184 156, -- 185
+-    .sub 43 20, -- 186
+-    .mul 184 186, -- 187
+-    .mul 78 183, -- 188
+-    .mul 188 168, -- 189
+-    .sub 43 22, -- 190
+-    .mul 188 190, -- 191
+-    .mul 40 182, -- 192
+-    .mul 192 159, -- 193
+-    .sub 9 20, -- 194
+-    .mul 192 194, -- 195
+-    .mul 40 183, -- 196
+-    .mul 196 171, -- 197
+-    .sub 11 20, -- 198
+-    .mul 196 198, -- 199
+-    .mul 38 156, -- 200
+-    .mul 41 159, -- 201
+-    .add 200 201, -- 202
+-    .mul 38 186, -- 203
+-    .mul 41 194, -- 204
+-    .add 203 204, -- 205
+-    .sub 44 21, -- 206
+-    .mul 38 206, -- 207
+-    .sub 10 21, -- 208
+-    .mul 41 208, -- 209
+-    .add 207 209, -- 210
+-    .sub 45 22, -- 211
++    .col 48, -- 48
++    .col 49, -- 49
++    .const 1, -- 50
++    .add 34 35, -- 51
++    .add 51 36, -- 52
++    .add 52 37, -- 53
++    .add 53 38, -- 54
++    .add 54 39, -- 55
++    .add 55 40, -- 56
++    .add 56 41, -- 57
++    .add 36 34, -- 58
++    .add 58 39, -- 59
++    .add 37 35, -- 60
++    .add 60 40, -- 61
++    .add 39 40, -- 62
++    .add 62 41, -- 63
++    .const 0, -- 64
++    .add 64 30, -- 65
++    .mul 30 64, -- 66
++    .add 64 66, -- 67
++    .add 65 31, -- 68
++    .mul 31 50, -- 69
++    .add 67 69, -- 70
++    .add 68 32, -- 71
++    .const 2, -- 72
++    .mul 32 72, -- 73
++    .add 70 73, -- 74
++    .add 71 33, -- 75
++    .const 3, -- 76
++    .mul 33 76, -- 77
++    .add 74 77, -- 78
++    .add 28 29, -- 79
++    .sub 79 24, -- 80
++    .const 536870912, -- 81
++    .mul 80 81, -- 82
++    .add 34 36, -- 83
++    .add 35 37, -- 84
++    .sub 57 63, -- 85
++    .const 256, -- 86
++    .mul 16 86, -- 87
++    .add 87 15, -- 88
++    .mul 88 86, -- 89
++    .add 89 14, -- 90
++    .mul 90 86, -- 91
++    .add 91 13, -- 92
++    .add 92 25, -- 93
++    .mul 51 26, -- 94
++    .const 255, -- 95
++    .mul 94 95, -- 96
++    .sub 48 49, -- 97
++    .const 2048, -- 98
++    .mul 97 98, -- 99
++    .sub 57 50, -- 100
++    .mul 57 100, -- 101
++    .sub 34 50, -- 102
++    .mul 34 102, -- 103
++    .sub 35 50, -- 104
++    .mul 35 104, -- 105
++    .sub 36 50, -- 106
++    .mul 36 106, -- 107
++    .sub 37 50, -- 108
++    .mul 37 108, -- 109
++    .sub 38 50, -- 110
++    .mul 38 110, -- 111
++    .sub 39 50, -- 112
++    .mul 39 112, -- 113
++    .sub 40 50, -- 114
++    .mul 40 114, -- 115
++    .sub 41 50, -- 116
++    .mul 41 116, -- 117
++    .sub 26 50, -- 118
++    .mul 26 118, -- 119
++    .sub 50 51, -- 120
++    .mul 120 26, -- 121
++    .sub 30 50, -- 122
++    .mul 30 122, -- 123
++    .sub 31 50, -- 124
++    .mul 31 124, -- 125
++    .sub 32 50, -- 126
++    .mul 32 126, -- 127
++    .sub 33 50, -- 128
++    .mul 33 128, -- 129
++    .mul 59 78, -- 130
++    .sub 78 50, -- 131
++    .mul 61 131, -- 132
++    .const 1073741824, -- 133
++    .mul 132 133, -- 134
++    .add 130 134, -- 135
++    .sub 27 135, -- 136
++    .sub 93 27, -- 137
++    .mul 85 137, -- 138
++    .mul 63 24, -- 139
++    .add 138 139, -- 140
++    .sub 28 140, -- 141
++    .mul 85 24, -- 142
++    .mul 63 137, -- 143
++    .add 142 143, -- 144
++    .sub 29 144, -- 145
++    .sub 50 75, -- 146
++    .mul 59 146, -- 147
++    .sub 72 75, -- 148
++    .mul 61 148, -- 149
++    .sub 50 78, -- 150
++    .mul 61 150, -- 151
++    .const 5, -- 152
++    .sub 152 78, -- 153
++    .mul 151 153, -- 154
++    .sub 96 43, -- 155
++    .mul 83 155, -- 156
++    .sub 96 44, -- 157
++    .mul 83 157, -- 158
++    .sub 96 45, -- 159
++    .mul 83 159, -- 160
++    .sub 42 19, -- 161
++    .mul 83 161, -- 162
++    .mul 162 30, -- 163
++    .sub 8 19, -- 164
++    .mul 39 164, -- 165
++    .mul 165 30, -- 166
++    .sub 42 20, -- 167
++    .mul 83 167, -- 168
++    .mul 168 31, -- 169
++    .sub 9 19, -- 170
++    .mul 39 170, -- 171
++    .mul 171 31, -- 172
++    .sub 42 21, -- 173
++    .mul 83 173, -- 174
++    .mul 174 32, -- 175
++    .sub 10 19, -- 176
++    .mul 39 176, -- 177
++    .mul 177 32, -- 178
++    .sub 42 22, -- 179
++    .mul 83 179, -- 180
++    .mul 180 33, -- 181
++    .sub 11 19, -- 182
++    .mul 39 182, -- 183
++    .mul 183 33, -- 184
++    .mul 84 157, -- 185
++    .mul 84 159, -- 186
++    .mul 153 81, -- 187
++    .mul 131 81, -- 188
++    .mul 84 187, -- 189
++    .mul 189 161, -- 190
++    .sub 43 20, -- 191
++    .mul 189 191, -- 192
++    .mul 84 188, -- 193
++    .mul 193 173, -- 194
++    .sub 43 22, -- 195
++    .mul 193 195, -- 196
++    .mul 40 187, -- 197
++    .mul 197 164, -- 198
++    .sub 9 20, -- 199
++    .mul 197 199, -- 200
++    .mul 40 188, -- 201
++    .mul 201 176, -- 202
++    .sub 11 20, -- 203
++    .mul 201 203, -- 204
++    .mul 38 161, -- 205
++    .mul 41 164, -- 206
++    .add 205 206, -- 207
++    .mul 38 191, -- 208
++    .mul 41 199, -- 209
++    .add 208 209, -- 210
++    .sub 44 21, -- 211
+     .mul 38 211, -- 212
+-    .sub 11 22, -- 213
++    .sub 10 21, -- 213
+     .mul 41 213, -- 214
+     .add 212 214, -- 215
+-    .sub 48 30, -- 216
+-    .mul 60 216, -- 217
+-    .sub 8 3, -- 218
+-    .mul 217 218, -- 219
+-    .sub 48 31, -- 220
+-    .mul 60 220, -- 221
+-    .sub 9 4, -- 222
+-    .mul 221 222, -- 223
+-    .sub 48 32, -- 224
+-    .mul 60 224, -- 225
+-    .sub 10 5, -- 226
+-    .mul 225 226, -- 227
+-    .sub 48 33, -- 228
+-    .mul 60 228, -- 229
+-    .sub 11 6, -- 230
+-    .mul 229 230, -- 231
+-    .sub 46 48, -- 232
+-    .mul 46 232, -- 233
+-    .sub 48 46, -- 234
+-    .mul 24 234, -- 235
+-    .mul 24 47, -- 236
+-    .sub 236 46, -- 237
+-    .mul 46 42, -- 238
+-    .sub 8 238, -- 239
+-    .mul 46 43, -- 240
+-    .sub 9 240, -- 241
+-    .mul 46 44, -- 242
+-    .sub 10 242, -- 243
+-    .mul 46 45, -- 244
+-    .sub 11 244, -- 245
+-    .mul 79 239, -- 246
+-    .mul 79 241, -- 247
+-    .mul 79 243, -- 248
+-    .mul 79 245, -- 249
+-    .sub 48 79, -- 250
+-    .mul 250 42, -- 251
+-    .mul 250 43, -- 252
+-    .mul 250 44, -- 253
+-    .mul 250 45, -- 254
+-    .mul 55 16, -- 255
+-    .sub 0 48, -- 256
+-    .const 4, -- 257
+-    .mul 256 257, -- 258
+-    .add 258 70, -- 259
+-    .add 258 48, -- 260
+-    .sub 260 17, -- 261
+-    .sub 261 48, -- 262
+-    .add 259 79, -- 263
+-    .sub 263 23, -- 264
+-    .sub 264 48, -- 265
+-    .add 259 61, -- 266
+-    .sub 266 7, -- 267
+-    .sub 267 48, -- 268
+-    .neg 55, -- 269
+-    .const 19, -- 270
+-    .mul 34 270, -- 271
+-    .const 20, -- 272
+-    .mul 35 272, -- 273
+-    .add 271 273, -- 274
+-    .const 21, -- 275
+-    .mul 38 275, -- 276
+-    .add 274 276, -- 277
+-    .const 22, -- 278
+-    .mul 36 278, -- 279
+-    .add 277 279, -- 280
+-    .const 23, -- 281
+-    .mul 37 281, -- 282
+-    .add 280 282, -- 283
+-    .const 24, -- 284
+-    .mul 39 284, -- 285
+-    .add 283 285, -- 286
+-    .const 25, -- 287
+-    .mul 40 287, -- 288
+-    .add 286 288, -- 289
+-    .const 26, -- 290
+-    .mul 41 290, -- 291
+-    .add 289 291, -- 292
+-    .add 1 257, -- 293
+-    .add 0 48, -- 294
+-    .const 128, -- 295
+-    .mul 26 295, -- 296
+-    .sub 42 296, -- 297
+-    .sub 43 296, -- 298
+-    .neg 34, -- 299
+-    .neg 35 -- 300
++    .sub 45 22, -- 216
++    .mul 38 216, -- 217
++    .sub 11 22, -- 218
++    .mul 41 218, -- 219
++    .add 217 219, -- 220
++    .sub 50 30, -- 221
++    .mul 62 221, -- 222
++    .sub 8 3, -- 223
++    .mul 222 223, -- 224
++    .sub 50 31, -- 225
++    .mul 62 225, -- 226
++    .sub 9 4, -- 227
++    .mul 226 227, -- 228
++    .sub 50 32, -- 229
++    .mul 62 229, -- 230
++    .sub 10 5, -- 231
++    .mul 230 231, -- 232
++    .sub 50 33, -- 233
++    .mul 62 233, -- 234
++    .sub 11 6, -- 235
++    .mul 234 235, -- 236
++    .sub 46 50, -- 237
++    .mul 46 237, -- 238
++    .sub 50 46, -- 239
++    .mul 24 239, -- 240
++    .mul 24 47, -- 241
++    .sub 241 46, -- 242
++    .mul 46 42, -- 243
++    .sub 8 243, -- 244
++    .mul 46 43, -- 245
++    .sub 9 245, -- 246
++    .mul 46 44, -- 247
++    .sub 10 247, -- 248
++    .mul 46 45, -- 249
++    .sub 11 249, -- 250
++    .mul 85 244, -- 251
++    .mul 85 246, -- 252
++    .mul 85 248, -- 253
++    .mul 85 250, -- 254
++    .sub 50 85, -- 255
++    .mul 255 42, -- 256
++    .mul 255 43, -- 257
++    .mul 255 44, -- 258
++    .mul 255 45, -- 259
++    .sub 48 82, -- 260
++    .mul 57 260, -- 261
++    .sub 0 50, -- 262
++    .const 4, -- 263
++    .mul 262 263, -- 264
++    .add 264 72, -- 265
++    .add 264 50, -- 266
++    .sub 266 17, -- 267
++    .sub 267 50, -- 268
++    .add 265 85, -- 269
++    .sub 269 23, -- 270
++    .sub 270 50, -- 271
++    .add 265 63, -- 272
++    .sub 272 7, -- 273
++    .sub 273 50, -- 274
++    .const 128, -- 275
++    .mul 26 275, -- 276
++    .sub 42 276, -- 277
++    .sub 43 276, -- 278
++    .neg 57, -- 279
++    .const 19, -- 280
++    .mul 34 280, -- 281
++    .const 20, -- 282
++    .mul 35 282, -- 283
++    .add 281 283, -- 284
++    .const 21, -- 285
++    .mul 38 285, -- 286
++    .add 284 286, -- 287
++    .const 22, -- 288
++    .mul 36 288, -- 289
++    .add 287 289, -- 290
++    .const 23, -- 291
++    .mul 37 291, -- 292
++    .add 290 292, -- 293
++    .const 24, -- 294
++    .mul 39 294, -- 295
++    .add 293 295, -- 296
++    .const 25, -- 297
++    .mul 40 297, -- 298
++    .add 296 298, -- 299
++    .const 26, -- 300
++    .mul 41 300, -- 301
++    .add 299 301, -- 302
++    .add 1 263, -- 303
++    .add 0 50, -- 304
++    .mul 16 72, -- 305
++    .neg 34, -- 306
++    .neg 35 -- 307
+   ]
+-  nodeCount := 301
+-  constraints := [
+-    96, 98, 100, 102, 104, 106, 108, 110,
+-    112, 114, 116, 118, 120, 122, 124, 131,
+-    136, 140, 142, 144, 149, 151, 153, 155,
+-    158, 161, 164, 167, 170, 173, 176, 179,
+-    180, 181, 185, 187, 189, 191, 193, 195,
+-    197, 199, 202, 205, 210, 215, 219, 223,
+-    227, 231, 233, 235, 237, 246, 247, 248,
+-    249, 251, 252, 253, 254, 255, 95
+-  ]
++  nodeCount := 308
++  constraints := [101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121, 123, 125, 127, 129, 136, 141, 145, 147, 149, 154, 156, 158, 160, 163, 166, 169, 172, 175, 178, 181, 184, 185, 186, 190, 192, 194, 196, 198, 200, 202, 204, 207, 210, 215, 220, 224, 228, 232, 236, 238, 240, 242, 251, 252, 253, 254, 256, 257, 258, 259, 261, 100]
+   lookups := [
+     { domain := .programAccess, role := .request,
+-      numerator := 269, tuple := [1, 292, 12, 24, 25] }, -- lookup 0
++      numerator := 279, tuple := [1, 302, 12, 24, 25] },
+     { domain := .registersState, role := .consumed,
+-      numerator := 269, tuple := [1, 0] }, -- lookup 1
++      numerator := 279, tuple := [1, 0] },
+     { domain := .registersState, role := .emitted,
+-      numerator := 55, tuple := [293, 294] }, -- lookup 2
++      numerator := 57, tuple := [303, 304] },
+     { domain := .memoryAccess, role := .consumed,
+-      numerator := 269, tuple := [62, 12, 17, 13, 14, 15, 16] }, -- lookup 3
++      numerator := 279, tuple := [64, 12, 17, 13, 14, 15, 16] },
+     { domain := .memoryAccess, role := .emitted,
+-      numerator := 55, tuple := [62, 12, 260, 13, 14, 15, 16] }, -- lookup 4
++      numerator := 57, tuple := [64, 12, 266, 13, 14, 15, 16] },
+     { domain := .rangeCheck20, role := .request,
+-      numerator := 269, tuple := [262] }, -- lookup 5
++      numerator := 279, tuple := [268] },
+     { domain := .rangeCheck20, role := .request,
+-      numerator := 269, tuple := [94] }, -- lookup 6
++      numerator := 279, tuple := [49] },
+     { domain := .rangeCheckM31, role := .request,
+-      numerator := 269, tuple := [13, 16] }, -- lookup 7
++      numerator := 279, tuple := [13, 305] },
+     { domain := .memoryAccess, role := .consumed,
+-      numerator := 269, tuple := [79, 28, 23, 19, 20, 21, 22] }, -- lookup 8
++      numerator := 279, tuple := [85, 28, 23, 19, 20, 21, 22] },
+     { domain := .memoryAccess, role := .emitted,
+-      numerator := 55, tuple := [79, 28, 263, 19, 20, 21, 22] }, -- lookup 9
++      numerator := 57, tuple := [85, 28, 269, 19, 20, 21, 22] },
+     { domain := .rangeCheck20, role := .request,
+-      numerator := 269, tuple := [265] }, -- lookup 10
++      numerator := 279, tuple := [271] },
+     { domain := .memoryAccess, role := .consumed,
+-      numerator := 269, tuple := [61, 29, 7, 3, 4, 5, 6] }, -- lookup 11
++      numerator := 279, tuple := [63, 29, 7, 3, 4, 5, 6] },
+     { domain := .memoryAccess, role := .emitted,
+-      numerator := 55, tuple := [61, 29, 266, 8, 9, 10, 11] }, -- lookup 12
++      numerator := 57, tuple := [63, 29, 272, 8, 9, 10, 11] },
+     { domain := .rangeCheck20, role := .request,
+-      numerator := 269, tuple := [268] }, -- lookup 13
++      numerator := 279, tuple := [274] },
+     { domain := .rangeCheckM31, role := .request,
+-      numerator := 299, tuple := [62, 297] }, -- lookup 14
++      numerator := 306, tuple := [64, 277] },
+     { domain := .rangeCheckM31, role := .request,
+-      numerator := 300, tuple := [62, 298] } -- lookup 15
++      numerator := 307, tuple := [64, 278] },
++    { domain := .rangeCheck88, role := .request,
++      numerator := 279, tuple := [99, 64] }
+   ]
+-
+-/-- The circuit localised for the reverse memo-table evaluator. -/
+ def loadStoreCircuitCompiled : MulhCircuit where
+   family := "load_store"
+   modulus := 2147483647
+@@ -432,271 +408,276 @@
+     .col 45, -- 45
+     .col 46, -- 46
+     .col 47, -- 47
+-    .const 1, -- 48
+-    .add 14 13, -- 49
+-    .add 0 13, -- 50
+-    .add 0 13, -- 51
+-    .add 0 13, -- 52
+-    .add 0 13, -- 53
+-    .add 0 13, -- 54
+-    .add 0 13, -- 55
+-    .add 19 21, -- 56
+-    .add 0 17, -- 57
+-    .add 20 22, -- 58
+-    .add 0 18, -- 59
+-    .add 20 19, -- 60
+-    .add 0 19, -- 61
+-    .const 0, -- 62
+-    .add 0 32, -- 63
+-    .mul 33 1, -- 64
+-    .add 2 0, -- 65
+-    .add 2 34, -- 66
+-    .mul 35 18, -- 67
+-    .add 2 0, -- 68
+-    .add 2 36, -- 69
+-    .const 2, -- 70
+-    .mul 38 0, -- 71
+-    .add 3 0, -- 72
+-    .add 3 39, -- 73
+-    .const 3, -- 74
+-    .mul 41 0, -- 75
+-    .add 3 0, -- 76
+-    .add 42 40, -- 77
+-    .add 42 40, -- 78
+-    .sub 23 17, -- 79
+-    .const 256, -- 80
+-    .mul 64 0, -- 81
+-    .add 0 66, -- 82
+-    .mul 0 2, -- 83
+-    .add 0 69, -- 84
+-    .mul 0 4, -- 85
+-    .add 0 72, -- 86
+-    .add 0 61, -- 87
+-    .mul 38 61, -- 88
+-    .const 255, -- 89
+-    .mul 1 0, -- 90
+-    .add 62 61, -- 91
+-    .sub 0 67, -- 92
+-    .const 536870912, -- 93
+-    .mul 1 0, -- 94
+-    .sub 39 46, -- 95
+-    .mul 40 0, -- 96
+-    .sub 62 48, -- 97
+-    .mul 63 0, -- 98
+-    .sub 63 50, -- 99
+-    .mul 64 0, -- 100
+-    .sub 64 52, -- 101
+-    .mul 65 0, -- 102
+-    .sub 65 54, -- 103
+-    .mul 66 0, -- 104
+-    .sub 66 56, -- 105
+-    .mul 67 0, -- 106
+-    .sub 67 58, -- 107
+-    .mul 68 0, -- 108
+-    .sub 68 60, -- 109
+-    .mul 69 0, -- 110
+-    .sub 69 62, -- 111
+-    .mul 70 0, -- 112
+-    .sub 86 64, -- 113
+-    .mul 87 0, -- 114
+-    .sub 66 65, -- 115
+-    .mul 0 89, -- 116
+-    .sub 86 68, -- 117
+-    .mul 87 0, -- 118
+-    .sub 87 70, -- 119
+-    .mul 88 0, -- 120
+-    .sub 88 72, -- 121
+-    .mul 89 0, -- 122
+-    .sub 89 74, -- 123
+-    .mul 90 0, -- 124
+-    .mul 67 48, -- 125
+-    .sub 49 77, -- 126
+-    .mul 67 0, -- 127
+-    .const 1073741824, -- 128
+-    .mul 1 0, -- 129
+-    .add 4 0, -- 130
+-    .sub 103 0, -- 131
+-    .sub 44 104, -- 132
+-    .mul 53 0, -- 133
+-    .mul 72 109, -- 134
+-    .add 1 0, -- 135
+-    .sub 107 0, -- 136
+-    .mul 57 112, -- 137
+-    .mul 76 5, -- 138
+-    .add 1 0, -- 139
+-    .sub 110 0, -- 140
+-    .sub 92 67, -- 141
+-    .mul 84 0, -- 142
+-    .sub 72 69, -- 143
+-    .mul 84 0, -- 144
+-    .sub 96 68, -- 145
+-    .mul 86 0, -- 146
+-    .const 5, -- 147
+-    .sub 0 71, -- 148
+-    .mul 2 0, -- 149
+-    .sub 59 106, -- 150
+-    .mul 73 0, -- 151
+-    .sub 61 107, -- 152
+-    .mul 75 0, -- 153
+-    .sub 63 108, -- 154
+-    .mul 77 0, -- 155
+-    .sub 113 136, -- 156
+-    .mul 79 0, -- 157
+-    .mul 0 127, -- 158
+-    .sub 150 139, -- 159
+-    .mul 120 0, -- 160
+-    .mul 0 130, -- 161
+-    .sub 119 141, -- 162
+-    .mul 85 0, -- 163
+-    .mul 0 132, -- 164
+-    .sub 155 145, -- 165
+-    .mul 126 0, -- 166
+-    .mul 0 135, -- 167
+-    .sub 125 146, -- 168
+-    .mul 91 0, -- 169
+-    .mul 0 137, -- 170
+-    .sub 160 151, -- 171
+-    .mul 132 0, -- 172
+-    .mul 0 140, -- 173
+-    .sub 131 151, -- 174
+-    .mul 97 0, -- 175
+-    .mul 0 142, -- 176
+-    .sub 165 157, -- 177
+-    .mul 138 0, -- 178
+-    .mul 0 145, -- 179
+-    .mul 101 27, -- 180
+-    .mul 102 26, -- 181
+-    .mul 33 88, -- 182
+-    .mul 56 89, -- 183
+-    .mul 105 1, -- 184
+-    .mul 0 28, -- 185
+-    .sub 142 165, -- 186
+-    .mul 2 0, -- 187
+-    .mul 109 4, -- 188
+-    .mul 0 20, -- 189
+-    .sub 146 167, -- 190
+-    .mul 2 0, -- 191
+-    .mul 151 9, -- 192
+-    .mul 0 33, -- 193
+-    .sub 184 173, -- 194
+-    .mul 2 0, -- 195
+-    .mul 155 12, -- 196
+-    .mul 0 25, -- 197
+-    .sub 186 177, -- 198
+-    .mul 2 0, -- 199
+-    .mul 161 43, -- 200
+-    .mul 159 41, -- 201
+-    .add 1 0, -- 202
+-    .mul 164 16, -- 203
+-    .mul 162 9, -- 204
+-    .add 1 0, -- 205
+-    .sub 161 184, -- 206
+-    .mul 168 0, -- 207
+-    .sub 197 186, -- 208
+-    .mul 167 0, -- 209
+-    .add 2 0, -- 210
+-    .sub 165 188, -- 211
++    .col 48, -- 48
++    .col 49, -- 49
++    .const 1, -- 50
++    .add 16 15, -- 51
++    .add 0 15, -- 52
++    .add 0 15, -- 53
++    .add 0 15, -- 54
++    .add 0 15, -- 55
++    .add 0 15, -- 56
++    .add 0 15, -- 57
++    .add 21 23, -- 58
++    .add 0 19, -- 59
++    .add 22 24, -- 60
++    .add 0 20, -- 61
++    .add 22 21, -- 62
++    .add 0 21, -- 63
++    .const 0, -- 64
++    .add 0 34, -- 65
++    .mul 35 1, -- 66
++    .add 2 0, -- 67
++    .add 2 36, -- 68
++    .mul 37 18, -- 69
++    .add 2 0, -- 70
++    .add 2 38, -- 71
++    .const 2, -- 72
++    .mul 40 0, -- 73
++    .add 3 0, -- 74
++    .add 3 41, -- 75
++    .const 3, -- 76
++    .mul 43 0, -- 77
++    .add 3 0, -- 78
++    .add 50 49, -- 79
++    .sub 0 55, -- 80
++    .const 536870912, -- 81
++    .mul 1 0, -- 82
++    .add 48 46, -- 83
++    .add 48 46, -- 84
++    .sub 27 21, -- 85
++    .const 256, -- 86
++    .mul 70 0, -- 87
++    .add 0 72, -- 88
++    .mul 0 2, -- 89
++    .add 0 75, -- 90
++    .mul 0 4, -- 91
++    .add 0 78, -- 92
++    .add 0 67, -- 93
++    .mul 42 67, -- 94
++    .const 255, -- 95
++    .mul 1 0, -- 96
++    .sub 48 47, -- 97
++    .const 2048, -- 98
++    .mul 1 0, -- 99
++    .sub 42 49, -- 100
++    .mul 43 0, -- 101
++    .sub 67 51, -- 102
++    .mul 68 0, -- 103
++    .sub 68 53, -- 104
++    .mul 69 0, -- 105
++    .sub 69 55, -- 106
++    .mul 70 0, -- 107
++    .sub 70 57, -- 108
++    .mul 71 0, -- 109
++    .sub 71 59, -- 110
++    .mul 72 0, -- 111
++    .sub 72 61, -- 112
++    .mul 73 0, -- 113
++    .sub 73 63, -- 114
++    .mul 74 0, -- 115
++    .sub 74 65, -- 116
++    .mul 75 0, -- 117
++    .sub 91 67, -- 118
++    .mul 92 0, -- 119
++    .sub 69 68, -- 120
++    .mul 0 94, -- 121
++    .sub 91 71, -- 122
++    .mul 92 0, -- 123
++    .sub 92 73, -- 124
++    .mul 93 0, -- 125
++    .sub 93 75, -- 126
++    .mul 94 0, -- 127
++    .sub 94 77, -- 128
++    .mul 95 0, -- 129
++    .mul 70 51, -- 130
++    .sub 52 80, -- 131
++    .mul 70 0, -- 132
++    .const 1073741824, -- 133
++    .mul 1 0, -- 134
++    .add 4 0, -- 135
++    .sub 108 0, -- 136
++    .sub 43 109, -- 137
++    .mul 52 0, -- 138
++    .mul 75 114, -- 139
++    .add 1 0, -- 140
++    .sub 112 0, -- 141
++    .mul 56 117, -- 142
++    .mul 79 5, -- 143
++    .add 1 0, -- 144
++    .sub 115 0, -- 145
++    .sub 95 70, -- 146
++    .mul 87 0, -- 147
++    .sub 75 72, -- 148
++    .mul 87 0, -- 149
++    .sub 99 71, -- 150
++    .mul 89 0, -- 151
++    .const 5, -- 152
++    .sub 0 74, -- 153
++    .mul 2 0, -- 154
++    .sub 58 111, -- 155
++    .mul 72 0, -- 156
++    .sub 60 112, -- 157
++    .mul 74 0, -- 158
++    .sub 62 113, -- 159
++    .mul 76 0, -- 160
++    .sub 118 141, -- 161
++    .mul 78 0, -- 162
++    .mul 0 132, -- 163
++    .sub 155 144, -- 164
++    .mul 125 0, -- 165
++    .mul 0 135, -- 166
++    .sub 124 146, -- 167
++    .mul 84 0, -- 168
++    .mul 0 137, -- 169
++    .sub 160 150, -- 170
++    .mul 131 0, -- 171
++    .mul 0 140, -- 172
++    .sub 130 151, -- 173
++    .mul 90 0, -- 174
++    .mul 0 142, -- 175
++    .sub 165 156, -- 176
++    .mul 137 0, -- 177
++    .mul 0 145, -- 178
++    .sub 136 156, -- 179
++    .mul 96 0, -- 180
++    .mul 0 147, -- 181
++    .sub 170 162, -- 182
++    .mul 143 0, -- 183
++    .mul 0 150, -- 184
++    .mul 100 27, -- 185
++    .mul 101 26, -- 186
++    .mul 33 105, -- 187
++    .mul 56 106, -- 188
++    .mul 104 1, -- 189
++    .mul 0 28, -- 190
++    .sub 147 170, -- 191
++    .mul 2 0, -- 192
++    .mul 108 4, -- 193
++    .mul 0 20, -- 194
++    .sub 151 172, -- 195
++    .mul 2 0, -- 196
++    .mul 156 9, -- 197
++    .mul 0 33, -- 198
++    .sub 189 178, -- 199
++    .mul 2 0, -- 200
++    .mul 160 12, -- 201
++    .mul 0 25, -- 202
++    .sub 191 182, -- 203
++    .mul 2 0, -- 204
++    .mul 166 43, -- 205
++    .mul 164 41, -- 206
++    .add 1 0, -- 207
++    .mul 169 16, -- 208
++    .mul 167 9, -- 209
++    .add 1 0, -- 210
++    .sub 166 189, -- 211
+     .mul 173 0, -- 212
+-    .sub 201 190, -- 213
++    .sub 202 191, -- 213
+     .mul 172 0, -- 214
+     .add 2 0, -- 215
+-    .sub 167 185, -- 216
+-    .mul 156 0, -- 217
+-    .sub 209 214, -- 218
+-    .mul 1 0, -- 219
+-    .sub 171 188, -- 220
+-    .mul 160 0, -- 221
+-    .sub 212 217, -- 222
+-    .mul 1 0, -- 223
+-    .sub 175 191, -- 224
+-    .mul 164 0, -- 225
+-    .sub 215 220, -- 226
+-    .mul 1 0, -- 227
+-    .sub 179 194, -- 228
+-    .mul 168 0, -- 229
+-    .sub 218 223, -- 230
+-    .mul 1 0, -- 231
+-    .sub 185 183, -- 232
+-    .mul 186 0, -- 233
+-    .sub 185 187, -- 234
+-    .mul 210 0, -- 235
+-    .mul 211 188, -- 236
+-    .sub 0 190, -- 237
+-    .mul 191 195, -- 238
+-    .sub 230 0, -- 239
+-    .mul 193 196, -- 240
+-    .sub 231 0, -- 241
+-    .mul 195 197, -- 242
+-    .sub 232 0, -- 243
+-    .mul 197 198, -- 244
+-    .sub 233 0, -- 245
+-    .mul 166 6, -- 246
+-    .mul 167 5, -- 247
+-    .mul 168 4, -- 248
+-    .mul 169 3, -- 249
+-    .sub 201 170, -- 250
+-    .mul 0 208, -- 251
+-    .mul 1 208, -- 252
+-    .mul 2 208, -- 253
+-    .mul 3 208, -- 254
+-    .mul 199 238, -- 255
+-    .sub 255 207, -- 256
+-    .const 4, -- 257
+-    .mul 1 0, -- 258
+-    .add 0 188, -- 259
+-    .add 1 211, -- 260
+-    .sub 0 243, -- 261
+-    .sub 0 213, -- 262
+-    .add 3 183, -- 263
+-    .sub 0 240, -- 264
+-    .sub 0 216, -- 265
+-    .add 6 204, -- 266
+-    .sub 0 259, -- 267
+-    .sub 0 219, -- 268
+-    .neg 213, -- 269
+-    .const 19, -- 270
+-    .mul 236 0, -- 271
+-    .const 20, -- 272
+-    .mul 237 0, -- 273
+-    .add 2 0, -- 274
+-    .const 21, -- 275
+-    .mul 237 0, -- 276
+-    .add 2 0, -- 277
+-    .const 22, -- 278
+-    .mul 242 0, -- 279
+-    .add 2 0, -- 280
+-    .const 23, -- 281
+-    .mul 244 0, -- 282
+-    .add 2 0, -- 283
+-    .const 24, -- 284
+-    .mul 245 0, -- 285
+-    .add 2 0, -- 286
+-    .const 25, -- 287
+-    .mul 247 0, -- 288
+-    .add 2 0, -- 289
+-    .const 26, -- 290
+-    .mul 249 0, -- 291
+-    .add 2 0, -- 292
+-    .add 291 35, -- 293
+-    .add 293 245, -- 294
+-    .const 128, -- 295
+-    .mul 269 0, -- 296
+-    .sub 254 0, -- 297
+-    .sub 254 1, -- 298
+-    .neg 264, -- 299
+-    .neg 264 -- 300
++    .sub 170 193, -- 216
++    .mul 178 0, -- 217
++    .sub 206 195, -- 218
++    .mul 177 0, -- 219
++    .add 2 0, -- 220
++    .sub 170 190, -- 221
++    .mul 159 0, -- 222
++    .sub 214 219, -- 223
++    .mul 1 0, -- 224
++    .sub 174 193, -- 225
++    .mul 163 0, -- 226
++    .sub 217 222, -- 227
++    .mul 1 0, -- 228
++    .sub 178 196, -- 229
++    .mul 167 0, -- 230
++    .sub 220 225, -- 231
++    .mul 1 0, -- 232
++    .sub 182 199, -- 233
++    .mul 171 0, -- 234
++    .sub 223 228, -- 235
++    .mul 1 0, -- 236
++    .sub 190 186, -- 237
++    .mul 191 0, -- 238
++    .sub 188 192, -- 239
++    .mul 215 0, -- 240
++    .mul 216 193, -- 241
++    .sub 0 195, -- 242
++    .mul 196 200, -- 243
++    .sub 235 0, -- 244
++    .mul 198 201, -- 245
++    .sub 236 0, -- 246
++    .mul 200 202, -- 247
++    .sub 237 0, -- 248
++    .mul 202 203, -- 249
++    .sub 238 0, -- 250
++    .mul 165 6, -- 251
++    .mul 166 5, -- 252
++    .mul 167 4, -- 253
++    .mul 168 3, -- 254
++    .sub 204 169, -- 255
++    .mul 0 213, -- 256
++    .mul 1 213, -- 257
++    .mul 2 213, -- 258
++    .mul 3 213, -- 259
++    .sub 211 177, -- 260
++    .mul 203 0, -- 261
++    .sub 261 211, -- 262
++    .const 4, -- 263
++    .mul 1 0, -- 264
++    .add 0 192, -- 265
++    .add 1 215, -- 266
++    .sub 0 249, -- 267
++    .sub 0 217, -- 268
++    .add 3 183, -- 269
++    .sub 0 246, -- 270
++    .sub 0 220, -- 271
++    .add 6 208, -- 272
++    .sub 0 265, -- 273
++    .sub 0 223, -- 274
++    .const 128, -- 275
++    .mul 249 0, -- 276
++    .sub 234 0, -- 277
++    .sub 234 1, -- 278
++    .neg 221, -- 279
++    .const 19, -- 280
++    .mul 246 0, -- 281
++    .const 20, -- 282
++    .mul 247 0, -- 283
++    .add 2 0, -- 284
++    .const 21, -- 285
++    .mul 247 0, -- 286
++    .add 2 0, -- 287
++    .const 22, -- 288
++    .mul 252 0, -- 289
++    .add 2 0, -- 290
++    .const 23, -- 291
++    .mul 254 0, -- 292
++    .add 2 0, -- 293
++    .const 24, -- 294
++    .mul 255 0, -- 295
++    .add 2 0, -- 296
++    .const 25, -- 297
++    .mul 257 0, -- 298
++    .add 2 0, -- 299
++    .const 26, -- 300
++    .mul 259 0, -- 301
++    .add 2 0, -- 302
++    .add 301 39, -- 303
++    .add 303 253, -- 304
++    .mul 288 232, -- 305
++    .neg 271, -- 306
++    .neg 271 -- 307
+   ]
+-  nodeCount := 301
++  nodeCount := 308
+   constraints := loadStoreCircuit.constraints
+   lookups := loadStoreCircuit.lookups
+-
+ #guard loadStoreCircuitCompiled == loadStoreCircuit.localise
+ #guard loadStoreCircuit.wellFormed
+-#guard loadStoreCircuit.columns.length == 48
+-#guard loadStoreCircuit.nodes.length == 301
++#guard loadStoreCircuit.columns.length == 50
++#guard loadStoreCircuit.nodes.length == 308
+ #guard loadStoreCircuit.constraints.length == 63
+-#guard loadStoreCircuit.lookups.length == 16
+-
++#guard loadStoreCircuit.lookups.length == 17
+ -- Independent concrete LW and SB witnesses retained as evaluator differential tests.
+ def loadStoreLoadWitnessColumns : List M31 := [
+     M31.reduce 5, M31.reduce 100, M31.reduce 0, M31.reduce 0,
+@@ -710,7 +691,7 @@
+     M31.reduce 0, M31.reduce 0, M31.reduce 0, M31.reduce 0,
+     M31.reduce 0, M31.reduce 0, M31.reduce 1, M31.reduce 0,
+     M31.reduce 0, M31.reduce 0, M31.reduce 145, M31.reduce 34,
+-    M31.reduce 51, M31.reduce 68, M31.reduce 1, M31.reduce 1840700269
++    M31.reduce 51, M31.reduce 68, M31.reduce 1, M31.reduce 1840700269, M31.reduce 16, M31.reduce 16
+   ]
+ 
+ #guard loadStoreCircuitCompiled.constraintValues loadStoreLoadWitnessColumns ==
+@@ -736,12 +717,13 @@
+     [0, 7, 18, 145, 34, 51, 68],
+     [14],
+     [0, 145],
+-    [0, 34]
++    [0, 34],
++    [0, 0]
+   ]
+ 
+ #guard (loadStoreCircuitCompiled.lookups.map fun entry =>
+     (loadStoreCircuitCompiled.lookupNumerator loadStoreLoadWitnessColumns entry).toNat) ==
+-  [2147483646, 2147483646, 1, 2147483646, 1, 2147483646, 2147483646, 2147483646, 2147483646, 1, 2147483646, 2147483646, 1, 2147483646, 0, 0]
++  [2147483646, 2147483646, 1, 2147483646, 1, 2147483646, 2147483646, 2147483646, 2147483646, 1, 2147483646, 2147483646, 1, 2147483646, 0, 0, 2147483646]
+ 
+ def loadStoreStoreWitnessColumns : List M31 := [
+     M31.reduce 5, M31.reduce 200, M31.reduce 0, M31.reduce 17,
+@@ -755,7 +737,7 @@
+     M31.reduce 0, M31.reduce 0, M31.reduce 0, M31.reduce 0,
+     M31.reduce 0, M31.reduce 0, M31.reduce 0, M31.reduce 1,
+     M31.reduce 0, M31.reduce 0, M31.reduce 0, M31.reduce 0,
+-    M31.reduce 0, M31.reduce 0, M31.reduce 1, M31.reduce 1073741824
++    M31.reduce 0, M31.reduce 0, M31.reduce 1, M31.reduce 1073741824, M31.reduce 16, M31.reduce 16
+   ]
+ 
+ #guard loadStoreCircuitCompiled.constraintValues loadStoreStoreWitnessColumns ==
+@@ -781,12 +763,13 @@
+     [1, 64, 19, 17, 171, 51, 68],
+     [15],
+     [0, 0],
++    [0, 0],
+     [0, 0]
+   ]
+ 
+ #guard (loadStoreCircuitCompiled.lookups.map fun entry =>
+     (loadStoreCircuitCompiled.lookupNumerator loadStoreStoreWitnessColumns entry).toNat) ==
+-  [2147483646, 2147483646, 1, 2147483646, 1, 2147483646, 2147483646, 2147483646, 2147483646, 1, 2147483646, 2147483646, 1, 2147483646, 0, 0]
++  [2147483646, 2147483646, 1, 2147483646, 1, 2147483646, 2147483646, 2147483646, 2147483646, 1, 2147483646, 2147483646, 1, 2147483646, 0, 0, 2147483646]
+ 
+ -- Gating is load-bearing: inactive range_check_m31 requests need not be members.
+ #guard !loadStoreCircuitCompiled.fixedRequestsHoldUnconditional
+--- a/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreBridge.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Air/Bridge/LoadStoreBridge.lean
+@@ -84,7 +84,7 @@
+ -- are not byte-identical. The polynomial digest is independently checked by
+ -- `riscv_air_ir_equivalence.py` against the reviewed pre-cutover family export.
+ #guard loadStoreProgramIrDigest ==
+-  "129cebd7398199ce1422ebc94585919ee162b86280d16993ad4b0b0e1e2c1e80"
++  "70bebb0aba68c5d8be2db65810313e48d0d75fc7c4e5a1a340bb88f60f8e92da"
+ #guard loadStoreIrDigest ==
+   "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9"
+ #guard loadStorePolynomialDigest ==
+@@ -299,7 +299,9 @@
+     M31.reduce row.result.limb2.toNat,             -- 44 result_2
+     M31.reduce row.result.limb3.toNat,             -- 45 result_3
+     M31.reduce (bitValue row.destinationNonzero),  -- 46 destination_nonzero
+-    registerInverse row.r2Idx ]                    -- 47 destination_inverse
++    registerInverse row.r2Idx,                    -- 47 destination_inverse
++    M31.reduce row.alignedQuarter,                 -- 48 aligned_addr_quarter
++    M31.reduce (row.alignedQuarter % 1048576) ]     -- 49 aligned_addr_low20
+ 
+ /-- The side condition the transcription does not carry.
+ 
+@@ -542,7 +544,7 @@
+     omega
+ 
+ private theorem alignedAddressSmall (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+-    row.alignedAddress < 4194304 := by
++    row.alignedAddress < 1073741824 := by
+   have quarter := holds.alignedQuarterRange
+   simp only [LoadStoreRow.alignedAddress]
+   omega
+@@ -1288,13 +1290,25 @@
+     | true => exact mulLeftZero oneSubBitTrue
+     | false => rw [holds.storeResultZero (storeOfNotLoad direction)]
+                exact mulRightZero rfl
+-  -- C61: an active row's base register has a zero high byte
+-  · rw [activeImage row holds, holds.baseHighLimbZero]
+-    exact mulRightZero rfl
++  -- C61: bind the committed quarter to the selector-derived quarter.
++  · rw [activeImage row holds]
++    exact mulRightZero (subZero (alignedQuarterImage row).symm)
+   -- C62: the placement residual, which pins the selector sum to one
+   · rw [activeImage row holds]
+     exact M31.sub_self 1
+ 
++private theorem highImage (q : Nat) (bound : q < 268435456) :
++    (M31.reduce q - M31.reduce (q % 1048576)) * M31.reduce 2048 =
++      M31.reduce (q / 1048576) := by
++  apply M31.eq_of_val
++  simp only [M31.val_mul, M31.val_sub, M31.val_reduce]
++  change (((q % 2147483647 + 2147483647 - (q % 1048576) % 2147483647) % 2147483647) * (2048 % 2147483647)) % 2147483647 = (q / 1048576) % 2147483647
++  have qsmall : q < 2147483647 := by omega
++  have lowSmall : q % 1048576 < 2147483647 := by omega
++  have highSmall : q / 1048576 < 2147483647 := by omega
++  rw [Nat.mod_eq_of_lt qsmall, Nat.mod_eq_of_lt lowSmall, Nat.mod_eq_of_lt highSmall]
++  omega
++
+ /-! ## The bridge for the fixed-table requests
+ 
+ This theorem carries the range-table half of the alignment discipline. C15 and
+@@ -1317,6 +1331,14 @@
+ theorem loadStoreFixedRequestsHold (row : LoadStoreRow) (holds : LoadStoreHolds row) :
+     loadStoreCircuitCompiled.fixedRequestsHold (loadStoreColumns row) = true := by
+   try simp only [LoadStoreRow.rs1Next, LoadStoreRow.srcNext] at holds
++  have quarterBound : row.alignedQuarter < 268435456 := holds.alignedQuarterRange
++  have highBound := holds.baseHighLimbRange
++  have baseHigh : (M31.reduce row.rs1Previous.limb3.toNat * M31.reduce 2).toNat =
++      row.rs1Previous.limb3.toNat * 2 := by
++    rw [M31.reduce_mul]
++    apply M31.toNat_reduce_of_lt
++    change row.rs1Previous.limb3.toNat * 2 < 2147483647
++    omega
+   have baseClock := holds.baseClock
+   have sourceClock := sourceClockValid row holds
+   have destinationClock := destinationClockValid row holds
+@@ -1325,38 +1347,21 @@
+     MulhCircuit.value, MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled,
+     loadStoreCircuit, evalLoop, Node.evalLocal, nth, List.map_cons, List.map_nil,
+     List.all_cons, List.all_nil, loadStoreColumns, rangeCheck20Contains,
+-    rangeCheckM31Contains, Bool.or_true, Bool.and_true]
++    rangeCheckM31Contains, rangeCheck88Contains, Bool.or_true, Bool.and_true]
+   simp only [Bool.and_eq_true, Bool.or_eq_true, Bool.true_and,
+     Bool.not_eq_eq_eq_not, Bool.not_true, decide_eq_true_eq]
+   rw [activeImage row holds, storeImage row holds, loadImage row,
+-    baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds,
+-    alignedQuarterImage row]
+-  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
++    baseGapImage row holds, sourceGapImage row holds, destinationGapImage row holds, baseHigh, highImage row.alignedQuarter quarterBound]
++  refine ⟨?_, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
+   -- L05: the base register access-clock gap
+   · exact Or.inr (reduceToNat_lt baseClock.2)
+   -- L06: the aligned address divided by four, which is what forces alignment
+-  · exact Or.inr (reduceToNat_lt holds.alignedQuarterRange)
+-  -- L07: the base address stays canonical
+-  · refine Or.inr ⟨⟨reduceToNat_lt ?_, reduceToNat_lt holds.baseHighLimbRange⟩, ?_⟩
++  · exact Or.inr (reduceToNat_lt (Nat.mod_lt _ (by decide)))
++  -- L07: twice the base high byte is seven-bit and cannot equal 127.
++  · refine Or.inr ⟨⟨reduceToNat_lt ?_, by omega⟩, ?_⟩
+     · simpa using row.rs1Previous.limb0.isLt
+-    · have canonical0 : (M31.reduce row.rs1Previous.limb0.toNat).toNat =
+-          row.rs1Previous.limb0.toNat := by
+-        refine M31.toNat_reduce_of_lt ?_
+-        have bound := row.rs1Previous.limb0.isLt
+-        simp only [Nat.reducePow] at bound
+-        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
+-        omega
+-      have canonical3 : (M31.reduce row.rs1Previous.limb3.toNat).toNat =
+-          row.rs1Previous.limb3.toNat := by
+-        refine M31.toNat_reduce_of_lt ?_
+-        have bound := row.rs1Previous.limb3.isLt
+-        simp only [Nat.reducePow] at bound
+-        simp only [M31.modulus, RiscvRefinement.Air.Bridge.m31Modulus]
+-        omega
+-      rw [canonical0, canonical3]
+-      rcases holds.baseLimbsCanonical with low | high
+-      · rw [decide_eq_false low, Bool.false_and]
+-      · rw [decide_eq_false high, Bool.and_false]
++    · have evenNotReserved : row.rs1Previous.limb3.toNat * 2 ≠ 127 := by omega
++      rw [decide_eq_false evenNotReserved, Bool.and_false]
+   -- L10: the source access-clock gap
+   · exact Or.inr (reduceToNat_lt sourceClock.2)
+   -- L13: the destination access-clock gap
+@@ -1378,6 +1383,9 @@
+         exact reduceToNat_lt
+           (msbResidue row.result.limb1 row.srcMsb (holds.halfSignWitness halfLoad)).2
+ 
++  -- L16: the high eight bits of the aligned quarter, paired with zero.
++  · exact Or.inr ⟨reduceToNat_lt (by omega), by decide⟩
++
+ /-! ## The bridge for the relation arguments
+ 
+ The sixteen lookup tuples the shipped AIR emits, evaluated under the same
+@@ -1422,9 +1430,9 @@
+         -- 5  rs1 access-clock gap
+         [M31.reduce (accessClock row.clock 1 - row.rs1PreviousClock - 1)],
+         -- 6  the aligned word address divided by four
+-        [M31.reduce row.alignedQuarter],
++        [M31.reduce (row.alignedQuarter % 1048576)],
+         -- 7  the base address canonicity request
+-        [M31.reduce row.rs1Previous.limb0.toNat, M31.reduce row.rs1Previous.limb3.toNat],
++        [M31.reduce row.rs1Previous.limb0.toNat, M31.reduce (row.rs1Previous.limb3.toNat * 2)],
+         -- 8  src block consume, address space `is_load`
+         [M31.reduce (bitValue row.isLoad), M31.reduce row.sourceSelector,
+           M31.reduce row.srcPreviousClock,
+@@ -1464,7 +1472,8 @@
+         -- 15 the half-word sign witness residue
+         [M31.reduce 0,
+           M31.reduce row.result.limb1.toNat -
+-            M31.reduce (bitValue row.srcMsb) * M31.reduce 128] ] := by
++            M31.reduce (bitValue row.srcMsb) * M31.reduce 128],
++        [M31.reduce (row.alignedQuarter / 1048576), M31.reduce 0] ] := by
+   try simp only [LoadStoreRow.rs1Next, LoadStoreRow.srcNext] at holds
+   simp only [MulhCircuit.lookupTuple, MulhCircuit.values, MulhCircuit.value,
+     MulhCircuit.nodeValuesRev, loadStoreCircuitCompiled, loadStoreCircuit, evalLoop,
+@@ -1473,8 +1482,9 @@
+     opcodeImage row holds, baseGapImage row holds, sourceGapImage row holds,
+     destinationGapImage row holds, accessClockImage row holds 1,
+     sourceAccessClockImage row holds, destinationAccessClockImage row holds,
+-    alignedQuarterImage row, nextPcImage row holds fits, M31.reduce_add,
+-    M31.reduce_add]
++    nextPcImage row holds fits, M31.reduce_add,
++    M31.reduce_add, M31.reduce_mul,
++    highImage row.alignedQuarter holds.alignedQuarterRange]
+ 
+ /-! ## Reading the address-space swap back in the transcription's vocabulary
+ 
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStore.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStore.lean
+@@ -315,10 +315,9 @@
+   have limb1 := row.rs1Previous.limb1.isLt
+   have limb2 := row.rs1Previous.limb2.isLt
+   have limb3 := holds.baseHighLimbRange
+-  have canonical := holds.baseLimbsCanonical
+   simp only [Nat.reducePow] at limb0 limb1 limb2
+   simp only [WordBytes.value, m31Modulus]
+-  rcases canonical with h | h <;> omega
++  omega
+ 
+ /-- C69 keeps the base register and every signed 12-bit displacement inside
+ the canonical M31 range. This is the source-level fix for the former
+@@ -330,8 +329,7 @@
+   have limb0 := row.rs1Previous.limb0.isLt
+   have limb1 := row.rs1Previous.limb1.isLt
+   have limb2 := row.rs1Previous.limb2.isLt
+-  have limb3 :
+-      row.rs1Previous.limb3.toNat = 0 := congrArg BitVec.toNat holds.baseHighLimbZero
++  have limb3 := holds.baseHighLimbRange
+   simp only [Nat.reducePow] at limb0 limb1 limb2
+   simp only [WordBytes.value, m31Modulus] at limb3 ⊢
+   omega
+@@ -394,7 +392,7 @@
+   have baseRange := base_lt_modulus row holds
+   have offsetRange := shift_amount_lt_four row holds
+   have quarterRange := holds.alignedQuarterRange
+-  have addressRange : row.alignedAddress < 4194304 := by
++  have addressRange : row.alignedAddress < 1073741824 := by
+     simp only [LoadStoreRow.alignedAddress]
+     simp only [Nat.reducePow] at quarterRange
+     omega
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadMutationByte.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadMutationByte.lean
+@@ -208,7 +208,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -220,12 +220,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -336,8 +331,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -483,7 +476,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -495,12 +488,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   -- byteLoadExtension is deliberately absent: this is the mutation.
+   /-- C24, C26, C28, C30: `load_b * (result_0 - src_next_i) * markers_i = 0`. -/
+   byteLoadSelect :
+@@ -606,8 +594,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+   halfLoadExtension := holds.halfLoadExtension
+@@ -742,7 +728,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -754,12 +740,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -864,8 +845,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteStoreSelect := holds.byteStoreSelect
+   halfLoadExtension := holds.halfLoadExtension
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadMutationWord.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadMutationWord.lean
+@@ -262,7 +262,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -274,12 +274,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -392,8 +387,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -504,7 +497,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -516,12 +509,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -630,8 +618,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -741,7 +727,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -753,12 +739,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -865,8 +846,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStoreMutation.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStoreMutation.lean
+@@ -60,7 +60,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -72,12 +72,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -184,8 +179,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStoreMutationExtra.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/LoadStoreMutationExtra.lean
+@@ -336,7 +336,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -348,12 +348,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -464,8 +459,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -563,7 +556,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -575,12 +568,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -690,8 +678,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -792,7 +778,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -804,12 +790,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -919,8 +900,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -1080,7 +1059,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -1092,12 +1071,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -1201,8 +1175,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -1365,7 +1337,7 @@
+   wordShiftAmount : row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value, so the
+   modelled address space is the aligned 4 MiB region `[0, 2^22)`. -/
+-  alignedQuarterRange : row.alignedQuarter < 2 ^ 20
++  alignedQuarterRange : row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 jointly: whichever of the two address selectors carries the
+   memory address equals `compose(rs1_next) + imm_felt - shift_amount` in the
+   base field, and L06 pins that selector to `4 * aligned_quarter`. The right
+@@ -1377,12 +1349,7 @@
+   immFeltRange : row.immFelt < m31Modulus
+   /-- L07, first component: `rs1_next_0` is a byte (typing) and, second
+   component, `rs1_next_3` is a seven-bit value. -/
+-  baseHighLimbRange : row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero : row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`, which is
+-  exactly what keeps `compose(rs1_next)` below the modulus. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++  baseHighLimbRange : row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -1492,8 +1459,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+--- a/formal/riscv-refinement/RiscvRefinement/Opcodes/StoreMutation.lean
++++ b/formal/riscv-refinement/RiscvRefinement/Opcodes/StoreMutation.lean
+@@ -238,7 +238,7 @@
+     row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value. -/
+   alignedQuarterRange :
+-    row.alignedQuarter < 2 ^ 20
++    row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 with L06: the memory address selector is
+     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
+   memoryAddress :
+@@ -249,12 +249,7 @@
+     row.immFelt < m31Modulus
+   /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+   baseHighLimbRange :
+-    row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero :
+-    row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++    row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -366,8 +361,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -466,7 +459,7 @@
+     row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value. -/
+   alignedQuarterRange :
+-    row.alignedQuarter < 2 ^ 20
++    row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 with L06: the memory address selector is
+     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
+   memoryAddress :
+@@ -477,12 +470,7 @@
+     row.immFelt < m31Modulus
+   /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+   baseHighLimbRange :
+-    row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero :
+-    row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++    row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -595,8 +583,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   halfLoadExtension := holds.halfLoadExtension
+@@ -697,7 +683,7 @@
+     row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value. -/
+   alignedQuarterRange :
+-    row.alignedQuarter < 2 ^ 20
++    row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 with L06: the memory address selector is
+     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
+   memoryAddress :
+@@ -708,12 +694,7 @@
+     row.immFelt < m31Modulus
+   /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+   baseHighLimbRange :
+-    row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero :
+-    row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++    row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -827,8 +808,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -954,7 +933,7 @@
+     row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value. -/
+   alignedQuarterRange :
+-    row.alignedQuarter < 2 ^ 20
++    row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 with L06: the memory address selector is
+     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
+   memoryAddress :
+@@ -965,12 +944,7 @@
+     row.immFelt < m31Modulus
+   /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+   baseHighLimbRange :
+-    row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero :
+-    row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++    row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -1086,8 +1060,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect
+@@ -1183,7 +1155,7 @@
+     row.isWord = true → row.shiftAmount = 0
+   /-- L06: the aligned word address divided by four is a 20-bit value. -/
+   alignedQuarterRange :
+-    row.alignedQuarter < 2 ^ 20
++    row.alignedQuarter < 2 ^ 28
+   /-- C16 and C17 with L06: the memory address selector is
+     `compose(rs1_next) + imm_felt - shift_amount`, pinned to `4 * aligned_quarter`. -/
+   memoryAddress :
+@@ -1194,12 +1166,7 @@
+     row.immFelt < m31Modulus
+   /-- L07, second component: `rs1_next_3` is a seven-bit value. -/
+   baseHighLimbRange :
+-    row.rs1Previous.limb3.toNat < 128
+-  baseHighLimbZero :
+-    row.rs1Previous.limb3 = 0
+-  /-- L07: the `range_check_m31` table omits the tuple `(255, 127)`. -/
+-  baseLimbsCanonical :
+-    row.rs1Previous.limb0.toNat ≠ 255 ∨ row.rs1Previous.limb3.toNat ≠ 127
++    row.rs1Previous.limb3.toNat < 64
+   /-- C21-C23: `load_b * (signed_mask - result_i) = 0` for `i ∈ {1,2,3}`. -/
+   byteLoadExtension :
+     row.isByteLoad = true →
+@@ -1315,8 +1282,6 @@
+   memoryAddress := holds.memoryAddress
+   immFeltRange := holds.immFeltRange
+   baseHighLimbRange := holds.baseHighLimbRange
+-  baseHighLimbZero := holds.baseHighLimbZero
+-  baseLimbsCanonical := holds.baseLimbsCanonical
+   byteLoadExtension := holds.byteLoadExtension
+   byteLoadSelect := holds.byteLoadSelect
+   byteStoreSelect := holds.byteStoreSelect

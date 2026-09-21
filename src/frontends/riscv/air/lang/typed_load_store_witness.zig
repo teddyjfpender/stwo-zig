@@ -1,6 +1,6 @@
 //! Allocation-free production witness generation for typed RV32 loads/stores.
 //!
-//! The prepared binding authenticates the native 48-column definition and its
+//! The prepared binding authenticates the native 50-column definition and its
 //! complete opcode family. The row loop writes final SoA storage directly and
 //! preserves the production role split between register and memory accesses.
 
@@ -20,11 +20,12 @@ pub const WITNESS_BINDING_FORMAT_VERSION: u16 = 1;
 pub const WITNESS_BINDING_DOMAIN_SEPARATOR =
     "stwo-zig/typed-air/load-store-witness-binding/v1";
 pub const WITNESS_BINDING_DIGEST_HEX =
-    "93bd8a660c989ef9d0c006d0325bd6ca8b78990ef67d6d62dd7e22263aae643c";
+    "64e774c27535518b4abd2d3b44adb3c27141a774a244912965b02df92cdf61a3";
 pub const WITNESS_BINDING_DIGEST: digest.Digest = hexDigest(
     WITNESS_BINDING_DIGEST_HEX,
     "invalid typed load/store witness-binding digest",
 );
+const ENFORCE_WITNESS_BINDING_DIGEST = true;
 
 pub const RowSource = enum(u8) {
     clock = 0,
@@ -75,6 +76,8 @@ pub const RowSource = enum(u8) {
     result_3 = 45,
     rd_nonzero = 46,
     rd_inv = 47,
+    aligned_addr_quarter = 48,
+    aligned_addr_low20 = 49,
 };
 
 pub const CANONICAL_RECIPE = std.enums.values(RowSource);
@@ -147,7 +150,8 @@ pub const Executor = struct {
         try validateBinding(definition, supplied);
         const owned = supplied.*;
         const binding_digest = owned.identityDigest();
-        if (!std.mem.eql(u8, &binding_digest, &WITNESS_BINDING_DIGEST))
+        if (ENFORCE_WITNESS_BINDING_DIGEST and
+            !std.mem.eql(u8, &binding_digest, &WITNESS_BINDING_DIGEST))
             return error.InvalidWitnessBinding;
         return .{ .binding = owned, .binding_digest = binding_digest };
     }
@@ -182,30 +186,31 @@ pub const Executor = struct {
 };
 
 const physical_types = [MAIN_COLUMN_COUNT]types.Type{
-    .clock,          .pc,
-    .felt,           .byte,
-    .byte,           .byte,
-    .byte,           .clock,
-    .byte,           .byte,
-    .byte,           .byte,
-    .register_index, .byte,
-    .byte,           .byte,
-    .byte,           .clock,
-    .felt,           .byte,
-    .byte,           .byte,
-    .byte,           .clock,
-    .register_index, .felt,
-    .bit,            .felt,
-    .felt,           .felt,
-    .bit,            .bit,
-    .bit,            .bit,
-    .bit,            .bit,
-    .bit,            .bit,
-    .bit,            .bit,
-    .bit,            .bit,
-    .byte,           .byte,
-    .byte,           .byte,
-    .bit,            .felt,
+    .clock,                                                                   .pc,
+    .felt,                                                                    .byte,
+    .byte,                                                                    .byte,
+    .byte,                                                                    .clock,
+    .byte,                                                                    .byte,
+    .byte,                                                                    .byte,
+    .register_index,                                                          .byte,
+    .byte,                                                                    .byte,
+    .byte,                                                                    .clock,
+    .felt,                                                                    .byte,
+    .byte,                                                                    .byte,
+    .byte,                                                                    .clock,
+    .register_index,                                                          .felt,
+    .bit,                                                                     .felt,
+    .felt,                                                                    .felt,
+    .bit,                                                                     .bit,
+    .bit,                                                                     .bit,
+    .bit,                                                                     .bit,
+    .bit,                                                                     .bit,
+    .bit,                                                                     .bit,
+    .bit,                                                                     .bit,
+    .byte,                                                                    .byte,
+    .byte,                                                                    .byte,
+    .bit,                                                                     .felt,
+    .{ .bounded_uint = .{ .bits = 28, .representation = .canonical_field } }, .uint20,
 };
 
 fn validateBinding(
@@ -321,6 +326,10 @@ pub inline fn writeActiveRow(columns: anytype, row_index: usize, row: TraceRow) 
             .result_3 => values.result[3],
             .rd_nonzero => bit(rd_nonzero),
             .rd_inv => if (rd_nonzero) rd.invUncheckedNonZero() else M31.zero(),
+            .aligned_addr_quarter => fromUnsigned((row.mem_addr & ~@as(u32, 3)) >> 2),
+            .aligned_addr_low20 => fromUnsigned(
+                ((row.mem_addr & ~@as(u32, 3)) >> 2) & ((1 << 20) - 1),
+            ),
         };
     }
 }

@@ -5,6 +5,14 @@ const shard_2 = @import("binary_fri_outer_source_test_expect_arithmetic_plan_par
 const shard_3 = @import("binary_fri_outer_source_test_validate_composition_input_base_rows.zig");
 const shard_4 = @import("binary_fri_outer_source_test_suite_5.zig");
 
+comptime {
+    _ = shard_0;
+    _ = shard_1;
+    _ = shard_2;
+    _ = shard_3;
+    _ = shard_4;
+}
+
 pub const Fixture = shard_1.Fixture;
 pub const FullComposition = shard_0.FullComposition;
 pub const buildFullComposition = shard_0.buildFullComposition;

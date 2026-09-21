@@ -107,8 +107,8 @@ pub fn ProgramRecorderForManifest(
             oods_point: circle.CirclePoint(recorder.Scalar),
             denominator_cache: *recorder.DenominatorCache,
         ) !Self {
-            if (proof_kind != .binary_node or
-                program_row_count != universal_roster.COMPONENT_COUNT)
+            if (proof_kind != .binary_node or family == .universal_v1 or
+                family == .segment_v2)
             {
                 return error.InvalidManifest;
             }
@@ -179,7 +179,7 @@ pub fn ProgramRecorderForManifest(
         ) Error!usize {
             try self.requireActive();
             const row_index: u8 = @intFromEnum(row);
-            if (self.next_row != row_index) return error.ComponentOrderMismatch;
+            if (!self.isNextRow(row_index)) return error.ComponentOrderMismatch;
             if (row_index == POSEIDON_ROW or row_index == RANGE_ROW)
                 return error.ProviderRequiresExactRecorder;
 
@@ -519,12 +519,19 @@ pub fn ProgramRecorderForManifest(
             return self.finishProgram();
         }
 
+        /// Cursor order follows the admitted active roster; claim/sample
+        /// coordinates continue to use physical rows, including sparse gaps.
+        fn isNextRow(self: *const Self, row: u8) bool {
+            return self.next_row < self.manifest.roster_count and
+                self.manifest.roster_rows[self.next_row] == row;
+        }
+
         fn recordCanonicalEmptyPoseidonShell(
             self: *Self,
             adapter: *const PoseidonAdapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != POSEIDON_ROW or
+            if (!self.isNextRow(POSEIDON_ROW) or
                 self.canonical_empty_layout_identity == null)
             {
                 return error.ComponentOrderMismatch;
@@ -555,7 +562,7 @@ pub fn ProgramRecorderForManifest(
             adapter: *const RangeCheck8x8Adapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != RANGE_ROW or
+            if (!self.isNextRow(RANGE_ROW) or
                 self.canonical_empty_layout_identity == null)
             {
                 return error.ComponentOrderMismatch;
@@ -585,28 +592,48 @@ pub fn ProgramRecorderForManifest(
         /// policy and is intentionally not duplicated here.
         pub fn recordPoseidonProvider(
             self: *Self,
-            adapter: *const PoseidonAdapter,
+            adapter: anytype,
         ) Error!usize {
+            return self.recordPoseidonProviderAt(
+                @enumFromInt(POSEIDON_ROW),
+                POSEIDON_AUX_START,
+                adapter,
+            );
+        }
+
+        /// Manifest-parametric native Poseidon replay for an authenticated
+        /// binary family whose provider row and auxiliary-claim slots differ
+        /// from the frozen SegmentV2/universal roster. The concrete manifest
+        /// key and slot are comptime authority; existing callers retain the
+        /// exact row-34/slots-39-40 route above.
+        pub fn recordPoseidonProviderAt(
+            self: *Self,
+            comptime row: manifest_contract.ComponentKey,
+            comptime partial_start: usize,
+            adapter: anytype,
+        ) Error!usize {
+            const SelectedAdapter = @typeInfo(@TypeOf(adapter)).pointer.child;
+            const Air = SelectedAdapter.Air;
             try self.requireActive();
-            if (self.next_row != POSEIDON_ROW)
+            const row_index: u8 = @intFromEnum(row);
+            if (!self.isNextRow(row_index) or
+                partial_start + Air.N_SUMS >
+                    COMPOSITION_CLAIM_INPUT_COUNT)
+            {
                 return error.ComponentOrderMismatch;
+            }
             _ = adapter.binding(self.manifest) catch
                 return error.ManifestAuthorityMismatch;
 
-            const placement = self.manifest.placements[POSEIDON_ROW] orelse
+            const placement = self.manifest.placements[row_index] orelse
                 return error.InvalidManifest;
             if (!adapter.placement.eql(placement) or
-                !std.meta.eql(
-                    placement.geometry,
-                    PoseidonAdapter.manifestGeometry(
-                        placement.geometry.log_size,
-                    ),
-                ))
+                !SelectedAdapter.acceptsGeometry(placement.geometry))
             {
                 return error.ComponentGeometryMismatch;
             }
 
-            var main: [poseidon_air.N_MAIN_COLUMNS]recorder.Scalar = undefined;
+            var main: [Air.N_MAIN_COLUMNS]recorder.Scalar = undefined;
             for (&main, 0..) |*value, column| value.* = try self.layout.at(
                 self.sampled_values,
                 capture_layout.MAIN_TREE_INDEX,
@@ -619,23 +646,23 @@ pub fn ProgramRecorderForManifest(
                 placement.preprocessed_offset,
                 0,
             );
-            var current: [poseidon_air.N_SUMS]recorder.Scalar = undefined;
-            var previous: [poseidon_air.N_SUMS]recorder.Scalar = undefined;
+            var current: [Air.N_SUMS]recorder.Scalar = undefined;
+            var previous: [Air.N_SUMS]recorder.Scalar = undefined;
             for (&current, &previous, 0..) |*current_value, *previous_value, batch| {
                 const offset = @as(usize, placement.interaction_offset) +
                     qm31.SECURE_EXTENSION_DEGREE * batch;
                 current_value.* = try self.sampledInteraction(offset, 0);
                 previous_value.* = try self.sampledInteraction(offset, 1);
             }
-            const partial_claims =
-                self.claim_inputs[POSEIDON_AUX_START..COMPOSITION_CLAIM_INPUT_COUNT][0..poseidon_air.N_SUMS].*;
+            const partial_claims = self.claim_inputs[partial_start .. partial_start + Air.N_SUMS].*;
             const denominator = try recorder.quotientDenominator(
                 placement.geometry.log_size,
                 self.layout.quotient_max_log_degree_bound,
                 self.oods_point,
                 self.denominator_cache,
             );
-            const recorded_count = try shared_provider_composition.recordPoseidon2(
+            const recorded_count = try shared_provider_composition.recordPoseidon2ForAir(
+                Air,
                 main,
                 is_first,
                 current,
@@ -657,7 +684,7 @@ pub fn ProgramRecorderForManifest(
             adapter: *const RangeCheck8x8Adapter,
         ) Error!usize {
             try self.requireActive();
-            if (self.next_row != RANGE_ROW) return error.ComponentOrderMismatch;
+            if (!self.isNextRow(RANGE_ROW)) return error.ComponentOrderMismatch;
             _ = adapter.binding(self.manifest) catch
                 return error.ManifestAuthorityMismatch;
 

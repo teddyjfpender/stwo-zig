@@ -47,6 +47,9 @@ const validateNativeContextSelf = dependency_0.validateNativeContextSelf;
 const verifierInputEvidence = dependency_1.verifierInputEvidence;
 const writeLogUpWordsAssumeValid = dependency_1.writeLogUpWordsAssumeValid;
 
+pub const authorityHashCallCount = @import("segment_expected_authority_hash_v2.zig").authorityHashCallCount;
+pub const appendExpectedAuthorityHashCalls = @import("segment_expected_authority_hash_v2.zig").appendExpectedAuthorityHashCalls;
+
 /// Exact native-verifier compensation admitted from a successful verifier
 /// capture.  The full receipt and native-sum seals are retained as typed
 /// fields, while their identities are folded into the final canonical word so
@@ -307,34 +310,9 @@ pub const AuthorityHashPoseidonPlanV2 = struct {
         if (destination.len != self.poseidon_call_count)
             return error.PoseidonCallCountMismatch;
 
-        var recorder = AuthorityHashCallRecorder.init(destination);
-        recorder.u32Value(statement_v2.FORMAT_VERSION);
-        recorder.u32Value(statement_v2.SCHEMA_VERSION);
-        recorder.u32Value(self.component_count);
-        recorder.u32Value(self.infra_count);
-        const core_public = try statement_v2.canonicalCorePublicData(data);
-        recorder.u32Value(core_public.initial_pc);
-        recorder.u32Value(core_public.final_pc);
-        recorder.u32Value(core_public.clock);
-        recorder.digest(data.wireId());
-        for (component_descs) |descriptor| {
-            recorder.u32Value(@intFromEnum(descriptor.family));
-            recorder.u32Value(descriptor.log_size);
-            recorder.u32Value(descriptor.n_rows);
-            recorder.u32Value(descriptor.n_columns);
-        }
-        for (infra_descs) |descriptor| {
-            recorder.u32Value(@intFromEnum(descriptor.kind));
-            recorder.u32Value(descriptor.log_size);
-            recorder.u32Value(descriptor.n_rows);
-            recorder.u32Value(descriptor.n_columns);
-        }
-        const output = recorder.finalize();
-        if (!std.meta.eql(output, self.statement_authority_id) or
-            recorder.call_at != destination.len)
-        {
+        const output = try appendExpectedAuthorityHashCalls(destination, data, component_descs, infra_descs);
+        if (!std.meta.eql(output, self.statement_authority_id))
             return error.NativeVerifierCustodyMismatch;
-        }
     }
 
     pub fn productionReady(_: *const AuthorityHashPoseidonPlanV2) bool {
@@ -590,60 +568,4 @@ pub fn nativePublicationId(publication: *const NativeTemporalPublicationV2) Dige
 /// Streaming mirror of `poseidon2_channel.CanonicalWordHasher` which retains
 /// each permutation input in the native provider ABI.  It deliberately has no
 /// dynamic storage and no independent sponge semantics.
-pub const AuthorityHashCallRecorder = struct {
-    state: [poseidon2_air.WIDTH]M31,
-    filled: usize = 0,
-    calls: []poseidon2_air.Call,
-    call_at: usize = 0,
-
-    fn init(calls: []poseidon2_air.Call) AuthorityHashCallRecorder {
-        var state = [_]M31{M31.zero()} ** poseidon2_air.WIDTH;
-        state[poseidon2_air.WIDTH - 1] = M31.fromCanonical(
-            statement_v2.AUTHORITY_ID_DOMAIN,
-        );
-        return .{ .state = state, .calls = calls };
-    }
-
-    fn canonical(self: *AuthorityHashCallRecorder, value: u32) void {
-        std.debug.assert(value < m31.Modulus);
-        self.state[self.filled] = self.state[self.filled].add(
-            M31.fromCanonical(value),
-        );
-        self.filled += 1;
-        if (self.filled == channel.RATE) self.permute();
-    }
-
-    fn u32Value(self: *AuthorityHashCallRecorder, value: u32) void {
-        self.canonical(value & 0xffff);
-        self.canonical(value >> 16);
-    }
-
-    fn digest(self: *AuthorityHashCallRecorder, value: Digest) void {
-        for (value) |word| self.canonical(word);
-    }
-
-    fn permute(self: *AuthorityHashCallRecorder) void {
-        std.debug.assert(self.call_at < self.calls.len);
-        var input: [poseidon2_air.WIDTH]u32 = undefined;
-        for (&input, self.state) |*destination, word|
-            destination.* = word.toU32();
-        self.calls[self.call_at] = .{
-            .input = input,
-            .wide = false,
-            .io = true,
-            .narrow_output = null,
-        };
-        self.call_at += 1;
-        poseidon2.permute(&self.state);
-        self.filled = 0;
-    }
-
-    fn finalize(self: *AuthorityHashCallRecorder) Digest {
-        self.canonical(1);
-        if (self.filled != 0) self.permute();
-        var result: Digest = undefined;
-        for (&result, self.state[0..channel.RATE]) |*destination, word|
-            destination.* = word.toU32();
-        return result;
-    }
-};
+pub const AuthorityHashCallRecorder = @import("segment_expected_authority_hash_v2.zig").AuthorityHashCallRecorder;

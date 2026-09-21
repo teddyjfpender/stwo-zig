@@ -1,0 +1,11 @@
+{
+  "scope": "Explicit reviewed bootstrap admission for an actual four-segment recursive root; development only. The expected statement is folded from independent intermediate admissions, not candidate words.",
+  "segments": 4,
+  "profile": "tiny-parent-root-v2",
+  "key_sha256": "d87edd48e6614a4b38deebe7328b394a6bd8b322fd913c81af832d97364ba300",
+  "expected_span_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+  "child_keys": [
+    "029bc4b1f934a8055a6ac90e76edffbbdd0c4a941afddbd2427ba6b6bfed310a",
+    "4957dcd80a73201bc86aedc7d7b9572ed76c0d3372576e227115d634489507a3"
+  ]
+}

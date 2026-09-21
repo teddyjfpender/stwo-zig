@@ -2,8 +2,8 @@
 
 `stwo_metal_session` defines the host-neutral protocol and content-addressed
 artifact services used by persistent Metal proving processes. Despite its
-name, this package has no dependency on Metal frameworks or any other
-first-party package.
+name, this package has no dependency on Metal frameworks. Its immutable store
+surface is a compatibility adapter over `stwo_artifact_store`.
 
 | Property | Value |
 | :--- | :--- |
@@ -59,17 +59,18 @@ defer request.deinit();
 | :--- | :--- |
 | `protocol` | v4 frame schema, strict parsing, sequencing, and shutdown validation |
 | `artifact_manifest` | protocol identity, measurements, roles, provenance, and digests |
-| `artifact_store` | content-addressed ingest, immutable snapshots, and copy policy |
+| `artifact_store` | compatibility adapter for content-addressed ingest, immutable snapshots, and copy policy |
 | `artifact_views` | validated file/object views consumed by proving processes |
+| `persistent_artifacts` | host-neutral typed CAS, keys, and manifests from `stwo_artifact_store` |
 
 Parsing returns owned data. Callers must keep the artifact root and sequence
 policy explicit and deinitialize `ParsedRequest` with its allocator.
 
 ## Dependencies
 
-There are no first-party package dependencies. This allows protocol and
-artifact validation to run in ordinary Linux CI without Metal hardware or
-Apple frameworks.
+The sole first-party dependency is `stwo_artifact_store`. Both packages remain
+host neutral, so protocol and artifact validation run in ordinary Linux CI
+without Metal hardware or Apple frameworks.
 
 ## Build, test, and run
 

@@ -1,0 +1,25 @@
+{
+  "status": "focused_manifest_geometry_checks_passed",
+  "ownership_checks": 12,
+  "all39_leaf_tests": 4,
+  "catalog_substantive_tests": 3,
+  "universal_manifest_substantive_tests": 3,
+  "statement_geometry_closure_sources": 148,
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/universal_manifest.zig": "aaf812bdd3cff77060097f632de7b31e374320c4e177aaefc1c21ba0c4cc5153",
+    "src/frontends/riscv/recursion/segment_statement_outer_geometry_v2.zig": "4ee4390a11c637f31fff585fd2682f022edb1a7f3eb81a8b4adddb461ad68d3e",
+    "src/frontends/riscv/recursion/segment_leaf_layout_v2.zig": "75142fdfab972860b519f19108a7d3183d202f08de419465646130518324d232",
+    "src/frontends/riscv/recursion/segment_leaf_outer_air_v2_contract.zig": "6373f6a7eac4257a3b36590c6749da24480d4f516ad9536ed7765e8e757c882a",
+    "src/frontends/riscv/recursion/segment_leaf_authority_v2_contract.zig": "8e6923ce5ac21068812d32684fa9d08b24764918bbf2bd70c0d6080b5d7fc6b7",
+    "src/frontends/riscv/recursion/segment_statement_outer_source_v2_contract.zig": "6e3300dc6d0f0835d7f7165fd0396de09ccb4dcc9d8cdcb8753153fc4efc5abf",
+    "src/frontends/riscv/recursion/air/segment_outer_typed_catalog_v2.zig": "5b9e2447b5755371f3b5a60bc02f8f7d0c8d67d72537297cdfebe0014fc1e4ad",
+    "src/frontends/riscv/segment_outer_adapter_manifest_v2_test_root.zig": "24d99d525bbc0247b9f82bcfdf2bac3ffb336f5ef01e32772718af940a742874",
+    "scripts/tests/test_product_closure.py": "0b0c9ed4175fcbf350cae9d3cf2c61be495c1a67eafd203bea35e1f51f3e9706"
+  },
+  "complete_leaf_manifest_isolation": false,
+  "remaining": [
+    "Boundary/provider authority metadata still enters catalog admission through source owners.",
+    "Claim and geometry contracts remain mixed with component proof gates."
+  ],
+  "discarded_check": "Initial filtered catalog run matched zero tests; fixed unnamed discovery import and reran three substantive cases."
+}

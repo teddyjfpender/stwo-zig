@@ -1,0 +1,36 @@
+[scope] precompile full guest proofs; secure 70 queries / 26 PoW bits
+evidence: /Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.evidence-sg5pj0d1
+[negative] ecdsa_secp256k1_bad_signature: execute, prove rejection, independently verify
+[1/16] sha256/128: execute, prove, verify
+  prove=0.776s verify=0.127s proof=816.9KiB rss=1.29GiB
+[2/16] sha256/256: execute, prove, verify
+  prove=0.697s verify=0.134s proof=825.9KiB rss=1.28GiB
+[3/16] sha256/512: execute, prove, verify
+  prove=0.603s verify=0.141s proof=820.1KiB rss=1.31GiB
+[4/16] sha256/1024: execute, prove, verify
+  prove=0.698s verify=0.139s proof=818.2KiB rss=1.36GiB
+[5/16] sha256/2048: execute, prove, verify
+  prove=0.672s verify=0.145s proof=836.4KiB rss=1.45GiB
+[6/16] keccak/128: execute, prove, verify
+  prove=0.541s verify=0.138s proof=820.0KiB rss=1.29GiB
+[7/16] keccak/256: execute, prove, verify
+  prove=0.614s verify=0.146s proof=820.4KiB rss=1.30GiB
+[8/16] keccak/512: execute, prove, verify
+  prove=0.591s verify=0.142s proof=822.2KiB rss=1.36GiB
+[9/16] keccak/1024: execute, prove, verify
+  prove=0.633s verify=0.147s proof=818.4KiB rss=1.42GiB
+[10/16] keccak/2048: execute, prove, verify
+  prove=0.796s verify=0.150s proof=871.9KiB rss=1.65GiB
+[11/16] poseidon2_m31/2: execute, prove, verify
+  prove=0.617s verify=0.148s proof=849.6KiB rss=1.32GiB
+[12/16] poseidon2_m31/4: execute, prove, verify
+  prove=0.680s verify=0.152s proof=870.8KiB rss=1.38GiB
+[13/16] poseidon2_m31/8: execute, prove, verify
+  prove=0.969s verify=0.149s proof=910.6KiB rss=1.61GiB
+[14/16] poseidon2_m31/12: execute, prove, verify
+  prove=0.805s verify=0.171s proof=982.1KiB rss=1.77GiB
+[15/16] poseidon2_m31/16: execute, prove, verify
+  prove=1.260s verify=0.160s proof=1068.8KiB rss=2.01GiB
+[16/16] ecdsa_secp256k1/32: execute, prove, verify
+  prove=0.882s verify=0.171s proof=3660.3KiB rss=1.29GiB
+report: /Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/recursive-product-20260921/csp-accelerated-suite-v1/cpu.json

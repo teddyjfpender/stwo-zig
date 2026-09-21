@@ -47,6 +47,25 @@ test "prover prove: early component and sampled-point errors consume schemes" {
         ),
     );
 
+    const Engine = @import("stwo_prover_engine").engine.ProverEngine(CpuBackend, Hasher, MerkleChannel, Channel);
+    var retaining_scheme = try Scheme.init(alloc, pcs_core.PcsConfig.default());
+    _ = try retaining_scheme.twiddle_source.get(alloc, 6);
+    var retaining_channel = Channel{};
+    var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
+    var failed: ?Engine.ExtendedProof = null;
+    defer if (failed) |*retained| retained.deinit(alloc);
+    try std.testing.expectError(error.MissingPreprocessedTree, Engine.proveDiagnosedRetainingFailure(
+        alloc,
+        &.{},
+        &retaining_channel,
+        retaining_scheme,
+        .{},
+        &diagnostic,
+        &failed,
+    ));
+    try std.testing.expect(failed == null);
+    try std.testing.expectEqual(error.MissingPreprocessedTree, diagnostic.?.cause);
+
     var sampled_scheme = try Scheme.init(alloc, pcs_core.PcsConfig.default());
     _ = try sampled_scheme.twiddle_source.get(alloc, 6);
     var sampled_points = TreeVec([][]CirclePointQM31).initOwned(
@@ -85,6 +104,7 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
     const MockComponent = struct {
         max_log_degree_bound: u32,
         value: QM31,
+        mismatch_at_point: bool = false,
 
         fn asProverComponent(self: *const @This()) component_prover.ComponentProver {
             return .{
@@ -157,7 +177,11 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
             evaluation_accumulator: *core_air_accumulation.PointEvaluationAccumulator,
             _: u32,
         ) !void {
-            evaluation_accumulator.accumulate(cast(ctx).value);
+            const self = cast(ctx);
+            evaluation_accumulator.accumulate(if (self.mismatch_at_point)
+                self.value.add(QM31.one())
+            else
+                self.value);
         }
 
         fn evaluateConstraintQuotientsOnDomain(
@@ -325,6 +349,73 @@ test "prover prove: prove_ex components slice verifies with core verifier" {
         &verifier,
         ext_proof.proof,
     );
+
+    // Reuse the complete small proof to check ownership on each exit. The
+    // mismatch changes only the component's point evaluation, leaving a real
+    // proof artifact available for diagnostic serialization after rejection.
+    const Engine = @import("stwo_prover_engine").engine.ProverEngine(CpuBackend, Hasher, MerkleChannel, Channel);
+    const Mode = enum { success, retained_mismatch, ordinary_mismatch };
+    for ([_]Mode{ .success, .retained_mismatch, .ordinary_mismatch }) |mode| {
+        var diagnostic_scheme = try Scheme.init(alloc, config);
+        var owns_scheme = true;
+        defer if (owns_scheme) diagnostic_scheme.deinit(alloc);
+        var diagnostic_channel = Channel{};
+        try diagnostic_scheme.commit(alloc, &.{
+            .{ .log_size = 3, .values = &preprocessed_col_0 },
+            .{ .log_size = 3, .values = &preprocessed_col_1 },
+        }, &diagnostic_channel);
+        try diagnostic_scheme.commit(alloc, &.{
+            .{ .log_size = 3, .values = &main_col },
+        }, &diagnostic_channel);
+        var diagnostic_component = mock_component;
+        diagnostic_component.mismatch_at_point = mode != .success;
+        const diagnostic_components = [_]component_prover.ComponentProver{diagnostic_component.asProverComponent()};
+        var diagnostic: ?@import("stwo_prover_api").ProveDiagnostic = null;
+        var failed: ?Engine.ExtendedProof = null;
+        defer if (failed) |*retained| retained.deinit(alloc);
+        owns_scheme = false;
+        if (mode == .ordinary_mismatch) {
+            try std.testing.expectError(error.ConstraintsNotSatisfied, Engine.proveDiagnosed(
+                alloc,
+                &diagnostic_components,
+                &diagnostic_channel,
+                diagnostic_scheme,
+                .{},
+                &diagnostic,
+            ));
+        } else if (mode == .retained_mismatch) {
+            try std.testing.expectError(error.ConstraintsNotSatisfied, Engine.proveDiagnosedRetainingFailure(
+                alloc,
+                &diagnostic_components,
+                &diagnostic_channel,
+                diagnostic_scheme,
+                .{},
+                &diagnostic,
+                &failed,
+            ));
+            try std.testing.expect(failed != null);
+            const failed_bytes = try proof_wire.encodeProofBytes(alloc, failed.?.proof);
+            defer alloc.free(failed_bytes);
+            try std.testing.expectEqualSlices(u8, prove_ex_bytes, failed_bytes);
+        } else {
+            var successful = try Engine.proveDiagnosedRetainingFailure(
+                alloc,
+                &diagnostic_components,
+                &diagnostic_channel,
+                diagnostic_scheme,
+                .{},
+                &diagnostic,
+                &failed,
+            );
+            defer successful.deinit(alloc);
+            try std.testing.expect(failed == null);
+            try std.testing.expect(diagnostic == null);
+        }
+        if (mode != .success) {
+            try std.testing.expectEqual(@import("stwo_prover_api").ProvePhase.finalize, diagnostic.?.phase);
+            try std.testing.expectEqual(error.ConstraintsNotSatisfied, diagnostic.?.cause);
+        }
+    }
 }
 
 test "prover prove: prepared proof verifies with core verifier" {

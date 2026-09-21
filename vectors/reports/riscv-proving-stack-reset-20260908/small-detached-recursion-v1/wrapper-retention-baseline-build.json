@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-concrete-outer-proof",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "source_patch_sha256": "67b41fadaba4022d05f4ceb83174447cf555038fd1abac919bcd9e774f595bd2",
+  "binary": ".git/local-riscv-proving-stack/small-detached-recursion-v1/wrapper-retention-never-prove",
+  "binary_sha256": "fde8daf186a8efbe4f7f429fcd8ee92353210cd13185cea9c0236982233c102d",
+  "freeze_note": "Build passed; initial copy used incorrect installed filename and was corrected without rebuilding. Exact wall time was not retained; see build log."
+}

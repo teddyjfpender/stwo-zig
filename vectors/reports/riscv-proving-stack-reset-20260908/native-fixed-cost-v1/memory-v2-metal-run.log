@@ -1,0 +1,11 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 2s
+metal size=1 sample=0: 4.877s verified=True
+metal size=1 sample=1: 4.279s verified=True
+metal size=1 sample=2: 4.123s verified=True
+metal size=4 sample=0: 4.059s verified=True
+metal size=4 sample=1: 4.077s verified=True
+metal size=4 sample=2: 4.097s verified=True
+metal size=16 sample=0: 4.293s verified=True
+metal size=16 sample=1: 4.295s verified=True
+metal size=16 sample=2: 4.247s verified=True

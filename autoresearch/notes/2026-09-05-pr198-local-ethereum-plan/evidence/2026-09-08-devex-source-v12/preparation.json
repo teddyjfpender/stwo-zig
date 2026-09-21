@@ -1,0 +1,70 @@
+{
+  "status": "prepared_not_launched_or_queued",
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v12/manifest.json",
+    "bytes": 1103570,
+    "sha256": "b7f1e875529734b0a8373b641417d26b6b54ed8021576e6b70a39b9fb4747a9b"
+  },
+  "delta": {
+    "parent_file_count": 5779,
+    "file_count": 5780,
+    "copied_files_rehashed": 5780,
+    "changes": [
+      {
+        "path": "src/core/vcs_lifted/verifier.zig",
+        "before": {
+          "path": "src/core/vcs_lifted/verifier.zig",
+          "bytes": 21516,
+          "sha256": "77454dc3582ddac14f78f0728603e75c81ae27b30c52731fa3c208e9762c14ee"
+        },
+        "after": {
+          "path": "src/core/vcs_lifted/verifier.zig",
+          "bytes": 23305,
+          "sha256": "5af7cbedea64caa835aad9ffb37b3cecf57defdf80c96336634e009937acb5fa"
+        }
+      },
+      {
+        "path": "src/core/vcs_lifted_verifier_test_root.zig",
+        "before": null,
+        "after": {
+          "path": "src/core/vcs_lifted_verifier_test_root.zig",
+          "bytes": 136,
+          "sha256": "306defe7ddbcd1b3ada71bc91948a2210312c70b755278bbf3cb79cd3adb0919"
+        }
+      },
+      {
+        "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+        "before": {
+          "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+          "bytes": 80380,
+          "sha256": "9154b954f3b1dd6e795622c3aebb645e7f7c7bd9221bc3b0cce7fc372d18c28e"
+        },
+        "after": {
+          "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+          "bytes": 80790,
+          "sha256": "07bd87a2053d59dba381d8b5abaf39f4d3ed533bb791f9d9c11f2e774d1ec0ef"
+        }
+      }
+    ],
+    "new_manifest_sha256": "b7f1e875529734b0a8373b641417d26b6b54ed8021576e6b70a39b9fb4747a9b"
+  },
+  "ordered_gate_requests": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/lifted-verifier-request.json",
+      "bytes": 2276,
+      "sha256": "3ff3e0db075047a804db71e7636a6b4fb6a7391688822577ed4e06fe32c7dfb4"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/small-composition-request.json",
+      "bytes": 2140,
+      "sha256": "0a5d8c726f8f1acac4d925138422221f9b122aacec397027a03299d9e6ee404c"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v12/native-allocator-abba-request.json",
+      "bytes": 6695,
+      "sha256": "f9cf334dfddb1d9a17700ccf7d6231b9840a7cea24b9910eff60514bbb7ac30f"
+    }
+  ],
+  "next_action": "Parent review and release after livev11 outcome and independent verification priority",
+  "executed_tests": 0
+}

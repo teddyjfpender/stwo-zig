@@ -183,6 +183,7 @@ fn validateSource(
             if (memory.readU32(completion.address) != completion.value)
                 return error.CompletionInstructionMismatch;
         },
+        .unretired_program_fetch => return error.UnsupportedCompletion,
     }
 
     var result: SourceIdentity = undefined;

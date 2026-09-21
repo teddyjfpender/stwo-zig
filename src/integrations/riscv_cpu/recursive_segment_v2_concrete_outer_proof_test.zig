@@ -9,7 +9,6 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
 const outer_proof = @import("recursive_segment_v2_outer_proof_test.zig");
@@ -17,16 +16,16 @@ const recording_support = @import("recursive_v3_recording_test_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
 const composition_authority =
-    integration.recursive_binary_composition_authority;
-const binary_cohort_mod = integration.recursive_binary_outer_cohort;
-const binary_driver = integration.recursive_binary_outer;
-const outer_cohort = integration.recursive_segment_v2_outer_cohort;
+    @import("recursive_binary_composition_authority.zig");
+const binary_cohort_mod = @import("recursive_binary_outer_cohort.zig");
+const binary_driver = @import("recursive_binary_outer.zig");
+const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
 const outer_admission_v2 =
-    integration.recursive_segment_v2_outer_admission_v2;
-const outer_engine = integration.recursive_segment_v2_outer_engine;
-const temporal_nonfri = integration.recursive_temporal_nonfri_source_v2;
+    @import("recursive_segment_v2_outer_admission_v2.zig");
+const outer_engine = @import("recursive_segment_v2_outer_engine.zig");
+const temporal_nonfri = @import("recursive_temporal_nonfri_source_v2.zig");
 const cohort_protocol = frontend.recursion.segment_outer_cohort_v2;
 const binary_rows = frontend.recursion.binary_fri_outer_source;
 const composition_graph = frontend.recursion.air.composition_circuit;
@@ -46,6 +45,73 @@ const BinaryCohort = binary_cohort_mod.Cohort(
 pub fn runGate(allocator: std.mem.Allocator) !void {
     try ingress.runGateWithHook(allocator, ConcreteOuterProofHook);
 }
+
+/// Runs the same complete 39-component/47-domain proof acceptance at each
+/// small native execution size. Native input remains verifier admission data;
+/// this is a development q1/q3 profile, not a detached production root.
+pub fn runSizedProof(allocator: std.mem.Allocator, native_steps: usize) !void {
+    try ingress.runSizedGateWithHook(allocator, SizedProofHook, native_steps);
+}
+
+pub fn runSizedProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize) !void {
+    try ingress.runSizedGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, native_steps);
+}
+
+/// Same program and geometry; only the authenticated untouched x7 value changes.
+pub fn runSizedProofWithRegister7(allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
+    try runSizedProofWithInitialRegister7(outer_engine.Engine, allocator, native_steps, initial_register7);
+}
+
+pub fn runSizedProofWithInitialRegister7(comptime NativeEngine: type, allocator: std.mem.Allocator, native_steps: usize, initial_register7: u32) !void {
+    try ingress.runSizedGateWithInitialRegister7(NativeEngine, allocator, SizedProofHook, native_steps, initial_register7);
+}
+
+pub fn runMemoryProof(allocator: std.mem.Allocator, address_count: usize) !void {
+    try runMemoryProofWithNativeEngine(outer_engine.Engine, allocator, address_count);
+}
+
+pub fn runMemoryProofWithNativeEngine(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize) !void {
+    try ingress.runMemoryGateWithNativeEngine(NativeEngine, allocator, SizedProofHook, address_count);
+}
+
+pub fn checkMemoryWorkload(allocator: std.mem.Allocator) !void {
+    try @import("recursive_segment_v2_memory_workload.zig").checkWorkload(allocator);
+}
+
+pub fn checkTwoSegmentWorkload(allocator: std.mem.Allocator) !void {
+    try @import("recursive_segment_v2_workload.zig").checkWorkload(allocator);
+}
+
+pub const memory_native_steps = @import("recursive_segment_v2_memory_workload.zig").native_steps;
+
+pub fn checkSizedWorkload(allocator: std.mem.Allocator) !void {
+    try ingress.checkSizedWorkload(allocator);
+}
+
+const SizedProofHook = struct {
+    pub fn run(allocator: std.mem.Allocator, prepared: *const leaf_outer.PreparedNativeV2LeafOuter) !void {
+        var verified = try proveAndCheckOuter(allocator, prepared);
+        defer verified.capture.deinit(allocator);
+        const logs = verified.recursive_witness.outer_admission.component_log_sizes;
+        std.debug.print(
+            "\nSEGMENT_V2_LADDER_OUTER rows=39 domains=47 component_logs={any} " ++
+                "min_component_log={d} max_component_log={d} provider_log={d} " ++
+                "samples={d} queries={d} canonical_proof_bytes={d} " ++
+                "producer_live_bytes_after_destroy={d}\n",
+            .{
+                logs,
+                std.mem.min(u32, &logs),
+                std.mem.max(u32, &logs),
+                logs[34],
+                verified.capture.sampled_values.len,
+                verified.capture.queries.raw.len,
+                verified.receipt.canonical_proof_bytes,
+                verified.receipt.producer_live_bytes_after_destroy,
+            },
+        );
+        try @import("recursive_segment_v2_detached_proof.zig").retainIfRequested(allocator, prepared);
+    }
+};
 
 /// Narrow edit loop for V3 recorder/row-18 work. It preserves the real native
 /// ingress and independently verified 39-row SegmentV2 proof, but omits the
@@ -72,6 +138,85 @@ const FocusedRecorderHook = struct {
     }
 };
 
+// Complete proof acceptance shared by the broad regression gate and every
+// bounded ladder size. Only downstream recorder/structural tests are omitted.
+fn proveAndCheckOuter(
+    allocator: std.mem.Allocator,
+    prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
+) !outer_proof.VerifiedOuterProof {
+    // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
+    // constructs independent prover and verifier cohorts from it; no
+    // detached row, claim, audit, provider schedule, or prover receipt is
+    // accepted at this boundary.
+    var verified = try outer_proof.provePreparedNativeLeaf(
+        outer_cohort.Cohort,
+        allocator,
+        prepared,
+        prepared,
+        outer_engine.ExecutionOptions{
+            .worker_count = 1,
+            .check_serialized_artifact_rejections = true,
+        },
+    );
+    errdefer verified.capture.deinit(allocator);
+
+    try verified.receipt.validate();
+    try verified.publication.validate();
+    try std.testing.expectEqual(
+        @as(u8, outer_cohort.COMPONENT_COUNT),
+        verified.receipt.roster_count,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 39),
+        outer_cohort.COMPONENT_COUNT,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 47),
+        cohort_protocol.DOMAIN_COUNT,
+    );
+    try std.testing.expectEqual(
+        @as(usize, 1),
+        verified.receipt.worker_count,
+    );
+    try std.testing.expect(verified.receipt.proof_size_estimate > 0);
+    try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
+    try std.testing.expectEqual(
+        @as(usize, verified.publication.canonical_proof_byte_count),
+        verified.receipt.canonical_proof_bytes,
+    );
+    try std.testing.expectEqualDeep(
+        verified.receipt.canonical_proof_id,
+        verified.publication.proof_id,
+    );
+    try std.testing.expectEqualSlices(
+        u8,
+        &verified.receipt.canonical_proof_sha256,
+        &verified.publication.canonical_proof_sha_id,
+    );
+    try std.testing.expect(verified.receipt.transcript_draws > 0);
+    try std.testing.expect(verified.receipt.preprocessed_columns > 0);
+    try std.testing.expect(verified.receipt.main_columns > 0);
+    try std.testing.expect(verified.receipt.interaction_columns > 0);
+    try std.testing.expect(verified.capture.commitments.len > 0);
+    try std.testing.expect(verified.capture.queries.raw.len > 0);
+    try std.testing.expect(verified.publication.temporalChildReady());
+    try std.testing.expect(!verified.publication.completeParentReady());
+    try std.testing.expectEqual(
+        @as(u8, 39),
+        verified.publication.closure.proved_component_count,
+    );
+    try std.testing.expectEqual(
+        @as(u8, 36),
+        verified.publication.closure.universal_roster_count,
+    );
+    try std.testing.expectEqual(
+        @as(u8, 47),
+        verified.publication.closure.relation_domain_count,
+    );
+
+    return verified;
+}
+
 const ConcreteOuterProofHook = struct {
     /// Fast, challenge-independent development loop. Cohort construction
     /// still consumes the successful native verifier capture; the classifier
@@ -97,72 +242,8 @@ const ConcreteOuterProofHook = struct {
         allocator: std.mem.Allocator,
         prepared: *const leaf_outer.PreparedNativeV2LeafOuter,
     ) !void {
-        // `Cohort.AuthorityInputs` is this exact pointer type. The proof helper
-        // constructs independent prover and verifier cohorts from it; no
-        // detached row, claim, audit, provider schedule, or prover receipt is
-        // accepted at this boundary.
-        var verified = try outer_proof.provePreparedNativeLeaf(
-            outer_cohort.Cohort,
-            allocator,
-            prepared,
-            prepared,
-            outer_engine.ExecutionOptions{ .worker_count = 1 },
-        );
+        var verified = try proveAndCheckOuter(allocator, prepared);
         defer verified.capture.deinit(allocator);
-
-        try verified.receipt.validate();
-        try verified.publication.validate();
-        try std.testing.expectEqual(
-            @as(u8, outer_cohort.COMPONENT_COUNT),
-            verified.receipt.roster_count,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 39),
-            outer_cohort.COMPONENT_COUNT,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 47),
-            cohort_protocol.DOMAIN_COUNT,
-        );
-        try std.testing.expectEqual(
-            @as(usize, 1),
-            verified.receipt.worker_count,
-        );
-        try std.testing.expect(verified.receipt.proof_size_estimate > 0);
-        try std.testing.expect(verified.receipt.canonical_proof_bytes > 0);
-        try std.testing.expectEqual(
-            @as(usize, verified.publication.canonical_proof_byte_count),
-            verified.receipt.canonical_proof_bytes,
-        );
-        try std.testing.expectEqualDeep(
-            verified.receipt.canonical_proof_id,
-            verified.publication.proof_id,
-        );
-        try std.testing.expectEqualSlices(
-            u8,
-            &verified.receipt.canonical_proof_sha256,
-            &verified.publication.canonical_proof_sha_id,
-        );
-        try std.testing.expect(verified.receipt.transcript_draws > 0);
-        try std.testing.expect(verified.receipt.preprocessed_columns > 0);
-        try std.testing.expect(verified.receipt.main_columns > 0);
-        try std.testing.expect(verified.receipt.interaction_columns > 0);
-        try std.testing.expect(verified.capture.commitments.len > 0);
-        try std.testing.expect(verified.capture.queries.raw.len > 0);
-        try std.testing.expect(verified.publication.temporalChildReady());
-        try std.testing.expect(!verified.publication.completeParentReady());
-        try std.testing.expectEqual(
-            @as(u8, 39),
-            verified.publication.closure.proved_component_count,
-        );
-        try std.testing.expectEqual(
-            @as(u8, 36),
-            verified.publication.closure.universal_roster_count,
-        );
-        try std.testing.expectEqual(
-            @as(u8, 47),
-            verified.publication.closure.relation_domain_count,
-        );
 
         // Reconstruct both downstream consumers from this exact successful
         // verifier transaction. A fresh cohort supplies only the trusted

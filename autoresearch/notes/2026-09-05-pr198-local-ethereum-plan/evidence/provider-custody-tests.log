@@ -1,0 +1,11 @@
+
+Build Summary: 8/8 steps succeeded; 15/15 tests passed
+test-recursion-segment-publication-provider-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 10 passed 343ms MaxRSS:4M
+      +- compile test ReleaseSafe native success 11s MaxRSS:855M
+test-recursion-segment-outer-noncore-audits-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 416ms MaxRSS:16M
+      +- compile test ReleaseSafe native success 25s MaxRSS:1G
+

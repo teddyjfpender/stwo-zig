@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "focused_tests": 3,
+  "ownership_checks": 44,
+  "inventory_checks": 2,
+  "unchanged_declarations": 35,
+  "boundary_fixtures": 6,
+  "rejected_witness_mutations": 222,
+  "source_conformance_findings": 108,
+  "full_proof_rerun": false,
+  "goal_complete": false,
+  "owner_lines": {
+    "preparation": 742,
+    "graph": 248,
+    "identity": 154,
+    "continuation": 297
+  }
+}

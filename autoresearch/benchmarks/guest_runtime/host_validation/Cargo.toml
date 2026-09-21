@@ -1,0 +1,12 @@
+[package]
+name = "stwo-ethereum-host-validation"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+critical-section = { version = "1.2", features = ["std"] }
+sha2 = "0.10"
+stateless-validator-reth = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491" }

@@ -1,0 +1,50 @@
+[
+  {
+    "name": "produce-leaves",
+    "argv": [
+      "/tmp/pr198-product-cpu-leaf-setup-20260918-v1/cpu/bin/recursive-segment-v2-concrete-outer-proof",
+      "--memory-addresses",
+      "1",
+      "--segments-output",
+      "/tmp/pr198-canonical-2-setup-20260918-v1/leaves",
+      "--segment-count",
+      "2",
+      "--initial-memory-word",
+      "13",
+      "--proof-profile",
+      "recursive_q193_v1",
+      "--native-backend",
+      "cpu",
+      "--recursive-backend",
+      "cpu",
+      "--child-0-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-key.json",
+      "--child-0-key-sha256",
+      "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+      "--child-1-key",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-key.json",
+      "--child-1-key-sha256",
+      "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86"
+    ],
+    "exit_code": 0
+  },
+  {
+    "name": "parent-1-0-setup",
+    "argv": [
+      "/tmp/pr198-product-cpu-leaf-setup-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-prove",
+      "derive-key",
+      "--profile",
+      "tiny-memory-root-v2",
+      "/tmp/pr198-canonical-2-setup-20260918-v1/parent-1-0-key.json",
+      "/tmp/pr198-canonical-2-setup-20260918-v1/leaves/child-0",
+      "c8fa3512d1242276be86236a8e7aee9e3f44a658ccada0df16a5ecf53accbb14",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-0-expected-wire.json",
+      "/tmp/pr198-canonical-2-setup-20260918-v1/leaves/child-1",
+      "e6c2ed6614cf244b5ee37117b8984b6ca2bab5bc3f607cac57a76fcd0928cc86",
+      "/Users/theodorepender/code/cryptography/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-child-admission/child-1-expected-wire.json",
+      "--proof-profile",
+      "recursive_q193_v1"
+    ],
+    "exit_code": 0
+  }
+]

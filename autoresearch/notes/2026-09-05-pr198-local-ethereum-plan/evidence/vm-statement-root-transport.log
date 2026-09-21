@@ -1,0 +1,11 @@
+test-recursion-preparation
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+
+Build Summary: 4/4 steps succeeded; 7/7 tests passed
+test-recursion-preparation success
++- stwo_riscv_frontend test count floor success
+   +- run test 7 passed 265ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 6s MaxRSS:557M
+

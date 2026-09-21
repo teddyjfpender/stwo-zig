@@ -1,0 +1,17 @@
+test-recursion-preparation
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+ETHEREUM_PUBLIC_LOGUP_INPUT_SEMANTIC_DIGEST=fdeacd0daf651b507d28664714d131fa9837e4a701bcb00e41cf84b9c815b8fd
+ETHEREUM_TRANSCRIPT_STATE_SEMANTIC_DIGEST=450fe2b9364468383ad2bc1e6c50ac1b2a5dee33fb2ca47f8d39b3b08224995f
+ETHEREUM_TRANSCRIPT_PAYLOAD_SEMANTIC_DIGEST=95a72779d509cbf9b844a662e220e000d6cd88f0a45b7351f50bf7654567f79d
+ETHEREUM_PUBLICATION_HASH_SEMANTIC_DIGEST=5ca22b7fd0a6e08537c18b391a148900182a827aca4ec8056251dabce6f483c3
+ETHEREUM_PUBLICATION_CONTROL_SEAL=e336f9f5f79b7f3d0060db3b1272017a37ffeb642b4700725841c838cc95827f
+ETHEREUM_CLAIM_ROUTING_SEMANTIC_DIGEST=f897b2dab8d2d125e30ab72fc4ed630b2b4b2890a67a07c32fb768f563c11008
+VM_COMPOSITION_UNSAT output=0/1 node=9 value=.{ .c0 = .{ .a = .{ .v = 1 }, .b = .{ .v = 0 } }, .c1 = .{ .a = .{ .v = 0 }, .b = .{ .v = 0 } } }
+
+Build Summary: 4/4 steps succeeded; 43/43 tests passed
+test-recursion-preparation success
++- stwo_riscv_frontend test count floor success
+   +- run test 43 passed 990ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 18s MaxRSS:1G
+

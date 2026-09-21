@@ -3,8 +3,8 @@
 //!
 //! Decode remains architectural. This registry turns the decoded enum into a
 //! compact authority tag with one indexed load, then dispatches to the fixed,
-//! allocation-free family transaction. Unsupported families return `false`
-//! and remain on the legacy path; a migrated family cannot silently fall back.
+//! allocation-free family transaction. Every ordinary opcode has typed authority.
+//! Only ECALL and EBREAK return `false` for explicit session host handling.
 
 const std = @import("std");
 const protocol_opcode = @import("../air/program/opcode.zig").Opcode;
@@ -256,6 +256,12 @@ const DISPATCH = blk: {
             @compileError("duplicate generated retirement opcode");
         result[opcode_index] = descriptor.kind;
     }
+    for (@typeInfo(decode.Opcode).@"enum".fields) |field| {
+        const opcode: decode.Opcode = @enumFromInt(field.value);
+        const host_instruction = opcode == .ECALL or opcode == .EBREAK;
+        if ((result[field.value] == null) != host_instruction)
+            @compileError("every ordinary opcode requires typed retirement; host instructions must remain separate");
+    }
     break :blk result;
 };
 
@@ -272,8 +278,8 @@ pub const RetireError = lui.RetireError || fence.RetireError ||
     mul.RetireError || mulh.RetireError || div.RetireError ||
     load_store.RetireError;
 
-/// Retire one migrated instruction. `false` is returned only for an opcode
-/// absent from `MIGRATED`; every registered family either publishes one whole
+/// Retire one ordinary instruction. `false` is returned only for ECALL or
+/// EBREAK; every registered family either publishes one whole
 /// transaction or returns an error before logical mutation.
 pub inline fn retireAtomic(
     cpu: *Cpu,

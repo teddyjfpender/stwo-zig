@@ -1,0 +1,8 @@
+SEGMENT_V2_LADDER mode=native_ingress_only requested_steps=64 native_backend=cpu memory_addresses=1 initial_register7=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=98 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1188
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 480 exact sparse-node calls, poseidon_log_size=9, merkle_log_size=9
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=459835596 producer_live_bytes_after_destroy=0 canonical_proof_bytes=1323023 before_fresh_decode=true
+SEGMENT_V2_NATIVE_PROFILE profile=protocol_v1 segment=0 queries=193 fold_step=4 pcs_pow_bits=16 interaction_pow_bits=10 prove_ns=2279336584 transport_ns=8864666 verify_ns=451758792 recursive_prepare_ns=993223208 proof_bytes=1323023 transcript_calls=1164 verifier_core_calls=58865 outer_proof_created=false
+SEGMENT_V2_NATIVE_INGRESS status=verified profile=protocol_v1 native_backend=cpu owners_destroyed=true outer_proof_created=false

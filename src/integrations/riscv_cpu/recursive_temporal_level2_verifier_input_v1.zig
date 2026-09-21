@@ -21,6 +21,7 @@ const rows_source = recursion.binary_fri_outer_source;
 
 pub const FORMAT_VERSION: u16 = 1;
 pub const SCHEMA_VERSION: u16 = 1;
+pub const GENERIC_SCHEMA_VERSION: u16 = 2;
 pub const CHILD_COUNT: usize = 2;
 pub const VERIFIER_INPUT_DOMAIN_INDEX: u8 = 25;
 pub const STATEMENT_WORD_COUNT: usize = statement_air.CANONICAL_WORD_COUNT;
@@ -46,6 +47,7 @@ pub const ContextReceiptV1 = struct {
         try pair.validate();
         const root = pair.prepared_root.result.pair;
         var result = ContextReceiptV1{
+            .schema_version = contextSchema(root.parent_height),
             .parent_height = root.parent_height,
             .parent_node_index = root.parent_node_index,
             .pair_authority_id = pair.authority_id,
@@ -62,8 +64,10 @@ pub const ContextReceiptV1 = struct {
 
     pub fn validate(self: *const ContextReceiptV1) !void {
         if (self.format_version != FORMAT_VERSION or
-            self.schema_version != SCHEMA_VERSION or
-            self.parent_height != level2.FIRST_MULTI_LEVEL_HEIGHT or
+            (self.schema_version != SCHEMA_VERSION and
+                self.schema_version != GENERIC_SCHEMA_VERSION) or
+            self.parent_height < level2.FIRST_MULTI_LEVEL_HEIGHT or
+            self.schema_version != contextSchema(self.parent_height) or
             !std.mem.allEqual(u8, &self.padding, 0) or
             !std.mem.eql(u8, &self.identity, &contextIdentity(self)))
         {
@@ -90,6 +94,13 @@ pub const ContextReceiptV1 = struct {
         }
     }
 };
+
+fn contextSchema(parent_height: u8) u16 {
+    return if (parent_height == level2.FIRST_MULTI_LEVEL_HEIGHT)
+        SCHEMA_VERSION
+    else
+        GENERIC_SCHEMA_VERSION;
+}
 
 pub const AuthorityV1 = struct {
     format_version: u16 = FORMAT_VERSION,

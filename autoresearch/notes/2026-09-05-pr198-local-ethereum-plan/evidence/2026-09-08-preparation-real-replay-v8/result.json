@@ -1,0 +1,72 @@
+{
+  "status": "accepted_real_preparation_closure_replay",
+  "wrapper_proof": false,
+  "whole_block": false,
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v19/manifest.json",
+    "bytes": 1103791,
+    "sha256": "e5467995260207c8e168aaf749aec5379fdf2b45ce1c88adf25d5a7688a34499"
+  },
+  "execution": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/execution.json",
+    "bytes": 1223,
+    "sha256": "074c939ff0a4107b3f5516fba080c301c809b51f8f901afadaa68a5d260e63b2"
+  },
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/request.json",
+    "bytes": 7634,
+    "sha256": "be0071a0aabc301df3e2d3340ccccadc2ed4e6102cbc189abde02c920725d6f4"
+  },
+  "guarded_tests": 2,
+  "all_required_markers_present": true,
+  "baseline": {
+    "request": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v3/request.json",
+      "bytes": 3026,
+      "sha256": "0905cd4d9221279cf9c02ffa59d3b24e14217e7726140d8a66cb26c7bd842836"
+    },
+    "execution": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v3/execution.json",
+      "bytes": 441,
+      "sha256": "b8d77c7bffcf54a51a49f45d8cc3cf8d6382532932d60bcb41174c63c8dbfab4"
+    },
+    "phases_seconds": {
+      "prepare": 1623.176270334,
+      "tree2_generate": 217.860487625,
+      "producer_closure": 2.5583e-05,
+      "serialize": 0.000610375,
+      "producer_destroy": 31.153664291,
+      "cold_prepare": 1642.701859625,
+      "cold_tree2": 216.933840583,
+      "cold_closure": 120.6584425,
+      "verifier_destroy": 25.745217375
+    },
+    "runtime_seconds": 4253.301079042,
+    "peak_footprint_bytes": 56226325544
+  },
+  "current": {
+    "phases_seconds": {
+      "prepare": 305.264080417,
+      "native_prepared_regression": 79.789692458,
+      "tree2_generate": 84.048205458,
+      "producer_closure": 2.0667e-05,
+      "serialize": 0.000340958,
+      "producer_destroy": 3.928563542,
+      "cold_prepare": 292.678277667,
+      "cold_tree2": 85.093742041,
+      "cold_closure": 54.035735041,
+      "verifier_destroy": 3.739892959
+    },
+    "runtime_seconds": 1098.931186208,
+    "request_seconds": 1204.2952364170924,
+    "peak_footprint_bytes": 42358046016
+  },
+  "reductions_percent": {
+    "prepare": 81.19341158467121,
+    "cold_prepare": 82.18311643393322,
+    "tree2_generate": 61.42108815864265,
+    "runtime": 74.16286395470692,
+    "peak_footprint": 24.66510018896283
+  },
+  "scope": "Cumulative source-v6 to source-v19 on same retained pair/profile/worker1, not isolated optimization A/B. Environment differs only progress destination and existing outer diagnostic. Current runtime includes separate mutation/parity diagnostics. Complete Generated closure storage verification, not PCS/STARK production. Frozen v20 retains unchanged active preparation code and restores unrelated legacy capture to accepted v15; consuming wrapper3 proof still required."
+}

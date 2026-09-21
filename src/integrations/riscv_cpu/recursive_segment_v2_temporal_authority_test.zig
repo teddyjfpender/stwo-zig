@@ -318,19 +318,19 @@ fn adjacentStatements() ![2]span.SpanStatement {
     const initial = try span.MachineState.init(
         0x1000,
         zero_registers,
-        digest(401),
+        recursion.segment_statement_v2.snapshotDigest(&.{}, .initial_word).id,
         digest(402),
     );
     const middle = try span.MachineState.init(
         0x1004,
         zero_registers,
-        digest(403),
+        recursion.segment_statement_v2.snapshotDigest(&.{}, .initial_word).id,
         digest(404),
     );
     const final = try span.MachineState.init(
         0x1008,
         zero_registers,
-        digest(405),
+        recursion.segment_statement_v2.snapshotDigest(&.{}, .initial_word).id,
         digest(406),
     );
     const input = digest(407);

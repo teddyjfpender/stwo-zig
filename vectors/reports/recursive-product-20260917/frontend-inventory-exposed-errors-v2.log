@@ -1,0 +1,53 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 0s
+test
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test Debug native 6 errors
+air/guest_precompile/analyze_legacy_bitmap_candidate_v1.zig:72:31: error: @intCast must have a known result type
+        row.word_index = felt(@intCast(word_index));
+                              ^~~~~~~~~~~~~~~~~~~~
+air/guest_precompile/analyze_legacy_bitmap_candidate_v1.zig:72:30: note: result type is unknown due to anytype parameter
+        row.word_index = felt(@intCast(word_index));
+                         ~~~~^~~~~~~~~~~~~~~~~~~~~~
+air/guest_precompile/analyze_legacy_bitmap_candidate_v1.zig:72:31: note: use @as to provide explicit result type
+referenced by:
+    test.bitmap set bits cancel exactly against semantic JUMPDEST requests: air/guest_precompile/analyze_legacy_candidate_v1_test.zig:197:47
+    test_0: test_inventory.zig:685:17
+    1 reference(s) hidden; use '-freference-trace=3' to see all references
+air/guest_precompile/analyze_legacy_relations_candidate_v1.zig:152:58: error: expected type 'u32', found 'usize'
+                .cursor = row.word_index.toU32() * bitmap.bits_per_word +
+                ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+air/guest_precompile/analyze_legacy_relations_candidate_v1.zig:152:58: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+air/guest_precompile/analyze_legacy_scan_candidate_v1.zig:143:30: error: @intCast must have a known result type
+        row.row_index = felt(@intCast(row_index));
+                             ^~~~~~~~~~~~~~~~~~~
+air/guest_precompile/analyze_legacy_scan_candidate_v1.zig:143:29: note: result type is unknown due to anytype parameter
+        row.row_index = felt(@intCast(row_index));
+                        ~~~~^~~~~~~~~~~~~~~~~~~~~
+air/guest_precompile/analyze_legacy_scan_candidate_v1.zig:143:30: note: use @as to provide explicit result type
+air/guest_precompile/keccak256_sponge_candidate_v1.zig:133:10: error: expected type 'u32', found 'usize'
+        .block_count = block_count,
+        ~^~~~~~~~~~~~~~~~~~~~~~~~~
+air/guest_precompile/keccak256_sponge_candidate_v1.zig:133:10: note: unsigned 32-bit int cannot represent all possible unsigned 64-bit values
+air/guest_precompile/keccak256_sponge_direct_candidate_v1.zig:54:35: error: destination type 'u32' has more bits than source type 'u8'
+        bit.* = M31.fromCanonical(@truncate(block.input_rate[byte] >> offset));
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+air/guest_precompile/keccak256_sponge_direct_candidate_v1.zig:54:35: note: destination type has 32 bits
+air/guest_precompile/keccak256_sponge_direct_candidate_v1.zig:54:68: note: operand type has 8 bits
+        bit.* = M31.fromCanonical(@truncate(block.input_rate[byte] >> offset));
+                                            ~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~~~
+prover/guest_precompile/ethereum_segment_poseidon2_proof_artifact.zig:621:26: error: error set is discarded
+        _ = encodeFailure(
+            ~~~~~~~~~~~~~^
+error: the following command failed with 6 compilation errors:
+/opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig test -ODebug --dep stwo_core --dep stwo_prover_api --dep stwo_prover_engine --dep interop_postcard --dep typed_air_artifacts --dep typed_air_h009_artifacts --dep typed_air_h010_artifacts -Mroot=/Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv/mod.zig -ODebug -Mstwo_core=/Users/theodorepender/code/cryptography/stwo-zig/src/core/mod.zig -ODebug --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/code/cryptography/stwo-zig/src/prover_api/mod.zig -ODebug --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/code/cryptography/stwo-zig/src/prover/mod.zig -ODebug --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/postcard.zig -ODebug -Mtyped_air_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/embedded.zig -ODebug -Mtyped_air_h009_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h009_embedded.zig -ODebug -Mtyped_air_h010_artifacts=/Users/theodorepender/code/cryptography/stwo-zig/design/typed-air/artifacts/h010_embedded.zig -ODebug --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/code/cryptography/stwo-zig/src/backend/mod.zig -ODebug --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/code/cryptography/stwo-zig/src/interop/proof_wire/mod.zig --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test Debug native 6 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0ba1b841977fbbcbd15d8dec2ad32549/build /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig /opt/homebrew/Cellar/zig@0.15/0.15.2/lib/zig /Users/theodorepender/code/cryptography/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x1b3b8c6a -Z7f600d8422b99cf2 --maxrss 25769803776 -j1 test -Doptimize=Debug --summary all

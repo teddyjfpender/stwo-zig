@@ -412,3 +412,152 @@ fn splitColumns(
 fn expectAll(values: []const M31, expected: M31) !void {
     for (values) |value| try std.testing.expect(value.eql(expected));
 }
+
+const framework_backend = @import("stwo_prover_engine").air.component_prover;
+const native_table = @import("../../air/lookups/tables/component.zig");
+const framework_tree_counts = [_]usize{ 15, 21, 34 };
+
+fn frameworkNative(relations: *const lookup_relations.Relations) !native_table.LookupTableComponent {
+    return native_table.LookupTableComponent.initProver(.range_check_8_8, 11, &.{ 12, 13 }, 19, 29, relations, QM31.fromU32Unchecked(11, 13, 17, 19));
+}
+
+test "range framework export preserves native mapped inputs zero roots and independent recurrence" {
+    const relations = lookup_relations.Relations.dummy();
+    const native = try frameworkNative(&relations);
+    var program = try bridge.exportFrameworkProgram(std.testing.allocator, &native, &framework_tree_counts);
+    defer program.deinit();
+    var parameters = try bridge.exportFrameworkParameters(std.testing.allocator, &native);
+    defer parameters.deinit();
+    try parameters.values.validate(&program);
+    try std.testing.expectEqual(.independent_prefix_v1, program.layout);
+    try std.testing.expectEqual(@as(usize, 0), program.direct.nodes.len);
+    try std.testing.expectEqual(@as(usize, 0), program.direct.roots.len);
+    try std.testing.expectEqual(@as(?u32, 3), program.is_first_input);
+    const expected_inputs = [_]framework_backend.TypedPolynomialInputV1{
+        .{ .trace_column = .{ .tree_index = 1, .column_index = 19 } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = 12 } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = 13 } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = 11 } },
+    };
+    for (program.inputs, expected_inputs) |actual, expected| try std.testing.expect(std.meta.eql(actual, expected));
+    for (program.interaction_columns, 0..) |column, index| {
+        try std.testing.expectEqual(@as(u8, 2), column.tree_index);
+        try std.testing.expectEqual(29 + index, column.column_index);
+    }
+    try std.testing.expectEqual(@as(usize, 1), parameters.values.claimPayloadCount(&program));
+    try std.testing.expect((try parameters.values.claimPayload(&program, 0)).eql(native.claim));
+    try std.testing.expectError(error.InvalidFrameworkPolynomialParameters, parameters.values.claimPayload(&program, 1));
+    // Extension-field samples cover OODS semantics too; the framework selector
+    // is an evaluated polynomial, not a boolean assertion at this boundary.
+    for (0..16) |sample| {
+        const words = [_]QM31{
+            QM31.fromU32Unchecked(@intCast(3 + sample), 5, 7, 11),
+            QM31.fromU32Unchecked(17, @intCast(19 + sample), 23, 29),
+            QM31.fromU32Unchecked(31, 37, @intCast(41 + sample), 43),
+            QM31.fromU32Unchecked(47, 53, 59, @intCast(61 + sample)),
+        };
+        const current = QM31.fromU32Unchecked(67, 71, 73, @intCast(79 + sample));
+        const previous = QM31.fromU32Unchecked(83, 89, @intCast(97 + sample), 101);
+        const expected = try native.evaluateRow(words[1..3], words[0], current, previous, words[3]);
+        const actual = try evaluateFrameworkRange(&program, parameters.values, words, current, previous);
+        try std.testing.expect(expected.eql(actual));
+    }
+}
+
+test "range framework admission rejects selector claim shape identity and malformed source" {
+    const relations = lookup_relations.Relations.dummy();
+    var native = try frameworkNative(&relations);
+    var program = try bridge.exportFrameworkProgram(std.testing.allocator, &native, &framework_tree_counts);
+    defer program.deinit();
+    var parameters = try bridge.exportFrameworkParameters(std.testing.allocator, &native);
+    defer parameters.deinit();
+    const selector = program.is_first_input;
+    program.is_first_input = 0; // Main multiplicity is not a PP selector.
+    program.identity = program.identityDigest();
+    try std.testing.expectError(error.InvalidFrameworkPolynomialInput, program.validate(&framework_tree_counts));
+    program.is_first_input = null;
+    try std.testing.expectError(error.InvalidFrameworkPolynomialInput, program.validate(&framework_tree_counts));
+    program.is_first_input = selector;
+    program.identity = program.identityDigest();
+    program.inputs[3].trace_column.column_index += 1;
+    try std.testing.expectError(error.InvalidFrameworkPolynomialIdentity, program.validate(&framework_tree_counts));
+    program.inputs[3].trace_column.column_index -= 1;
+    program.layout = .same_row_prefix_v1;
+    program.is_first_input = null;
+    program.identity = program.identityDigest();
+    try std.testing.expectError(error.InvalidBasePolynomialProgram, program.validate(&framework_tree_counts));
+    program.layout = .independent_prefix_v1;
+    program.is_first_input = selector;
+    program.identity = program.identityDigest();
+    var invalid = parameters.values;
+    invalid.batch_claims = &.{};
+    try std.testing.expectError(error.InvalidFrameworkPolynomialParameters, invalid.validate(&program));
+    invalid = parameters.values;
+    invalid.claimed_sum = QM31.one();
+    try std.testing.expectError(error.InvalidFrameworkPolynomialParameters, invalid.validate(&program));
+    var malformed = [_]QM31{QM31.zero()};
+    malformed[0].c0.a.v = m31.Modulus;
+    invalid = parameters.values;
+    invalid.batch_claims = &malformed;
+    try std.testing.expectError(error.InvalidFrameworkPolynomialParameters, invalid.validate(&program));
+    native.tuple_col_indices[0] = native.is_first_col_idx;
+    try std.testing.expectError(error.AuthorityMismatch, bridge.exportFrameworkProgram(std.testing.allocator, &native, &framework_tree_counts));
+}
+
+test "range framework honest residual detects selector claim tuple multiplicity and previous mutations" {
+    const relations = lookup_relations.Relations.dummy();
+    const native = try frameworkNative(&relations);
+    var program = try bridge.exportFrameworkProgram(std.testing.allocator, &native, &framework_tree_counts);
+    defer program.deinit();
+    var parameters = try bridge.exportFrameworkParameters(std.testing.allocator, &native);
+    defer parameters.deinit();
+    const words = [_]QM31{ QM31.fromBase(M31.fromU64(7)), QM31.fromBase(M31.fromU64(13)), QM31.fromBase(M31.fromU64(29)), QM31.one() };
+    const previous = QM31.fromU32Unchecked(3, 5, 7, 11);
+    const denominator = relations.range_check_8_8.combine(.{ words[1], words[2] });
+    const current = previous.sub(native.claim).sub(words[0].mul(try denominator.inv()));
+    try std.testing.expect((try native.evaluateRow(words[1..3], words[0], current, previous, words[3])).isZero());
+    try std.testing.expect((try evaluateFrameworkRange(&program, parameters.values, words, current, previous)).isZero());
+    for (0..4) |index| {
+        var changed = words;
+        changed[index] = changed[index].add(QM31.one());
+        try std.testing.expect(!(try evaluateFrameworkRange(&program, parameters.values, changed, current, previous)).isZero());
+    }
+    try std.testing.expect(!(try evaluateFrameworkRange(&program, parameters.values, words, current, previous.add(QM31.one()))).isZero());
+    const changed_claims = [_]QM31{native.claim.add(QM31.one())};
+    var changed_parameters = parameters.values;
+    changed_parameters.batch_claims = &changed_claims;
+    try std.testing.expect(!(try evaluateFrameworkRange(&program, changed_parameters, words, current, previous)).isZero());
+}
+
+fn evaluateFrameworkRange(program: *const framework_backend.OwnedFrameworkPolynomialProgramV1, parameters: framework_backend.FrameworkPolynomialParametersV1, inputs: [4]QM31, current: QM31, previous: QM31) !QM31 {
+    const values = try std.testing.allocator.alloc(QM31, program.lookup_nodes.len);
+    defer std.testing.allocator.free(values);
+    for (program.lookup_nodes, 0..) |node, index| values[index] = switch (node.op) {
+        .column => inputs[node.value],
+        .constant => QM31.fromBase(M31.fromCanonical(node.value)),
+        .add => values[node.lhs].add(values[node.rhs]),
+        .sub => values[node.lhs].sub(values[node.rhs]),
+        .mul => values[node.lhs].mul(values[node.rhs]),
+        .neg => values[node.lhs].neg(),
+    };
+    const entry = program.entries[0];
+    var denominator = parameters.relation_values[0].neg();
+    for (entry.values[0..entry.arity], 0..) |root, index|
+        denominator = denominator.add(parameters.relation_values[index + 1].mul(values[root]));
+    const numerator = values[entry.numerator];
+    return current.sub(previous).add(inputs[program.is_first_input.?].mul(parameters.batch_claims[0])).mul(denominator).sub(numerator);
+}
+
+fn rangeFrameworkAllocationCheck(allocator: std.mem.Allocator) !void {
+    const relations = lookup_relations.Relations.dummy();
+    const native = try frameworkNative(&relations);
+    var program = try bridge.exportFrameworkProgram(allocator, &native, &framework_tree_counts);
+    defer program.deinit();
+    var parameters = try bridge.exportFrameworkParameters(allocator, &native);
+    defer parameters.deinit();
+    try parameters.values.validate(&program);
+}
+
+test "range framework exports clean partial owned allocations" {
+    try std.testing.checkAllAllocationFailures(std.testing.allocator, rangeFrameworkAllocationCheck, .{});
+}

@@ -1,0 +1,60 @@
+{
+  "schema": "stwo.ethereum.guest-rw-heap-admission.v2",
+  "old_elf": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/rebuilt-guest-v1/stwo-ethereum-guest.elf",
+    "bytes": 3412588,
+    "sha256": "f3657d077b88da313369ff002aafbe8b6bf4912e8fd1ef1d1b76a6dc0f1d40a7"
+  },
+  "elf": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/rebuilt-guest-rw-heap-v2/f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16/stwo-ethereum-guest.elf",
+    "bytes": 3412588,
+    "sha256": "f81e30505c2ae1ab16e693933bef65f6fbae94ca6e04b4bc66688a068cddce16"
+  },
+  "old_executable_segments": [
+    {
+      "address": 1024,
+      "filesz": 2917676,
+      "memsz": 2917676,
+      "sha256": "a76dbe5bc5a1060f335cf219e5cd945eb1094426b8c109e3ea4290a785f08bf5"
+    }
+  ],
+  "new_executable_segments": [
+    {
+      "address": 1024,
+      "filesz": 2917676,
+      "memsz": 2917676,
+      "sha256": "a76dbe5bc5a1060f335cf219e5cd945eb1094426b8c109e3ea4290a785f08bf5"
+    }
+  ],
+  "executable_segments_equal": true,
+  "change": "__data_len spans declared DATA region including heap; initialized data end and heap start unchanged",
+  "source_files": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/linker.ld",
+      "bytes": 1356,
+      "sha256": "13bb0def76a8ea7c04aa73cddd17cf179e2cdb244ff1463f89b7f5f2df45bd07"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/build.rs",
+      "bytes": 64,
+      "sha256": "732085bb626aebe3dd4a9a9d14b80ec1e6eaee0be42a3d6bfd4f3caa76880ff8"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock",
+      "bytes": 83749,
+      "sha256": "3afbab5243efb960409192f6b2bcb628d13165ed48f23b06415b60ba6f538a1b"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/Cargo.toml",
+      "bytes": 762,
+      "sha256": "7d8bb100c57b53faca648d8ddeb5ae8fd22a9fb13d591c5f5a1c7f066bcdf2e0"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs",
+      "bytes": 5877,
+      "sha256": "3415b808a7a170c2f281d0a40986b89be511ffad7b359e0c614d8a7121644353"
+    }
+  ],
+  "build_command": "RUSTFLAGS='-C link-arg=-Tlinker.ld' cargo +nightly-2026-08-08 build --locked -j 1 --release --target riscv32i-stwo.json -Z json-target-spec -Z build-std=core,alloc -Z build-std-features=compiler-builtins-mem",
+  "claim": "ELF rebuilt; new execution and proving admission pending"
+}

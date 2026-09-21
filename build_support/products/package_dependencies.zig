@@ -56,7 +56,12 @@ pub const cairo_metal_integration_package_roots = &.{
     "dependency:../src/integrations/cairo_metal:mod.zig",
 };
 
+pub const artifact_store_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
+};
+
 pub const metal_session_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/tools/metal_session:mod.zig",
 };
 
@@ -121,6 +126,7 @@ pub const cairo_cpu_protocol_package_roots = &.{
 };
 
 pub const cairo_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/metal:mod.zig",
@@ -176,6 +182,7 @@ pub const frontend_metal_cpu_protocol_package_roots = &.{
 };
 
 pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
@@ -196,6 +203,7 @@ pub const frontend_cuda_metal_cpu_protocol_package_roots = &.{
 };
 
 pub const metal_tools_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",
@@ -224,6 +232,11 @@ pub const riscv_cpu_protocol_package_roots = &.{
     "dependency:../src/frontends/riscv:refinement_ir_export_test.zig",
     "dependency:../src/frontends/riscv:refinement_program_export_test.zig",
     "dependency:../src/frontends/riscv:sail_oracle_test_root.zig",
+    "dependency:../src/integrations/riscv_cpu:degree5_poseidon_proof_test.zig",
+    "dependency:../src/integrations/riscv_cpu:degree5_provider_proof_v1_test.zig",
+    "dependency:../src/integrations/riscv_cpu:degree_bounded_poseidon_proof_test.zig",
+    "dependency:../src/integrations/riscv_cpu:memory_provider_shard_benchmark.zig",
+    "dependency:../src/integrations/riscv_cpu:memory_provider_shard_proof_test.zig",
     "dependency:../src/integrations/riscv_cpu:mod.zig",
     "dependency:../src/integrations/riscv_cpu:proof_adapter.zig",
     "dependency:../src/interop/proof_wire:mod.zig",
@@ -302,6 +315,7 @@ pub const native_riscv_cpu_protocol_package_roots = &.{
 };
 
 pub const compatibility_package_roots = &.{
+    "dependency:../src/artifact_store:mod.zig",
     "dependency:../src/backend:mod.zig",
     "dependency:../src/backends/cpu_scalar:mod.zig",
     "dependency:../src/backends/cuda:mod.zig",

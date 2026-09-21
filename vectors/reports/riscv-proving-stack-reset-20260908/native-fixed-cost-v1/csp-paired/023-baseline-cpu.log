@@ -1,0 +1,3 @@
+[1/1] poseidon2_m31/4: execute, prove, verify
+  prove=0.825s verify=0.130s proof=870.8KiB rss=1.37GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/023-baseline-cpu.json

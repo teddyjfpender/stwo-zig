@@ -1,0 +1,32 @@
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1936792917
+DETACHED_PARENT_CHILD lane=2 preparation_ns=3876136959
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=2946 logical_bytes=565632
+DETACHED_PARENT_ROW row=2 rows=2946 logical_bytes=436008
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21888 logical_bytes=1663488
+DETACHED_PARENT_ROW row=5 rows=20268 logical_bytes=1702512
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=42769 logical_bytes=3934748
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=104846 logical_bytes=4193840
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=1688783 logical_bytes=270205280
+DETACHED_PARENT_ROW row=31 rows=66530 logical_bytes=8515840
+DETACHED_PARENT_ROW row=32 rows=1611034 logical_bytes=328650936
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=781264788 providers=179992 graph_ns=4448533959 snapshot_pending=true
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-memory-continuation-span-v2","publication_mode":"intermediate","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[186,208,209,253,147,113,159,61,124,28,201,186,86,247,90,102,237,144,68,193,133,155,139,146,57,119,127,109,153,41,227,62],[76,169,251,38,57,161,154,106,69,4,115,63,9,50,147,11,172,223,7,49,39,159,107,22,246,207,164,182,144,234,195,12]],"artifacts":{"key_sha256":[25,93,35,208,7,204,200,46,84,161,132,48,82,130,217,28,26,99,207,205,130,184,28,107,34,134,0,26,53,142,112,147],"claims_sha256":[72,0,130,159,158,147,41,198,156,44,94,84,61,215,157,245,182,200,123,172,89,170,96,74,210,70,44,201,54,88,47,174],"proof_sha256":[145,99,64,252,228,174,200,10,129,104,99,24,115,119,175,153,34,23,194,112,255,147,208,248,30,96,129,116,210,252,252,218],"proof_bytes":2543679},"candidate_root_words_sha256":[206,124,21,149,6,54,165,64,156,148,109,213,99,167,184,154,10,203,114,17,17,139,169,55,155,98,90,206,136,139,181,129],"circuit_identity":[25,112,207,64,66,45,107,245,254,176,157,131,45,1,213,252,185,185,161,146,157,3,71,13,46,63,82,70,93,50,117,69],"preparation_ns":5888598125,"key_preparation_ns":3539904958,"proof_ns":17611409000,"request_ns":27328086666}

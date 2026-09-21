@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-09-08T04:34:49.984149+00:00",
+  "scope": "Process gate regression only; mock verifier fixtures are not proofs",
+  "tests": 4,
+  "passed": true,
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-root-check-v2/source-manifest.json",
+  "source_manifest_sha256": "e2c43db846afb5de399dc188a4dc3d5f40d363a2dfb06cfb6784f1beaaa1e8f4",
+  "log_sha256": "e3400496b7243bbf5a5e1ca2b1138896c2e578e539136c132df742273ad95faf",
+  "changes": [
+    "Infrastructure and unknown failures cannot count as semantic rejection",
+    "Explicit initial profile checks claims36/37 and retained valid alternate public node",
+    "Shared heavy-job lock and separate queue/process timing"
+  ],
+  "real_proof_verification_pending": true
+}

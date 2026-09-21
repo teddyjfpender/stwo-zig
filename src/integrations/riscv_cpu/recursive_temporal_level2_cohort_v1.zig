@@ -11,6 +11,15 @@ const frontend = @import("stwo_riscv_frontend");
 const level2 = @import("recursive_temporal_parent_pair_authority_v1.zig");
 const level2_prefix = @import("recursive_temporal_level2_prefix_v1.zig");
 const level2_suffix = @import("recursive_temporal_level2_suffix_v1.zig");
+const binary_driver = @import("recursive_binary_outer.zig");
+const canonical_proof = @import("recursive_binary_verified_publication.zig");
+const segment_publication = @import("recursive_segment_v2_verified_publication.zig");
+const publication_mod = @import("recursive_temporal_parent_publication_v3.zig");
+const artifact_mod = @import("recursive_temporal_parent_verified_artifact_v1.zig");
+const publication_context = @import("recursive_temporal_parent_context_v3.zig");
+const node_publication = @import("recursive_temporal_node_publication_v1.zig");
+const diagnostics = @import("recursive_temporal_level2_diagnostics.zig");
+const child_transcript = @import("recursive_temporal_child_transcript_authority_v1.zig");
 const verifier_input_mod =
     @import("recursive_temporal_level2_verifier_input_v1.zig");
 const prefix_runtime = @import("recursive_temporal_parent_prefix_runtime.zig");
@@ -20,11 +29,9 @@ const row35_mod = @import("recursive_temporal_parent_row35_owner_v1.zig");
 const support = @import("recursive_temporal_parent_cohort_support.zig");
 
 const M31 = stwo_core.fields.m31.M31;
-const QM31 = stwo_core.fields.qm31.QM31;
 const recursion = frontend.recursion;
 const universal = recursion.air.universal_challenges;
 const shared_provider = recursion.air.universal_shared_provider;
-const relation_interaction = recursion.air.relation_interaction;
 const global_closure = recursion.binary_global_closure_outer_source;
 const range_bridge = recursion.air.range_check_8_8_bridge;
 const lookup_interaction = frontend.air.lookups.tables.interaction;
@@ -44,7 +51,8 @@ pub const COMPONENT_COUNT: usize = manifest_mod.COMPONENT_COUNT;
 pub const PREFIX_ROW_COUNT: usize = manifest_mod.PREFIX_ROW_COUNT;
 pub const SUFFIX_ROW_COUNT: usize = level2_suffix.ROW_COUNT;
 pub const PROVIDER_ROW: usize = row35_mod.ROW;
-pub const AUTHORITY_TRANSCRIPT_DOMAIN: u32 = 0x4c32_4331; // "L2C1"
+const COHORT_CHILD_TRANSCRIPT_AUTHORITY = child_transcript.DescriptorV1.recursiveNodeV1();
+pub const AUTHORITY_TRANSCRIPT_DOMAIN = COHORT_CHILD_TRANSCRIPT_AUTHORITY.domain;
 
 pub const AuthorityInputs = struct {
     pair: *const level2.PreparedLevel2PairV1,
@@ -106,11 +114,14 @@ const CohortComponents = Components;
 
 pub const Cohort = struct {
     const Self = @This();
+    pub const CHILD_TRANSCRIPT_AUTHORITY = COHORT_CHILD_TRANSCRIPT_AUTHORITY;
 
     pub const AuthorityInputs = CohortAuthorityInputs;
     pub const GeneratedInteractionsV1 = CohortGeneratedInteractions;
     pub const AuditedInteractionsV2 = CohortAuditedInteractions;
     pub const Components = CohortComponents;
+    pub const VerifiedPublicationV1 = publication_mod.VerifiedPublicationV1;
+    pub const VerifiedArtifactV1 = artifact_mod.VerifiedTemporalParentArtifactV1;
     pub const PAIR_AUTHENTICATION_POSEIDON_PERMUTATIONS: usize = 0;
 
     allocator: std.mem.Allocator,
@@ -228,6 +239,20 @@ pub const Cohort = struct {
 
     pub fn manifest(self: *const Self) *const manifest_mod.Manifest {
         return &self.manifest_value;
+    }
+
+    pub fn publicationContext(
+        self: *const Self,
+    ) !publication_context.ContextReceiptV3 {
+        return publication_context.ContextReceiptV3.initFromVerifiedNodePair(
+            self.inputs.pair,
+        );
+    }
+
+    pub fn recursiveStatementWords(
+        self: *const Self,
+    ) !*const recursion.span_statement.StatementWords {
+        return &self.prefix.statement_rows.parent_words;
     }
 
     pub fn mixAuthority(self: *Self, transcript: anytype) !void {
@@ -466,7 +491,8 @@ pub const Cohort = struct {
             &closure,
         ) catch |err| {
             if (err == error.RelationNotClosed) {
-                self.reportVerifierInputResidual(
+                diagnostics.reportVerifierInputResidual(
+                    self,
                     &rows,
                     verifier_input_boundary,
                     relations,
@@ -477,7 +503,8 @@ pub const Cohort = struct {
                     wire_boundary,
                     verifier_input_boundary,
                 );
-                self.reportTupleClosure(
+                diagnostics.reportTupleClosure(
+                    self,
                     generated,
                     relations,
                     provider_relations,
@@ -505,85 +532,6 @@ pub const Cohort = struct {
         };
         result.identity = support.auditedIdentity(&result);
         return result;
-    }
-
-    fn reportVerifierInputResidual(
-        self: *Self,
-        rows: *const [global_closure.PREFIX_ROW_COUNT]global_closure.RowClaimsV1,
-        combined: global_closure.BoundaryEvidenceV2,
-        relations: *const universal.UniversalRelations,
-    ) void {
-        const recorder = self.suffix.source()
-            .authenticatedRecorderVerifierInputBoundaryEvidence(relations) catch |err| {
-            std.debug.print(
-                "TEMPORAL_LEVEL2_BOUNDARY_SPLIT recorder_error={s}\n",
-                .{@errorName(err)},
-            );
-            return;
-        };
-        const domain = @intFromEnum(
-            global_closure.VERIFIER_INPUT_BOUNDARY_DOMAIN,
-        );
-        const statement_claim = combined.claimed_sum.sub(recorder.claimed_sum);
-        const statement_residual = rows[10].domains[domain].value.add(
-            statement_claim,
-        );
-        var non_statement_rows = QM31.zero();
-        for (rows, 0..) |row, row_index| {
-            if (row_index == 10) continue;
-            non_statement_rows = non_statement_rows.add(
-                row.domains[domain].value,
-            );
-        }
-        const recorder_residual = non_statement_rows.add(
-            recorder.claimed_sum,
-        );
-        reportBoundaryValue("statement", statement_claim, statement_residual);
-        reportBoundaryValue("recorder", recorder.claimed_sum, recorder_residual);
-        std.debug.print(
-            "TEMPORAL_LEVEL2_BOUNDARY_COUNTS statement={d} recorder={d} " ++
-                "statement_closed={} recorder_closed={}\n",
-            .{
-                verifier_input_mod.STATEMENT_TUPLE_COUNT,
-                recorder.descriptor.boundary.tuple_count,
-                statement_residual.isZero(),
-                recorder_residual.isZero(),
-            },
-        );
-    }
-
-    fn reportTupleClosure(
-        self: *Self,
-        generated: *const CohortGeneratedInteractions,
-        relations: *const universal.UniversalRelations,
-        provider_relations: *const shared_provider.SharedProviderRelations,
-    ) void {
-        var ledger = relation_interaction.TupleLedger.init(self.allocator);
-        defer ledger.deinit();
-        _ = self.prefix.auditInteractionDomains(
-            relations,
-            &ledger,
-        ) catch |err| {
-            std.debug.print(
-                "TEMPORAL_LEVEL2_TUPLE_AUDIT prefix_error={s}\n",
-                .{@errorName(err)},
-            );
-            return;
-        };
-        _ = self.fri.auditGeneratedInteractionsWithTupleLedger(
-            self.allocator,
-            relations,
-            provider_relations,
-            &generated.suffix,
-            &ledger,
-        ) catch |err| {
-            std.debug.print(
-                "TEMPORAL_LEVEL2_TUPLE_AUDIT suffix_error={s}\n",
-                .{@errorName(err)},
-            );
-            return;
-        };
-        support.reportTupleLedger(&ledger);
     }
 
     pub fn auditGlobalClosure(
@@ -655,6 +603,44 @@ pub const Cohort = struct {
                 &generated.row35,
             ),
         };
+    }
+
+    pub fn verifierSuccessBinding(
+        self: *Self,
+        proof: canonical_proof.CanonicalProofIdentityV1,
+        capture: *const binary_driver.OuterProofCapture,
+        transcript_id: channel.Digest,
+        claims: *const manifest_mod.ClaimVector,
+        audited: *const CohortAuditedInteractions,
+        recursive_admission_sha_id: [32]u8,
+    ) !binary_driver.TemporalVerifierSuccessBindingV1 {
+        return node_publication.verifierSuccessBinding(
+            self,
+            proof,
+            capture,
+            transcript_id,
+            claims,
+            audited,
+            recursive_admission_sha_id,
+        );
+    }
+
+    pub fn publishSuccessfulVerifier(
+        self: *Self,
+        evidence: *const binary_driver.TemporalVerifierSuccessEvidenceV1,
+        claims: *const manifest_mod.ClaimVector,
+        audited: *const CohortAuditedInteractions,
+        relations: *const universal.UniversalRelations,
+        provider_relations: *const shared_provider.SharedProviderRelations,
+    ) !VerifiedPublicationV1 {
+        return node_publication.publishSuccessfulVerifier(
+            self,
+            evidence,
+            claims,
+            audited,
+            relations,
+            provider_relations,
+        );
     }
 
     pub fn validateAuditedInteractions(
@@ -775,26 +761,6 @@ pub const Cohort = struct {
         }
     }
 };
-
-fn reportBoundaryValue(label: []const u8, claim: QM31, residual: QM31) void {
-    const claim_words = claim.toM31Array();
-    const residual_words = residual.toM31Array();
-    std.debug.print(
-        "TEMPORAL_LEVEL2_BOUNDARY_SPLIT source={s} " ++
-            "claim={d},{d},{d},{d} residual={d},{d},{d},{d}\n",
-        .{
-            label,
-            claim_words[0].toU32(),
-            claim_words[1].toU32(),
-            claim_words[2].toU32(),
-            claim_words[3].toU32(),
-            residual_words[0].toU32(),
-            residual_words[1].toU32(),
-            residual_words[2].toU32(),
-            residual_words[3].toU32(),
-        },
-    );
-}
 
 fn initStageFailure(stage: []const u8, err: anyerror) anyerror {
     std.debug.print(

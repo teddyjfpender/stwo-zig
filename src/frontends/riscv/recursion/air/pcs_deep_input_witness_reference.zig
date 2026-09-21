@@ -17,10 +17,10 @@ pub const MIN_LOG_SIZE: u32 = 4;
 pub const MAX_LOG_SIZE: u32 = 30;
 pub const SECURE_WORD_COUNT: u32 = 4;
 pub const M31_BIT_COUNT: u32 = 31;
-pub const SAMPLED_VALUE_KIND: u32 = 6;
-pub const OODS_POINT_KIND: u32 = 2;
-pub const DEEP_RANDOMNESS_KIND: u32 = 3;
-pub const DEEP_POSITION_KIND: u32 = 2;
+pub const SAMPLED_VALUE_KIND = @import("verifier_parameter_tags.zig").pcs.SAMPLED_VALUE_KIND;
+pub const OODS_POINT_KIND = @import("verifier_parameter_tags.zig").pcs.OODS_POINT_KIND;
+pub const DEEP_RANDOMNESS_KIND = @import("verifier_parameter_tags.zig").pcs.DEEP_RANDOMNESS_KIND;
+pub const DEEP_POSITION_KIND = @import("verifier_parameter_tags.zig").pcs.DEEP_POSITION_KIND;
 pub const MAIN_COLUMN_COUNT = component.PHYSICAL_MAIN_COLUMN_COUNT;
 pub const PREPROCESSED_COLUMN_COUNT = component.PREPROCESSED_COLUMN_COUNT;
 pub const ProofKind = proof_kind_mod.ProofKind;
@@ -125,7 +125,7 @@ pub const Binding = struct {
     }
 
     pub fn identityDigest(self: *const Binding) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
+        var hash = @import("structural_sha256.zig").Hasher.init(.{});
         hash.update(BINDING_DOMAIN);
         hashInt(&hash, u16, self.format_version);
         hashInt(&hash, u16, self.semantic_format_version);
@@ -546,7 +546,7 @@ pub fn sourceIndices(source_value: Source) [3]u32 {
 }
 
 pub fn referenceDigest(lanes: [3]Lane) digest.Digest {
-    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    var hash = @import("structural_sha256.zig").Hasher.init(.{});
     hash.update(REFERENCE_DOMAIN);
     hashInt(&hash, u16, REFERENCE_FORMAT_VERSION);
     hashInt(&hash, u8, lanes.len);

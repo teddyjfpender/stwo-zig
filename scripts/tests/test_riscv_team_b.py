@@ -692,7 +692,7 @@ class TeamBAirBindingTest(unittest.TestCase):
         if not export_dir.is_dir():
             self.skipTest("fresh symbolic AIR export is not present")
         self.assertIn(
-            "6 raw exports preserve exact",
+            "5 raw exports preserve exact",
             team_b.check_semantic_rebind(export_dir),
         )
 

@@ -1,0 +1,23 @@
+{
+  "status": "passed",
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/frontends/riscv",
+    "test-segment-statement-v2",
+    "test-recursion-segment-statement-source-v2",
+    "test-recursion-segment-native-sum-v2",
+    "test-recursion-segment-public-source-v2",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "start_utc": "2026-09-08T19:41:36.646321+00:00",
+  "head": "51646b444176237a6640f438a032d137af5200b9",
+  "source_patch_sha256": "a7e6a67bd4bf58d18712a97673265a45cdba217f6f9b6c9e39689a0d36e66778",
+  "exit_code": 0,
+  "wall_seconds": 131.0541254999116,
+  "end_utc": "2026-09-08T19:43:47.706995+00:00",
+  "log_sha256": "25d72a7eaacdbf15e724cffea2b1ccb3bd74cf013a018f54597dbbe2160c66d9"
+}

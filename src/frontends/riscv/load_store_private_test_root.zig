@@ -7,6 +7,7 @@ test "LOAD_STORE private fixed-authority declarations compile" {
 }
 
 comptime {
+    _ = @import("air/lang/typed_load_store_selector_alias_candidate_v1_test.zig");
     _ = @import("air/lang/typed_load_store_authority_test.zig");
     _ = @import("runner/load_store_retirement_test.zig");
 }

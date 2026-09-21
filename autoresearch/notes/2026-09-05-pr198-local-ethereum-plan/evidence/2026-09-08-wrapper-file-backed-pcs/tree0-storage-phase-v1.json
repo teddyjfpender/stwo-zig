@@ -1,0 +1,19 @@
+{
+  "recorded_at": "2026-09-08T03:20:04.940134+00:00",
+  "status": "real_tree0_storage_phase_complete_whole_proof_pending",
+  "source_manifest_sha256": "8fbdbfe38e4c167cb769ab34255f0f614ad9029c240216e64058a38b00bcf0a9",
+  "pid": 35684,
+  "session": 51199,
+  "total_mapped_bytes": 15264661504,
+  "remaining_mapped_bytes_after_phase": 0,
+  "tree0_commit_ns": 467220663542,
+  "tree0_total_ns": 650347103167,
+  "reported_current_footprint_bytes": 31866708328,
+  "reported_lifetime_peak_footprint_bytes": 56226604168,
+  "progress_snapshot_sha256": "af9a7a7531e87c9f1cfbfb2f94c7117fd5232fe3b1997088e182d69cfe4f0c06",
+  "limitations": [
+    "This is preprocessing commitment construction, not a complete STARK proof",
+    "Does not establish fit of all retained proof trees or independent verifier acceptance",
+    "No CSP or complete-request speedup claim"
+  ]
+}

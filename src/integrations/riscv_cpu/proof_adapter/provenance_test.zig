@@ -30,3 +30,19 @@ test "staged verifier binds build and witness-layout provenance" {
         artifact_validation.validateLocalProvenance(provenance),
     );
 }
+
+test "wire opcode geometry matches every live typed AIR authority" {
+    const protocol = stwo.interop.riscv_artifact.wire_protocol;
+    const riscv = stwo.frontends.riscv;
+    for (protocol.FAMILIES) |wire| {
+        const family: riscv.runner.trace.OpcodeFamily = @enumFromInt(wire.ordinal);
+        try std.testing.expectEqual(
+            riscv.runner.trace.nColumnsForFamily(family),
+            wire.n_main_columns,
+        );
+        try std.testing.expectEqual(
+            riscv.air.lookups.opcode_entries.batchCount(family),
+            wire.n_interaction_batches,
+        );
+    }
+}

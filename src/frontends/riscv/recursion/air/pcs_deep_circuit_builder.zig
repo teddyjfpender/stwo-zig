@@ -222,9 +222,9 @@ pub fn buildSampleBatches(
         profile.lifting_log_size,
     ).stepSize();
     const mask_log_size = profile.lifting_log_size - profile.log_blowup_factor;
-    const previous_offset = stwo_core.poly.circle.CanonicCoset.new(
+    const mask_step = stwo_core.poly.circle.CanonicCoset.new(
         mask_log_size,
-    ).stepSize().neg();
+    ).stepSize();
     var sample: usize = 0;
     var column: usize = 0;
     var random_power: usize = 0;
@@ -234,11 +234,7 @@ pub fn buildSampleBatches(
             const count = layout.sampleCount();
             if (layout.hasPeriodicity()) {
                 const period_multiplier = @as(usize, 1) << @intCast(log_size);
-                const second_offset = switch (layout) {
-                    .current_previous => previous_offset,
-                    .previous_current => stwo_core.circle.CirclePointIndex.zero(),
-                    .none, .current => unreachable,
-                };
+                const second_offset = shiftIndex(mask_step, layout.offsets()[1]);
                 try pushSampleTerm(
                     allocator,
                     &batches,
@@ -251,28 +247,10 @@ pub fn buildSampleBatches(
                 );
                 random_power += 1;
             }
-            if (count >= 1) {
-                const first_offset = switch (layout) {
-                    .current, .current_previous => stwo_core.circle.CirclePointIndex.zero(),
-                    .previous_current => previous_offset,
-                    .none => unreachable,
-                };
-                try pushSampleTerm(allocator, &batches, first_offset, .{
+            for (layout.offsets(), 0..) |offset, sample_index| {
+                try pushSampleTerm(allocator, &batches, shiftIndex(mask_step, offset), .{
                     .column = column,
-                    .sample = sample,
-                    .random_power = random_power,
-                });
-                random_power += 1;
-            }
-            if (layout.hasPeriodicity()) {
-                const second_offset = switch (layout) {
-                    .current_previous => previous_offset,
-                    .previous_current => stwo_core.circle.CirclePointIndex.zero(),
-                    .none, .current => unreachable,
-                };
-                try pushSampleTerm(allocator, &batches, second_offset, .{
-                    .column = column,
-                    .sample = sample + 1,
+                    .sample = sample + sample_index,
                     .random_power = random_power,
                 });
                 random_power += 1;
@@ -288,6 +266,11 @@ pub fn buildSampleBatches(
         return error.SampleCountMismatch;
     }
     return batches;
+}
+
+fn shiftIndex(step: stwo_core.circle.CirclePointIndex, offset: isize) stwo_core.circle.CirclePointIndex {
+    const shifted = step.mul(@abs(offset));
+    return if (offset < 0) shifted.neg() else shifted;
 }
 
 pub fn pushSampleTerm(

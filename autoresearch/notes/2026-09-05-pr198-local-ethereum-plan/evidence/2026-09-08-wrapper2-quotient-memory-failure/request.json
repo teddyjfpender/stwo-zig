@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "argv": [
+    "/opt/homebrew/opt/python@3.14/bin/python3.14",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/source/scripts/zig_serial_build.py",
+    "--cwd",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/source/src/integrations/riscv_cpu",
+    "test-ethereum-complete-proof",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1",
+    "STWO_ETHEREUM_PROOF_CORPUS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/corpus",
+    "STWO_ETHEREUM_PROOF_PROGRESS": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/progress.log",
+    "STWO_ETHEREUM_PCS_SCRATCH_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/scratch"
+  },
+  "acceptance": "All three named complete-proof tests terminal exit0, ETHEREUM_WRAPPER_SELECTED global_segment=2, producer allocator empty, serialized root independently verified without native inputs and exact expected public words, fresh wrapper coldOpen and recursive child publication checks, then separately invoke pinned root verifier with trusted admitted key pin and compare expected coordinate/statement/output; compile counts or root candidate existence alone do not accept proof",
+  "scope": "Actual ordinary segment2 complete proof with consolidated owned preparation, surviving public sums and compact exact closure; same admitted pair/profile/worker policy and file-backed PCS",
+  "source_manifest": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v11/manifest.json",
+  "source_manifest_sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a",
+  "required_validation": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v3/execution.json",
+  "status": "prepared_not_launched",
+  "previous_failed_execution": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v4/execution.json",
+  "log": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/complete-proof.log",
+  "unset_env": [
+    "STWO_ETHEREUM_INITIAL_INPUT_ADMISSION_V1",
+    "STWO_ROLE0_GENUINE_STOP_AFTER_MATERIALIZE",
+    "STWO_ETHEREUM_WRAPPER_PAIR_SLOT",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY",
+    "STWO_ETHEREUM_GEOMETRY_EXPECTED_KEY_SHA256"
+  ],
+  "retained_input": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+    "bytes": 8641480
+  },
+  "subsequent_verifier": {
+    "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/ordinary-wrapper-root-verifier-file-backed-v4/bin/ethereum-wrapper-root-verify-v1",
+    "sha256": "77120ae24d5ef2846cd743baa447bdf7cf5f2641961413db326bd64a89d36907",
+    "arguments": [
+      "<root-candidate-directory>",
+      "<trusted-run-admitted-key-sha256>"
+    ]
+  },
+  "required_before_launch": [
+    "source-v6 guarded2/2 development closure passed",
+    "v8 small composition3/prepared8/symbolic9 and complete proof compile passed; its failing mutation assertion corrected and ownership guard rerun",
+    "v9 arithmetic4/4 passed; v10 compact7/7 and bounded arithmetic benchmark passed",
+    "v11 ownership20/20 passed",
+    "all5779 frozen source files and eight pinned input/verifier artifacts rehashed",
+    "seed retained hostile input in new corpus and rehash",
+    "shared heavy lock; native producer paused; no other heavy job"
+  ],
+  "prelaunch_seed": {
+    "source": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-file-backed-v7/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "destination": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment2-devex-v3/corpus/role0-genuine-stage101/c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf.bin",
+    "sha256": "c86f6acde3d4ab6b148f5a02abe37fe0d7af7d1d96f0fffca26c42c2502538cf",
+    "bytes": 8641480
+  },
+  "correctness_gate_logs": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v8/complete-boundaries.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v9/public-sums.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v10/compact-ledger.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v10/public-sums-benchmark.log",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-ownership-v11.log"
+  ],
+  "admission": {
+    "pair_slot": 0,
+    "global_segment": 2,
+    "expected_coordinate": {
+      "height": 0,
+      "index": 2
+    },
+    "expected_key_sha256": null,
+    "policy": "No externally expected-key environment is required by .prove. Secure cohort derives fixed key from independently admitted source geometry and Tree0 before proving. Pin ETHEREUM_ROOT_CANDIDATE expected_key_sha256 from that trusted run and require both internal independent root verification and a separate process verification against that pin; do not authorize a key by rehashing arbitrary candidate key.json.",
+    "key_derivation_source": "recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig:276",
+    "key_export_source": "recursive_common_ethereum_incremental_leaf_universal_proof_v4_core.zig:517"
+  },
+  "expected_test_names": [
+    "role0 retained corpus records and reopens its whole program admission",
+    "role0 saved Stage101 label input commitment is rejected",
+    "role0 saved Stage101 pair replays recursive wrapper"
+  ],
+  "baseline_note": "Source-v6 accepted replay is the measured baseline, not acceptance for current code. Small proof/compile gates use v8 with subsequent test-only fixes retained through v11; this actual proof consumes the new preparation implementation."
+}

@@ -372,6 +372,18 @@ pub fn logicalRow(
     kind: ProofKind,
 ) Error![component.LOGICAL_INPUT_COUNT]M31 {
     const main = try mainRow(row, value, kind);
+    return logicalRowWithMain(row, main, kind);
+}
+
+/// Explicit Ethereum clock-source admission. The legacy constructor continues
+/// to accept only the original statement namespaces and word classification.
+pub fn logicalRowForEthereum(row: Row, value: M31, kind: ProofKind) Error![component.LOGICAL_INPUT_COUNT]M31 {
+    try validateRowForProfile(row, true);
+    try validateValue(row, value, kind);
+    return logicalRowWithMain(row, mainRowAssumeValid(row, value, kind), kind);
+}
+
+fn logicalRowWithMain(row: Row, main: [MAIN_COLUMN_COUNT]M31, kind: ProofKind) [component.LOGICAL_INPUT_COUNT]M31 {
     const selectors = kind.selectors();
     return main ++ row.values() ++ .{
         selectors[0],
@@ -428,6 +440,10 @@ fn validateBindings(circuit_id: u32, bindings: []const InputBinding) Error!void 
 }
 
 fn validateRow(row: Row) Error!void {
+    return validateRowForProfile(row, false);
+}
+
+fn validateRowForProfile(row: Row, comptime ethereum_clocks: bool) Error!void {
     try row.active_kinds.validate();
     if (row.circuit_id >= m31.Modulus or row.node_id >= m31.Modulus or
         row.use_count >= m31.Modulus or row.statement_scope >= m31.Modulus or
@@ -437,6 +453,19 @@ fn validateRow(row: Row) Error!void {
     }
     switch (row.source) {
         .statement => {
+            const clocks = @import("../ethereum_clock_routing_v1.zig");
+            if (ethereum_clocks and row.statement_scope == clocks.STATEMENT_SCOPE) {
+                if (!std.meta.eql(row.active_kinds, ProofKindSet.SEGMENT) or
+                    !row.integer or row.word_index >= clocks.WORD_COUNT)
+                    return error.InvalidInputBinding;
+                return;
+            }
+            if (ethereum_clocks and row.statement_scope == @import("vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE) {
+                if (!std.meta.eql(row.active_kinds, ProofKindSet.SEGMENT) or
+                    row.integer or row.word_index >= 2)
+                    return error.InvalidInputBinding;
+                return;
+            }
             if (row.statement_scope > statement.PARENT_STATEMENT_SCOPE or
                 row.word_index >= statement.CANONICAL_WORD_COUNT or
                 row.integer != isIntegerWord(row.word_index))

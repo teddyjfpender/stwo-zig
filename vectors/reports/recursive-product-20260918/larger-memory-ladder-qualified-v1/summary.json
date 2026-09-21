@@ -1,0 +1,98 @@
+{
+  "passed": true,
+  "scope": "16-address 1/2/4/8 development recursive ladder",
+  "production_security_qualified": false,
+  "ethereum_ready": false,
+  "total_cases": 1110,
+  "identical_cross_backend_artifacts": 78,
+  "rungs": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "implementation_patch_sha256": "ecf57dc66429134cc1acd3e139e7ce04796fa3f7eec56cd57b947a0c8f5d7294",
+  "base_commit": "1358234f1e8a2ac34241658dcd3505bad5feb1fc",
+  "measurements": [
+    {
+      "segments": 1,
+      "backend": "cpu",
+      "leaf_production_ns": 8685629500,
+      "parent_production_ns": 0,
+      "maximum_rss_bytes": 2897477632,
+      "proof_bytes": 2481525,
+      "verify_ns": 73930583,
+      "request_ns": 85593792
+    },
+    {
+      "segments": 1,
+      "backend": "metal",
+      "leaf_production_ns": 6634372708,
+      "parent_production_ns": 0,
+      "maximum_rss_bytes": 2569142272,
+      "proof_bytes": 2481525,
+      "verify_ns": 74123750,
+      "request_ns": 85680000
+    },
+    {
+      "segments": 2,
+      "backend": "cpu",
+      "leaf_production_ns": 17117312209,
+      "parent_production_ns": 11764283083,
+      "maximum_rss_bytes": 4076896256,
+      "proof_bytes": 2418969,
+      "verify_ns": 67269833,
+      "request_ns": 69022375
+    },
+    {
+      "segments": 2,
+      "backend": "metal",
+      "leaf_production_ns": 13155771083,
+      "parent_production_ns": 8784262750,
+      "maximum_rss_bytes": 4524507136,
+      "proof_bytes": 2418969,
+      "verify_ns": 65157250,
+      "request_ns": 66808250
+    },
+    {
+      "segments": 4,
+      "backend": "cpu",
+      "leaf_production_ns": 35111937417,
+      "parent_production_ns": 34389681083,
+      "maximum_rss_bytes": 4085399552,
+      "proof_bytes": 2287573,
+      "verify_ns": 64092792,
+      "request_ns": 65588083
+    },
+    {
+      "segments": 4,
+      "backend": "metal",
+      "leaf_production_ns": 26165131417,
+      "parent_production_ns": 23429663625,
+      "maximum_rss_bytes": 4532846592,
+      "proof_bytes": 2287573,
+      "verify_ns": 66005750,
+      "request_ns": 67660417
+    },
+    {
+      "segments": 8,
+      "backend": "cpu",
+      "leaf_production_ns": 67496178917,
+      "parent_production_ns": 78385205168,
+      "maximum_rss_bytes": 4086054912,
+      "proof_bytes": 2297319,
+      "verify_ns": 66651208,
+      "request_ns": 68317292
+    },
+    {
+      "segments": 8,
+      "backend": "metal",
+      "leaf_production_ns": 52259982917,
+      "parent_production_ns": 54200888667,
+      "maximum_rss_bytes": 4533207040,
+      "proof_bytes": 2297319,
+      "verify_ns": 65650500,
+      "request_ns": 67268041
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "accepted": false,
+  "signal": 6,
+  "exit_code": 1,
+  "cause": "Test indexed deferred first tree before explicit flushPendingCommit",
+  "test_summary_is_not_acceptance": true,
+  "production_implementation_unchanged": true
+}

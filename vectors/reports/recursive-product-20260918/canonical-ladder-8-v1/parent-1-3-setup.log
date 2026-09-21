@@ -1,0 +1,44 @@
+DETACHED_PARENT_CHILD_PHASE lane=1 prefix_ns=4330459 transcript_ns=154791 pcs_ns=1248877875 boundary_ns=24933000 composition_ns=11567292
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1289915917
+DETACHED_PARENT_CHILD_PHASE lane=2 prefix_ns=4335542 transcript_ns=77125 pcs_ns=1239443708 boundary_ns=24531458 composition_ns=11363625
+DETACHED_PARENT_CHILD lane=2 preparation_ns=2569706084
+riscv_detached_arithmetic_fusion lane=501 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=511 dot4_rows=4660 multiply_add_rows=24739
+riscv_detached_arithmetic_fusion lane=412 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=402 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=502 dot4_rows=418 multiply_add_rows=9540
+riscv_detached_arithmetic_fusion lane=512 dot4_rows=4659 multiply_add_rows=24739
+riscv_detached_arithmetic_fusion lane=413 dot4_rows=117569 multiply_add_rows=33156
+riscv_detached_arithmetic_fusion lane=403 dot4_rows=5404 multiply_add_rows=93044
+riscv_detached_arithmetic_fusion lane=521 dot4_rows=2746 multiply_add_rows=3708
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=2946 logical_bytes=565632
+DETACHED_PARENT_ROW row=2 rows=2946 logical_bytes=436008
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21888 logical_bytes=1663488
+DETACHED_PARENT_ROW row=5 rows=20268 logical_bytes=1702512
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=42769 logical_bytes=3934748
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=104846 logical_bytes=4193840
+DETACHED_PARENT_ROW row=14 rows=258847 logical_bytes=55910952
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=653395 logical_bytes=70566660
+DETACHED_PARENT_ROW row=31 rows=66530 logical_bytes=8515840
+DETACHED_PARENT_ROW row=32 rows=250980 logical_bytes=51199920
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=360086104 providers=179992 graph_ns=2943784834 snapshot_pending=true
+{"endpoint":"detached_parent_key_setup","key_sha256":[0,202,28,138,175,222,119,211,73,127,244,46,52,179,68,96,96,37,247,95,46,229,159,97,109,55,251,240,239,53,181,179],"proof_created":false}

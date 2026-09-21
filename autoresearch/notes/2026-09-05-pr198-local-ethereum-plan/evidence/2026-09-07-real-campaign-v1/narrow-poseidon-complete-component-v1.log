@@ -1,0 +1,7 @@
+1/6 poseidon_materialization_frontier_test_root.test_0...OK
+2/6 air.memory_commitment.poseidon2_narrow_proof_v1_test.test.Ethereum narrow degree3 Poseidon serializes destroys and freshly verifies complete component proof...OK
+3/6 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon matches native permutation and exact lookup entries...OK
+4/6 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon constrains every row and rejects invalid padding and modes...OK
+5/6 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon keeps quotient expansion and reduces complete row geometry...OK
+6/6 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon component admission and callbacks compile...OK
+All 6 tests passed.

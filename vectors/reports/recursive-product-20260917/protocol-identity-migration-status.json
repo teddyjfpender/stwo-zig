@@ -1,0 +1,84 @@
+{
+  "status": "canonical_and_retained_recursive_proofs_qualified",
+  "coverage": [
+    "production direct constraint roots",
+    "ordered lookup domains, roles, numerators and tuple roots",
+    "lookup batch size",
+    "production generic interaction equations",
+    "input positions and roles including relation challenge order",
+    "field modulus and component geometry"
+  ],
+  "remaining": [
+    "Continue verifier-only dependency separation.",
+    "Qualify useful 1/2/4/8 continuation receipts on the completed shared implementation."
+  ],
+  "admission_changed": true,
+  "legacy_source_digest": "48302838137c822fe11fcafb652257046c41834f2ee1c818d93bf09a166f2871",
+  "legacy_source_files": [
+    "poseidon2_universal_degree3_v1.zig",
+    "poseidon2_degree3_schedule.zig",
+    "poseidon2_constants.zig",
+    "poseidon2_air.zig",
+    "poseidon2_air_runtime.zig"
+  ],
+  "canonical_digest": "e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf",
+  "focused_tests": {
+    "passed": 11,
+    "log": "canonical-recursive-admission-v3.log"
+  },
+  "sources": {
+    "src/frontends/riscv/air/relation_challenges.zig": "c041011ea1f1b05a5e843c309b0bf4054ee83de141593d1cb843dbb70cdecd61",
+    "src/frontends/riscv/air/extract/canonical_digest.zig": "ef9cb4402d10c5495e37a9258aaab03257e3c3367870dc5e25112e3726df4bf2",
+    "src/frontends/riscv/air/memory_commitment/poseidon2_universal_identity_v2.zig": "54a598e916c5a6675774b215be40ece36e1867b0bbe2a0f80b4f6c6c9e3d8eb5",
+    "src/frontends/riscv/poseidon2_protocol_identity_test_root.zig": "eea808e5aef4573430227376588e65fb7bcade4ce0513dae972203a71bb46d06",
+    "src/frontends/riscv/recursion/air/universal_shared_provider.zig": "9701d1b375ca121376dee79dfaef4e2619cb60d6a6e6b449225617d2702d6508",
+    "src/frontends/riscv/recursion/recursion_air_composition_segment_recorder_v3_program_recorder_for_manifest.zig": "9d7e08f76b46192c369f96daddbdd140b562fbae0d869472e092f938f9a93380",
+    "src/frontends/riscv/poseidon2_identity_migration.zig": "ba9280039d89ca45e934d6e3735ad105613e7f9446e5033253ef2ed34a8d1efe",
+    "scripts/riscv_recursive_identity_migration.py": "75245a10a6742a1036a0ef148c64f4456d012f9c21cfffd56f0e0729fb1c3adc",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig": "b9a6e9dc8ca267f81e0757e45e20ec11f614d6f6fcb2c35ef344a6c3e28d0a6f",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "28713c645593434f04f5e092f28520848e7555df61a17039f00a27b0bfc79a45"
+  },
+  "negative_controls": [
+    "direct constraint change",
+    "lookup numerator sign",
+    "lookup order",
+    "interaction equation",
+    "geometry degree",
+    "legacy identity rejected by canonical-only policy",
+    "unreviewed legacy identity rejected"
+  ],
+  "known_gate_failure": {
+    "run": "/tmp/pr198-product-cpu-canonical-compat-20260917-v1",
+    "stage": "root preparation after successful leaves and two intermediate parents",
+    "error": "ComponentGeometryMismatch",
+    "cause": "Recursive composition recorder compared the retained identity to canonical-only default geometry.",
+    "fix": "Use the selected provider adapter compatibility contract in recursive recording.",
+    "requalification_pending": false
+  },
+  "canonical_admission": "canonical-admission-v2/admission.json",
+  "canonical_admission_sha256": "1fe20e6c7ee8daec966ccf2aa601e9e417d1aa37e9e96e8d9290c8ae18d90a89",
+  "retained_compatibility_gate": {
+    "summary": "cpu-canonical-compat-v2/summary.json",
+    "cases_passed": 192,
+    "baseline_identical_artifacts": 21
+  },
+  "root_key_setup": {
+    "status": "passed",
+    "receipt": "canonical-admission-v2/migration.json",
+    "preprocessing_rederived": true,
+    "root_proof_produced": false,
+    "intermediate_proof_cases_passed": 56
+  },
+  "superseded_canonical_attempt": {
+    "run": "/tmp/pr198-product-cpu-canonical-20260917-v1",
+    "failure": "DetachedParentFixedCircuitMismatch at the root",
+    "cause": "Changed child identities alter fixed constants in root preprocessing.",
+    "resolution": "Shared fixed-column setup derives root preprocessing from independently verified canonical children before root proof production."
+  },
+  "canonical_complete_proofs": {
+    "cpu": "canonical-identity-v2/cpu-summary.json",
+    "metal": "canonical-identity-v2/metal-summary.json",
+    "cases_per_backend": 192,
+    "byte_identical_artifacts": 21
+  }
+}

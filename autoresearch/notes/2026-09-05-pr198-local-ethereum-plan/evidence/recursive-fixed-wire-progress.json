@@ -1,0 +1,51 @@
+{
+  "previous_goal_turn_classification": "progress",
+  "current_goal_turn_classification": "progress",
+  "status": "fixed wire AIR mutation checks passed; cohort integration pending",
+  "pending_sessions": [],
+  "source_sha256": {
+    "src/frontends/riscv/recursion/air/fixed_wire_v3.zig": "cbbfde68074605a2a57618042f7283449104bed70b604efeaa4aa646bf774331",
+    "src/integrations/riscv_cpu/recursive_fixed_wire_v3_test.zig": "53d586ec76ca34c22969c8b523d17c0a0c645154956efda50ce9c6815bc82bf3",
+    "src/frontends/riscv/recursion/air/mod.zig": "3cb6382765fd90a7fcc25b74fdddd3338122f9575ed0af43f63b9262220f8044",
+    "src/integrations/riscv_cpu/recursive_common_fold_field_public_v2_test.zig": "2e0962e7bf86ec4859fa91e12953d101abaf1af7f1c9cd029354f4271bd3952e"
+  },
+  "check_log": "recursive-fixed-wire-initial-check.log",
+  "conformance": {
+    "status": "failed",
+    "findings": 95,
+    "files": 94,
+    "new_component_or_test_findings": []
+  },
+  "integrated_in_common_fold": false,
+  "independent_root_verified": false,
+  "remaining": [
+    "Pin computed AIR digest and pass mutation checks.",
+    "Verify saved schema-8 proof in separate replay process before changing its cohort.",
+    "Install fixed wire tuples from authenticated lowering plan into row 10, close the wire relation internally, remove common-fold external wire sum and its graph literal.",
+    "Keep common-fold fixed key and all other native semantic boundaries unresolved until constrained."
+  ],
+  "conformance_after_test_extraction": {
+    "status": "failed at existing baseline",
+    "findings": 94,
+    "files": 93,
+    "new_component_or_test_findings": [],
+    "log": "recursive-fixed-wire-conformance-2.log"
+  },
+  "test_layout_fix": "Move the shared fold transcript checks into recursive_secure_transcript_rows_v1_test.zig and retain the stage marker at the callers; bootstrap test is below 850 lines again.",
+  "test_layout_sha256": {
+    "src/integrations/riscv_cpu/recursive_common_fold_q193_bootstrap_v2_test.zig": "ca9a10bd75b952b828a2aab53ee69288719434150a75347b97897e671fb9c481",
+    "src/integrations/riscv_cpu/recursive_secure_transcript_rows_v1_test.zig": "344311e9f99cbbe1d0acaaf1d8303c69bcbf0486939de6f5e68d2f151fc2082a"
+  },
+  "schema8_proof": "passed; saved node 84d65a4c881a39e5ba05fafd231ae9f374fa56f22801de38605a1418f8b57066",
+  "initial_air_digest": "11b0d7b65536f89433d74389908ac737f77a43ec0bb67ff07f4d5baac6a63485",
+  "fixed_wire_field_check": {
+    "status": "passed",
+    "log": "recursive-fixed-wire-field-check.log",
+    "steps": "3/3",
+    "tests": "4/4",
+    "test_time": "1s",
+    "test_max_rss": "3M",
+    "compile_time": "9s",
+    "compile_max_rss": "757M"
+  }
+}

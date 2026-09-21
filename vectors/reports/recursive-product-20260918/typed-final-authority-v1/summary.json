@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "source_ownership_tests": 38,
+  "wide_authority_tests_passed": 177,
+  "wide_authority_tests_skipped": 1,
+  "infrastructure_kinds_admitted": 11,
+  "wide_specialization_mutations": 14,
+  "wide_direct_constraints": 430,
+  "wide_materialization_cuts": 426,
+  "wide_ordered_events": 4,
+  "wide_interaction_recurrences": 2,
+  "native_prover_verifier_admission": true,
+  "profile_tests_passed": 21,
+  "inventory_tests_passed": 2,
+  "canonical_merkle_profile_admission": true,
+  "allocation_failure_sweep_passed": true
+}

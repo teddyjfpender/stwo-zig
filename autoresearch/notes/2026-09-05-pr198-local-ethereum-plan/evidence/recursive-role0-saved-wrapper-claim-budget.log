@@ -1,0 +1,24 @@
+test-ethereum-incremental-leaf-wrapper-v4-replay
++- saved Ethereum pair recursive wrapper replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=46926164458 process_cpu_ns=49466237583 parallelism_milli=1054 peak_footprint_bytes=288392008 energy_nj=228226057185 instructions=1102314937824 cycles=196403575193 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1496305083 process_cpu_ns=1496237500 parallelism_milli=999 peak_footprint_bytes=288392008 energy_nj=7584923542 instructions=33646632509 cycles=5951126790 workers=1 host_byte_budget=8589934592
+  captured-fri profile: lifting_log=21 trees=4 columns=13713 samples=36779 queried_per_query=13713 fri_layers=5 queries=193
+  captured-fri PCS profile: columns=13713 samples=36779 terms=43821 inputs=2800682 queried_values=2646609
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=5973506875 process_cpu_ns=5972669875 parallelism_milli=999 peak_footprint_bytes=1957054792 energy_nj=30835991550 instructions=109135522749 cycles=23738892558 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38200250 public_ns=295303167 transcript_ns=135949667 profile_ns=25083 program_ns=68415292 prepare_ns=56357166 fri_ns=4055021125 seal_ns=38625875 total_ns=4687899959 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=53 bytes=856163262 peak=1893491093 allocated=3176282536 freed=2320119274 untracked=0
+  claim semantic output[86] node=11108 value=1991068772/0/0/0
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=role0_prove error=SemanticConstraintViolation
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper', the following test command failed:
+./.zig-cache/o/88f1eaff1dac163404d778c8dbc2acc8/test --cache-dir=./.zig-cache --seed=0x7fcdf787 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-incremental-leaf-wrapper-v4-replay transitive failure
++- saved Ethereum pair recursive wrapper replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/bc6ea5ccc4d0e34dffc8f6980d43b3d8/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x7fcdf787 -Z99864ef5b784116f --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-wrapper-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

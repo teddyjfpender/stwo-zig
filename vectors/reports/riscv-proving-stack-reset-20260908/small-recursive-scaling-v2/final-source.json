@@ -1,0 +1,21 @@
+{
+  "head": "3f3a7336245835273118f18506c527677f7d455f",
+  "source_sha256": {
+    "src/frontends/riscv/runner/guest_precompile/test_elf.zig": "7b738c22845bb218ea737645eeed7702bf80932dd8f9379c6f7960be8f5dbe6a",
+    "src/integrations/riscv_cpu/build_segment_steps.zig": "ccf927bc2e0534ecf7ca4cb26b39f0bf0e4850bd5d97e0fc1145ba761662d1f8",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_02.zig": "3893a096fd42b5bd3f8d133456fa91dca6f945f149ba84d578f8ec17c07845b1",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_03.zig": "d7aed237a5963123996c695d7207a448138e93c39aef865be2385e99937304d5",
+    "src/integrations/riscv_cpu/recursive_fri_outer_part_04.zig": "ff30f115d01211c2b1eee9290e00e552c696de06d1231d4d3c2bca3d88778f1e",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig": "392da373797c4ce83306b1adb206b0e4fc08f597e3abf118759edf448000752d",
+    "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_test.zig": "468de8420d4e859e770464f8e520c9a4d39246fc3f199b0b6456f3f59b990149",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer_proof_test.zig": "c8472d80aabd25756742108f62828907a5c78cd215d6818b0c59eb5d3e8a9d42",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner.zig": "3ffd102f954798a34797ba887816076b91d85989b2f11d08aba72d4ef1d8b331",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_owner_real_gate.zig": "faf8b1c6e7ec966a67198f823b2d78a2f27e19748e900eecfd3c91e66ad285fb",
+    "src/integrations/riscv_cpu/recursive_segment_v2_noncore_runtime.zig": "a480f97c9b21897eb4965fa7f94f0db30c78e3f1efec18bb9c0b8665fda0215a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig": "ed9a29b52a36105b256aa8d665754dc3dbc0fee4dee6bb17b8464d6179f4ef0a",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_engine.zig": "8fe36460658fe4eb3939efb2893a12e43fd61c3216df11cc3982252603b0f07f"
+  },
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/67e9514a5cae640ce62982cb783d2076/recursive-segment-v2-concrete-outer-proof",
+  "binary_sha256": "58bcb2716481f93775a42c0ee0b46447e0e53c59bed16291f428da4124dd182b",
+  "runs": []
+}

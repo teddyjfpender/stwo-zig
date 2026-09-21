@@ -1,0 +1,21 @@
+test-segment-statement-v2
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+recursion/segment_statement_v2_transcript_layout.zig:83:42: error: capture shadows declaration of 'section'
+        for (counts, &sections) |count, *section| {
+                                         ^~~~~~~
+recursion/segment_statement_v2_transcript_layout.zig:106:9: note: declared here
+    pub fn section(self: *const Layout, id: Section) contract.RetainedSectionV2 {
+    ~~~~^~
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/segment_statement_v2_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig --test-filter "segment statement V2" --test-filter "V2 transcript layout" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-segment-statement-v2 transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/9a47f77f58bec992e515922f77045cc8/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x88dc204c -Ze954a31c2330fcda --maxrss 25769803776 -j1 test-segment-statement-v2 -Doptimize=ReleaseSafe --summary all

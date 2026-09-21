@@ -17,6 +17,7 @@ pub fn build(
     max_log_size: u32,
     semantic_jobs: anytype,
     lookup_jobs: anytype,
+    framework_jobs: anytype,
     host_workers: anytype,
     buckets: anytype,
 ) !?composition_work.Receipt {
@@ -67,6 +68,8 @@ pub fn build(
         resident_rows = try checkedAdd(resident_rows, @intCast(job.row_count));
     for (lookup_jobs) |job|
         resident_rows = try checkedAdd(resident_rows, @intCast(job.row_count));
+    for (framework_jobs) |job|
+        resident_rows = try checkedAdd(resident_rows, @intCast(job.row_count));
     try builder.addAccumulator(
         "resident-output-coordinate-folds",
         .{ .additions = try checkedMul(
@@ -77,6 +80,7 @@ pub fn build(
             resident_rows,
             @as(u64, @intCast(semantic_jobs.len)),
             @as(u64, @intCast(lookup_jobs.len)),
+            @as(u64, @intCast(framework_jobs.len)),
         },
     );
 

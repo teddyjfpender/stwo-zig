@@ -18,11 +18,11 @@ test "P-002 reviewed native family profiles regenerate byte exactly" {
         artifact.readable,
     );
     try expectDigest(
-        "d4b187cbdf5baee61f4eb2541acf1d69e8e84ddae91007b574ec4a6663a18c6b",
+        "e61540ffbb0ebc35379fb1bc2d0c160e4c9f707b584687b53d4486b7f54f0f2a",
         artifact.machine,
     );
     try expectDigest(
-        "52bf9cff23de5ea05da9588846a1af2e21be67ad16379fd580bb4057cab34d1c",
+        "d112808bd5676ab1955302910ee5bc450fc30eff44cf4e1f48bb5e230d98f87c",
         artifact.readable,
     );
 }

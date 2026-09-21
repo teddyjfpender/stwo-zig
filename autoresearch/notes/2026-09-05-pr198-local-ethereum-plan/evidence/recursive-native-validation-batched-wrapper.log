@@ -1,0 +1,20 @@
+test-ethereum-incremental-leaf-wrapper-v4-replay
++- saved Ethereum pair recursive wrapper replay guard
+   +- run test failure
+ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=47026731916 process_cpu_ns=49434910375 parallelism_milli=1051 peak_footprint_bytes=288375624 energy_nj=230866117981 instructions=1102197284175 cycles=196455862914 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=1245429459 process_cpu_ns=1243382625 parallelism_milli=998 peak_footprint_bytes=288375624 energy_nj=6439956912 instructions=27901895106 cycles=4952171644 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=4661546667 process_cpu_ns=4653783875 parallelism_milli=998 peak_footprint_bytes=1957038384 energy_nj=25167145252 instructions=85846477385 cycles=18546366301 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=38475791 public_ns=288824917 transcript_ns=134827750 profile_ns=27333 program_ns=65810292 prepare_ns=47570917 fri_ns=3364910166 seal_ns=38921000 total_ns=3979370583 nodes=540228 node_bytes=10804560 output_bytes=176 binding_bytes=2469136 schedule_bytes=8051940 evaluation_bytes=8643648 input_bytes=617284 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=59 bytes=856163870 peak=1893491413 allocated=3176174368 freed=2320010498 untracked=0
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair replays recursive wrapper', the following command terminated with signal 15 (expected exited with code 0):
+./.zig-cache/o/74e54feecc9c79558290949b132fd1f6/test --cache-dir=./.zig-cache --seed=0x1753f07f --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 1/1 tests passed
+test-ethereum-incremental-leaf-wrapper-v4-replay transitive failure
++- saved Ethereum pair recursive wrapper replay guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/ba50c63eb30355484abf44805dff2264/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x1753f07f -Z23f4eae5b6da385f --maxrss 25769803776 -j1 test-ethereum-incremental-leaf-wrapper-v4-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

@@ -1,0 +1,9 @@
+{
+  "cpu": "Apple M4 Max",
+  "logical_cpus": 14,
+  "memory_bytes": 38654705664,
+  "platform": "macOS-15.3.1-arm64-arm-64bit-Mach-O",
+  "zig": "0.15.2",
+  "optimize": "ReleaseSafe",
+  "scope": "CPU development profiles; benchmark processes serialized with repository build lock"
+}

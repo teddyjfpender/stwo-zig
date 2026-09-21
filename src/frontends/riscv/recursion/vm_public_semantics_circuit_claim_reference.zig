@@ -42,8 +42,63 @@ pub const ClaimReference = struct {
     claim_preprocessing: claim_input.Preprocessed,
     row_preprocessing: row15.Preprocessed,
     authority_digest: Digest,
+    initial_input_policy: bool = false,
 
     pub fn init(
+        allocator: std.mem.Allocator,
+        shape: vm_claim.Shape,
+        circuit_id: u32,
+    ) Error!ClaimReference {
+        return initWithMachineIoPolicy(.legacy_zero, allocator, shape, circuit_id);
+    }
+
+    /// Requires the SegmentV2 transcript -> row-10 statement -> row-11/15
+    /// relation joins. The graph seal differs from the legacy zero-I/O graph;
+    /// this does not establish application I/O semantics by itself.
+    pub fn initForSegmentV2(
+        allocator: std.mem.Allocator,
+        shape: vm_claim.Shape,
+        circuit_id: u32,
+    ) Error!ClaimReference {
+        return initWithMachineIoPolicy(.segment_v2_statement, allocator, shape, circuit_id);
+    }
+
+    /// Row11 authenticates the two scalar roots in scope6. Row15 reserves
+    /// zero-use placeholders, so it cannot supply these graph input wires.
+    pub fn initForEthereumNativeRoots(allocator: std.mem.Allocator, shape: vm_claim.Shape, circuit_id: u32) Error!ClaimReference {
+        return initWithMachineIoPolicy(.ethereum_native_roots, allocator, shape, circuit_id);
+    }
+
+    /// Explicit compact policy. The caller must also admit the exact-shape
+    /// initial input lane: it owns all input-slot semantics omitted here.
+    pub fn initForEthereumInitialInputs(allocator: std.mem.Allocator, shape: vm_claim.Shape, circuit_id: u32) Error!ClaimReference {
+        return initWithMachineIoPolicy(.ethereum_initial_inputs, allocator, shape, circuit_id);
+    }
+
+    pub fn nativeRootConsumerRow(self: *const ClaimReference, side: u1) ?@import("air/statement_semantics_input_witness.zig").Row {
+        for (self.inputs) |binding| if (binding.source == .native_continuation_root and binding.source.native_continuation_root == side) return .{
+            .source = .statement,
+            .integer = false,
+            .active_kinds = .SEGMENT,
+            .circuit_id = self.circuit_id,
+            .node_id = binding.node_id,
+            .use_count = binding.use_count,
+            .statement_scope = @import("air/vm_statement_roots.zig").NATIVE_CONTINUATION_SCOPE,
+            .word_index = side,
+        };
+        return null;
+    }
+
+    pub fn nativeRootSourceUses(self: *const ClaimReference, side: u1) u32 {
+        return @intFromBool(self.nativeRootConsumerRow(side) != null);
+    }
+
+    pub fn nativeRootConsumerCount(self: *const ClaimReference) usize {
+        return self.nativeRootSourceUses(0) + self.nativeRootSourceUses(1);
+    }
+
+    fn initWithMachineIoPolicy(
+        comptime io_policy: dependency_0.MachineIoPolicy,
         allocator: std.mem.Allocator,
         shape: vm_claim.Shape,
         circuit_id: u32,
@@ -52,7 +107,7 @@ pub const ClaimReference = struct {
         var claim_preprocessing = try claim_input.Preprocessed.init(allocator, shape);
         errdefer claim_preprocessing.deinit();
 
-        var authored = try buildClaimGraph(allocator, shape);
+        var authored = try buildClaimGraph(io_policy, allocator, shape);
         errdefer authored.deinit();
         const inputs = try allocator.alloc(ClaimInputBinding, authored.sources.items.len);
         errdefer allocator.free(inputs);
@@ -72,7 +127,7 @@ pub const ClaimReference = struct {
         for (row_bindings, inputs) |*destination, binding| destination.* = .{
             .source = claimRowSource(binding.source),
             .node_id = binding.node_id,
-            .use_count = binding.use_count,
+            .use_count = row15UseCount(binding),
             .word_index = claimRowWordIndex(binding.source),
             .io_kind = claimRowIoKind(binding.source),
         };
@@ -80,7 +135,8 @@ pub const ClaimReference = struct {
         var row_preprocessing = try row15.Preprocessed.init(allocator, row_reference);
         errdefer row_preprocessing.deinit();
 
-        const authority_digest = claimAuthorityDigest(
+        const authority_digest = claimAuthorityDigestWithInitialPolicy(
+            io_policy == .ethereum_initial_inputs,
             shape,
             circuit_id,
             &authored.circuit,
@@ -96,6 +152,7 @@ pub const ClaimReference = struct {
             .claim_preprocessing = claim_preprocessing,
             .row_preprocessing = row_preprocessing,
             .authority_digest = authority_digest,
+            .initial_input_policy = io_policy == .ethereum_initial_inputs,
         };
         authored.circuit = undefined;
         authored.sources.deinit(allocator);
@@ -120,6 +177,12 @@ pub const ClaimReference = struct {
         {
             return error.InputLayoutMismatch;
         }
+        var native_count: usize = 0;
+        for (self.inputs) |binding| if (binding.source == .native_continuation_root) {
+            if (native_count >= 2 or binding.source.native_continuation_root != native_count or binding.use_count == 0) return error.InputLayoutMismatch;
+            native_count += 1;
+        };
+        if (native_count != 0 and native_count != 2) return error.InputLayoutMismatch;
         for (self.inputs, self.circuit.inputNodes(), self.row_bindings, 0..) |
             binding,
             node_id,
@@ -131,7 +194,7 @@ pub const ClaimReference = struct {
                 !std.meta.eql(row_binding, row15.Binding{
                     .source = claimRowSource(binding.source),
                     .node_id = binding.node_id,
-                    .use_count = binding.use_count,
+                    .use_count = row15UseCount(binding),
                     .word_index = claimRowWordIndex(binding.source),
                     .io_kind = claimRowIoKind(binding.source),
                 }))
@@ -144,7 +207,8 @@ pub const ClaimReference = struct {
             self.row_bindings,
         );
         try self.row_preprocessing.validateAgainst(row_reference);
-        const actual = claimAuthorityDigest(
+        const actual = claimAuthorityDigestWithInitialPolicy(
+            self.initial_input_policy,
             self.shape,
             self.circuit_id,
             &self.circuit,
@@ -555,7 +619,7 @@ pub fn claimRowWordIndex(source: ClaimInputSource) u32 {
     return switch (source) {
         .claim_word, .statement_word => |index| index,
         .io_digest_word => |coordinate| coordinate.limb,
-        .segment_selector, .private => 0,
+        .segment_selector, .private, .native_continuation_root => 0,
     };
 }
 
@@ -585,6 +649,15 @@ pub fn claimAuthorityDigest(
         hashInt(&hash, u32, binding.use_count);
         hashClaimSource(&hash, binding.source);
     }
+    return hash.finalResult();
+}
+
+fn claimAuthorityDigestWithInitialPolicy(initial: bool, shape: vm_claim.Shape, circuit_id: u32, circuit: *const arithmetic.Circuit, inputs: []const ClaimInputBinding) Digest {
+    const ordinary = claimAuthorityDigest(shape, circuit_id, circuit, inputs);
+    if (!initial) return ordinary;
+    var hash = std.crypto.hash.sha2.Sha256.init(.{});
+    hash.update("stwo-zig/ethereum-initial-input-claim-policy/v1\x00");
+    hash.update(&ordinary);
     return hash.finalResult();
 }
 
@@ -624,6 +697,7 @@ pub fn hashClaimSource(hash: anytype, source: ClaimInputSource) void {
     hashInt(hash, u8, @intFromEnum(std.meta.activeTag(source)));
     switch (source) {
         .segment_selector => {},
+        .native_continuation_root => |side| hashInt(hash, u8, side),
         .claim_word, .statement_word => |index| hashInt(hash, u32, index),
         .io_digest_word => |coordinate| {
             hashInt(hash, u8, coordinate.io_kind);
@@ -647,4 +721,8 @@ pub fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
     var encoded: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &encoded, @intCast(value), .little);
     hash.update(&encoded);
+}
+
+fn row15UseCount(binding: ClaimInputBinding) u32 {
+    return if (binding.source == .native_continuation_root) 0 else binding.use_count;
 }

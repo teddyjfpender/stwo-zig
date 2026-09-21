@@ -1,0 +1,4 @@
+zig test test_inventory_test.zig (cwd src/frontends/riscv)
+1/2 test_inventory_test.test.test inventory: every test-bearing file in this package is named...OK
+2/2 test_inventory_test.test.test inventory: every path it names exists and holds tests...OK
+All 2 tests passed.

@@ -37,6 +37,7 @@ const std = dependency_0.std;
 const vm_claim = dependency_0.vm_claim;
 
 pub fn buildClaimGraph(
+    comptime io_policy: dependency_0.MachineIoPolicy,
     allocator: std.mem.Allocator,
     shape: vm_claim.Shape,
 ) Error!ClaimAuthored {
@@ -44,10 +45,14 @@ pub fn buildClaimGraph(
     try validateOutputOffsets(shape);
     var builder = ClaimGraphBuilder.init(allocator);
     errdefer builder.deinit();
+    // The default claim's byte/range checks exceed the generic small-circuit
+    // output cap. Keep this owner's output storage within its existing node
+    // budget; generic arithmetic limits and claim geometry remain unchanged.
+    builder.graph.limits.max_outputs = builder.graph.limits.max_nodes;
     const segment = try builder.input(.segment_selector);
     try constrainBoolean(&builder, arithmetic.Value.one(), segment);
 
-    var claim = try ClaimBoundWords.init(
+    var claim = if (io_policy == .ethereum_initial_inputs) try ClaimBoundWords.initForInitialInputs(allocator, &builder, shape) else try ClaimBoundWords.init(
         allocator,
         &builder,
         claim_count,
@@ -76,8 +81,9 @@ pub fn buildClaimGraph(
     );
     defer output_digest.deinit();
 
-    try constrainRootsAndMachineState(&builder, segment, &claim, &statement);
-    try constrainVectorLayout(
+    try constrainRootsAndMachineState(io_policy, &builder, segment, &claim, &statement);
+    try constrainVectorLayoutWithInitialPolicy(
+        io_policy == .ethereum_initial_inputs,
         &builder,
         segment,
         shape,
@@ -99,7 +105,27 @@ pub fn constrainVectorLayout(
     input_digest: *const ClaimBoundWords,
     output_digest: *const ClaimBoundWords,
 ) Error!void {
-    const input_flags = try constrainInputSlots(builder, gate, shape, claim);
+    return constrainVectorLayoutWithInitialPolicy(false, builder, gate, shape, claim, statement, input_digest, output_digest);
+}
+
+fn constrainVectorLayoutWithInitialPolicy(
+    comptime initial_inputs: bool,
+    builder: *ClaimGraphBuilder,
+    gate: arithmetic.Value,
+    shape: vm_claim.Shape,
+    claim: *const ClaimBoundWords,
+    statement: *const ClaimBoundWords,
+    input_digest: *const ClaimBoundWords,
+    output_digest: *const ClaimBoundWords,
+) Error!void {
+    const input_flags = if (initial_inputs) blk: {
+        if (shape.max_input_words == 0) return error.InputLayoutMismatch;
+        try constrainEqual(builder, gate, try composeClaimU32(builder, claim, vm_claim.canonical_layout.input_word_count_start), baseValue(shape.max_input_words));
+        for (0..2) |limb| try builder.constrain(gate, claim.value(vm_claim.canonical_layout.outputWordCountStart(shape) + limb));
+        const flags = try builder.allocator.alloc(arithmetic.Value, 1);
+        flags[0] = arithmetic.Value.one();
+        break :blk flags;
+    } else try constrainInputSlots(builder, gate, shape, claim);
     defer builder.allocator.free(input_flags);
     const output_flags = try constrainOutputSlots(builder, gate, shape, claim);
     defer builder.allocator.free(output_flags);
@@ -493,6 +519,7 @@ pub fn claimInputValue(
     witness: ClaimWitness,
 ) Error!M31 {
     return switch (source) {
+        .native_continuation_root => |side| (witness.native_continuation_roots orelse return error.InputLayoutMismatch)[side],
         .segment_selector => M31.fromCanonical(@intFromBool(witness.segment_selected)),
         .claim_word => |index| witness.claim_words[index],
         .statement_word => |index| witness.statement_words[index],
@@ -646,6 +673,6 @@ pub fn claimRowSource(source: ClaimInputSource) row15.Source {
         .claim_word => .claim,
         .statement_word => .statement,
         .io_digest_word => .io_digest,
-        .private => .private,
+        .private, .native_continuation_root => .private,
     };
 }

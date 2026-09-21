@@ -1,0 +1,86 @@
+[
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_bench.py",
+      "cpu",
+      "ab",
+      "final",
+      "3"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 145572866875
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_bench.py",
+      "metal",
+      "ab",
+      "final",
+      "3"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 112266120167
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_trees.py",
+      "cpu",
+      "development",
+      "4",
+      "13"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 20499471833
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_trees.py",
+      "metal",
+      "development",
+      "4",
+      "13"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 16811043625
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_trees.py",
+      "cpu",
+      "q193",
+      "4",
+      "13"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 107627300000
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_trees.py",
+      "metal",
+      "q193",
+      "4",
+      "13"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 86222767542
+  },
+  {
+    "argv": [
+      "/opt/homebrew/opt/python@3.14/bin/python3.14",
+      "zig-out/parent_hotpath_trees.py",
+      "cpu",
+      "q193",
+      "4",
+      "14"
+    ],
+    "exit_code": 0,
+    "elapsed_ns": 107004206833
+  }
+]

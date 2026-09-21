@@ -157,6 +157,7 @@ pub fn fullCompositionInputValue(
         .child_kind_selector => |kind| M31.fromCanonical(
             @intFromBool(kind == .segment_leaf),
         ),
+        .field_public_word => return error.InvalidFixture,
         .statement_word => |word| blk: {
             const words = if (child_index == 0)
                 &prepared.left_words
@@ -212,7 +213,7 @@ pub fn fullCompositionInputValue(
             if (word >= 4) return error.InvalidFixture;
             break :blk child.capture.oods_seed.toM31Array()[word];
         },
-        .public_wire_boundary => error.InvalidFixture,
+        .public_wire_boundary, .transcript_claimed_sum => error.InvalidFixture,
     };
 }
 
@@ -338,7 +339,7 @@ pub const CaptureFixture = struct {
         const pcs_trees = try allocator.alloc(air.pcs_deep_circuit.TreeProfile, 4);
         for (pcs_trees, column_logs) |*tree, logs|
             tree.* = .{ .column_log_sizes = logs };
-        var pcs_circuit = try air.pcs_deep_circuit.build(allocator, .{
+        var pcs_circuit = try air.pcs_deep_circuit.Prepared.init(allocator, .{
             .trees = pcs_trees,
             .sample_layouts = sample_layouts,
             .lifting_log_size = 5,
@@ -355,7 +356,7 @@ pub const CaptureFixture = struct {
             allocator,
             DIMENSIONS.queried_value_count,
         );
-        const pcs_evaluation = try pcs_circuit.evaluate(allocator, .{
+        const pcs_evaluation = try pcs_circuit.evaluateFrozen(allocator, .{
             .active = true,
             .sampled_values = sampled_values,
             .queried_values = queried_values,

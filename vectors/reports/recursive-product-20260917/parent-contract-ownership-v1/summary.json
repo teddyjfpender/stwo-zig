@@ -1,0 +1,56 @@
+{
+  "status": "focused_and_complete_cpu_metal_gates_passed",
+  "parent_protocol_source_count": 320,
+  "parent_protocol_prover_engine_dependencies": false,
+  "whole_parent_verifier_witness_free": false,
+  "shared_provider_geometry_source_count": 125,
+  "shared_geometry_prover_or_witness_dependencies": false,
+  "checks": {
+    "ownership": {
+      "passed": true,
+      "tests_including_imported_and_wrapper_tests": 9,
+      "skipped": 0,
+      "log": "pr198-parent-contract-ownership.log"
+    },
+    "admission": {
+      "passed": true,
+      "tests_including_imported_and_wrapper_tests": 293,
+      "skipped": 1,
+      "log": "pr198-parent-contract-admission-v3.log"
+    },
+    "manifest": {
+      "passed": true,
+      "tests_including_imported_and_wrapper_tests": 12,
+      "skipped": 0,
+      "log": "pr198-parent-contract-manifest.log"
+    },
+    "versioned_manifest": {
+      "passed": true,
+      "tests_including_imported_and_wrapper_tests": 3,
+      "skipped": 0,
+      "log": "pr198-parent-contract-versioned-manifest.log"
+    }
+  },
+  "source_sha256": {
+    "air/memory_commitment/poseidon2_layout.zig": "80ca39a0f1f830318a2f9ef171d5aebbdf7294c1aa7ac1e57223c833f457371b",
+    "air/memory_commitment/poseidon2_air.zig": "094169b9b844d8a9e547aff2fc58c6de6b6b550487900fad331e4c76462767d3",
+    "air/lang/typed_poseidon2_compat.zig": "666ad18b0d488e6f55b612435c30e13be5ed07e87dbd12a07040a3597347286a",
+    "recursion/air/universal_shared_geometry.zig": "3dbe5eb3fef73fba0c8359787667aec90a4a7493b6e712ae7cf0b12636f263ec",
+    "recursion/air/universal_shared_provider.zig": "d0f79834d6a92982fba1f2a426e5ff12430568192807e8a35bc5d2c96b7e5aeb",
+    "recursion/air/universal_typed_geometry.zig": "34c7ca43e3b048fd4f3a226e2e500a34404aeff7a418d04c14584839595befbd",
+    "recursion/air/universal_typed_component_component_for_manifest.zig": "888a9672567542f0171e40f5794ac80d9929fde12a5a377943c5aa7ffb601da0",
+    "recursion/air/manifest_claim_protocol.zig": "b6eceb19f95e4e84d15f14d08693ba92a7c65ffaa8f597711080773a66b2e552",
+    "recursion/air/manifest_proof_protocol.zig": "b9de8f9cbd0d4c32adfbba1fdc652e96b2c4bc34e8e10701110d02511b7e5ff2",
+    "recursion/air/universal_manifest_contract.zig": "56b3c1b70ca38cb1804698883298210b27d6c1ae9e210a821b2935e69f1d5f80",
+    "recursion/air/universal_adapter_manifest.zig": "beab98ec64ebf9aea77346551d29e3337c5858464bd0b7a7b3e41fce34528c81",
+    "recursion/detached_parent_contract_v1.zig": "2f76357c5dc49442d874acf2ff63e7f48892533cfb2690c28662c761ec19ffd5",
+    "recursion/detached_parent_components_v1.zig": "e855aca98e861ea9de83dd9c1657b8db26ef33076324286995bc40ebb45a844f",
+    "recursion/detached_parent_protocol_v1.zig": "5603ca6b012cbf8d15054c1e0b0d8c0520c96f0ad78fcce7135e818bcf492682"
+  },
+  "remaining_witness_dependency": "span_continuation_v1 -> segment_statement_v2 -> segment_statement_v2_contract -> runner/result -> runner/trace",
+  "complete_gate_runs": {
+    "cpu": "/tmp/pr198-product-cpu-parent-contract-20260917-v1",
+    "metal": "/tmp/pr198-product-metal-parent-contract-20260917-v1"
+  },
+  "complete_qualification": "../parent-contract-qualified-v1/cross-backend.json"
+}

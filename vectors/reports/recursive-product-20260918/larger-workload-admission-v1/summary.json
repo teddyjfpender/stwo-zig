@@ -1,0 +1,35 @@
+{
+  "status": "independent_workload_and_leaf_key_admission_complete",
+  "complete_larger_tree_qualified": false,
+  "memory_addresses": 16,
+  "segments": [
+    1,
+    2,
+    4,
+    8
+  ],
+  "seeds": [
+    13,
+    14
+  ],
+  "expected_statements": 30,
+  "independent_leaf_keys": 15,
+  "parent_route_regression_cases": 28,
+  "parent_route_identical_artifacts": 3,
+  "source_sha256": {
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig": "aaea1ee86fe7605882abd0ff8428bde31536b5ded422d30a3743cacfdb38785f",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_key_setup_runner.zig": "4ad7831abe004e759930000875dc9b6f95de61cafb0ee857fb6a745744d4f7bb",
+    "scripts/riscv_segment_v2_detached_parent_gate.py": "b30d49826b9fa5787535c6dbe19d361099e9a6a70121b149a9121324edeb44c4",
+    "scripts/riscv_segment_v2_detached_tree_gate.py": "c76ac045738c6eb8f4b60ffc7ac53387fc0a30a3069c62b9a836e0dc82366232"
+  },
+  "binary_sha256": {
+    "/tmp/pr198-boundary-profile-producer-v1/bin/recursive-segment-v2-detached-parent-prove": "5d452a37bda46c54ece11daf7ca0e75c093ebed4e723cb2c9a6a4f02a4835e0e",
+    "/tmp/pr198-workload-exporter-v1/bin/recursive-segment-v2-leaf-key-setup": "e4bdaad6128452983943faf8ce098418d1e8a885babb3b84d65e939b55255e0c"
+  },
+  "pending": [
+    "independent larger parent expected statements and boundary profiles",
+    "larger parent key setup",
+    "complete CPU/Metal/AOT 1/2/4/8 trees and hostile cases",
+    "memory and root-verification economics"
+  ]
+}

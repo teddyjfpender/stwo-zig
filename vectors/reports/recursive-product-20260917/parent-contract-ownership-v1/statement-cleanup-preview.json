@@ -1,0 +1,13 @@
+{
+  "status": "applied_and_focused_checks_passed",
+  "applied_to_worktree": true,
+  "before_sources": 320,
+  "after_sources": 189,
+  "runner_witness_prover_sources": 0,
+  "staged_copy": "/tmp/pr198-statement-closure-preview-v2",
+  "apply_script": "/tmp/pr198-statement-dependency-cleanup.py",
+  "apply_script_sha256": "a6ad23ea4c59f2ad4c2a4451ec295b4bd75d7ea9e6bb2a6946c7de1dff48461f",
+  "pending_checks": [],
+  "scope": "Parent key/claim protocol, not full standalone verifier component construction.",
+  "qualification": "../statement-contract-ownership-v1/summary.json"
+}

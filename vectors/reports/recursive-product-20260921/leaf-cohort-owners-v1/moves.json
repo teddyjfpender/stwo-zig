@@ -1,0 +1,9 @@
+{
+  "moves": [
+    "circuit census and field hashing",
+    "tuple classification after envelope admission",
+    "claim/audit coverage and global closure collection"
+  ],
+  "sequence_owner_unchanged": true,
+  "envelope_admission_kept_before_diagnostics": true
+}

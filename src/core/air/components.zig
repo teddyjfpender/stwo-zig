@@ -37,21 +37,62 @@ pub const ComponentVTable = struct {
     ) anyerror!void,
 };
 
+/// Additive proof-route geometry authority.  The null/default handle preserves
+/// the component's vtable geometry exactly.  A heterogeneous proof may lift a
+/// lower-degree component onto a wider global composition domain without
+/// changing its AIR, masks, or evaluation callbacks.
+pub const CompositionGeometryOverrideV1 = struct {
+    max_constraint_log_degree_bound_delta: u8,
+    composition_log_split: u8,
+
+    pub fn validate(self: CompositionGeometryOverrideV1, base_bound: u32) !void {
+        const delta: u32 = self.max_constraint_log_degree_bound_delta;
+        if (self.composition_log_split == 0 or
+            self.composition_log_split > verifier_types.MAX_COMPOSITION_LOG_SPLIT or
+            base_bound > std.math.maxInt(u32) - delta)
+        {
+            return error.InvalidCompositionGeometryOverride;
+        }
+        const lifted_bound = base_bound + delta;
+        if (lifted_bound <= self.composition_log_split)
+            return error.InvalidCompositionGeometryOverride;
+    }
+};
+
 pub const Component = struct {
     ctx: *const anyopaque,
     vtable: *const ComponentVTable,
+    composition_geometry_override_v1: ?CompositionGeometryOverrideV1 = null,
 
     pub inline fn nConstraints(self: Component) usize {
         return self.vtable.nConstraints(self.ctx);
     }
 
     pub inline fn maxConstraintLogDegreeBound(self: Component) u32 {
-        return self.vtable.maxConstraintLogDegreeBound(self.ctx);
+        const base = self.vtable.maxConstraintLogDegreeBound(self.ctx);
+        const geometry = self.composition_geometry_override_v1 orelse
+            return base;
+        return base + @as(
+            u32,
+            geometry.max_constraint_log_degree_bound_delta,
+        );
     }
 
     pub inline fn compositionLogSplit(self: Component) u32 {
+        if (self.composition_geometry_override_v1) |geometry|
+            return geometry.composition_log_split;
         const get = self.vtable.compositionLogSplit orelse return verifier_types.COMPOSITION_LOG_SPLIT;
         return get(self.ctx);
+    }
+
+    pub fn withCompositionGeometryOverrideV1(
+        self: Component,
+        geometry: CompositionGeometryOverrideV1,
+    ) !Component {
+        try geometry.validate(self.vtable.maxConstraintLogDegreeBound(self.ctx));
+        var result = self;
+        result.composition_geometry_override_v1 = geometry;
+        return result;
     }
 
     pub inline fn traceLogDegreeBounds(self: Component, allocator: std.mem.Allocator) anyerror!TraceLogDegreeBounds {
@@ -162,6 +203,7 @@ pub const Components = struct {
     ) !MaskPoints {
         var all_masks = std.ArrayList(MaskPoints).empty;
         defer all_masks.deinit(allocator);
+        defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
         for (self.components, 0..) |component, ordinal| {
             var component_mask = try component.maskPoints(
                 allocator,
@@ -174,8 +216,6 @@ pub const Components = struct {
             };
             if (comptime observe) try observer.afterComponent(ordinal);
         }
-        defer for (all_masks.items) |*tv| tv.deinitDeep(allocator);
-
         var mask_points = try pcs_utils.concatCols([]Point, allocator, all_masks.items);
         errdefer mask_points.deinitDeep(allocator);
 
@@ -204,9 +244,10 @@ pub const Components = struct {
                 const pre = try component.preprocessedColumnIndices(allocator);
                 defer allocator.free(pre);
                 for (pre) |idx| {
+                    const replacement = try allocator.alloc(Point, 1);
+                    replacement[0] = point;
                     allocator.free(new_preprocessed[idx]);
-                    new_preprocessed[idx] = try allocator.alloc(Point, 1);
-                    new_preprocessed[idx][0] = point;
+                    new_preprocessed[idx] = replacement;
                 }
             }
         }
@@ -286,12 +327,16 @@ pub const Components = struct {
         defer allocator.free(visited);
         @memset(visited, false);
 
-        var all_sizes = std.ArrayList(TraceLogDegreeBounds).empty;
+        var all_sizes = try std.ArrayList(TraceLogDegreeBounds).initCapacity(allocator, self.components.len);
         defer all_sizes.deinit(allocator);
-        for (self.components) |component| {
-            try all_sizes.append(allocator, try component.traceLogDegreeBounds(allocator));
-        }
         defer for (all_sizes.items) |*tv| tv.deinitDeep(allocator);
+        for (self.components) |component| {
+            // Capacity is already owned, so a successfully constructed nested
+            // tree moves directly into the cleanup prefix without another
+            // fallible allocation. Earlier trees remain owned if a later
+            // component cannot produce its geometry.
+            all_sizes.appendAssumeCapacity(try component.traceLogDegreeBounds(allocator));
+        }
 
         for (self.components, all_sizes.items) |component, trace_sizes| {
             if (verifier_types.PREPROCESSED_TRACE_IDX >= trace_sizes.items.len) return Error.MissingPreprocessedTree;
@@ -397,18 +442,46 @@ test "air components: orchestration" {
         fn traceLogDegreeBounds(ctx: *const anyopaque, allocator: std.mem.Allocator) !TraceLogDegreeBounds {
             const self = cast(ctx);
             const pp = try allocator.dupe(u32, self.preprocessed_sizes);
+            errdefer allocator.free(pp);
             const main = try allocator.dupe(u32, &[_]u32{self.max_bound});
+            errdefer allocator.free(main);
             const outer = try allocator.dupe([]u32, &[_][]u32{ pp, main });
             return TraceLogDegreeBounds.initOwned(outer);
         }
 
+        fn checkColumnLogSizeAllocations(allocator: std.mem.Allocator, components: Components) !void {
+            var sizes = try components.columnLogSizes(allocator);
+            defer sizes.deinitDeep(allocator);
+            try std.testing.expectEqual(@as(usize, 2), sizes.items.len);
+            try std.testing.expectEqualSlices(u32, &.{5}, sizes.items[0]);
+            try std.testing.expectEqualSlices(u32, &.{ 7, 9 }, sizes.items[1]);
+        }
+
         fn maskPoints(_: *const anyopaque, allocator: std.mem.Allocator, point: Point, _: u32) !MaskPoints {
             const pp_cols = try allocator.alloc([]Point, 0);
+            errdefer allocator.free(pp_cols);
             const main_col_points = try allocator.alloc(Point, 1);
+            errdefer allocator.free(main_col_points);
             main_col_points[0] = point;
             const main_cols = try allocator.dupe([]Point, &[_][]Point{main_col_points});
+            errdefer allocator.free(main_cols);
             const outer = try allocator.dupe([][]Point, &[_][][]Point{ pp_cols, main_cols });
             return MaskPoints.initOwned(outer);
+        }
+
+        fn checkMaskPointAllocations(allocator: std.mem.Allocator, components: Components) !void {
+            const point = circle.SECURE_FIELD_CIRCLE_GEN;
+            for ([_]bool{ false, true }) |include_all| {
+                var mask = try components.maskPoints(allocator, point, 10, include_all);
+                defer mask.deinitDeep(allocator);
+                try std.testing.expectEqual(@as(usize, 2), mask.items.len);
+                try std.testing.expectEqual(@as(usize, 1), mask.items[0].len);
+                try std.testing.expectEqual(@as(usize, 2), mask.items[1].len);
+                for (mask.items) |tree| for (tree) |column| {
+                    try std.testing.expectEqual(@as(usize, 1), column.len);
+                    try std.testing.expect(column[0].eql(point));
+                };
+            }
         }
 
         fn preprocessedColumnIndices(ctx: *const anyopaque, allocator: std.mem.Allocator) ![]usize {
@@ -450,6 +523,25 @@ test "air components: orchestration" {
     try std.testing.expectEqual(@as(u32, 9), components.compositionLogDegreeBound());
     try std.testing.expectEqual(@as(u32, 1), try components.compositionLogSplit());
 
+    const ordinary = comp0.asSplitComponent();
+    const lifted = try ordinary.withCompositionGeometryOverrideV1(.{
+        .max_constraint_log_degree_bound_delta = 1,
+        .composition_log_split = 2,
+    });
+    try std.testing.expectEqual(@as(u32, 7), ordinary.maxConstraintLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 1), ordinary.compositionLogSplit());
+    try std.testing.expectEqual(@as(u32, 8), lifted.maxConstraintLogDegreeBound());
+    try std.testing.expectEqual(@as(u32, 2), lifted.compositionLogSplit());
+    try std.testing.expect(lifted.ctx == ordinary.ctx);
+    try std.testing.expect(lifted.vtable == ordinary.vtable);
+    try std.testing.expectError(
+        error.InvalidCompositionGeometryOverride,
+        ordinary.withCompositionGeometryOverrideV1(.{
+            .max_constraint_log_degree_bound_delta = 1,
+            .composition_log_split = 0,
+        }),
+    );
+
     var mask_values = MaskValues.initOwned(try alloc.alloc([][]QM31, 0));
     defer mask_values.deinitDeep(alloc);
     const alpha = QM31.fromU32Unchecked(3, 0, 0, 0);
@@ -463,6 +555,14 @@ test "air components: orchestration" {
     try std.testing.expectEqual(@as(usize, 2), column_sizes.items.len);
     try std.testing.expectEqual(@as(usize, 1), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX].len);
     try std.testing.expectEqual(@as(u32, 5), column_sizes.items[verifier_types.PREPROCESSED_TRACE_IDX][0]);
+
+    // The second component has three nested allocations. Failing each one
+    // must also release the complete first component and aggregate buffers.
+    // Success still deduplicates shared preprocessing and retains main order.
+    try std.testing.checkAllAllocationFailures(alloc, Mock.checkColumnLogSizeAllocations, .{components});
+    // Both components share preprocessing index zero. The false mode must
+    // retain its earlier allocation if replacement for the second fails.
+    try std.testing.checkAllAllocationFailures(alloc, Mock.checkMaskPointAllocations, .{components});
 
     var mask = try components.maskPoints(alloc, point, 10, true);
     defer mask.deinitDeep(alloc);

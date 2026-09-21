@@ -1,0 +1,35 @@
+test-recursive-common-ethereum-incremental-leaf-field-public-v4
++- recursive common Ethereum incremental leaf V4 structural guard
+   +- run test failure
+thread 30061004 panic: integer overflow
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig:614:15: 0x10079f4fb in u64At (test)
+        radix *= 1 << 16;
+              ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig:408:34: 0x10079fbef in addBaseTerms (test)
+    const cycle_start = try u64At(builder, statement, layout.first_cycle_start);
+                                 ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_public_sums_v4_support.zig:335:21: 0x1007a41df in test.role0 public sum reservation does not reject an admitted graph (test)
+    try addBaseTerms(
+                    ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:130:29: 0x10075854b in mainServer (test)
+                test_fn.func() catch |err| switch (err) {
+                            ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:64:26: 0x10075700f in main (test)
+        return mainServer() catch @panic("internal test runner failure");
+                         ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x100754887 in main (test)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0x832bffffffffffff in ??? (???)
+error: while executing test 'recursive_common_ethereum_incremental_leaf_materializer_v4_test.test.role0 public sum reservation does not reject an admitted graph', the following command terminated with signal 6 (expected exited with code 0):
+./.zig-cache/o/75c60ac2db68d252392baceca195abb1/test --cache-dir=./.zig-cache --seed=0x67bbdf97 --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 32/32 tests passed
+test-recursive-common-ethereum-incremental-leaf-field-public-v4 transitive failure
++- recursive common Ethereum incremental leaf V4 structural guard transitive failure
+   +- run test failure
+      +- compile test ReleaseSafe native success 29s MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/fb22db5c659caba7f20348595bb5fc07/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x67bbdf97 -Z11c476998c51ad72 --maxrss 25769803776 -j1 test-recursive-common-ethereum-incremental-leaf-field-public-v4 -Doptimize=ReleaseSafe --summary all

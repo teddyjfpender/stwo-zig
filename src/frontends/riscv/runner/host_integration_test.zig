@@ -81,6 +81,15 @@ test "runner: runWithHost null host is backwards compatible" {
     try std.testing.expectEqual(@as(?u32, null), result.exit_code);
 }
 
+test "runner: EBREAK halts after typed retirement" {
+    const elf = makeTestElf(&.{ 0x02a00093, 0x00100073 });
+    var result = try runner.runWithHost(std.testing.allocator, &elf, 1000, null);
+    defer result.deinit();
+    try std.testing.expectEqual(.ebreak, result.completion_reason);
+    try std.testing.expectEqual(@as(usize, 2), result.step_count);
+    try std.testing.expectEqual(@as(u32, 42), result.cpu_final.readReg(1));
+}
+
 fn makeTestElf(instructions: []const u32) [84 + 64]u8 {
     var buf = [_]u8{0} ** (84 + 64);
     @memcpy(buf[0..4], "\x7fELF");

@@ -1,0 +1,8 @@
+Produced diagnostic Ethereum path proof: bytes=31000, sha256=10bdc30e0dcd2bf6aec985d51fbac3758db6b591170c33be9c533d6a1b7274a3
+Metal artifact dispatches=22, fallbacks=0
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1-metal success 343ms MaxRSS:37M
+   +- compile exe ethereum-node-proof-v1-metal ReleaseSafe native success 23s MaxRSS:1G
+

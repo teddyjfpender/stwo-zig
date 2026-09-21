@@ -1,0 +1,114 @@
+diff --git a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+index 179dba53..345689bb 100644
+--- a/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
++++ b/src/frontends/riscv/recursion/segment_public_native_sum_authority_v2_test.zig
+@@ -654,3 +654,109 @@ test "SegmentV2 native-sum graph independently binds every Span snapshot digest
+     try source.circuit.evaluateIntoAssumeValid(owned.scratch_inputs, owned.scratch_values);
+     try std.testing.expect(try source.circuit.outputsAreZero(owned.scratch_values));
+ }
++
++/// Rebuild the complete job and terminal Span after changing actual sparse
++/// memory. This uses canonical admission, never a forged wire or native receipt.
++fn sparseValueCanonicalWords(allocator: std.mem.Allocator, value: u32) ![]M31 {
++    const segment = @import("segment_statement_v2.zig");
++    const span = @import("span_statement.zig");
++    var fixture = try public_data_support.Fixture.init();
++    fixture.right_words[0].final_word = value;
++    const old = fixture.job.complete;
++    var final_state = old.final_state;
++    final_state.rw_memory = segment.snapshotDigest(&fixture.right_words, .final_word).id;
++    fixture.job = try span.JobContext.init(try span.CompleteExecution.init(
++        old.protocol_id,
++        old.program,
++        old.initial_state,
++        final_state,
++        old.public_input,
++        old.public_output,
++        old.total_cycles,
++    ), fixture.job.segment_count);
++    const executed = fixture.statements[1].body.executed;
++    fixture.statements[1] = try span.SpanStatement.segmentLeaf(fixture.job, 1, try span.ExecutedSpan.init(
++        executed.first_segment,
++        executed.segment_count,
++        executed.first_cycle,
++        executed.cycle_count,
++        executed.entry,
++        final_state,
++        executed.input,
++        executed.output,
++    ));
++    const source = fixture.rightSource();
++    try source.validate();
++    const words = try public_data_support.encode(allocator, &source);
++    errdefer allocator.free(words);
++    _ = try segment.authenticateCanonicalWire(words);
++    return words;
++}
++
++test "SegmentV2 native-sum exposes sparse value specialization under identical address topology" {
++    const allocator = std.testing.allocator;
++    const segment = @import("segment_statement_v2.zig");
++    const graph_contract = @import("segment_public_native_sum_authority_v2_contract.zig");
++    const graph_builder = @import("segment_public_native_sum_authority_v2_add_boundary_terms.zig");
++    const values = [_]u32{ 13, 14, 269 };
++    var graphs: [values.len]graph_contract.OwnedGraph = undefined;
++    var initialized: usize = 0;
++    defer for (graphs[0..initialized]) |*graph| graph.deinit();
++    var counts: [values.len]graph_contract.TermCountsV2 = undefined;
++    var first_words: ?[]M31 = null;
++    defer if (first_words) |words| allocator.free(words);
++    for (values, 0..) |value, index| {
++        const words = try sparseValueCanonicalWords(allocator, value);
++        defer if (index != 0) allocator.free(words);
++        if (index == 0) first_words = words;
++        const view = try segment.authenticateCanonicalWire(words);
++        const baseline = try segment.authenticateCanonicalWire(first_words.?);
++        try std.testing.expectEqual(baseline.words.len, view.words.len);
++        inline for (.{ "entry_snapshot", "exit_snapshot", "entry_memory_clocks", "exit_memory_clocks" }) |field| {
++            const before = @field(baseline, field);
++            const after = @field(view, field);
++            try std.testing.expectEqual(before.count, after.count);
++            for (0..before.count) |row| {
++                // All retained sections begin each row with canonical address
++                // limbs; counts and membership are the admitted topology here.
++                const before_address = baseline.words[before.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                const after_address = view.words[after.payload_start + row * segment.RETAINED_ENTRY_WORDS ..][0..2];
++                try std.testing.expectEqualSlices(M31, before_address, after_address);
++            }
++        }
++        var authored = try graph_builder.buildGraph(allocator, &view);
++        defer authored.circuit.deinit();
++        graphs[index] = try graph_contract.OwnedGraph.init(allocator, &authored.circuit);
++        initialized += 1;
++        counts[index] = authored.term_counts;
++    }
++    var plans: [values.len]lowering.Plan = undefined;
++    var plan_count: usize = 0;
++    defer for (plans[0..plan_count]) |*plan| plan.deinit();
++    const companion = lowering.Lane{ .circuit_id = subject.CIRCUIT_ID + 1, .active_in = .binary, .circuit_identity = graphs[0].graph.identity_digest, .graph = graphs[0].graph };
++    for (&graphs, 0..) |*graph, index| {
++        const lanes = [_]lowering.Lane{ .{ .circuit_id = subject.CIRCUIT_ID, .active_in = .segment, .circuit_identity = graph.graph.identity_digest, .graph = graph.graph }, companion };
++        plans[index] = try lowering.Plan.init(allocator, try lowering.Reference.seal(&lanes));
++        plan_count += 1;
++        std.debug.print("SEGMENT_V2_SPARSE_SPECIALIZATION value={d} nodes={d} merkle_terms={d} public_terms={d} graph_sha256={s} native_proof_created=false\n", .{
++            values[index],                                           graph.nodes.len, counts[index].merkle, plans[index].public_terms.len,
++            std.fmt.bytesToHex(graph.graph.identity_digest, .lower),
++        });
++    }
++    // Retained diagnosis, not a general fixed-key guarantee: an equal nonzero
++    // pattern already changes constant anchors; one extra nonzero byte changes
++    // the operation schedule as well. Flip these to invariant checks only when
++    // the production graph consumes constrained dynamic sparse byte inputs.
++    try std.testing.expect(!std.meta.eql(graphs[0].graph.identity_digest, graphs[1].graph.identity_digest));
++    try std.testing.expect(!sparseSpecializationTermsEqual(plans[0].public_terms, plans[1].public_terms));
++    try std.testing.expectEqual(counts[0].merkle, counts[1].merkle);
++    try std.testing.expectEqual(counts[0].merkle + 1, counts[2].merkle);
++    try std.testing.expect(graphs[0].nodes.len != graphs[2].nodes.len);
++    try std.testing.expect(!sparseSpecializationTermsEqual(plans[0].public_terms, plans[2].public_terms));
++}
++
++fn sparseSpecializationTermsEqual(left: []const lowering.PublicWireTerm, right: []const lowering.PublicWireTerm) bool {
++    if (left.len != right.len) return false;
++    for (left, right) |a, b| if (!std.meta.eql(a, b)) return false;
++    return true;
++}

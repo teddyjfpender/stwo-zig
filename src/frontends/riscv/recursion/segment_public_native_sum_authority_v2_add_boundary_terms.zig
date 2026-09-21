@@ -27,13 +27,15 @@ const program_decode = dependency_0.program_decode;
 const public_source = dependency_0.public_source;
 const span_statement = dependency_0.span_statement;
 const std = dependency_0.std;
+const register_bytes = dependency_0.register_bytes;
 const wire_statement = dependency_0.wire_statement;
 
 pub fn buildGraph(
     allocator: std.mem.Allocator,
     view: *const wire_statement.CanonicalWireViewV2,
 ) Error!AuthoredGraph {
-    const input_count = try checkedAdd(view.words.len, INPUT_SUFFIX_WORD_COUNT);
+    const layout = try register_bytes.MemoryLayout.init(view);
+    const input_count = try checkedAdd(try checkedAdd(view.words.len, INPUT_SUFFIX_WORD_COUNT), 2 * layout.memoryByteCount());
     var builder = arithmetic.Builder.initDefault(allocator);
     errdefer builder.deinit();
     // Inputs are declared before the first operation, making input node IDs
@@ -44,12 +46,12 @@ pub fn buildGraph(
     for (values, 0..) |*value, index|
         value.* = try builder.input(@intCast(index));
 
-    const graph_inputs = try bindGraphInputs(&builder, values, view.words.len);
+    const graph_inputs = try bindGraphInputs(&builder, values, view.words.len, layout.memoryByteCount());
     var accumulator = RelationAccumulator{
         .builder = &builder,
         .relations = &graph_inputs.relations,
     };
-    try addBoundaryTerms(&accumulator, view, graph_inputs.wire);
+    try addBoundaryTerms(&accumulator, view, graph_inputs.wire, graph_inputs.register_bytes, layout, graph_inputs.memory_bytes, graph_inputs.memory_selectors);
 
     for (0..DOMAIN_COUNT) |index| {
         _ = try builder.markOutput(try builder.sub(
@@ -63,6 +65,22 @@ pub fn buildGraph(
         total,
         graph_inputs.published_total,
     ));
+    // Separate zero outputs prevent cancellation between digest limbs. Both
+    // sides are authenticated dynamic wire inputs; no snapshot value is a
+    // circuit constant and no extra hash witness is trusted here.
+    inline for (.{
+        .{ span_statement.canonical_layout.entry_state_start, wire_statement.fixed_layout.entry_snapshot_id },
+        .{ span_statement.canonical_layout.exit_state_start, wire_statement.fixed_layout.exit_snapshot_id },
+    }) |side| {
+        const state_digest_start = wire_statement.fixed_layout.base_statement + side[0] +
+            span_statement.canonical_layout.machine_state_rw_digest_start_offset;
+        for (0..@typeInfo(wire_statement.Digest).array.len) |limb| {
+            _ = try builder.markOutput(try builder.sub(
+                graph_inputs.wire[state_digest_start + limb],
+                graph_inputs.wire[side[1] + limb],
+            ));
+        }
+    }
     return .{
         .circuit = try builder.finish(),
         .term_counts = accumulator.counts,
@@ -73,6 +91,10 @@ pub fn addBoundaryTerms(
     accumulator: *RelationAccumulator,
     view: *const wire_statement.CanonicalWireViewV2,
     wire: []const arithmetic.Value,
+    bytes: []const arithmetic.Value,
+    layout: register_bytes.MemoryLayout,
+    memory_bytes: []const arithmetic.Value,
+    selectors: []const arithmetic.Value,
 ) Error!void {
     const base = try view.statement.base();
     const executed = switch (base.body) {
@@ -115,8 +137,8 @@ pub fn addBoundaryTerms(
     }, .negative);
 
     for (0..32) |register| {
-        const entry_value = executed.entry.registers[register];
-        const exit_value = executed.exit.registers[register];
+        const entry = bytes[register_bytes.byteIndex(.entry, register, 0)..][0..4];
+        const exit = bytes[register_bytes.byteIndex(.exit, register, 0)..][0..4];
         const entry_clock = try fixedU32(
             accumulator.builder,
             wire,
@@ -131,23 +153,23 @@ pub fn addBoundaryTerms(
             baseValue(0),
             baseValue(@as(u32, @intCast(register))),
             entry_clock,
-            baseValue(@as(u8, @truncate(entry_value))),
-            baseValue(@as(u8, @truncate(entry_value >> 8))),
-            baseValue(@as(u8, @truncate(entry_value >> 16))),
-            baseValue(@as(u8, @truncate(entry_value >> 24))),
+            entry[0],
+            entry[1],
+            entry[2],
+            entry[3],
         }, .positive);
         try accumulator.add(.memory_access, &.{
             baseValue(0),
             baseValue(@as(u32, @intCast(register))),
             exit_clock,
-            baseValue(@as(u8, @truncate(exit_value))),
-            baseValue(@as(u8, @truncate(exit_value >> 8))),
-            baseValue(@as(u8, @truncate(exit_value >> 16))),
-            baseValue(@as(u8, @truncate(exit_value >> 24))),
+            exit[0],
+            exit[1],
+            exit[2],
+            exit[3],
         }, .negative);
     }
 
-    try addSparseMemoryTerms(accumulator, view, wire);
+    try addSparseMemoryTerms(accumulator, view, wire, layout, memory_bytes);
 
     const program_root_index = wire_statement.fixed_layout.base_statement +
         span_statement.canonical_layout.program_start;
@@ -173,16 +195,20 @@ pub fn addBoundaryTerms(
     }, .positive);
     try addContinuationCompensation(
         accumulator,
-        view,
         wire,
-        view.entry_snapshot,
+        layout,
+        .entry,
+        memory_bytes,
+        selectors,
         entry_root,
     );
     try addContinuationCompensation(
         accumulator,
-        view,
         wire,
-        view.exit_snapshot,
+        layout,
+        .exit,
+        memory_bytes,
+        selectors,
         exit_root,
     );
 
@@ -232,16 +258,7 @@ pub fn countTerms(
         if (section.count == 0) {
             merkle = try checkedAddU32(merkle, 1);
         } else {
-            for (0..section.count) |index| {
-                const value = view.sparseEntry(section, index).value;
-                for (0..4) |limb| {
-                    const shift: u5 = @intCast(limb * 8);
-                    merkle = try checkedAddU32(
-                        merkle,
-                        @intFromBool(@as(u8, @truncate(value >> shift)) != 0),
-                    );
-                }
-            }
+            merkle = try checkedAddU32(merkle, try checkedMulU32(section.count, 4));
         }
     }
     return .{
@@ -276,6 +293,7 @@ pub fn authenticatedView(
 
 pub fn inputSource(
     wire_count: u32,
+    memory_byte_count: u32,
     input_index: usize,
 ) Error!InputSourceV2 {
     if (input_index < wire_count)
@@ -304,6 +322,12 @@ pub fn inputSource(
             .limb = @intCast(suffix % 8),
         } };
     }
+    suffix -= CHALLENGE_WORD_COUNT;
+    if (suffix < register_bytes.BYTE_COUNT) return .{ .register_byte = @intCast(suffix) };
+    suffix -= register_bytes.BYTE_COUNT;
+    if (suffix < memory_byte_count) return .{ .memory_byte = @intCast(suffix) };
+    suffix -= memory_byte_count;
+    if (suffix < memory_byte_count) return .{ .memory_selector = @intCast(suffix) };
     return error.InputBindingMismatch;
 }
 
@@ -339,6 +363,20 @@ pub fn fillInputValues(
             destination[at] = QM31.fromBase(word);
             at += 1;
         };
+    }
+    for (0..register_bytes.BYTE_COUNT) |index| {
+        destination[at] = QM31.fromBase(register_bytes.value(inputs.owned_public_data.data.words(), index));
+        at += 1;
+    }
+    const layout = prepared.memory_layout;
+    const words = inputs.owned_public_data.data.words();
+    for (register_bytes.BYTE_COUNT..layout.byteCount()) |index| {
+        destination[at] = QM31.fromBase(layout.value(words, index));
+        at += 1;
+    }
+    for (register_bytes.BYTE_COUNT..layout.byteCount()) |index| {
+        destination[at] = QM31.fromBase(dependency_0.M31.fromCanonical(@intFromBool(layout.value(words, index).toU32() != 0)));
+        at += 1;
     }
     std.debug.assert(at == destination.len);
 }

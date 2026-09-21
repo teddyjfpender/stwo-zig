@@ -1,0 +1,19 @@
+//! Compatibility exports for the shared recursion owner.
+const owner = @import("stwo_riscv_frontend").recursion.detached_prefix_preparation_v1;
+pub const VERSION = owner.VERSION;
+pub const RAW_WIRE_BASE = owner.RAW_WIRE_BASE;
+pub const WIRE_ID_BASE = owner.WIRE_ID_BASE;
+pub const BOUNDARY_CLAIM_INDEX = owner.BOUNDARY_CLAIM_INDEX;
+pub const BOUNDARY_CHALLENGE_SCOPE = owner.BOUNDARY_CHALLENGE_SCOPE;
+pub const PayloadSource = owner.PayloadSource;
+pub const Operation = owner.Operation;
+pub const InputCoordinate = owner.InputCoordinate;
+pub const inputCoordinate = owner.inputCoordinate;
+pub const inputCoordinateFor = owner.inputCoordinateFor;
+pub const boundaryChallenge = owner.boundaryChallenge;
+pub const boundaryChallengeFor = owner.boundaryChallengeFor;
+pub const initPcsOperations = owner.initPcsOperations;
+pub const PayloadRow = owner.PayloadRow;
+pub const View = owner.View;
+pub const OwnedV1 = owner.OwnedV1;
+pub const testFromVerifiedChild = owner.testFromVerifiedChild;

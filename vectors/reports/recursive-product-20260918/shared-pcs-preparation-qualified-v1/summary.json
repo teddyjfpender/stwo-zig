@@ -1,0 +1,22 @@
+{
+  "passed": true,
+  "shared_owner": "src/frontends/riscv/recursion/detached_pcs_preparation_v1.zig",
+  "compatibility_exports": [
+    "View",
+    "OwnedV1",
+    "testFromVerifiedChild",
+    "checkLogicalRows"
+  ],
+  "ownership_tests": 14,
+  "focused_tests": 2,
+  "complete_cases": 384,
+  "identical_artifacts": 21,
+  "source_snapshot": "source-snapshot.json",
+  "source_patch": "source.patch.gz",
+  "development_only": true,
+  "remaining": [
+    "Child capture, transcript prefix and parent routing preparation ownership",
+    "Typed GPU interactions",
+    "Formal load/store semantic-rebind successor"
+  ]
+}

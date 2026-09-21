@@ -1,0 +1,51 @@
+{
+  "schema": "stwo.ethereum.fixed-program-native-retained-gate.v1",
+  "passed": true,
+  "tests_passed": 1,
+  "build_steps_passed": 4,
+  "claim_admission": "fixed_program_narrow_v5",
+  "native_leaf_count": 2,
+  "producer_destroyed_before_fresh_verification": true,
+  "independent_elf_reconstructed": true,
+  "negative_cases": [
+    "old cold entry without independent program admission rejects",
+    "different full ELF with same decoded table and compatibility root rejects"
+  ],
+  "artifacts": [
+    {
+      "path": ".git/local-ethereum/fixed-program-narrow-v5/native-inputs-v1.json",
+      "bytes": 584,
+      "sha256": "97113e1e50f053bf65406eda1c2fd8c28bb68e1bad3b8c54d5440245ec026914"
+    },
+    {
+      "path": ".git/local-ethereum/fixed-program-narrow-v5/global-metadata-v1.json",
+      "bytes": 9894,
+      "sha256": "fa7846f8ba0bcb763af75567fa4fea36c57f4a50fa2a5bd4b07900f69b7ecfd1"
+    },
+    {
+      "path": ".git/local-ethereum/fixed-program-narrow-v5/program.elf",
+      "bytes": 1048,
+      "sha256": "ecfd324f8088f9c985210b728d91851fb1144254f0bb6d52aa3d7ed0e3625f55"
+    },
+    {
+      "path": ".git/local-ethereum/fixed-program-narrow-v5/3417baa42016aa8e6473f5da044c08bc8d1a2ad16e4a45b173c1578ab0d4179e.bin",
+      "bytes": 8517294,
+      "sha256": "3417baa42016aa8e6473f5da044c08bc8d1a2ad16e4a45b173c1578ab0d4179e"
+    },
+    {
+      "path": ".git/local-ethereum/fixed-program-narrow-v5/64f20798b87279282c441ac08a2fa9883a41e3a7a2b8dce302110db4a3a8796f.bin",
+      "bytes": 8827521,
+      "sha256": "64f20798b87279282c441ac08a2fa9883a41e3a7a2b8dce302110db4a3a8796f"
+    }
+  ],
+  "log": {
+    "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/fixed-program-native-retained-v1.log",
+    "bytes": 1952,
+    "sha256": "6947f8e5e488d44cc450a433c43d3abb8bb43793a7fce0403b6820163ddb8dfe"
+  },
+  "limitations": [
+    "small genuine fixture, not a real block segment",
+    "corpus was saved before cold verification so failing proofs would remain available",
+    "no schema5 wrapper proof or whole-block claim"
+  ]
+}

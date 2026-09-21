@@ -37,6 +37,7 @@
     "stage_profile",
     "task_graph",
     "task_profile",
+    "tracked_smp_allocator",
     "transaction",
     "vcs",
     "vcs_lifted",

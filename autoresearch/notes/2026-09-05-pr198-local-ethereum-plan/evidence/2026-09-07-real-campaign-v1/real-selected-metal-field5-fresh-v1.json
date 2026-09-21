@@ -1,0 +1,40 @@
+{
+  "passed": true,
+  "request_ns": 54355528916,
+  "native_verify_ns": 50914224333,
+  "process_peak_footprint_bytes": 956974256,
+  "segment_index": 9,
+  "segment_count": 121,
+  "worker_count": 1,
+  "full_block_coverage": false,
+  "producer_process_destroyed": true,
+  "retained_admission_destroyed_before_proof": true,
+  "inputs_and_binary_unchanged": true,
+  "files": {
+    "plan.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-fresh-v1-plan.json",
+      "sha256": "eeb6783655fed22e19f872f4f8e2088e9127fa99c4914e370079d39c9600eae8",
+      "bytes": 2070
+    },
+    "receipt.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-fresh-v1-receipt.json",
+      "sha256": "328ab28a23300a2427fb41b71f9fc935eacf7305ed02880274acbebd364ab925",
+      "bytes": 3016
+    },
+    "stdout.json": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-fresh-v1-stdout.json",
+      "sha256": "d31a08259490179ea6ee2a0e52b945277b56028147ea7f439cdb804ca8a0efb8",
+      "bytes": 1156
+    },
+    "stderr-and-time.log": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-fresh-v1-stderr-and-time.log",
+      "sha256": "5ab56ae9d436a3ecf5269348e8f922b48a3fb5cba5a9c3cfa942b028eac4fa2d",
+      "bytes": 777
+    },
+    "run.py": {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/real-selected-metal-field5-fresh-v1-run.py",
+      "sha256": "85f2117c344a4270186fc9cda2fa38ce55cd26cea277c23675f0d5a31b01dc9f",
+      "bytes": 3221
+    }
+  }
+}

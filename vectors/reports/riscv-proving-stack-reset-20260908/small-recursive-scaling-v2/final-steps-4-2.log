@@ -1,0 +1,36 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=4
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=4 cumulative_cycles=4 retired_addi=3 retired_bne=1 exit_pc=1004 counter=63 accumulator=1
+SEGMENT_V2_LADDER_EXECUTION segment_cycles=16 cumulative_cycles=20 retired_addi=11 retired_bne=5 exit_pc=1008 counter=58 accumulator=7
+info: Columns: opcode=65 infra=481 total tree1=546 interaction=120
+info: Poseidon2 Merkle: 184 exact sparse-node calls, poseidon_log_size=8, merkle_log_size=8
+
+SEGMENT_V2_LADDER_NATIVE requested_steps=4 retired_cycles=4 continuation_cycles=16 trace_rows=4 native_queries=1 outer_queries=3 native_pcs_pow_bits=0 outer_pcs_pow_bits=0 program=finite_addi_bne_counter_loop native_prove_ms=5266.426 native_verify_ms=1038.726 recursive_prepare_ms=137.630 native_proof_bytes=26555 native_tree_heights={ 21, 21, 21, 21 }
+
+SEGMENT_V2_OUTER_PHASES role=producer scope=body_before_cleanup setup_ns=18959 tree0_prepare_ns=32634166 tree0_commit_ns=85552417 tree1_prepare_ns=31383458 tree1_commit_ns=109673000 transcript_prefix_ns=56878292 interaction_generate_ns=221881375 interaction_admit_closure_ns=88063042 transcript_tree2_commit_ns=96671583 components_ns=91563583 diagnostic_ns=42 stark_ns=420806542 phase_sum_ns=1235126459
+
+SEGMENT_V2_OUTER_ARTIFACT_REJECTIONS truncated=true trailing=true
+
+SEGMENT_V2_OUTER_PHASES role=verifier scope=body_before_cleanup preflight_ns=16416 preprocessed_root_ns=114914917 transcript_prefix_ns=57468250 interaction_regenerate_ns=190634792 interaction_validate_claims_ns=28898041 closure_ns=59282459 transcript_after_ns=31445041 components_ns=92110375 publication_authority_ns=34963167 stark_ns=6419708 publication_total_ns=36090125 phase_sum_ns=652243291
+
+SEGMENT_V2_OUTER status=verified rows=39 domains=47 proof_size_estimate_bytes=77660 canonical_proof_bytes=90878 canonicalize_ms=4.297 prove_ms=1235.208 verify_ms=652.303 publication_ms=4.483 producer_prepare_ms=326.927 producer_destroy_ms=1.415 verifier_prepare_ms=321.795 decode_ms=0.309 stark_verify_ms=6.420 transaction_ms=2544.250 artifact_rejections_ms=0.667 producer_peak_bytes=94980508 producer_live_bytes_after_destroy=0 serialization_passes=1 retained_canonical_bytes=90878 verification=native_assisted_fresh_decode draws=1 cols=595/974/508 workers=1
+
+SEGMENT_V2_LADDER_OUTER rows=39 domains=47 component_logs={ 9, 11, 11, 8, 13, 13, 4, 4, 4, 4, 4, 10, 5, 4, 4, 10, 5, 7, 12, 8, 4, 7, 6, 9, 14, 7, 4, 5, 6, 10, 14, 8, 14, 8, 11, 16, 10, 6, 8 } min_component_log=4 max_component_log=16 provider_log=11 samples=2245 queries=3 canonical_proof_bytes=90878 producer_live_bytes_after_destroy=0
+SEGMENT_V2_LADDER status=verified requested_steps=4 owners_destroyed=true
+        9.00 real        68.58 user         0.43 sys
+          1038385152  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              160319  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               41925  involuntary context switches
+       1294200170671  instructions retired
+        249707463520  cycles elapsed
+          1036092664  peak memory footprint

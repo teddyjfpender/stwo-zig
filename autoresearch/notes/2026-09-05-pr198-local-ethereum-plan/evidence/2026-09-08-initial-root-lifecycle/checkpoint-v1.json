@@ -1,0 +1,42 @@
+{
+  "recorded_at": "2026-09-08T02:50:00.671473+00:00",
+  "status": "implemented_ast_checked_semantic_validation_queued",
+  "source_manifest_sha256": "02b0727d2c28f54eeba6684796be6284d3235892280f6707249152043320d189",
+  "validation_session": 77113,
+  "validation_record": ".git/local-ethereum/initial38-root-lifecycle-source-v1/validation.json",
+  "assembly_validation_session": 12918,
+  "source_sha256": {
+    "recursive_common_ethereum_incremental_leaf_secure_cohort_v4.zig": "5ed9f973915ae4c287e3fdd2307b8cdacd787d8ff51a947970c66e3e3dbc9da2",
+    "recursive_common_ethereum_incremental_leaf_universal_proof_v4_core.zig": "b4494c8dafb867ca9e6e791340a350105559c4b34c89961454570f2088465d8c",
+    "recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig": "8c9e820997490a60c6b06818bda4630d8c1fd2395a5fb389b8081365ee85c496",
+    "ethereum_wrapper_root_command_v1.zig": "8da8774fefd8b37ba55d9d1631fd89b204233a66012201f2b8455255d2cbb122",
+    "ethereum_wrapper_verifier_components_v1.zig": "f0d983d37ffb569a81296de815d56e83758cb91e40208b37db15f51a98ee9810",
+    "build_segment_steps.zig": "f98f97caf0ca6ddfc66914424491ad0360e37fe7f6bb86b5ae44c3b38bf0cd8f"
+  },
+  "implemented": [
+    "Explicit Initial38 secure cohort and canonical proof selection",
+    "Fixed initial identity excludes per-capture custody and binds admitted manifest plus arithmetic program",
+    "Initial complete-proof route requires retained root corpus, destroys producer state and verifies detached key/proof/public inputs",
+    "Retain wrong-key, internally consistent changed-public-node and corrupt-proof rejection inputs; resource errors do not count as rejection",
+    "Legacy36 cold capture explicitly rejects initial profile before allocating proof state"
+  ],
+  "limitations": [
+    "No semantic pass on current selected lifecycle yet",
+    "No initial38 actual wrapper accepted",
+    "Same-process owner destruction gate does not establish separate-process verifier acceptance; standalone root command remains required",
+    "Initial38 recursive child capture and whole-block fold remain incomplete"
+  ],
+  "next_commands": [
+    "python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu check-ethereum-complete-proof -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all",
+    "python3 scripts/zig_serial_build.py --cwd src/integrations/riscv_cpu test-ethereum-complete-proof -Dethereum-proof-strip=true -Doptimize=ReleaseSafe --summary all",
+    "ethereum-wrapper-root-verify-v1 --initial-v1 <root-candidate-directory> <independently-admitted-key-sha256>"
+  ],
+  "post_snapshot_changes": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.zig",
+      "sha256": "14afd259b85b5f2ae2949943f67787496f08d3b48aa8bfbb3619e911be3eb94d",
+      "change": "Both detached root receipt paths explicitly compare coordinate, statement and output digest against expected public node retained before producer destruction",
+      "validation": "Formatting and AST pass; not included in queued frozen lifecycle sourcev1"
+    }
+  ]
+}

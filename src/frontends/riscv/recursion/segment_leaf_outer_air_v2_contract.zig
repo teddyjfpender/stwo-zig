@@ -11,7 +11,7 @@ pub const validate_mod = @import("../air/lang/validate.zig");
 pub const relation_effect = @import("air/relation_effect.zig");
 pub const relation_interaction = @import("air/relation_interaction.zig");
 pub const transcript_payload = @import("air/transcript_payload.zig");
-pub const source_v2 = @import("segment_leaf_authority_v2.zig");
+pub const source_v2 = @import("segment_leaf_layout_v2.zig");
 
 pub const FORMAT_VERSION: u16 = 2;
 pub const SCHEMA_VERSION: u16 = 1;

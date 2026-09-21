@@ -1,0 +1,16 @@
+test-ethereum-validation-ownership
++- Ethereum validation ownership guard
+   +- run test stderr
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+ETHEREUM_GEOMETRY_PREPARATION phase=begin
+
+Build Summary: 8/8 steps succeeded; 32/32 tests passed
+test-recursive-compact-tuple-ledger success
++- Recursive compact tuple ledger guard success
+   +- run test 9 passed 535ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 16s MaxRSS:1G
+test-ethereum-validation-ownership success
++- Ethereum validation ownership guard success
+   +- run test 23 passed 1s MaxRSS:5M
+      +- compile test ReleaseSafe native success 47s MaxRSS:3G
+

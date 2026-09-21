@@ -1,0 +1,1431 @@
+{
+  "stages": {
+    "schema_version": 1,
+    "runtime": "zig",
+    "example": "small_recursive_native",
+    "stages": [
+      {
+        "id": "riscv_preprocessed_commit",
+        "label": "RISC-V preprocessed trace commit",
+        "seconds": 0.029209,
+        "children": null
+      },
+      {
+        "id": "riscv_opcode_trace_generation",
+        "label": "RISC-V opcode trace generation (overlapped)",
+        "seconds": 0.001215,
+        "children": [
+          {
+            "id": "riscv_infrastructure_trace_generation",
+            "label": "RISC-V infrastructure trace generation",
+            "seconds": 0.000446,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "riscv_lookup_source_ingest",
+        "label": "RISC-V lookup-source ingestion",
+        "seconds": 1.1e-05,
+        "children": null
+      },
+      {
+        "id": "riscv_main_trace_commit",
+        "label": "RISC-V main trace commit",
+        "seconds": 0.335595,
+        "children": [
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 0.309017,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "riscv_interaction_commit",
+        "label": "RISC-V interaction trace generation and commit",
+        "seconds": 0.146972,
+        "children": [
+          {
+            "id": "riscv_interaction_opcode",
+            "label": "RISC-V opcode interactions",
+            "seconds": 0.000145,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_program",
+            "label": "RISC-V program interactions",
+            "seconds": 4.9e-05,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_memory",
+            "label": "RISC-V memory interactions",
+            "seconds": 0,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_merkle",
+            "label": "RISC-V Merkle interactions",
+            "seconds": 0.000184,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_poseidon",
+            "label": "RISC-V Poseidon interactions",
+            "seconds": 0.000115,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_clock",
+            "label": "RISC-V clock interactions",
+            "seconds": 2.7e-05,
+            "children": null
+          },
+          {
+            "id": "riscv_interaction_tables",
+            "label": "RISC-V lookup-table interactions",
+            "seconds": 0.055886,
+            "children": null
+          },
+          {
+            "id": "merkle_commit",
+            "label": "Merkle commit",
+            "seconds": 0.070499,
+            "children": null
+          }
+        ]
+      },
+      {
+        "id": "draw_random_coeff",
+        "label": "Draw random coefficient",
+        "seconds": 1e-06,
+        "children": null
+      },
+      {
+        "id": "composition_trace_extract",
+        "label": "Composition trace extract",
+        "seconds": 1.4e-05,
+        "children": null
+      },
+      {
+        "id": "composition_evaluation",
+        "label": "Composition evaluation",
+        "seconds": 0.142283,
+        "children": null
+      },
+      {
+        "id": "composition_interpolate_and_split",
+        "label": "Composition interpolate and split",
+        "seconds": 0.002348,
+        "children": null
+      },
+      {
+        "id": "composition_commit",
+        "label": "Composition commit",
+        "seconds": 0.025347,
+        "children": null
+      },
+      {
+        "id": "oods_point_and_mask_points",
+        "label": "OODS point and mask points",
+        "seconds": 0.000254,
+        "children": null
+      },
+      {
+        "id": "sampled_value_evaluation",
+        "label": "Sampled-value evaluation",
+        "seconds": 0.022177,
+        "children": null
+      },
+      {
+        "id": "sampled_value_channel_mix",
+        "label": "Sampled-value channel mix",
+        "seconds": 0.000287,
+        "children": null
+      },
+      {
+        "id": "fri_quotient_build_and_commit",
+        "label": "FRI quotient build + commit (lazy)",
+        "seconds": 0.103172,
+        "children": null
+      },
+      {
+        "id": "proof_of_work",
+        "label": "Proof of work",
+        "seconds": 2e-06,
+        "children": null
+      },
+      {
+        "id": "fri_decommit",
+        "label": "FRI decommit",
+        "seconds": 0.003586,
+        "children": null
+      },
+      {
+        "id": "trace_decommit",
+        "label": "Trace decommit",
+        "seconds": 0.001647,
+        "children": null
+      },
+      {
+        "id": "constraint_check_and_assembly",
+        "label": "Constraint check and assembly",
+        "seconds": 0.000201,
+        "children": null
+      }
+    ]
+  },
+  "tasks": {
+    "schema_version": 2,
+    "runtime": "zig",
+    "example": "small_recursive_native",
+    "graphs": [
+      {
+        "graph_id": "metal_composition_riscv",
+        "events": [
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 4,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 0,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65256125,
+            "ready_ns": 13083,
+            "start_ns": 65266625,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65375458,
+            "configured_workers": 14,
+            "worker_slot": 3,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65243042,
+            "queue_wait_ns": 10500,
+            "run_ns": 108833,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 256,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 632,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 5,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 1,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65256125,
+            "ready_ns": 13083,
+            "start_ns": 65266916,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65733125,
+            "configured_workers": 14,
+            "worker_slot": 1,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65243042,
+            "queue_wait_ns": 10791,
+            "run_ns": 466209,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8192,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 2064,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 1048576
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 6,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 2,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65256125,
+            "ready_ns": 13083,
+            "start_ns": 65260166,
+            "cancellation_requested_ns": null,
+            "finish_ns": 68357750,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 65243042,
+            "queue_wait_ns": 4041,
+            "run_ns": 3097584,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8192,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 8960,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 1048576
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 7,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "leaf",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 3,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 65256125,
+            "ready_ns": 13083,
+            "start_ns": 65266750,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65327625,
+            "configured_workers": 14,
+            "worker_slot": 2,
+            "worker_kind": "helper",
+            "admission_wait_ns": 65243042,
+            "queue_wait_ns": 10625,
+            "run_ns": 60875,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 512,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 488,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 8,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 4,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 61935750,
+            "ready_ns": 13083,
+            "start_ns": 61935833,
+            "cancellation_requested_ns": null,
+            "finish_ns": 65255291,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 61922667,
+            "queue_wait_ns": 83,
+            "run_ns": 3319458,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 8388608,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 9,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 5,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 13500,
+            "ready_ns": 13083,
+            "start_ns": 13666,
+            "cancellation_requested_ns": null,
+            "finish_ns": 29724958,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 417,
+            "queue_wait_ns": 166,
+            "run_ns": 29711292,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 33554432,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 10,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 6,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 41657708,
+            "ready_ns": 13083,
+            "start_ns": 41657833,
+            "cancellation_requested_ns": null,
+            "finish_ns": 61934708,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 41644625,
+            "queue_wait_ns": 125,
+            "run_ns": 20276875,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 16777216,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 11,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 7,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 29726208,
+            "ready_ns": 13083,
+            "start_ns": 29726291,
+            "cancellation_requested_ns": null,
+            "finish_ns": 41657000,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 29713125,
+            "queue_wait_ns": 83,
+            "run_ns": 11930709,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 33554432,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 12,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 8,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 68359416,
+            "ready_ns": 13083,
+            "start_ns": 68359583,
+            "cancellation_requested_ns": null,
+            "finish_ns": 70695708,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 68346333,
+            "queue_wait_ns": 167,
+            "run_ns": 2336125,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 2097152,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "key": {
+              "epoch": 0,
+              "stage_rank": 0,
+              "component_registry_index": 13,
+              "shard_or_chunk_index": 0
+            },
+            "stage_id": "composition_domain",
+            "component_kind": "riscv_fallback_component",
+            "task_class": "pool_exclusive",
+            "dependencies": [
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              },
+              {
+                "epoch": 0,
+                "stage_rank": 0,
+                "component_registry_index": 0,
+                "shard_or_chunk_index": 0
+              }
+            ],
+            "dependency_count": 0,
+            "parallel_eligible": true,
+            "contribution_range": {
+              "start": 9,
+              "len": 1
+            },
+            "submitted": true,
+            "started": true,
+            "finished": true,
+            "submitted_ns": 70696250,
+            "ready_ns": 13083,
+            "start_ns": 70696291,
+            "cancellation_requested_ns": null,
+            "finish_ns": 71181541,
+            "configured_workers": 14,
+            "worker_slot": 0,
+            "worker_kind": "coordinator",
+            "admission_wait_ns": 70683167,
+            "queue_wait_ns": 41,
+            "run_ns": 485250,
+            "resource_wait_ns": 0,
+            "bytes": {
+              "final_output_bytes": 1048576,
+              "exclusive_scratch_bytes": 0,
+              "shared_resident_bytes": 1880,
+              "device_resident_bytes": 0,
+              "worker_stack_bytes": 262144
+            },
+            "terminal_status": "completed",
+            "error_name": null,
+            "cancellation_winner": null,
+            "cancellation_reason": null,
+            "cleanup_complete": true,
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "contributions": [
+          {
+            "component_registry_index": 4,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 5,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 6,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 7,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 8,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 9,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 10,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 11,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 12,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 13,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "component_work": [
+          {
+            "component_registry_index": 4,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 112,
+            "planned_rows": 16,
+            "planned_tiles": 0,
+            "completed_rows": 16,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 5,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 5120,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 6,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 222720,
+            "planned_rows": 512,
+            "planned_tiles": 0,
+            "completed_rows": 512,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 7,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 160,
+            "planned_rows": 32,
+            "planned_tiles": 0,
+            "completed_rows": 32,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 8,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 524288,
+            "planned_rows": 524288,
+            "planned_tiles": 0,
+            "completed_rows": 524288,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 9,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 10,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 1048576,
+            "planned_rows": 1048576,
+            "planned_tiles": 0,
+            "completed_rows": 1048576,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 11,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 2097152,
+            "planned_rows": 2097152,
+            "planned_tiles": 0,
+            "completed_rows": 2097152,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 12,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 131072,
+            "planned_rows": 131072,
+            "planned_tiles": 0,
+            "completed_rows": 131072,
+            "completed_tiles": 0
+          },
+          {
+            "component_registry_index": 13,
+            "component_kind": "riscv_fallback_component",
+            "role": "exclusive",
+            "task_count": 1,
+            "work_estimate": 65536,
+            "planned_rows": 65536,
+            "planned_tiles": 0,
+            "completed_rows": 65536,
+            "completed_tiles": 0
+          }
+        ],
+        "summary": {
+          "requested_workers": 14,
+          "admitted_workers": 14,
+          "pool_capacity": 14,
+          "worker_stack_bytes": 218103808,
+          "peak_active_tasks": 4,
+          "peak_active_workers": 14,
+          "planned_tasks": 10,
+          "submitted_tasks": 10,
+          "completed_tasks": 10,
+          "failed_tasks": 0,
+          "cancelled_tasks": 0,
+          "unsubmitted_cancelled_tasks": 0,
+          "started_tasks": 10,
+          "finished_tasks": 10,
+          "duplicate_starts": 0,
+          "duplicate_finishes": 0,
+          "useful_task_work_ns": 71793210,
+          "critical_path_ns": 29711292,
+          "admission_wait_ns": 533282502,
+          "queue_wait_ns": 36622,
+          "resource_wait_ns": 0,
+          "task_run_ns": 71793210,
+          "worker_busy_ns": 678466414,
+          "worker_capacity_ns": 996544500,
+          "graph_elapsed_ns": 71181750,
+          "parallel_eligible_ns": 71793210,
+          "cancellation_latency_ns": null,
+          "peak_reserved_bytes": 313568336,
+          "total_work_estimate": 6191888,
+          "completed_rows": 5964848,
+          "completed_tiles": 0,
+          "scheduler": "central_queue_no_steal",
+          "steal_count": 0
+        }
+      }
+    ]
+  }
+}

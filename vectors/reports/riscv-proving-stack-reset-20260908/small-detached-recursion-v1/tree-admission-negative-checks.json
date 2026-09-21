@@ -1,0 +1,20 @@
+[
+  {
+    "flag": "--admission-sha256",
+    "exit_code": 1,
+    "output_created": false,
+    "diagnostic": "ValueError: independent input pin mismatch: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/development-2.json"
+  },
+  {
+    "flag": "--leaf-producer-sha256",
+    "exit_code": 1,
+    "output_created": false,
+    "diagnostic": "ValueError: independent input pin mismatch: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/metal-wrapper-first-prove"
+  },
+  {
+    "flag": "--parent-verifier-sha256",
+    "exit_code": 1,
+    "output_created": false,
+    "diagnostic": "ValueError: independent input pin mismatch: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/q193-parent-first-verify"
+  }
+]

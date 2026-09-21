@@ -1,0 +1,46 @@
+{
+  "schema": "stwo.csp.accelerated-validation.v1",
+  "snapshot_commit": "af05b7401a7799015e76c1e35352c72d373669a7",
+  "python_runner_tests": {
+    "passed": 113,
+    "log": "validation/csp-python-final-tests.log"
+  },
+  "guest_reproducibility": {
+    "status": "byte_identical",
+    "log": "validation/csp-guests-reproducibility.log"
+  },
+  "full_guest_gate": {
+    "status": "passed",
+    "pcs_queries": 70,
+    "pow_bits": 26,
+    "checks": [
+      "full_guest_prove_and_fresh_artifact_verify",
+      "changed_input_rejected",
+      "wrong_elf_rejected",
+      "wrong_parity_guest_cannot_complete",
+      "malformed_key_prefix_falls_back",
+      "high_s_falls_back",
+      "zero_s_falls_back",
+      "tampered_proof_rejected"
+    ],
+    "log": "validation/csp-ecdsa-full-guest-final-gate.log"
+  },
+  "optimization": {
+    "scope": "Metal quotient placement within existing GPU kernels",
+    "proof_bytes_unchanged": true,
+    "diagnostics": "research/README.md"
+  },
+  "full_suite": {
+    "status": "passed",
+    "measured_proofs": 320,
+    "warmup_proofs": 32,
+    "negative_proofs": 2,
+    "all_retained_artifacts_fresh_verified": true,
+    "all_backend_proof_and_statement_hashes_match": true,
+    "ecdsa_mean_below_one_second_both_backends": true
+  },
+  "clean_build": {
+    "status": "passed",
+    "log": "validation/build.log"
+  }
+}

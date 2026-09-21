@@ -16,49 +16,26 @@ const constants = @import("poseidon2_constants.zig");
 const permutation = @import("poseidon2.zig");
 const poseidon_work = @import("../../prover/poseidon_witness_work.zig");
 
-pub const WIDTH: usize = 16;
-pub const N_TEMPORARIES: usize = 426;
-pub const N_MAIN_COLUMNS: usize = 1 + WIDTH + N_TEMPORARIES + 2;
-pub const N_MATERIALIZATION_CONSTRAINTS: usize = N_TEMPORARIES;
-pub const N_PERMUTATION_CONSTRAINTS: usize = 1 + N_MATERIALIZATION_CONSTRAINTS;
-pub const N_FLAG_CONSTRAINTS: usize = 3;
-pub const N_CONSTRAINTS: usize = N_PERMUTATION_CONSTRAINTS + N_FLAG_CONSTRAINTS;
-pub const N_SUMS: usize = 2;
-pub const N_INTERACTION_COLUMNS: usize = N_SUMS * 4;
-const INPUT_START: usize = 1;
-const TEMP_START: usize = INPUT_START + WIDTH;
-pub const WIDE_COLUMN: usize = TEMP_START + N_TEMPORARIES;
-pub const IO_COLUMN: usize = WIDE_COLUMN + 1;
-const FIRST_FULL_ROUND_WIDTH: usize = 2 * WIDTH;
-const MATERIALIZED_FULL_ROUND_WIDTH: usize = 3 * WIDTH;
-const PARTIAL_ROUND_WIDTH: usize = 3;
-const OUTPUT_START: usize = TEMP_START + N_TEMPORARIES - WIDTH;
+const layout = @import("poseidon2_layout.zig");
+pub const WIDTH = layout.WIDTH;
+pub const N_TEMPORARIES = layout.N_TEMPORARIES;
+pub const N_MAIN_COLUMNS = layout.N_MAIN_COLUMNS;
+pub const N_MATERIALIZATION_CONSTRAINTS = layout.N_MATERIALIZATION_CONSTRAINTS;
+pub const N_PERMUTATION_CONSTRAINTS = layout.N_PERMUTATION_CONSTRAINTS;
+pub const N_FLAG_CONSTRAINTS = layout.N_FLAG_CONSTRAINTS;
+pub const N_CONSTRAINTS = layout.N_CONSTRAINTS;
+pub const N_SUMS = layout.N_SUMS;
+pub const N_INTERACTION_COLUMNS = layout.N_INTERACTION_COLUMNS;
+const INPUT_START = layout.INPUT_START;
+const TEMP_START = layout.TEMP_START;
+pub const WIDE_COLUMN = layout.WIDE_COLUMN;
+pub const IO_COLUMN = layout.IO_COLUMN;
+const FIRST_FULL_ROUND_WIDTH = layout.FIRST_FULL_ROUND_WIDTH;
+const MATERIALIZED_FULL_ROUND_WIDTH = layout.MATERIALIZED_FULL_ROUND_WIDTH;
+const PARTIAL_ROUND_WIDTH = layout.PARTIAL_ROUND_WIDTH;
+const OUTPUT_START = layout.OUTPUT_START;
 
-pub const Call = struct {
-    input: [WIDTH]u32,
-    wide: bool = false,
-    io: bool = false,
-    /// Narrow output already carried by the Merkle witness. Interaction
-    /// generation may use it instead of recomputing 426 main-trace
-    /// temporaries. Only the input and one-lane narrow-output relations have
-    /// nonzero multiplicity in this mode; the Poseidon lookup AIR still binds
-    /// them to the separately committed permutation row and rejects any
-    /// disagreement.
-    narrow_output: ?u32 = null,
-
-    pub fn narrow(left: u32, right: u32) Call {
-        var input = [_]u32{0} ** WIDTH;
-        input[0] = left;
-        input[1] = right;
-        return .{ .input = input };
-    }
-
-    pub fn narrowWithOutput(left: u32, right: u32, output_value: u32) Call {
-        var call = narrow(left, right);
-        call.narrow_output = output_value;
-        return call;
-    }
-};
+pub const Call = @import("poseidon2_call.zig").Call;
 
 pub const Columns = struct {
     values: [N_MAIN_COLUMNS][]M31,
@@ -262,101 +239,21 @@ pub fn fill(call: Call) [N_MAIN_COLUMNS]M31 {
     return row;
 }
 
-pub fn output(row: [N_MAIN_COLUMNS]M31) [WIDTH]M31 {
-    return row[OUTPUT_START..][0..WIDTH].*;
-}
+pub const output = @import("poseidon2_wide_equations.zig").output;
 
 /// Exact degree-three constraint order emitted by pinned Stark-V's felt AIR
 /// compiler: enabler boolean, 426 materializations, then three flag checks.
-pub fn evaluate(main: [N_MAIN_COLUMNS]QM31) [N_CONSTRAINTS]QM31 {
-    return evaluateGeneric(QM31, main);
-}
+pub const evaluate = @import("poseidon2_wide_equations.zig").evaluate;
 
 /// Single-source constraint replay over either native `QM31` or a recorder.
-pub fn evaluateGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [N_CONSTRAINTS]S {
-    const enabler = main[0];
-    var state = main[INPUT_START..][0..WIDTH].*;
-    externalMatrixSecure(S, &state);
-    var result: [N_CONSTRAINTS]S = undefined;
-    var constraint: usize = 1;
-    var cursor: usize = TEMP_START;
-    const one = S.one();
-    result[0] = enabler.mul(one.sub(enabler));
-
-    evaluateFirstFullRound(
-        S,
-        main,
-        &cursor,
-        &state,
-        constants.EXTERNAL_ROUND[0],
-        enabler,
-        &result,
-        &constraint,
-    );
-    for (constants.EXTERNAL_ROUND[1..4]) |round| {
-        evaluateMaterializedFullRound(
-            S,
-            main,
-            &cursor,
-            &state,
-            round,
-            enabler,
-            &result,
-            &constraint,
-        );
-    }
-    for (constants.INTERNAL_ROUND) |round_constant| {
-        evaluateMaterializedPartialRound(
-            S,
-            main,
-            &cursor,
-            &state,
-            round_constant,
-            constants.INTERNAL_MATRIX,
-            enabler,
-            &result,
-            &constraint,
-        );
-    }
-    for (constants.EXTERNAL_ROUND[4..8]) |round| {
-        evaluateMaterializedFullRound(
-            S,
-            main,
-            &cursor,
-            &state,
-            round,
-            enabler,
-            &result,
-            &constraint,
-        );
-    }
-    for (state, 0..) |expected, lane| {
-        const actual = main[cursor + lane];
-        result[constraint] = enabler.mul(actual.sub(expected));
-        constraint += 1;
-    }
-    cursor += WIDTH;
-    std.debug.assert(cursor == WIDE_COLUMN);
-    std.debug.assert(constraint == N_PERMUTATION_CONSTRAINTS);
-
-    const wide = main[WIDE_COLUMN];
-    const io = main[IO_COLUMN];
-    result[constraint] = wide.mul(one.sub(wide));
-    result[constraint + 1] = io.mul(one.sub(io));
-    result[constraint + 2] = wide.mul(io);
-    return result;
-}
+pub const evaluateGeneric = @import("poseidon2_wide_equations.zig").evaluateGeneric;
 
 /// Protocol-shell constraints for callers that admit only the narrow
 /// permutation mode. The generic pinned evaluator deliberately continues to
 /// support wide and atomic-I/O rows.
-pub fn narrowModeConstraints(main: [N_MAIN_COLUMNS]QM31) [2]QM31 {
-    return narrowModeConstraintsGeneric(QM31, main);
-}
+pub const narrowModeConstraints = @import("poseidon2_wide_equations.zig").narrowModeConstraints;
 
-pub fn narrowModeConstraintsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) [2]S {
-    return .{ main[WIDE_COLUMN], main[IO_COLUMN] };
-}
+pub const narrowModeConstraintsGeneric = @import("poseidon2_wide_equations.zig").narrowModeConstraintsGeneric;
 
 pub fn generateInteraction(
     allocator: std.mem.Allocator,
@@ -617,104 +514,61 @@ fn ioRowPairsFromOutput(
     };
 }
 
-pub fn interactionConstraints(
-    main: [N_MAIN_COLUMNS]QM31,
-    is_first: QM31,
-    sums: [N_SUMS]QM31,
-    previous: [N_SUMS]QM31,
-    claims: [N_SUMS]QM31,
-    relations: *const relations_mod.Relations,
-) [N_SUMS]QM31 {
-    return interactionConstraintsGeneric(QM31, main, is_first, sums, previous, claims, relations);
-}
+pub const interactionConstraints = @import("poseidon2_wide_equations.zig").interactionConstraints;
 
-pub fn interactionConstraintsGeneric(
-    comptime S: type,
-    main: [N_MAIN_COLUMNS]S,
-    is_first: S,
-    sums: [N_SUMS]S,
-    previous: [N_SUMS]S,
-    claims: [N_SUMS]S,
-    relations: anytype,
-) [N_SUMS]S {
-    const pairs = rowPairsGeneric(S, main, relations);
-    var result: [N_SUMS]S = undefined;
-    for (&result, 0..) |*value, index| {
-        value.* = logup.pairConstraintGeneric(
-            S,
-            sums[index],
-            previous[index],
-            is_first,
-            claims[index],
-            pairs[index],
-        );
-    }
-    return result;
-}
+pub const interactionConstraintsGeneric = @import("poseidon2_wide_equations.zig").interactionConstraintsGeneric;
 
 pub fn rowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    const main = if (call.narrow_output != null and !call.wide and !call.io) blk: {
-        const output_value = call.narrow_output.?;
-        var interaction_main = [_]M31{M31.zero()} ** N_MAIN_COLUMNS;
-        interaction_main[0] = M31.one();
-        for (call.input, 0..) |value, lane| {
-            interaction_main[INPUT_START + lane] = M31.fromU64(value);
-        }
-        interaction_main[OUTPUT_START] = M31.fromU64(output_value);
-        break :blk interaction_main;
-    } else fill(call);
+    if (call.narrow_output != null and !call.wide and !call.io)
+        return narrowRowPairsFromCall(call, relations);
     var secure: [N_MAIN_COLUMNS]QM31 = undefined;
-    for (&secure, main) |*dst, value| dst.* = QM31.fromBase(value);
+    for (&secure, fill(call)) |*dst, value| dst.* = QM31.fromBase(value);
     return rowPairs(secure, relations);
 }
 
-pub fn rowPairs(main: [N_MAIN_COLUMNS]QM31, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
-    return rowPairsGeneric(QM31, main, relations);
-}
-
-pub fn rowPairsGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S, relations: anytype) [N_SUMS]logup.RowPairFor(S) {
-    const list = entriesGeneric(S, main);
-    return .{
-        list.pairWith(0, relations) catch unreachable,
-        list.pairWith(1, relations) catch unreachable,
-    };
-}
-
-pub fn entries(main: [N_MAIN_COLUMNS]QM31) lookup_entry.List {
-    return entriesGeneric(QM31, main);
-}
-
-pub fn entriesGeneric(comptime S: type, main: [N_MAIN_COLUMNS]S) lookup_entry.Builder(S).List {
-    const EntryBuilder = lookup_entry.Builder(S);
-    const enabler = main[0];
-    const wide = main[WIDE_COLUMN];
-    const io = main[IO_COLUMN];
-    const one = S.one();
-    const input = main[INPUT_START..][0..WIDTH].*;
-    const out = main[OUTPUT_START..][0..WIDTH].*;
-    var narrow = [_]S{S.zero()} ** WIDTH;
-    narrow[0] = out[0];
-    var wide_output = [_]S{S.zero()} ** WIDTH;
-    @memcpy(wide_output[0..8], out[0..8]);
-    var io_tuple: [2 * WIDTH]S = undefined;
+/// Field-identical specialization of `rowPairsFromCall` for a canonical
+/// narrow call.  With enabler one and wide/io zero the four lookup entries
+/// carry constant numerators (-1, 1, 0, 0), and every denominator is a base
+/// field tuple combined with the relation challenges, so the row never needs
+/// the 445-column main row, its QM31 promotion, or the entry-list copies.
+/// The `-1` numerator is `enabler * (1 - io)` negated exactly as the generic
+/// builder computes it.
+pub fn narrowRowPairsFromCall(call: Call, relations: *const relations_mod.Relations) [N_SUMS]logup.RowPair {
+    std.debug.assert(call.narrow_output != null and !call.wide and !call.io);
+    var input: [WIDTH]M31 = undefined;
+    for (&input, call.input) |*value, word| value.* = M31.fromU64(word);
+    const output_value = M31.fromU64(call.narrow_output.?);
+    var narrow = [_]M31{M31.zero()} ** WIDTH;
+    narrow[0] = output_value;
+    var io_tuple: [2 * WIDTH]M31 = undefined;
     @memcpy(io_tuple[0..WIDTH], &input);
-    @memcpy(io_tuple[WIDTH..], &out);
-    var list = EntryBuilder.List{};
-    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(io)).neg(), input);
-    appendGeneric(S, &list, .poseidon2, enabler.mul(one.sub(wide).sub(io)), narrow);
-    appendGeneric(S, &list, .poseidon2, enabler.mul(wide), wide_output);
-    appendGeneric(S, &list, .poseidon2_io, enabler.mul(io), io_tuple);
-    return list;
-}
-
-pub fn paddingPairs() [N_SUMS]logup.RowPair {
-    const zero = QM31.zero();
+    @memcpy(io_tuple[WIDTH..], &narrow);
     const one = QM31.one();
     return .{
-        .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
-        .{ .n1 = zero, .d1 = one, .n2 = zero, .d2 = one },
+        .{
+            .n1 = one.neg(),
+            .d1 = relations.poseidon2.combineBase(input),
+            .n2 = one,
+            .d2 = relations.poseidon2.combineBase(narrow),
+        },
+        .{
+            .n1 = QM31.zero(),
+            .d1 = relations.poseidon2.combineBase(narrow),
+            .n2 = QM31.zero(),
+            .d2 = relations.poseidon2_io.combineBase(io_tuple),
+        },
     };
 }
+
+pub const rowPairs = @import("poseidon2_wide_equations.zig").rowPairs;
+
+pub const rowPairsGeneric = @import("poseidon2_wide_equations.zig").rowPairsGeneric;
+
+pub const entries = @import("poseidon2_wide_equations.zig").entries;
+
+pub const entriesGeneric = @import("poseidon2_wide_equations.zig").entriesGeneric;
+
+pub const paddingPairs = @import("poseidon2_wide_equations.zig").paddingPairs;
 
 const runtime = @import("poseidon2_air_runtime.zig").Runtime(.{
     .std = std,
@@ -728,23 +582,18 @@ const runtime = @import("poseidon2_air_runtime.zig").Runtime(.{
     .MATERIALIZED_FULL_ROUND_WIDTH = MATERIALIZED_FULL_ROUND_WIDTH,
     .PARTIAL_ROUND_WIDTH = PARTIAL_ROUND_WIDTH,
 });
+/// Symbolic permutation for verifier arithmetic; native hashing is unchanged.
+pub const permuteGeneric = runtime.permuteGeneric;
 const fillFirstFullRound = runtime.fillFirstFullRound;
 const fillMaterializedFullRound = runtime.fillMaterializedFullRound;
 const fillMaterializedPartialRound = runtime.fillMaterializedPartialRound;
-const evaluateFirstFullRound = runtime.evaluateFirstFullRound;
-const evaluateMaterializedFullRound = runtime.evaluateMaterializedFullRound;
-const evaluateMaterializedPartialRound = runtime.evaluateMaterializedPartialRound;
-const externalMatrixM31 = runtime.externalMatrixM31;
-const externalMatrixSecure = runtime.externalMatrixSecure;
-const m4M31 = runtime.m4M31;
-const m4Secure = runtime.m4Secure;
-const internalMatrixM31 = runtime.internalMatrixM31;
-const internalMatrixSecure = runtime.internalMatrixSecure;
+pub const externalMatrixM31 = runtime.externalMatrixM31;
+pub const externalMatrixSecure = runtime.externalMatrixSecure;
+pub const internalMatrixM31 = runtime.internalMatrixM31;
+pub const internalMatrixSecure = runtime.internalMatrixSecure;
 const allocateColumns = runtime.allocateColumns;
 const freeColumns = runtime.freeColumns;
-const baseSecure = runtime.baseSecure;
 const append = runtime.append;
-const appendGeneric = runtime.appendGeneric;
 const secureRow = runtime.secureRow;
 const expectAllZero = runtime.expectAllZero;
 
@@ -778,6 +627,46 @@ const AirTests = @import("poseidon2_air_test.zig").Tests(.{
     .expectAllZero = expectAllZero,
 });
 
-test "poseidon2 AIR test module is linked" {
+// Keep nested equation tests discoverable under narrow test filters.
+test {
     _ = AirTests;
+}
+
+test "poseidon2 narrow row pairs are field-identical to the generic entry builder" {
+    var prng = std.Random.DefaultPrng.init(0x9a11_5001);
+    const random = prng.random();
+    const randomQM31 = struct {
+        fn call(r: std.Random) QM31 {
+            return QM31.fromM31(
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+                M31.fromCanonical(r.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus)),
+            );
+        }
+    }.call;
+    for (0..32) |_| {
+        var relations: relations_mod.Relations = undefined;
+        inline for (std.meta.fields(relations_mod.Relations)) |field| {
+            @field(relations, field.name) = @TypeOf(@field(relations, field.name)).init(
+                randomQM31(random),
+                randomQM31(random),
+            );
+        }
+        var call = Call{ .input = undefined, .narrow_output = 0 };
+        for (&call.input) |*word| word.* = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        call.narrow_output = random.uintLessThan(u32, @import("stwo_core").fields.m31.Modulus);
+        var interaction_main = [_]M31{M31.zero()} ** N_MAIN_COLUMNS;
+        interaction_main[0] = M31.one();
+        for (call.input, 0..) |value, lane| interaction_main[INPUT_START + lane] = M31.fromU64(value);
+        interaction_main[OUTPUT_START] = M31.fromU64(call.narrow_output.?);
+        var secure: [N_MAIN_COLUMNS]QM31 = undefined;
+        for (&secure, interaction_main) |*dst, value| dst.* = QM31.fromBase(value);
+        const expected = rowPairs(secure, &relations);
+        const actual = narrowRowPairsFromCall(call, &relations);
+        for (expected, actual) |lhs, rhs| {
+            try std.testing.expect(lhs.n1.eql(rhs.n1) and lhs.d1.eql(rhs.d1) and
+                lhs.n2.eql(rhs.n2) and lhs.d2.eql(rhs.d2));
+        }
+    }
 }

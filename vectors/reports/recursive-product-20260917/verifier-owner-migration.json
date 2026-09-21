@@ -1,0 +1,21 @@
+{
+  "schema": "stwo.recursion-verifier-owner-migration.v1",
+  "status": "focused dependencies and complete CPU/Metal proofs qualified",
+  "owner": "src/frontends/riscv/recursion/verifier_tree.zig",
+  "closure_receipt": "verifier-tree-closure.json",
+  "closure_contract_test": "scripts.tests.test_product_closure.RecursionOwnershipTest",
+  "dependency_tests_passed": 16,
+  "removed_definitions": [
+    "recursive_binary_outer_support.moveOwnedForVerifier",
+    "recursive_binary_outer_support.commitVerifierTreeForManifest",
+    "recursive_binary_outer_support.treeColumnCount",
+    "recursive_binary_outer_support.treeOffset",
+    "recursive_binary_outer_support.treeGeometryColumns",
+    "recursive_segment_v2_outer_engine_support.moveOwnedForVerifier"
+  ],
+  "complete_cpu_run": "/tmp/pr198-product-cpu-verifier-owner-20260917-v1",
+  "full_verifier_dependency_separation": false,
+  "remaining": "Detached parent cohort still combines protocol adapters and witness preparation. Shared preparation migration and matching CPU/Metal proof qualification remain required.",
+  "cpu_receipt": "cpu-verifier-owner-v1/summary.json",
+  "metal_receipt": "metal-neutral-ledger-v1/summary.json"
+}

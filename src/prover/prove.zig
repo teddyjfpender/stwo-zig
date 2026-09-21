@@ -154,6 +154,9 @@ pub fn proveExWithExecution(
     composition_stage: ?device_composition.Stage,
     cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
 ) !proof_mod.ExtendedStarkProof(H) {
+    var ignored_phase: prover_api.ProvePhase = .composition;
+    var ignored_subphase: ?prover_api.CompositionSubphase = .geometry;
+    var ignored_evaluation: ?prover_api.EvaluationDiagnostic = null;
     return proveExComponentsWithRecorder(
         B,
         H,
@@ -166,7 +169,93 @@ pub fn proveExWithExecution(
         recorder,
         composition_stage,
         cpu_composition_execution,
+        &ignored_phase,
+        &ignored_subphase,
+        &ignored_evaluation,
+        null,
     );
+}
+
+pub fn proveExWithExecutionDiagnosed(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+    diagnostic: *?prover_api.ProveDiagnostic,
+) !proof_mod.ExtendedStarkProof(H) {
+    return proveExWithExecutionDiagnosedRetainingFailure(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        composition_stage,
+        cpu_composition_execution,
+        diagnostic,
+        null,
+    );
+}
+
+/// An optional empty output receives the unverified proof only when the final
+/// OODS equality fails. The original error is preserved; the caller owns any
+/// captured proof and must deinitialize it with `allocator`.
+pub fn proveExWithExecutionDiagnosedRetainingFailure(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    components: []const component_prover.ComponentProver,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    include_all_preprocessed_columns: bool,
+    recorder: ?*stage_profile.Recorder,
+    composition_stage: ?device_composition.Stage,
+    cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+    diagnostic: *?prover_api.ProveDiagnostic,
+    failed: ?*?proof_mod.ExtendedStarkProof(H),
+) !proof_mod.ExtendedStarkProof(H) {
+    if (failed) |output| std.debug.assert(output.* == null);
+    diagnostic.* = null;
+    var diagnostic_phase: prover_api.ProvePhase = .composition;
+    var diagnostic_subphase: ?prover_api.CompositionSubphase = .geometry;
+    var evaluation_diagnostic: ?prover_api.EvaluationDiagnostic = null;
+    return proveExComponentsWithRecorder(
+        B,
+        H,
+        MC,
+        allocator,
+        components,
+        channel,
+        commitment_scheme,
+        include_all_preprocessed_columns,
+        recorder,
+        composition_stage,
+        cpu_composition_execution,
+        &diagnostic_phase,
+        &diagnostic_subphase,
+        &evaluation_diagnostic,
+        failed,
+    ) catch |err| {
+        prover_api.ProveDiagnostic.recordFirstDetailed(
+            diagnostic,
+            diagnostic_phase,
+            diagnostic_subphase,
+            evaluation_diagnostic,
+            err,
+        );
+        return err;
+    };
 }
 
 /// Sampled-points proving entrypoint.
@@ -227,17 +316,43 @@ fn proveExSampledPointsWithRecorder(
     sampled_points: TreeVec([][]CirclePointQM31),
     recorder: ?*stage_profile.Recorder,
 ) !proof_mod.ExtendedStarkProof(H) {
+    var ignored_phase: prover_api.ProvePhase = .openings;
+    return proveExSampledPointsWithRecorderDiagnosed(
+        B,
+        H,
+        MC,
+        allocator,
+        channel,
+        commitment_scheme,
+        sampled_points,
+        recorder,
+        &ignored_phase,
+    );
+}
+
+fn proveExSampledPointsWithRecorderDiagnosed(
+    comptime B: type,
+    comptime H: type,
+    comptime MC: type,
+    allocator: std.mem.Allocator,
+    channel: anytype,
+    commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
+    sampled_points: TreeVec([][]CirclePointQM31),
+    recorder: ?*stage_profile.Recorder,
+    diagnostic_phase: *prover_api.ProvePhase,
+) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     if (scheme.trees.items.len == 0) {
         scheme.deinit(allocator);
         return ProvingError.MissingPreprocessedTree;
     }
 
-    const commitment_proof = try scheme.proveValuesWithRecorder(
+    const commitment_proof = try scheme.proveValuesWithRecorderAndPhase(
         allocator,
         sampled_points,
         recorder,
         channel,
+        diagnostic_phase,
     );
 
     return .{
@@ -262,6 +377,9 @@ fn proveExComponents(
     commitment_scheme: pcs_prover.CommitmentSchemeProver(B, H, MC),
     include_all_preprocessed_columns: bool,
 ) !proof_mod.ExtendedStarkProof(H) {
+    var ignored_phase: prover_api.ProvePhase = .composition;
+    var ignored_subphase: ?prover_api.CompositionSubphase = .geometry;
+    var ignored_evaluation: ?prover_api.EvaluationDiagnostic = null;
     return proveExComponentsWithRecorder(
         B,
         H,
@@ -273,6 +391,10 @@ fn proveExComponents(
         include_all_preprocessed_columns,
         null,
         null,
+        null,
+        &ignored_phase,
+        &ignored_subphase,
+        &ignored_evaluation,
         null,
     );
 }
@@ -289,6 +411,10 @@ fn proveExComponentsWithRecorder(
     recorder: ?*stage_profile.Recorder,
     composition_stage: ?device_composition.Stage,
     cpu_composition_execution: ?prover_api.CpuCompositionExecutionRequest,
+    diagnostic_phase: *prover_api.ProvePhase,
+    diagnostic_subphase: *?prover_api.CompositionSubphase,
+    evaluation_diagnostic: *?prover_api.EvaluationDiagnostic,
+    failed: ?*?proof_mod.ExtendedStarkProof(H),
 ) !proof_mod.ExtendedStarkProof(H) {
     var scheme = commitment_scheme;
     var owns_scheme = true;
@@ -306,6 +432,7 @@ fn proveExComponentsWithRecorder(
         return ProvingError.MissingPreprocessedTree;
     }
 
+    diagnostic_subphase.* = .geometry;
     const component_provers = component_prover.ComponentProvers{
         .components = components,
         .n_preprocessed_columns = scheme.trees.items[PREPROCESSED_TRACE_IDX].columns.len,
@@ -323,10 +450,10 @@ fn proveExComponentsWithRecorder(
 
     const composition_log_size = component_provers.compositionLogDegreeBound();
     const composition_log_split = try component_provers.compositionLogSplit();
-    if (composition_log_size <= composition_log_split) {
-        return ProvingError.InvalidStructure;
-    }
-    const max_log_degree_bound = composition_log_size - composition_log_split;
+    const max_log_degree_bound = verifier_types.compositionMaskLogSize(
+        composition_log_size,
+        composition_log_split,
+    ) orelse return ProvingError.InvalidStructure;
 
     const random_coeff = blk: {
         var draw_random_coeff_stage = try stage_profile.StageScope.begin(
@@ -338,8 +465,15 @@ fn proveExComponentsWithRecorder(
         break :blk channel.drawSecureFelt();
     };
 
+    diagnostic_subphase.* = .evaluation;
     {
-        const residency_handles = try scheme.backendResidencyHandles(allocator);
+        const residency_handles = scheme.backendResidencyHandles(allocator) catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
+                .stage = .residency,
+                .cause = err,
+            });
+            return err;
+        };
         defer allocator.free(residency_handles);
         var trace = blk: {
             var composition_trace_stage = try stage_profile.StageScope.begin(
@@ -348,15 +482,27 @@ fn proveExComponentsWithRecorder(
                 "Composition trace extract",
             );
             defer composition_trace_stage.end();
-            break :blk try scheme.trace(allocator);
+            break :blk scheme.trace(allocator) catch |err| {
+                prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
+                    .stage = .trace_shape,
+                    .cause = err,
+                });
+                return err;
+            };
         };
         defer trace.polys.deinitDeep(allocator);
 
-        const composition_twiddles = try scheme.twiddle_source.getWithWorkRecorder(
+        const composition_twiddles = scheme.twiddle_source.getWithWorkRecorder(
             allocator,
             composition_log_size,
             work_recorder,
-        );
+        ) catch |err| {
+            prover_api.EvaluationDiagnostic.recordFirst(evaluation_diagnostic, .{
+                .stage = .plan,
+                .cause = err,
+            });
+            return err;
+        };
 
         var composition_eval = blk: {
             var composition_eval_stage = try stage_profile.StageScope.begin(
@@ -368,18 +514,20 @@ fn proveExComponentsWithRecorder(
             if (work_recorder) |work|
                 try work.expectProducer(.air_composition_on_domain);
             // work-profile-plan:air-composition-on-domain
-            break :blk try component_provers.computeCompositionEvaluationForBackend(
+            break :blk try component_provers.computeCompositionEvaluationForBackendDiagnosed(
                 B,
                 allocator,
                 random_coeff,
                 &trace,
                 residency_handles,
                 composition_twiddles,
+                evaluation_diagnostic,
             );
         };
         defer composition_eval.deinit(allocator);
         completeAirCompositionWork(work_recorder, &composition_work_capture);
 
+        diagnostic_subphase.* = .interpolation_split;
         var composition_split = blk: {
             var composition_interpolate_stage = try stage_profile.StageScope.begin(
                 recorder,
@@ -408,6 +556,7 @@ fn proveExComponentsWithRecorder(
         defer composition_chunks.deinit(allocator);
 
         {
+            diagnostic_subphase.* = .commitment;
             var composition_commit_stage = try stage_profile.StageScope.begin(
                 recorder,
                 "composition_commit",
@@ -427,6 +576,9 @@ fn proveExComponentsWithRecorder(
         }
     }
 
+    diagnostic_phase.* = .openings;
+    diagnostic_subphase.* = null;
+    evaluation_diagnostic.* = null;
     var components_view = try component_provers.componentsView(allocator);
     defer components_view.deinit(allocator);
 
@@ -477,7 +629,8 @@ fn proveExComponentsWithRecorder(
 
     // Sampled-points proving consumes the scheme on both success and error.
     owns_scheme = false;
-    var ext_proof = try proveExSampledPointsWithRecorder(
+    diagnostic_phase.* = .fri;
+    var ext_proof = try proveExSampledPointsWithRecorderDiagnosed(
         B,
         H,
         MC,
@@ -486,9 +639,12 @@ fn proveExComponentsWithRecorder(
         scheme,
         sample_points,
         recorder,
+        diagnostic_phase,
     );
-    errdefer ext_proof.deinit(allocator);
+    var owns_ext_proof = true;
+    errdefer if (owns_ext_proof) ext_proof.deinit(allocator);
 
+    diagnostic_phase.* = .finalize;
     {
         var constraint_stage = try stage_profile.StageScope.begin(
             recorder,
@@ -523,7 +679,13 @@ fn proveExComponentsWithRecorder(
             &oods_constraint_work_capture,
             .constraint_evaluation,
         );
-        if (!composition_oods_eval.eql(expected)) return ProvingError.ConstraintsNotSatisfied;
+        if (!composition_oods_eval.eql(expected)) {
+            if (failed) |output| {
+                output.* = ext_proof;
+                owns_ext_proof = false;
+            }
+            return ProvingError.ConstraintsNotSatisfied;
+        }
     }
 
     return ext_proof;

@@ -1,0 +1,13 @@
+{
+  "passed": true,
+  "production_security_qualified": false,
+  "canonical_tree_cases": 384,
+  "canonical_baseline_identical_artifacts": 21,
+  "command_tests": 3,
+  "source_ownership_tests": 33,
+  "installed_command_rejections": 4,
+  "source_transfer_checks": 4,
+  "old_leaf_executable_removed": true,
+  "legacy_no_argument_proof_route_removed": true,
+  "explicit_output_and_key_admission_required": true
+}

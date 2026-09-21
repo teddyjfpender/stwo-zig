@@ -1,0 +1,18 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 63s
+test-recursive-common-fold-transcript-replay-v1
++- Common-fold retained proof replay guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+CANONICAL_CHILD_KEY_BINDING root_words=8 fixed_in_air=true
+SECURE_TRANSCRIPT_AIR_ROWS control=174 sponge=1649 binding=1649 state=176 word=11784 pow=2 challenges=47 randomness=32 lanes=2
+COMMON_FOLD_PROVIDER_PARTIAL_JOIN limbs=8 preserving_total_mutation_rejected=true
+COMMON_FOLD_TRANSCRIPT_PROGRAM operations=182 frames=184 permutations=1764 queries=193
+COMMON_FOLD_CHECKPOINT_REPLAY fresh_fold_proving=false cold_verified=true checks_ns=263136990291
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-replay-v1 success
++- Common-fold retained proof replay guard success
+   +- run test 1 passed 4m MaxRSS:6G
+      +- compile test ReleaseSafe native cached 52ms MaxRSS:34M
+

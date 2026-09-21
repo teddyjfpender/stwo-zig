@@ -1,0 +1,30 @@
+[ethereum-narrow-activation-v1] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum-narrow-activation-v1] acquired after 551s
+GATE src/frontends/riscv/ethereum_narrow_poseidon_proof_test_root.zig
+1/8 ethereum_narrow_poseidon_proof_test_root.test_0...OK
+2/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon matches native permutation and exact lookup entries...OK
+3/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon constrains every row and rejects invalid padding and modes...OK
+4/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon keeps quotient expansion and reduces complete row geometry...OK
+5/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon component admission and callbacks compile...OK
+6/8 air.memory_commitment.poseidon2_narrow_degree3_v1_test.test.Ethereum narrow degree3 Poseidon central profile rejects legacy width and parallel rows match serial...OK
+7/8 air.memory_commitment.poseidon2_narrow_proof_v1_test.test.Ethereum narrow degree3 Poseidon serializes destroys and freshly verifies complete component proof...OK
+8/8 air.memory_commitment.poseidon2_narrow_backend_v1_test.test.Ethereum narrow degree3 Poseidon backend DAG preserves direct lookup and capability ordering...OK
+All 8 tests passed.
+GATE src/frontends/riscv/ethereum_narrow_aot_generator_test.zig
+1/1 ethereum_narrow_aot_generator_test.test.Ethereum narrow AOT extension matches production DAG authority...OK
+All 1 tests passed.
+GATE src/backends/metal/ethereum_aot_profile_test_root.zig
+1/9 ethereum_aot_profile_test_root.test_0...OK
+2/9 core_aot.test.Native AOT admission authenticates the generated bundle...OK
+3/9 core_aot.test.Native AOT admission rejects authority drift...OK
+4/9 core_aot.test.Native AOT admission rejects corrupted artifacts and incomplete manifests...OK
+5/9 core_aot.test.Ethereum AOT admission keeps legacy encoding and rejects cross profile source authority...OK
+6/9 shaders.aot_profile.test.Ethereum AOT profile preserves exact core authority and admits five separate declarations...OK
+7/9 shared_runtime.test.Metal shared runtime policy identity matching is exact...OK
+8/9 shared_runtime.test.Ethereum AOT runtime cannot reuse a core library for a different admitted profile...OK
+9/9 shaders.runtime_initialization_contract_test.test.source and AOT core runtimes share one fail-closed pipeline initializer...OK
+All 9 tests passed.
+1/1 ethereum_narrow_metal_proof_test.test.Ethereum narrow Metal authenticated AOT complete proof matches CPU bytes...NARROW_GPU_COUNTERS base=1 lookup=1 eligible_base=4 eligible_lookup=1 same_bytes=true
+ETHEREUM_NARROW_METAL_PROOF bytes=26812 same_cpu_bytes=true producer_destroyed=true fresh_cpu_verified=true base_dispatches=1 lookup_dispatches=1
+OK
+All 1 tests passed.

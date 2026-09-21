@@ -8,13 +8,12 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
 const CirclePointQM31 = stwo_core.circle.CirclePointQM31;
 const recursion = frontend.recursion;
-const binary_driver = integration.recursive_binary_outer;
+const binary_driver = @import("recursive_binary_outer.zig");
 const capture_layout = recursion.recursion_air_composition_circuit_v3
     .capture_layout_v3;
 

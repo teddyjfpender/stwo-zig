@@ -1,0 +1,7 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/register-candidate-cpu",
+  "cache_binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu/.zig-cache/o/15d90d581cb67286aa8b2a6706e8599f/recursive-segment-v2-concrete-outer-proof",
+  "sha256": "aa1fcec67f25cc5e3bde0b07a3d3edd97d225ce8867446da58cf8d0b39584682",
+  "source_patch_sha256": "cbdd4a02e8e5fe6c340f0189a4810b92cb59680384c4d62b6675668b2f407892",
+  "head": "51646b444176237a6640f438a032d137af5200b9"
+}

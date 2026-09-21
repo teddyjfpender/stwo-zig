@@ -8,7 +8,6 @@
 const std = @import("std");
 const stwo_core = @import("stwo_core");
 const frontend = @import("stwo_riscv_frontend");
-const integration = @import("stwo_riscv_cpu_integration");
 
 const M31 = stwo_core.fields.m31.M31;
 const QM31 = stwo_core.fields.qm31.QM31;
@@ -16,9 +15,9 @@ const recursion = frontend.recursion;
 const cohort_mod = recursion.segment_outer_cohort_v2;
 const boundary = recursion.segment_leaf_outer_authority_v2;
 const poseidon2_air = frontend.air.memory_commitment.poseidon2_air;
-const leaf_outer = integration.recursive_segment_v2_leaf_outer;
-const outer_cohort = integration.recursive_segment_v2_outer_cohort;
-const proof_engine = integration.recursive_segment_v2_outer_engine;
+const leaf_outer = @import("recursive_segment_v2_leaf_outer.zig");
+const outer_cohort = @import("recursive_segment_v2_outer_cohort.zig");
+const proof_engine = @import("recursive_segment_v2_outer_engine.zig");
 
 pub const VerifiedOuterProof = struct {
     receipt: proof_engine.Receipt,
@@ -70,7 +69,12 @@ pub fn provePreparedNativeLeaf(
         "\nSEGMENT_V2_OUTER status=verified rows={d} domains={d} " ++
             "proof_size_estimate_bytes={d} canonical_proof_bytes={d} " ++
             "canonicalize_ms={d:.3} prove_ms={d:.3} verify_ms={d:.3} " ++
-            "publication_ms={d:.3} " ++
+            "publication_ms={d:.3} producer_prepare_ms={d:.3} " ++
+            "producer_destroy_ms={d:.3} verifier_prepare_ms={d:.3} decode_ms={d:.3} " ++
+            "stark_verify_ms={d:.3} transaction_ms={d:.3} artifact_rejections_ms={d:.3} " ++
+            "producer_peak_bytes={d} producer_live_bytes_after_destroy={d} " ++
+            "serialization_passes={d} retained_canonical_bytes={d} " ++
+            "verification=native_assisted_fresh_decode " ++
             "draws={d} cols={d}/{d}/{d} workers={d}\n",
         .{
             receipt.roster_count,
@@ -81,6 +85,17 @@ pub fn provePreparedNativeLeaf(
             milliseconds(receipt.prove_ns),
             milliseconds(receipt.verify_ns),
             milliseconds(receipt.publication_ns),
+            milliseconds(receipt.producer_prepare_ns),
+            milliseconds(receipt.producer_destroy_ns),
+            milliseconds(receipt.verifier_prepare_ns),
+            milliseconds(receipt.decode_ns),
+            milliseconds(receipt.stark_verify_ns),
+            milliseconds(receipt.transaction_ns),
+            milliseconds(receipt.artifact_rejections_ns),
+            receipt.producer_peak_bytes,
+            receipt.producer_live_bytes_after_destroy,
+            receipt.canonical_proof_serialization_passes,
+            receipt.canonical_proof_retained_bytes,
             receipt.transcript_draws,
             receipt.preprocessed_columns,
             receipt.main_columns,

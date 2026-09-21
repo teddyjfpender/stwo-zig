@@ -114,7 +114,7 @@ test "run-broadcast replication equals the scalar lifting gather" {
     var dst_buf: [4096]u64 = undefined;
     var expected: [4096]u64 = undefined;
 
-    for (&src_buf, 0..) |*value, index| value.* = @as(u64, index) * 0x9e3779b97f4a7c15;
+    for (&src_buf, 0..) |*value, index| value.* = @as(u64, index) *% 0x9e3779b97f4a7c15;
 
     var log_src: std.math.Log2Int(usize) = 1;
     while (log_src <= 6) : (log_src += 1) {

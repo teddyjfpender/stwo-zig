@@ -692,6 +692,16 @@ class RecursionCspBenchmarkTests(unittest.TestCase):
                     producer_sha256="56" * 32,
                 )
 
+    def test_v5_native_report_preserves_recursion_isolation(self) -> None:
+        from scripts.riscv_recursion_csp_benchmark_lib.native_adapter import adapt_native_report
+        report = _native_report()
+        report["schema"] = "stwo_riscv_csp_benchmark_v5"
+        adapted = adapt_native_report(report, raw_sha256="a" * 64)
+        self.assertEqual(report["schema"], adapted["native_source"]["schema"])
+        report["run"]["recursion_enabled"] = True
+        with self.assertRaises(EvidenceError):
+            adapt_native_report(report, raw_sha256="a" * 64)
+
     def test_plan_maps_only_measured_native_values(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

@@ -1,0 +1,8 @@
+1/7 lookup_table_interaction_test_root.test_0...OK
+2/7 air.lookups.tables.interaction.test.base table denominator matches canonical entry for every schema...OK
+3/7 air.lookups.tables.interaction.test.table singleton balances signed source multiplicity for all six domains...OK
+4/7 air.lookups.tables.interaction.test.table AIR identity rejects multiplicity, tuple, and claim mutations...OK
+5/7 air.lookups.tables.component_prepared_test.test.lookup table prepared domain: legacy bytes allocation freedom stack and cancellation...OK
+6/7 air.lookups.tables.component_prepared_test.test.lookup table prepared domain: adversarial committed shapes fail closed...OK
+7/7 air.lookups.tables.component.test.lookup table prepared domain: resource geometry and cancellation cadence are bounded...OK
+All 7 tests passed.

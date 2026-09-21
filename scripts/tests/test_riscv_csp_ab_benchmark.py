@@ -195,6 +195,7 @@ class SourceSnapshotTests(unittest.TestCase):
         git(root, "init", "--quiet")
         git(root, "config", "user.name", "Snapshot Test")
         git(root, "config", "user.email", "snapshot@example.invalid")
+        git(root, "config", "commit.gpgsign", "false")
         (root / ".gitignore").write_text(".zig-cache/\n__pycache__/\n", encoding="utf-8")
         (root / "src").mkdir()
         (root / "src" / "tracked.bin").write_bytes(b"tracked-v1\x00")
@@ -454,6 +455,14 @@ class PartialReportTests(unittest.TestCase):
         arm = self.arm("current", "runtime_native_attestation_v1")
         normalized = self.validate(self.report(arm), arm)
         self.assertEqual([1.0, 1.1], normalized["end_to_end_sample_seconds"])
+
+    def test_v5_preserves_native_recursion_attestation(self) -> None:
+        arm = self.arm("current", "runtime_native_attestation_v1")
+        report = self.report(arm, "stwo_riscv_csp_benchmark_v5")
+        self.validate(report, arm)
+        report["measurements"][0]["recursion_enabled"] = True
+        with self.assertRaisesRegex(contract.ABError, "recursion attestation"):
+            self.validate(report, arm)
 
     def test_v3_is_only_admitted_when_recursive_sources_are_absent(self) -> None:
         baseline = self.arm("baseline", "recursive_sources_absent_v1")

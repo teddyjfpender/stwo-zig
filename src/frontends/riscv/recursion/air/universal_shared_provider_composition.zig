@@ -122,16 +122,31 @@ pub fn recordPoseidon2(
     denominator_inverse: recorder.Scalar,
     accumulation: *recorder.Scalar,
 ) Error!usize {
+    return recordPoseidon2ForAir(poseidon_air, main, is_first, current, previous, partial_claims, challenges, composition_randomness, denominator_inverse, accumulation);
+}
+
+pub fn recordPoseidon2ForAir(
+    comptime Air: type,
+    main: [Air.N_MAIN_COLUMNS]recorder.Scalar,
+    is_first: recorder.Scalar,
+    current: [Air.N_SUMS]recorder.Scalar,
+    previous: [Air.N_SUMS]recorder.Scalar,
+    partial_claims: [Air.N_SUMS]recorder.Scalar,
+    challenges: *const recorder.ChallengeSet,
+    composition_randomness: recorder.Scalar,
+    denominator_inverse: recorder.Scalar,
+    accumulation: *recorder.Scalar,
+) Error!usize {
     const symbolic_relations = try SymbolicRelations.init(challenges);
 
-    const direct_roots = poseidon_air.evaluateGeneric(recorder.Scalar, main);
+    const direct_roots = Air.evaluateGeneric(recorder.Scalar, main);
     for (direct_roots) |root| recorder.accumulate(
         accumulation,
         composition_randomness,
         root,
         denominator_inverse,
     );
-    const interaction_roots = poseidon_air.interactionConstraintsGeneric(
+    const interaction_roots = Air.interactionConstraintsGeneric(
         recorder.Scalar,
         main,
         is_first,
@@ -146,7 +161,7 @@ pub fn recordPoseidon2(
         root,
         denominator_inverse,
     );
-    return POSEIDON_CONSTRAINT_COUNT;
+    return Air.N_CONSTRAINTS + Air.N_SUMS;
 }
 
 /// Constraint that binds the two row-34 native claims to the single roster

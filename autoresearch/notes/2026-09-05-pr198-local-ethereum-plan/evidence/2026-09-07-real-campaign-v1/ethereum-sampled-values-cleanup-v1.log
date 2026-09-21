@@ -1,0 +1,21 @@
+1/2 pcs_commitments_test_root.test_0...OK
+2/2 pcs.sampled_values_work_test.test.sampled-value allocation cleanup owns partial trees exactly once...thread 36272079 panic: integer overflow
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/sampled_coefficient_plans.zig:445:20: 0x1045c4f2b in evaluateAndReleaseWithWorkRecorder__anon_22447 (root)
+            columns[column_idx].values,
+                   ^
+/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/pcs/sampled_values.zig:47:46: 0x1045c67c7 in run (root)
+    return evaluateAndReleaseWithWorkRecorder(
+                                             ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/testing.zig:1146:9: 0x1045c719f in test.sampled-value allocation cleanup owns partial trees exactly once (root)
+        if (@call(.auto, test_fn, args)) |_| {
+        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/compiler/test_runner.zig:218:25: 0x10457e0cf in main (root)
+        if (test_fn.func()) |_| {
+                        ^
+/opt/homebrew/Cellar/zig/0.15.2/lib/zig/std/start.zig:618:22: 0x10457c89b in main (root)
+            root.main();
+                     ^
+???:?:?: 0x19bcdc273 in ??? (???)
+???:?:?: 0xf73fffffffffffff in ??? (???)
+error: the following test command crashed:
+.zig-cache/o/38569b4e804dcf3b5e19e7f7eac93517/root --seed=0xc0253dea

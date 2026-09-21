@@ -1,0 +1,23 @@
+{
+  "name": "root",
+  "argv": [
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/metal-parent-cpu-compat-prove",
+    "--profile",
+    "tiny-parent-root-v2",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-root-cpu-bootstrap",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-level2-0-cpu-bootstrap",
+    "128e6b2ce19528caa737b56ab9d16168cf298f38d217dfff712a8b230cf2c2ad",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-admission/level2-0-expected-span.json",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-level2-1-cpu-bootstrap",
+    "2efc1b2200879582e225f6ded9f4fc08a68ab4e21c4e86ad9f48bc674573aab4",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/q193-ladder-8-admission/level2-1-expected-span.json",
+    "--proof-profile",
+    "recursive_q193_v1"
+  ],
+  "process_ns": 27082429208,
+  "maximum_rss_bytes": 7153319936,
+  "exit_code": 0,
+  "log_sha256": "8e77f69c4708af05a106b87a579e59669d0689eb876e27699d0ad3f2008d7a7d",
+  "producer_sha256": "88fcd214f1b7f40903d8087d16eac45addf1f16a7203bee340f0fefbbfd08f34",
+  "production_security_admission_complete": false
+}

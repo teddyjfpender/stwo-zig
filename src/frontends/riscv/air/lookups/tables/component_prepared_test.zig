@@ -47,9 +47,14 @@ test "lookup table component: construction metadata pins all schemas" {
 }
 
 test "lookup table component: verifier construction exposes exact masks and columns" {
+    try checkVerifierGeometry(LookupTableComponent);
+    try checkVerifierGeometry(@import("verifier.zig").LookupTableVerifier);
+}
+
+fn checkVerifierGeometry(comptime Component: type) !void {
     const allocator = std.testing.allocator;
     const relations = relations_mod.Relations.dummy();
-    const component = try LookupTableComponent.initVerifier(
+    const component = try Component.initVerifier(
         .range_check_8_8_4,
         3,
         &.{ 7, 8, 9 },
@@ -155,6 +160,11 @@ test "lookup table component: singleton identity rejects all placement mutations
 }
 
 test "lookup table component: OODS adapter enforces predecessor ordering" {
+    try checkVerifierPoint(LookupTableComponent);
+    try checkVerifierPoint(@import("verifier.zig").LookupTableVerifier);
+}
+
+fn checkVerifierPoint(comptime Component: type) !void {
     const allocator = std.testing.allocator;
     const relations = relations_mod.Relations.dummy();
     const kind: schema.Kind = .range_check_8_8;
@@ -165,7 +175,7 @@ test "lookup table component: OODS adapter enforces predecessor ordering" {
     };
     var cumulative = try logup.cumulativeColumn(allocator, &pairs);
     defer cumulative.deinit(allocator);
-    const component = try LookupTableComponent.initVerifier(
+    const component = try Component.initVerifier(
         kind,
         0,
         &.{ 1, 2 },
@@ -190,7 +200,7 @@ test "lookup table component: OODS adapter enforces predecessor ordering" {
     const mask = core_air_components.MaskValues.initOwned(&trees);
     const point = circle.SECURE_FIELD_CIRCLE_GEN.mul(29);
     var honest = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
+    try component.asVerifierComponent().evaluateConstraintQuotientsAtPoint(
         point,
         &mask,
         &honest,
@@ -199,7 +209,7 @@ test "lookup table component: OODS adapter enforces predecessor ordering" {
     try std.testing.expect(honest.finalize().isZero());
     coordinate0[1] = coordinate0[1].add(QM31.one());
     var reordered = core_air_accumulation.PointEvaluationAccumulator.init(QM31.one());
-    try component.evaluateConstraintQuotientsAtPoint(
+    try component.asVerifierComponent().evaluateConstraintQuotientsAtPoint(
         point,
         &mask,
         &reordered,
@@ -209,18 +219,23 @@ test "lookup table component: OODS adapter enforces predecessor ordering" {
 }
 
 test "lookup table component: constructors fail closed on ambiguous bindings" {
+    try checkVerifierAdmission(LookupTableComponent);
+    try checkVerifierAdmission(@import("verifier.zig").LookupTableVerifier);
+}
+
+fn checkVerifierAdmission(comptime Component: type) !void {
     const relations = relations_mod.Relations.dummy();
     try std.testing.expectError(
         error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{1}, 0, 0, &relations, QM31.zero()),
+        Component.initVerifier(.range_check_8_8, 0, &.{1}, 0, 0, &relations, QM31.zero()),
     );
     try std.testing.expectError(
         error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{ 1, 1 }, 0, 0, &relations, QM31.zero()),
+        Component.initVerifier(.range_check_8_8, 0, &.{ 1, 1 }, 0, 0, &relations, QM31.zero()),
     );
     try std.testing.expectError(
         error.InvalidTraceShape,
-        LookupTableComponent.initVerifier(.range_check_8_8, 0, &.{ 0, 1 }, 0, 0, &relations, QM31.zero()),
+        Component.initVerifier(.range_check_8_8, 0, &.{ 0, 1 }, 0, 0, &relations, QM31.zero()),
     );
 }
 

@@ -1,0 +1,47 @@
+{
+  "before": {
+    "phases_seconds": {
+      "begin": 0.0,
+      "geometry-ready": 91.608483208,
+      "prefix-rows": 26.584263917,
+      "suffix-rows": 234.298244083,
+      "provider-main": 42.286527167,
+      "ledger-begin": 0.000887333,
+      "ledger-reserved": 0.000691042,
+      "ledger-prefix": 18.779178291,
+      "ledger-suffix": 4.4500215,
+      "ledger-native": 60.322965917,
+      "range-provider": 7.152663125,
+      "ledger-range": 0.003349875,
+      "ledger-classified": 217.419790583,
+      "ledger-released": 105.896726459
+    },
+    "ledger_seconds": 414.026274125,
+    "contributions": 166400671,
+    "ledger_capacity_bytes_or_estimate": 43108562464,
+    "source_peak_footprint_bytes": 56225833760
+  },
+  "after": {
+    "phases_seconds": {
+      "begin": 7.08e-07,
+      "geometry-ready": 26.240353,
+      "prefix-rows": 13.562489417,
+      "suffix-rows": 1.9493645,
+      "provider-main": 22.70788575,
+      "ledger-begin": 0.000963166,
+      "ledger-prefix": 27.481426542,
+      "ledger-suffix": 6.457769958,
+      "ledger-native": 41.786559542,
+      "range-provider": 0.002415417,
+      "ledger-range": 0.002886708,
+      "ledger-classified": 5.4542e-05,
+      "ledger-released": 5.297583166
+    },
+    "ledger_seconds": 81.029659041,
+    "contributions": 166400671,
+    "ledger_capacity_bytes_or_estimate": 3928074992,
+    "source_peak_footprint_bytes": 38002389432
+  },
+  "ledger_reduction_percent": 80.42886065328887,
+  "comparison_scope": "same real pair2/3 and166400671contributions; baseline development replay vs consuming actual wrapper; ledger before/after span only; no full proof acceptance or complete-request speedup claimed"
+}

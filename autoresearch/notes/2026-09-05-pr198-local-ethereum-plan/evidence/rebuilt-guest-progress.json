@@ -1,0 +1,91 @@
+{
+  "schema": "stwo.local-ethereum.rebuilt-guest-progress.v1",
+  "source_base_commit": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_dirty": true,
+  "rust_toolchain": "nightly-2026-08-08",
+  "runner_source_snapshot": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+  "compiler_jobs": 1,
+  "artifacts": [
+    {
+      "path": ".git/local-ethereum/rebuilt-guest-v1/stwo-ethereum-guest.elf",
+      "bytes": 3412588,
+      "sha256": "f3657d077b88da313369ff002aafbe8b6bf4912e8fd1ef1d1b76a6dc0f1d40a7"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.lock",
+      "bytes": 83749,
+      "sha256": "3afbab5243efb960409192f6b2bcb628d13165ed48f23b06415b60ba6f538a1b"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/Cargo.toml",
+      "bytes": 762,
+      "sha256": "7d8bb100c57b53faca648d8ddeb5ae8fd22a9fb13d591c5f5a1c7f066bcdf2e0"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/linker.ld",
+      "bytes": 1201,
+      "sha256": "e04f28b7e1c2bf63f81f5e4602e5a3dd7ff2ac3c7d2992e206e5372ad1f06c9c"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/riscv32i-stwo.json",
+      "bytes": 505,
+      "sha256": "edeb9c26ce4e463572877a0c81889a18795876ac7bfa17c347715182e4aae3d5"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/src/main.rs",
+      "bytes": 5877,
+      "sha256": "3415b808a7a170c2f281d0a40986b89be511ffad7b359e0c614d8a7121644353"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/ethereum/src/single_thread_atomics.rs",
+      "bytes": 2653,
+      "sha256": "1ef87c01450e94fbb9ab15925dec24c93430aff1f09b754b141908945d11f58e"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/exact_layout_allocator_v2.rs",
+      "bytes": 4895,
+      "sha256": "1c3b7f05be7ae5c0c1a682c78d0b3e6fe3ca293e91e5c611d57b0fca62272551"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/fast_keccak_sponge_words_v1.rs",
+      "bytes": 3337,
+      "sha256": "7902a554fd6de6c2a1628b2e104b554ea28e8016d8e457d20e25368f8ef988ff"
+    }
+  ],
+  "execution_receipt": {
+    "schema": "stwo.riscv.segmented-execution-capture-receipt.v4",
+    "status": "complete",
+    "claim_boundary": "execution-only-not-a-proof",
+    "plan_sha256": "ed68c775d11da00d8f92ffc8fe92ee2826f4c43dbb20942aef2ec5ab6008ddc5",
+    "journal_bytes": 137977,
+    "journal_sha256": "ee56074a539fc29e372e17ef2985ed1fed77d1bcae7eb7c79ac8a6778edcebe9",
+    "segment_count": 61,
+    "total_cycles": 253646998,
+    "total_core_trace_rows": 253614097,
+    "total_external_trace_rows": 32901,
+    "external_family_rows": [
+      {
+        "family": "stwo.keccakf-1600.permute-in-place@1",
+        "calls": 32835,
+        "execution_rows": 32835
+      },
+      {
+        "family": "stwo.secp256k1.recover-signer@1",
+        "calls": 66,
+        "execution_rows": 66
+      }
+    ],
+    "clock_frame": "leaf_local",
+    "max_segment_cycle_count": 4194304,
+    "leaf_local_clock_ranges_within_v3_limit": true,
+    "segment_statement_v2_admissible": false,
+    "final_cpu_sha256": "82580d286d37d314e85762d65a75c3b02e39e2b141756b119bf6488737f49784",
+    "final_rw_memory_sha256": "f0417764a5d208471683f0bfc5060ae916beea9f81bd80a0be907de509b4378b",
+    "output_sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+  },
+  "historical_guest_identity_reproduced": false,
+  "proof_generated": false,
+  "secure_commitment_profile_admitted": false,
+  "csp_regression_promotion": false,
+  "timing_comparison_claimed": false
+}

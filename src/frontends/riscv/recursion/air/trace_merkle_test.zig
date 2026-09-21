@@ -286,6 +286,25 @@ test "R-012 trace Merkle direct writers are allocation-free padded and failure a
     for (columns) |column| for (column[preprocessing.rows.len..]) |value|
         try std.testing.expect(value.isZero());
 
+    const selected_opening = witness.OpeningWitness{ .binary_node = .{ .left = data.left, .right = data.right } };
+    const expected_storage = try std.testing.allocator.alloc(M31, storage.len);
+    defer std.testing.allocator.free(expected_storage);
+    var expected_columns: [component.PHYSICAL_MAIN_COLUMN_COUNT][]M31 = undefined;
+    splitColumns(component.PHYSICAL_MAIN_COLUMN_COUNT, size, expected_storage, &expected_columns);
+    try executor.generateMainInto(&preprocessing, fixtures.reference, &expected_columns, selected_opening);
+    for ([_]u32{ 0, 1, 2 }) |lane| {
+        try executor.generateMainForLaneInto(&preprocessing, fixtures.reference, &columns, selected_opening, lane);
+        for (columns, expected_columns) |actual, expected| {
+            for (preprocessing.rows, 0..) |metadata, row| {
+                if (metadata.verifier_id == lane) try std.testing.expectEqual(expected[row], actual[row]) else try std.testing.expect(actual[row].isZero());
+            }
+            for (actual[preprocessing.rows.len..]) |word| try std.testing.expect(word.isZero());
+        }
+    }
+    @memset(storage, M31.fromCanonical(12345));
+    try std.testing.expectError(error.InvalidWitness, executor.generateMainForLaneInto(&preprocessing, fixtures.reference, &columns, selected_opening, 3));
+    for (storage) |word| try std.testing.expectEqual(M31.fromCanonical(12345), word);
+
     const sentinel = M31.fromCanonical(12345);
     @memset(storage, sentinel);
     var short_columns = columns;

@@ -1,0 +1,86 @@
+[
+  {
+    "path": "src/integrations/riscv_cpu/package.contract.json",
+    "removed_exports": [
+      "recursive_parent_statement_air_source",
+      "recursive_parent_statement_source",
+      "recursive_segment_v2_detached_command",
+      "recursive_segment_v2_detached_parent_command",
+      "recursive_segment_v2_detached_parent_producer",
+      "recursive_segment_v2_detached_proof",
+      "recursive_segment_v2_detached_verifier",
+      "recursive_segment_v2_leaf_outer",
+      "recursive_segment_v2_noncore_owner",
+      "recursive_segment_v2_outer_admission_v2",
+      "recursive_segment_v2_outer_cohort",
+      "recursive_segment_v2_outer_engine",
+      "recursive_segment_v2_temporal_child_authority",
+      "recursive_segment_v2_tuple_closure_diagnostic",
+      "recursive_segment_v2_verified_artifact",
+      "recursive_segment_v2_verified_publication",
+      "recursive_temporal_child_authority",
+      "recursive_temporal_child_transcript_authority_v1",
+      "recursive_temporal_empty_parent_source_v1",
+      "recursive_temporal_empty_parent_transcript_v1",
+      "recursive_temporal_ethereum_leaf_bridge_v1",
+      "recursive_temporal_ethereum_leaf_descriptor_v1",
+      "recursive_temporal_heterogeneous_pair_v1",
+      "recursive_temporal_leaf_or_empty_v1",
+      "recursive_temporal_level2_cohort_v1",
+      "recursive_temporal_level2_composition_v1",
+      "recursive_temporal_level2_prefix_v1",
+      "recursive_temporal_level2_suffix_v1",
+      "recursive_temporal_level2_transcript_v1",
+      "recursive_temporal_level2_verifier_input_v1",
+      "recursive_temporal_node_profile_v1",
+      "recursive_temporal_nonfri_source_v2",
+      "recursive_temporal_pair_authority_v2",
+      "recursive_temporal_parent_cohort_v3",
+      "recursive_temporal_parent_manifest_v3",
+      "recursive_temporal_parent_pair_authority_v1",
+      "recursive_temporal_parent_prefix_runtime",
+      "recursive_temporal_parent_recursive_admission_v1",
+      "recursive_temporal_parent_row18_source_v3",
+      "recursive_temporal_parent_row35_owner_v1",
+      "recursive_temporal_parent_suffix_v3",
+      "recursive_temporal_parent_transcript_prefix_v1",
+      "recursive_temporal_parent_verified_artifact_v1",
+      "recursive_temporal_parent_verifier_input_publication_v3",
+      "recursive_temporal_profile_plan_transport_v1",
+      "recursive_temporal_proof_security_v1",
+      "recursive_temporal_statement_plan_v1",
+      "recursive_temporal_topology_v1",
+      "recursive_temporal_verified_node_v1",
+      "recursive_temporal_verified_parent_capture_v1",
+      "recursive_temporal_verified_reducer_v1"
+    ],
+    "added_exports": [],
+    "added_injected_modules": [
+      "stwo_leaf_verifier",
+      "stwo_parent_verifier",
+      "stwo_riscv_detached_parent_producer"
+    ],
+    "removed_injected_modules": []
+  },
+  {
+    "path": "src/integrations/riscv_metal/package.contract.json",
+    "removed_exports": [],
+    "added_exports": [],
+    "added_injected_modules": [
+      "stwo_riscv_detached_leaf_runner",
+      "stwo_riscv_detached_parent_producer"
+    ],
+    "removed_injected_modules": [
+      "stwo_riscv_cpu_small_recursion_runner"
+    ]
+  },
+  {
+    "path": "src/prover/package.contract.json",
+    "removed_exports": [],
+    "added_exports": [
+      "tracked_smp_allocator"
+    ],
+    "added_injected_modules": [],
+    "removed_injected_modules": []
+  }
+]

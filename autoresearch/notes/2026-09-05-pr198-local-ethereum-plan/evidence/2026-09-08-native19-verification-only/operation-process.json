@@ -1,0 +1,10 @@
+{
+  "pid": 54288,
+  "argv": [
+    "python3",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-verification-only-v1/accept_candidate.py",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native19-verification-only-v1/request.json",
+    "f280392c76c47a860f10a6326a6665ea9d1311eb40b7f0900354b79492f31073"
+  ],
+  "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/bounded-native-verifier-source-v5/source"
+}

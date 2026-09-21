@@ -17,8 +17,8 @@ pub const proof_kind_mod = @import("proof_kind.zig");
 
 pub const MIN_LOG_SIZE: u32 = 4;
 pub const MAX_LOG_SIZE: u32 = 30;
-pub const LEAF_TAG: u32 = 1;
-pub const TRACE_POSITION_KIND: u32 = 1;
+pub const LEAF_TAG = @import("verifier_parameter_tags.zig").trace_merkle.LEAF_TAG;
+pub const TRACE_POSITION_KIND = @import("verifier_parameter_tags.zig").trace_merkle.TRACE_POSITION_KIND;
 pub const MAIN_COLUMN_COUNT = component.PHYSICAL_MAIN_COLUMN_COUNT;
 pub const PREPROCESSED_COLUMN_COUNT = component.PREPROCESSED_COLUMN_COUNT;
 pub const ProofKind = proof_kind_mod.ProofKind;

@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 14/14 tests passed
+test-vm-air-profile-v2 success
++- stwo_riscv_frontend test count floor success
+   +- run test 14 passed 55s MaxRSS:81M
+      +- compile test Debug native success 10s MaxRSS:1G
+

@@ -1,6 +1,6 @@
 const std = @import("std");
 
-pub const core_shader_abi: u32 = 12;
+pub const core_shader_abi: u32 = 22;
 pub const witness_codegen_support_version: u64 = 6;
 
 pub const CompileProfile = struct {
@@ -48,15 +48,25 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_quadratic_recurrence_trace", .owner = .trace_generation },
     .{ .name = "stwo_zig_transcript_init_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_mix_resident", .owner = .transcript },
+    .{ .name = "stwo_zig_poseidon2_channel_pow_search", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_secure_resident", .owner = .transcript },
     .{ .name = "stwo_zig_transcript_draw_queries_resident", .owner = .transcript },
     .{ .name = "stwo_zig_blake2s_leaves", .owner = .commitments },
+    .{ .name = "stwo_zig_blake2s_pow_search", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_leaf_absorb_compact_resident", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents_sparse", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parent_tail_sparse", .owner = .commitments },
     .{ .name = "stwo_zig_blake2s_parents_plain_sparse", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_leaves", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_leaves_wide", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_leaf_absorb_resident", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_leaf_absorb_compact_resident", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_parents", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_parents_sparse", .owner = .commitments },
+    .{ .name = "stwo_zig_poseidon2_m31_parent_tail_sparse", .owner = .commitments },
     .{ .name = "stwo_zig_witness_input_gather_resident", .owner = .cairo_trace },
     .{ .name = "stwo_zig_execution_table_split_resident", .owner = .cairo_trace },
     .{ .name = "stwo_zig_memory_address_base_trace_resident", .owner = .cairo_trace },
@@ -128,11 +138,14 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_fri_fold3_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_fold2_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_packed_leaves_resident", .owner = .fri },
+    .{ .name = "stwo_zig_poseidon2_m31_fri_packed_leaves_resident", .owner = .fri },
     .{ .name = "stwo_zig_fri_final_line_resident", .owner = .fri },
     .{ .name = "stwo_zig_decommit_normalize_queries_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_prepare_fri_queries_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_prepare_trace_queries_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_gather_trace_values_resident", .owner = .decommit },
+    .{ .name = "stwo_zig_decommit_gather_tree_values_resident", .owner = .decommit },
+    .{ .name = "stwo_zig_decommit_gather_tree_values_resident_wide", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_gather_fri_values_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_sparse_parent_resident", .owner = .decommit },
     .{ .name = "stwo_zig_decommit_sparse_leaves_resident", .owner = .decommit },
@@ -141,57 +154,75 @@ pub const exports = [_]Export{
     .{ .name = "stwo_zig_decommit_assemble_fri_resident", .owner = .decommit },
     .{ .name = "stwo_zig_eval_basis", .owner = .polynomial_eval },
     .{ .name = "stwo_zig_eval_polynomials", .owner = .polynomial_eval },
-    .{ .name = "stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_a972dafabb2bf5eee1d1cdb560f3572e", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_09e5f90f9696d165cc36093de2564888", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_a74fd0125263cc1e887ee5d726ac99a0", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_3b018614b76f63e7a28e127029c18704", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_aa55ec34af78d3f2b74d4b3d06c708a8", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_6301135c98c38c29971098b60b459397", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_1d58ef609255595a37488e277d52585c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_208adea2af3accc5bd53faa7807024bb", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_9b9a12367c3aeb8830ac01bf757fa64a", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_6bd1123655f7e5fc662f4e397524645b", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_60369e534e1e31666bb1684e6745500b", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_cae77cf99f2127b1108dc5c1609cc16b", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_d1b44ec0cc8a532f04e4e39fd0bb648e", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_88bafd2b2b2bb614f3a37e2e93f88f8f", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_f0435e9fbbd4a7a98c7c5162bee7d7a9", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_cc2c95d2bff4c999fee2f44e08222252", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_b52a532ad3c7e42bdece0624fb56b8aa", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_b15f9ad4a9abfc83a7cdec6c46ee4ade", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_fcc84457fa16172e164408c12324b2c2", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_ff9bf971cfa80d96e0aa0e50e4b1b89d", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_b63d26046143c546183c7769fee7803a", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_60da0a81177c1f7c118d91080a104856", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_d71f7ff4122659b75334f16e7282cd1e", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_2933fad233d8d72eaaaac264f1f08e46", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_55f49d22b3eefd58176c82e98f534eb1", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_34a73d9627a19782b2486c6dcd96f1fe", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_4495e1dc5d58d71f640d011e5e267fc06fe6adfe54e6405fa20aab1ab4a4f496", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_faadbe548bfa104ae056599d5e4910f9812fc7ddf9179da65d5d5e6fba234d35", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_9ed05c9eac769627c64b0e915e2630d0a51bb6325410ea144d9669b85c480514", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_198678cb3ba8974d902c91452544c7f63c81fc0d10de3a87f612c1e9cb9437a8", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_ec1cb673e29351c380eb472b19293e7ea97ab2030393f54c7bcbb1426ae83aa2", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_edade529adf1f7eb6b09313aad8cc71ff739a71d11e2b40cb6101daf378d8489", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_c95e5383b34ea4ad55aaff5bc8ca9054b9fb9abe15db39e6409374e0dd3b5617", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_b64e1478588595c7a3f7c71371ef1e6f1ceae3dd055c9eb56aa4081cf93e97d1", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_b9e7c8afba03add7dd116b67fd791e19256bc093b6eb47e41ca9ee411608c58a", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_b777199dcff0d3dbb81372f98612beda7bd12bf2d2bc7725f1dab500e07c39d9", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_a0710166b8b3057556c2f5907836c0c82fe3b92fccff4633d504c0ff510b6d93", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_bd8284d4f0c5a7d0cd9dd1f4879d721c70992754e1d5aadf02df9e4f86c15d2c", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_099cc5bddab2ff60effcbef0d7863f6a78e0d7a9fcc78fa43d9603f6798904b3", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_e622d001a5cd368b6efef022e0db61a1ab9e30842ef91e4135c0dc5cbd18eb19", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_1cab02ea628504e58cb4a0dbf15dbca36cccc7cad4f36949bb10265a08cd44cc", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_74e0c5ba6845f3d863a1b821d0f22ea76e38570ccd234b537ea4fb9e8f19bf77", .owner = .riscv_polynomials },
-    .{ .name = "stwo_zig_lookup_poly_v2_e9b9d5d433a734c48921694aa7185fafe3fb15e7bd89dc42261cc4290f894352", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_sampled_barycentric_domain_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_scale_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_parts_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_inverse_direct_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_inverse_tree_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_finish_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_evaluate_many_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_sampled_barycentric_reduce_v1", .owner = .polynomial_eval },
+    .{ .name = "stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_a995060c2a616369140d09438c7dac67", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_903175038c36e2a6aad8376003874197", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681", .owner = .riscv_polynomials },
+    .{ .name = "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763", .owner = .riscv_polynomials },
 };
 
 pub fn isDeferredOwner(owner: Unit) bool {
@@ -234,6 +265,7 @@ const blake2s_source = @embedFile("include/blake2s.metal");
 const merkle_source = @embedFile("include/merkle.metal");
 const decommit_source = @embedFile("include/decommit.metal");
 const m31_source = @embedFile("include/m31.metal");
+const poseidon2_m31_source = @embedFile("include/poseidon2_m31.metal");
 const extension_fields_source = @embedFile("include/extension_fields.metal");
 const circle_source = @embedFile("include/circle.metal");
 const abi_types_source = @embedFile("include/abi_types.metal");
@@ -287,6 +319,7 @@ pub const support_headers = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/include/merkle.metal", .source = merkle_source },
     .{ .path = "src/backends/metal/shaders/include/decommit.metal", .source = decommit_source },
     .{ .path = "src/backends/metal/shaders/include/m31.metal", .source = m31_source },
+    .{ .path = "src/backends/metal/shaders/include/poseidon2_m31.metal", .source = poseidon2_m31_source },
     .{ .path = "src/backends/metal/shaders/include/extension_fields.metal", .source = extension_fields_source },
     .{ .path = "src/backends/metal/shaders/include/circle.metal", .source = circle_source },
     .{ .path = "src/backends/metal/shaders/include/abi_types.metal", .source = abi_types_source },
@@ -297,7 +330,7 @@ pub const support_headers = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/include/witness_deductions.metal", .source = witness_deductions_source },
 };
 
-pub const native_support_headers = support_headers[0..8];
+pub const native_support_headers = support_headers[0..9];
 
 pub const translation_units = [_]TranslationUnit{
     .{ .path = "src/backends/metal/shaders/core/commitments.metal", .source = commitments_source },
@@ -339,6 +372,7 @@ pub const native_amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATE
     "\n#line 1 \"src/backends/metal/shaders/include/merkle.metal\"\n" ++ merkle_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/decommit.metal\"\n" ++ decommit_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/m31.metal\"\n" ++ m31_source ++
+    "\n#line 1 \"src/backends/metal/shaders/include/poseidon2_m31.metal\"\n" ++ poseidon2_m31_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/extension_fields.metal\"\n" ++ extension_fields_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/circle.metal\"\n" ++ circle_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/abi_types.metal\"\n" ++ abi_types_source ++
@@ -381,6 +415,8 @@ pub const amalgamated_source: [:0]const u8 = "#define STWO_ZIG_AMALGAMATED 1\n" 
     decommit_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/m31.metal\"\n" ++
     m31_source ++
+    "\n#line 1 \"src/backends/metal/shaders/include/poseidon2_m31.metal\"\n" ++
+    poseidon2_m31_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/extension_fields.metal\"\n" ++
     extension_fields_source ++
     "\n#line 1 \"src/backends/metal/shaders/include/circle.metal\"\n" ++
@@ -472,6 +508,7 @@ pub const testing = struct {
     pub const merkle_source = Root.merkle_source;
     pub const decommit_source = Root.decommit_source;
     pub const m31_source = Root.m31_source;
+    pub const poseidon2_m31_source = Root.poseidon2_m31_source;
     pub const extension_fields_source = Root.extension_fields_source;
     pub const circle_source = Root.circle_source;
     pub const abi_types_source = Root.abi_types_source;

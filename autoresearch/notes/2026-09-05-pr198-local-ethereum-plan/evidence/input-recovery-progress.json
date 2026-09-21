@@ -1,0 +1,67 @@
+{
+  "schema": "stwo.local-ethereum.input-recovery-progress.v1",
+  "source_base_commit": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_dirty": true,
+  "artifacts": [
+    {
+      "path": ".git/local-ethereum/upstream/mainnet_24628607_66_7_zec_reth.bin",
+      "bytes": 2718960,
+      "sha256": "e1c6d4e06a87649da68e461a91465e4123b990f531e68581ee1750599ff12376"
+    },
+    {
+      "path": ".git/local-ethereum/projected-input-recheck/canonical-input.ssz",
+      "bytes": 2700688,
+      "sha256": "845b7c924728c1fcd3c7dbcd38b71e2744a1a36f2205d6e05ceb32db4278065c"
+    },
+    {
+      "path": ".git/local-ethereum/projected-input-recheck/host-output.bin",
+      "bytes": 43,
+      "sha256": "730396807814bc71f14405b3ecf27237778a5359732001b32c93692c3275a8c5"
+    },
+    {
+      "path": ".git/local-ethereum/projected-input-recheck/stwo-runner-input.bin",
+      "bytes": 2700692,
+      "sha256": "faaf02583929396faed177914da27b4a493766993001357bd1720340ca1ddabb"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/projection/Cargo.toml",
+      "bytes": 637,
+      "sha256": "22d6ffe61ba2a788dc4cd0328b3008f345de7d128bf90fb2546eb40949ebd46f"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/projection/Cargo.lock",
+      "bytes": 68992,
+      "sha256": "cf85d15fd8608a682147d9a8f28f3b60d26a0ec898274472b5093e044b628653"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/projection/src/main.rs",
+      "bytes": 10343,
+      "sha256": "fb7a3be03d7b6004c3cc1cece30baef3eedcb8f050c207e0019753339fe92de2"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/host_validation/Cargo.toml",
+      "bytes": 336,
+      "sha256": "bcb483f8eeb67ae8aa53310cca1defedc794be8cd0c8e692a10b740c569a1b9e"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/host_validation/Cargo.lock",
+      "bytes": 83725,
+      "sha256": "ffc955e9f8e7c62b78a66e8f4428f15b138fcc5767f67d2755a09dbf850a1898"
+    },
+    {
+      "path": "autoresearch/benchmarks/guest_runtime/host_validation/src/main.rs",
+      "bytes": 1438,
+      "sha256": "0cb0190913956b6f83ffe952849a3d284960bf6d98a4c740d1edc0dffb09a5c4"
+    }
+  ],
+  "transaction_keys_recovered_and_compared": 66,
+  "canonical_ssz_roundtrip_verified": true,
+  "host_validation_output_verified": true,
+  "legacy_codec": "Alloy 2.0.0 with bincode v2 serde standard",
+  "legacy_bpo1_time": 1765290071,
+  "legacy_bpo2_time": 1767747671,
+  "historical_fork_field_label_corrected": true,
+  "rv32_execution_reproduced": false,
+  "proof_generated": false,
+  "csp_regression_promotion": false
+}

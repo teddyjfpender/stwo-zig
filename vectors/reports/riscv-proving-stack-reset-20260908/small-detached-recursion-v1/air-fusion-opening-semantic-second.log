@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 16/16 tests passed
+test-recursion-opening-accumulation success
++- run test 16 passed 713ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 5s MaxRSS:490M
+

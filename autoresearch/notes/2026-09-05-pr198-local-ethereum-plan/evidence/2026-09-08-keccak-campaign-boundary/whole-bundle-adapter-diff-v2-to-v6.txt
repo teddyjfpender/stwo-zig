@@ -1,0 +1,16 @@
+--- historical-tested-adapter
++++ current-frozen-adapter
+@@ -229,12 +229,7 @@
+         defer retained.deinit();
+         if (!std.meta.eql(retained.materialization_identity.sha256, expected_materialization_sha256))
+             return error.EthereumBundleMaterializationIdentityMismatch;
+-        const index = leaf.metadata.segment_index;
+-        if (index >= retained.sources.len or !std.meta.eql(leaf.metadata, retained.sources[index].value.metadata))
+-            return error.EthereumSelectedLeafMetadataMismatch;
+-        const expected = try span.SpanStatement.fromCanonicalWords(&retained.sources[0].value.metadata.base_statement_words);
+-        const selected = try span.SpanStatement.fromCanonicalWords(&leaf.metadata.base_statement_words);
+-        if (!std.meta.eql(selected.job, expected.job)) return error.EthereumBundleJobMismatch;
++        try retained.validateLeafMetadata(&leaf.metadata);
+         if (use_fixed_program) program = try fixed_program.OwnedV1.createFromElf(allocator, retained.elf_bytes, retained.elf_identity.sha256);
+     }
+     // Every retained source, tape and snapshot admission owner has died before

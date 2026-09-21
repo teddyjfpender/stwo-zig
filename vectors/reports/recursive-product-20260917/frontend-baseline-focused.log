@@ -1,0 +1,112 @@
+1/111 mod.test_0...OK
+2/111 test_inventory.test_0...OK
+3/111 test_inventory_test.test.test inventory: every test-bearing file in this package is named...OK
+4/111 test_inventory_test.test.test inventory: every path it names exists and holds tests...OK
+5/111 opcode_coverage_test.test.all 46 proof opcodes reach witness, semantic, lookup, and component authorities...OK
+6/111 air.extract.mod.test_0...OK
+7/111 air.semantic_eval.test_0...OK
+8/111 runner.decode.test_0...OK
+9/111 poseidon2_universal_degree3_test_root.test_0...OK
+10/111 recursion_arithmetic_fusion_test_root.test_0...OK
+11/111 recursion_opening_accumulation_test_root.test_0...OK
+12/111 air_semantics_test_root.test_0...OK
+13/111 ethereum_runner_test_root.test_0...OK
+14/111 guest_precompile_test_root.test_0...OK
+15/111 isa_test_root.test_0...OK
+16/111 lookup_batch_test_root.test_0...OK
+17/111 outer_parent_statement_source_test_root.test_0...OK
+18/111 outer_parent_range_authority_test_root.test_0...OK
+19/111 outer_parent_statement_air_source_test_root.test_0...OK
+20/111 outer_parent_transcript_source_test_root.test_0...OK
+21/111 owned_statement.test_0...OK
+22/111 recursion_air_test_root.test_0...OK
+23/111 recursion_outer_sources_test_root.test_0...OK
+24/111 row_window_test_root.test_0...OK
+25/111 runner_test_root.test_0...OK
+26/111 segment_public_outer_source_test_root.test_0...OK
+27/111 segment_leaf_outer_bundle_test_root.test_0...OK
+28/111 segment_statement_outer_source_test_root.test_0...OK
+29/111 temporal_pair_node_test_root.test_0...OK
+30/111 testing.test_0...OK
+31/111 aggregation.reference_test.test_0...OK
+32/111 recursion.segment_statement_outer_source_test.test_0...OK
+33/111 recursion.pair_node_test.test_0...OK
+34/111 isa.mod.test_0...OK
+35/111 runner.guest_precompile.mod.test_0...OK
+36/111 runner.minimal_trace.mod.test_0...OK
+37/111 runner.mod.test_0...OK
+38/111 air.guest_precompile.relation_test.test_0...OK
+39/111 air.mod.test_0...OK
+40/111 air.lang.typed_div_adversarial_test.test_0...OK
+41/111 air.lookups.mod.test_0...OK
+42/111 air.lookups.tables.mod.test_0...OK
+43/111 air.lookups.tables.source_ingest.test_0...OK
+44/111 air.memory_commitment.mod.test_0...OK
+45/111 air.preprocessed.mod.test_0...OK
+46/111 air.semantics.mod.test_0...OK
+47/111 air.program.mod.test_0...OK
+48/111 diagnostics.mod.test_0...OK
+49/111 prover.interaction_trace_plan_test.test_0...OK
+50/111 prover.guest_precompile.split_leaf_prepare_test.test_0...OK
+51/111 prover.test_witness_hook.test_0...OK
+52/111 prover.verifier_test.test.verifier: the LogUp remedy is selected from the statement, not fixed...OK
+53/111 prover.verifier_test.test.verifier: the fixture the wiring check reads still holds the call...OK
+54/111 prover.verifier_test.test.verifier: the selected predicate reaches stderr as two different remedies...OK
+55/111 air.lang.opcode_composition_manifest_extended_test.test.E-022 live semantic and lookup masks exactly materialize all 17 manifest descriptors...OK
+56/111 air.lang.opcode_composition_manifest_extended_test.test.E-022 maximum-width mask metadata preserves exact allocation ceilings...OK
+57/111 air.lang.opcode_composition_manifest_extended_test.test.E-022 component mask builders retired handwritten production geometry...OK
+58/111 air.lang.opcode_composition_manifest_extended_test.test.E-022 statement claim projection preserves the frozen mapping for all 17 families...OK
+59/111 air.lang.opcode_composition_manifest_extended_test.test.E-022 composition metadata is pointer-free fixed storage...OK
+60/111 air.lang.opcode_composition_manifest_test.test.E-022 composition manifest has the exact 17-family compatibility geometry...OK
+61/111 air.lang.opcode_composition_manifest_test.test.E-022 composition manifest derives exact claim and adapter protocol order...OK
+62/111 air.lang.opcode_composition_manifest_test.test.E-022 composition manifest agrees with every live and compiled compatibility surface...OK
+63/111 air.lang.opcode_composition_manifest_test.test.E-022 generated compat-v1 manifests agree with the composition authority 17 of 17...OK
+64/111 air.lang.opcode_composition_manifest_test.test.E-022 placement cursor preserves legacy offsets and fails atomically...OK
+65/111 air.lang.opcode_composition_manifest_test.test.E-022 infrastructure cursor owns fixed geometry and O(1) canonical placement...OK
+66/111 air.lang.opcode_composition_manifest_test.test.E-022 prover and verifier materialize the same 17-family placement plan...OK
+67/111 air.lang.opcode_composition_manifest_test.test.E-022 shared assembly fails atomically on infrastructure width and order drift...OK
+68/111 air.lang.opcode_composition_manifest_test.test.E-022 prover and verifier delegate one shared base assembly authority...OK
+69/111 air.lang.opcode_composition_manifest_test.test.E-022 trace and witness geometry consumers retired their duplicate registries...OK
+70/111 air.lang.opcode_composition_manifest_test.test.E-022 constraint program retired all four duplicated geometry switches...OK
+71/111 air.lang.opcode_composition_manifest_test.test.E-022 opcode claim order has one manifest authority across production consumers...OK
+72/111 air.lang.opcode_composition_manifest_test.test_0...OK
+73/111 binary_fri_outer_bundle_v2_test_root.test_0...OK
+74/111 binary_global_closure_outer_source_test_root.test_0...OK
+75/111 binary_inactive_outer_source_test_root.test_0...OK
+76/111 binary_pair_nonfri_outer_bundle_test_root.test_0...OK
+77/111 binary_transcript_outer_source_test_root.test_0...OK
+78/111 framework_interaction_test_root.test_0...OK
+79/111 fri_profile_frontier_measurement_test_root.test_0...OK
+80/111 lookup_batch_edit_test_root.test_0...OK
+81/111 lookup_polynomial_v2_edit_test_root.test_0...OK
+82/111 opcode_composition_manifest_test_root.test_0...OK
+83/111 opcode_composition_performance_test_root.test_0...OK
+84/111 proof_phase_meter_test_root.test_0...OK
+85/111 recursion.recursion_air_composition_circuit_v3_test.test_0...OK
+86/111 recursion.segment_statement_outer_source_v2_test_root.test_0...OK
+87/111 row_window_edit_test_root.test_0...OK
+88/111 row_window_expression_v2_edit_test_root.test_0...OK
+89/111 segment_outer_cohort_v2_test_root.test_0...OK
+90/111 segment_public_native_sum_authority_v2_test_root.test_0...OK
+91/111 segment_statement_outer_source_v2_test_root.test_0...OK
+92/111 segment_transcript_outer_source_v2_test_root.test_0...OK
+93/111 transcript_v2_test_root.test_0...OK
+94/111 sail_oracle_test_root.test_0...OK
+95/111 bulk_memcpy_candidate_test_root.test_0...OK
+96/111 ethereum_candidate_execution_contract_test_root.test_0...OK
+97/111 ethereum_candidate_leaf_test_root.test_0...OK
+98/111 ethereum_initial_input_lane_v1_test_root.test_0...OK
+99/111 ethereum_leaf_context_v1_test_root.test_0...OK
+100/111 ethereum_minimal_trace_test_root.test_0...OK
+101/111 ethereum_narrow_poseidon_proof_test_root.test_0...OK
+102/111 incremental_memory_transition_test_root.test_0...OK
+103/111 keccakf_precompile_test_root.test_0...OK
+104/111 poseidon_materialization_frontier_test_root.test_0...OK
+105/111 recursion_framework_export_test_root.test_0...OK
+106/111 recursion_preparation_test_root.test_0...OK
+107/111 secp256k1_precompile_test_root.test_0...OK
+108/111 segment_statement_v2_test_root.test_0...OK
+109/111 stack_swap_candidate_test_root.test_0...OK
+110/111 vm_air_profile_v2_test_root.test_0...OK
+111/111 vm_leaf_context_v2_test_root.test_0...OK
+All 111 tests passed.

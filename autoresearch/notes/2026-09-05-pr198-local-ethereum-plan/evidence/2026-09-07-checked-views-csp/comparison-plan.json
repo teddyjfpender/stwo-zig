@@ -1,0 +1,1903 @@
+{
+  "active_root": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+  "baseline_products": [
+    {
+      "backend": "cpu",
+      "build_identity": {
+        "abi": "none",
+        "arch": "aarch64",
+        "cpu_model": "apple_m4",
+        "optimize": "ReleaseFast",
+        "os": "macos"
+      },
+      "historically_verified_implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/stwo-zig-riscv-cpu",
+      "sha256": "18c32837c91e7762bb46d13dfce6e4e048f5b891d501c0631881f95588847e52"
+    },
+    {
+      "backend": "metal",
+      "build_identity": {
+        "abi": "none",
+        "arch": "aarch64",
+        "cpu_model": "apple_m4",
+        "optimize": "ReleaseFast",
+        "os": "macos"
+      },
+      "historically_verified_implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/stwo-zig-riscv-metal",
+      "sha256": "ee7029c59de63a8de2049abbdb0a9deb46b4f51daa9574b16de19fd0e06eb673"
+    },
+    {
+      "backend": "trace",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2/zig-out/bin/riscv-trace-dump",
+      "provenance": {
+        "build_identity_published": false,
+        "implementation_commit": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+        "implementation_dirty": false,
+        "oracle_commit": "8c7f2da58de0ba5e4457e4de07e0046f0439f35f",
+        "surface": "public-values diagnostic provenance",
+        "unvalidated": [
+          "target architecture, operating system, ABI, and CPU model",
+          "optimize mode"
+        ],
+        "unvalidated_reason": "the trace dumper publishes no `applications` registry, so the target and optimize checks the prover CLI receives have no source here; it contributes cycle counts, not timings",
+        "witness_layout_sha256": "c3cea0d1311899cc998f896fe52fa3848146c9fa8a6fd136ad676cb4643fd000"
+      },
+      "sha256": "c3634dbc3e74069b2b58e28b096531a79a24ab253e67897394a90bf2a59837b9",
+      "validation": "Exact existing binary hash matches previously executed authenticated trace receipt; guest execution not repeated."
+    }
+  ],
+  "build": {
+    "argv": [
+      "/opt/homebrew/opt/python@3.12/bin/python3.12",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907/scripts/zig_serial_build.py",
+      "--cwd",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907",
+      "stwo-zig-riscv-cpu",
+      "riscv-trace-dump",
+      "stwo-riscv-metal",
+      "-Doptimize=ReleaseFast",
+      "--summary",
+      "all"
+    ],
+    "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+    "lock_behavior": "Build wrapper acquires /tmp/stwo-zig-build.lock; do not nest under same outer lock."
+  },
+  "canonical_negative_fixture_count": 1,
+  "captured_at": "2026-09-07T08:31:36.009857+00:00",
+  "environment": {
+    "arm_cache_isolation": {
+      "global": ".zig-cache/ab-global",
+      "local": ".zig-cache",
+      "prefix": "zig-out/native-ab"
+    },
+    "fixed": {
+      "LANG": "C",
+      "LC_ALL": "C",
+      "PYTHONHASHSEED": "0",
+      "STWO_ZIG_MERKLE_WORKERS": "16",
+      "STWO_ZIG_WORKERS": "16",
+      "TZ": "UTC"
+    },
+    "policy": "native_ab_sanitized_v1",
+    "removed_stwo_names": [],
+    "removed_zig_cache_names": [],
+    "secret_values_recorded": false
+  },
+  "measured_sample_count": 640,
+  "preparation_script": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/refresh_csp_reviewed_plan.py",
+    "sha256": "9d344c7aa32fe5656e8c486caa1216683fced6794163b17394c6312302d4cd48"
+  },
+  "previous_elapsed_context": {
+    "scope": "Prior128-launch run, host-record through final-report mtime; excludes builds, not a prediction.",
+    "seconds": 1364.4332399368286
+  },
+  "previous_plan_seal_sha256": "0073241aa7794ba1a2cf7137f68ee5e5e631252f75b6fec83bf1783c9f63675e",
+  "promotion_policy": {
+    "five_percent_marker_is_triage_only": true,
+    "fresh_verify_receipt_and_metal_dispatch_required": true,
+    "quiet_host_and_admissible_power_required_for_performance_claim": true,
+    "reproducible_per_case_latency_or_memory_regression_blocks_promotion": true
+  },
+  "promotion_ready": false,
+  "python_executable": "/opt/homebrew/opt/python@3.12/bin/python3.12",
+  "python_version": "3.12.12 (main, Oct  9 2025, 11:07:00) [Clang 17.0.0 (clang-1700.6.3.2)]",
+  "run": {
+    "argv": [
+      "/opt/homebrew/opt/python@3.12/bin/python3.12",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907/autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/csp_paired_rerun.py",
+      "--baseline",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2",
+      "--current",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907",
+      "--out",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/csp-checked-views-20260907-paired",
+      "--rounds",
+      "2",
+      "--samples",
+      "5"
+    ],
+    "cwd": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig",
+    "lock_behavior": "Runner neither locks nor builds. Hold outer exclusive /tmp/stwo-zig-build.lock after wrapper replay/product build finish.",
+    "runner_sha256": "42fd83f315a9948603e2189aed47d18f8b5672a24d91fbe815b3637f59863976"
+  },
+  "schedule": [
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 0,
+      "round": 0,
+      "serial_ordinal": 0,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 0,
+      "round": 0,
+      "serial_ordinal": 1,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 1,
+      "round": 0,
+      "serial_ordinal": 2,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 1,
+      "round": 0,
+      "serial_ordinal": 3,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 2,
+      "round": 0,
+      "serial_ordinal": 4,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 2,
+      "round": 0,
+      "serial_ordinal": 5,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 3,
+      "round": 0,
+      "serial_ordinal": 6,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 3,
+      "round": 0,
+      "serial_ordinal": 7,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 4,
+      "round": 0,
+      "serial_ordinal": 8,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 4,
+      "round": 0,
+      "serial_ordinal": 9,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 5,
+      "round": 0,
+      "serial_ordinal": 10,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 5,
+      "round": 0,
+      "serial_ordinal": 11,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 6,
+      "round": 0,
+      "serial_ordinal": 12,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 6,
+      "round": 0,
+      "serial_ordinal": 13,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 7,
+      "round": 0,
+      "serial_ordinal": 14,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 7,
+      "round": 0,
+      "serial_ordinal": 15,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 8,
+      "round": 0,
+      "serial_ordinal": 16,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 8,
+      "round": 0,
+      "serial_ordinal": 17,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 9,
+      "round": 0,
+      "serial_ordinal": 18,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 9,
+      "round": 0,
+      "serial_ordinal": 19,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 10,
+      "round": 0,
+      "serial_ordinal": 20,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 10,
+      "round": 0,
+      "serial_ordinal": 21,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 11,
+      "round": 0,
+      "serial_ordinal": 22,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 11,
+      "round": 0,
+      "serial_ordinal": 23,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 12,
+      "round": 0,
+      "serial_ordinal": 24,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 12,
+      "round": 0,
+      "serial_ordinal": 25,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 13,
+      "round": 0,
+      "serial_ordinal": 26,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 13,
+      "round": 0,
+      "serial_ordinal": 27,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 14,
+      "round": 0,
+      "serial_ordinal": 28,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 14,
+      "round": 0,
+      "serial_ordinal": 29,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 15,
+      "round": 0,
+      "serial_ordinal": 30,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 15,
+      "round": 0,
+      "serial_ordinal": 31,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 16,
+      "round": 0,
+      "serial_ordinal": 32,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 16,
+      "round": 0,
+      "serial_ordinal": 33,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 17,
+      "round": 0,
+      "serial_ordinal": 34,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 17,
+      "round": 0,
+      "serial_ordinal": 35,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 18,
+      "round": 0,
+      "serial_ordinal": 36,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 18,
+      "round": 0,
+      "serial_ordinal": 37,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 19,
+      "round": 0,
+      "serial_ordinal": 38,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 19,
+      "round": 0,
+      "serial_ordinal": 39,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 0,
+      "ordinal": 20,
+      "round": 0,
+      "serial_ordinal": 40,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 0,
+      "ordinal": 20,
+      "round": 0,
+      "serial_ordinal": 41,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 1,
+      "ordinal": 21,
+      "round": 0,
+      "serial_ordinal": 42,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 1,
+      "ordinal": 21,
+      "round": 0,
+      "serial_ordinal": 43,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 0,
+      "ordinal": 22,
+      "round": 0,
+      "serial_ordinal": 44,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 0,
+      "ordinal": 22,
+      "round": 0,
+      "serial_ordinal": 45,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 1,
+      "ordinal": 23,
+      "round": 0,
+      "serial_ordinal": 46,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 1,
+      "ordinal": 23,
+      "round": 0,
+      "serial_ordinal": 47,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 0,
+      "ordinal": 24,
+      "round": 0,
+      "serial_ordinal": 48,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 0,
+      "ordinal": 24,
+      "round": 0,
+      "serial_ordinal": 49,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 1,
+      "ordinal": 25,
+      "round": 0,
+      "serial_ordinal": 50,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 1,
+      "ordinal": 25,
+      "round": 0,
+      "serial_ordinal": 51,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 0,
+      "ordinal": 26,
+      "round": 0,
+      "serial_ordinal": 52,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 0,
+      "ordinal": 26,
+      "round": 0,
+      "serial_ordinal": 53,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 1,
+      "ordinal": 27,
+      "round": 0,
+      "serial_ordinal": 54,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 1,
+      "ordinal": 27,
+      "round": 0,
+      "serial_ordinal": 55,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 0,
+      "ordinal": 28,
+      "round": 0,
+      "serial_ordinal": 56,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 0,
+      "ordinal": 28,
+      "round": 0,
+      "serial_ordinal": 57,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 1,
+      "ordinal": 29,
+      "round": 0,
+      "serial_ordinal": 58,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 1,
+      "ordinal": 29,
+      "round": 0,
+      "serial_ordinal": 59,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 0,
+      "ordinal": 30,
+      "round": 0,
+      "serial_ordinal": 60,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 0,
+      "ordinal": 30,
+      "round": 0,
+      "serial_ordinal": 61,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 1,
+      "ordinal": 31,
+      "round": 0,
+      "serial_ordinal": 62,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 1,
+      "ordinal": 31,
+      "round": 0,
+      "serial_ordinal": 63,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 32,
+      "round": 1,
+      "serial_ordinal": 64,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 32,
+      "round": 1,
+      "serial_ordinal": 65,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 33,
+      "round": 1,
+      "serial_ordinal": 66,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 0,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 33,
+      "round": 1,
+      "serial_ordinal": 67,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 34,
+      "round": 1,
+      "serial_ordinal": 68,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 34,
+      "round": 1,
+      "serial_ordinal": 69,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 35,
+      "round": 1,
+      "serial_ordinal": 70,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 1,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 35,
+      "round": 1,
+      "serial_ordinal": 71,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 36,
+      "round": 1,
+      "serial_ordinal": 72,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 36,
+      "round": 1,
+      "serial_ordinal": 73,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 37,
+      "round": 1,
+      "serial_ordinal": 74,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 2,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 37,
+      "round": 1,
+      "serial_ordinal": 75,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 38,
+      "round": 1,
+      "serial_ordinal": 76,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 38,
+      "round": 1,
+      "serial_ordinal": 77,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 39,
+      "round": 1,
+      "serial_ordinal": 78,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 3,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 39,
+      "round": 1,
+      "serial_ordinal": 79,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 40,
+      "round": 1,
+      "serial_ordinal": 80,
+      "target": "sha256"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 40,
+      "round": 1,
+      "serial_ordinal": 81,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 41,
+      "round": 1,
+      "serial_ordinal": 82,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 4,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 41,
+      "round": 1,
+      "serial_ordinal": 83,
+      "target": "sha256"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 42,
+      "round": 1,
+      "serial_ordinal": 84,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 0,
+      "ordinal": 42,
+      "round": 1,
+      "serial_ordinal": 85,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 43,
+      "round": 1,
+      "serial_ordinal": 86,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 5,
+      "input_size": 128,
+      "launch_index": 1,
+      "ordinal": 43,
+      "round": 1,
+      "serial_ordinal": 87,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 44,
+      "round": 1,
+      "serial_ordinal": 88,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 0,
+      "ordinal": 44,
+      "round": 1,
+      "serial_ordinal": 89,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 45,
+      "round": 1,
+      "serial_ordinal": 90,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 6,
+      "input_size": 256,
+      "launch_index": 1,
+      "ordinal": 45,
+      "round": 1,
+      "serial_ordinal": 91,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 46,
+      "round": 1,
+      "serial_ordinal": 92,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 0,
+      "ordinal": 46,
+      "round": 1,
+      "serial_ordinal": 93,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 47,
+      "round": 1,
+      "serial_ordinal": 94,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 7,
+      "input_size": 512,
+      "launch_index": 1,
+      "ordinal": 47,
+      "round": 1,
+      "serial_ordinal": 95,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 48,
+      "round": 1,
+      "serial_ordinal": 96,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 0,
+      "ordinal": 48,
+      "round": 1,
+      "serial_ordinal": 97,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 49,
+      "round": 1,
+      "serial_ordinal": 98,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 8,
+      "input_size": 1024,
+      "launch_index": 1,
+      "ordinal": 49,
+      "round": 1,
+      "serial_ordinal": 99,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 50,
+      "round": 1,
+      "serial_ordinal": 100,
+      "target": "keccak"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 0,
+      "ordinal": 50,
+      "round": 1,
+      "serial_ordinal": 101,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 51,
+      "round": 1,
+      "serial_ordinal": 102,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 9,
+      "input_size": 2048,
+      "launch_index": 1,
+      "ordinal": 51,
+      "round": 1,
+      "serial_ordinal": 103,
+      "target": "keccak"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 0,
+      "ordinal": 52,
+      "round": 1,
+      "serial_ordinal": 104,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 0,
+      "ordinal": 52,
+      "round": 1,
+      "serial_ordinal": 105,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 1,
+      "ordinal": 53,
+      "round": 1,
+      "serial_ordinal": 106,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 10,
+      "input_size": 2,
+      "launch_index": 1,
+      "ordinal": 53,
+      "round": 1,
+      "serial_ordinal": 107,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 0,
+      "ordinal": 54,
+      "round": 1,
+      "serial_ordinal": 108,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 0,
+      "ordinal": 54,
+      "round": 1,
+      "serial_ordinal": 109,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 1,
+      "ordinal": 55,
+      "round": 1,
+      "serial_ordinal": 110,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 11,
+      "input_size": 4,
+      "launch_index": 1,
+      "ordinal": 55,
+      "round": 1,
+      "serial_ordinal": 111,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 0,
+      "ordinal": 56,
+      "round": 1,
+      "serial_ordinal": 112,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 0,
+      "ordinal": 56,
+      "round": 1,
+      "serial_ordinal": 113,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 1,
+      "ordinal": 57,
+      "round": 1,
+      "serial_ordinal": 114,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 12,
+      "input_size": 8,
+      "launch_index": 1,
+      "ordinal": 57,
+      "round": 1,
+      "serial_ordinal": 115,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 0,
+      "ordinal": 58,
+      "round": 1,
+      "serial_ordinal": 116,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 0,
+      "ordinal": 58,
+      "round": 1,
+      "serial_ordinal": 117,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 1,
+      "ordinal": 59,
+      "round": 1,
+      "serial_ordinal": 118,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 13,
+      "input_size": 12,
+      "launch_index": 1,
+      "ordinal": 59,
+      "round": 1,
+      "serial_ordinal": 119,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 0,
+      "ordinal": 60,
+      "round": 1,
+      "serial_ordinal": 120,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 0,
+      "ordinal": 60,
+      "round": 1,
+      "serial_ordinal": 121,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 1,
+      "ordinal": 61,
+      "round": 1,
+      "serial_ordinal": 122,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 14,
+      "input_size": 16,
+      "launch_index": 1,
+      "ordinal": 61,
+      "round": 1,
+      "serial_ordinal": 123,
+      "target": "poseidon2_m31"
+    },
+    {
+      "arm": "baseline",
+      "backend": "cpu",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 0,
+      "ordinal": 62,
+      "round": 1,
+      "serial_ordinal": 124,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "baseline",
+      "backend": "metal",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 0,
+      "ordinal": 62,
+      "round": 1,
+      "serial_ordinal": 125,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "current",
+      "backend": "cpu",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 1,
+      "ordinal": 63,
+      "round": 1,
+      "serial_ordinal": 126,
+      "target": "ecdsa_secp256k1"
+    },
+    {
+      "arm": "current",
+      "backend": "metal",
+      "case_ordinal": 15,
+      "input_size": 32,
+      "launch_index": 1,
+      "ordinal": 63,
+      "round": 1,
+      "serial_ordinal": 127,
+      "target": "ecdsa_secp256k1"
+    }
+  ],
+  "schema": "stwo.local-csp-paired-preparation.v1",
+  "scope": "Frozen reviewed source only; active source may evolve independently.",
+  "seal_sha256": "02fe4b89759bac75097af7f972e84c6887f2304d34d0568725d40f2a931b5173",
+  "serial_launch_count": 128,
+  "settings": {
+    "backends": [
+      "cpu",
+      "metal"
+    ],
+    "pcs_config": {
+      "fri_config": {
+        "fold_step": 1,
+        "log_blowup_factor": 1,
+        "log_last_layer_degree_bound": 0,
+        "n_queries": 70
+      },
+      "lifting_log_size": null,
+      "pow_bits": 26
+    },
+    "protocol": "secure",
+    "recursion_enabled": false,
+    "rounds": 2,
+    "samples": 5,
+    "uses_precompile": false,
+    "warmups": 1,
+    "workers": 16
+  },
+  "source_snapshot_receipt": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907.json",
+    "sha256": "8b4742dc781885db12141f3cea03715596f296e4fd1f4d23f5c189ecf3d1fc6f"
+  },
+  "sources": {
+    "baseline": {
+      "content": {
+        "file_count": 8972,
+        "payload_bytes": 326860973,
+        "sha256": "70242c002322f26385fd85dd70048394eb1747e3b269e7cef72294f71c256bf2"
+      },
+      "head": "8ecfd1dba5b43adaf6e79a4a50b00b70703227d0",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/baseline-source-v2"
+    },
+    "current": {
+      "content": {
+        "file_count": 9642,
+        "payload_bytes": 357208046,
+        "sha256": "8d9011b981c3eeed8c89a7c607233570b53340a8898f5851566c8ca46bc39978"
+      },
+      "head": "0b6c919c820ca6965fe4a83e227d341b294a4194",
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/wrapper-checked-views-source-20260907"
+    }
+  },
+  "status": "reviewed_snapshot_validated_not_built_or_benchmarked",
+  "workload": {
+    "case_count": 16,
+    "cases": [
+      {
+        "expected_cycles": 14056,
+        "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "input_size": 128,
+        "ordinal": 0,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "sha256"
+      },
+      {
+        "expected_cycles": 22832,
+        "expected_output_digest": "6bda52c594dea36810439254eaf14da801987b3f60143b0457342dd2ed64f216",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "input_size": 256,
+        "ordinal": 1,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "sha256"
+      },
+      {
+        "expected_cycles": 40384,
+        "expected_output_digest": "6b9f1bb0633f59b95756aa230cd378da66eb24fa6055c50c8b6b32a000c71a73",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "input_size": 512,
+        "ordinal": 2,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "sha256"
+      },
+      {
+        "expected_cycles": 75488,
+        "expected_output_digest": "d3a16043fa6ee210a3bbfa5da11af45cbb45c398a9d1a2eea2e8bed60048761c",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "input_size": 1024,
+        "ordinal": 3,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "sha256"
+      },
+      {
+        "expected_cycles": 145696,
+        "expected_output_digest": "f11d48451256c7133c5e465ea9cb93b594b0cc0c5f9a6c4faf48e608f157a126",
+        "guest_sha256": "eed01acd33276f356b28400eb82dba08ed09d9e7842f8cc122be302053fd8c35",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "input_size": 2048,
+        "ordinal": 4,
+        "profile_id": "sha256_2048",
+        "profile_shape_sha256": "1acdfc62251012988e6310c2ae2cb849a4ae162fd0a0f075a23b136fe9d08670",
+        "shape": {
+          "component_count": 13,
+          "infrastructure_count": 11,
+          "interaction_column_count": 480,
+          "main_column_count": 951,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 56
+        },
+        "target": "sha256"
+      },
+      {
+        "expected_cycles": 19114,
+        "expected_output_digest": "50c4135413586321c16183bc51423b45fa12884edbfcba99fa1a2a689b586cf1",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "f839f3c9a73f35f365f55a5c03e25354802191fe76218c5c3928235a14e15794",
+        "input_size": 128,
+        "ordinal": 5,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "keccak"
+      },
+      {
+        "expected_cycles": 36904,
+        "expected_output_digest": "c22ea0397eb10b924d6b9caf8230cfcce92c9179f6d0d6c1174abd5d8622a263",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "2d1afb7f8f3a864ecee25e039d97cd742888c579a38f1cc250659cd7fe75cf6f",
+        "input_size": 256,
+        "ordinal": 6,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "keccak"
+      },
+      {
+        "expected_cycles": 72408,
+        "expected_output_digest": "3b96044b37dd7f325879478ae932ab78da2ff04f3495fe4ecc0ddc73a403bda9",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "b431b3635e3df1b6bb9b503d35469733f89249ebea783c3d452f8965641627e3",
+        "input_size": 512,
+        "ordinal": 7,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "keccak"
+      },
+      {
+        "expected_cycles": 143416,
+        "expected_output_digest": "d7b7efa4100517618de462495e3b266b23e91911fde63b42ea3bdb208daad442",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "9ceba14adc9db992c3d5cb42b5276ef0dabf5fa47a3ec3d92280f2f85442e474",
+        "input_size": 1024,
+        "ordinal": 8,
+        "profile_id": "hash_compact",
+        "profile_shape_sha256": "048c89b15bba53ad0e6b5c3bf6dda9ed89a5cb7c3429910ff9024a91a259df85",
+        "shape": {
+          "component_count": 12,
+          "infrastructure_count": 11,
+          "interaction_column_count": 444,
+          "main_column_count": 916,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 54
+        },
+        "target": "keccak"
+      },
+      {
+        "expected_cycles": 285456,
+        "expected_output_digest": "4239a7a63551619c764842fa2d46777df6bd00792b06b4555e41cfaceb197308",
+        "guest_sha256": "ec3dd877e23a9c46d372350d1a0c1fc12092476ae3f6c5287550ca030f8d351c",
+        "input_sha256": "218bb97ce15e86f776a275909ab80b353959eed1bc64566e2af3745cfe21299f",
+        "input_size": 2048,
+        "ordinal": 9,
+        "profile_id": "keccak_2048",
+        "profile_shape_sha256": "691286c92fccacb28afde15997c28a3280174e5a32f070cc432e0abc7b56be1b",
+        "shape": {
+          "component_count": 14,
+          "infrastructure_count": 11,
+          "interaction_column_count": 512,
+          "main_column_count": 999,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 58
+        },
+        "target": "keccak"
+      },
+      {
+        "expected_cycles": 82297,
+        "expected_output_digest": "4856a22d07d07c0c7dc3eb4e7ada355c205190474b678547114b44482c9d721e",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "36561ae6b6f918ce2d847d5cd6d703f74d56d06e718d3f49704abae56334bbae",
+        "input_size": 2,
+        "ordinal": 10,
+        "profile_id": "poseidon2_2",
+        "profile_shape_sha256": "8fd24cb0f608c3f681fb61478ba2789b9d5984c3ba6146782aaa65824c1c5fd9",
+        "shape": {
+          "component_count": 13,
+          "infrastructure_count": 11,
+          "interaction_column_count": 468,
+          "main_column_count": 953,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 56
+        },
+        "target": "poseidon2_m31"
+      },
+      {
+        "expected_cycles": 164403,
+        "expected_output_digest": "b746a94f6b9e0335d6ab73205688d32a5883c85c9e29b93ae40c8275b713507d",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "5ed2b6cb824d90221b830649aed0f260d6c1d1fff6f62f34945e0fca074cc5e3",
+        "input_size": 4,
+        "ordinal": 11,
+        "profile_id": "poseidon2_4",
+        "profile_shape_sha256": "3edf04463cfeceacefc5af5e88b585b625dab5ed5f7e959eee917e00a0305972",
+        "shape": {
+          "component_count": 14,
+          "infrastructure_count": 11,
+          "interaction_column_count": 504,
+          "main_column_count": 988,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 58
+        },
+        "target": "poseidon2_m31"
+      },
+      {
+        "expected_cycles": 328615,
+        "expected_output_digest": "c1f7c059745c8e78db8d3628ee7a5d7f98824a76de78545dd7dcfb21e7a4cd25",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "0ed2711e85a858614f8c1d74c4914f472f33576e3a4917b874c8fd0794880b33",
+        "input_size": 8,
+        "ordinal": 12,
+        "profile_id": "poseidon2_8",
+        "profile_shape_sha256": "f56e5ed932cb32003925ec75cda3220d27fd220cdf410b8cbc102aa6d7fd8a6f",
+        "shape": {
+          "component_count": 15,
+          "infrastructure_count": 11,
+          "interaction_column_count": 540,
+          "main_column_count": 1023,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 60
+        },
+        "target": "poseidon2_m31"
+      },
+      {
+        "expected_cycles": 492827,
+        "expected_output_digest": "7437741831328c196eeaf71f4bd96519692d05129774c2498183aa3c7bed291f",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "2d9e23bba1320ab0a43c5886d6027463b5a60af4aaf13fd35a5bfcacda5d2e65",
+        "input_size": 12,
+        "ordinal": 13,
+        "profile_id": "poseidon2_12",
+        "profile_shape_sha256": "454dffbbfafae3f1c29cb09513bcf09004f517f6ccbbd573b9ac595d706e7d28",
+        "shape": {
+          "component_count": 18,
+          "infrastructure_count": 11,
+          "interaction_column_count": 644,
+          "main_column_count": 1144,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 66
+        },
+        "target": "poseidon2_m31"
+      },
+      {
+        "expected_cycles": 657039,
+        "expected_output_digest": "aeecb648a377b9743b9d0d17556dd816c73bca5bd8ab8d6940f18c564bcd3059",
+        "guest_sha256": "b1e31859875643a964afdcd2b2f78022b847f170a38c2e679b53aa7af5220b8a",
+        "input_sha256": "5cf6b1945ad9c287e4adbf60f9a8a526864a1ae0062387244ea93fca7ca7268e",
+        "input_size": 16,
+        "ordinal": 14,
+        "profile_id": "poseidon2_16",
+        "profile_shape_sha256": "34816d881d9d77cfd31fe9079adf2bfe3561832e2edeb45070bb0074a60e2480",
+        "shape": {
+          "component_count": 21,
+          "infrastructure_count": 11,
+          "interaction_column_count": 740,
+          "main_column_count": 1271,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 72
+        },
+        "target": "poseidon2_m31"
+      },
+      {
+        "expected_cycles": 5425005,
+        "expected_output_digest": "e495c707f9139a499ba26bb8e853e77e3b29ead1f6269e93a8b78d085079eed5",
+        "guest_sha256": "2442039f6437e58b9367dd75d0e6f43435eb9a1698b18f81c53104d8c6ad5189",
+        "input_sha256": "5136df6e9b49321531a2d337dc227939ecc68645036b597bdcc0e531333ad3ff",
+        "input_size": 32,
+        "ordinal": 15,
+        "profile_id": "ecdsa_secp256k1_32",
+        "profile_shape_sha256": "5761cd364777f4fa5a9ff9fee7f81354da313b7957ce5ce65bfdd2b2f4f4cf9f",
+        "shape": {
+          "component_count": 94,
+          "infrastructure_count": 11,
+          "interaction_column_count": 3624,
+          "main_column_count": 4444,
+          "maximum_column_log_degree": 20,
+          "preprocessed_column_count": 218
+        },
+        "target": "ecdsa_secp256k1"
+      }
+    ],
+    "manifest_path": "vectors/riscv_csp/manifest-v2.json",
+    "manifest_sha256": "efd864d8ea3022eb101fbe87e828c5b559a1672cb0a1c50af2582b7dce00a9af",
+    "profile_audit_canonical_digest": "dfc213999ee5662015d43db2418db9bb138ee6b75f639c7d4583a224a1ac1736",
+    "profile_audit_path": "vectors/riscv_csp/recursion-shape-audit-v2.json",
+    "profile_audit_sha256": "daad8c1693db7c49f1f4e781022c973ae793eb70ac07853716b0195e20d9892c",
+    "profile_count": 9,
+    "profile_registry_sha256": "eea4c311bbc25150b8166f89e4c80c5bb67a9938b8497fefe0d72c75d701beef"
+  }
+}

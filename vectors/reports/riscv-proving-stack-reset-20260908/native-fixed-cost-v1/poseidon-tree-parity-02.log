@@ -1,0 +1,29 @@
+test-poseidon-merkle
++- stwo_riscv_frontend test count floor
+   +- run test
+      +- compile test ReleaseSafe native 1 errors
+poseidon_merkle_test_root.zig:23:29: error: expected type 'poseidon_merkle_test_root.ScalarHasher.hashChildren__struct_2811', found 'poseidon_merkle_test_root.ScalarHasher.hashChildrenWithSeed__struct_3540'
+        return hashChildren(children);
+                            ^~~~~~~~
+poseidon_merkle_test_root.zig:22:56: note: struct declared here
+    pub fn hashChildrenWithSeed(_: NodeSeed, children: struct { left: Hash, right: Hash }) Hash {
+                                                       ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+poseidon_merkle_test_root.zig:29:35: note: struct declared here
+    pub fn hashChildren(children: struct { left: Hash, right: Hash }) Hash {
+                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+poseidon_merkle_test_root.zig:29:35: note: parameter type declared here
+referenced by:
+    hashSeededRange: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/layers.zig:372:52
+    buildSubtree: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/vcs_lifted/layers.zig:304:32
+    9 reference(s) hidden; use '-freference-trace=11' to see all references
+error: the following command failed with 1 compilation errors:
+/opt/homebrew/Cellar/zig/0.15.2/bin/zig test -OReleaseSafe --dep stwo_core --dep stwo_prover_api --dep interop_postcard --dep stwo_prover_engine -Mroot=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv/poseidon_merkle_test_root.zig -OReleaseSafe -Mstwo_core=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/core/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_prover_api=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover_api/mod.zig -OReleaseSafe --dep stwo_core --dep stwo_proof_wire -Minterop_postcard=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/postcard.zig -OReleaseSafe --dep stwo_core --dep stwo_backend_contracts --dep stwo_prover_api -Mstwo_prover_engine=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/prover/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_proof_wire=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/interop/proof_wire/mod.zig -OReleaseSafe --dep stwo_core -Mstwo_backend_contracts=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/backend/mod.zig --test-filter "recursion Poseidon2:" --cache-dir .zig-cache --global-cache-dir /Users/theodorepender/.cache/zig --name test --zig-lib-dir /opt/homebrew/Cellar/zig/0.15.2/lib/zig/ --listen=-
+
+Build Summary: 0/4 steps succeeded; 1 failed
+test-poseidon-merkle transitive failure
++- stwo_riscv_frontend test count floor transitive failure
+   +- run test transitive failure
+      +- compile test ReleaseSafe native 1 errors
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/837955593ed4cfc9a96ecca1aa0f3225/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/frontends/riscv .zig-cache /Users/theodorepender/.cache/zig --seed 0x24d4d25f -Z29ade3dbd0cdb98a --maxrss 25769803776 -j1 test-poseidon-merkle -Doptimize=ReleaseSafe --summary all

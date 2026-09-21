@@ -10,6 +10,22 @@ from scripts.tests.riscv_refinement_test_support import *
 
 
 class RefinementPublicationPolicyTest(unittest.TestCase):
+    def test_bridge_build_includes_each_imported_formal_module(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "Bridge.lean"
+            source.write_text(
+                "import Pilot\n"
+                "import RiscvRefinement.Publication.TeamA.Pilots\n"
+                "public import RiscvRefinement.Memory RiscvRefinement.Publication.TeamA.Pilots\n"
+                "import LeanRV32IM.Functions\n"
+            )
+            with mock.patch.object(sail_lean_bridge, "BRIDGE_SOURCES", (Path("Bridge.lean"),)):
+                self.assertEqual([
+                    "RiscvRefinement.Memory",
+                    "RiscvRefinement.Publication.TeamA.Pilots",
+                ], sail_lean_bridge._formal_bridge_targets(Paths(root)))
+
     def test_pilot_composition_digests_follow_generated_air(self) -> None:
         composition = (
             ROOT / sail_lean_bridge.COMPOSITION_SOURCE

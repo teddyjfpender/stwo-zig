@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "focused_tests": 124,
+  "new_buffer_ownership_tests": 3,
+  "ownership_checks": 44,
+  "inventory_checks": 2,
+  "source_transfer_verified": true,
+  "generator_lines_before": 1003,
+  "generator_lines_after": 660,
+  "work_accounting_lines": 266,
+  "column_owner_lines": 91,
+  "unused_claim_phase_aliases_removed": 17,
+  "source_conformance_findings": 106,
+  "full_proof_rerun": false,
+  "goal_complete": false
+}

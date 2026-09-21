@@ -40,7 +40,6 @@ const relation = dependency_0.relation;
 const signedNumerator = dependency_0.signedNumerator;
 const std = dependency_0.std;
 const traceSize = dependency_0.traceSize;
-const tuple_audit = dependency_0.tuple_audit;
 const types = dependency_0.types;
 const universal = dependency_0.universal;
 const validate = dependency_0.validate;
@@ -219,14 +218,23 @@ pub fn Runtime(
                 rows: []const Row,
                 domain_mask: u64,
             ) std.mem.Allocator.Error!void {
-                return tuple_audit.appendPreparedTupleContributions(
-                    Self,
-                    self,
-                    ledger,
-                    component,
-                    rows,
-                    domain_mask,
-                );
+                // Stream selected live tuples directly from the admitted
+                // evaluator. The diagnostic entries API still materializes all
+                // values; ledger ingestion never observes zero-weight tuples.
+                for (rows) |row| {
+                    var slots: [slot_count]M31 = undefined;
+                    evaluate(self, &row, &slots);
+                    for (self.events) |event| {
+                        const bit = @as(u64, 1) << @as(u6, @intCast(@intFromEnum(event.domain)));
+                        if (domain_mask & bit == 0) continue;
+                        const weight = signedNumerator(event.role, QM31.fromBase(slots[event.numerator_slot]));
+                        if (weight.isZero()) continue;
+                        var values: [MAX_ARITY]QM31 = undefined;
+                        for (values[0..event.arity], event.value_slots[0..event.arity]) |*value, slot|
+                            value.* = QM31.fromBase(slots[slot]);
+                        try ledger.append(event.domain, component, event.ordinal, event.role, weight, values[0..event.arity]);
+                    }
+                }
             }
 
             pub fn rowClaims(

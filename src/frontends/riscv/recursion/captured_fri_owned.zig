@@ -36,8 +36,8 @@ pub const Owned = struct {
     allocator: std.mem.Allocator,
     circuit: circuit_mod.Circuit,
     evaluation: circuit_mod.Evaluation,
-    pcs_circuit: pcs_circuit_mod.Circuit,
-    pcs_evaluation: pcs_circuit_mod.Evaluation,
+    pcs_circuit: pcs_circuit_mod.Prepared,
+    pcs_evaluation: pcs_circuit_mod.FrozenEvaluation,
 
     fold_widths: []u32,
     trace_tree_heights: []u32,
@@ -534,12 +534,12 @@ pub const Owned = struct {
             captureStageFailure("pcs-profile", err);
             return err;
         };
-        var pcs_circuit = pcs_circuit_mod.build(allocator, pcs_profile) catch |err| {
+        var pcs_circuit = pcs_circuit_mod.Prepared.init(allocator, pcs_profile) catch |err| {
             captureStageFailure("pcs-build", err);
             return err;
         };
         errdefer pcs_circuit.deinit();
-        var pcs_evaluation = pcs_circuit.evaluate(allocator, .{
+        var pcs_evaluation = pcs_circuit.evaluateFrozen(allocator, .{
             .active = true,
             .sampled_values = sampled_values,
             .queried_values = queried_values,

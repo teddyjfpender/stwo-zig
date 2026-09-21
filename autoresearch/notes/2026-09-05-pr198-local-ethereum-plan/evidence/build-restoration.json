@@ -1,0 +1,36 @@
+{
+  "schema": "stwo.local-build-restoration-check.v1",
+  "source_base": "6b7f08af51204dc8e96252879c772a8bed874748",
+  "source_dirty": true,
+  "configure_receipt_path": "zig-out/build-graph/configure-closure.json",
+  "configure_receipt_sha256": "69196a9e46f955476f5dad7588bf656fcf038fd0ae6ce370f2d2aadca9a9531a",
+  "configure_schema": "stwo-build-configure-closure-v2",
+  "result": "pass",
+  "scope_count": 21,
+  "install_manifests": [
+    {
+      "files": [
+        "bin/stwo-zig"
+      ],
+      "linkage_sha256": "98a56c01ef56809dc9745b4aa562592fd7725f65bb14023889ca56ec45007f60",
+      "metal_enabled": false,
+      "registry_sha256": "ba9f46fa2f07fc8f192dd159d4a2ab5256e141efdd9ee489d01dd0796c5164e3"
+    },
+    {
+      "files": [
+        "bin/stwo-zig"
+      ],
+      "linkage_sha256": "665d5c4d81de80b2719915b5ecbc715930a653fcde561d71da21e30fe69bef90",
+      "metal_enabled": true,
+      "registry_sha256": "7df19e5970eab5849f5fb09fb18d71a04e196862578f49d286991f7e346e29c5"
+    }
+  ],
+  "negative_checks": [
+    "unknown-scope-fails",
+    "exact-catalog-step-set",
+    "actual-constructor-and-product-match",
+    "focused-install-mutation-rejected",
+    "internal-cache-placement"
+  ],
+  "scope": "build wiring only; full integration, formal and source conformance gates remain pending"
+}

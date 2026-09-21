@@ -1,0 +1,83 @@
+{
+  "version": 1,
+  "profile": "development_q3_v1",
+  "initial_memory_word": 13,
+  "leaves": [
+    {
+      "key": {
+        "path": "../segment-ladder-4-admission/child-0-key.json",
+        "sha256": "e89702eead80ae34c4255896bf6ffd7a04ec024667121d71ffa5ef02f0d336df"
+      },
+      "expected": {
+        "path": "../segment-ladder-4-admission/child-0-expected-wire.json",
+        "sha256": "e01923264a3f39fd78a049e52365e26f7e4999a306703f67a4eda4f1403545f8"
+      }
+    },
+    {
+      "key": {
+        "path": "../segment-ladder-4-admission/child-1-key.json",
+        "sha256": "67cc533d0f5022c29f4129005fc99417aead7ebe219d25fe3eef017fa4dcc627"
+      },
+      "expected": {
+        "path": "../segment-ladder-4-admission/child-1-expected-wire.json",
+        "sha256": "d7bc8ae71ed948a1bd8ae193fcd5427baefa2ef074fb0da742ede1fcfcfc3ca1"
+      }
+    },
+    {
+      "key": {
+        "path": "../segment-ladder-4-admission/child-2-key.json",
+        "sha256": "9f33cabcf4e677c2b564bf9cb89584dcbff7d679d52272985b5733842d175e54"
+      },
+      "expected": {
+        "path": "../segment-ladder-4-admission/child-2-expected-wire.json",
+        "sha256": "0b647a13c24bf4e4150e593b11c4615bb23317d86c1578daa696b29eb70cfdd0"
+      }
+    },
+    {
+      "key": {
+        "path": "../segment-ladder-4-admission/child-3-key.json",
+        "sha256": "26dae20f37db40e60d5bb7539edb19097fcd4b25806b2505867d6c86cab81002"
+      },
+      "expected": {
+        "path": "../segment-ladder-4-admission/child-3-expected-wire.json",
+        "sha256": "41f7917bb78ee298b4f536d4f768073abe6a72e84e24438bb284cdd1a852d758"
+      }
+    }
+  ],
+  "parents": [
+    [
+      {
+        "key": {
+          "path": "../segment-ladder-4-admission/pair-0-key.json",
+          "sha256": "029bc4b1f934a8055a6ac90e76edffbbdd0c4a941afddbd2427ba6b6bfed310a"
+        },
+        "expected": {
+          "path": "../segment-ladder-4-admission/pair-0-expected-span.json",
+          "sha256": "cf7aaf183469c5e3b284dea942b9bd73a3b4e05e93fc71130972efa88697ebbd"
+        }
+      },
+      {
+        "key": {
+          "path": "../segment-ladder-4-admission/pair-1-key.json",
+          "sha256": "4957dcd80a73201bc86aedc7d7b9572ed76c0d3372576e227115d634489507a3"
+        },
+        "expected": {
+          "path": "../segment-ladder-4-admission/pair-1-expected-span.json",
+          "sha256": "945567ac338e266c19d137d3e5dd16e3dc031955727737d79e117c8332f09cd9"
+        }
+      }
+    ],
+    [
+      {
+        "key": {
+          "path": "../segment-ladder-4-admission/root-key.json",
+          "sha256": "d87edd48e6614a4b38deebe7328b394a6bd8b322fd913c81af832d97364ba300"
+        },
+        "expected": {
+          "path": "../segment-ladder-4-admission/root-expected-span.json",
+          "sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f"
+        }
+      }
+    ]
+  ]
+}

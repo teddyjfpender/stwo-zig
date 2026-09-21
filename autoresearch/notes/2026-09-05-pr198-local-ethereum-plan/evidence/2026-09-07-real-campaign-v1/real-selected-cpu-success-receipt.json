@@ -1,0 +1,39 @@
+{
+  "schema": "stwo.ethereum.real-native-leaf-measurement.v1",
+  "exit_code": 0,
+  "monitor_elapsed_ns": 1192702794333,
+  "sampled_peak_footprint_bytes": 26345901712,
+  "stopped_for_footprint_limit": false,
+  "policy": {
+    "worker_count": 1,
+    "composition_host_budget_bytes": 17179869184,
+    "pcs_retained_byte_budget_bytes": 25769803776,
+    "monitor_footprint_stop_bytes": 34359738368,
+    "sample_interval_seconds": 2,
+    "limits_scope": "Separate 24 GiB retained PCS ceiling and 16 GiB composition allocator ceiling; 32 GiB sampled footprint stop is a fallback, not allocation guarantee",
+    "resource_model_not_measurement": {
+      "retained_lde_bytes": 20550093056,
+      "maximum_streaming_source_batch_bytes": 1073741824,
+      "three_max_height_merkle_trees_upper_bytes": 1610612736,
+      "observed_prior_prepare_peak_bytes": 2186643736,
+      "additional_unbounded_by_this_model": "composition outputs, FRI, twiddles and allocator; 8 GiB difference between PCS ceiling and process stop provides headroom, not proof of peak"
+    }
+  },
+  "verified_and_published": true,
+  "ended_unix_ns": 1788792385245104000,
+  "real_seconds": 1191.75,
+  "user_seconds": 1120.06,
+  "sys_seconds": 38.98,
+  "maximum_resident_set_size_bytes": 14375419904,
+  "peak_memory_footprint_bytes": 26345901712,
+  "artifact": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.stwief04",
+    "bytes": 62552044,
+    "sha256": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8"
+  },
+  "global_metadata": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.metadata.json",
+    "bytes": 16650,
+    "sha256": "3d0775148bd5055e6d22c9cafabd3f6bd0a82086bf8d18456bf222b6e4c67bc8"
+  }
+}

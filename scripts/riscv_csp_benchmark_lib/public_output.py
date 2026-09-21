@@ -17,6 +17,11 @@ def reconstruct_public_output(public_values: Mapping[str, Any]) -> bytes:
     io = public_data.get("io_entries")
     if not isinstance(io, dict):
         raise BenchmarkError("public-values diagnostic has no io_entries object")
+    return reconstruct_output_words(io)
+
+
+def reconstruct_output_words(io: Mapping[str, Any]) -> bytes:
+    """Decode the shared diagnostic/artifact public-output framing."""
     output_len = io.get("output_len")
     output_len_addr = io.get("output_len_addr")
     output_data_addr = io.get("output_data_addr")

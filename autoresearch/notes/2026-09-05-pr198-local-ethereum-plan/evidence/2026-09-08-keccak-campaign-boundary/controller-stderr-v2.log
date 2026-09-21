@@ -1,0 +1,41 @@
+[ethereum leaf 0] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 0] acquired after 75s
+[ethereum verify leaf 0] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 0] acquired after 1s
+[ethereum leaf 1] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 1] acquired after 13s
+[ethereum verify leaf 1] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 1] acquired after 408s
+[ethereum leaf 2] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 2] acquired after 77s
+[ethereum verify leaf 2] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 2] acquired after 77s
+[ethereum leaf 3] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 3] acquired after 14s
+[ethereum verify leaf 3] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 3] acquired after 1s
+[ethereum verify leaf 4] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 4] acquired after 9s
+[ethereum leaf 7] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 7] acquired after 5s
+[ethereum verify leaf 7] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 7] acquired after 10s
+[ethereum leaf 10] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum leaf 10] acquired after 15s
+[ethereum verify leaf 10] another build holds /tmp/stwo-zig-build.lock; waiting
+[ethereum verify leaf 10] acquired after 639s
+Traceback (most recent call last):
+  File "<frozen runpy>", line 203, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/controller-source-v2/scripts/ethereum_full_leaf_bundle_producer.py", line 296, in <module>
+    main()
+    ~~~~^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/controller-source-v2/scripts/ethereum_full_leaf_bundle_producer.py", line 292, in main
+    print(json.dumps(run(**args)))
+                     ~~~^^^^^^^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/controller-source-v2/scripts/ethereum_full_leaf_bundle_producer.py", line 190, in run
+    protocol.require(result.returncode == 0, f"leaf {index} failed; retained {attempt}")
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/controller-source-v2/scripts/ethereum_block_proof_protocol.py", line 56, in require
+    raise ProofProtocolError(message)
+scripts.ethereum_block_proof_protocol.ProofProtocolError: leaf 11 failed; retained /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field5-block-v1/attempts/leaf-000011-0000

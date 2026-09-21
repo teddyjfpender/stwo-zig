@@ -2,8 +2,8 @@
 
 const std = @import("std");
 const frontier_digest = @import("materialization_frontier_digest.zig");
-const fixed_direct = @import("materialization_fixed_direct.zig");
-const poseidon_fixed = @import("typed_poseidon2_fixed_direct.zig");
+const fixed_direct = @import("fixed_polynomial_program.zig");
+const poseidon_fixed = @import("typed_poseidon2_fixed_polynomials.zig");
 
 pub const Digest = frontier_digest.Digest;
 pub const EvaluationSchedule = frontier_digest.EvaluationSchedule;

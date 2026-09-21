@@ -1,0 +1,9 @@
+
+Build Summary: 6/6 steps succeeded
+build-recursive-segment-v2-leaf-key-setup success
++- install recursive-segment-v2-leaf-key-setup success
+   +- compile exe recursive-segment-v2-leaf-key-setup ReleaseSafe native success 1m MaxRSS:5G
+build-recursive-segment-v2-concrete-outer-proof success
++- install recursive-segment-v2-concrete-outer-proof success
+   +- compile exe recursive-segment-v2-concrete-outer-proof ReleaseSafe native success 2m MaxRSS:8G
+

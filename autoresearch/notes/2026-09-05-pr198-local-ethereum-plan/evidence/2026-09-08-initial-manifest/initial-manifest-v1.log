@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 3433s
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-ethereum-initial-manifest success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 259ms MaxRSS:2M
+      +- compile test ReleaseSafe native success 10s MaxRSS:799M
+

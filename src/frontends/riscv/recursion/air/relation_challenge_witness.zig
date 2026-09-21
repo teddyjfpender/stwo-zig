@@ -20,8 +20,8 @@ pub const MAX_LOG_SIZE: u32 = 30;
 pub const SEGMENT_VERIFIER_ID: u32 = 0;
 pub const LEFT_RECURSION_VERIFIER_ID: u32 = 1;
 pub const RIGHT_RECURSION_VERIFIER_ID: u32 = 2;
-pub const AIR_EVALUATION_CHALLENGE_SCOPE: u32 = 1;
-pub const VM_PUBLIC_LOGUP_CHALLENGE_SCOPE: u32 = 0;
+pub const AIR_EVALUATION_CHALLENGE_SCOPE = @import("verifier_parameter_tags.zig").relation_challenge.AIR_EVALUATION_CHALLENGE_SCOPE;
+pub const VM_PUBLIC_LOGUP_CHALLENGE_SCOPE = @import("verifier_parameter_tags.zig").relation_challenge.VM_PUBLIC_LOGUP_CHALLENGE_SCOPE;
 pub const MAIN_COLUMN_COUNT = component.PHYSICAL_MAIN_COLUMN_COUNT;
 pub const PREPROCESSED_COLUMN_COUNT = component.PREPROCESSED_COLUMN_COUNT;
 pub const WORD_COUNT = component.WORD_COUNT;
@@ -491,6 +491,50 @@ fn traceLogSize(row_count: usize) Error!u32 {
     const log_size: u32 = @max(MIN_LOG_SIZE, std.math.log2_int(usize, padded));
     if (log_size > MAX_LOG_SIZE) return error.LogSizeOutOfRange;
     return log_size;
+}
+
+pub fn heterogeneousCount(plan: *const schedule.Plan) Error!usize {
+    return challengeCount(plan);
+}
+
+pub fn appendHeterogeneousRows(
+    destination: []PreprocessedRow,
+    cursor: *usize,
+    plan: *const schedule.Plan,
+    verifier_id: u32,
+    segment_mask: u32,
+    binary_mask: u32,
+) Error!void {
+    appendRows(
+        destination,
+        cursor,
+        plan,
+        verifier_id,
+        segment_mask,
+        binary_mask,
+    );
+}
+
+pub fn compareHeterogeneousRows(
+    actual: []const PreprocessedRow,
+    cursor: *usize,
+    plan: *const schedule.Plan,
+    verifier_id: u32,
+    segment_mask: u32,
+    binary_mask: u32,
+) Error!void {
+    return compareRows(
+        actual,
+        cursor,
+        plan,
+        verifier_id,
+        segment_mask,
+        binary_mask,
+    );
+}
+
+pub fn heterogeneousLogSize(row_count: usize) Error!u32 {
+    return traceLogSize(row_count);
 }
 
 fn validatePreprocessedRow(row: PreprocessedRow) direct.Error!void {

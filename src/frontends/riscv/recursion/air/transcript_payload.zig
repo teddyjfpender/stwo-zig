@@ -13,6 +13,7 @@ const source = @import("../../air/lang/source.zig");
 const types = @import("../../air/lang/types.zig");
 const validate_mod = @import("../../air/lang/validate.zig");
 const relation_effect = @import("relation_effect.zig");
+const ethereum_routing = @import("../ethereum_publication_routing_v1.zig");
 
 pub const STABLE_NAME = "recursion.transcript_payload.v1";
 pub const DIGEST_WORD_COUNT: usize = 8;
@@ -30,6 +31,9 @@ pub const LOGICAL_INPUT_COUNT: usize =
     PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT + PARAMETER_COUNT;
 pub const DIRECT_CONSTRAINT_COUNT: usize = 3;
 pub const RELATION_EVENT_COUNT: usize = 2;
+pub const ETHEREUM_RAW_WIRE_SCOPE = ethereum_routing.RAW_WIRE_HASH_SCOPE;
+pub const ETHEREUM_RAW_ROOT_SOURCE_SCOPE = ethereum_routing.STATEMENT_SCOPE;
+pub const ETHEREUM_RAW_ROOT_SOURCE_BASE = ethereum_routing.RAW_V2_SOURCE_BASE;
 pub const LOOKUP_BATCH_SIZE: u8 = 2;
 pub const INTERACTION_BATCH_COUNT: usize = 1;
 pub const INTERACTION_COLUMN_COUNT: usize = 4;
@@ -206,20 +210,7 @@ pub const SEMANTIC_DIGEST = hexDigest(
 pub const STATIC_PROFILE_DIGEST_HEX =
     "bdb80afc971fe5c1d8483330df0d58453d9f1b22139ed7eed0fd07f488be762a";
 
-pub const VerifierInputKind = enum(u32) {
-    protocol = 1,
-    statement = 2,
-    pcs_parameters = 3,
-    commitment = 4,
-    claimed_sum = 5,
-    sampled_value = 6,
-    fri_commitment = 7,
-    last_layer_coefficient = 8,
-    interaction_pow_nonce = 9,
-    pcs_pow_nonce = 10,
-    vm_public_claim_digest = 11,
-    vm_air_claimed_sum = 12,
-};
+pub const VerifierInputKind = @import("verifier_wire_protocol.zig").VerifierInputKind;
 pub const INPUT_KIND_COUNT: u8 = std.enums.values(VerifierInputKind).len;
 
 pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{
@@ -448,6 +439,24 @@ pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
 }
 
 fn buildDefinition(allocator: std.mem.Allocator) !Definition {
+    return buildDefinitionForProfile(allocator, false, false);
+}
+
+/// Ethereum-only extension; the default arena and its semantic seal remain
+/// byte-for-byte unchanged.
+pub fn buildClockRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, true, false);
+    return result.arena;
+}
+
+/// Explicit Ethereum schema4 raw-wire export. Neither existing profile selects
+/// this additional relation or changes its arena input/event ordering.
+pub fn buildRawWireRoutingArena(allocator: std.mem.Allocator) !ir.Arena {
+    const result = try buildDefinitionForProfile(allocator, true, true);
+    return result.arena;
+}
+
+fn buildDefinitionForProfile(allocator: std.mem.Allocator, comptime clock_routing: bool, comptime raw_wire_routing: bool) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
@@ -482,6 +491,15 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
         .input_use_count = fixed[15],
         .constant_value = fixed[16],
     };
+    const clock_uses: ?types.ValueId = if (clock_routing)
+        try arena.input("preprocessed.clock_statement_uses", .felt, span)
+    else
+        null;
+    const route_scope = if (clock_routing) try arena.input("preprocessed.statement_route_scope", .felt, span) else preprocessed.item_index;
+    const route_index = if (clock_routing) try arena.input("preprocessed.statement_route_index", .felt, span) else preprocessed.limb_index;
+    const publication_uses: ?types.ValueId = if (clock_routing) try arena.input("preprocessed.publication_uses", .felt, span) else null;
+    const raw_wire_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_wire_mask", .selector, span) else null;
+    const raw_root_mask: ?types.ValueId = if (raw_wire_routing) try arena.input("preprocessed.raw_root_mask", .selector, span) else null;
     const parameters = Parameters{
         .segment_active = try arena.input(PARAMETER_NAMES[0], .selector, span),
         .binary_active = try arena.input(PARAMETER_NAMES[1], .selector, span),
@@ -535,6 +553,45 @@ fn buildDefinition(allocator: std.mem.Allocator) !Definition {
             .weight = shared_input,
         },
     }, span);
+    if (clock_uses) |uses| {
+        const clock_tuple = [_]types.ValueId{ route_scope, route_index, main.value };
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_statement_word,
+            .role = .emit,
+            .values = &clock_tuple,
+            .weight = try arena.mul(active, uses, span),
+        }}, span);
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &clock_tuple,
+            .weight = try arena.mul(active, publication_uses.?, span),
+        }}, span);
+    }
+    if (raw_wire_mask) |mask| {
+        // Keep the sealed expression mask + root_mask: the shared topology
+        // gives the root its one additional use, with no redundant IR nodes.
+        if (comptime ethereum_routing.ROOT_SOURCE_USES != 2)
+            @compileError("raw root multiplicity requires a new AIR profile");
+        const root_mask = raw_root_mask.?;
+        const one = try arena.constantField(1, span);
+        const direct_mask = try arena.sub(one, root_mask, span);
+        const raw_tuple = [_]types.ValueId{
+            try arena.add(
+                try arena.mul(direct_mask, try arena.constantField(ETHEREUM_RAW_WIRE_SCOPE, span), span),
+                try arena.mul(root_mask, try arena.constantField(ETHEREUM_RAW_ROOT_SOURCE_SCOPE, span), span),
+                span,
+            ),
+            try arena.add(preprocessed.payload_index, try arena.mul(root_mask, try arena.constantField(ETHEREUM_RAW_ROOT_SOURCE_BASE, span), span), span),
+            main.value,
+        };
+        _ = try relation_effect.appendGroup(1, &arena, .{.{
+            .domain = .recursion_vm_public_claim_word,
+            .role = .emit,
+            .values = &raw_tuple,
+            .weight = try arena.mul(active, try arena.add(mask, root_mask, span), span),
+        }}, span);
+    }
     return .{
         .arena = arena,
         .main = main,

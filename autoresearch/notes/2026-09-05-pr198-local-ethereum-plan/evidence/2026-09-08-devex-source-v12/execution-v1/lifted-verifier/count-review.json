@@ -1,0 +1,8 @@
+{
+  "passed": true,
+  "required_named_tests": 5,
+  "actual_passed_tests": 6,
+  "additional_imported_test": "crypto.blake2s_backend.test_0",
+  "reason": "All requested tests passed; exact-count expectation omitted Zig imported unnamed backend test. Original execution/guard evidence retained; no rerun or source change.",
+  "log_sha256": "19878b8c1acf2bd5acca84a7b629178772ddd4fefe4ee0b630ca5c29a5338b59"
+}

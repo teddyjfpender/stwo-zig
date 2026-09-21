@@ -48,9 +48,33 @@ pub fn isCanonical(clock: u32) bool {
 /// Zero is the initial boundary and is accepted only when the caller permits
 /// it (registers that were never touched and unretired completion records).
 pub fn isWithinExecution(clock: u32, instruction_count: u32, allow_zero: bool) bool {
-    if (clock == 0) return allow_zero;
-    return isCanonical(clock) and @as(u64, clock) <= maximum(instruction_count);
+    return withinExecutionGeneric(clock, instruction_count, allow_zero, NativePredicate{});
 }
+
+/// Shared access-clock predicate for native admission and symbolic boundary
+/// checks. The three used subclocks occupy each four-wide instruction bucket.
+/// Implementations supply boolean operations and unsigned integer projections.
+pub fn withinExecutionGeneric(clock: anytype, instruction_count: @TypeOf(clock), allow_zero: bool, ops: anytype) @TypeOf(ops.isZero(clock)) {
+    const active = ops.both(ops.hasOrdinal(clock), ops.bucketPrecedes(clock, instruction_count));
+    return if (allow_zero) ops.either(ops.isZero(clock), active) else active;
+}
+const NativePredicate = struct {
+    pub fn isZero(_: NativePredicate, value: u32) bool {
+        return value == 0;
+    }
+    pub fn hasOrdinal(_: NativePredicate, value: u32) bool {
+        return value % STRIDE != 0;
+    }
+    pub fn bucketPrecedes(_: NativePredicate, clock: u32, count: u32) bool {
+        return clock / STRIDE < count;
+    }
+    pub fn both(_: NativePredicate, a: bool, b: bool) bool {
+        return a and b;
+    }
+    pub fn either(_: NativePredicate, a: bool, b: bool) bool {
+        return a or b;
+    }
+};
 
 test "access clock: instruction buckets are ordered and reserve every fourth value" {
     try std.testing.expectEqual(@as(u32, 1), encode(1, .first));
@@ -62,6 +86,12 @@ test "access clock: instruction buckets are ordered and reserve every fourth val
 }
 
 test "access clock: public execution bound includes the last actual ordinal" {
+    for (0..33) |count| for (0..132) |clock| for ([_]bool{ false, true }) |allow_zero| {
+        const value: u32 = @intCast(clock);
+        const steps: u32 = @intCast(count);
+        const scalar_reference = if (value == 0) allow_zero else isCanonical(value) and @as(u64, value) <= maximum(steps);
+        try std.testing.expectEqual(scalar_reference, isWithinExecution(value, steps, allow_zero));
+    };
     try std.testing.expectEqual(@as(u64, 0), maximum(0));
     try std.testing.expectEqual(@as(u64, 3), maximum(1));
     try std.testing.expectEqual(@as(u64, 7), maximum(2));

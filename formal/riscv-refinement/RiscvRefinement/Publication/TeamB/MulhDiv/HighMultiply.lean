@@ -2604,7 +2604,7 @@ theorem mulh_programIdentity :
       Programs.mulh.source.opcodeSelector.mnemonic = "mulh" ∧
       Programs.mulh.source.family = .mulh ∧
       Programs.mulh.source.contentDigest =
-        "57eac49375238359ba89eaa1854b36bef14b5211c93976739ab7e1dd71185e56" :=
+        "1936ba6ea129ccfb9cae3b90072266eaa79cdbc74ce9a30f5fb2aa12c586d897" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 theorem mulhsu_programIdentity :
@@ -2612,7 +2612,7 @@ theorem mulhsu_programIdentity :
       Programs.mulhsu.source.opcodeSelector.mnemonic = "mulhsu" ∧
       Programs.mulhsu.source.family = .mulh ∧
       Programs.mulhsu.source.contentDigest =
-        "b623312b168e8f8b6a193e524183fa1e9671def8266150a6be1176d12d0440ee" :=
+        "da6aff5839dec3f68a55fc7124a4e7275be40937fffd683965f39f6091aff4d7" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 theorem mulhu_programIdentity :
@@ -2620,7 +2620,7 @@ theorem mulhu_programIdentity :
       Programs.mulhu.source.opcodeSelector.mnemonic = "mulhu" ∧
       Programs.mulhu.source.family = .mulh ∧
       Programs.mulhu.source.contentDigest =
-        "223e5dcdb0fb47153da9aad8985c200ae9a38e2f08f83ace848d11475c6ddf88" :=
+        "658d49c78c6f04653e7f723e2376ba4a4107f291c9d777669aeaa0baf366043c" :=
   ⟨rfl, rfl, rfl, rfl⟩
 
 private theorem validClock_of_fixed
@@ -2851,7 +2851,7 @@ theorem mulh_selectorAdmission
     (row : Row)
     (selector : row.selector = .mulh) :
     SelectorAdmission row .mulh .mulh Programs.mulh 38 "mulh"
-      "57eac49375238359ba89eaa1854b36bef14b5211c93976739ab7e1dd71185e56" := by
+      "1936ba6ea129ccfb9cae3b90072266eaa79cdbc74ce9a30f5fb2aa12c586d897" := by
   refine {
     rowSelector := selector
     exactProgram := by simpa [program, selector]
@@ -2873,7 +2873,7 @@ theorem mulhsu_selectorAdmission
     (row : Row)
     (selector : row.selector = .mulhsu) :
     SelectorAdmission row .mulhsu .mulhsu Programs.mulhsu 39 "mulhsu"
-      "b623312b168e8f8b6a193e524183fa1e9671def8266150a6be1176d12d0440ee" := by
+      "da6aff5839dec3f68a55fc7124a4e7275be40937fffd683965f39f6091aff4d7" := by
   refine {
     rowSelector := selector
     exactProgram := by simpa [program, selector]
@@ -2895,7 +2895,7 @@ theorem mulhu_selectorAdmission
     (row : Row)
     (selector : row.selector = .mulhu) :
     SelectorAdmission row .mulhu .mulhu Programs.mulhu 40 "mulhu"
-      "223e5dcdb0fb47153da9aad8985c200ae9a38e2f08f83ace848d11475c6ddf88" := by
+      "658d49c78c6f04653e7f723e2376ba4a4107f291c9d777669aeaa0baf366043c" := by
   refine {
     rowSelector := selector
     exactProgram := by simpa [program, selector]
@@ -3068,7 +3068,7 @@ theorem mulh_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission row .mulh .mulh Programs.mulh 38 "mulh"
-        "57eac49375238359ba89eaa1854b36bef14b5211c93976739ab7e1dd71185e56" ∧
+        "1936ba6ea129ccfb9cae3b90072266eaa79cdbc74ce9a30f5fb2aa12c586d897" ∧
       MulhHolds (normalize row) ∧
       mulhRetirement (normalize row) =
         Sail.Reviewed.executeMulh
@@ -3129,7 +3129,7 @@ theorem mulhsu_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission row .mulhsu .mulhsu Programs.mulhsu 39 "mulhsu"
-        "b623312b168e8f8b6a193e524183fa1e9671def8266150a6be1176d12d0440ee" ∧
+        "da6aff5839dec3f68a55fc7124a4e7275be40937fffd683965f39f6091aff4d7" ∧
       MulhHolds (normalize row) ∧
       mulhRetirement (normalize row) =
         Sail.Reviewed.executeMulhsu
@@ -3190,7 +3190,7 @@ theorem mulhu_accepted_air_implies_retirement
         relationHolds)
     (admission : Admission row) :
     SelectorAdmission row .mulhu .mulhu Programs.mulhu 40 "mulhu"
-        "223e5dcdb0fb47153da9aad8985c200ae9a38e2f08f83ace848d11475c6ddf88" ∧
+        "658d49c78c6f04653e7f723e2376ba4a4107f291c9d777669aeaa0baf366043c" ∧
       MulhHolds (normalize row) ∧
       mulhRetirement (normalize row) =
         Sail.Reviewed.executeMulhu

@@ -1,0 +1,8 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/two-child-metal-producer",
+  "sha256": "441d93444d85d5aafa5c1a7e7147366ebc0f65e3879473cacff6d45d6490e744",
+  "source_patch": "two-child-metal-source.patch",
+  "source_patch_sha256": "f514302dfc015cde8e2f254fe1f73c4f5f2275745e9ad0734c7855b9f9fc304f",
+  "head": "51646b444176237a6640f438a032d137af5200b9",
+  "build_log": "two-child-metal-build-first.log"
+}

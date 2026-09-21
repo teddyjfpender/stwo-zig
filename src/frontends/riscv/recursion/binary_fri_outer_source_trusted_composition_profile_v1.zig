@@ -124,6 +124,7 @@ pub const TrustedCompositionProfileV1 = struct {
 
     pub fn validate(self: TrustedCompositionProfileV1) Error!void {
         if (self.format_version != COMPOSITION_PROFILE_FORMAT_VERSION or
+            self.input_profile.field_public_extra_word_count != 0 or
             self.circuit_id == 0 or
             self.circuit_id >= stwo_core.fields.m31.Modulus or
             !std.mem.eql(

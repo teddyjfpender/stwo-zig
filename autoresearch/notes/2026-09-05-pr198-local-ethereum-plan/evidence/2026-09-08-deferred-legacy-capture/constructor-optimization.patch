@@ -1,0 +1,243 @@
+--- a/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig
++++ b/src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_composition_capture_owner_v4.zig
+@@ -122,6 +122,21 @@
+             ) !void {
+                 try cold.replay.validateQueryWordsAgainst(&cold.fresh);
+                 try self.validateAgainstReplay(&cold.replay);
++            }
++        };
++
++        // Constructor-local values, not a reusable validated token. Full replay
++        // admission derives this exact copy numerically before graph recording.
++        const ConstructorInputs = struct {
++            replay: VerifiedReplay,
++            manifest: manifest_mod.Manifest,
++            session: secure_artifact.SessionV1,
++            statement: secure_artifact.StatementV1,
++            publication_words: [node_public.AIR_WORD_COUNT]u32,
++
++            comptime {
++                @setEvalBranchQuota(200_000);
++                assertPointerFreeReplay(@This());
+             }
+         };
+ 
+@@ -154,7 +169,7 @@
+                 cold: *const Kernel.VerifiedColdReplayV1,
+             ) !CaptureV4 {
+                 try cold.validateBorrowed(cohort, session);
+-                return init(
++                var result = try init(
+                     allocator,
+                     cohort,
+                     session,
+@@ -162,24 +177,42 @@
+                     &cold.fresh.capture,
+                     &cold.replay,
+                 );
++                errdefer result.deinit();
++                // Explicit diagnostic for the existing retained-candidate replay
++                // gate. Ordinary proof runs never add a second full admission or
++                // graph recording merely because the binary is a test executable.
++                if (@import("builtin").is_test and std.process.hasEnvVarConstant("STWO_ETHEREUM_COMPOSITION_ADMISSION_REGRESSION")) {
++                    var timer = try std.time.Timer.start();
++                    defer std.debug.print("ETHEREUM_COMPOSITION_ADMISSION_REGRESSION ns={d}\n", .{timer.read()});
++                    try result.exerciseConstructorAdmission(cohort, session, cold);
++                }
++                return result;
+             }
+ 
+             fn init(
+                 allocator: std.mem.Allocator,
+                 cohort: *Cohort,
+-                session: *const secure_artifact.SessionV1,
+-                statement: *const secure_artifact.StatementV1,
++                source_session: *const secure_artifact.SessionV1,
++                source_statement: *const secure_artifact.StatementV1,
+                 capture: *const OuterProofCapture,
+-                replay: *const VerifiedReplay,
++                source_replay: *const VerifiedReplay,
+             ) !CaptureV4 {
+-                try validateTransaction(
+-                    cohort,
+-                    session,
+-                    statement,
+-                    capture,
+-                    replay,
+-                );
+-                const manifest = cohort.manifest();
++                const inputs = ConstructorInputs{
++                    .replay = source_replay.*,
++                    .manifest = cohort.manifest().*,
++                    .session = source_session.*,
++                    .statement = source_statement.*,
++                    .publication_words = cohort.publicationWords(),
++                };
++                const replay = &inputs.replay;
++                const manifest = &inputs.manifest;
++                const session = &inputs.session;
++                const statement = &inputs.statement;
++                // Component validation checks Native claim/audit consistency;
++                // only full replay also rederives those audits from owner rows.
++                // Keep that numerical admission once, on this private copy.
++                try validateReplayAdmission(cohort, session, replay);
++                try validateTransactionBindings(session, statement, capture, replay);
+                 var layout = try Graph.initCaptureLayout(
+                     allocator,
+                     manifest,
+@@ -198,6 +231,9 @@
+                     &replay.provider_relations,
+                 );
+                 defer components.deinit();
++                // The component definitions/plans and wire terms belong to the
++                // opaque cohort. They remain private and alive throughout this
++                // synchronous recording; no captured graph is consulted here.
+                 var program = try recordProgram(
+                     allocator,
+                     manifest,
+@@ -218,10 +254,10 @@
+                     program.circuit.nodes.len,
+                 );
+                 errdefer allocator.free(node_values);
+-                try writeInputs(
++                try writeInputsWithPublication(
+                     profile,
+                     &claim_inputs,
+-                    cohort,
++                    &inputs.publication_words,
+                     session,
+                     replay,
+                     capture,
+@@ -251,17 +287,50 @@
+                 // Locals own cleanup until admission succeeds. In particular,
+                 // an allocation failure in validation must not also destroy
+                 // the aliases in result.
+-                try result.validateAgainst(
+-                    cohort,
++                try result.validateInputSourcesWithMetadata(
++                    manifest,
++                    &inputs.publication_words,
+                     session,
+                     statement,
+                     capture,
+                     replay,
+-                    false,
+-                );
++                );
++                try result.validateRetained();
+                 program.moved = true;
+                 layout = undefined;
+                 return result;
++            }
++
++            fn exerciseConstructorAdmission(
++                self: *const CaptureV4,
++                cohort: *Cohort,
++                session: *const secure_artifact.SessionV1,
++                cold: *const Kernel.VerifiedColdReplayV1,
++            ) !void {
++                if (!@import("builtin").is_test) @compileError("constructor regression is test-only");
++                // Full external admission replays the numerical closure and
++                // independently rerecords the graph. It compares every node,
++                // output and binding against the constructor's owned capture.
++                try self.validateAgainstCold(cohort, session, cold, true);
++                var caller_replay = cold.replay;
++                const snapshot = ConstructorInputs{
++                    .replay = caller_replay,
++                    .manifest = cohort.manifest().*,
++                    .session = session.*,
++                    .statement = cold.fresh.statement,
++                    .publication_words = cohort.publicationWords(),
++                };
++                caller_replay.generated.native.claims[0] = caller_replay.generated.native.claims[0].add(QM31.one());
++                try std.testing.expectError(error.V2CoreCohortMismatch, caller_replay.validateAgainst(cohort));
++                try std.testing.expectEqualDeep(cold.replay, snapshot.replay);
++                caller_replay = cold.replay;
++                caller_replay.relations.registry_order_digest[0] ^= 1;
++                try std.testing.expectError(error.RegistryOrderMismatch, caller_replay.validateAgainst(cohort));
++                try std.testing.expectEqualDeep(cold.replay, snapshot.replay);
++                // The retained values still bind the original complete proof;
++                // no mutable producer/caller slice can change these inputs.
++                try self.validateInputSourcesWithMetadata(&snapshot.manifest, &snapshot.publication_words, &snapshot.session, &snapshot.statement, &cold.fresh.capture, &snapshot.replay);
++                std.debug.print("ETHEREUM_COMPOSITION_ADMISSION_REGRESSION graph_parity=true complete_admission=true changed_generated_rejected=true changed_relations_rejected=true copied_replay_isolated=true\n", .{});
+             }
+ 
+             pub fn deinit(self: *CaptureV4) void {
+@@ -355,8 +424,20 @@
+                 capture: *const OuterProofCapture,
+                 replay: *const VerifiedReplay,
+             ) !void {
++                const public_words = cohort.publicationWords();
++                return self.validateInputSourcesWithMetadata(cohort.manifest(), &public_words, session, statement, capture, replay);
++            }
++
++            fn validateInputSourcesWithMetadata(
++                self: *const CaptureV4,
++                manifest: *const manifest_mod.Manifest,
++                public_words: *const [node_public.AIR_WORD_COUNT]u32,
++                session: *const secure_artifact.SessionV1,
++                statement: *const secure_artifact.StatementV1,
++                capture: *const OuterProofCapture,
++                replay: *const VerifiedReplay,
++            ) !void {
+                 try validateTransactionBindings(session, statement, capture, replay);
+-                const manifest = cohort.manifest();
+                 try self.layout.validateAgainstEthereumWrapperV1(manifest);
+                 try self.claim_inputs.validateAgainst(replay);
+                 if (self.format_version != FORMAT_VERSION or
+@@ -398,10 +479,10 @@
+                     self.input_values.len,
+                 );
+                 defer self.allocator.free(expected_inputs);
+-                try writeInputs(
++                try writeInputsWithPublication(
+                     self.profile,
+                     &self.claim_inputs,
+-                    cohort,
++                    public_words,
+                     session,
+                     replay,
+                     capture,
+@@ -510,30 +591,18 @@
+             return recordProgramWithAuthority(Graph.recordCohort, allocator, manifest, layout, profile, components, cohort);
+         }
+ 
+-        fn writeInputs(
++        fn writeInputsWithPublication(
+             profile: composition_v3.InputProfileV3,
+             claim_inputs: *const Graph.ClaimInputsV4,
+-            cohort: *const Cohort,
++            public_words: *const [node_public.AIR_WORD_COUNT]u32,
+             session: *const secure_artifact.SessionV1,
+             replay: *const VerifiedReplay,
+             capture: *const OuterProofCapture,
+             destination: []QM31,
+         ) !void {
+-            const public_words = cohort.publicationWords();
+             for (public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], session.parent_statement_words) |word, expected|
+                 if (word != expected.toU32()) return error.InvalidEthereumIncrementalCompositionCaptureV4;
+-            try writePublicInputs(profile, &public_words, &claim_inputs.values, replay.audited.wire_boundary.claimed_sum, &replay.relations, capture, destination);
+-        }
+-
+-        fn validateTransaction(
+-            cohort: *Cohort,
+-            session: *const secure_artifact.SessionV1,
+-            statement: *const secure_artifact.StatementV1,
+-            capture: *const OuterProofCapture,
+-            replay: *const VerifiedReplay,
+-        ) !void {
+-            try validateReplayAdmission(cohort, session, replay);
+-            try validateTransactionBindings(session, statement, capture, replay);
++            try writePublicInputs(profile, public_words, &claim_inputs.values, replay.audited.wire_boundary.claimed_sum, &replay.relations, capture, destination);
+         }
+ 
+         /// Full acceptance remains explicit and is never inferred from a seal.
+@@ -1006,7 +1075,7 @@
+                 claimed_total = claimed_total.add(claim);
+             try builder.constrainZero(claimed_total
+                 .add(public_wire_boundary)
+-                // validateTransaction admits only the zero verifier-input
++                // Replay admission permits only the zero verifier-input
+                 // boundary (zero terms and zero claim). It has no witness value.
+                 .add(recorder.Scalar.zero())
+                 .add(try recordPublicBoundary(&statement_words, extra_public_words, &challenges)));

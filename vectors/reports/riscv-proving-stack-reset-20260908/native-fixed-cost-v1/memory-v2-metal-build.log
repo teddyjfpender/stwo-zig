@@ -1,0 +1,24 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 5s
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=1 exit_pc=1100
+expected 0, found 1
+expected 1048832, found 1048836
+expected 20, found 21
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=4 exit_pc=1100
+expected 0, found 1
+expected 1048832, found 1048836
+expected 5, found 4
+SEGMENT_V2_MEMORY_EXECUTION address_count=4 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=4 stride_bytes=128 entry_nonzero_words=4 exit_nonzero_words=4 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=16 stride_bytes=128 entry_nonzero_words=0 exit_nonzero_words=16 exit_pc=1100
+expected 0, found 1
+expected 1048832, found 1048836
+expected 2, found 3
+SEGMENT_V2_MEMORY_EXECUTION address_count=16 segment_cycles=16 cumulative_cycles=80 loads=5 stores=6 distinct_accessed=6 stride_bytes=128 entry_nonzero_words=16 exit_nonzero_words=16 exit_pc=1140
+SEGMENT_V2_MEMORY_EXECUTION status=passed
+
+Build Summary: 3/3 steps succeeded
+run-recursive-segment-v2-concrete-outer-proof success
++- run exe recursive-segment-v2-concrete-outer-proof-metal success 641ms MaxRSS:5M
+   +- compile exe recursive-segment-v2-concrete-outer-proof-metal ReleaseSafe native success 2m MaxRSS:9G
+

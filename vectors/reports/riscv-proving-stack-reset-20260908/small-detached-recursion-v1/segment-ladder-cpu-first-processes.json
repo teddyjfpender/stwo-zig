@@ -1,0 +1,56 @@
+[
+  {
+    "segments": 2,
+    "argv": [
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-second-cpu-producer",
+      "--memory-addresses",
+      "1",
+      "--segments-output",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-2-seed13-first",
+      "--segment-count",
+      "2",
+      "--initial-memory-word",
+      "13",
+      "--native-backend",
+      "cpu"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 7.732344957999885
+  },
+  {
+    "segments": 4,
+    "argv": [
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-second-cpu-producer",
+      "--memory-addresses",
+      "1",
+      "--segments-output",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-4-seed13-first",
+      "--segment-count",
+      "4",
+      "--initial-memory-word",
+      "13",
+      "--native-backend",
+      "cpu"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 15.239898666040972
+  },
+  {
+    "segments": 8,
+    "argv": [
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/segment-ladder-second-cpu-producer",
+      "--memory-addresses",
+      "1",
+      "--segments-output",
+      "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first",
+      "--segment-count",
+      "8",
+      "--initial-memory-word",
+      "13",
+      "--native-backend",
+      "cpu"
+    ],
+    "exit_code": 0,
+    "wall_seconds": 30.449933749856427
+  }
+]

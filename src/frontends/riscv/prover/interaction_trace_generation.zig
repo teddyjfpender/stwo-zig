@@ -2,52 +2,33 @@
 
 const std = @import("std");
 const m31 = @import("stwo_core").fields.m31;
-const prover_pcs = @import("stwo_prover_engine").pcs;
 const work_pool = @import("stwo_prover_engine").work_pool;
-const prover_api = @import("stwo_prover_api");
 const stage_profile = @import("stwo_prover_api").stage_profile;
 const clock_update_interaction = @import("../air/clock_update_interaction.zig");
 const component_order = @import("../air/component_order.zig");
-const guest_interaction = @import("../air/guest_precompile/interaction.zig");
-const guest_components = @import("../air/guest_precompile/component_registry.zig");
-const guest_main_trace = @import("../air/guest_precompile/main_trace.zig");
-const guest_proof_transcript = @import("../air/guest_precompile/proof_transcript.zig");
-const guest_relations = @import("../air/guest_precompile/relation_challenges.zig");
-const guest_statement = @import("../air/guest_precompile/statement.zig");
 const lookup_table_interaction = @import("../air/lookups/tables/interaction.zig");
 const lookup_table_schema = @import("../air/lookups/tables/schema.zig");
 const lookup_physical_v2 = @import("../air/lang/lookup_physical_manifest_v2.zig");
-const opcode_entries = @import("../air/lookups/opcode_entries.zig");
 const opcode_interaction = @import("../air/lookups/opcode_interaction.zig");
-const BaseScalar = @import("../air/lookups/base_scalar.zig").Scalar;
 const memory_interaction = @import("../air/memory_commitment/interaction.zig");
 const merkle_node = @import("../air/memory_commitment/merkle_node.zig");
 const poseidon2_air = @import("../air/memory_commitment/poseidon2_air.zig");
 const program_interaction = @import("../air/program/interaction.zig");
 const relation_challenges = @import("../air/relation_challenges.zig");
-const proof_transcript = @import("../proof_transcript.zig");
 const trace_mod = @import("../runner/trace.zig");
 const commitment_witness = @import("commitment_witness.zig");
-const lookup_sources = @import("lookup_sources.zig");
-const interaction_production = @import("interaction_trace_plan_execution_production.zig");
-const interaction_witness_work = @import("interaction_witness_work.zig");
-const proof_phase_meter = @import("proof_phase_meter.zig");
 const proof_workspace = @import("proof_workspace.zig");
 const statement_geometry = @import("statement_geometry.zig");
-const statement_mod = @import("../air/statement.zig");
-const test_witness_hook = @import("test_witness_hook.zig");
 const tree2_main_source = @import("tree2_main_source.zig");
 const types = @import("types.zig");
+const native_provider_omit = @import("memory_provider_shards/native_provider_omit_v1.zig");
 
 const M31 = m31.M31;
-const QM31 = @import("stwo_core").fields.qm31.QM31;
 const CommitmentWitness = commitment_witness.CommitmentWitness;
 const Geometry = statement_geometry.Geometry;
 const ProofWorkspace = proof_workspace.ProofWorkspace;
 const Relations = relation_challenges.Relations;
 const RiscVInteractionClaim = types.RiscVInteractionClaim;
-const RunMode = types.RunMode;
-const OpcodeBaseEntries = opcode_entries.Entries(BaseScalar);
 
 /// Selects the worker authority for base Tree-2 materialization. Profiled
 /// sequential work must not inherit an ambient proof pool merely because later
@@ -74,6 +55,23 @@ pub fn Ops(comptime Owner: type) type {
 
     return struct {
         pub fn generateBase(
+            allocator: std.mem.Allocator,
+            workspace: *ProofWorkspace,
+            columns: *Columns,
+            recorder: ?*stage_profile.Recorder,
+            witness: *const CommitmentWitness,
+            geometry: Geometry,
+            main_source: *const tree2_main_source.Source,
+            relations: *const Relations,
+            claim: *RiscVInteractionClaim,
+            lookup_v2: ?LookupV2Admission,
+            execution_policy: BaseExecutionPolicy,
+        ) !void {
+            return generateBaseForBackend(void, allocator, workspace, columns, recorder, witness, geometry, main_source, relations, claim, lookup_v2, execution_policy);
+        }
+
+        pub fn generateBaseForBackend(
+            comptime Backend: type,
             allocator: std.mem.Allocator,
             workspace: *ProofWorkspace,
             columns: *Columns,
@@ -149,6 +147,122 @@ pub fn Ops(comptime Owner: type) type {
                 var sub = try stage_profile.StageScope.begin(recorder, "riscv_interaction_tables", "RISC-V lookup-table interactions");
                 defer sub.end();
                 try generateLookupTables(
+                    Backend,
+                    allocator,
+                    workspace,
+                    columns,
+                    main_source,
+                    relations,
+                    claim,
+                    execution_pool,
+                );
+            }
+        }
+
+        /// Generates the authenticated V2 base prefix without the native
+        /// narrow-memory Poseidon provider. The omission-aware geometry cannot
+        /// name that provider; every retained component stays in declaration
+        /// order and writes claims at its projected infrastructure index.
+        pub fn generateBaseWithoutNativePoseidonAuthenticatedLookupV2(
+            allocator: std.mem.Allocator,
+            workspace: *ProofWorkspace,
+            columns: *Columns,
+            recorder: ?*stage_profile.Recorder,
+            witness: *const CommitmentWitness,
+            geometry: native_provider_omit.ProjectedGeometryV1,
+            main_source: *const tree2_main_source.Source,
+            relations: *const Relations,
+            claim: *RiscVInteractionClaim,
+            manifest: *const lookup_physical_v2.Manifest,
+            execution_policy: BaseExecutionPolicy,
+        ) !void {
+            const execution_pool = execution_policy.selectedPool();
+            const projected = projectedLegacyGeometry(geometry);
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_opcode",
+                    "RISC-V opcode interactions",
+                );
+                defer sub.end();
+                try generateOpcodeAuthenticatedLookupV2(
+                    allocator,
+                    workspace,
+                    main_source,
+                    columns,
+                    relations,
+                    claim,
+                    manifest,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_program",
+                    "RISC-V program interactions",
+                );
+                defer sub.end();
+                try generateProgram(
+                    allocator,
+                    columns,
+                    witness,
+                    projected,
+                    relations,
+                    claim,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_memory",
+                    "RISC-V memory interactions",
+                );
+                defer sub.end();
+                try generateMemory(allocator, workspace, columns, witness, relations, claim);
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_merkle",
+                    "RISC-V Merkle interactions",
+                );
+                defer sub.end();
+                try generateMerkle(
+                    allocator,
+                    columns,
+                    witness,
+                    projected,
+                    relations,
+                    claim,
+                    execution_pool,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_clock",
+                    "RISC-V clock interactions",
+                );
+                defer sub.end();
+                try generateClock(
+                    allocator,
+                    workspace,
+                    main_source,
+                    columns,
+                    projected,
+                    relations,
+                    claim,
+                );
+            }
+            {
+                var sub = try stage_profile.StageScope.begin(
+                    recorder,
+                    "riscv_interaction_tables",
+                    "RISC-V lookup-table interactions",
+                );
+                defer sub.end();
+                try generateLookupTables(
+                    void,
                     allocator,
                     workspace,
                     columns,
@@ -319,12 +433,10 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const generated = try program_interaction.generate(
-                allocator,
-                witness.program.rows,
-                geometry.program_log_size,
-                relations,
-            );
+            const generated = switch (witness.circuit_profile.programPolicy()) {
+                .sparse_merkle_v1 => try program_interaction.generate(allocator, witness.program.rows, geometry.program_log_size, relations),
+                .fixed_decoded_table_v1 => try program_interaction.generateWithPolicy(.fixed_decoded_table_v1, allocator, witness.program.rows, geometry.program_log_size, relations),
+            };
             claim.program_claims[0] = generated.claims.sums;
             for (generated.columns) |values| columns.append(geometry.program_log_size, values);
         }
@@ -343,7 +455,8 @@ pub fn Ops(comptime Owner: type) type {
             relations: *const Relations,
             claim: *RiscVInteractionClaim,
         ) !void {
-            const boundary = witness.boundary orelse return;
+            const boundary_rows = witness.memoryBoundaryRows();
+            if (boundary_rows.len == 0) return;
             const statement = &workspace.statement;
             var row_start: usize = 0;
             for (0..statement.n_infra) |infra_index| {
@@ -352,7 +465,7 @@ pub fn Ops(comptime Owner: type) type {
                 const row_end = row_start + desc.n_rows;
                 const generated = try memory_interaction.generate(
                     allocator,
-                    boundary.rows[row_start..row_end],
+                    boundary_rows[row_start..row_end],
                     desc.log_size,
                     relations,
                 );
@@ -360,7 +473,7 @@ pub fn Ops(comptime Owner: type) type {
                 for (generated.columns) |values| columns.append(desc.log_size, values);
                 row_start = row_end;
             }
-            std.debug.assert(row_start == boundary.rows.len);
+            std.debug.assert(row_start == boundary_rows.len);
         }
 
         fn generateMerkle(
@@ -446,6 +559,7 @@ pub fn Ops(comptime Owner: type) type {
         /// The fixed lookup tables close the registry, so their infrastructure indices
         /// are the last `LOOKUP_TABLE_COUNT` slots in declaration order.
         fn generateLookupTables(
+            comptime Backend: type,
             allocator: std.mem.Allocator,
             workspace: *ProofWorkspace,
             columns: *Columns,
@@ -454,7 +568,9 @@ pub fn Ops(comptime Owner: type) type {
             claim: *RiscVInteractionClaim,
             execution_pool: ?*work_pool.WorkPool,
         ) !void {
-            if (execution_pool) |pool| {
+            const capable = comptime Backend != void and @hasDecl(Backend, "supportsFrameworkInteractions");
+            const device = if (capable) try Backend.supportsFrameworkInteractions() else false;
+            if (!device) if (execution_pool) |pool| {
                 return generateLookupTablesParallel(
                     allocator,
                     workspace,
@@ -464,17 +580,27 @@ pub fn Ops(comptime Owner: type) type {
                     claim,
                     pool,
                 );
-            }
+            };
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
-                var generated = try lookup_table_interaction.generate(
-                    allocator,
-                    try main_source.lookupCounter(kind),
-                    relations,
-                );
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
+                var generated = if (capable and device)
+                    try @import("../air/lookups/tables/device_interaction.zig").generate(Backend, allocator, try main_source.lookupCounter(kind), relations)
+                else
+                    try lookup_table_interaction.generate(allocator, try main_source.lookupCounter(kind), relations);
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
+                }
             }
         }
 
@@ -492,6 +618,10 @@ pub fn Ops(comptime Owner: type) type {
         ) !void {
             const table_infra_start = workspace.statement.n_infra - component_order.LOOKUP_TABLE_COUNT;
             for (component_order.lookupTables(), 0..) |kind, table_index| {
+                var timer: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_RISCV_NATIVE_PROFILE"))
+                    std.time.Timer.start() catch null
+                else
+                    null;
                 var generated = try lookup_table_interaction.generateParallel(
                     allocator,
                     try main_source.lookupCounter(kind),
@@ -501,316 +631,30 @@ pub fn Ops(comptime Owner: type) type {
                 claim.lookup_claims[table_infra_start + table_index] = generated.claim;
                 const taken = generated.takeColumns();
                 for (taken) |values| columns.append(lookup_table_schema.logSize(kind), values);
-            }
-        }
-
-        /// Exact work of the allocation-safe sequential base generator selected by
-        /// the current guest profile. Projection arithmetic is owned by the separate
-        /// main-witness site; this authority covers every relation combine and LogUp
-        /// normalization, inversion, and prefix operation performed by Tree 2.
-        pub fn sequentialBaseWorkCounts(
-            statement: *const statement_mod.RiscVStatement,
-            witness: *const CommitmentWitness,
-            geometry: Geometry,
-            lookup_v2: ?*const lookup_physical_v2.Manifest,
-        ) !interaction_witness_work.Counts {
-            var counts = interaction_witness_work.Counts{};
-
-            for (statement.component_descs[0..statement.n_components]) |descriptor| {
-                const size = try workDomainSize(descriptor.log_size);
-                var zeros = [_]BaseScalar{BaseScalar.zero()} ** trace_mod.MAX_FAMILY_COLUMNS;
-                const list = try OpcodeBaseEntries.fromMain(
-                    descriptor.family,
-                    zeros[0..trace_mod.nColumnsForFamily(descriptor.family)],
-                );
-                var relation_inputs: usize = 0;
-                for (list.entries[0..list.len]) |entry| {
-                    relation_inputs = try workAddUsize(relation_inputs, entry.arity);
+                if (timer) |*active| {
+                    var bytes: usize = 0;
+                    for (taken) |values| bytes += values.len * @sizeOf(@TypeOf(values[0]));
+                    std.debug.print("riscv_interaction_table kind={s} generation_ns={d} owned_value_bytes={d}\n", .{
+                        @tagName(kind), active.read(), bytes,
+                    });
                 }
-                try interaction_witness_work.observeRelationRows(
-                    &counts,
-                    size,
-                    list.len,
-                    relation_inputs,
-                );
-                const n_batches, const paired_batches = if (lookup_v2) |manifest| blk: {
-                    const physical = manifest.entryForFamily(descriptor.family);
-                    try lookup_physical_v2.validatePinnedEntry(physical);
-                    if (physical.lookup_authority.entry_count != list.len)
-                        return error.InteractionWorkSourceMismatch;
-                    var paired: usize = 0;
-                    for (physical.activeBatches()) |batch| {
-                        paired += @intFromBool(batch.entry_count == 2);
-                    }
-                    break :blk .{ physical.activeBatches().len, paired };
-                } else .{
-                    list.batchCount(),
-                    if (list.batch_size == 1) 0 else list.len - list.batchCount(),
-                };
-                try observeSequentialBatchLogup(
-                    &counts,
-                    size,
-                    n_batches,
-                    paired_batches,
-                    opcode_interaction.CHUNK_ROWS,
-                );
-            }
-
-            try interaction_witness_work.observeRelationRows(
-                &counts,
-                witness.program.rows.len,
-                7,
-                24,
-            );
-            try observeDirectLogup(
-                &counts,
-                try workDomainSize(geometry.program_log_size),
-                program_interaction.N_SUMS,
-            );
-
-            for (statement.infra_descs[0..statement.n_infra]) |descriptor| {
-                if (descriptor.kind != .memory) continue;
-                try interaction_witness_work.observeRelationRows(
-                    &counts,
-                    descriptor.n_rows,
-                    7,
-                    27,
-                );
-                try observeDirectLogup(
-                    &counts,
-                    try workDomainSize(descriptor.log_size),
-                    memory_interaction.N_SUMS,
-                );
-            }
-
-            try interaction_witness_work.observeRelationRows(
-                &counts,
-                witness.merkleRows().len,
-                5,
-                44,
-            );
-            try observeDirectLogup(
-                &counts,
-                try workDomainSize(geometry.merkle_log_size),
-                merkle_node.N_SUMS,
-            );
-
-            try interaction_witness_work.observeRelationRows(
-                &counts,
-                witness.poseidonCalls().len,
-                4,
-                80,
-            );
-            try observeDirectLogup(
-                &counts,
-                try workDomainSize(geometry.poseidon_log_size),
-                poseidon2_air.N_SUMS,
-            );
-
-            // The live clock generator loops over each sum and reconstructs both
-            // pairs inside that loop, so its four denominator combines execute twice.
-            const clock_size = try workDomainSize(geometry.clock_update_log);
-            try interaction_witness_work.observeRelationRows(
-                &counts,
-                try workMulUsize(clock_size, clock_update_interaction.N_SUMS),
-                4,
-                17,
-            );
-            for (0..clock_update_interaction.N_SUMS) |_| {
-                try observeSequentialBatchLogup(
-                    &counts,
-                    clock_size,
-                    1,
-                    1,
-                    clock_update_interaction.CHUNK_ROWS,
-                );
-            }
-
-            // `generateInto` first proves every denominator non-zero, then rebuilds
-            // each denominator during its bounded generation pass.
-            for (component_order.lookupTables()) |kind| {
-                const size = lookup_table_schema.size(kind);
-                try interaction_witness_work.observeRelationRows(
-                    &counts,
-                    try workMulUsize(size, 2),
-                    1,
-                    lookup_table_schema.arity(kind),
-                );
-                try observeSequentialBatchLogup(
-                    &counts,
-                    size,
-                    1,
-                    0,
-                    lookup_table_interaction.CHUNK_ROWS,
-                );
-            }
-            return counts;
-        }
-
-        pub fn guestInteractionWorkCounts(
-            active_rows: u32,
-        ) !interaction_witness_work.Counts {
-            var counts = interaction_witness_work.Counts{};
-            var caller_inputs: usize = 0;
-            for (guest_components.caller_events) |event| {
-                if (event.numerator == .zero_in_guest_mode)
-                    return error.InteractionWorkSourceMismatch;
-                caller_inputs = try workAddUsize(caller_inputs, event.arity);
-            }
-            var paired_batches: usize = 0;
-            for (guest_components.caller_batches) |batch| {
-                paired_batches += @intFromBool(batch.second_event != null);
-            }
-            const provider_event = guest_components.provider_events[3];
-            if (provider_event.arity != guest_relations.guest_relation_arity or
-                paired_batches + 1 != guest_interaction.caller_batch_count)
-            {
-                return error.InteractionWorkSourceMismatch;
-            }
-            const rows: usize = @intCast(active_rows);
-            try interaction_witness_work.observeRelationRows(
-                &counts,
-                rows,
-                guest_interaction.caller_event_count + 1,
-                try workAddUsize(caller_inputs, provider_event.arity),
-            );
-            try interaction_witness_work.observeLogupTerms(
-                &counts,
-                try workMulUsize(rows, paired_batches),
-                try workMulUsize(rows, guest_interaction.total_batch_count),
-                0,
-            );
-            var row_start: usize = 0;
-            while (row_start < rows) {
-                const chunk_len = @min(guest_interaction.chunk_rows, rows - row_start);
-                try interaction_witness_work.observeBatchInverse(
-                    &counts,
-                    try workMulUsize(guest_interaction.total_batch_count, chunk_len),
-                );
-                row_start += chunk_len;
-            }
-            return counts;
-        }
-
-        fn observeDirectLogup(
-            counts: *interaction_witness_work.Counts,
-            rows: usize,
-            n_sums: usize,
-        ) !void {
-            const terms = try workMulUsize(rows, n_sums);
-            try interaction_witness_work.observeLogupTerms(
-                counts,
-                terms,
-                terms,
-                terms,
-            );
-        }
-
-        fn observeSequentialBatchLogup(
-            counts: *interaction_witness_work.Counts,
-            rows: usize,
-            n_batches: usize,
-            paired_batches: usize,
-            chunk_rows: usize,
-        ) !void {
-            try interaction_witness_work.observeLogupTerms(
-                counts,
-                try workMulUsize(rows, paired_batches),
-                try workMulUsize(rows, n_batches),
-                0,
-            );
-            var row_start: usize = 0;
-            while (row_start < rows) {
-                const chunk_len = @min(chunk_rows, rows - row_start);
-                try interaction_witness_work.observeBatchInverse(
-                    counts,
-                    try workMulUsize(n_batches, chunk_len),
-                );
-                row_start += chunk_len;
             }
         }
 
-        fn workDomainSize(log_size: u32) !usize {
-            if (log_size >= @bitSizeOf(usize)) return error.InteractionWorkOverflow;
-            return @as(usize, 1) << @intCast(log_size);
+        fn projectedLegacyGeometry(
+            geometry: native_provider_omit.ProjectedGeometryV1,
+        ) Geometry {
+            return .{
+                .program_log_size = geometry.program_log_size,
+                .merkle_log_size = geometry.merkle_log_size,
+                .poseidon_log_size = 0,
+                .clock_update_log = geometry.clock_update_log,
+                .merkle_infra_index = geometry.merkle_infra_index,
+                .poseidon_infra_index = std.math.maxInt(usize),
+                .clock_infra_index = geometry.clock_infra_index,
+            };
         }
 
-        fn workAddUsize(lhs: usize, rhs: usize) !usize {
-            return std.math.add(usize, lhs, rhs) catch error.InteractionWorkOverflow;
-        }
-
-        fn workMulUsize(lhs: usize, rhs: usize) !usize {
-            return std.math.mul(usize, lhs, rhs) catch error.InteractionWorkOverflow;
-        }
-
-        /// The committed column array, filled strictly front to back.
-        ///
-        /// A prefix counter is enough here (unlike Tree 1, which writes two disjoint
-        /// regions) because interaction columns are appended in declaration order and
-        /// never addressed absolutely.
-        pub const Columns = struct {
-            values: []prover_pcs.ColumnEvaluation,
-            filled: usize,
-            moved: bool,
-
-            pub fn init(allocator: std.mem.Allocator, n_interaction: usize) !Columns {
-                return .{
-                    .values = try allocator.alloc(prover_pcs.ColumnEvaluation, n_interaction),
-                    .filled = 0,
-                    .moved = false,
-                };
-            }
-
-            fn append(self: *Columns, log_size: u32, values: []M31) void {
-                self.values[self.filled] = .{ .log_size = log_size, .values = values };
-                self.filled += 1;
-            }
-
-            pub fn reserveGuest(
-                self: *Columns,
-                allocator: std.mem.Allocator,
-                log_size: u32,
-            ) !guest_interaction.Destinations {
-                const count = guest_interaction.total_column_count;
-                if (self.filled > self.values.len or count > self.values.len - self.filled or
-                    log_size >= @bitSizeOf(usize))
-                {
-                    return error.InvalidTraceShape;
-                }
-                const start = self.filled;
-                const domain_size = @as(usize, 1) << @intCast(log_size);
-                var initialized: usize = 0;
-                errdefer {
-                    for (self.values[start .. start + initialized]) |column| {
-                        allocator.free(@constCast(column.values));
-                    }
-                    self.filled = start;
-                }
-                while (initialized < count) : (initialized += 1) {
-                    self.values[start + initialized] = .{
-                        .log_size = log_size,
-                        .values = try allocator.alloc(M31, domain_size),
-                    };
-                    self.filled += 1;
-                }
-                var result: guest_interaction.Destinations = undefined;
-                for (&result.caller, 0..) |*destination, index| {
-                    destination.* = @constCast(self.values[start + index].values);
-                }
-                const provider_start = start + guest_interaction.caller_column_count;
-                for (&result.provider, 0..) |*destination, index| {
-                    destination.* = @constCast(self.values[provider_start + index].values);
-                }
-                return result;
-            }
-
-            /// Releases the filled prefix only while this array still owns it: after
-            /// `moved` the commitment scheme does.
-            pub fn deinit(self: *Columns, allocator: std.mem.Allocator) void {
-                if (self.moved) return;
-                for (self.values[0..self.filled]) |column| allocator.free(@constCast(column.values));
-                allocator.free(self.values);
-            }
-        };
+        pub const Columns = @import("interaction_columns.zig").Columns;
     };
 }

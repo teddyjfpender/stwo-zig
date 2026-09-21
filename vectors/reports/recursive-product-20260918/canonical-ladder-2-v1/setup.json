@@ -1,0 +1,12 @@
+{
+  "source_admission_sha256": "288c1bf7cac43353792c0d30b4aecc451f61b48d2adc93a57941362940de8a5a",
+  "admission_sha256": "af01545491d3195fecc2b56a536815d21fb7cf2c839930722621464e0c05b6df",
+  "root_proof_created": false,
+  "intermediate_proofs_created": 0,
+  "binaries": {
+    "/tmp/pr198-product-cpu-leaf-setup-20260918-v1/cpu/bin/recursive-segment-v2-concrete-outer-proof": "0c43a32e2a7ea68e887be2d3c8b584b9934023b8f8ec83b6cbf6b048f50c2a25",
+    "/tmp/pr198-product-cpu-leaf-setup-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-prove": "74bb843f622f1004b53a80d4f5a69691ed0ba2e7d87f00d44f9979437e560b81",
+    "/tmp/pr198-product-cpu-leaf-setup-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319"
+  },
+  "retained_admission_sha256": "d7523e61f167db14cf6a86d5531269dcd75a7c7a11bc5694983e5d786eb08cfd"
+}

@@ -1,0 +1,71 @@
+{
+  "version": 2,
+  "scope": "native-root and claim repair accepting gates followed immediately by real segment2 AIR, no proof acceptance",
+  "source_manifest_sha256": "cafe4e94959879fd3b8d4afcd48804842885d69bce06188748251e05f2f5d417",
+  "env": {
+    "STWO_ETHEREUM_NATIVE_REPLAY_DIR": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+    "STWO_ETHEREUM_REAL_MATERIALIZATION_SHA256": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+    "STWO_ETHEREUM_COMPLETION_OPENING_V1": "1",
+    "STWO_ROLE0_GENUINE_WORKER_COUNT": "1",
+    "STWO_ROLE0_GENUINE_HOST_BYTE_BUDGET": "17179869184",
+    "STWO_ETHEREUM_CLAIM_REPLAY_PATH": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-program-wrapper-pair-2-3-v1/9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5.bin",
+    "STWO_ETHEREUM_CLAIM_REPLAY_SHA256": "9b68c1245c337897c3d2a9468b344b951e3b597e3f7e51a6f55f35231461f5c5",
+    "STWO_RECURSION_PUBLIC_SEMANTIC_DIAGNOSTIC": "1"
+  },
+  "steps": [
+    {
+      "name": "claim-routing",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/source/src/frontends/riscv",
+        "test-ethereum-native-root-claim",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "log": "/tmp/ethereum-native-root-v2-claim-routing.log",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 11.808504790998995
+    },
+    {
+      "name": "joint-routing",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/source/src/integrations/riscv_cpu",
+        "test-ethereum-native-root-routing",
+        "test-ethereum-real-claim-boundary",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "log": "/tmp/ethereum-native-root-v2-joint-routing.log",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 36.91840112512
+    },
+    {
+      "name": "real-air",
+      "argv": [
+        "python3",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/zig_serial_build.py",
+        "--cwd",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/native-root-integrated-source-v2/source/src/integrations/riscv_cpu",
+        "test-ethereum-air-preflight",
+        "-Dethereum-proof-strip=true",
+        "-Doptimize=ReleaseSafe",
+        "--summary",
+        "all"
+      ],
+      "log": "/tmp/ethereum-native-root-v2-real-air.log",
+      "status": "passed",
+      "exit_code": 0,
+      "wall_seconds": 1680.503886874998
+    }
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "scope": "canonical native base_component_assembly infrastructure registry; not whole-frontend qualification",
+  "registry_source": "src/frontends/riscv/prover/base_component_assembly.zig",
+  "kinds": [
+    {
+      "kind": "program",
+      "owner": "src/frontends/riscv/air/program/interaction.zig",
+      "status": "typed definition/admission remains"
+    },
+    {
+      "kind": "memory",
+      "owner": "src/frontends/riscv/air/memory_commitment/interaction.zig",
+      "status": "typed definition/admission remains"
+    },
+    {
+      "kind": "merkle",
+      "owner": "src/frontends/riscv/air/memory_commitment/merkle_typed_admission.zig",
+      "status": "independent typed definition; native and cold VM profile admission implemented"
+    },
+    {
+      "kind": "poseidon2",
+      "owner": "src/frontends/riscv/air/lang/typed_poseidon2_authority.zig",
+      "status": "existing typed witness/relation authority; finish direct-equation audit"
+    },
+    {
+      "kind": "clock_update",
+      "owner": "src/frontends/riscv/air/clock_update_component.zig",
+      "status": "typed definition/admission remains"
+    },
+    {
+      "kind": "bitwise",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    },
+    {
+      "kind": "range_check_20",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    },
+    {
+      "kind": "range_check_8_11",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    },
+    {
+      "kind": "range_check_8_8_4",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    },
+    {
+      "kind": "range_check_8_8",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    },
+    {
+      "kind": "range_check_m31",
+      "owner": "src/frontends/riscv/air/lookups/tables/equations.zig",
+      "status": "audit authenticated table schema and common recurrence authority"
+    }
+  ]
+}

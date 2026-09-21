@@ -1,0 +1,10 @@
+{
+  "cpu": {
+    "samples": 3,
+    "median_process_seconds": 9.753617167
+  },
+  "metal": {
+    "samples": 3,
+    "median_process_seconds": 6.782095583
+  }
+}

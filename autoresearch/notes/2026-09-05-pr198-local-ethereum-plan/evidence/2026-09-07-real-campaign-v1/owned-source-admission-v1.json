@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "status": "passed_focused_owned_source_admission",
+  "captured_at_utc": "2026-09-07T15:47:13.852316+00:00",
+  "compiler": "0.15.2",
+  "command": [
+    "/opt/homebrew/opt/python@3.12/bin/python3.12",
+    "scripts/zig_protocol_test.py",
+    "src/prover/pcs_commitments_test_root.zig",
+    "--test-filter",
+    "PCS owned source admission"
+  ],
+  "serialization_lock": "/tmp/stwo-zig-build.lock",
+  "result": {
+    "named_tests_passed": 3,
+    "including_root_tests_passed": 4,
+    "allocation_failure_matrix": {
+      "packing": [
+        false,
+        true
+      ],
+      "coefficient_retention": [
+        "always",
+        "never"
+      ]
+    },
+    "target_tree_append_allocation_forced": true,
+    "backend": "adopting source-arena policy with actual scalar production circle FFT and lifted Blake2 Merkle",
+    "checks": [
+      "every injected allocation failure releases partial ownership without leak/double free",
+      "stable logical column order and identical Merkle root/LDE for packed versus ordinary ownership",
+      "retained coefficients equal and alias one source backing with64-byte aligned group starts",
+      "never retention leaves no coefficient owners and preserves LDE/root",
+      "recorded LDE backing alignment matches original allocation alignment"
+    ]
+  },
+  "retained_failures": [
+    {
+      "log": "ethereum-owned-source-admission-v1.log",
+      "finding": "harness first nonconstant tree deferred; corrected using real constant seed tree"
+    },
+    {
+      "log": "ethereum-owned-source-admission-v2.log",
+      "finding": "actual commitConstant ownership double free on injected allocation failure"
+    },
+    {
+      "log": "ethereum-owned-source-admission-v3.log",
+      "finding": "actual lifted Merkle prev_layer hasher leak when next allocation fails; adjacent first-layer list transfer also corrected"
+    }
+  ],
+  "limitations": [
+    "This validates ownership and exact arithmetic/hash parity on small deterministic fixtures, not real Metal runtime peak or whole-leaf proof speed.",
+    "Packing remains explicitly opt-in; latest16-case CPU/Metal CSP preservation remains a separate required gate."
+  ],
+  "source_files": [
+    {
+      "path": "src/prover/pcs/owned_source_admission_test.zig",
+      "bytes": 8659,
+      "sha256": "327b5afecb9e458e618d44fcbcd84a7fd221e0d63f08137d49afaba5a1d54c3e"
+    },
+    {
+      "path": "src/prover/pcs/backed_columns.zig",
+      "bytes": 5201,
+      "sha256": "6af8a7da4ebaa32483535e6426e8373d833a585c90e42d237d29672ceb0083f4"
+    },
+    {
+      "path": "src/prover/pcs/columns/preparation.zig",
+      "bytes": 29116,
+      "sha256": "82ab9bb22a402886120fd378a38a484a3e90e252fba8ef53bc7e54075460dc73"
+    },
+    {
+      "path": "src/prover/pcs/commit_dispatch.zig",
+      "bytes": 5854,
+      "sha256": "a832492afdcd8c600cd5bca8881f4bb7f8ac5566ba2802cf8523b0a7cc2a3319"
+    },
+    {
+      "path": "src/prover/pcs/commit_ops.zig",
+      "bytes": 20363,
+      "sha256": "2465cad842c37597d650c7533b4c740c24665c24865286255af6918e37f649a3"
+    },
+    {
+      "path": "src/prover/pcs/commitment_tree.zig",
+      "bytes": 18289,
+      "sha256": "2007559d5946a59df46966b120cf326d121b09869e45eb1ca180f69f198d80c9"
+    },
+    {
+      "path": "src/prover/pcs/tree_builders.zig",
+      "bytes": 27024,
+      "sha256": "739141b70f3ac8c173a11183ae0663c1af221d783c7eb1dd058eb615d9256744"
+    },
+    {
+      "path": "src/prover/vcs_lifted/leaves.zig",
+      "bytes": 36935,
+      "sha256": "710b08d3952da984899ff22fbeda7e06cad9dd7cf2b17dcf9cb539e1fcad9fd6"
+    },
+    {
+      "path": "src/prover/vcs_lifted/prover.zig",
+      "bytes": 23042,
+      "sha256": "ca6ab7ce2ddb6653d12a25f01d9aece253054a8efd588339fae7a8fff9b8ef46"
+    },
+    {
+      "path": "src/prover/pcs_commitments_test_root.zig",
+      "bytes": 649,
+      "sha256": "b23198e73821dca54e173833ad2ede3268620026b393cdc9d56184d41222aa7c"
+    }
+  ],
+  "logs": [
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-owned-source-admission-v1.log",
+      "bytes": 2439,
+      "sha256": "2ca87d425ad5fee0237d1a320f5f8da3b95cfe708982a7cc398f3627fabddc70"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-owned-source-admission-v2.log",
+      "bytes": 3593,
+      "sha256": "678408ea693ea607701f198bf4d6c9dc2ca5eaf859fd38e4849fecdb0a63b0ef"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-owned-source-admission-v3.log",
+      "bytes": 11932,
+      "sha256": "62058bcea6634243017008324f9324361e5eb65264e1aac94273b95c12c8a3db"
+    },
+    {
+      "path": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-07-real-campaign-v1/ethereum-owned-source-admission-v4.log",
+      "bytes": 463,
+      "sha256": "d3d0868a50260f2f0c0327f02c60be86c452d6a44f5f3ef082e7a2a1b7ba987f"
+    }
+  ]
+}

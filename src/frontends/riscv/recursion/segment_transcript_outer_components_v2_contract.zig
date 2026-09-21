@@ -360,41 +360,7 @@ pub const Owners = struct {
     }
 };
 
-pub const Parameters = struct {
-    control: [ControlAdapter.PARAMETER_COLUMN_COUNT]M31,
-    transcript_air: [TranscriptAirAdapter.PARAMETER_COLUMN_COUNT]M31,
-    transcript_binding: [TranscriptBindingAdapter.PARAMETER_COLUMN_COUNT]M31,
-    transcript_state: [TranscriptStateAdapter.PARAMETER_COLUMN_COUNT]M31,
-    transcript_word: [TranscriptWordAdapter.PARAMETER_COLUMN_COUNT]M31,
-    transcript_payload: [TranscriptPayloadAdapter.PARAMETER_COLUMN_COUNT]M31,
-    pow_check: [PowCheckAdapter.PARAMETER_COLUMN_COUNT]M31,
-    pow_frame: [PowFrameAdapter.PARAMETER_COLUMN_COUNT]M31,
-    relation_challenge: [RelationChallengeAdapter.PARAMETER_COLUMN_COUNT]M31,
-    verifier_randomness: [VerifierRandomnessAdapter.PARAMETER_COLUMN_COUNT]M31,
-
-    pub fn segmentV2() Parameters {
-        const selectors = control_witness.ProofKind.segment_leaf.selectors();
-        return .{
-            .control = selectors[0..2].*,
-            .transcript_air = .{},
-            .transcript_binding = selectors[0..2].*,
-            .transcript_state = selectors[0..2].*,
-            .transcript_word = selectors[0..2].*,
-            .transcript_payload = selectors[0..2].*,
-            .pow_check = .{},
-            .pow_frame = .{},
-            .relation_challenge = selectors[0..2].* ++ .{
-                M31.fromCanonical(
-                    relation_challenge_witness.AIR_EVALUATION_CHALLENGE_SCOPE,
-                ),
-                M31.fromCanonical(
-                    relation_challenge_witness.VM_PUBLIC_LOGUP_CHALLENGE_SCOPE,
-                ),
-            },
-            .verifier_randomness = selectors[0..2].*,
-        };
-    }
-};
+pub const Parameters = @import("segment_leaf_parameters_v2.zig").TranscriptParameters;
 
 pub fn rowIndex(key: manifest_mod.ComponentKey) usize {
     const index = manifest_mod.keyIndex(key);

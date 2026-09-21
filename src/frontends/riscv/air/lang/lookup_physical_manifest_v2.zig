@@ -20,10 +20,10 @@ pub const FORMAT_VERSION: u16 = 2;
 pub const STATEMENT_FORMAT_VERSION: u16 = 1;
 pub const FAMILY_COUNT: usize = composition.FAMILY_COUNT;
 pub const MAX_BATCHES_PER_FAMILY: usize = composition.MAX_LOOKUP_BATCHES;
-pub const EXPECTED_TOTAL_LOOKUP_ENTRIES: u32 = 242;
-pub const EXPECTED_TOTAL_BATCHES: u32 = 137;
-pub const EXPECTED_TOTAL_INTERACTION_COLUMNS: u32 = 548;
-pub const EXPECTED_TOTAL_MAIN_COLUMNS: u32 = 644;
+pub const EXPECTED_TOTAL_LOOKUP_ENTRIES: u32 = 243;
+pub const EXPECTED_TOTAL_BATCHES: u32 = 138;
+pub const EXPECTED_TOTAL_INTERACTION_COLUMNS: u32 = 552;
+pub const EXPECTED_TOTAL_MAIN_COLUMNS: u32 = 646;
 pub const EXPECTED_TOTAL_PREPROCESSED_COLUMNS: u32 = 34;
 pub const EXPECTED_TOTAL_ADAPTERS: u32 = 34;
 pub const IDENTITY_DOMAIN =
@@ -473,7 +473,7 @@ pub const PINNED_BY_FAMILY: [FAMILY_COUNT]PinnedFamily = .{
     pinned("b65eb0279c680db06f9fe36f4bbf3db1f1c99d913afb5e0a0e00e3a1b0f9abfe", "259a2fff44300e17d6f70c9a69c888e7d128fcfe090d61d04fffc2c3bb9195d2", "1741cedd22a93c0efbceb867bdab33cb4d4ce5b4db7310c9e145d83dc8c43582", "95a53062231763171f323b01f1fe515af4122064473602115b7e2319028696f6", 12, uniformPairs(12, 0)),
     pinned("9e374e33bcc65926240d5181eac52bad8b57b699097a211425715ba372a86f28", "7c4dd5ff50249940d1569ce4caa2bdd241b33390974a9dc2b2415e5ae683491e", "60b9a38deb57f48b7dfd36ba0b1360a3bf8f6607eed4e45b0561708a5995cd28", "c6a245a6f8c5cc3ecfade69e26528daee56ab9201acfbc9f3c15f39635508200", 18, uniformPairs(18, 0)),
     pinned("0677d8ecf741d37f938ae0f77e647e782952fbec11a8f07702e62d6980735dc5", "87a71a7115d1de0eca7e8c2b93e5fd963ae3023c7ed5c4184a297742c2ca6b0c", "90a08d816b29d272d592086ab1f5f8f652a632e7343b4251094afed3cfb91268", "15da2de519c16b0de6e9fcd232d5fde7466f5b258a035f5d2d4192a995332fd9", 8, uniformPairs(8, 0)),
-    pinned("ec8aefea7299e84a480524c3848c1ccc73241caea4e89f983f7c2605e6b04e90", "f235af0b630699c29e61d978bd4189acadc04f5d16fef9344853a0a9c86872d2", "3e956330e88ff263f37312181694296d1516dc03fc3be45ade21e67a6ef41b81", "3115c366d1c493f89aed81c4cb1f7154984aaff9e5e97f636a82c288c9598e80", 16, uniformPairs(16, 0)),
+    pinned("3257ffcf1f911056a0724255043536e7820607159c4ea8b7e490b65dc16b7316", "ddaf97575f7a7948849d1737a87ea1fc107e71e9f377b55fe590d9471493bf94", "cc41f53afcdfe1e36632cb9e653531b9b4193722b39c824ff7a7068319ef8ca3", "74bbe5e0d90e40a7f91bb6cb6c649d31ef3f9f31bc4c46a05d98d9b28deafd4f", 17, uniformPairs(17, 2)),
     pinned("0d93e601535fa7ec6cb6c744afbf72418f12ca68cbbd16dc18a9fea4b33bfce4", "9b96a967bfc76fe1c63fe0fcd1bcb66ece7fbc98dea227815ba9b23b9392879f", "e27f9a8e484a45085b7a9b593c4245fd69a66b4dde4859a78f6a96a77f45c3ee", "eabc7908ba523e3d1c7badb7fe3b334a8ae030e2ed95f5108ccf226d39dd8abd", 16, batchPlan(&.{ .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 1, 2 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 1, 2 } })),
     pinned("00d717cfbaa5ba3f82604ce9fdedd1e3f4de1ede56d3fe09ddd835d3118c0e7b", "c618b7f69fbe50c7ff2c8bae59a35eb347a62e3f24bc019ae7aa70a05181e8a8", "edb107f67652e047bfda901d9f6075ce4924ac04efcd5968cd0643e8de7407aa", "b74dd37ef0dbd0511bc31756c238bd77873a353438461c59f24d0846998f8a78", 22, batchPlan(&.{ .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 1, 2 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 1, 2 } })),
     pinned("a33fd73890a391f954566eac75c54111c3ab5da54f20554ce095f7083b9e3ec2", "48d3f29da4e5f1e221227380fad487704270bbbec858b223bb994ee19b207d4a", "856d68cb81ed0c420d0c5e89302ab61d0c91e7c201a5757932979bea483c039f", "fe4ca39ddf594b544e8e522194512e66a060e142c4cf468488ed7c30d8ef7467", 25, batchPlan(&.{ .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 2, 3 }, .{ 1, 2 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 3 }, .{ 1, 2 }, .{ 1, 3 }, .{ 2, 3 }, .{ 2, 3 } })),

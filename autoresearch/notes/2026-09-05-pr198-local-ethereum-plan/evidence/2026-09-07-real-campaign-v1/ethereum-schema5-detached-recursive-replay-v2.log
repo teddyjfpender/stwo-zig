@@ -1,0 +1,15 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 290s
+test-ethereum-detached-field-transcript
++- Ethereum detached field transcript guard
+   +- run test stderr
+ETHEREUM_DETACHED_WIRE_BOUNDARY actual_payload_to_graph=true limbs=4 mutations=6 fold_admitted=false
+ETHEREUM_DETACHED_COMPOSITION q2=true native_oods_parity=true public_wire_claim_sample_mutations_rejected=true fold_admitted=false nodes=772841
+ETHEREUM_DETACHED_TRANSCRIPT field9_verified=true ordinary_capture_parity=true native_inputs_used=false input_buffers_destroyed=true queries=193 fold_admitted=false
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-detached-field-transcript success
++- Ethereum detached field transcript guard success
+   +- run test 1 passed 2s MaxRSS:82M
+      +- compile test ReleaseSafe native success 42s MaxRSS:1G
+

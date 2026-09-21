@@ -16,31 +16,22 @@ const relations = @import("typed_poseidon2_relations.zig");
 const types = @import("types.zig");
 const witness = @import("typed_poseidon2_witness.zig");
 
-pub const Digest = semantic.Digest;
-
-pub const LAYOUT_DIGEST_FORMAT_VERSION: u16 = 1;
-pub const LAYOUT_DIGEST_DOMAIN_SEPARATOR =
-    "stwo-zig/typed-air/poseidon2-layout/v1";
-
-pub const PROGRAM_IDENTITY_FORMAT_VERSION: u16 = 1;
-pub const PROGRAM_IDENTITY_DOMAIN_SEPARATOR =
-    "stwo-zig/typed-air/poseidon2-program-identity/v1";
-pub const PROGRAM_COMPONENT_ID = "stwo.riscv.poseidon2-m31";
-pub const PROGRAM_IDENTITY_MAGIC = "STWAIRP\x00";
-pub const CANONICAL_SEMANTIC_DIGEST: Digest = golden.semantic;
-pub const CANONICAL_LAYOUT_DIGEST: Digest = golden.layout;
-pub const CANONICAL_EXECUTOR_DIGEST: Digest = golden.executor;
-pub const CANONICAL_RELATION_DIGEST: Digest = golden.relation;
-pub const CANONICAL_COMBINED_DIGEST: Digest = golden.combined;
-pub const CANONICAL_RECEIPT_SHA256: Digest = golden.receipt_sha256;
-
-pub const CANONICAL_PREIMAGE_LEN: usize =
-    PROGRAM_IDENTITY_MAGIC.len +
-    @sizeOf(u16) +
-    @sizeOf(u16) + PROGRAM_COMPONENT_ID.len +
-    4 * (@sizeOf(u8) + @sizeOf(u16) + @sizeOf(Digest)) +
-    3 * @sizeOf(u16);
-pub const RECEIPT_BYTES_LEN: usize = CANONICAL_PREIMAGE_LEN + @sizeOf(Digest);
+const codec = @import("typed_poseidon2_identity_codec.zig");
+pub const Digest = codec.Digest;
+pub const LAYOUT_DIGEST_FORMAT_VERSION = codec.LAYOUT_DIGEST_FORMAT_VERSION;
+pub const LAYOUT_DIGEST_DOMAIN_SEPARATOR = codec.LAYOUT_DIGEST_DOMAIN_SEPARATOR;
+pub const PROGRAM_IDENTITY_FORMAT_VERSION = codec.PROGRAM_IDENTITY_FORMAT_VERSION;
+pub const PROGRAM_IDENTITY_DOMAIN_SEPARATOR = codec.PROGRAM_IDENTITY_DOMAIN_SEPARATOR;
+pub const PROGRAM_COMPONENT_ID = codec.PROGRAM_COMPONENT_ID;
+pub const PROGRAM_IDENTITY_MAGIC = codec.PROGRAM_IDENTITY_MAGIC;
+pub const CANONICAL_SEMANTIC_DIGEST = codec.CANONICAL_SEMANTIC_DIGEST;
+pub const CANONICAL_LAYOUT_DIGEST = codec.CANONICAL_LAYOUT_DIGEST;
+pub const CANONICAL_EXECUTOR_DIGEST = codec.CANONICAL_EXECUTOR_DIGEST;
+pub const CANONICAL_RELATION_DIGEST = codec.CANONICAL_RELATION_DIGEST;
+pub const CANONICAL_COMBINED_DIGEST = codec.CANONICAL_COMBINED_DIGEST;
+pub const CANONICAL_RECEIPT_SHA256 = codec.CANONICAL_RECEIPT_SHA256;
+pub const CANONICAL_PREIMAGE_LEN = codec.CANONICAL_PREIMAGE_LEN;
+pub const RECEIPT_BYTES_LEN = codec.RECEIPT_BYTES_LEN;
 
 pub const LayoutError = compat.ValidationError || relations.Error || error{
     BindingEntryCountMismatch,
@@ -432,25 +423,16 @@ pub fn relationDigest(
 
 /// Self-authenticating composition of the four proof-facing identities.
 pub const ProgramIdentity = struct {
-    semantic_digest: Digest,
-    layout_digest: Digest,
-    executor_digest: Digest,
-    relation_digest: Digest,
-    combined_digest: Digest,
+    const CodecMethods = codec.Methods(@This());
+    semantic_digest: @FieldType(codec.ProgramIdentity, "semantic_digest"),
+    layout_digest: @FieldType(codec.ProgramIdentity, "layout_digest"),
+    executor_digest: @FieldType(codec.ProgramIdentity, "executor_digest"),
+    relation_digest: @FieldType(codec.ProgramIdentity, "relation_digest"),
+    combined_digest: @FieldType(codec.ProgramIdentity, "combined_digest"),
 
-    pub fn canonical() ProgramIdentity {
-        return .{
-            .semantic_digest = CANONICAL_SEMANTIC_DIGEST,
-            .layout_digest = CANONICAL_LAYOUT_DIGEST,
-            .executor_digest = CANONICAL_EXECUTOR_DIGEST,
-            .relation_digest = CANONICAL_RELATION_DIGEST,
-            .combined_digest = CANONICAL_COMBINED_DIGEST,
-        };
-    }
+    pub const canonical = CodecMethods.canonical;
 
-    pub fn isCanonical(self: ProgramIdentity) bool {
-        return std.meta.eql(self, canonical());
-    }
+    pub const isCanonical = CodecMethods.isCanonical;
 
     pub fn fromAuthenticated(
         binding: *const compat.OwnedBinding,
@@ -474,125 +456,19 @@ pub const ProgramIdentity = struct {
 
     /// Low-level fixed composition used by decoders and sensitivity tests.
     /// Callers that possess components should prefer `fromAuthenticated`.
-    pub fn sealDigests(
-        semantic_digest: Digest,
-        layout_digest: Digest,
-        executor_digest: Digest,
-        relation_digest: Digest,
-    ) ProgramIdentity {
-        var result = ProgramIdentity{
-            .semantic_digest = semantic_digest,
-            .layout_digest = layout_digest,
-            .executor_digest = executor_digest,
-            .relation_digest = relation_digest,
-            .combined_digest = undefined,
-        };
-        result.combined_digest = result.computeCombinedDigest();
-        return result;
-    }
+    pub const sealDigests = CodecMethods.sealDigests;
 
-    pub fn validate(self: ProgramIdentity) IdentityError!void {
-        const expected = self.computeCombinedDigest();
-        if (!std.mem.eql(u8, &self.combined_digest, &expected))
-            return error.ProgramIdentityMismatch;
-    }
+    pub const validate = CodecMethods.validate;
 
     /// Canonical bytes hashed by the combined identity. These bytes are the
     /// backend-neutral equality contract; they contain no backend metadata.
-    pub fn preimageBytes(
-        self: ProgramIdentity,
-    ) IdentityError![CANONICAL_PREIMAGE_LEN]u8 {
-        try self.validate();
-        return self.preimageBytesUnchecked();
-    }
+    pub const preimageBytes = CodecMethods.preimageBytes;
 
     /// Self-authenticating transport form: canonical preimage followed by its
     /// combined SHA-256 digest.
-    pub fn receiptBytes(self: ProgramIdentity) IdentityError![RECEIPT_BYTES_LEN]u8 {
-        try self.validate();
-        var result: [RECEIPT_BYTES_LEN]u8 = undefined;
-        const preimage = self.preimageBytesUnchecked();
-        @memcpy(result[0..CANONICAL_PREIMAGE_LEN], &preimage);
-        @memcpy(result[CANONICAL_PREIMAGE_LEN..], &self.combined_digest);
-        return result;
-    }
+    pub const receiptBytes = CodecMethods.receiptBytes;
 
-    pub fn fromReceiptBytes(
-        bytes: *const [RECEIPT_BYTES_LEN]u8,
-    ) IdentityError!ProgramIdentity {
-        var decoder = Decoder{ .bytes = bytes };
-        try decoder.expectBytes(PROGRAM_IDENTITY_MAGIC);
-        if (try decoder.takeInt(u16) != PROGRAM_IDENTITY_FORMAT_VERSION)
-            return error.UnsupportedIdentityEncoding;
-        if (try decoder.takeInt(u16) != @as(u16, @intCast(PROGRAM_COMPONENT_ID.len)))
-            return error.InvalidIdentityEncoding;
-        try decoder.expectBytes(PROGRAM_COMPONENT_ID);
-
-        const semantic_digest = try decoder.takeChild(1, semantic.format_version);
-        const layout_digest = try decoder.takeChild(2, LAYOUT_DIGEST_FORMAT_VERSION);
-        const executor_digest = try decoder.takeChild(
-            3,
-            witness.EXECUTION_DIGEST_FORMAT_VERSION,
-        );
-        const relation_digest = try decoder.takeChild(
-            4,
-            relations.RELATION_DIGEST_FORMAT_VERSION,
-        );
-        if (try decoder.takeInt(u16) != @as(u16, @intCast(compat.N_MAIN_COLUMNS)) or
-            try decoder.takeInt(u16) !=
-                @as(u16, @intCast(relations.N_INTERACTION_COLUMNS)) or
-            try decoder.takeInt(u16) != @as(u16, @intCast(relations.N_SUMS)))
-        {
-            return error.InvalidIdentityEncoding;
-        }
-        const combined_digest = try decoder.takeDigest();
-        if (decoder.cursor != bytes.len) return error.InvalidIdentityEncoding;
-
-        const result = ProgramIdentity{
-            .semantic_digest = semantic_digest,
-            .layout_digest = layout_digest,
-            .executor_digest = executor_digest,
-            .relation_digest = relation_digest,
-            .combined_digest = combined_digest,
-        };
-        try result.validate();
-        return result;
-    }
-
-    fn computeCombinedDigest(self: ProgramIdentity) Digest {
-        const preimage = self.preimageBytesUnchecked();
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(PROGRAM_IDENTITY_DOMAIN_SEPARATOR);
-        hashInt(&hash, u16, PROGRAM_IDENTITY_FORMAT_VERSION);
-        hash.update(&preimage);
-        return hash.finalResult();
-    }
-
-    fn preimageBytesUnchecked(self: ProgramIdentity) [CANONICAL_PREIMAGE_LEN]u8 {
-        var result: [CANONICAL_PREIMAGE_LEN]u8 = undefined;
-        var encoder = Encoder{ .bytes = &result };
-        encoder.putBytes(PROGRAM_IDENTITY_MAGIC);
-        encoder.putInt(u16, PROGRAM_IDENTITY_FORMAT_VERSION);
-        encoder.putInt(u16, @intCast(PROGRAM_COMPONENT_ID.len));
-        encoder.putBytes(PROGRAM_COMPONENT_ID);
-        encoder.putChild(1, semantic.format_version, self.semantic_digest);
-        encoder.putChild(2, LAYOUT_DIGEST_FORMAT_VERSION, self.layout_digest);
-        encoder.putChild(
-            3,
-            witness.EXECUTION_DIGEST_FORMAT_VERSION,
-            self.executor_digest,
-        );
-        encoder.putChild(
-            4,
-            relations.RELATION_DIGEST_FORMAT_VERSION,
-            self.relation_digest,
-        );
-        encoder.putInt(u16, @intCast(compat.N_MAIN_COLUMNS));
-        encoder.putInt(u16, @intCast(relations.N_INTERACTION_COLUMNS));
-        encoder.putInt(u16, @intCast(relations.N_SUMS));
-        std.debug.assert(encoder.cursor == result.len);
-        return result;
-    }
+    pub const fromReceiptBytes = CodecMethods.fromReceiptBytes;
 };
 
 fn executorMatchesBinding(
@@ -657,72 +533,6 @@ fn hashInt(hash: anytype, comptime T: type, value: T) void {
     std.mem.writeInt(T, &encoded, value, .little);
     hash.update(&encoded);
 }
-
-const Encoder = struct {
-    bytes: []u8,
-    cursor: usize = 0,
-
-    fn putBytes(self: *Encoder, value: []const u8) void {
-        @memcpy(self.bytes[self.cursor..][0..value.len], value);
-        self.cursor += value.len;
-    }
-
-    fn putInt(self: *Encoder, comptime T: type, value: T) void {
-        var encoded: [@sizeOf(T)]u8 = undefined;
-        std.mem.writeInt(T, &encoded, value, .little);
-        self.putBytes(&encoded);
-    }
-
-    fn putChild(self: *Encoder, tag: u8, version: u16, value: Digest) void {
-        self.putInt(u8, tag);
-        self.putInt(u16, version);
-        self.putBytes(&value);
-    }
-};
-
-const Decoder = struct {
-    bytes: []const u8,
-    cursor: usize = 0,
-
-    fn expectBytes(self: *Decoder, expected: []const u8) IdentityError!void {
-        const actual = try self.take(expected.len);
-        if (!std.mem.eql(u8, actual, expected))
-            return error.InvalidIdentityEncoding;
-    }
-
-    fn take(self: *Decoder, len: usize) IdentityError![]const u8 {
-        const end = std.math.add(usize, self.cursor, len) catch
-            return error.InvalidIdentityEncoding;
-        if (end > self.bytes.len) return error.InvalidIdentityEncoding;
-        defer self.cursor = end;
-        return self.bytes[self.cursor..end];
-    }
-
-    fn takeInt(self: *Decoder, comptime T: type) IdentityError!T {
-        var encoded: [@sizeOf(T)]u8 = undefined;
-        @memcpy(&encoded, try self.take(encoded.len));
-        return std.mem.readInt(T, &encoded, .little);
-    }
-
-    fn takeDigest(self: *Decoder) IdentityError!Digest {
-        var result: Digest = undefined;
-        @memcpy(&result, try self.take(result.len));
-        return result;
-    }
-
-    fn takeChild(
-        self: *Decoder,
-        expected_tag: u8,
-        expected_version: u16,
-    ) IdentityError!Digest {
-        if (try self.takeInt(u8) != expected_tag or
-            try self.takeInt(u16) != expected_version)
-        {
-            return error.UnsupportedIdentityEncoding;
-        }
-        return self.takeDigest();
-    }
-};
 
 comptime {
     if (compat.N_MAIN_COLUMNS != 445 or

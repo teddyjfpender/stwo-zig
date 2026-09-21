@@ -1,0 +1,19 @@
+{
+  "key_sha256": "a9ff0e1157a7a17406491c319b490b0f313c9fc700e2ed8d72676ca922eadae6",
+  "expected_root_sha256": "b27b0d2ad018ac1d118bf7ec5cae88d8aa014a17462a06d59feec7cc75d67c3f",
+  "source_receipt": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/air-fusion-final-source.json",
+  "source_receipt_sha256": "e61a3d83d1c0df823bb6622886a6e6b1d7e63572796b7e089e03aa766e3280b2",
+  "security_parameters_unchanged": true,
+  "reviewed_geometry_rows": [
+    14,
+    30,
+    34
+  ],
+  "versioned_semantic_digests": [
+    "9359de479b47fc345f0adb457f6eff19359efa6be4ceffb6aff3fbc11fce18e0",
+    "eb8d491f5b07bf17fb4b6b4e7c408da1289dd1907b66926547bd39d204b0f849",
+    "48302838137c822fe11fcafb652257046c41834f2ee1c818d93bf09a166f2871"
+  ],
+  "input_family": "retained legacy parents",
+  "status": "reviewed_fixture_key_requires_fresh_proof_verification"
+}

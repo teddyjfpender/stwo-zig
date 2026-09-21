@@ -23,6 +23,7 @@ pub const Package = enum {
     riscv_metal_integration,
     sm83_metal_integration,
     cairo_metal_integration,
+    artifact_store,
     metal_session,
     proof_wire,
     native_examples,
@@ -59,6 +60,7 @@ const owners = [_]Owner{
     .{ .prefix = "src/integrations/riscv_metal/", .package = .riscv_metal_integration, .dependency_name = "stwo_riscv_metal_integration" },
     .{ .prefix = "src/integrations/sm83_metal/", .package = .sm83_metal_integration, .dependency_name = "stwo_sm83_metal_integration" },
     .{ .prefix = "src/integrations/cairo_metal/", .package = .cairo_metal_integration, .dependency_name = "stwo_cairo_metal_integration" },
+    .{ .prefix = "src/artifact_store/", .package = .artifact_store, .dependency_name = "stwo_artifact_store" },
     .{ .prefix = "src/tools/metal_session/", .package = .metal_session, .dependency_name = "stwo_metal_session" },
     .{ .prefix = "src/interop/proof_wire/", .package = .proof_wire, .dependency_name = "stwo_proof_wire" },
     .{ .prefix = "src/examples/", .package = .native_examples, .dependency_name = "stwo_native_examples" },
@@ -152,6 +154,10 @@ test "canonical owner roots resolve to package dependencies" {
     try std.testing.expectEqual(
         Package.cairo_metal_integration,
         resolve("src/integrations/cairo_metal/mod.zig").?.package,
+    );
+    try std.testing.expectEqual(
+        Package.artifact_store,
+        resolve("src/artifact_store/mod.zig").?.package,
     );
     try std.testing.expectEqual(
         Package.metal_session,

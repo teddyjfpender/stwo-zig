@@ -1,0 +1,320 @@
+Usage: /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig build [steps] [options]
+
+Steps:
+  install (default)            Copy build artifacts to prefix path
+  uninstall                    Remove build artifacts from prefix path
+  package-dist                 Build deterministic dependency-closed Zig package archives
+  stwo-zig                     Build or validate product step stwo-zig
+  test                         Build or validate product step test
+  identity-stwo-zig            Build or validate product step identity-stwo-zig
+  stwo-core                    Build or validate product step stwo-core
+  test-stwo-core               Build or validate product step test-stwo-core
+  identity-stwo-core           Build or validate product step identity-stwo-core
+  stwo-prover                  Build or validate product step stwo-prover
+  test-stwo-prover             Build or validate product step test-stwo-prover
+  identity-stwo-prover         Build or validate product step identity-stwo-prover
+  stwo-native-cpu              Build or validate product step stwo-native-cpu
+  test-native-cpu-product      Build or validate product step test-native-cpu-product
+  benchmark-native-cpu         Build or validate product step benchmark-native-cpu
+  stwo-zig-riscv-cpu           Build or validate product step stwo-zig-riscv-cpu
+  test-riscv-cpu-product       Build or validate product step test-riscv-cpu-product
+  stwo-native-metal            Build or validate product step stwo-native-metal
+  test-native-metal            Build or validate product step test-native-metal
+  native-proof-bench-metal     Build or validate product step native-proof-bench-metal
+  stwo-cairo-cpu               Build or validate product step stwo-cairo-cpu
+  test-cairo-cpu-product       Build or validate product step test-cairo-cpu-product
+  stwo-cairo-metal             Build or validate product step stwo-cairo-metal
+  test-cairo-metal-product     Build or validate product step test-cairo-metal-product
+  stwo-riscv-metal             Build or validate product step stwo-riscv-metal
+  test-riscv-metal             Build or validate product step test-riscv-metal
+  riscv-metal-bench            Build or validate product step riscv-metal-bench
+  stwo-native-cuda             Build or validate product step stwo-native-cuda
+  run-native-cuda-smoke        Build or validate product step run-native-cuda-smoke
+  benchmark-native-cuda        Build or validate product step benchmark-native-cuda
+  stwo-cairo-cuda              Build or validate product step stwo-cairo-cuda
+  test-cairo-cuda-product      Build or validate product step test-cairo-cuda-product
+  benchmark-cairo-cuda-sn2     Build or validate product step benchmark-cairo-cuda-sn2
+  stwo-riscv-cuda              Build or validate product step stwo-riscv-cuda
+  product-matrix-identity      Build or validate product step product-matrix-identity
+  architecture-gate            Produce one host-local BG-15 architecture receipt
+  architecture-verify          Verify Linux and macOS BG-15 receipts in the trusted workflow
+  build-monorepo-baseline      Validate the immutable pre-migration build-architecture baseline
+  test-downstream-modules      Compile and run a clean external consumer of stwo_core, stwo_prover, and stwo
+  interop-cli                  Build the proof interoperability CLI
+  metal-core-aot               Build the deterministic, fail-closed core Metal AOT tool
+  test-metal-core-aot          Run deterministic core Metal AOT tooling tests without compiling shaders
+  test-metal-polynomial-runtime Run focused resident-polynomial codegen and quotient tests
+  metal-core-aot-probe         Build the authenticated Native core metallib acceptance probe
+  test-metal-core-aot-probe    Run Native core metallib probe contract tests without compiling shaders
+  metal-core-aot-acceptance    Build, authenticate, and inspect the linked Native core metallib
+  cuda-source-closure          Verify the exact pinned CUDA/C++ source authority
+  cuda-authority-materialize   Fetch and authenticate the audit-only upstream CUDA workspace
+  cuda-cumetal-ledger          Validate the checked CuMetal compatibility ledger
+  cuda-cumetal-portability     Translate the maintained CUDA device-code portability floor with CuMetal
+  cuda-cumetal-audit           Ratchet CUDA translation and Apple-GPU execution evidence with CuMetal
+  cuda-cumetal-native-archive  Build the authenticated Native CuMetal provider archive
+  run-native-cumetal-smoke     Prove and verify Native wide Fibonacci on the Apple GPU
+  cuda-native-aot              Generate authenticated Native CUDA AOT sources in Zig's build cache
+  cuda-cairo-eval-aot          Generate authenticated Cairo CUDA eval sources in Zig's build cache
+  cuda-build-plan              Validate and print the isolated native CUDA archive build plan
+  test-cuda-build-plan         Test CUDA source, AOT, toolchain, and build-plan contracts without a GPU
+  test-cuda-runtime-contract   Test proof-owned CUDA context, residency, and strict-AOT contracts
+  cuda-native-ec-composite-oracle Emit the canonical Zig SIMD receipt for the native EC consumer
+  test-cuda-plonk-logup-contract Test activation-disabled exact Plonk/LogUp CUDA contracts
+  test-cuda-xor-logup-contract Test exact XOR/LogUp CUDA contracts without a GPU
+  test-cuda-state-machine-contract Test activation-disabled exact State Machine v2 CUDA contracts
+  test-cuda-poseidon-arena-contract Test exact Poseidon CUDA arena contracts without a GPU
+  test-cuda-blake-exact-structure Test exact mixed-height Blake CUDA contracts without a GPU
+  test-cuda-adapter            Compile and test the external-authority Native proof adapter
+  cuda-native-archive          Build the exact static CUDA runtime and generated AOT pack
+  cuda-native-adapter          Build the external-authority Native CUDA proof adapter
+  cairo-input                  Build adapted Cairo input inspector
+  cairo-air-bundle-inspector   Build official Cairo AIR bundle inspector
+  cairo-zkvm-fixtures          Derive the zkvm basket ProverInputs through the pinned Cairo VM adapter
+  cairo-csp-fixtures           Validate exact Cairo CSP sources and derive review candidates
+  cairo-csp-runnable           Require cryptographically linked exact Cairo CSP proof fixtures
+  test-cairo-cpu-oracle        Prove through the CPU CLI and require official Rust acceptance
+  test-cairo-metal-oracle      Require exact Cairo CPU/Metal parity and official Rust acceptance
+  test-cairo-frontend          Run focused backend-neutral Cairo conformance tests
+  test-cairo-cpu-air           Run Cairo CPU AIR integration tests
+  test-cairo-cpu-proof         Run the complete official Cairo CPU proof gate
+  riscv-opcode-manifest        Dump the Sail-authoritative opcode and proof-family policy as JSON
+  riscv-opcode-manifest-check  Validate stable RV32IM protocol IDs and proof classifications
+  test-riscv                   Run RISC-V runner tests (trace_dump)
+  test-riscv-prover            Run RISC-V prover tests (prove+verify)
+  riscv-bench                  Build RISC-V benchmark CLI
+  test-riscv-bench             Run focused RISC-V benchmark CLI contract tests
+  native-proof-bench-cpu       Build the machine-readable native CPU full-proof benchmark with SIMD hot paths
+  riscv-trace-dump             Build RISC-V trace dumper CLI
+  riscv-pc-hotspot-observer    Build the bounded RISC-V retirement PC-hotspot observer
+  riscv-function-value-observer Build the bounded RISC-V function-load value observer
+  riscv-analyze-legacy-semantic-observer Build the bounded Revm-42 analyze_legacy semantic observer
+  riscv-memcpy-hotspot-observer Build the bounded RISC-V memcpy-call hotspot observer
+  riscv-memcpy-admission-observer Build the exact RISC-V bulk-memcpy admission observer
+  riscv-poseidon2-pair-check   Build the C-013 software/precompile semantic checker
+  check-c013-poseidon2-pair    Build and semantically validate the exact C-013 guest pair
+  riscv-poseidon2-pair-proof   Build the one-shot C-013 CPU proof comparison
+  check-c013-poseidon2-cpu-proof Run one verified CPU proof for each exact C-013 arm
+  riscv-poseidon2-proof-child  Build the fresh-process single-arm C-013 CPU proof child
+  check-c013-poseidon2-proof-child Run one fresh functional CPU child for each exact C-013 arm
+  riscv-c013-aa-proof-child    Build the fresh-process C-013 A/A admission child
+  check-c013-aa-proof-child    Run one fresh functional C-013 A/A child diagnostic
+  riscv-c013-corpus-manifest   Build exact C-013 host-native corpus manifest generator
+  check-c013-corpus-manifest   Generate all frozen C-013 input/output identities
+  stwo-zig-riscv-cpu-static    Build the static x86_64-linux-musl RISC-V CPU challenge executable
+  test-riscv-prover-core       Run the RISC-V prover corpus without the separately retained committed-witness mutation suites
+  test-riscv-planned-tree1     Run exact predecessor versus N=1/2/4 full-proof pool parity
+  test-riscv-proof-pool-parity Run exact Tree-1/Tree-2/quotient/opening pool parity and recovery
+  test-riscv-profile-partition Run exact five-region witness/proving partition and report custody
+  test-riscv-memory-provider-shard Prove and freshly verify research-only base Poseidon provider shards
+  test-riscv-degree-bounded-poseidon-proof Prove and cold fresh-verify the degree-six Poseidon candidate
+  benchmark-riscv-degree-bounded-poseidon Benchmark legacy 445-column versus degree-six 161-column Poseidon proofs
+  test-riscv-degree5-poseidon-proof Prove and cold fresh-verify the degree-five Poseidon candidate
+  test-riscv-degree5-provider-proof Prove and cold fresh-verify one retained degree-five provider shard
+  benchmark-riscv-degree5-poseidon Benchmark legacy 445-column versus degree-five 239-column Poseidon proofs
+  riscv-memory-provider-shard-log18 Compile the research log18 provider benchmark boundary without running it
+  test-riscv-recursion-poseidon-leaf Prove and verify one RISC-V leaf under the recursion Poseidon2 protocol
+  test-riscv-recursion-ingress Validate production-derived recursive public ingress without proving
+  test-riscv-recursion-typed-control Prove and independently verify the typed universal-control adapter
+  test-riscv-release-exhaustive Run the exhaustive RISC-V proof and adversarial release suites
+  test-riscv-sail-oracle       Run the sail_oracle self-check and forged-trace rejection against the pinned Sail oracle
+  test-riscv-rigidity          Run the full witness-rigidity sweep over every committed opcode column
+  test-riscv-air-satisfaction-export Export committed traces for the independent AIR satisfaction checker
+  test-riscv-air-satisfaction  Export and independently check all RISC-V AIR main-trace components
+  riscv-refinement-ir          Export symbolic AIR and production AIR IR v2 for Lean refinement
+  riscv-refinement-pilot       Verify the 46-opcode FV-1/FV-2 publication evidence
+  riscv-csp-bench              Run the pinned EthProofs CSP benchmark matrix
+  riscv-recursion-csp-producer Build the canonical one-workload recursive CSP producer
+  riscv-recursion-shape-inspector Build the proof-independent canonical workload shape inspector
+  stwo-ethereum-block-proof    Build the streamed Ethereum segment proof producer/verifier
+  riscv-csp-bench-metal        Run the pinned EthProofs CSP benchmark matrix on Metal
+  test-riscv-metal-recursive-aot Check or regenerate the exact recursive typed AIR AOT catalog without proving
+  test-riscv-metal-recursive-resident Check admitted recursive AOT dispatch against native AIR and hostile bindings
+  test-riscv-metal-guest-poseidon2-aot Prove and independently verify the exact guest Poseidon2 profile on authenticated Metal AOT
+  metal-arena-plan             Build sparse Metal arena planner
+  metal-arena-session          Build persistent Metal SN PIE prover session
+  metal-prover-session-test    Run persistent Metal prover-session unit tests
+  metal-recovery-bench         Build Metal recovery storage benchmark
+  metal-ec-op-bench            Build resident Metal EC-op benchmark
+  metal-compact-bench          Build resident Metal compaction benchmark
+  cairo-streaming-commitment-bench Build bounded production-callsite Cairo Metal commitment benchmark
+  cairo-streaming-commitment-test Run bounded production-callsite Cairo Metal commitment parity test
+  metal-eval-prepare           Compile exact SN Cairo AIR programs for Metal
+  metal-eval-source            Build the exact Cairo AIR Metal source generator
+  metal-witness-source         Build the exact Cairo witness Metal source generator
+  metal-test                   Run resident Metal backend parity tests
+  metal-check                  Compile and link resident Metal backend tests without executing them
+  test-metal-resident-decommit Run focused resident Metal Merkle decommit parity tests
+  metal-bench                  Build resident Metal commitment benchmark
+  metal-circle-lde-bench       Build isolated Metal circle-LDE benchmark
+  cuda-test                    Unavailable compatibility alias; CUDA now requires an explicit product toolchain
+  riscv-release-gate           Run the staged CLI and validate committed Sail/Spike evidence
+  deep-gate                    Run expanded deep graph coverage
+  vectors                      Validate committed parity vectors
+  interop                      Run interoperability harness (Rust <-> Zig proof exchange)
+  prove-checkpoints            Run prove/prove_ex checkpoint harness (Rust -> Zig/Rust verification)
+  bench-native-holistic-smoke  Run cheap non-headline CPU/Metal parity over the holistic native suite
+  bench-smoke                  Run benchmark smoke harness and emit report
+  bench-kernels                Run targeted kernel benchmark harness
+  bench-strict                 Run strict benchmark harness (base + medium workloads, stabilized samples)
+  bench-opt                    Run optimization-track benchmark harness (native CPU)
+  bench-opt-binary-codec       Run optimization-track benchmark with binary internal proof codec (non-default)
+  bench-contrast               Run heavy contrast benchmark harness
+  bench-contrast-long          Run long contrast benchmark harness
+  bench-targeted-families      Run the benchmark family regression gate
+  bench-pages                  Render static benchmark pages assets
+  bench-full                   Run the full benchmark suite
+  bench-pages-validate         Validate static benchmark pages assets are current
+  profile-smoke                Run profiling smoke harness and emit report
+  profile-opt                  Run optimization-track profile harness
+  profile-contrast             Run larger contrast profile harness
+  profile-contrast-long        Run long contrast profile harness
+  merkle-worker-stress         Run deterministic Merkle worker stress checks
+  opt-gate                     Run optimization acceptance gate
+  std-shims-smoke              Build freestanding verifier profile shim
+  std-shims-behavior           Validate std-shims verifier behavior parity
+  release-evidence             Generate canonical release evidence manifest
+  fmt                          Check formatting
+  api-parity                   Validate API parity ledger coverage
+  upstream-pins                Validate upstream pin carriers
+  source-conformance           Reject source conformance regressions
+  package-workspace            Audit package ownership, API, and dependency boundaries
+  upstream-surface             Validate upstream API surface
+  build-configure-closure      Verify focused configure closure
+  registry-parity              Compare focused and aggregate registries
+  release-gate                 Run the standard release gate
+  release-gate-strict          Run the strict release gate
+
+General Options:
+  -p, --prefix [path]          Where to install files (default: zig-out)
+  --prefix-lib-dir [path]      Where to install libraries
+  --prefix-exe-dir [path]      Where to install executables
+  --prefix-include-dir [path]  Where to install C header files
+
+  --release[=mode]             Request release mode, optionally specifying a
+                               preferred optimization mode: fast, safe, small
+
+  -fdarling,  -fno-darling     Integration with system-installed Darling to
+                               execute macOS programs on Linux hosts
+                               (default: no)
+  -fqemu,     -fno-qemu        Integration with system-installed QEMU to execute
+                               foreign-architecture programs on Linux hosts
+                               (default: no)
+  --libc-runtimes [path]       Enhances QEMU integration by providing dynamic libc
+                               (e.g. glibc or musl) built for multiple foreign
+                               architectures, allowing execution of non-native
+                               programs that link with libc.
+  -frosetta,  -fno-rosetta     Rely on Rosetta to execute x86_64 programs on
+                               ARM64 macOS hosts. (default: no)
+  -fwasmtime, -fno-wasmtime    Integration with system-installed wasmtime to
+                               execute WASI binaries. (default: no)
+  -fwine,     -fno-wine        Integration with system-installed Wine to execute
+                               Windows programs on Linux hosts. (default: no)
+
+  -h, --help                   Print this help and exit
+  -l, --list-steps             Print available steps
+  --verbose                    Print commands before executing them
+  --color [auto|off|on]        Enable or disable colored error messages
+  --prominent-compile-errors   Buffer compile errors and display at end
+  --summary [mode]             Control the printing of the build summary
+    all                        Print the build summary in its entirety
+    new                        Omit cached steps
+    failures                   (Default) Only print failed steps
+    none                       Do not print the build summary
+  -j<N>                        Limit concurrent jobs (default is to use all CPU cores)
+  --maxrss <bytes>             Limit memory usage (default is to use available memory)
+  --skip-oom-steps             Instead of failing, skip steps that would exceed --maxrss
+  --fetch[=mode]               Fetch dependency tree (optionally choose laziness) and exit
+    needed                     (Default) Lazy dependencies are fetched as needed
+    all                        Lazy dependencies are always fetched
+  --watch                      Continuously rebuild when source files are modified
+  --debounce <ms>              Delay before rebuilding after changed file detected
+  --webui[=ip]                 Enable the web interface on the given IP address
+  --fuzz                       Continuously search for unit test failures (implies '--webui')
+  --time-report                Force full rebuild and provide detailed information on
+                               compilation time of Zig source code (implies '--webui')
+     -fincremental             Enable incremental compilation
+  -fno-incremental             Disable incremental compilation
+
+Project-Specific Options:
+  -Dtarget=[string]            The CPU architecture, OS, and ABI to build for
+  -Dcpu=[string]               Target CPU features to add or subtract
+  -Dofmt=[string]              Target object format
+  -Ddynamic-linker=[string]    Path to interpreter on the target system
+  -Doptimize=[enum]            Prioritize performance, safety, or binary size
+                                 Supported Values:
+                                   Debug
+                                   ReleaseSafe
+                                   ReleaseFast
+                                   ReleaseSmall
+  -Dpackage-dist-dir=[string]  Directory for deterministic Zig source package archives
+  -Dpackage-dist-allow-dirty=[bool] Allow local diagnostic archives from a dirty source tree
+  -Dimplementation-commit=[string] Exact lowercase 40-hex source commit embedded in the production CLI
+  -Dimplementation-dirty=[bool] Whether the source embedded in the production CLI has local modifications
+  -Dimplementation-tree=[string] Exact lowercase 40-hex source tree for an identity override
+  -Dimplementation-dirty-content-sha256=[string] Canonical dirty-content digest required for a diagnostic dirty override
+  -Daggregate-metal=[bool]     Explicitly link Metal into aggregate test roots
+  -Driscv-release-phase=[string] RISC-V release phase: candidate or promoted
+  -Driscv-evidence-dir=[string] Fresh RISC-V release evidence directory
+  -Driscv-refinement-ir-dir=[string] Fresh output directory for the RISC-V symbolic AIR extractor
+  -Driscv-air-program-ir-dir=[string] Fresh output directory for production AIR IR v2
+  -Dcuda-nvcc=[string]         Explicit nvcc executable
+  -Dcuda-host-cxx=[string]     Explicit nvcc host C++ compiler
+  -Dcuda-host-runtime=[string] Absolute GNU C++ runtime shared-library path
+  -Dcuda-host-unwind-runtime=[string] Absolute GNU C++ unwind runtime shared-library path
+  -Dcuda-ar=[string]           Explicit static archiver
+  -Dcuda-home=[string]         Explicit CUDA toolkit root
+  -Dcuda-library-dir=[string]  Explicit CUDA library directory
+  -Dcuda-arch=[string]         Comma-separated numeric CUDA SM targets
+  -Dcuda-build-jobs=[int]      Maximum parallel nvcc processes
+  -Dcuda-cumetal-clang=[string] Explicit Clang CUDA frontend for the CuMetal provider
+  -Dcuda-cumetalc=[string]     Explicit CuMetal compiler for the optional macOS CUDA portability lane
+  -Dcuda-cumetal-root=[string] Pinned CuMetal checkout used by the optional macOS audit lane
+  -Dcuda-cumetal-library=[string] Explicit CuMetal runtime dynamic library
+  -Dcuda-cumetal-ar=[string]   Explicit Darwin archiver for the CuMetal provider
+  -Dcuda-air-inspect=[string]  Explicit CuMetal air_inspect executable
+  -Dcuda-air-validate=[string] Explicit CuMetal air_validate executable
+  -Dmetal-core-aot-bundle=[string] Authenticated core Metal AOT bundle consumed by production Metal products
+  -Dcairo-test-filter=[string] Compile and run Cairo tests whose names contain this text
+  -Driscv-test-filter=[string] Run RISC-V tests whose names contain this text
+
+System Integration Options:
+  --search-prefix [path]       Add a path to look for binaries, libraries, headers
+  --sysroot [path]             Set the system root directory (usually /)
+  --libc [file]                Provide a file which specifies libc paths
+
+  --system [pkgdir]            Disable package fetching; enable all integrations
+  -fsys=[name]                 Enable a system integration
+  -fno-sys=[name]              Disable a system integration
+
+  Available System Integrations:                Enabled:
+  (none)                                        -
+
+Advanced Options:
+  -freference-trace[=num]      How many lines of reference trace should be shown per compile error
+  -fno-reference-trace         Disable reference trace
+  -fallow-so-scripts           Allows .so files to be GNU ld scripts
+  -fno-allow-so-scripts        (default) .so files must be ELF files
+  --build-file [file]          Override path to build.zig
+  --cache-dir [path]           Override path to local Zig cache directory
+  --global-cache-dir [path]    Override path to global Zig cache directory
+  --zig-lib-dir [arg]          Override path to Zig lib directory
+  --build-runner [file]        Override path to build runner
+  --seed [integer]             For shuffling dependency traversal order (default: random)
+  --build-id[=style]           At a minor link-time expense, embeds a build ID in binaries
+      fast                     8-byte non-cryptographic hash (COFF, ELF, WASM)
+      sha1, tree               20-byte cryptographic hash (ELF, WASM)
+      md5                      16-byte cryptographic hash (ELF)
+      uuid                     16-byte random UUID (ELF, WASM)
+      0x[hexstring]            Constant ID, maximum 32 bytes (ELF, WASM)
+      none                     (default) No build ID
+  --debug-log [scope]          Enable debugging the compiler
+  --debug-pkg-config           Fail if unknown pkg-config flags encountered
+  --debug-rt                   Debug compiler runtime libraries
+  --verbose-link               Enable compiler debug output for linking
+  --verbose-air                Enable compiler debug output for Zig AIR
+  --verbose-llvm-ir[=file]     Enable compiler debug output for LLVM IR
+  --verbose-llvm-bc=[file]     Enable compiler debug output for LLVM BC
+  --verbose-cimport            Enable compiler debug output for C imports
+  --verbose-cc                 Enable compiler debug output for C compilation
+  --verbose-llvm-cpu-features  Enable compiler debug output for LLVM CPU features

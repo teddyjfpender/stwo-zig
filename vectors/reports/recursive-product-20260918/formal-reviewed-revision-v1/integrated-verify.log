@@ -1,0 +1,5 @@
+checked 60 byte-identical refinement artifacts
+refinement coverage: 2/46 opcodes (lui, addi); tier=level-1-normalized-pilot
+negative controls: lui-free-low-limb=passed, addi-free-high-carry=passed
+team A axiom bindings: 24 certificate inventories match the live kernel audit
+refinement verified: fresh artifacts, exact 24/24 production-AIR and 46/46 certificate coverage, negative controls, unit tests, Lean build, and axiom audit; 46/46 normalized retirements, 46/46 publication implications; whole_frontend_verified=false; proof_system_soundness=false

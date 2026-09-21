@@ -1,0 +1,70 @@
+1/64 leaf_manifest_contract_test_root.test.pure leaf manifest admits the independently pinned q193 key...OK
+2/64 recursion.air.universal_roster.test.R-012 universal roster pins exact order and honest completion layers...OK
+3/64 recursion.air.universal_roster.test.R-012 no universal row remains unresolved...OK
+4/64 recursion.air.universal_roster.test.R-012 authenticated providers close rows without duplicate typed ownership...OK
+5/64 air.memory_commitment.poseidon2_universal_identity_v2.test.compact Poseidon canonical identity records production equations deterministically...COMPACT_POSEIDON_CANONICAL_V2=e37c589fabffa3711c41c6cb259e68303543bc36edcef3d5be5caec7459f8ddf
+OK
+6/64 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical relation combination matches native extension-field challenges...OK
+7/64 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical Poseidon identity changes for constraints lookups interactions and geometry...OK
+8/64 air.memory_commitment.poseidon2_universal_identity_v2.test.canonical Poseidon admission requires explicit legacy compatibility...OK
+9/64 recursion.air.verifier_schedule.test.R-012 verifier schedule pins all 28 exact step encodings...OK
+10/64 recursion.air.verifier_schedule.test.R-012 verifier plan derives full query FRI and closure schedule from authority...OK
+11/64 recursion.air.verifier_schedule.test.R-012 frozen verifier programs separate VM and universal relation domains...OK
+12/64 recursion.air.verifier_schedule.test.R-012 verifier plan detects schedule mutation omission and extension...OK
+13/64 recursion.air.verifier_schedule.test.R-012 candidate schedule is domain-separated without changing frozen V1...OK
+14/64 recursion.air.verifier_schedule.test.R-012 verifier schedule releases every allocation failure...OK
+15/64 air.extract.symbolic.test.symbolic scalar interns structurally equal subexpressions once...OK
+16/64 air.extract.symbolic.test.symbolic replay reproduces field arithmetic including wraparound...OK
+17/64 air.relation_challenges.test.relation challenges: combine matches Stark-V alpha-power convention...OK
+18/64 air.relation_challenges.test.relation challenges: bulk draw matches twelve oracle pair draws...OK
+19/64 air.relation_challenges.test.relation challenges: writeDraws preserves schema order...OK
+20/64 air.relation_challenges.test.relation challenges: default-channel limbs match pinned Stark-V...OK
+21/64 air.lookups.entry.test.lookup entry domains retain transcript order...OK
+22/64 air.lookups.entry.test.lookup entry arities cover all twelve relation domains and fail closed...OK
+23/64 recursion.fixed_profile.test.recursion fixed profile: fold-four schedule is exact...OK
+24/64 recursion.fixed_profile.test.recursion fixed profile: partial final fold and paths are derived...OK
+25/64 recursion.fixed_profile.test.recursion fixed profile: fold-two parent reaches seventeen rounds...OK
+26/64 recursion.fixed_profile.test.recursion fixed profile: proof-selected geometry rejects...OK
+27/64 recursion.fixed_profile.test.recursion fixed profile: invalid schedules fail closed...OK
+28/64 recursion.poseidon2_channel.test.recursion Poseidon2: canonical Stark-V conformance vector...OK
+29/64 recursion.poseidon2_channel.test.recursion Poseidon2: incremental canonical hashing matches concatenation...OK
+30/64 recursion.poseidon2_channel.test.recursion Poseidon2: canonical channel slice boundaries are transparent...OK
+31/64 recursion.poseidon2_channel.test.recursion Poseidon2: parameter identity is deterministic and nonzero...
+  R-011 Poseidon2 parameters={ 1552978421, 1023370636, 374843654, 773724958, 693890342, 438823919, 709179351, 1509913758 }
+OK
+32/64 recursion.poseidon2_channel.test.recursion Poseidon2: channel draws are deterministic indexed and non-mutating...OK
+33/64 recursion.poseidon2_channel.test.recursion Poseidon2: unrestricted u32 encoding is injective across p...OK
+34/64 recursion.poseidon2_channel.test.recursion Poseidon2: byte hashing binds length and trailing zeros...OK
+35/64 recursion.poseidon2_channel.test.recursion Poseidon2: leaf and node domains are separated...OK
+36/64 recursion.poseidon2_channel.test.recursion Poseidon2: SIMD nodes preserve canonical scalar hashes...OK
+37/64 recursion.poseidon2_channel.test.recursion Poseidon2: SIMD packed direct and incremental leaves match scalar...OK
+38/64 recursion.poseidon2_channel.test.recursion Poseidon2: lifted Merkle contract and packed leaves...OK
+39/64 recursion.poseidon2_channel.test.recursion Poseidon2: PoW search returns the canonical lowest nonce...OK
+40/64 recursion.poseidon2_channel.test.poseidon2 channel proof-of-work prefix replay matches verifyPowNonce...OK
+41/64 recursion.protocol.test.recursion protocol: profile and identifiers are frozen...
+  R-011 V1: protocol={ 369535897, 1353874838, 1147415759, 568299296, 1554543833, 1672540135, 1992443198, 914248870 } relation_domain={ 1306696982, 1726603315, 1397393048, 902790331, 1854055429, 843052026, 1890344447, 149606425 } configured_pcs_bits=209 target_bits=120
+OK
+42/64 recursion.protocol.test.recursion protocol: canonical child identity domains are separated...OK
+43/64 recursion.protocol.test.recursion protocol: security identity binds parameters and transcript draws...OK
+44/64 recursion.protocol.test.recursion protocol: core and provider leaves fold canonically...OK
+45/64 recursion.protocol.test.recursion protocol: swapped duplicated and non-adjacent leaves reject...OK
+46/64 recursion.protocol.test.recursion protocol: cross-session/challenge and unclosed relations reject...OK
+47/64 recursion.protocol.test.recursion protocol: empty relation and protocol authority are exact...OK
+48/64 air.memory_commitment.poseidon2.test.memory Poseidon2: pinned default hash chain...OK
+49/64 air.memory_commitment.poseidon2.test.memory Poseidon2: four transposed full states match scalar permutations...OK
+50/64 air.memory_commitment.poseidon2.test.memory Poseidon2: scalar pair vector is stable...OK
+51/64 air.memory_commitment.poseidon2.test.memory Poseidon2: four-lane hashes equal scalar hashes...OK
+52/64 air.public_data.test.public data: versioned transcript preserves pinned Stark-V field order...OK
+53/64 air.public_data.test.public data: absent roots and empty input preserve versioned field calls...OK
+54/64 air.public_data.test.public data: statement transcript version is a nonzero domain prefix...OK
+55/64 air.public_data.test.public data: pack input words is little endian with zero padding...OK
+56/64 air.public_data.test.public data: validator accepts the pinned input and output shape...OK
+57/64 air.public_data.test.public data: validator rejects missing root and malformed input...OK
+58/64 air.public_data.test.public data: validator rejects malformed output structure...OK
+59/64 air.public_data.test.public data: empty output forms retain the pinned segment distinction...OK
+60/64 air.public_data.test.public data: output regions use checked, non-overlapping addresses...OK
+61/64 air.public_data.test.public data: unaligned output length is outside the supported proof profile...OK
+62/64 isa.profile.test.RV32IM zkVM profile fixes alignment and extension surface...OK
+63/64 access_clock.test.access clock: instruction buckets are ordered and reserve every fourth value...OK
+64/64 access_clock.test.access clock: public execution bound includes the last actual ordinal...OK
+All 64 tests passed.

@@ -1,0 +1,8 @@
+test-riscv-metal-recursive-resident
++- run test stderr
+FRAMEWORK_RESIDENT_AOT air=recursion.qm31_mul_add.v1 manifest=0e8b67dc70c8d699ba155f16a6fedcd8541c4615326796c7c120c62a64646403 rows=16 dispatches=2 coordinates=64 negative_controls=6 gpu_ms=0.187
+
+Build Summary: 2/2 steps succeeded
+test-riscv-metal-recursive-resident success
++- run /opt/homebrew/Cellar/zig/0.15.2/bin/zig success 19s MaxRSS:964M
+

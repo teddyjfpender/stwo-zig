@@ -1,0 +1,96 @@
+{
+  "recorded_at": "2026-09-08T07:52:37.781200+00:00",
+  "status": "after_producer_preparation_complete_tree2_and_independent_cold_pass_pending",
+  "before_source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "after_source_manifest_sha256": "c6652c850b088bf75ef3fb0d750218b9c99f1fab473b545304c2a1532bbba3c1",
+  "phase_comparison": {
+    "ETHEREUM_ROOT_COHORT": {
+      "prepare": {
+        "before_ns": 1795987445292,
+        "after_ns": 1623176270334,
+        "reduction_percent": 9.622070321872632
+      }
+    },
+    "ETHEREUM_COHORT_RESOURCES": {
+      "begin": {
+        "before_ns": 42,
+        "after_ns": 0,
+        "reduction_percent": 100.0
+      },
+      "geometry-ready": {
+        "before_ns": 305984362375,
+        "after_ns": 91608483208,
+        "reduction_percent": 70.0610572066657
+      },
+      "prefix-rows": {
+        "before_ns": 26206997041,
+        "after_ns": 26584263917,
+        "reduction_percent": -1.4395654542555112
+      },
+      "suffix-rows": {
+        "before_ns": 231013831334,
+        "after_ns": 234298244083,
+        "reduction_percent": -1.4217385729824086
+      },
+      "provider-main": {
+        "before_ns": 41646244541,
+        "after_ns": 42286527167,
+        "reduction_percent": -1.5374318454324325
+      },
+      "ledger-begin": {
+        "before_ns": 207584,
+        "after_ns": 887333,
+        "reduction_percent": -327.4573184831201
+      },
+      "ledger-reserved": {
+        "before_ns": 984500,
+        "after_ns": 691042,
+        "reduction_percent": 29.80782122905028
+      },
+      "ledger-prefix": {
+        "before_ns": 17868983541,
+        "after_ns": 18779178291,
+        "reduction_percent": -5.093713069417618
+      },
+      "ledger-suffix": {
+        "before_ns": 4298125834,
+        "after_ns": 4450021500,
+        "reduction_percent": -3.5339976507537494
+      },
+      "ledger-native": {
+        "before_ns": 57618571875,
+        "after_ns": 60322965917,
+        "reduction_percent": -4.693615190371291
+      },
+      "range-provider": {
+        "before_ns": 5964402500,
+        "after_ns": 7152663125,
+        "reduction_percent": -19.922542534646176
+      },
+      "ledger-range": {
+        "before_ns": 3291125,
+        "after_ns": 3349875,
+        "reduction_percent": -1.7851038778533177
+      },
+      "ledger-classified": {
+        "before_ns": 207364137125,
+        "after_ns": 217419790583,
+        "reduction_percent": -4.849273166236266
+      },
+      "ledger-released": {
+        "before_ns": 60294953666,
+        "after_ns": 105896726459,
+        "reduction_percent": -75.6311598572711
+      }
+    }
+  },
+  "common_contribution_count": 166400671,
+  "after_lifetime_peak_footprint_bytes": 56225833760,
+  "before_lifetime_peak_footprint_bytes": 56225850168,
+  "limitations": [
+    "Root-cohort prepare includes outer Geometry.init; cohort geometry-ready is a separate inner validation span",
+    "Ledger destruction differed substantially; no kernel attribution inferred",
+    "Source-v7 child snapshot and constructor changes are not included",
+    "No complete replay or STARK acceptance yet"
+  ]
+}

@@ -1,0 +1,20 @@
+[package]
+name = "stwo-ethereum-input-projection"
+version = "0.1.0"
+edition = "2024"
+publish = false
+
+[workspace]
+
+[dependencies]
+alloy-consensus = { version = "=2.0.0", features = ["k256"] }
+alloy-eips = "=2.0.0"
+alloy-genesis = { version = "=2.0.0", features = ["serde-bincode-compat"] }
+alloy-primitives = "=1.5.6"
+alloy-rlp = "0.3"
+alloy-rpc-types-debug = "=2.0.0"
+bincode = { version = "2.0", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_with = "3"
+sha2 = "0.10"
+stateless-validator-common = { git = "https://github.com/paradigmxyz/stateless.git", rev = "a134a621bad7229ff7f980e42dfca8e22d101491" }

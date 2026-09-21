@@ -1,0 +1,39 @@
+{
+  "status": "passed",
+  "compile_only": true,
+  "tests_executed": 0,
+  "pid": 69117,
+  "request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v20/root-production-compile-request.json",
+    "bytes": 3912,
+    "sha256": "5d2f6f54319582ce569907d9d7cb1ccab1065a3645cbbb553302c4ff3c31f3af"
+  },
+  "source_manifest": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-validation-source-v20/manifest.json",
+    "bytes": 1104082,
+    "sha256": "e934e28a8e59eb1a4c7445e548dd939777fd6892778fa4814458d56f73683544"
+  },
+  "source_files_rehashed_before": 5781,
+  "accepted_closure_execution": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/execution.json",
+    "bytes": 1223,
+    "sha256": "074c939ff0a4107b3f5516fba080c301c809b51f8f901afadaa68a5d260e63b2"
+  },
+  "accepted_closure_log": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/replay.log",
+    "bytes": 34547,
+    "sha256": "3f3155d4ccfe7d39d799c89b0bbbebb0f6c618cb5e9cc6422da3f8926290dfad"
+  },
+  "started_at": "2026-09-08T12:32:31.141396+00:00",
+  "child_pid": 69120,
+  "exit_code": 0,
+  "wall_seconds": 134.08847012510523,
+  "finished_at": "2026-09-08T12:34:45.231594+00:00",
+  "source_files_rehashed_after": 5781,
+  "pins_unchanged": true,
+  "log_identity": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-preparation-gates-v20/root-production-compile.log",
+    "bytes": 132,
+    "sha256": "82c4aa894b7823cd48a517ee14007fb975db68028d7398698f352aa4c28d6492"
+  }
+}

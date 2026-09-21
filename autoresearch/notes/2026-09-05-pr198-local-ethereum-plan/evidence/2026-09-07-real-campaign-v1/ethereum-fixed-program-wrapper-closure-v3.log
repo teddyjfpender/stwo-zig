@@ -1,0 +1,29 @@
+test-ethereum-statement-root-cohort-replay
++- saved Ethereum complete root cohort guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort' failed: ETHEREUM_ROLE0_SAVED_WRAPPER_REPLAY excludes_stage101_proving=true
+ETHEREUM_NATIVE_VERIFICATION workers=1 captures=2 scope=joined
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=48404864875 process_cpu_ns=50865865458 parallelism_milli=1050 peak_footprint_bytes=288834328 energy_nj=235477220470 instructions=1127471081858 cycles=201608477613 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=campaign source=darwin_proc_pid_rusage_v6 wall_ns=405396167 process_cpu_ns=404181458 parallelism_milli=997 peak_footprint_bytes=288834328 energy_nj=2419131701 instructions=8636903104 cycles=1599731946 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=materialize source=darwin_proc_pid_rusage_v6 wall_ns=4304521458 process_cpu_ns=4296521166 parallelism_milli=998 peak_footprint_bytes=1957185840 energy_nj=22157558514 instructions=69700080794 cycles=17042039733 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_MATERIALIZE input_ns=16410292 public_ns=99094041 transcript_ns=86789542 profile_ns=48708 program_ns=70182000 prepare_ns=66997167 fri_ns=3718302583 seal_ns=16390375 total_ns=4074217375 nodes=537513 node_bytes=10750260 output_bytes=176 binding_bytes=2459248 schedule_bytes=8019700 evaluation_bytes=8600208 input_bytes=614812 claim_bytes=27296 schedule_compiles=1 graph_copies=0 workers=1
+ETHEREUM_INCREMENTAL_ROLE0_ALLOCATOR phase=materialized-live allocations=74 bytes=852028682 peak=1892609785 allocated=3175099808 freed=2323071126 untracked=0
+ETHEREUM_ROOT_COHORT phase=prepare begin=true
+ETHEREUM_COHORT_RESOURCES phase=begin wall_ns=0 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=16610063128 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=geometry-ready wall_ns=2471234542 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=16610063128 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=prefix-components wall_ns=667746833 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=16610063128 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_COHORT_RESOURCES phase=prefix-rows wall_ns=1287031208 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=16610063128 ledger_present=false ledger_len=0 ledger_capacity=0 tuple_record_bytes=136 ledger_used_bytes=0 ledger_capacity_bytes=0 ledger_bytes_overflow=false sampling_unavailable=none
+ETHEREUM_INCREMENTAL_ROLE0_REQUEST outcome=failed
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=111384192084 process_cpu_ns=114422597541 parallelism_milli=1027 peak_footprint_bytes=16610063128 energy_nj=540524971051 instructions=2302308868921 cycles=453975229475 workers=1 host_byte_budget=8589934592
+ETHEREUM_ROLE0_SAVED_WRAPPER_STAGE=cohort error=EthereumNonfinalPublicationProfileRequired
+error: while executing test 'recursive_common_ethereum_incremental_leaf_universal_proof_v4_genuine_test.test.role0 saved Stage101 pair closes the complete statement-root cohort', the following test command failed:
+./.zig-cache/o/87aaca4dfc13090e5a1f1f617d1f7930/test --cache-dir=./.zig-cache --seed=0x823da5e --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-ethereum-statement-root-cohort-replay transitive failure
++- saved Ethereum complete root cohort guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/0297b1ddcf7a6ffdcbec775348362e93/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x823da5e -Zba6907e77f4254b2 --maxrss 25769803776 -j1 test-ethereum-statement-root-cohort-replay -Doptimize=ReleaseSafe -Dethereum-proof-strip=true --summary all

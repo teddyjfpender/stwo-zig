@@ -1,15 +1,9 @@
 //! SegmentV2 row-13 AIR: native-sum relay plus authority-hash custody.
 //!
-//! The V2 statement authority is verifier-owned preprocessing.  Each canonical
-//! Poseidon call is fixed as a 32-word `(input, output)` tuple and requested
-//! from the one shared row-34 provider.  The first active row also consumes
-//! the verifier schedule's `bind_protocol` step.  Keeping those tuples out of
-//! committed main columns prevents an outer prover from substituting a
-//! different, internally valid hash program.
-//!
-//! The same rows retain the sixteen native-public-sum relay values used by the
-//! V2 arithmetic graph.  Relay and authority masks may overlap; the physical
-//! trace contains exactly their union and pads with the all-zero row.
+//! Poseidon tuples are committed main inputs, requested from the shared row34
+//! provider and separately emitted at unique public wire coordinates. Verifiers
+//! derive their matching boundary from expected statement and admitted geometry.
+//! Relay and authority masks may overlap; inactive tuple words are zero.
 
 const std = @import("std");
 
@@ -24,23 +18,26 @@ const relation_effect = @import("relation_effect.zig");
 
 pub const STABLE_NAME =
     "recursion.segment_public_claim_hash_authority.v2";
-pub const FORMAT_VERSION: u16 = 2;
-pub const SCHEMA_VERSION: u16 = 1;
+pub const FORMAT_VERSION: u16 = 3;
+pub const SCHEMA_VERSION: u16 = 2;
 
 pub const POSEIDON_WIDTH: usize = 16;
 pub const POSEIDON_TUPLE_WIDTH: usize = 2 * POSEIDON_WIDTH;
-pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 2;
-pub const PREPROCESSED_COLUMN_COUNT: usize = 15 + POSEIDON_TUPLE_WIDTH;
+pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 2 + POSEIDON_TUPLE_WIDTH;
+pub const PREPROCESSED_COLUMN_COUNT: usize = 15 + CALL_WIRE_GROUP_COUNT;
 pub const PARAMETER_COUNT: usize = 1;
 pub const LOGICAL_INPUT_COUNT: usize =
     PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT + PARAMETER_COUNT;
-pub const DIRECT_CONSTRAINT_COUNT: usize = 7;
-pub const RELATION_EVENT_COUNT: usize = 5;
+pub const DIRECT_CONSTRAINT_COUNT: usize = 7 + POSEIDON_TUPLE_WIDTH;
+pub const RELATION_EVENT_COUNT: usize = 5 + CALL_WIRE_GROUP_COUNT;
 pub const LOOKUP_BATCH_SIZE: u8 = 2;
-pub const INTERACTION_BATCH_COUNT: usize = 3;
-pub const INTERACTION_COLUMN_COUNT: usize = 12;
+pub const INTERACTION_BATCH_COUNT: usize = 7;
+pub const INTERACTION_COLUMN_COUNT: usize = 28;
 pub const MAXIMUM_CONSTRAINT_DEGREE: u32 = 2;
 pub const REFERENCE_MAXIMUM_CONSTRAINT_DEGREE: u32 = 3;
+
+pub const CALL_WIRE_CIRCUIT_ID: u32 = 46;
+pub const CALL_WIRE_GROUP_COUNT: usize = POSEIDON_TUPLE_WIDTH / 4;
 
 pub const NATIVE_SUM_CIRCUIT_ID: u32 = 42;
 pub const CONTROL_RELAY_CIRCUIT_ID: u32 = 43;
@@ -50,15 +47,18 @@ pub const BIND_PROTOCOL_TAG: u32 = 1;
 
 // Regenerated through `computeSemanticDigest` and pinned before integration.
 pub const SEMANTIC_DIGEST_HEX =
-    "5ac9b884c34209fe024dfc65d50594276276ef0a8d18629dc87378f60b26f347";
+    "ffcdb219f5f7603c127633a30049ad10ed306ceea9add11027ed231cb5ab918a";
 pub const SEMANTIC_DIGEST: digest.Digest = hexDigest(
     SEMANTIC_DIGEST_HEX,
     "invalid SegmentV2 claim-hash authority semantic digest",
 );
 
-pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{
-    "recursion.segment_public_claim_hash_authority.v2.enabler",
-    "recursion.segment_public_claim_hash_authority.v2.relay_value",
+pub const MAIN_COLUMN_NAMES = blk: {
+    var names: [PHYSICAL_MAIN_COLUMN_COUNT][]const u8 = undefined;
+    names[0] = "recursion.segment_public_claim_hash_authority.v2.enabler";
+    names[1] = "recursion.segment_public_claim_hash_authority.v2.relay_value";
+    for (0..POSEIDON_TUPLE_WIDTH) |index| names[2 + index] = std.fmt.comptimePrint("recursion.segment_public_claim_hash_authority.v2.poseidon_{d}", .{index});
+    break :blk names;
 };
 
 pub const PREPROCESSED_COLUMN_NAMES = blk: {
@@ -77,9 +77,9 @@ pub const PREPROCESSED_COLUMN_NAMES = blk: {
     names[12] = "recursion_segment_public_claim_hash_authority_v2_control_circuit";
     names[13] = "recursion_segment_public_claim_hash_authority_v2_control_node";
     names[14] = "recursion_segment_public_claim_hash_authority_v2_control_uses";
-    for (0..POSEIDON_TUPLE_WIDTH) |index| names[15 + index] =
+    for (0..CALL_WIRE_GROUP_COUNT) |index| names[15 + index] =
         std.fmt.comptimePrint(
-            "recursion_segment_public_claim_hash_authority_v2_poseidon_{d}",
+            "recursion_segment_public_claim_hash_authority_v2_call_wire_node_{d}",
             .{index},
         );
     break :blk names;
@@ -89,22 +89,28 @@ pub const PARAMETER_NAMES = [PARAMETER_COUNT][]const u8{
     "recursion.segment_public_claim_hash_authority.v2.param.zero",
 };
 
-pub const CONSTRAINT_NAMES = [DIRECT_CONSTRAINT_COUNT][]const u8{
-    "recursion.segment_public_claim_hash_authority.v2.enabler_matches_row",
-    "recursion.segment_public_claim_hash_authority.v2.padding_value_zero",
-    "recursion.segment_public_claim_hash_authority.v2.nonrelay_value_zero",
-    "recursion.segment_public_claim_hash_authority.v2.relay_within_row",
-    "recursion.segment_public_claim_hash_authority.v2.authority_within_row",
-    "recursion.segment_public_claim_hash_authority.v2.bind_requires_authority",
-    "recursion.segment_public_claim_hash_authority.v2.row_is_union",
+pub const CONSTRAINT_NAMES = blk: {
+    var names: [DIRECT_CONSTRAINT_COUNT][]const u8 = undefined;
+    names[0..7].* = .{
+        "recursion.segment_public_claim_hash_authority.v2.enabler_matches_row",
+        "recursion.segment_public_claim_hash_authority.v2.padding_value_zero",
+        "recursion.segment_public_claim_hash_authority.v2.nonrelay_value_zero",
+        "recursion.segment_public_claim_hash_authority.v2.relay_within_row",
+        "recursion.segment_public_claim_hash_authority.v2.authority_within_row",
+        "recursion.segment_public_claim_hash_authority.v2.bind_requires_authority",
+        "recursion.segment_public_claim_hash_authority.v2.row_is_union",
+    };
+    for (0..POSEIDON_TUPLE_WIDTH) |index| names[7 + index] = std.fmt.comptimePrint("recursion.segment_public_claim_hash_authority.v2.inactive_poseidon_{d}", .{index});
+    break :blk names;
 };
 
 pub const MainColumns = struct {
     enabler: types.ValueId,
     relay_value: types.ValueId,
+    poseidon_tuple: [POSEIDON_TUPLE_WIDTH]types.ValueId,
 
     pub fn physical(self: MainColumns) [PHYSICAL_MAIN_COLUMN_COUNT]types.ValueId {
-        return .{ self.enabler, self.relay_value };
+        return .{ self.enabler, self.relay_value } ++ self.poseidon_tuple;
     }
 };
 
@@ -120,7 +126,7 @@ pub const PreprocessedColumns = struct {
     control_circuit_id: types.ValueId,
     control_node_id: types.ValueId,
     control_use_count: types.ValueId,
-    poseidon_tuple: [POSEIDON_TUPLE_WIDTH]types.ValueId,
+    call_wire_nodes: [CALL_WIRE_GROUP_COUNT]types.ValueId,
 
     pub fn physical(
         self: PreprocessedColumns,
@@ -137,7 +143,7 @@ pub const PreprocessedColumns = struct {
             self.control_circuit_id,
             self.control_node_id,
             self.control_use_count,
-        } ++ self.poseidon_tuple;
+        } ++ self.call_wire_nodes;
     }
 };
 
@@ -233,8 +239,8 @@ pub const StaticProfile = struct {
 };
 
 pub const EXPECTED_STATIC_PROFILE = StaticProfile{
-    .arena_nodes = 66,
-    .compiled_nodes = 16,
+    .arena_nodes = 107,
+    .compiled_nodes = 49,
     .direct_constraints = DIRECT_CONSTRAINT_COUNT,
     .relation_events = RELATION_EVENT_COUNT,
     .interaction_batches = INTERACTION_BATCH_COUNT,
@@ -277,9 +283,13 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
     var arena = ir.Arena.init(allocator);
     errdefer arena.deinit();
     const span = source.SourceSpan.generated();
+    var main_inputs: [PHYSICAL_MAIN_COLUMN_COUNT]types.ValueId = undefined;
+    for (&main_inputs, MAIN_COLUMN_NAMES, 0..) |*value, name, index|
+        value.* = try arena.input(name, if (index == 0) .selector else .felt, span);
     const main = MainColumns{
-        .enabler = try arena.input(MAIN_COLUMN_NAMES[0], .selector, span),
-        .relay_value = try arena.input(MAIN_COLUMN_NAMES[1], .felt, span),
+        .enabler = main_inputs[0],
+        .relay_value = main_inputs[1],
+        .poseidon_tuple = main_inputs[2..].*,
     };
     var inputs: [PREPROCESSED_COLUMN_COUNT]types.ValueId = undefined;
     for (&inputs, PREPROCESSED_COLUMN_NAMES, 0..) |*value, name, index|
@@ -300,7 +310,7 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         .control_circuit_id = inputs[12],
         .control_node_id = inputs[13],
         .control_use_count = inputs[14],
-        .poseidon_tuple = inputs[15..][0..POSEIDON_TUPLE_WIDTH].*,
+        .call_wire_nodes = inputs[15..][0..CALL_WIRE_GROUP_COUNT].*,
     };
     const parameters = Parameters{
         .zero = try arena.input(PARAMETER_NAMES[0], .felt, span),
@@ -326,7 +336,8 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         overlap_mask,
         span,
     );
-    const roots = [DIRECT_CONSTRAINT_COUNT]types.ValueId{
+    var roots: [DIRECT_CONSTRAINT_COUNT]types.ValueId = undefined;
+    roots[0..7].* = .{
         try arena.sub(main.enabler, preprocessed.row_mask, span),
         try arena.mul(inactive, main.relay_value, span),
         try arena.mul(nonrelay, main.relay_value, span),
@@ -339,6 +350,8 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         ),
         try arena.sub(preprocessed.row_mask, union_mask, span),
     };
+    const nonauthority = try arena.sub(one, preprocessed.authority_mask, span);
+    for (main.poseidon_tuple, 0..) |value, index| roots[7 + index] = try arena.mul(nonauthority, value, span);
     var constraints: [DIRECT_CONSTRAINT_COUNT]types.ConstraintId = undefined;
     for (&constraints, roots, CONSTRAINT_NAMES) |*constraint, root, name|
         constraint.* = try arena.assertZero(
@@ -360,43 +373,46 @@ fn buildRaw(allocator: std.mem.Allocator) !Definition {
         span,
     );
     const tuples = relationTuples(preprocessed, main, parameters);
-    const events = try relation_effect.appendGroup(
-        RELATION_EVENT_COUNT,
-        &arena,
+    var event_specs: [RELATION_EVENT_COUNT]relation_effect.EventSpec = undefined;
+    event_specs[0..5].* = .{
         .{
-            .{
-                .domain = .recursion_wire,
-                .role = .consume,
-                .values = &tuples.source,
-                .weight = preprocessed.relay_mask,
-            },
-            .{
-                .domain = .recursion_wire,
-                .role = .emit,
-                .values = &tuples.arithmetic,
-                .weight = arithmetic_weight,
-            },
-            .{
-                .domain = .recursion_wire,
-                .role = .emit,
-                .values = &tuples.control,
-                .weight = control_weight,
-            },
-            .{
-                .domain = .poseidon2_io,
-                .role = .request,
-                .values = &tuples.poseidon,
-                .weight = preprocessed.authority_mask,
-            },
-            .{
-                .domain = .recursion_step,
-                .role = .consume,
-                .values = &tuples.bind_protocol,
-                .weight = preprocessed.bind_mask,
-            },
+            .domain = .recursion_wire,
+            .role = .consume,
+            .values = &tuples.source,
+            .weight = preprocessed.relay_mask,
         },
-        span,
-    );
+        .{
+            .domain = .recursion_wire,
+            .role = .emit,
+            .values = &tuples.arithmetic,
+            .weight = arithmetic_weight,
+        },
+        .{
+            .domain = .recursion_wire,
+            .role = .emit,
+            .values = &tuples.control,
+            .weight = control_weight,
+        },
+        .{
+            .domain = .poseidon2_io,
+            .role = .request,
+            .values = &tuples.poseidon,
+            .weight = preprocessed.authority_mask,
+        },
+        .{
+            .domain = .recursion_step,
+            .role = .consume,
+            .values = &tuples.bind_protocol,
+            .weight = preprocessed.bind_mask,
+        },
+    };
+    var call_wire: [CALL_WIRE_GROUP_COUNT][6]types.ValueId = undefined;
+    const call_circuit = try arena.constantField(CALL_WIRE_CIRCUIT_ID, span);
+    for (&call_wire, 0..) |*tuple, group| {
+        tuple.* = .{ call_circuit, preprocessed.call_wire_nodes[group] } ++ main.poseidon_tuple[group * 4 ..][0..4].*;
+        event_specs[5 + group] = .{ .domain = .recursion_wire, .role = .emit, .values = tuple, .weight = preprocessed.authority_mask };
+    }
+    const events = try relation_effect.appendGroup(RELATION_EVENT_COUNT, &arena, event_specs, span);
     return .{
         .arena = arena,
         .main = main,
@@ -448,7 +464,7 @@ fn relationTuples(
             parameters.zero,
             parameters.zero,
         },
-        .poseidon = preprocessed.poseidon_tuple,
+        .poseidon = main.poseidon_tuple,
         .bind_protocol = .{
             parameters.zero,
             parameters.zero,
@@ -463,13 +479,14 @@ fn relationTuples(
 }
 
 fn validateEvents(self: *const Definition) !void {
-    const expected = [_]struct { domain: relation.Domain, role: relation.Role }{
+    const ExpectedEvent = struct { domain: relation.Domain, role: relation.Role };
+    const expected = [_]ExpectedEvent{
         .{ .domain = .recursion_wire, .role = .consume },
         .{ .domain = .recursion_wire, .role = .emit },
         .{ .domain = .recursion_wire, .role = .emit },
         .{ .domain = .poseidon2_io, .role = .request },
         .{ .domain = .recursion_step, .role = .consume },
-    };
+    } ++ ([_]ExpectedEvent{.{ .domain = .recursion_wire, .role = .emit }} ** CALL_WIRE_GROUP_COUNT);
     for (self.events, expected, 0..) |effect_id, want, index| {
         if (types.idIndex(effect_id) != index)
             return error.InvalidClaimHashAuthorityV2Definition;
@@ -529,8 +546,8 @@ fn hexDigest(comptime value: []const u8, comptime message: []const u8) digest.Di
 comptime {
     if (POSEIDON_TUPLE_WIDTH !=
         relation.universalDescriptor(.poseidon2_io).arity or
-        INTERACTION_BATCH_COUNT != 3 or INTERACTION_COLUMN_COUNT != 12 or
-        RELATION_EVENT_COUNT != 5 or LOOKUP_BATCH_SIZE != 2)
+        INTERACTION_BATCH_COUNT != 7 or INTERACTION_COLUMN_COUNT != 28 or
+        RELATION_EVENT_COUNT != 13 or LOOKUP_BATCH_SIZE != 2)
     {
         @compileError("SegmentV2 claim-hash authority relation geometry drifted");
     }

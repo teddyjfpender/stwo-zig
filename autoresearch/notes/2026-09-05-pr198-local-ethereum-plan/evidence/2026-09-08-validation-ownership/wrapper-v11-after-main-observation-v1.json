@@ -1,0 +1,28 @@
+{
+  "status": "live_sample_not_proof_acceptance",
+  "pid": 55152,
+  "source_manifest_sha256": "f0b4b269026f21062492162828f4a3dfe9b952dc4467aa48744e8b89b27fbd5a",
+  "sample_sha256": "6d04c983fdc3497c56afb3a29f8dc3e9d4fb961c794501c3eaba0d320534814c",
+  "sample_main_thread_count": 1633,
+  "geometry_validate_prepared_samples": 1503,
+  "program_validate_against_prepared_source_samples": 1499,
+  "path": [
+    "complete.Storage.fillInteractionInto",
+    "geometry.Storage.validatePrepared",
+    "ProgramAuthorityV4.validateAgainstPreparedSource",
+    "derive",
+    "ReplayV4.validate",
+    "ExecutionV4.validate"
+  ],
+  "completed_phase_seconds": {
+    "tree0_admission": 536.313936167,
+    "proof_preprocessed": 193.164773708,
+    "main_allocate": 27.8655935,
+    "main_fill": 107.617635375,
+    "main_commit": 188.760824875,
+    "interaction": 265.852074375
+  },
+  "scope": "Two-second stack sample establishes repeated upstream validation inside the active interaction writer; sample proportions are not whole-phase or whole-request timing. Running frozen proof continues unchanged.",
+  "latest_lifetime_peak_footprint_bytes": 42620401128,
+  "latest_completed_phase": "interaction"
+}

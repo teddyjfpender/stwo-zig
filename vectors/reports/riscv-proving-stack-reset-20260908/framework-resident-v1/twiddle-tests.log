@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded; 54/54 tests passed
+test-poly success
++- run test 54 passed 274ms MaxRSS:2M
+   +- compile test ReleaseSafe native success 7s MaxRSS:611M
+

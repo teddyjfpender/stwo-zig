@@ -401,17 +401,13 @@ def check_ir_digests(air_ir_dir: Path) -> str:
 
 
 def check_semantic_rebind(air_ir_dir: Path) -> str:
-    """Bind the typed-authority raw hashes to the reviewed capsule semantics.
-
-    The ordinary digest gate above remains intentionally byte-exact.  This
-    second, independently implemented gate explains and pins the one accepted
-    raw-DAG transition: sparse polynomial expansion must reproduce every
-    ordered constraint and lookup from the pre-cutover exports.
-    """
+    """Preserve historical equivalence and admit the reviewed load/store revision."""
     try:
-        return air_equivalence.check_receipt(
+        return air_equivalence.check_reviewed_revision(
             SEMANTIC_REBIND_RECEIPT,
+            REPOSITORY_ROOT / "formal/riscv-refinement/team-b-load-store-revision-v1.json",
             air_ir_dir,
+            LEAN_ROOT / "Air/Family/LoadStore.lean",
         )
     except air_equivalence.EquivalenceError as exc:
         raise TeamBError(f"typed AIR semantic rebind failed: {exc}") from exc

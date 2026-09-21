@@ -136,8 +136,8 @@ pub const OwnerV1 = opaque {
             &storage_value.captures[1].circuit.profile_digest,
         ) or !std.mem.eql(
             u8,
-            &storage_value.captures[0].pcs_circuit.profile_digest,
-            &storage_value.captures[1].pcs_circuit.profile_digest,
+            &storage_value.captures[0].pcs_circuit.view().profile_digest,
+            &storage_value.captures[1].pcs_circuit.view().profile_digest,
         )) return error.ProfileMismatch;
 
         for (inputs, &storage_value.wires, 0..) |input, *wire, child_index| {
@@ -429,7 +429,7 @@ pub fn Level2BoundaryV1(comptime dimensions: fixed_wire.Dimensions) type {
                 hash.update(&child.input.composition.identity);
                 hash.update(std.mem.asBytes(child.wire));
                 hash.update(&child.capture.circuit.identity_digest);
-                hash.update(&child.capture.pcs_circuit.identity_digest);
+                hash.update(&child.capture.pcs_circuit.view().identity_digest);
             }
             for (source.query_word_storage) |word|
                 hashInt(&hash, u32, word.toU32());

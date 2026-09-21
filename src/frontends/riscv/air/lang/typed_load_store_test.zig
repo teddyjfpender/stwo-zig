@@ -11,7 +11,7 @@ const typed_load_store = @import("typed_load_store.zig");
 const types = @import("types.zig");
 const witness_layout = @import("../../witness_layout.zig");
 
-test "typed load/store has exact 48 columns 63 roots and 16 ordered lookups" {
+test "typed load/store has exact 50 columns 63 roots and 17 ordered lookups" {
     var authored = try typed_load_store.build(std.testing.allocator, .generated);
     defer authored.deinit();
     var imported = try shadow_program.buildProduction(
@@ -161,7 +161,11 @@ test "typed load/store has exact 48 columns 63 roots and 16 ordered lookups" {
             batch_column.first_lookup,
         );
         try std.testing.expectEqual(
-            @as(usize, typed_load_store.LOOKUP_BATCH_SIZE),
+            @min(
+                @as(usize, typed_load_store.LOOKUP_BATCH_SIZE),
+                typed_load_store.LOOKUP_COUNT -
+                    batch * typed_load_store.LOOKUP_BATCH_SIZE,
+            ),
             batch_column.entry_count,
         );
     }

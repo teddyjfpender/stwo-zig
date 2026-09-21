@@ -1,0 +1,23 @@
+{
+  "passed": true,
+  "genuine_positive_precedes_negatives": true,
+  "originals_and_verifier_unchanged": true,
+  "cases": [
+    {
+      "name": "changed-clock-resealed-transport",
+      "passed": true,
+      "exit_code": 1,
+      "elapsed_ns": 127755750,
+      "expected_error": "BoundaryClockOutOfRange",
+      "stderr_sha256": "47b0103918da5c3342ef7cb2c04d59befc383265d78ae41f27afa9d2ed929811"
+    },
+    {
+      "name": "changed-proof-original-seal",
+      "passed": true,
+      "exit_code": 1,
+      "elapsed_ns": 130331000,
+      "expected_error": "IncrementalFullLeafProofArtifactContentMismatchV4",
+      "stderr_sha256": "632d9b92ab0fd24963768474d2c74d1f9c9230c1cd64721694cc2d7c829103e1"
+    }
+  ]
+}

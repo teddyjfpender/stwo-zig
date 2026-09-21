@@ -184,7 +184,7 @@ pub fn makeState(comptime Owner: type) type {
             if (clock_rows != statement.infra_descs[geometry.clock_infra_index].n_rows) {
                 return error.InvalidProductionInput;
             }
-            const boundary_rows = if (witness.boundary) |claims| claims.rows.len else 0;
+            const boundary_rows = witness.memoryBoundaryRows().len;
             var described_rows: usize = 0;
             var infra_index: usize = 1;
             while (infra_index < statement.n_infra and
@@ -440,13 +440,14 @@ pub fn makeState(comptime Owner: type) type {
                     );
                 },
                 .memory => memory: {
-                    const claims = self.inputs.witness.boundary orelse
+                    const boundary_rows = self.inputs.witness.memoryBoundaryRows();
+                    if (boundary_rows.len == 0)
                         return error.InvalidProductionInput;
                     const start = self.memory_row_starts[infra_index];
                     var destinations = try self.columns(8, range);
                     break :memory try generators.fillMemory(
                         &destinations,
-                        claims.rows[start .. start + desc.n_rows],
+                        boundary_rows[start .. start + desc.n_rows],
                         placement,
                         work_shard,
                         context,
@@ -498,6 +499,18 @@ pub fn makeState(comptime Owner: type) type {
                 !std.meta.eql(task.rows.?, self.plan.poseidonChunks()[chunk_index]))
             {
                 return error.InvalidProductionTask;
+            }
+            if (self.inputs.witness.circuit_profile.poseidonLayout() == .narrow_degree3_v1) {
+                const narrow = @import("../air/memory_commitment/poseidon2_narrow_degree3_v1.zig");
+                var destinations = try self.columns(narrow.N_MAIN_COLUMNS, range);
+                if (self.poseidon_work) |work| {
+                    if (work.chunks[chunk_index] != null) return error.DuplicatePoseidonWorkReceipt;
+                }
+                const result = try generators.fillNarrowPoseidonRange(&destinations, self.inputs.witness.poseidonCalls(), self.poseidon_inverse, task.rows orelse return error.InvalidProductionTask, if (self.poseidon_work) |work| &work.authority else null, context);
+                if (result.completed) {
+                    if (self.poseidon_work) |work| work.chunks[chunk_index] = result.receipt orelse return error.PoseidonWorkReceiptNotCaptured;
+                }
+                return result.completed;
             }
             var destinations = try self.columns(poseidon2_air.N_MAIN_COLUMNS, range);
             if (self.poseidon_work) |work| {
@@ -607,7 +620,7 @@ pub fn makeState(comptime Owner: type) type {
             }
             errdefer self.lookup_seeded.store(false, .release);
             const memory_rows: []const memory_boundary.Row =
-                if (self.inputs.witness.boundary) |claims| claims.rows else &.{};
+                self.inputs.witness.memoryBoundaryRows();
             const clock_range = self.plan.infrastructureRange(
                 self.inputs.geometry.clock_infra_index,
             ).?;

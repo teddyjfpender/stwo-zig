@@ -120,6 +120,34 @@ test "R-012 every canonical segment empty and binary body mode satisfies row 11"
     try expectTripleSatisfied(&circuit, empty_pair, inputs, values);
 }
 
+test "R-012 continuation IO matches native folding and row 11" {
+    var circuit = try circuit_mod.build(std.testing.allocator);
+    defer circuit.deinit();
+    const inputs = try std.testing.allocator.alloc(QM31, circuit_mod.INPUT_COUNT);
+    defer std.testing.allocator.free(inputs);
+    const values = try std.testing.allocator.alloc(QM31, circuit.nodeCount());
+    defer std.testing.allocator.free(values);
+    const honest = try twoExecuted();
+    try expectTripleSatisfied(&circuit, honest, inputs, values);
+    for ([_]bool{ false, true }) |change_right| {
+        for (0..8) |limb| {
+            var changed = honest;
+            const io = if (change_right)
+                &changed.right.body.executed.entry.public_io_state
+            else
+                &changed.left.body.executed.exit.public_io_state;
+            io[limb] = 1991068772;
+            // Both individual statements remain canonical. Only their
+            // continuation join is invalid, in both the native fold and AIR.
+            const left = try changed.left.canonicalWords();
+            const right = try changed.right.canonicalWords();
+            const parent = try honest.parent.canonicalWords();
+            try std.testing.expectError(error.StateDiscontinuity, statement.SpanStatement.fold(changed.left, changed.right));
+            try expectUnsatisfied(&circuit, circuit_mod.Witness.forBinary(&left, &right, &parent), inputs, values);
+        }
+    }
+}
+
 test "R-012 binary statement mutations cannot cross any fold boundary" {
     var circuit = try circuit_mod.build(std.testing.allocator);
     defer circuit.deinit();

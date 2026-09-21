@@ -1,0 +1,27 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 65s
+test-recursive-common-fold-transcript-source-v1
++- Common-fold parent transcript source guard
+   +- run test stderr
+SECURE_TRANSCRIPT_PHYSICAL_ROWS lanes=2 components=18 provider_calls=3298 alias_rejected=true undersized_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+CANONICAL_CHILD_WIRE_BOUNDARY limbs=8 transcript_join=true changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70107 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=1 unmatched_control=0
+COMMON_FOLD_ZERO_VERIFIER_INPUTS limbs=24 air_join=true changed_consumer_or_missing_producer_rejected=true
+COMMON_FOLD_FIXED_WIRES rows=33401 graph_join=true missing_or_changed_anchor_rejected=true
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7860 unmatched=0 canonical_words=900
+FIELD_STATEMENT_BRIDGE_JOIN contributions=7860 unmatched=2 canonical_words=900
+COMPOSITION_STATEMENT_BINDING words=824 literal_graph_checks=false changed_input_rejected=true
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=2 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=2 unmatched_proof_inputs=0 unmatched_control=0
+SECURE_TRANSCRIPT_SEMANTIC_JOIN tuples=70108 unmatched_challenges=0 unmatched_randomness=0 unmatched_proof_inputs=0 unmatched_control=2
+COMMON_FOLD_COMPONENT_ADMISSION components=36 fixed_wire_row_10_active=true closure_verified=true
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-common-fold-transcript-source-v1 success
++- Common-fold parent transcript source guard success
+   +- run test 1 passed 48s MaxRSS:5G
+      +- compile test ReleaseSafe native success 1m MaxRSS:4G
+

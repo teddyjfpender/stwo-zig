@@ -1,0 +1,44 @@
+[
+  {
+    "argv": [
+      "--recursive-backend",
+      "metal"
+    ],
+    "exit_code": 1,
+    "expected_error": "RecursiveBackendRequiresSegmentOutput",
+    "output": "error: RecursiveBackendRequiresSegmentOutput\n"
+  },
+  {
+    "argv": [
+      "--memory-addresses",
+      "1",
+      "--segments-output",
+      "/tmp/stwo-invalid-unused-output",
+      "--recursive-backend",
+      "metal"
+    ],
+    "exit_code": 1,
+    "expected_error": "RecursiveMetalRequiresNativeMetal",
+    "output": "error: RecursiveMetalRequiresNativeMetal\n"
+  },
+  {
+    "argv": [
+      "--recursive-backend",
+      "cuda"
+    ],
+    "exit_code": 1,
+    "expected_error": "InvalidRecursiveBackend",
+    "output": "error: InvalidRecursiveBackend\n"
+  },
+  {
+    "argv": [
+      "--recursive-backend",
+      "cpu",
+      "--recursive-backend",
+      "cpu"
+    ],
+    "exit_code": 1,
+    "expected_error": "DuplicateArgument",
+    "output": "error: DuplicateArgument\n"
+  }
+]

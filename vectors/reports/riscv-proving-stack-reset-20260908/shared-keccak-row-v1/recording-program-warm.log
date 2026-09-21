@@ -1,0 +1,25 @@
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-ethereum-vm-composition-program success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 3s MaxRSS:81M
+      +- compile test Debug native cached 42ms MaxRSS:34M
+
+        3.91 real         3.56 user         0.33 sys
+            81739776  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               34023  page reclaims
+                 175  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  22  voluntary context switches
+                 906  involuntary context switches
+           210946983  instructions retired
+            81510425  cycles elapsed
+             9077216  peak memory footprint

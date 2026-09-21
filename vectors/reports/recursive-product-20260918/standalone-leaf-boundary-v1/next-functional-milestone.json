@@ -1,0 +1,32 @@
+{
+  "priority": "Complete useful recursion before performance tuning, per user steering.",
+  "next": "Fresh independently admitted 1/2/4/8 continuation receipts with standalone roots.",
+  "inspected_constraints": [
+    {
+      "file": "src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig",
+      "details": "updatesForSegments currently admits only 2/4/8. The shared materializer already distinguishes the final completion-observation budget."
+    },
+    {
+      "file": "src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig",
+      "details": "Both CLI count validation and compile-time production dispatch restrict counts to 2/4/8."
+    },
+    {
+      "file": "scripts/riscv_segment_v2_detached_tree_gate.py",
+      "details": "Tree admission restricts 2/4/8 and only sets the root receipt inside the parent loop. A one-leaf tree needs explicit complete-root authentication and a serialized receipt."
+    },
+    {
+      "file": "src/frontends/riscv/recursion/detached_segment_command_v1.zig",
+      "details": "Single-leaf verification returns a segment receipt; pair verification authenticates full root coverage. Add explicit one-segment root admission rather than treating any valid leaf as a completed job."
+    },
+    {
+      "file": "scripts/riscv_recursive_product.py",
+      "details": "The product command and pinned substitution admissions currently describe four segments; current-key admissions must be independently derived across the ladder."
+    }
+  ],
+  "other_incomplete_requirements": [
+    "Typed GPU interaction implementation/qualification.",
+    "Truthful successor for the historical load/store semantic-rebind receipt.",
+    "Measured memory and root-verification economics across the receipt ladder.",
+    "Production security and Ethereum milestone."
+  ]
+}

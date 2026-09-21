@@ -1,0 +1,5 @@
+
+Build Summary: 2/2 steps succeeded
+riscv-refinement-ir success
++- run /opt/homebrew/Cellar/zig@0.15/0.15.2/bin/zig success 219ms MaxRSS:35M
+

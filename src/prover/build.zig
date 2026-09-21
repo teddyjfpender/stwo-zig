@@ -41,6 +41,11 @@ pub fn build(b: *std.Build) void {
     const run_deep_tests = b.addRunArtifact(b.addTest(.{
         .root_module = deep_tests,
     }));
+    const merkle_tests = b.addTest(.{
+        .root_module = deep_tests,
+        .filters = &.{"prover vcs_lifted"},
+    });
+    b.step("test-merkle", "Run existing lifted Merkle commitment and worker-path regressions").dependOn(&b.addRunArtifact(merkle_tests).step);
     const test_step = b.step("test", "Compile and test the stwo_prover_engine package");
     test_step.dependOn(&run_tests.step);
     test_step.dependOn(&run_deep_tests.step);
@@ -59,6 +64,12 @@ pub fn build(b: *std.Build) void {
         .step = "test-pcs-commitments",
         .description = "Run only prover PCS commitment tests",
         .root = "pcs_commitments_test_root.zig",
+    });
+    _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
+        .step = "test-pcs-retained-columns",
+        .description = "Prove and freshly verify PCS proofs with independently owned or mapped retained columns",
+        .root = "pcs_commitments_test_root.zig",
+        .filters = &.{ "PCS retained column storage", "file backed columns" },
     });
     _ = addFocusedTests(b, core, backend_contracts, prover_api, target, optimize, check_only, .{
         .step = "test-pcs-shell-work",
@@ -104,6 +115,7 @@ const FocusedTest = struct {
     step: []const u8,
     description: []const u8,
     root: []const u8,
+    filters: []const []const u8 = &.{},
 };
 
 fn addFocusedTests(
@@ -124,7 +136,7 @@ fn addFocusedTests(
     root.addImport("stwo_core", core);
     root.addImport("stwo_backend_contracts", backend_contracts);
     root.addImport("stwo_prover_api", prover_api);
-    const tests = b.addTest(.{ .root_module = root });
+    const tests = b.addTest(.{ .root_module = root, .filters = spec.filters });
     const step = b.step(spec.step, spec.description);
     step.dependOn(if (check_only) &tests.step else &b.addRunArtifact(tests).step);
     return step;

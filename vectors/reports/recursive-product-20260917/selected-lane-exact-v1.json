@@ -1,0 +1,12 @@
+{
+  "passed": true,
+  "lanes": [
+    1,
+    2
+  ],
+  "exact_views_metadata_and_provider_outputs": true,
+  "complete_proof_candidate_pending": true,
+  "log_sha256": "16f5d95905f7e5d9bb9d50953f3d6409f27ac44ee8c346977d001cfeaa430d6e",
+  "fixture": "cpu-v1 tree/leaves/child-0 with independently pinned seed13/seed14 statements",
+  "profile": "recursive_q193_v1"
+}

@@ -1,0 +1,4 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 233s
+1/1 ethereum_narrow_aot_generator_test.test.Ethereum narrow AOT extension matches production DAG authority...OK
+All 1 tests passed.

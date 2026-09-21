@@ -1,0 +1,32 @@
+DETACHED_PARENT_CHILD lane=1 preparation_ns=1926049500
+DETACHED_PARENT_CHILD lane=2 preparation_ns=3883746084
+DETACHED_PARENT_ROW row=0 rows=6382 logical_bytes=306336
+DETACHED_PARENT_ROW row=1 rows=2945 logical_bytes=565440
+DETACHED_PARENT_ROW row=2 rows=2945 logical_bytes=435860
+DETACHED_PARENT_ROW row=3 rows=210 logical_bytes=30240
+DETACHED_PARENT_ROW row=4 rows=21880 logical_bytes=1662880
+DETACHED_PARENT_ROW row=5 rows=20264 logical_bytes=1702176
+DETACHED_PARENT_ROW row=6 rows=4 logical_bytes=1088
+DETACHED_PARENT_ROW row=7 rows=4 logical_bytes=240
+DETACHED_PARENT_ROW row=8 rows=94 logical_bytes=9400
+DETACHED_PARENT_ROW row=9 rows=66 logical_bytes=8448
+DETACHED_PARENT_ROW row=10 rows=8 logical_bytes=736
+DETACHED_PARENT_ROW row=11 rows=42701 logical_bytes=3928492
+DETACHED_PARENT_ROW row=12 rows=644 logical_bytes=255024
+DETACHED_PARENT_ROW row=13 rows=105218 logical_bytes=4208720
+DETACHED_PARENT_ROW row=20 rows=386 logical_bytes=114256
+DETACHED_PARENT_ROW row=21 rows=6176 logical_bytes=2593920
+DETACHED_PARENT_ROW row=22 rows=18 logical_bytes=1368
+DETACHED_PARENT_ROW row=23 rows=103834 logical_bytes=36134232
+DETACHED_PARENT_ROW row=24 rows=853232 logical_bytes=88736128
+DETACHED_PARENT_ROW row=25 rows=20844 logical_bytes=7837344
+DETACHED_PARENT_ROW row=26 rows=5018 logical_bytes=843024
+DETACHED_PARENT_ROW row=27 rows=1930 logical_bytes=216160
+DETACHED_PARENT_ROW row=28 rows=2702 logical_bytes=237776
+DETACHED_PARENT_ROW row=29 rows=128974 logical_bytes=15476880
+DETACHED_PARENT_ROW row=30 rows=1688698 logical_bytes=270191680
+DETACHED_PARENT_ROW row=31 rows=66537 logical_bytes=8516736
+DETACHED_PARENT_ROW row=32 rows=1610687 logical_bytes=328580148
+DETACHED_PARENT_ROW row=33 rows=46706 logical_bytes=8593904
+DETACHED_PARENT_PREPARATION rows_bytes=781188636 providers=179991 graph_ns=4436106542 snapshot_pending=true
+{"endpoint":"segment_v2_detached_two_child_parent_candidate_q193","profile":"tiny-memory-root-v2","publication_mode":"root","proof_profile":"recursive_q193_v1","status":"unverified_candidate","verified":false,"development_only":true,"child_owners_destroyed":true,"producer_destroyed":true,"reused_admitted_parent_key":true,"child_key_sha256":[[200,250,53,18,209,36,34,118,190,134,35,106,142,122,238,158,63,68,166,88,204,173,160,223,22,165,236,245,58,204,187,20],[230,194,237,102,20,207,36,75,94,227,113,23,184,152,75,108,162,186,181,188,63,96,124,172,87,167,111,205,9,40,204,134]],"artifacts":{"key_sha256":[109,24,133,168,158,236,16,55,93,87,128,99,17,194,115,140,7,88,219,252,81,122,11,200,85,27,237,168,240,152,163,149],"claims_sha256":[18,217,204,114,126,88,211,142,118,250,248,222,120,183,12,207,251,168,188,207,95,171,82,80,102,145,230,119,221,157,234,188],"proof_sha256":[97,148,32,14,7,101,151,153,137,84,200,18,112,85,1,80,230,49,171,236,51,173,37,7,73,21,178,148,190,3,77,188],"proof_bytes":2559233},"candidate_root_words_sha256":[219,91,188,127,103,70,146,7,192,254,30,127,208,58,51,233,74,71,171,14,150,118,132,24,153,89,249,217,181,200,49,136],"circuit_identity":[222,154,177,67,45,26,196,31,82,40,89,107,139,247,145,200,161,14,42,48,43,167,20,88,205,159,103,222,160,255,196,69],"preparation_ns":5860419584,"key_preparation_ns":3720291500,"proof_ns":18820439417,"request_ns":28667099833}

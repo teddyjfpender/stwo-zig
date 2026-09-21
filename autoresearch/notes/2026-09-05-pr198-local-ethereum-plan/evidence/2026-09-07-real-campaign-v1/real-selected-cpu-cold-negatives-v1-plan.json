@@ -1,0 +1,47 @@
+{
+  "original_pins": {
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-fresh-v2/verifier.bin": "3b3496022e092f636dcc62a7c8f492c6c80653505d4d0a999b1c041c5186f84d",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.stwief04": "43aa15db272bfb6fdac201c5bf682dbc0887444ada440d9721afe5d099a2c2d8",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/cpu-field4-segment9-selected-v5/segment-000009.metadata.json": "3d0775148bd5055e6d22c9cafabd3f6bd0a82086bf8d18456bf222b6e4c67bc8",
+    "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json": "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e"
+  },
+  "positive_receipt_sha256": "fb5fc11a5fa02da541f8b35c8fc6835d452338b450b79cce303ce65ee4c00adb",
+  "cases": [
+    {
+      "name": "changed-clock-resealed-transport",
+      "command": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-fresh-v2/verifier.bin",
+        "verify-leaf",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-cold-negatives-v1/changed-clock-resealed-transport/proof.stwief04",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-cold-negatives-v1/changed-clock-resealed-transport/leaf.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+        "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+        "--workers",
+        "1"
+      ],
+      "expected_error": "BoundaryClockOutOfRange",
+      "changed_offset": 2937,
+      "proof_sha256": "ab9a5b8a76eef02b7c6c2d296ea67f0c386039c11e32fd6da1d3aeae938179cc",
+      "metadata_sha256": "cc8821feccc1393ae30fe95d9aec2212ced220b9aa000aff485860f5cdc681c3",
+      "transport_seal_recomputed": true
+    },
+    {
+      "name": "changed-proof-original-seal",
+      "command": [
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-fresh-v2/verifier.bin",
+        "verify-leaf",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-cold-negatives-v1/changed-proof-original-seal/proof.stwief04",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/selected-real-cpu-leaf-cold-negatives-v1/changed-proof-original-seal/leaf.json",
+        "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/authority/materialization-v2.json",
+        "e9d9ba5619d5780155bf7f23e3475a1af0aae85ec74a0660b837c0cdbb237f4e",
+        "--workers",
+        "1"
+      ],
+      "expected_error": "IncrementalFullLeafProofArtifactContentMismatchV4",
+      "changed_offset": 53929740,
+      "proof_sha256": "d5bf8bbab6ac1ddcba7aa358d5b993870f7f04762b4ad9d9bdfe9cec56389234",
+      "metadata_sha256": "3647f4e590e9d19ab72a56bcdff803ad18022e2b6dbf0a2b879ace33c8b153a7",
+      "transport_seal_recomputed": false
+    }
+  ]
+}

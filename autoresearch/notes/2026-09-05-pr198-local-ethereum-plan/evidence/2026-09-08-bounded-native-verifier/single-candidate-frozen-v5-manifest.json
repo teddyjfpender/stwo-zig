@@ -1,0 +1,94 @@
+{
+  "schema": "stwo.ethereum.python-source-closure.v1",
+  "purpose": "Shared native receipt acceptance with exact metadata object binding; default and resume policies unchanged",
+  "files": [
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_measurements.py",
+      "bytes": 20645,
+      "sha256": "44d41897b0ebfba2afc2a0a5eccc82e93cec34d87e82fffa800523586067e477"
+    },
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_protocol.py",
+      "bytes": 39665,
+      "sha256": "ad50b8ef3ec408f4ee04692c2a1a1af47d67bb0a27458da995452ca10001f1b9"
+    },
+    {
+      "path": "autoresearch/benchmarks/ethereum_block_benchmark_statement.py",
+      "bytes": 5930,
+      "sha256": "b0718165eddffa7d4de0d75b130f3012e7cc82f8ddd4ce068de20957f36f95ec"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_materialization.py",
+      "bytes": 7211,
+      "sha256": "218941f9a2e611fd02abe4699cfe26b8d5642dab800c2091c54319bd2eb77be6"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_plan_authority.py",
+      "bytes": 9440,
+      "sha256": "58ea7c2c2f6091888f1d874fdcc2c3ae0bc48e9c9971553ac4ee8bddd50375d5"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_plan_validation.py",
+      "bytes": 7193,
+      "sha256": "7085102133d7bb218f57be7bf9fa429332c8ea2c98a7bcde460f08f756df46f6"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_process.py",
+      "bytes": 15479,
+      "sha256": "ba8f196ced1e9d17928cc15fde86f8ed62992910cbef3ed44a844bfb9a92a86e"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_profile_plan.py",
+      "bytes": 11922,
+      "sha256": "a4c18869eeab51c22385963fae042514d7ee9600349b1e87338433da4d9d5129"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_protocol.py",
+      "bytes": 34759,
+      "sha256": "39476670eed41f34404a47e937c206ff0034777e9f53009af2af6c7a38538251"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_store.py",
+      "bytes": 12960,
+      "sha256": "85c380e12c1f4c39a25e7613f9c7d5c0ddfab00164ad60acc1292bca67abe773"
+    },
+    {
+      "path": "scripts/ethereum_block_proof_stream_request.py",
+      "bytes": 10957,
+      "sha256": "014649ab711a7baee2195a0d2d22f46ce13ced0bdb3e901952615df209bb9a60"
+    },
+    {
+      "path": "scripts/ethereum_bounded_verifier.py",
+      "bytes": 13152,
+      "sha256": "a72f060d7cbebf94afb3956536fa6420983c0c1ce233dbd0735f0fb2c73c5240"
+    },
+    {
+      "path": "scripts/ethereum_full_leaf_bundle_producer.py",
+      "bytes": 22866,
+      "sha256": "d2e08d7ec3fd755f46eaf183a44f17759c140ca3f2321c44812ceec505f7fee2"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_bounded_verifier.py",
+      "bytes": 9745,
+      "sha256": "f2dec736858c1ffb1400a6f2cfb503e58a965af25b54d11f02f6a0ddbd6b54c8"
+    },
+    {
+      "path": "scripts/tests/test_ethereum_full_leaf_bundle_producer.py",
+      "bytes": 23521,
+      "sha256": "5f2a736ab870a36b039e9e4f804e32437ccbbd4fa8c0050dc43125a8e49c8b69"
+    },
+    {
+      "path": "scripts/zig_serial_build.py",
+      "bytes": 5750,
+      "sha256": "2c66348b36f878caec8ba286b207f75957fcd28ced795f1738545429fec09032"
+    }
+  ],
+  "parent": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/bounded-native-verifier-source-v3",
+    "manifest_sha256": "0478cbc2348aaf94fea2363fa6d847d1ef1ecf53851521f7b1c65d599f7b69ff"
+  },
+  "changed_files": [
+    "scripts/ethereum_full_leaf_bundle_producer.py",
+    "scripts/tests/test_ethereum_full_leaf_bundle_producer.py"
+  ]
+}

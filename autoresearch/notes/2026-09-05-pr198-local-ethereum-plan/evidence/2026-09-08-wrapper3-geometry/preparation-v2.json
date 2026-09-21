@@ -1,0 +1,12 @@
+{
+  "timestamp": "2026-09-08T04:49:49.531149+00:00",
+  "request": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-geometry-v2/request.json",
+  "request_sha256": "aa9f962e19b1661da85a233bb2dfc11c4ba83fc5f297768975a4612da079efbd",
+  "source_manifest_sha256": "0c59cb6ef39b87b9f50935119b64bc5c9299e7cd97c28ffe6b1c8e27b59af84e",
+  "active_and_frozen_changed_files_fmt_ast": "passed",
+  "explicit_root_test_discovery": true,
+  "semantic_test_run": false,
+  "geometry_compatible": null,
+  "expected_key_pending": "accepted actual wrapper2 independent receipt",
+  "proof_started": false
+}

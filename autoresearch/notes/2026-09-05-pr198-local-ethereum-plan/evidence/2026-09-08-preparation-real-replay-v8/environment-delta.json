@@ -1,0 +1,16 @@
+{
+  "status": "prepared_not_launched",
+  "previous_request_sha256": "afb1e450e440044b03d7962743361fc84e15879a5dd7f9a2ef7fc4dd28457e37",
+  "request_sha256": "be0071a0aabc301df3e2d3340ccccadc2ed4e6102cbc189abde02c920725d6f4",
+  "environment_delta": {
+    "STWO_ETHEREUM_PROOF_PROGRESS": {
+      "before": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v7/progress.log",
+      "after": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/devex-real-cohort-replay-v8/progress.log"
+    },
+    "STWO_RECURSION_OUTER_CLOSURE_DIAGNOSTIC": {
+      "before": null,
+      "after": "1"
+    }
+  },
+  "note": "Existing opt-in error-stage diagnostic only; no proof/protocol identity change. Source/full-trace output is not a timing improvement claim."
+}

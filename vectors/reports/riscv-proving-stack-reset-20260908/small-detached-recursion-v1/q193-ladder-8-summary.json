@@ -1,0 +1,66 @@
+{
+  "passed": true,
+  "profile": "recursive_q193_v1",
+  "production_security_admission_complete": false,
+  "scope": "Small eight-segment experimental profile; 482 retired instructions; CPU/Metal leaf wrappers and all seven parents; serial proving; independent CPU verification",
+  "timing_scope": "Single runs, not paired optimization benchmarks. Complete gate includes hostile checks and shared-lock waits; production sums exclude those waits. RSS is process peak, not isolated GPU memory.",
+  "bootstrap_fresh_cases": 293,
+  "complete_fresh_cases": 879,
+  "cross_backend_equal_artifacts": 60,
+  "cross_statement_reused_keys": 15,
+  "parent_of_parent_capture": {
+    "passed": true,
+    "report": "q193-ladder-8-level2-capture.json",
+    "rejected_public_words": 436,
+    "public_transcript_limbs": 872,
+    "rejected_claims_and_samples": 45,
+    "runtime_seconds": 3
+  },
+  "runs": [
+    {
+      "backend": "cpu",
+      "seed": 13,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-8-seed13-first/report.json",
+      "report_sha256": "61abfee9d6c94e690e6689d8b14d552e60281e4ceb6c7abe2ffaf1af3cbf6cad",
+      "leaf_production_ns": 89703020667,
+      "parent_production_ns": 189950724666,
+      "production_sum_ns": 279653745333,
+      "complete_gate_ns": 377257937834,
+      "maximum_rss_bytes": 7153025024,
+      "root_verify_ns": 76954459,
+      "root_request_ns": 79872625,
+      "root_proof_bytes": 2427864,
+      "fresh_cases": 293
+    },
+    {
+      "backend": "metal",
+      "seed": 13,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-metal-8-seed13-first/report.json",
+      "report_sha256": "69c5b15b6d6e72e3c0285a234c8580729b6bd67371f08c03eda786cda5db3061",
+      "leaf_production_ns": 73650882458,
+      "parent_production_ns": 154584335250,
+      "production_sum_ns": 228235217708,
+      "complete_gate_ns": 236338781375,
+      "maximum_rss_bytes": 7656816640,
+      "root_verify_ns": 80381667,
+      "root_request_ns": 83133542,
+      "root_proof_bytes": 2427864,
+      "fresh_cases": 293
+    },
+    {
+      "backend": "cpu",
+      "seed": 14,
+      "report": "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/complete-tree-q193-cpu-8-seed14-first/report.json",
+      "report_sha256": "bc4e351dc2365bf71843e2bf1158adbd9035359b3657462a87d4a5b4a2617865",
+      "leaf_production_ns": 87949232875,
+      "parent_production_ns": 192190824875,
+      "production_sum_ns": 280140057750,
+      "complete_gate_ns": 288010684167,
+      "maximum_rss_bytes": 7152943104,
+      "root_verify_ns": 77344208,
+      "root_request_ns": 80059292,
+      "root_proof_bytes": 2433908,
+      "fresh_cases": 293
+    }
+  ]
+}

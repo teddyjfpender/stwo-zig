@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/frontends/riscv",
+    "test-recursion-quotient-domains",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 12783506417,
+  "log_sha256": "465badb0dddf5f516befd5a1d52d59f3b85758b881e205985fb71c6a489e574a"
+}

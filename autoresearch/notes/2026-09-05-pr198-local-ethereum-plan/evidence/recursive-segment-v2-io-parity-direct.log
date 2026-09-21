@@ -1,0 +1,12 @@
+1/11 air.component.test.RISC-V component keeps legacy memory default and selects split V3 explicitly...OK
+2/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP circuit seals exact profile and row-24 input order...OK
+3/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP circuit is differential with native friAnswers...OK
+4/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP binds both native two-point orders exactly...OK
+5/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP rejects incomplete layout geometry and witness cursors...OK
+6/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP inactive lane has defined inverses and zero public inputs...OK
+7/11 recursion.air.pcs_deep_circuit_test.test.R-012 PCS-DEEP Ethereum windows match native answers and reject mutations...OK
+8/11 recursion.vm_public_semantics_circuit_test.test.R-012 claim semantics graph is deterministic sealed and row-15 exact...OK
+9/11 recursion.vm_public_semantics_circuit_test.test.R-012 claim semantics SegmentV2 keeps continuation IO in statement relations...FAIL (TestUnexpectedResult)
+10/11 recursion.vm_public_semantics_circuit_test.test.R-012 claim semantics accepts an honest leaf and rejects algebraic mutations...OK
+11/11 recursion.pair_node_test.test_0...OK
+10 passed; 0 skipped; 1 failed.

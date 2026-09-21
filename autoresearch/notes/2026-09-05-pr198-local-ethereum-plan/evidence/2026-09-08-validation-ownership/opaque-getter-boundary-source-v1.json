@@ -1,0 +1,21 @@
+{
+  "status": "source_fmt_ast_passed_semantic_gates_queued",
+  "change": "Opaque mutable-handle getters no longer perform upstream audits; write methods retain their full validation",
+  "removed_static_calls_per_complete_init": {
+    "geometry_storage_validate": 1,
+    "rows_10_34_storage_validate": 2,
+    "native_storage_validate": 2
+  },
+  "files": [
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_universal_geometry_authority_v4.zig",
+      "sha256": "fc9a786b318b9476166343525c1551d33e1e37a7b32e234cce3d626c59b26e8f"
+    },
+    {
+      "path": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_rows_10_34_v4.zig",
+      "sha256": "49f758440e9fc61c709f29371848664c37de2466f556ea39585e75749ef4eabf"
+    }
+  ],
+  "after_source_manifest_sha256": "dd88e4828e9ad646b29829bf461fcf2823e197751f364360d3560c9f4f3d7409",
+  "limitations": "Static counts; no runtime improvement claimed"
+}

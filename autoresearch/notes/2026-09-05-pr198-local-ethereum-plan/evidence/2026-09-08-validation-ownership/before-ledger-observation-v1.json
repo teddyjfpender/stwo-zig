@@ -1,0 +1,15 @@
+{
+  "recorded_at": "2026-09-08T07:03:41.361117+00:00",
+  "classification": "progress_then_verified_live_wait",
+  "source_manifest_sha256": "c2afa2b712c36dd7ccd396c8ca7675c69e8d8cbde2126bd59045901894aa07d3",
+  "test_pid": 48195,
+  "phase": "ledger-range",
+  "raw_record": "ETHEREUM_COHORT_RESOURCES phase=ledger-range wall_ns=3291125 source=darwin_proc_pid_rusage_v6 lifetime_peak_footprint_bytes=56225850168 ledger_present=true ledger_len=166400671 ledger_capacity=316974724 tuple_record_bytes=136 ledger_used_bytes=22630491256 ledger_capacity_bytes=43108562464 ledger_bytes_overflow=false sampling_unavailable=none",
+  "tuple_contributions": 166400671,
+  "ledger_used_bytes": 22630491256,
+  "ledger_capacity_bytes": 43108562464,
+  "lifetime_peak_footprint_bytes": 56225850168,
+  "closure_passed": false,
+  "full_replay_passed": false,
+  "limits": "Count agrees with older v7 run; count alone is not exact lookup closure or proof acceptance."
+}

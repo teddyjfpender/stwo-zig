@@ -1,0 +1,16 @@
+{
+  "observed_at": "2026-09-08T05:32:34.644767+00:00",
+  "source_manifest_sha256": "cc4df4adc3913b0a68dc975dbc4f06afebcb03b912865e1901f636448819067f",
+  "live_process": "  PID STAT  ELAPSED  %CPU    RSS\n40352 R    01:15:59  99.3 11757008\n",
+  "phase_records": [
+    "ETHEREUM_WRAPPER_RESOURCES phase=main.allocate wall_ns=31614359375 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=34294854656 source=darwin_proc_pid_rusage_v6",
+    "ETHEREUM_WRAPPER_RESOURCES phase=main.fill wall_ns=250188587875 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=34294887424 source=darwin_proc_pid_rusage_v6",
+    "ETHEREUM_WRAPPER_RESOURCES phase=main.commit wall_ns=196267184042 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=36449212680 source=darwin_proc_pid_rusage_v6",
+    "ETHEREUM_WRAPPER_RESOURCES phase=main wall_ns=478072146958 lifetime_peak_footprint_bytes=56226636864 current_footprint_bytes=36449212680 source=darwin_proc_pid_rusage_v6"
+  ],
+  "live_progress_sha256_at_observation": "65b125814701cf06543d3df64fa2bb6c888edeba72a97121355ee9a4c746161b",
+  "scope": "Real wrapper completed main allocation, fill and commitment with bounded mapped ingestion. Remaining interaction, composition, FRI, serialization and independent acceptance are not yet complete.",
+  "worker_policy_note": "Process observation during main commitment reached 1193.9 percent CPU at elapsed 01:13:43. The configured worker_count=1 must not be described as single-core execution; this is an instantaneous observation, not phase-average parallelism.",
+  "wrapper_accepted": false,
+  "accepted_native_segments": 20
+}

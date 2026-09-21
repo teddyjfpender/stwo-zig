@@ -1,7 +1,7 @@
 //! Fixed executable authority for RV32 byte/half/word loads and stores.
 //!
 //! The authenticated binding owns architectural memory retirement, physical
-//! witness projection, all 63 direct roots, and all 16 ordered lookup events.
+//! witness projection, all 63 direct roots, and all 17 ordered lookup events.
 //! Its retained evaluator is pointer-free and performs no allocation, string
 //! lookup, arena traversal, callback dispatch, or runtime metadata decoding.
 
@@ -31,13 +31,14 @@ pub const AUTHORITY_BINDING_FORMAT_VERSION: u16 = 1;
 pub const AUTHORITY_BINDING_DOMAIN_SEPARATOR =
     "stwo-zig/typed-air/load-store-fixed-authority/v1";
 pub const AUTHORITY_BINDING_DIGEST_HEX =
-    "143d0a41d92b67babe31a8006ee8df8a553aa0db3a249d28ce32584c8abe1b4e";
+    "0ccb85bcc31f45ed31f76bf208e4e046e3e0f47047231fc9171612a8c88bb040";
 pub const AUTHORITY_BINDING_DIGEST: digest.Digest = blk: {
     var result: digest.Digest = undefined;
     _ = std.fmt.hexToBytes(&result, AUTHORITY_BINDING_DIGEST_HEX) catch
         @compileError("invalid typed LOAD_STORE authority-binding digest");
     break :blk result;
 };
+const ENFORCE_AUTHORITY_BINDING_DIGEST = true;
 
 pub const ExecutionRecipe = enum(u8) {
     aligned_memory_retirement_x0_discard = 0,
@@ -105,7 +106,7 @@ pub const DirectRecipe = enum(u8) {
     store_result_zero_1 = 58,
     store_result_zero_2 = 59,
     store_result_zero_3 = 60,
-    base_address_high_zero = 61,
+    aligned_address_word_binding = 61,
     active_placement = 62,
 };
 
@@ -132,6 +133,7 @@ pub const LookupRecipe = enum(u8) {
     destination_clock_gap = 13,
     byte_sign_range = 14,
     half_sign_range = 15,
+    aligned_address_high_range = 16,
 };
 
 pub const LookupDescriptor = struct {
@@ -159,6 +161,7 @@ pub const CANONICAL_LOOKUP_RECIPE = [LOOKUP_COUNT]LookupDescriptor{
     .{ .recipe = .destination_clock_gap, .domain = .range_check_20, .role = .request, .arity = 1, .access_ordinal = 3 },
     .{ .recipe = .byte_sign_range, .domain = .range_check_m31, .role = .request, .arity = 2, .access_ordinal = null },
     .{ .recipe = .half_sign_range, .domain = .range_check_m31, .role = .request, .arity = 2, .access_ordinal = null },
+    .{ .recipe = .aligned_address_high_range, .domain = .range_check_8_8, .role = .request, .arity = 2, .access_ordinal = null },
 };
 
 pub const Binding = struct {
@@ -177,7 +180,8 @@ pub const Binding = struct {
         try definition.validate();
         const physical = witness.WitnessBinding.canonical(definition);
         const physical_digest = physical.identityDigest();
-        if (!std.mem.eql(u8, &physical_digest, &witness.WITNESS_BINDING_DIGEST))
+        if (ENFORCE_AUTHORITY_BINDING_DIGEST and
+            !std.mem.eql(u8, &physical_digest, &witness.WITNESS_BINDING_DIGEST))
             return error.InvalidWitnessBinding;
         return CANONICAL_BINDING;
     }
@@ -310,8 +314,8 @@ pub fn canonicalRetirement(
     };
     if (address & (alignment - 1) != 0) return error.MisalignedMemoryAccess;
     const aligned_address = address & ~@as(u32, 3);
-    if (base_value >= (@as(u32, 1) << 24) or
-        aligned_address >= (@as(u32, 1) << 22))
+    if (base_value >= (@as(u32, 1) << 30) or
+        aligned_address >= (@as(u32, 1) << 30))
     {
         return error.AddressOutOfRange;
     }
@@ -361,7 +365,8 @@ pub const Authority = struct {
         _ = try witness.Executor.init(definition, &physical);
         const owned = supplied.*;
         const binding_digest = owned.identityDigest();
-        if (!std.mem.eql(u8, &binding_digest, &AUTHORITY_BINDING_DIGEST))
+        if (ENFORCE_AUTHORITY_BINDING_DIGEST and
+            !std.mem.eql(u8, &binding_digest, &AUTHORITY_BINDING_DIGEST))
             return error.InvalidAuthorityBinding;
         return .{ .binding = owned, .binding_digest = binding_digest };
     }
@@ -519,6 +524,11 @@ pub fn Evaluator(comptime S: type) type {
             e.accessChainAt(lookups, accesses.dst, active, 3);
             e.rangeM31(lookups, row.is_lb.neg(), signs[0]);
             e.rangeM31(lookups, row.is_lh.neg(), signs[1]);
+            e.range88(
+                lookups,
+                active.neg(),
+                core.alignedAddressHighRangeLookup(row),
+            );
             std.debug.assert(lookups.len == LOOKUP_COUNT);
         }
     };
@@ -630,7 +640,7 @@ comptime {
     for (CANONICAL_DIRECT_RECIPE, 0..) |recipe, index|
         if (@intFromEnum(recipe) != index)
             @compileError("typed LOAD_STORE direct recipe is not canonical");
-    if (!std.mem.eql(
+    if (ENFORCE_AUTHORITY_BINDING_DIGEST and !std.mem.eql(
         u8,
         &CANONICAL_BINDING.identityDigest(),
         &AUTHORITY_BINDING_DIGEST,

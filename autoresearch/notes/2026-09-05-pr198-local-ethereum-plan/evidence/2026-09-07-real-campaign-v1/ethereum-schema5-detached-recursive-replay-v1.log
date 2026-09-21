@@ -1,0 +1,9 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 689s
+src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig:13:26: error: no module named 'interop_postcard' available within module 'root'
+const postcard = @import("interop_postcard");
+                         ^~~~~~~~~~~~~~~~~~
+referenced by:
+    deserializeProtocolProof: src/integrations/riscv_cpu/recursive_temporal_secure_parent_native_engine_v1.zig:2050:21
+    verifyImpl: src/integrations/riscv_cpu/ethereum_wrapper_root_verifier_v1.zig:106:51
+    3 reference(s) hidden; use '-freference-trace=5' to see all references

@@ -1,0 +1,7 @@
+{
+  "binary": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/pair-coverage-verifier",
+  "sha256": "92b7f3de8ce7f8c79abe78f7e47d6a32b419293959924b3e04a80e522872af4a",
+  "source_patch": "pair-coverage-source.patch",
+  "source_patch_sha256": "08e0c06cd2bfa5f546a1cc86673be058157363bd1caf45f8660b67a5f7a5a3a4",
+  "build_log": "detached-child-recording-second.log"
+}

@@ -1,0 +1,17 @@
+test-recursive-segment-v2-detached-child
++- SegmentV2 detached child guard
+   +- run test stderr
+detached composition: samples=2287 inputs=10116 nodes=39951 outputs=52 rejected_claims=41 rejected_sample_words=4
+SEGMENT_V2_DETACHED_PREFIX operations=60 calls=233 payload_fixed=54 payload_dynamic=876 input_uses=892 boundary_challenges=2 parent_profile_active=false
+SEGMENT_V2_DETACHED_PCS_SCHEDULE operations=40 shared_secure_emitter=true
+SEGMENT_V2_DETACHED_PCS_ROWS operations=40 provider_calls=1242 sampled_words=9148 randomness_rows=20 pow_rows=1 parent_profile_active=false
+detached expected boundary: inputs=11656 nodes=41410 outputs=7116 provider_calls=256 rejected=29
+SEGMENT_V2_DETACHED_PCS samples=2287 queried_values=6381 layers=16 rejected_deep_answers=3 parent_profile_active=false
+SEGMENT_V2_DETACHED_CHILD transcript_operations=100 poseidon_calls=1475 sampled_values=2287 queried_values=6381 fri_layers=16 raw_queries=3 input_bytes=92732 caller_destroyed=true
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-recursive-segment-v2-detached-child success
++- SegmentV2 detached child guard success
+   +- run test 1 passed 1s MaxRSS:27M
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

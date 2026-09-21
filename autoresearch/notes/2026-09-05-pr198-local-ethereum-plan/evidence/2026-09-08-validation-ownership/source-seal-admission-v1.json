@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-09-08T07:38:08.051952+00:00",
+  "status": "source_fmt_ast_passed_semantic_and_runtime_not_run",
+  "source_file": "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_field_public_v4_schema3.zig",
+  "source_sha256": "2136aef741f540ad51cf4a7dea4b27c08fe5867ad3c31d76d617b424ebf5c7ed",
+  "scope": "one duplicate FreshInput audit removed from schema3 SourceAuthority.seal; external input and witness admission retained",
+  "change": "schema3 first calls existing schema2 SourceAuthority.seal once, then validates its witness, then constructs identical source fields and digest; no authority token, flag, layout, identity or default change",
+  "error_order": "FreshInput errors still precede witness errors. Schema2 projection errors now precede witness errors when both are invalid; no exact conflicting-error precedence contract was found.",
+  "sample": "autoresearch/notes/2026-09-05-pr198-local-ethereum-plan/evidence/2026-09-08-validation-ownership/after-consolidation-geometry-sample.txt",
+  "sample_sha256": "11c3e63383dc1f09eb7af32c7642389eb9fef5d47696aec47879a00d1e5ad94c",
+  "counts_scope": "static ordinary-profile source call counts, excluding all suffix/native descendants; not measured timing or complete Geometry call totals; Initial38 admission can add checks",
+  "primitive_paths_before": {
+    "one_materialized_validate": [
+      "campaign_materializer_v4.zig:269 -> materializer_v4.zig:335 -> FreshInput.validate",
+      "campaign_materializer_v4.zig:270 -> campaign_provider_geometry_v4.zig:194 -> field_public_v4_schema3.zig:259 -> SourceAuthority.seal:165 -> FreshInput.validate",
+      "same schema3 seal -> field_public_v4.zig:210 -> FreshInput.validate"
+    ],
+    "one_support_derive": "transcript_program_v4_support.zig:65 -> transcript_v4.zig:113 -> FreshInput.validate",
+    "one_fresh_input_validate": "input_v4.zig:297 -> FreshVerifiedCapture.validate (incremental_ethereum_verifier_v3.zig:92), including public_sums.validateAgainst"
+  },
+  "direct_geometry_paths_before": [
+    {
+      "path": "Geometry ingress, geometry_authority_v4.zig:87",
+      "materialized_validations": 1,
+      "derive_validations": 0,
+      "full_capture_validations": 3
+    },
+    {
+      "path": "Program.init, transcript_program_v4.zig:87,88,119 -> validateAgainst:138 -> derive:163",
+      "materialized_validations": 2,
+      "derive_validations": 2,
+      "full_capture_validations": 8
+    },
+    {
+      "path": "TranscriptRows.init, transcript_rows_v4.zig:77,78,264 -> Storage.validate:312,313",
+      "materialized_validations": 3,
+      "derive_validations": 2,
+      "full_capture_validations": 11
+    },
+    {
+      "path": "Geometry post-suffix program comparison, geometry_authority_v4.zig:130",
+      "materialized_validations": 1,
+      "derive_validations": 1,
+      "full_capture_validations": 4
+    },
+    {
+      "path": "Geometry finalization excluding suffix, geometry_authority_v4.zig:161 -> Storage.validate:261,271",
+      "materialized_validations": 1,
+      "derive_validations": 1,
+      "full_capture_validations": 4
+    }
+  ],
+  "subtotal_before": {
+    "materialized_validations": 8,
+    "derive_validations": 6,
+    "full_capture_validations": 30,
+    "full_capture_before_suffix": 22
+  },
+  "subtotal_after_structural_only": {
+    "full_capture_per_materialized_validation": 2,
+    "full_capture_validations": 22,
+    "full_capture_before_suffix": 16
+  },
+  "immediate_suffix_native_multipliers_before": [
+    {
+      "path": "ChildPublic.init:112,208",
+      "full_capture_validations": 6
+    },
+    {
+      "path": "each validating ChildPublic getter -> Storage.validate:293",
+      "full_capture_validations": 3
+    },
+    {
+      "path": "ChildStatement.init:57,58,59,126",
+      "full_capture_validations": 18
+    },
+    {
+      "path": "each validating ChildStatement getter -> Storage.validate:214,215,216",
+      "full_capture_validations": 9
+    },
+    {
+      "path": "Native.init direct materialized admission:186; excludes validating child/statement getters",
+      "full_capture_validations": 3
+    },
+    {
+      "path": "Native.Storage.validate:717-720 -> child.binding and public_sums.Evaluation.validateAgainst:399",
+      "full_capture_validations": 6
+    }
+  ],
+  "authority_boundary": "Geometry.OwnerV4 is the nearest existing opaque lifetime owner but borrows mutable Materialized. No current complete opaque immutable FreshInput owner. Safe shared admission requires privately owned source/projection, not cached flag or mutable borrowed receipt. Larger ownership changes are outside this fix.",
+  "focused_command": [
+    "python3",
+    "scripts/zig_protocol_test.py",
+    "src/integrations/riscv_cpu/recursive_common_ethereum_incremental_leaf_field_public_v4_schema3_test.zig",
+    "-OReleaseSafe",
+    "-fstrip",
+    "--test-filter",
+    "schema3 source binds tuple count capacity and field commitment",
+    "--test-filter",
+    "schema3 field schedule derives provider geometry from committed stream"
+  ],
+  "genuine_regression_command": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_cpu",
+    "test-ethereum-incremental-leaf-materializer-custody-v4-replay",
+    "-Dethereum-proof-strip=true",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "genuine_regressions": "existing exerciseRetainedCampaignMembership validates retained campaign after original destruction, rejects changed tuple count, changed schedule call, wrong campaign identity and invalid leaf index; existing materializer failure ownership retained",
+  "execution_note": "Commands identified only; parent queues after active frozen replay. No frozen source was changed."
+}

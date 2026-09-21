@@ -1,0 +1,9 @@
+test-csp-ecdsa-guest-proof
++- run test stderr
+CSP_ECDSA_GUEST execution_ns=814958 proving_ns=857138834 verify_ns=307598959 cycles=1828 proof_bytes=3748143
+
+Build Summary: 3/3 steps succeeded; 1/1 tests passed
+test-csp-ecdsa-guest-proof success
++- run test 1 passed 1s MaxRSS:1G
+   +- compile test ReleaseFast native success 1m MaxRSS:3G
+

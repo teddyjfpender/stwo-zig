@@ -1,6 +1,7 @@
 //! Focused proof-side guest-precompile test root.
 
 test {
+    _ = @import("air/guest_precompile/keccakf_authority_test.zig");
     _ = @import("air/guest_precompile/caller_component_test.zig");
     _ = @import("air/guest_precompile/caller_component_prepared_test.zig");
     _ = @import("air/guest_precompile/direct_constraints_test.zig");

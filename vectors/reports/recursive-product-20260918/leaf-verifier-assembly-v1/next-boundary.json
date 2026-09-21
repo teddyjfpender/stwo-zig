@@ -1,0 +1,52 @@
+{
+  "status": "inspection_only_source_unchanged_during_complete_gate",
+  "next": "Neutral leaf transcript, verifier, and command",
+  "contracts": [
+    {
+      "owner": "segment_leaf_authority_v2_contract.zig",
+      "required": [
+        "ManifestV2",
+        "VerifierKeyAuthorityV2",
+        "NativeTemporalContextV2",
+        "nativeContext",
+        "formatId",
+        "statementEvent"
+      ],
+      "note": "Preserve identity preimages and shared source-side aliases; the current contract imports broad segment statement and temporal owners."
+    },
+    {
+      "owner": "segment_leaf_authority_v2_authority_hash_poseidon_plan_v2.zig",
+      "required": [
+        "authorityHashCallCount",
+        "appendExpectedAuthorityHashCalls",
+        "AuthorityHashCallRecorder"
+      ],
+      "note": "Share expected-public emitter and overlap rejection with native custody."
+    },
+    {
+      "owner": "segment_public_claim_hash_authority_v2.zig",
+      "required": [
+        "callWireTuples",
+        "callWireTupleGeneric",
+        "tupleForCall"
+      ],
+      "note": "Preserve the exact recursion_wire sign, group order, circuit ID, and node indexing."
+    },
+    {
+      "owner": "air/verifier_arithmetic_lowering_reference.zig",
+      "required": [
+        "PublicTermParts",
+        "publicTermParts",
+        "publicTermClaim"
+      ],
+      "note": "PublicWireTerm already lives in verifier_wire_protocol.zig; move the fixed-anchor claim evaluator without importing lowering plans."
+    }
+  ],
+  "integration_wrappers": [
+    "recursive_segment_v2_public_inputs.zig",
+    "recursive_segment_v2_authority_boundary.zig",
+    "recursive_segment_v2_detached_transcript.zig",
+    "recursive_segment_v2_detached_verifier.zig"
+  ],
+  "verification": "Keep pinned key/transcript identities, replay all four serialized leaves, retain recording capture, and qualify through the complete tree gate."
+}

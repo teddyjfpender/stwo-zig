@@ -1,0 +1,36 @@
+{
+  "status": "focused_checks_passed",
+  "parent_protocol_sources_before": 320,
+  "parent_protocol_sources_after": 189,
+  "parent_protocol_runner_witness_prover_dependencies": false,
+  "full_standalone_verifier_dependency_separation_complete": false,
+  "checks": {
+    "ownership": {
+      "passed": true,
+      "tests_including_wrappers": 9,
+      "log": "pr198-statement-contract-ownership-final.log"
+    },
+    "boundary": {
+      "passed": true,
+      "tests_including_wrappers": 19,
+      "log": "pr198-statement-contract-boundary.log"
+    },
+    "parent": {
+      "passed": true,
+      "tests_including_wrappers": 2,
+      "log": "pr198-statement-contract-parent.log"
+    }
+  },
+  "source_sha256": {
+    "segment_statement_v2_contract.zig": "9b2d9830be61d5cd122faa44781336f08a3346176055eaffd13dc5cb7aa6d510",
+    "segment_statement_v2_canonical_wire_view_v2.zig": "ca02b8d4dec15f22e883daa7ce13f0a5549b24b7f010037dfdaf3c412ee85c07",
+    "segment_statement_v2_source_v2.zig": "5f9f75ded679f4b18e7221db6bca617de733b333ed81a3cbab5f6327fd189fe5",
+    "segment_statement_v2_authenticate_canonical_wire.zig": "5b36f9e7253c953345f694ee3793bd70b00e981558d917de48ecf96380cd8de5",
+    "segment_statement_v2_parallel_root.zig": "63e6aca6821db21cfa1a50e641302c3dfdd3093605ea40116bfa759f397af196",
+    "segment_statement_v2_transcript_layout.zig": "594997e654c3d8951f812dc89767f092d09a9cc2aca10607961340b7e83134d2",
+    "span_continuation_v1.zig": "b9ab2d9d7b98daa2c2815b48aacd5282cdbfe1ed32a1b4bf47067e06a488bdd5"
+  },
+  "preceding_complete_qualification": "../parent-contract-qualified-v1/cross-backend.json",
+  "included_in_preceding_complete_snapshot": false,
+  "next": "Separate standalone verifier component construction; qualify current useful 1/2/4/8 continuation receipts."
+}

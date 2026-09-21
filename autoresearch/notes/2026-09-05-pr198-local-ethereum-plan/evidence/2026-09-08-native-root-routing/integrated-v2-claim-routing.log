@@ -1,0 +1,13 @@
+test-ethereum-native-root-claim
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+  claim semantic output[86] node=881 value=1991068772/0/0/0
+  claim semantic output[78] node=866 value=2147482658/0/0/0
+  claim semantic output[78] node=867 value=2147483646/0/0/0
+
+Build Summary: 4/4 steps succeeded; 4/4 tests passed
+test-ethereum-native-root-claim success
++- stwo_riscv_frontend test count floor success
+   +- run test 4 passed 575ms MaxRSS:9M
+      +- compile test ReleaseSafe native success 8s MaxRSS:711M
+

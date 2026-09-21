@@ -1,0 +1,698 @@
+diff --git a/src/frontends/riscv/recursion/segment_statement_v2_authenticate_canonical_wire.zig b/src/frontends/riscv/recursion/segment_statement_v2_authenticate_canonical_wire.zig
+index 5b4dfc2a..2e1c77df 100644
+--- a/src/frontends/riscv/recursion/segment_statement_v2_authenticate_canonical_wire.zig
++++ b/src/frontends/riscv/recursion/segment_statement_v2_authenticate_canonical_wire.zig
+@@ -206,10 +206,9 @@ pub fn requireAdjacentSources(
+         left_statement.exit_lineage_id,
+         right_statement.entry_lineage_id,
+     )) return error.LineageMismatch;
+-    _ = try span_statement.SpanStatement.fold(
+-        left.base_statement,
+-        right.base_statement,
+-    );
++    // Consecutive execution segments need not be aligned binary siblings.
++    // The recursive parent separately enforces SpanStatement.fold geometry.
++    _ = try span_statement.foldExecuted(left_span, right_span);
+ }
+ 
+ pub fn formatId() Digest {
+@@ -356,7 +355,7 @@ pub fn requireAdjacentViews(
+         left.statement.exit_lineage_id,
+         right.statement.entry_lineage_id,
+     )) return error.LineageMismatch;
+-    _ = try span_statement.SpanStatement.fold(left_base, right_base);
++    _ = try span_statement.foldExecuted(left_span, right_span);
+ }
+ 
+ pub fn sectionsEqualSparse(
+diff --git a/src/frontends/riscv/recursion/span_statement.zig b/src/frontends/riscv/recursion/span_statement.zig
+index 0e457523..d3a67358 100644
+--- a/src/frontends/riscv/recursion/span_statement.zig
++++ b/src/frontends/riscv/recursion/span_statement.zig
+@@ -29,6 +29,8 @@ pub const JobContext = shard_0.JobContext;
+ pub const SlotSpan = shard_0.SlotSpan;
+ pub const EdgeClaim = shard_0.EdgeClaim;
+ pub const ExecutedSpan = shard_0.ExecutedSpan;
++/// Join consecutive execution spans independently of binary proof-tree slots.
++pub const foldExecuted = shard_0.foldExecuted;
+ pub const SpanBody = shard_0.SpanBody;
+ pub const SpanStatement = shard_1.SpanStatement;
+ pub const RootStatement = shard_1.RootStatement;
+diff --git a/src/frontends/riscv/runner/guest_precompile/test_elf.zig b/src/frontends/riscv/runner/guest_precompile/test_elf.zig
+index cfe0428f..8bc0a4de 100644
+--- a/src/frontends/riscv/runner/guest_precompile/test_elf.zig
++++ b/src/frontends/riscv/runner/guest_precompile/test_elf.zig
+@@ -283,14 +283,19 @@ pub const recursion_memory_elf_size = imageSize(3 + 3 * recursion_memory_updates
+ /// an already populated contiguous boundary. The largest offset is 1920,
+ /// within the signed 12-bit load/store immediate and the runner's RW range.
+ pub fn buildRecursionMemory(address_count: usize) error{InvalidMemoryAddressCount}![recursion_memory_elf_size]u8 {
++    return buildRecursionMemoryWithUpdates(recursion_memory_updates, address_count);
++}
++
++pub fn buildRecursionMemoryWithUpdates(comptime updates: usize, address_count: usize) error{InvalidMemoryAddressCount}![imageSize(3 + 3 * updates, poseidon_data_size)]u8 {
++    if (updates == 0 or updates > 256) @compileError("memory fixture update count is outside the small ladder");
+     switch (address_count) {
+         1, 4, 16 => {},
+         else => return error.InvalidMemoryAddressCount,
+     }
+-    var instructions: [3 + 3 * recursion_memory_updates]u32 = undefined;
++    var instructions: [3 + 3 * updates]u32 = undefined;
+     instructions[0] = 0x0010_02b7; // LUI x5, 0x100.
+     instructions[1] = 0x1002_8293; // ADDI x5, x5, 0x100.
+-    for (0..recursion_memory_updates) |index| {
++    for (0..updates) |index| {
+         const offset: u32 = recursion_memory_stride * @as(u32, @intCast(index % address_count));
+         instructions[2 + 3 * index] = (offset << 20) | 0x0002_a303; // LW x6, offset(x5).
+         instructions[3 + 3 * index] = 0x0013_0313; // ADDI x6, x6, 1.
+diff --git a/src/integrations/riscv_cpu/build_segment_steps.zig b/src/integrations/riscv_cpu/build_segment_steps.zig
+index 7063db57..92043715 100644
+--- a/src/integrations/riscv_cpu/build_segment_steps.zig
++++ b/src/integrations/riscv_cpu/build_segment_steps.zig
+@@ -1839,7 +1839,7 @@ pub fn add(ctx: anytype) void {
+     const detached_routing_names: []const []const u8 = &.{"SegmentV2 detached routing preserves exact source and graph export multiplicities"};
+     const detached_routing_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_routing_names });
+     b.step("test-recursive-segment-v2-detached-routing", "Check typed source routing and exact cross-circuit wire counts").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_routing_tests), detached_routing_names, "SegmentV2 detached routing guard"));
+-    const detached_parent_prepare_names: []const []const u8 = &.{"detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims"};
++    const detached_parent_prepare_names: []const []const u8 = &.{ "detached parent prepares two genuine children with one exact routing plan", "detached parent snapshots typed rows and rejects mutable ingress and inactive claims" };
+     const detached_parent_prepare_tests = b.addTest(.{ .root_module = detached_command, .filters = detached_parent_prepare_names });
+     b.step("test-recursive-segment-v2-detached-parent-prepare", "Admit two genuine children and exact parent rows before proving").dependOn(support.ProofTestGuard.add(b, b.addRunArtifact(detached_parent_prepare_tests), detached_parent_prepare_names, "SegmentV2 detached parent preparation guard"));
+     const detached_runner = support.createHarnessModule(b, "recursive_segment_v2_detached_verifier_runner.zig", target, optimize, core, cpu_backend, frontend, integration);
+@@ -2561,6 +2561,24 @@ pub fn add(ctx: anytype) void {
+         "interop_postcard",
+         postcard,
+     );
++    const segment_workload_root = b.createModule(.{
++        .root_source_file = b.path("recursive_segment_v2_workload_runner.zig"),
++        .target = target,
++        .optimize = optimize,
++    });
++    segment_workload_root.addImport("stwo_core", core);
++    segment_workload_root.addImport("stwo_riscv_frontend", frontend);
++    const segment_workload = b.addExecutable(.{
++        .name = "recursive-segment-v2-workload",
++        .root_module = segment_workload_root,
++    });
++    b.step("build-recursive-segment-v2-workload", "Install the execution-only segment ladder and expected-input exporter")
++        .dependOn(&b.addInstallArtifact(segment_workload, .{}).step);
++    const run_segment_workload = b.addRunArtifact(segment_workload);
++    run_segment_workload.has_side_effects = true;
++    if (b.args) |args| run_segment_workload.addArgs(args);
++    b.step("run-recursive-segment-v2-workload", "Check 2/4/8 segment execution or export expected inputs without compiling a prover")
++        .dependOn(&run_segment_workload.step);
+     const segment_v2_concrete_outer_runner = b.addExecutable(.{
+         .name = "recursive-segment-v2-concrete-outer-proof",
+         .root_module = segment_v2_concrete_outer_runner_root,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+index 64ac800b..fbe8702e 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_concrete_outer_proof_runner.zig
+@@ -44,13 +44,18 @@ fn run(comptime Metal: type) !void {
+         std.debug.print("SEGMENT_V2_TWO_SEGMENT_EXECUTION status=passed\n", .{});
+         return;
+     }
++    if (args.len == 2 and std.mem.eql(u8, args[1], "--check-segment-ladder")) {
++        try @import("recursive_segment_v2_two_segment_test_support.zig").checkSegmentLadder(allocator);
++        return;
++    }
+     var steps: ?usize = null;
+     var memory_addresses: ?usize = null;
++    var segment_count: ?usize = null;
+     var two_segment_output: ?[]const u8 = null;
+     var initial_register7: ?u32 = null;
+     var initial_memory_word: ?u32 = null;
+-    var child_key_paths: [2]?[]const u8 = .{ null, null };
+-    var child_key_pins: [2]?[]const u8 = .{ null, null };
++    var child_key_paths: [8]?[]const u8 = @splat(null);
++    var child_key_pins: [8]?[]const u8 = @splat(null);
+     var backend: NativeBackend = .cpu;
+     var backend_seen = false;
+     var aot_bundle: ?[]const u8 = null;
+@@ -69,18 +74,27 @@ fn run(comptime Metal: type) !void {
+         } else if (std.mem.eql(u8, key, "--initial-memory-word")) {
+             if (initial_memory_word != null) return error.DuplicateArgument;
+             initial_memory_word = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialMemoryWord;
+-        } else if (std.mem.eql(u8, key, "--child-0-key") or std.mem.eql(u8, key, "--child-1-key")) {
+-            const index: usize = if (key[8] == '0') 0 else 1;
+-            if (child_key_paths[index] != null or value.len == 0) return error.InvalidArguments;
+-            child_key_paths[index] = value;
+-        } else if (std.mem.eql(u8, key, "--child-0-key-sha256") or std.mem.eql(u8, key, "--child-1-key-sha256")) {
+-            const index: usize = if (key[8] == '0') 0 else 1;
+-            if (child_key_pins[index] != null or value.len != 64) return error.InvalidArguments;
+-            child_key_pins[index] = value;
++        } else if (std.mem.eql(u8, key, "--segment-count")) {
++            if (segment_count != null) return error.DuplicateArgument;
++            segment_count = std.fmt.parseInt(usize, value, 10) catch return error.InvalidSegmentCount;
++            switch (segment_count.?) {
++                2, 4, 8 => {},
++                else => return error.InvalidSegmentCount,
++            }
++        } else if (std.mem.startsWith(u8, key, "--child-")) {
++            if (key.len < 13 or key[8] < '0' or key[8] > '7') return error.InvalidArguments;
++            const index: usize = key[8] - '0';
++            if (std.mem.eql(u8, key[9..], "-key")) {
++                if (child_key_paths[index] != null or value.len == 0) return error.InvalidArguments;
++                child_key_paths[index] = value;
++            } else if (std.mem.eql(u8, key[9..], "-key-sha256")) {
++                if (child_key_pins[index] != null or value.len != 64) return error.InvalidArguments;
++                child_key_pins[index] = value;
++            } else return error.InvalidArguments;
+         } else if (std.mem.eql(u8, key, "--initial-register7")) {
+             if (initial_register7 != null) return error.DuplicateArgument;
+             initial_register7 = std.fmt.parseInt(u32, value, 0) catch return error.InvalidInitialRegister7;
+-        } else if (std.mem.eql(u8, key, "--two-segment-output")) {
++        } else if (std.mem.eql(u8, key, "--two-segment-output") or std.mem.eql(u8, key, "--segments-output")) {
+             if (two_segment_output != null) return error.DuplicateArgument;
+             if (value.len == 0) return error.InvalidArguments;
+             two_segment_output = value;
+@@ -99,12 +113,16 @@ fn run(comptime Metal: type) !void {
+             _ = std.fmt.hexToBytes(&digest, value) catch return error.InvalidAotManifestSha256;
+             aot_manifest = digest;
+         } else {
+-            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--two-segment-output NEW_DIRECTORY [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
++            std.debug.print("usage: {s} [--check-workload | --check-memory-workload | --check-two-segment-workload | --check-segment-ladder | (--native-steps 1|4|16|64 | --memory-addresses 1|4|16 [--segments-output NEW_DIRECTORY [--segment-count 2|4|8] [--initial-memory-word U32] [--child-0-key PATH --child-0-key-sha256 SHA256 --child-1-key PATH --child-1-key-sha256 SHA256]]) [--initial-register7 U32] [--native-backend cpu|metal] [--aot-bundle PATH --aot-manifest-sha256 SHA256]]\n", .{args[0]});
+             return error.InvalidArguments;
+         }
+     }
+-    if (two_segment_output == null and (initial_memory_word != null or child_key_paths[0] != null or child_key_paths[1] != null or child_key_pins[0] != null or child_key_pins[1] != null)) return error.TwoSegmentOutputRequired;
+-    for (child_key_paths, child_key_pins) |path, pin| if ((path == null) != (pin == null)) return error.MissingDetachedKeyAdmission;
++    const selected_segments = segment_count orelse 2;
++    if (two_segment_output == null and (initial_memory_word != null or segment_count != null)) return error.TwoSegmentOutputRequired;
++    for (child_key_paths, child_key_pins, 0..) |path, pin, index| {
++        if ((path == null) != (pin == null)) return error.MissingDetachedKeyAdmission;
++        if (path != null and (two_segment_output == null or index >= selected_segments)) return error.InvalidArguments;
++    }
+     if (two_segment_output != null and memory_addresses == null) return error.MissingMemoryAddressCount;
+     if (memory_addresses) |count| {
+         if (steps != null or initial_register7 != null) return error.ConflictingWorkloadArguments;
+@@ -126,7 +144,7 @@ fn run(comptime Metal: type) !void {
+         .cpu => {
+             if (aot_bundle != null or aot_manifest != null) return error.UnexpectedAotArguments;
+             if (two_segment_output) |directory|
+-                try producePair(@import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
++                try produceSelectedSegments(selected_segments, @import("stwo_riscv_cpu_integration").recursive_segment_v2_leaf_outer.Engine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins)
+             else if (memory_addresses) |count|
+                 try gate.runMemoryProof(allocator, count)
+             else
+@@ -164,7 +182,7 @@ fn run(comptime Metal: type) !void {
+                 );
+                 const NativeEngine = @import("stwo_riscv_frontend").recursion.engine.ProverEngineForBackend(Backend);
+                 if (two_segment_output) |directory| {
+-                    try producePair(NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
++                    try produceSelectedSegments(selected_segments, NativeEngine, allocator, memory_addresses.?, initial_memory_word orelse 0, directory, child_key_paths, child_key_pins);
+                     try Backend.shutdown();
+                 } else if (memory_addresses) |count|
+                     try gate.runMemoryProofWithNativeEngine(NativeEngine, allocator, count)
+@@ -183,14 +201,14 @@ fn run(comptime Metal: type) !void {
+     std.debug.print("SEGMENT_V2_LADDER status=verified requested_steps={d} native_backend={s} memory_addresses={d} initial_register7={x} owners_destroyed=true\n", .{ selected_steps, @tagName(backend), memory_addresses orelse 0, initial_register7 orelse 0 });
+ }
+ 
+-fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [2]?[]const u8, child_key_pins: [2]?[]const u8) !void {
++fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, initial_memory_word: u32, directory: []const u8, child_key_paths: [8]?[]const u8, child_key_pins: [8]?[]const u8) !void {
+     const pair = @import("recursive_segment_v2_two_segment_proof_test_support.zig");
+     const ingress = @import("recursive_segment_v2_leaf_outer_proof_test.zig");
+     const recursion = @import("stwo_riscv_frontend").recursion;
+     const command = @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_command;
+-    var admitted: [2]?*command.OwnedKeyV1 = .{ null, null };
++    var admitted: [count]?*command.OwnedKeyV1 = @splat(null);
+     defer for (admitted) |key| if (key) |owner| owner.deinit();
+-    for (child_key_paths, child_key_pins, 0..) |path, pin_text, index| {
++    for (child_key_paths[0..count], child_key_pins[0..count], 0..) |path, pin_text, index| {
+         if (path) |key_path| {
+             var pin: [32]u8 = undefined;
+             _ = try std.fmt.hexToBytes(&pin, pin_text.?);
+@@ -200,18 +218,23 @@ fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, addres
+         }
+     }
+     try std.fs.cwd().makeDir(directory);
+-    const left = try std.fs.path.join(allocator, &.{ directory, "child-0" });
+-    defer allocator.free(left);
+-    const right = try std.fs.path.join(allocator, &.{ directory, "child-1" });
+-    defer allocator.free(right);
+-    const receipt = try pair.producePair(NativeEngine, allocator, address_count, .{
++    var directories: [count][]const u8 = undefined;
++    var initialized: usize = 0;
++    defer for (directories[0..initialized]) |path| allocator.free(path);
++    var keys: [count]?*const @import("stwo_riscv_cpu_integration").recursive_segment_v2_detached_verifier.KeyV1 = @splat(null);
++    for (&directories, 0..) |*path, index| {
++        path.* = try std.fmt.allocPrint(allocator, "{s}/child-{d}", .{ directory, index });
++        initialized += 1;
++        keys[index] = if (admitted[index]) |owner| owner.key() else null;
++    }
++    const receipt = try pair.produceSegments(count, NativeEngine, allocator, address_count, .{
+         .native_keys = try recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2.init(
+             ingress.digest("recursive-v2-segment-vk"),
+             ingress.digest("recursive-v2-parent-vk"),
+         ),
+-        .child_directories = .{ left, right },
++        .child_directories = directories,
+         .initial_memory_word = initial_memory_word,
+-        .admitted_outer_keys = .{ if (admitted[0]) |owner| owner.key() else null, if (admitted[1]) |owner| owner.key() else null },
++        .admitted_outer_keys = keys,
+     });
+     const bytes = try std.json.Stringify.valueAlloc(allocator, receipt, .{});
+     defer allocator.free(bytes);
+@@ -221,3 +244,10 @@ fn producePair(comptime NativeEngine: type, allocator: std.mem.Allocator, addres
+     defer file.close();
+     try file.writeAll(bytes);
+ }
++
++fn produceSelectedSegments(count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, seed: u32, directory: []const u8, paths: [8]?[]const u8, pins: [8]?[]const u8) !void {
++    switch (count) {
++        inline 2, 4, 8 => |n| try produceSegments(n, NativeEngine, allocator, address_count, seed, directory, paths, pins),
++        else => return error.InvalidSegmentCount,
++    }
++}
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+index a3b7471a..6289c9a2 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_memory_workload_test_support.zig
+@@ -15,7 +15,7 @@ pub fn validateSegment(
+     cumulative_steps: usize,
+     segment_steps: usize,
+ ) !void {
+-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0);
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, false, 0, fixture.recursion_memory_updates);
+ }
+ 
+ /// Same independent instruction/memory model with an explicit completed-leaf
+@@ -26,7 +26,7 @@ pub fn validateCompletedSegment(
+     cumulative_steps: usize,
+     segment_steps: usize,
+ ) !void {
+-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0);
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, true, 0, fixture.recursion_memory_updates);
+ }
+ 
+ pub fn validateSeededSegment(
+@@ -37,7 +37,41 @@ pub fn validateSeededSegment(
+     completed: bool,
+     initial_word: u32,
+ ) !void {
+-    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word);
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word, fixture.recursion_memory_updates);
++}
++
++pub fn validateSeededSegmentWithUpdates(result: *const runner.SegmentResult, address_count: usize, cumulative_steps: usize, segment_steps: usize, completed: bool, initial_word: u32, updates: usize) !void {
++    return validateSegmentWithCompletion(result, address_count, cumulative_steps, segment_steps, completed, initial_word, updates);
++}
++
++/// All small segmented memory fixtures share one ELF/session ownership route.
++pub fn materialize(comptime count: usize, allocator: std.mem.Allocator, address_count: usize, initial_word: u32) ![count]runner.Poseidon2SegmentResult {
++    const updates = comptime updatesForSegments(count);
++    const elf = try fixture.buildRecursionMemoryWithUpdates(updates, address_count);
++    var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
++    defer session.deinit();
++    if (initial_word != 0) {
++        var addresses: [16]u32 = undefined;
++        for (addresses[0..address_count], 0..) |*address, index|
++            address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
++        try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
++        for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
++    }
++    var results: [count]runner.Poseidon2SegmentResult = undefined;
++    var initialized: usize = 0;
++    errdefer for (results[0..initialized]) |*result| result.deinit();
++    for (&results, 0..) |*result, index| {
++        const budget = if (index + 1 == count) 2 + 3 * updates - native_steps * (count - 1) + 1 else native_steps;
++        result.* = if (index == 0) try session.startSegment(budget) else try session.resumeSegment(results[index - 1].base.continuation orelse return error.ExpectedMemoryContinuation, budget);
++        initialized += 1;
++    }
++    return results;
++}
++
++pub fn updatesForSegments(comptime count: usize) usize {
++    if (count != 2 and count != 4 and count != 8) @compileError("memory segment ladder is 2,4,8");
++    // Keep full segments at64 instructions and the final segment near34.
++    return (native_steps * (count - 1) + 32 + 2) / 3;
+ }
+ 
+ fn validateSegmentWithCompletion(
+@@ -47,17 +81,19 @@ fn validateSegmentWithCompletion(
+     segment_steps: usize,
+     completed: bool,
+     initial_word: u32,
++    updates: usize,
+ ) !void {
++    if (updates == 0 or updates > 256) return error.InvalidMemoryWorkloadSteps;
+     switch (address_count) {
+         1, 4, 16 => {},
+         else => return error.InvalidMemoryAddressCount,
+     }
+-    if (segment_steps > cumulative_steps or cumulative_steps > 2 + 3 * fixture.recursion_memory_updates)
++    if (segment_steps > cumulative_steps or cumulative_steps > 2 + 3 * updates)
+         return error.InvalidMemoryWorkloadSteps;
+     try std.testing.expectEqual(segment_steps, result.cycle_count);
+     try std.testing.expectEqual(segment_steps, result.execution_trace.rows.items.len);
+     if (completed) {
+-        try std.testing.expectEqual(@as(usize, 2 + 3 * fixture.recursion_memory_updates), cumulative_steps);
++        try std.testing.expectEqual(@as(usize, 2 + 3 * updates), cumulative_steps);
+         try std.testing.expect(result.continuation == null);
+         try std.testing.expectEqual(runner.CompletionReason.self_loop, result.completion_reason orelse return error.ExpectedMemoryWorkloadCompletion);
+         try std.testing.expect(result.segment_role.is_last);
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+index a541123b..40103650 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_proof_test_support.zig
+@@ -16,15 +16,19 @@ const command = integration.recursive_segment_v2_detached_command;
+ const verifier = integration.recursive_segment_v2_detached_verifier;
+ const ProducerAllocator = integration.recursive_segment_v2_outer_engine.ProducerAllocator;
+ 
+-pub const Options = struct {
+-    initial_memory_word: u32 = 0,
+-    native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
+-    /// Each directory must be new. Neither child may overwrite prior evidence.
+-    child_directories: [2][]const u8,
+-    /// Different actual child geometries may require different admitted keys.
+-    /// Null exports a candidate key, never an independently trusted key.
+-    admitted_outer_keys: [2]?*const verifier.KeyV1 = .{ null, null },
+-};
++pub const Options = OptionsFor(2);
++
++pub fn OptionsFor(comptime count: usize) type {
++    return struct {
++        initial_memory_word: u32 = 0,
++        native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
++        /// Each directory must be new. Neither child may overwrite prior evidence.
++        child_directories: [count][]const u8,
++        /// Different actual child geometries may require different admitted keys.
++        /// Null exports a candidate key, never an independently trusted key.
++        admitted_outer_keys: [count]?*const verifier.KeyV1 = @splat(null),
++    };
++}
+ 
+ pub const ChildCandidate = struct {
+     segment_index: u32,
+@@ -44,14 +48,18 @@ pub const ChildCandidate = struct {
+     producer_peak_bytes: usize,
+ };
+ 
+-pub const Receipt = struct {
+-    children: [2]ChildCandidate,
+-    /// Canonical host admission only. No parent AIR/proof is constructed here.
+-    folded_statement: span.SpanStatement,
+-    address_count: usize,
+-    initial_memory_word: u32,
+-    transaction_ns: u64,
+-};
++pub const Receipt = ReceiptFor(2);
++
++pub fn ReceiptFor(comptime count: usize) type {
++    return struct {
++        children: [count]ChildCandidate,
++        /// Canonical host admission only. No parent AIR/proof is constructed here.
++        folded_statement: span.SpanStatement,
++        address_count: usize,
++        initial_memory_word: u32,
++        transaction_ns: u64,
++    };
++}
+ 
+ /// NativeEngine selects only native proving. Existing shared ingress freshly
+ /// decodes/verifies native proofs on CPU; detached outer proving remains the
+@@ -63,28 +71,34 @@ pub fn producePair(
+     address_count: usize,
+     options: Options,
+ ) !Receipt {
+-    if (options.child_directories[0].len == 0 or options.child_directories[1].len == 0 or
+-        std.mem.eql(u8, options.child_directories[0], options.child_directories[1]))
+-        return error.InvalidTwoSegmentCandidateDirectories;
++    return produceSegments(2, NativeEngine, allocator, address_count, options);
++}
++
++pub fn produceSegments(comptime count: usize, comptime NativeEngine: type, allocator: std.mem.Allocator, address_count: usize, options: OptionsFor(count)) !ReceiptFor(count) {
++    for (options.child_directories, 0..) |directory, index| {
++        if (directory.len == 0) return error.InvalidTwoSegmentCandidateDirectories;
++        for (options.child_directories[0..index]) |previous|
++            if (std.mem.eql(u8, directory, previous)) return error.InvalidTwoSegmentCandidateDirectories;
++    }
+     try options.native_keys.validate();
+     var timer = try std.time.Timer.start();
+-    var pair = try workload.OwnedPair.initWithMemorySeed(allocator, address_count, options.initial_memory_word);
+-    var pair_owned = true;
+-    defer if (pair_owned) pair.deinit();
+-    const statements = try workload.fixtureStatements(allocator, &pair);
+-    const admission = try pair.admitStatements(ingress.digest("recursive-v2-session"), statements);
+-    _ = try span.RootStatement.init(admission.folded);
+-    const results = [_]*const frontend.runner.SegmentResult{ &pair.first.base, &pair.second.base };
+-    var children: [2]ChildCandidate = undefined;
++    var segments = try @import("recursive_segment_v2_memory_workload_test_support.zig").materialize(count, allocator, address_count, options.initial_memory_word);
++    var owned = true;
++    defer if (owned) for (&segments) |*segment| segment.deinit();
++    var results: [count]*const frontend.runner.SegmentResult = undefined;
++    for (&segments, 0..) |*segment, index| results[index] = &segment.base;
++    try workload.validateSegments(count, results, address_count, options.initial_memory_word);
++    const statements = try workload.fixtureStatementsForSegments(count, allocator, results);
++    const admission = try workload.admitSegments(count, results, ingress.digest("recursive-v2-session"), statements);
++    var children: [count]ChildCandidate = undefined;
+     for (results, statements, admission.sources, 0..) |result, statement, source, index| {
+-        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options, index);
++        children[index] = try produceChild(NativeEngine, allocator, result, statement, source, options.native_keys, options.child_directories[index], options.admitted_outer_keys[index]);
+     }
+-    const folded_statement = admission.folded;
+-    pair.deinit();
+-    pair_owned = false;
++    for (&segments) |*segment| segment.deinit();
++    owned = false;
+     return .{
+         .children = children,
+-        .folded_statement = folded_statement,
++        .folded_statement = admission.folded,
+         .address_count = address_count,
+         .initial_memory_word = options.initial_memory_word,
+         .transaction_ns = timer.read(),
+@@ -97,8 +111,9 @@ fn produceChild(
+     result: *const frontend.runner.SegmentResult,
+     statement: span.SpanStatement,
+     source: recursion.segment_statement_v2.SourceV2,
+-    options: Options,
+-    index: usize,
++    native_keys: recursion.segment_leaf_authority_v2.VerifierKeyAuthorityV2,
++    directory_path: []const u8,
++    admitted_key: ?*const verifier.KeyV1,
+ ) !ChildCandidate {
+     var timer = try std.time.Timer.start();
+     // Expected public input comes from independently checked execution/source
+@@ -122,7 +137,7 @@ fn produceChild(
+             producer_allocator,
+             result,
+             statement,
+-            options.native_keys,
++            native_keys,
+         );
+         defer prepared.deinit();
+         const native_ingress_ns = native_timer.read();
+@@ -137,7 +152,7 @@ fn produceChild(
+             if (delta.counters.metal_poseidon2_merkle_commits == 0)
+                 return error.NativeMetalPoseidonDispatchMissing;
+             std.debug.print("SEGMENT_V2_TWO_CHILD_NATIVE_METAL segment={d} dispatches={d} poseidon_commits={d}\n", .{
+-                index, delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits,
++                result.segment_index, delta.counters.metalDispatchTotal(), delta.counters.metal_poseidon2_merkle_commits,
+             });
+         }
+         const captured_words = prepared.capture.public_data.data.words();
+@@ -145,16 +160,16 @@ fn produceChild(
+             return error.TwoSegmentExpectedStatementMismatch;
+         for (captured_words, expected.words()) |actual, wanted|
+             if (!actual.eql(wanted)) return error.TwoSegmentExpectedStatementMismatch;
+-        var candidate = try detached.produce(producer_allocator, &prepared, options.admitted_outer_keys[index]);
++        var candidate = try detached.produce(producer_allocator, &prepared, admitted_key);
+         defer candidate.deinit();
+         const hashes = try command.retainCandidate(
+             allocator,
+-            options.child_directories[index],
++            directory_path,
+             candidate.key_json,
+             candidate.claims,
+             candidate.proof_bytes,
+         );
+-        var directory = try std.fs.cwd().openDir(options.child_directories[index], .{});
++        var directory = try std.fs.cwd().openDir(directory_path, .{});
+         defer directory.close();
+         var expected_file = try directory.createFile("expected-wire.json", .{ .exclusive = true });
+         defer expected_file.close();
+@@ -175,14 +190,14 @@ fn produceChild(
+         };
+     }
+     // Candidate buffers and each proof/preparation owner are gone before the
+-    // next child begins. The caller-owned pair of execution witnesses remains
+-    // live until producePair returns; it is outside this payload counter.
++    // next child begins. The caller-owned array of execution witnesses remains
++    // live until produceSegments returns; it is outside this payload counter.
+     try memory.requireEmpty();
+     candidate_receipt.producer_peak_bytes = memory.peakBytes();
+     candidate_receipt.transaction_ns = timer.read();
+     std.debug.print("SEGMENT_V2_TWO_CHILD_CANDIDATE segment={d} first_cycle={d} retired_cycles={d} completed={} directory={s} native_backend={s} proof_bytes={d} native_ingress_ns={d} outer_prepare_ns={d} outer_prove_ns={d} transaction_ns={d} producer_peak_bytes={d} producer_live_bytes_after_destroy={d} status=unverified_candidate parent_proof_created=false\n", .{
+         candidate_receipt.segment_index,      candidate_receipt.first_cycle,       candidate_receipt.retired_cycles,
+-        candidate_receipt.completed,          options.child_directories[index],    if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
++        candidate_receipt.completed,          directory_path,                      if (comptime NativeEngine == leaf.Engine) "cpu" else "metal",
+         candidate_receipt.hashes.proof_bytes, candidate_receipt.native_ingress_ns, candidate_receipt.detached_prepare_ns,
+         candidate_receipt.detached_prove_ns,  candidate_receipt.transaction_ns,    candidate_receipt.producer_peak_bytes,
+         memory.snapshot().active_bytes,
+diff --git a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+index 54f91c44..019ab7a7 100644
+--- a/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
++++ b/src/integrations/riscv_cpu/recursive_segment_v2_two_segment_test_support.zig
+@@ -34,22 +34,10 @@ pub const OwnedPair = struct {
+     }
+ 
+     pub fn initWithMemorySeed(allocator: std.mem.Allocator, address_count: usize, initial_word: u32) !OwnedPair {
+-        const elf = try fixture.buildRecursionMemory(address_count);
+-        var session = try runner.Poseidon2ExecutionSession.init(allocator, &elf, .{});
+-        defer session.deinit();
+-        // Seed mutable input before the runner captures segment entry. ELF and
+-        // program commitment are unchanged; native memory AIR proves all reads.
+-        if (initial_word != 0) {
+-            var addresses: [16]u32 = undefined;
+-            for (addresses[0..address_count], 0..) |*address, index|
+-                address.* = fixture.recursion_memory_base + fixture.recursion_memory_stride * @as(u32, @intCast(index));
+-            try session.memory.prepareAlignedWordWrites(addresses[0..address_count]);
+-            for (addresses[0..address_count]) |address| session.memory.writeU32AssumePrepared(address, initial_word);
+-        }
+-        var first = try session.startSegment(first_steps);
++        const segments = try model.materialize(2, allocator, address_count, initial_word);
++        var first = segments[0];
+         errdefer first.deinit();
+-        const continuation = first.base.continuation orelse return error.ExpectedFirstSegmentContinuation;
+-        var second = try session.resumeSegment(continuation, second_budget);
++        var second = segments[1];
+         errdefer second.deinit();
+         var result = OwnedPair{ .first = first, .second = second, .address_count = address_count, .initial_memory_word = initial_word };
+         try result.validate();
+@@ -67,14 +55,7 @@ pub const OwnedPair = struct {
+     }
+ 
+     pub fn validate(self: *const OwnedPair) !void {
+-        try model.validateSeededSegment(&self.first.base, self.address_count, first_steps, first_steps, false, self.initial_memory_word);
+-        try model.validateSeededSegment(&self.second.base, self.address_count, total_steps, second_steps, true, self.initial_memory_word);
+-        try std.testing.expectEqual(@as(u32, 0), self.first.base.segment_index);
+-        try std.testing.expectEqual(@as(u32, 1), self.second.base.segment_index);
+-        try std.testing.expect(self.first.base.segment_role.is_first);
+-        try std.testing.expect(!self.second.base.segment_role.is_first);
+-        try std.testing.expectEqualDeep(self.first.base.exit_cpu, self.second.base.entry_cpu);
+-        try std.testing.expectEqualDeep(self.first.base.rw_memory.program_words, self.second.base.rw_memory.program_words);
++        try validateSegments(2, .{ &self.first.base, &self.second.base }, self.address_count, self.initial_memory_word);
+     }
+ 
+     /// Full mutable-input admission, using the canonical V2 and span owners.
+@@ -82,12 +63,8 @@ pub const OwnedPair = struct {
+     /// the caller. No cached validation state is published by this helper.
+     pub fn admitStatements(self: *const OwnedPair, session_id: span.Digest, statements: [2]span.SpanStatement) !Admission {
+         try self.validate();
+-        const sources = [2]wire.SourceV2{
+-            try wire.SourceV2.fromSegmentResult(session_id, statements[0], &self.first.base),
+-            try wire.SourceV2.fromSegmentResult(session_id, statements[1], &self.second.base),
+-        };
+-        try wire.requireAdjacentSources(&sources[0], &sources[1]);
+-        return .{ .sources = sources, .folded = try span.SpanStatement.fold(statements[0], statements[1]) };
++        const admitted = try admitSegments(2, .{ &self.first.base, &self.second.base }, session_id, statements);
++        return .{ .sources = admitted.sources, .folded = admitted.folded };
+     }
+ };
+ 
+@@ -158,21 +135,97 @@ pub fn checkWorkload(allocator: std.mem.Allocator) !void {
+ // Test-only statement construction uses existing canonical identities and
+ // constructors. It does not supply an admitted verifier key or a proof.
+ pub fn fixtureStatements(allocator: std.mem.Allocator, pair: *const OwnedPair) ![2]span.SpanStatement {
+-    var program = try frontend.air.program.commitment.buildDeclared(allocator, pair.first.base.execution_trace.rows.items, pair.first.base.rw_memory.program_words, null);
++    return fixtureStatementsForSegments(2, allocator, .{ &pair.first.base, &pair.second.base });
++}
++
++pub fn validateSegments(comptime count: usize, results: [count]*const runner.SegmentResult, address_count: usize, seed: u32) !void {
++    const updates = model.updatesForSegments(count);
++    var cumulative: usize = 0;
++    for (results, 0..) |result, index| {
++        const steps = if (index + 1 == count) 2 + 3 * updates - model.native_steps * (count - 1) else model.native_steps;
++        cumulative += steps;
++        try model.validateSeededSegmentWithUpdates(result, address_count, cumulative, steps, index + 1 == count, seed, updates);
++        try std.testing.expectEqual(@as(u32, @intCast(index)), result.segment_index);
++        try std.testing.expectEqual(index == 0, result.segment_role.is_first);
++        try std.testing.expectEqualDeep(results[0].rw_memory.program_words, result.rw_memory.program_words);
++        if (index != 0) try std.testing.expectEqualDeep(results[index - 1].exit_cpu, result.entry_cpu);
++    }
++}
++
++pub fn fixtureStatementsForSegments(comptime count: usize, allocator: std.mem.Allocator, results: [count]*const runner.SegmentResult) ![count]span.SpanStatement {
++    var program = try frontend.air.program.commitment.buildDeclared(allocator, results[0].execution_trace.rows.items, results[0].rw_memory.program_words, null);
+     defer program.deinit(allocator);
++    // Preserve the original fixture identities, including the two-segment key.
+     const io = digest("two-segment-memory-empty-io");
+     const input = digest("two-segment-memory-input");
+     const output = digest("two-segment-memory-output");
+-    const initial = try span.MachineState.init(pair.first.base.entry_cpu.pc, pair.first.base.entry_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .initial_word).id, io);
+-    const shared = try span.MachineState.init(pair.first.base.exit_cpu.pc, pair.first.base.exit_cpu.regs, wire.snapshotDigest(pair.first.base.rw_memory.words, .final_word).id, io);
+-    const final = try span.MachineState.init(pair.second.base.exit_cpu.pc, pair.second.base.exit_cpu.regs, wire.snapshotDigest(pair.second.base.rw_memory.words, .final_word).id, io);
++    var states: [count + 1]span.MachineState = undefined;
++    states[0] = try span.MachineState.init(results[0].entry_cpu.pc, results[0].entry_cpu.regs, wire.snapshotDigest(results[0].rw_memory.words, .initial_word).id, io);
++    var cycles: u64 = 0;
++    for (results, 0..) |result, index| {
++        states[index + 1] = try span.MachineState.init(result.exit_cpu.pc, result.exit_cpu.regs, wire.snapshotDigest(result.rw_memory.words, .final_word).id, io);
++        cycles += result.cycle_count;
++    }
+     var program_digest: span.Digest = @splat(0);
+     program_digest[0] = program.tree.root;
+-    const job = try span.JobContext.init(try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, program_digest, initial, final, input, output, total_steps), 2);
+-    return .{
+-        try span.SpanStatement.segmentLeaf(job, pair.first.base.segment_index, try span.ExecutedSpan.init(pair.first.base.segment_index, 1, pair.first.base.global_first_cycle - 1, first_steps, initial, shared, try span.EdgeClaim.present(input), span.EdgeClaim.absent())),
+-        try span.SpanStatement.segmentLeaf(job, pair.second.base.segment_index, try span.ExecutedSpan.init(pair.second.base.segment_index, 1, pair.second.base.global_first_cycle - 1, second_steps, shared, final, span.EdgeClaim.absent(), try span.EdgeClaim.present(output))),
+-    };
++    const job = try span.JobContext.init(try span.CompleteExecution.init(recursion.protocol.PROTOCOL_ID_WORDS, program_digest, states[0], states[count], input, output, cycles), count);
++    var statements: [count]span.SpanStatement = undefined;
++    for (results, 0..) |result, index| {
++        statements[index] = try span.SpanStatement.segmentLeaf(job, result.segment_index, try span.ExecutedSpan.init(result.segment_index, 1, result.global_first_cycle - 1, result.cycle_count, states[index], states[index + 1], if (index == 0) try span.EdgeClaim.present(input) else span.EdgeClaim.absent(), if (index + 1 == count) try span.EdgeClaim.present(output) else span.EdgeClaim.absent()));
++    }
++    return statements;
++}
++
++pub fn SegmentAdmission(comptime count: usize) type {
++    return struct { sources: [count]wire.SourceV2, folded: span.SpanStatement };
++}
++
++pub fn admitSegments(comptime count: usize, results: [count]*const runner.SegmentResult, session_id: span.Digest, statements: [count]span.SpanStatement) !SegmentAdmission(count) {
++    var sources: [count]wire.SourceV2 = undefined;
++    for (results, statements, 0..) |result, statement, index| {
++        sources[index] = try wire.SourceV2.fromSegmentResult(session_id, statement, result);
++        if (index != 0) try wire.requireAdjacentSources(&sources[index - 1], &sources[index]);
++    }
++    var level = statements;
++    var width: usize = count;
++    while (width > 1) : (width /= 2) {
++        for (0..width / 2) |index| level[index] = try span.SpanStatement.fold(level[2 * index], level[2 * index + 1]);
++    }
++    _ = try span.RootStatement.init(level[0]);
++    return .{ .sources = sources, .folded = level[0] };
++}
++
++pub fn checkSegmentLadder(allocator: std.mem.Allocator) !void {
++    try checkWorkload(allocator);
++    inline for (.{ 2, 4, 8 }) |count| {
++        for ([_]usize{ 1, 4, 16 }) |addresses| {
++            var segments = try model.materialize(count, allocator, addresses, 13);
++            defer for (&segments) |*segment| segment.deinit();
++            var results: [count]*const runner.SegmentResult = undefined;
++            for (&segments, 0..) |*segment, index| results[index] = &segment.base;
++            try validateSegments(count, results, addresses, 13);
++            const statements = try fixtureStatementsForSegments(count, allocator, results);
++            const admitted = try admitSegments(count, results, digest("recursive-v2-session"), statements);
++            for (1..count) |index| {
++                const left_words = try allocator.alloc(@import("stwo_core").fields.m31.M31, try admitted.sources[index - 1].canonicalWordCount());
++                defer allocator.free(left_words);
++                const right_words = try allocator.alloc(@import("stwo_core").fields.m31.M31, try admitted.sources[index].canonicalWordCount());
++                defer allocator.free(right_words);
++                _ = try admitted.sources[index - 1].encodeCanonical(left_words);
++                _ = try admitted.sources[index].encodeCanonical(right_words);
++                _ = try wire.authenticateAdjacentCanonicalWires(left_words, right_words);
++                if (index % 2 == 0) try std.testing.expectError(error.SlotsMisaligned, span.SpanStatement.fold(statements[index - 1], statements[index]));
++                try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[index], &admitted.sources[index - 1]));
++                try std.testing.expectError(error.NonAdjacentPosition, wire.requireAdjacentSources(&admitted.sources[index], &admitted.sources[index]));
++            }
++            // Change an actual middle segment boundary after session teardown.
++            const saved = segments[count / 2].base.entry_cpu.regs[5];
++            segments[count / 2].base.entry_cpu.regs[5] ^= 1;
++            try std.testing.expectError(error.BaseStatementMismatch, wire.SourceV2.fromSegmentResult(digest("recursive-v2-session"), statements[count / 2], &segments[count / 2].base));
++            segments[count / 2].base.entry_cpu.regs[5] = saved;
++            std.debug.print("SEGMENT_V2_SEGMENT_LADDER segments={d} addresses={d} retired={d} session_destroyed=true canonical_root=true proofs_created=0\n", .{ count, addresses, admitted.folded.body.executed.cycle_count });
++        }
++    }
+ }
+ 
+ fn digest(label: []const u8) span.Digest {

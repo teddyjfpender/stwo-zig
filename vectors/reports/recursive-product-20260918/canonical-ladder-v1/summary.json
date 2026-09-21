@@ -1,0 +1,118 @@
+{
+  "passed": true,
+  "development_only": true,
+  "production_security_qualified": false,
+  "memory_addresses": 1,
+  "initial_memory_word": 13,
+  "retired_cycles": {
+    "1": 35,
+    "2": 98,
+    "4": 227,
+    "8": 482
+  },
+  "timing_scope": "Single observations. Production sums child process durations, excluding build/lock waits and hostile verification. RSS is maximum child process RSS. Root verification is measured inside the fresh verifier; request time also includes parsing and admission. These are small execution fixtures, not Ethereum blocks.",
+  "measurements": [
+    {
+      "segments": 1,
+      "backend": "cpu",
+      "evidence": "../single-segment-independent-setup-v1/cpu-tree.json",
+      "leaf_production_ns": 8052133042,
+      "parent_production_ns": 0,
+      "production_ns": 8052133042,
+      "maximum_rss_bytes": 2895085568,
+      "root_proof_bytes": 2497739,
+      "root_verify_ns": 75208875,
+      "root_request_ns": 86334792
+    },
+    {
+      "segments": 1,
+      "backend": "metal",
+      "evidence": "../single-segment-independent-setup-v1/metal-tree.json",
+      "leaf_production_ns": 7689102042,
+      "parent_production_ns": 0,
+      "production_ns": 7689102042,
+      "maximum_rss_bytes": 2561802240,
+      "root_proof_bytes": 2497739,
+      "root_verify_ns": 75480334,
+      "root_request_ns": 86682458
+    },
+    {
+      "segments": 2,
+      "backend": "cpu",
+      "evidence": "../canonical-ladder-2-v1/cpu-tree.json",
+      "leaf_production_ns": 17879390459,
+      "parent_production_ns": 10983053417,
+      "production_ns": 28862443876,
+      "maximum_rss_bytes": 3882418176,
+      "root_proof_bytes": 2424350,
+      "root_verify_ns": 65217542,
+      "root_request_ns": 66772041
+    },
+    {
+      "segments": 2,
+      "backend": "metal",
+      "evidence": "../canonical-ladder-2-v1/metal-tree.json",
+      "leaf_production_ns": 12757762916,
+      "parent_production_ns": 8664357667,
+      "production_ns": 21422120583,
+      "maximum_rss_bytes": 4350459904,
+      "root_proof_bytes": 2424350,
+      "root_verify_ns": 66602167,
+      "root_request_ns": 68311458
+    },
+    {
+      "segments": 4,
+      "backend": "cpu",
+      "evidence": "../leaf-key-setup-qualified-v1/cpu-summary.json",
+      "leaf_production_ns": 34084982500,
+      "parent_production_ns": 33402719833,
+      "production_ns": 67487702333,
+      "maximum_rss_bytes": 3898195968,
+      "root_proof_bytes": 2295377,
+      "root_verify_ns": 65833166,
+      "root_request_ns": 67479167
+    },
+    {
+      "segments": 4,
+      "backend": "metal",
+      "evidence": "../leaf-key-setup-qualified-v1/metal-summary.json",
+      "leaf_production_ns": 25849019208,
+      "parent_production_ns": 26675228876,
+      "production_ns": 52524248084,
+      "maximum_rss_bytes": 4388667392,
+      "root_proof_bytes": 2295377,
+      "root_verify_ns": 64947833,
+      "root_request_ns": 66456125
+    },
+    {
+      "segments": 8,
+      "backend": "cpu",
+      "evidence": "../canonical-ladder-8-v1/cpu-tree.json",
+      "leaf_production_ns": 67159031292,
+      "parent_production_ns": 76584017166,
+      "production_ns": 143743048458,
+      "maximum_rss_bytes": 3898343424,
+      "root_proof_bytes": 2308314,
+      "root_verify_ns": 65415792,
+      "root_request_ns": 67007625
+    },
+    {
+      "segments": 8,
+      "backend": "metal",
+      "evidence": "../canonical-ladder-8-v1/metal-tree.json",
+      "leaf_production_ns": 50524124833,
+      "parent_production_ns": 59135621125,
+      "production_ns": 109659745958,
+      "maximum_rss_bytes": 4388683776,
+      "root_proof_bytes": 2308314,
+      "root_verify_ns": 67837334,
+      "root_request_ns": 69628584
+    }
+  ],
+  "remaining": [
+    "Shared native/recursive preparation still has CPU integration ownership to consolidate",
+    "Typed GPU interaction integration and complete-proof qualification",
+    "Truthful formal semantic-rebind successor after the load/store AIR change",
+    "Larger useful workloads and production-security admission before Ethereum"
+  ]
+}

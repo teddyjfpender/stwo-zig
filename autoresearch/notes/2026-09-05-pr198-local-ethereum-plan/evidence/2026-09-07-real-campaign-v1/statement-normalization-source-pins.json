@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "files": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/ethereum_block_statement_normalization.py",
+      "bytes": 8765,
+      "sha256": "dcd8d0f167e2d1f1a70bf798c2cc3044e53ae43dab85a12aa9daf56ba7bbb37c"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/scripts/tests/test_ethereum_block_statement_normalization.py",
+      "bytes": 4580,
+      "sha256": "3cb3e1be9162d10652db94e4f9513113899930311aa7b13f52eb5e988f9a4ebe"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/projection/src/main.rs",
+      "bytes": 12428,
+      "sha256": "18b3ec0813f185819efd78fa794fe9a60135512a39b97142b4d8c7037fc95fd4"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/autoresearch/benchmarks/guest_runtime/projection/Cargo.lock",
+      "bytes": 68992,
+      "sha256": "cf85d15fd8608a682147d9a8f28f3b60d26a0ec898274472b5093e044b628653"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/statement-normalization-v1/stwo-ethereum-input-projection",
+      "bytes": 4503936,
+      "sha256": "f0f2ab85d85281128a30aab02dfe2c0f388674f8dadb91072b8821d43c69ac8b"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/statement-normalization-v1/check-mutations.py",
+      "bytes": 1828,
+      "sha256": "ffaa63ba89eb8bae94ac52b4018cb8218467c7c2cca13d0ec7244fbdc52594cd"
+    }
+  ]
+}

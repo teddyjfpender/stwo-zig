@@ -57,6 +57,13 @@ pub fn addPublicModules(context: Context) Result {
         context.optimize,
         stwo,
     );
+    _ = graph.addArtifactStoreImport(
+        context.b,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
     const metal_session = graph.addMetalSessionImport(
         context.b,
         sdkProduct(),
@@ -197,6 +204,13 @@ pub fn addProducts(context: Context) Result {
     const proof_wire = graph.addProofWireImport(
         context.b,
         prover.protocol,
+        sdkProduct(),
+        context.target,
+        context.optimize,
+        stwo,
+    );
+    _ = graph.addArtifactStoreImport(
+        context.b,
         sdkProduct(),
         context.target,
         context.optimize,

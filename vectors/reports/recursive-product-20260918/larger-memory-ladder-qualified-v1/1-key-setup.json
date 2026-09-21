@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "inputs": {
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-1-seed13/tree-inputs.json": "8a8831cf124441e70d335ef5c106c3b6c4194b3c79a0d71c09c98c4fa9a4218c",
+    "/private/tmp/pr198-useful-workload-admissions-v1/keys-1-seed13/setup.json": "f66415abda67cd748e705b91472a54de6ab11c416acf785b6d676fefa8418c6f",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-concrete-outer-proof": "a4104a3856d7f1810b496bb32f7d7e28c191136c4b7842b9abbfa1866e2f006c",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-verify": "b0b6159a65a2d72e8f80647be579a5ea66c58d28cf963b8f9c2d909b22db4e4d",
+    "/private/tmp/pr198-boundary-profile-producer-v1/bin/recursive-segment-v2-detached-parent-prove": "5d452a37bda46c54ece11daf7ca0e75c093ebed4e723cb2c9a6a4f02a4835e0e",
+    "/private/tmp/pr198-product-cpu-parent-device-20260918-v1/cpu/bin/recursive-segment-v2-detached-parent-verify": "5577d71fccf9522e1850bf4975dc233b8661ad8f25723c7a6948be60677f1319",
+    "/private/tmp/pr198-useful-parent-inputs-v1/admission-1-seed13/child-0-expected.json": "207c2bed378d85943bc3dd603ea84d9f035a93752634169140b20650030d2f46",
+    "/private/tmp/pr198-useful-workload-admissions-v1/keys-1-seed13/child-0-key.json": "2ac5155e9ef983d80be4bb4f19ba1202411f61cba537b2185a996b07d12e7d6c"
+  },
+  "steps": [],
+  "root_proof_created": false,
+  "script_sha256": "5cf6c440a39ddc24d36f53b49d902cdb7f31d1384059fdd5b1aaffc0cc079667",
+  "segments": 1,
+  "admission_sha256": "e247daa26a579beb2bdd37e106b8e9c671cae3ce59c98ea6bf52acd5fa1a525f",
+  "leaf_proofs_created": 0,
+  "intermediate_proofs_created": 0
+}

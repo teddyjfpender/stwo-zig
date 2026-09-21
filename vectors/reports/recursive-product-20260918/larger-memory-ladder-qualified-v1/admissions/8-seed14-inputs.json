@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "profile": "recursive_q193_v1",
+  "memory_addresses": 16,
+  "initial_memory_word": 14,
+  "leaf_expected": [
+    {
+      "path": "../inputs/fe8fa23902f4b2aee51f6569d1809b17e7c5827d3d088419adb83ca344501a6e.json",
+      "sha256": "fe8fa23902f4b2aee51f6569d1809b17e7c5827d3d088419adb83ca344501a6e"
+    },
+    {
+      "path": "../inputs/abc68cf5f1b7fb46c843514c334d6921b100fd72283b684e5fd871db08b6b2a0.json",
+      "sha256": "abc68cf5f1b7fb46c843514c334d6921b100fd72283b684e5fd871db08b6b2a0"
+    },
+    {
+      "path": "../inputs/248a01a8e6d2a4d4608b83446b10e89c6a2ea75d4b570f27a3a1e23cbe01cee4.json",
+      "sha256": "248a01a8e6d2a4d4608b83446b10e89c6a2ea75d4b570f27a3a1e23cbe01cee4"
+    },
+    {
+      "path": "../inputs/89ec1cc974f774594a76401c805c5424f126e4b7b0402a4cc729173e34bafc9f.json",
+      "sha256": "89ec1cc974f774594a76401c805c5424f126e4b7b0402a4cc729173e34bafc9f"
+    },
+    {
+      "path": "../inputs/7ad015428e835d21caca8594917c98437b3c6533ca1ff83fbc45dc79752e54e2.json",
+      "sha256": "7ad015428e835d21caca8594917c98437b3c6533ca1ff83fbc45dc79752e54e2"
+    },
+    {
+      "path": "../inputs/bd28e21f43dfdd8d8a8f7ea0f558fbe04596824ce445c2a3b1b29a4564763087.json",
+      "sha256": "bd28e21f43dfdd8d8a8f7ea0f558fbe04596824ce445c2a3b1b29a4564763087"
+    },
+    {
+      "path": "../inputs/83e74936af8af3dc837bb5ef04f6e23243305ed1b14a3cf97b04ddf38793ab1f.json",
+      "sha256": "83e74936af8af3dc837bb5ef04f6e23243305ed1b14a3cf97b04ddf38793ab1f"
+    },
+    {
+      "path": "../inputs/92d9c7582654a1ed02cf716089d2af9b269f110b0c09a832b1c10355d2401c96.json",
+      "sha256": "92d9c7582654a1ed02cf716089d2af9b269f110b0c09a832b1c10355d2401c96"
+    }
+  ],
+  "parents": [
+    [
+      {
+        "expected": {
+          "path": "../inputs/b3189b10bb5029b1be74700bec82d56c9b5423cf84e25f01ad9a28cc0d7f8e39.json",
+          "sha256": "b3189b10bb5029b1be74700bec82d56c9b5423cf84e25f01ad9a28cc0d7f8e39"
+        },
+        "boundary_profile": {
+          "path": "../inputs/3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834.json",
+          "sha256": "3f41312bc04d513f7efc1b337d3d8498c18e71a1319abd1e00997b7785530834"
+        }
+      },
+      {
+        "expected": {
+          "path": "../inputs/28058a8d94260f435bf340e6906027e84dc7ce02a016beb9831c09336bd6aa66.json",
+          "sha256": "28058a8d94260f435bf340e6906027e84dc7ce02a016beb9831c09336bd6aa66"
+        },
+        "boundary_profile": {
+          "path": "../inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+          "sha256": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+        }
+      },
+      {
+        "expected": {
+          "path": "../inputs/00a7af588e8960a603fd81b68489e160694b2d59524ab26234649c60c02b643b.json",
+          "sha256": "00a7af588e8960a603fd81b68489e160694b2d59524ab26234649c60c02b643b"
+        },
+        "boundary_profile": {
+          "path": "../inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+          "sha256": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+        }
+      },
+      {
+        "expected": {
+          "path": "../inputs/efcf9dd8f9f07bf282d38eeed902453081423b42ba0c048418d852985e58ebb0.json",
+          "sha256": "efcf9dd8f9f07bf282d38eeed902453081423b42ba0c048418d852985e58ebb0"
+        },
+        "boundary_profile": {
+          "path": "../inputs/bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252.json",
+          "sha256": "bd8238b70ba980fb08b82d1badbff7ccac1fd20c7553545bcef7e87685b55252"
+        }
+      }
+    ],
+    [
+      {
+        "expected": {
+          "path": "../inputs/a2fbd14cab870a77b3074e000c131b6cb150efc6aae138dc8b649651fe401128.json",
+          "sha256": "a2fbd14cab870a77b3074e000c131b6cb150efc6aae138dc8b649651fe401128"
+        },
+        "boundary_profile": null
+      },
+      {
+        "expected": {
+          "path": "../inputs/4b31d5abf084662dfe10a157acc38b1bd7faf423caaa7c53dea69a3e3d0f2e38.json",
+          "sha256": "4b31d5abf084662dfe10a157acc38b1bd7faf423caaa7c53dea69a3e3d0f2e38"
+        },
+        "boundary_profile": null
+      }
+    ],
+    [
+      {
+        "expected": {
+          "path": "../inputs/f4e4f8e24af7f1d72debec153db44a2793279afb475215ede38169feecb32790.json",
+          "sha256": "f4e4f8e24af7f1d72debec153db44a2793279afb475215ede38169feecb32790"
+        },
+        "boundary_profile": null
+      }
+    ]
+  ]
+}

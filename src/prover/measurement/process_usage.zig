@@ -11,6 +11,7 @@ pub const Source = enum {
 pub const Snapshot = struct {
     source: Source,
     lifetime_peak_physical_footprint_bytes: ?u64,
+    current_physical_footprint_bytes: ?u64 = null,
     process_cpu_ns: ?u64,
     energy_nj: ?u64,
     instructions: ?u64,
@@ -173,6 +174,7 @@ const darwin = struct {
         return .{
             .source = .darwin_proc_pid_rusage_v6,
             .lifetime_peak_physical_footprint_bytes = usage.lifetime_max_physical_footprint,
+            .current_physical_footprint_bytes = usage.physical_footprint,
             .process_cpu_ns = try ticksToNanoseconds(
                 usage.user_time,
                 usage.system_time,

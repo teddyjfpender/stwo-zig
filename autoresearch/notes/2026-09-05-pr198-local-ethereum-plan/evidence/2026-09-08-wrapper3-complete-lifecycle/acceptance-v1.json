@@ -1,0 +1,53 @@
+{
+  "status": "accepted_real_ordinary_leaf_wrapper",
+  "coordinate": {
+    "height": 0,
+    "reserved": "\u0000\u0000\u0000",
+    "index": 3,
+    "global_ordinal": 3
+  },
+  "expected_key_sha256": "61f8921ef5e26d08205cb9a5e40c332206d4f5a6e166450e655edf765474ba88",
+  "candidate": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/corpus/root-candidates/41ea513a5217592438b3a9a9b2ac779952e5ac4bd8cd474df359f395235c0125",
+  "candidate_files": [
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/corpus/root-candidates/41ea513a5217592438b3a9a9b2ac779952e5ac4bd8cd474df359f395235c0125/key.json",
+      "bytes": 20809732,
+      "sha256": "61f8921ef5e26d08205cb9a5e40c332206d4f5a6e166450e655edf765474ba88"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/corpus/root-candidates/41ea513a5217592438b3a9a9b2ac779952e5ac4bd8cd474df359f395235c0125/inputs.json",
+      "bytes": 6247,
+      "sha256": "784b4596cdbece2019bd9676ccd18459cab1a3de24a57ec43fd06a0de95dda08"
+    },
+    {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/corpus/root-candidates/41ea513a5217592438b3a9a9b2ac779952e5ac4bd8cd474df359f395235c0125/proof.bin",
+      "bytes": 3040223,
+      "sha256": "41ea513a5217592438b3a9a9b2ac779952e5ac4bd8cd474df359f395235c0125"
+    }
+  ],
+  "source_manifest_sha256": "e934e28a8e59eb1a4c7445e548dd939777fd6892778fa4814458d56f73683544",
+  "lifecycle_execution": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/execution.json",
+    "bytes": 9444,
+    "sha256": "498bd9b076c63b6625d9fafc9dc4b0d1a29a47764b0c0a799d87cc9c6f5a061d"
+  },
+  "independent_receipt": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/independent-root-check-v1/receipt.json",
+    "bytes": 17243,
+    "sha256": "3e13b65dfc06439e1d4b96727b8bd5de5abdc8ae4da2f0ff6805889c2fec9149"
+  },
+  "independent_finalized_request": {
+    "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/real-wrapper-segment3-root-v1/independent-finalized-request.json",
+    "bytes": 12816,
+    "sha256": "638ece6ddced28d9612f101048e9da0887bfc82e70a60e5aa532b50ef45d5aa8"
+  },
+  "lifecycle_tests": 3,
+  "independent_cases": 10,
+  "exact_public_inputs_verified": true,
+  "native_inputs_used": false,
+  "legacy_capture_exercised": false,
+  "whole_block_root": false,
+  "proof_bytes": 3040223,
+  "independent_verify_ns": 111247917,
+  "next_consumer": "Actual parent consuming accepted wrappers2/3 with child AIR verification and fresh independent parent verification."
+}

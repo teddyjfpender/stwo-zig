@@ -171,9 +171,38 @@ pub fn foldFriLineAndCommit(
     node_seed: [8]u32,
     domain_prefix_bytes: u32,
 ) MetalError!FriFoldCommitResult {
+    return foldFriLineAndCommitForHash(
+        self,
+        source,
+        source_count,
+        inverse_x,
+        alphas,
+        destination,
+        coordinates,
+        leaf_seed,
+        node_seed,
+        domain_prefix_bytes,
+        1,
+    );
+}
+
+pub fn foldFriLineAndCommitForHash(
+    self: *Runtime,
+    source: *anyopaque,
+    source_count: u32,
+    inverse_x: []const u32,
+    alphas: []const [4]u32,
+    destination: *anyopaque,
+    coordinates: *anyopaque,
+    leaf_seed: [8]u32,
+    node_seed: [8]u32,
+    domain_prefix_bytes: u32,
+    hash_family: u32,
+) MetalError!FriFoldCommitResult {
     if (source_count < 2 or alphas.len == 0 or alphas.len >= 31 or
         source_count & (source_count - 1) != 0 or
-        !validDomainPrefixBytes(domain_prefix_bytes))
+        !validDomainPrefixBytes(domain_prefix_bytes) or
+        (hash_family != 1 and hash_family != 2))
     {
         return MetalError.InvalidColumns;
     }
@@ -204,6 +233,7 @@ pub fn foldFriLineAndCommit(
         &leaf_seed,
         &node_seed,
         domain_prefix_bytes,
+        hash_family,
         &stats,
         &message,
         message.len,

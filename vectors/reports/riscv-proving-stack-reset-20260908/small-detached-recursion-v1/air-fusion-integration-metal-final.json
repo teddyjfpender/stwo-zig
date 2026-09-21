@@ -1,0 +1,22 @@
+{
+  "argv": [
+    "python3",
+    "scripts/zig_serial_build.py",
+    "--cwd",
+    "src/integrations/riscv_metal",
+    "build-recursive-segment-v2-detached-parent-producer",
+    "-Doptimize=ReleaseSafe",
+    "--summary",
+    "all"
+  ],
+  "exit_code": 0,
+  "elapsed_ns": 256242945666,
+  "log_sha256": "795d10227b7a2bc148c3874fd865fa832d5a8e2065839093839ddf9ab0dc6f92",
+  "changed_source_during_build": [],
+  "binaries": {
+    "prove": {
+      "path": "/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/small-detached-recursion-v1/air-fusion-final-metal-prove",
+      "sha256": "cbb776e999a266a6d6c1310627cf59f46a9343478c8381adbb980cb8fb84958f"
+    }
+  }
+}

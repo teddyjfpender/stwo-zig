@@ -1,0 +1,22 @@
+# Detached SegmentV2 boundary review — 2026-09-08
+
+This is a read-only review of the current implementation, not complete-proof acceptance, a compiler soundness certificate, or evidence of same-key proof reuse. No proof was produced or verified during this review. The route explicitly uses the development q3 profile.
+
+## Concrete findings
+
+Both findings are reachable through `recursive_segment_v2_detached_verifier.zig:40` and the ordinary core verifier's mask construction:
+
+- `src/core/air/components.zig`, `maskPointsImpl`: nested component-mask cleanup was installed after the collection loop. A later component, append, or observer error leaked all earlier masks. The correction installs cleanup before the loop.
+- The same function freed `new_preprocessed[idx]` before a fallible replacement allocation. A shared index revisited by another component could leave a freed nonempty slice for error cleanup to free again. The correction allocates the replacement before releasing the old slice.
+
+The existing orchestration regression now sweeps allocation failures through both preprocessing modes with two components sharing index zero. The maintained gate also retains the scalar and nested `concatCols` allocation sweeps. Validation receipt: `core-geometry-oom-focused-v4.json` and corresponding log (terminal result must be read independently).
+
+## Boundaries traced
+
+- **Expected hash calls:** `recursive_segment_v2_authority_boundary.zig:52` regenerates full calls through the shared `appendExpectedAuthorityHashCalls` emitter from canonical expected public data and admitted native descriptors. It subtracts the shared indexed call-wire tuples. `recursion/air/vm_public_claim_hash_authority_v2.zig:398` requests the same Poseidon tuple and lines409–414 emit its eight indexed four-word groups under circuit46. Fixed Tree0 owns the activity masks and indices. The boundary is not a caller-supplied scalar.
+- **Public statement, memory and clocks:** `recursive_segment_v2_public_inputs.zig:16` derives the complete row36 positive claim from every expected wire word plus canonical native context. `segment_leaf_authority_v2_contract.zig:364` derives global cycles, segment coordinates, continuation, lineage and key IDs. Current `segment_statement_v2_contract.zig:256` equates Span memory digests with snapshot IDs. Cold canonical admission in `segment_statement_v2_authenticate_canonical_wire.zig:242` rebuilds sparse identities, continuation roots and clock identities; its parse path validates clock progress. These are full expected-wire checks, not proof of a future compact parent statement.
+- **Claims and providers:** `recursive_segment_v2_detached_transcript.zig:126` checks the exact row36 claim and total39 plus fixed wire/hash boundaries before transcript mixing. `recursive_segment_v2_verifier_components.zig:64` requires canonical claims, inactive row10 zero and the two Poseidon partials summing to row34. The canonical39 adapters receive those same untrusted claims for STARK verification.
+- **Preflight and decoder:** `recursive_segment_v2_detached_verifier.zig:22` derives tree counts, masks and composition geometry from admitted canonical components. Its split/log/mask(false) choices match `src/core/verifier.zig:127` and169. Preflight walks all bytes before decoding, enforces canonical scalar/hash/varint encoding and bounded shape, and rejects trailing bytes. The actual decoder's config and commitment0 are additionally compared with the key at detached verifier lines114–118. Preflight sample widths are allocation bounds; the actual verifier reconstructs exact masks.
+- **Key custody and reuse:** `recursive_segment_v2_detached_command.zig:21` checks independently supplied raw key SHA256 before parsing with `alloc_always`. The opaque owner exposes const slices of value-only elements. Low-level verifier callers still own the independent-admission obligation. The fixed projection binds Tree0, geometry, parameters, descriptors and lowering anchors; source-dependent manifest identity is deliberately excluded. Structural validation does not prove that a compiler avoided statement-dependent constants. Same-key acceptance still requires actual different-input proofs under the identical independently admitted key; arbitrary sparse-value/topology reuse is not implied.
+
+No additional concrete acceptance bypass was found in these inspected modules. This bounded review does not establish soundness of every underlying native AIR or future recursive parent path.

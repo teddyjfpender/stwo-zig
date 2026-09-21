@@ -1,0 +1,42 @@
+{
+  "real-selected-metal-memory-stop-v1-plan.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/plan.json",
+    "bytes": 2573,
+    "sha256": "bf65c1ac3857de332587d4c891b1d008f2e4849de82d9c3469a55b482dea749f"
+  },
+  "real-selected-metal-memory-stop-v1-receipt.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/receipt.json",
+    "bytes": 822,
+    "sha256": "83b0e42504466c081675ef4a2d153821a2463b6ed6477ac6a68bf830dade766c"
+  },
+  "real-selected-metal-memory-stop-v1-stdout.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/stdout.log",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "real-selected-metal-memory-stop-v1-stderr-and-time.log": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/stderr-and-time.log",
+    "bytes": 1351,
+    "sha256": "50d7ff399ed573a5efbb75549a725089d7f6a9b2d2da4ed1440d217e9e4694a3"
+  },
+  "real-selected-metal-memory-stop-v1-process-samples.ndjson": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/process-samples.ndjson",
+    "bytes": 4758,
+    "sha256": "5c5e9a60b29121bbe77bb7e2cbfce5e49ab366d7d62427170c2e5c8253b645fc"
+  },
+  "real-selected-metal-memory-stop-v1-environment.json": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/environment.json",
+    "bytes": 892,
+    "sha256": "af25b9d1e17dc720b1b217144b3e0d13253f76e0bf778e8760c14ed14c85518e"
+  },
+  "real-selected-metal-memory-stop-v1-run.py": {
+    "source": ".git/local-ethereum/retained-campaign-v2-rw-heap-121x2097152-20260907/metal-field4-segment9-selected-v1/run.py",
+    "bytes": 6787,
+    "sha256": "6c21b8b0568cac97a4204543c11f30e7d1e54d8e543ab062567f548f7094414c"
+  },
+  "narrow-poseidon-complete-component-v1.log": {
+    "source": "/tmp/ethereum-narrow-poseidon-proof-tests.log",
+    "bytes": 866,
+    "sha256": "bf52dde5cee7e32d52f163138cc40c429f5ba9b37c6eb9725769a5f970af52b9"
+  }
+}

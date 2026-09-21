@@ -1,0 +1,4 @@
+[zig_protocol_test] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_protocol_test] acquired after 16s
+1/1 fixed_table_proof_v1_test.test.Ethereum fixed program table serializes destroys and freshly verifies complete component proof...OK
+All 1 tests passed.

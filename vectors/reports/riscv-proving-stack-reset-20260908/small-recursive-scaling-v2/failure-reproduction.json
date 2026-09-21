@@ -1,0 +1,13 @@
+{
+  "base": "3f3a7336245835273118f18506c527677f7d455f",
+  "patch": "attempt-01-source.patch",
+  "patch_sha256": "7b273099d22f0c7aa6b16c66aed0987a1355bea1b03c1ad1636cbe581e560cfc",
+  "source_reconstruction": "all 12 changed files match attempted binary source receipts",
+  "failure_log": "steps-4.log",
+  "failure": "requested 4 retired cycles, observed 3; self-loop denotes completion",
+  "command_arguments": [
+    "--native-steps",
+    "4"
+  ],
+  "phase": "execution preflight before proving"
+}

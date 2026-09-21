@@ -1,0 +1,148 @@
+{
+  "canonical_digest": "ae7729c5159857be371087da6efc8d412bc1bf3f486ad3bf567fbb43a9ae3ee3",
+  "claim_boundary": {
+    "cross_row_or_multiset_closure": false,
+    "field_coefficients_reduced_modulo_exported_prime": true,
+    "ordered_column_metadata_equal": true,
+    "ordered_constraint_polynomials_equal": true,
+    "ordered_lookup_roles_domains_numerators_tuples_equal": true,
+    "sail_semantic_equivalence": false,
+    "unmodelled_bus_request_counts_equal": true,
+    "witness_generation_equivalence": false
+  },
+  "families": [
+    {
+      "baseline_raw_sha256": "1508e095463ba150b2236e8cb604f248c549b0a5965c2a6e55a2ff5e8a4ba2cd",
+      "baseline_semantic_sha256": "9cb6442de50707263fd4d9ecf10640e2d15638c292b61489c7b79fd97d8a1ed3",
+      "candidate_raw_sha256": "948b7cee5ca12e55f77ee4d14dde784715320cdd6c74dae4910c5017121a9ef3",
+      "candidate_semantic_sha256": "9cb6442de50707263fd4d9ecf10640e2d15638c292b61489c7b79fd97d8a1ed3",
+      "column_count": 66,
+      "constraint_count": 76,
+      "family": "shifts_reg",
+      "lookup_count": 20,
+      "node_count": {
+        "baseline": 372,
+        "candidate": 372
+      },
+      "unmodelled_bus_requests": 9
+    },
+    {
+      "baseline_raw_sha256": "fe50483868853339a3e986374d0ee6e8e5a35f5f058f1f2dcef5c2d7667c3556",
+      "baseline_semantic_sha256": "5ab0474ce963462428f39a96a2bd95af1d1ff1cf71311e7444348015af741333",
+      "candidate_raw_sha256": "723c3a5b4d198bb49b0bb46a832f990d2c1014d413654cdfdd9f714d1930c1ec",
+      "candidate_semantic_sha256": "5ab0474ce963462428f39a96a2bd95af1d1ff1cf71311e7444348015af741333",
+      "column_count": 56,
+      "constraint_count": 72,
+      "family": "shifts_imm",
+      "lookup_count": 16,
+      "node_count": {
+        "baseline": 349,
+        "candidate": 349
+      },
+      "unmodelled_bus_requests": 7
+    },
+    {
+      "baseline_raw_sha256": "157254ef806da05107bc89142dd488030bc8f8912bd6872ccf898fed6876a62e",
+      "baseline_semantic_sha256": "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f",
+      "candidate_raw_sha256": "44b8ffa7d86cfff1b914e8dfde132284d356e976a6fe4a90d8b62252a1c21ea9",
+      "candidate_semantic_sha256": "d19899f907d0d5a3ec364963e1f3901e03c2620e3ad203a01bbf2e298775b59f",
+      "column_count": 56,
+      "constraint_count": 71,
+      "family": "load_store",
+      "lookup_count": 16,
+      "node_count": {
+        "baseline": 318,
+        "candidate": 318
+      },
+      "unmodelled_bus_requests": 9
+    },
+    {
+      "baseline_raw_sha256": "20036f269882cc1ca77d9a83f9b8863763e3b4b9e4fd3d28c6b1d78bfb931146",
+      "baseline_semantic_sha256": "a201a238d385380123fe3bf52dc324750de397a3381297135ec1066360d709b2",
+      "candidate_raw_sha256": "67a5815ebf8ceb4005fc1a5882bc16d604c948af2302e43241f7c33c0ef7dcec",
+      "candidate_semantic_sha256": "a201a238d385380123fe3bf52dc324750de397a3381297135ec1066360d709b2",
+      "column_count": 44,
+      "constraint_count": 22,
+      "family": "mul",
+      "lookup_count": 16,
+      "node_count": {
+        "baseline": 130,
+        "candidate": 130
+      },
+      "unmodelled_bus_requests": 9
+    },
+    {
+      "baseline_raw_sha256": "461461c9adcf8b65f3c5a8d14f9336ddb65b3fea28c1ca9bbe530156ad88f28b",
+      "baseline_semantic_sha256": "7680862951ca1d0498b9b9d90b8b61a0c3fe8b63dc2cfc237de968c526692d46",
+      "candidate_raw_sha256": "6dbd2b5bcff91a77a78fb6c551c72003c4b0a061a08127571d5f293bb00d73a9",
+      "candidate_semantic_sha256": "7680862951ca1d0498b9b9d90b8b61a0c3fe8b63dc2cfc237de968c526692d46",
+      "column_count": 53,
+      "constraint_count": 30,
+      "family": "mulh",
+      "lookup_count": 22,
+      "node_count": {
+        "baseline": 221,
+        "candidate": 221
+      },
+      "unmodelled_bus_requests": 9
+    },
+    {
+      "baseline_raw_sha256": "430a06a8919e469251deab180b492e89a4a6452de0014b2b0c3ea6c350912e4d",
+      "baseline_semantic_sha256": "355d6b67cf4fe79d494c191b93133e4415b1c77a3b5f18cf2d44a9c726ae43ce",
+      "candidate_raw_sha256": "b06e011252a31ccf9072078d8c91c01312fbd43203aea35fd04722b0abd25d56",
+      "candidate_semantic_sha256": "355d6b67cf4fe79d494c191b93133e4415b1c77a3b5f18cf2d44a9c726ae43ce",
+      "column_count": 73,
+      "constraint_count": 85,
+      "family": "div",
+      "lookup_count": 25,
+      "node_count": {
+        "baseline": 434,
+        "candidate": 434
+      },
+      "unmodelled_bus_requests": 9
+    }
+  ],
+  "kind": "stwo-riscv-team-b-air-semantic-equivalence",
+  "schema_version": 1,
+  "source_transition": {
+    "files": [
+      {
+        "path": "src/frontends/riscv/air/constraint_program.zig",
+        "sha256": "e832ac06fae75fe1eaf128477a3f960e00042a1f6c232fb719be697e747964cb"
+      },
+      {
+        "path": "src/frontends/riscv/air/extract/program.zig",
+        "sha256": "05bd88460a92057bf1cd52b1e88436c4b5b8d3ac03f8221c6cf31a7da6b11a63"
+      },
+      {
+        "path": "src/frontends/riscv/air/extract/model.zig",
+        "sha256": "3229ac2f1b1add8a785faff734e09d71b9a16d1bb3f2c7e9a7fc8c597609a78b"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_shifts_reg_authority.zig",
+        "sha256": "ea2d581f107e3edaab51d578a585e72132922fa4f4e0dc56d0190162d61352ec"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_shifts_imm_authority.zig",
+        "sha256": "1ca32ad1f3afa1ae150afbd0ede6cf6ba4d7e5040e0d8a8c2f39e8bffdb9c763"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_load_store_authority.zig",
+        "sha256": "d2f1f5c11baf9bf8162c2c60e8cfedfd9dde29ca1b85f7092593e7bb926b55de"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_mul_authority.zig",
+        "sha256": "51b447599498b13541707d1620086c0593d2d2591e584cca2a733ca4f0ebd177"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_mulh_authority.zig",
+        "sha256": "f39cedfc4280eb7e3161dddc0ba089349b37a2b61f007ad423319b738135e965"
+      },
+      {
+        "path": "src/frontends/riscv/air/lang/typed_div_authority.zig",
+        "sha256": "093e9e8cc69bc58baae2d9a789cd15ae7e052100437a606599ceccb68e0e07b6"
+      }
+    ],
+    "reason": "constraint_program.Builder now constructs each family through its typed_*_authority.Evaluator. Direct and lookup sections intern the same field expressions in a different order, changing node IDs and raw JSON bytes while preserving the ordered row-local polynomial program."
+  }
+}

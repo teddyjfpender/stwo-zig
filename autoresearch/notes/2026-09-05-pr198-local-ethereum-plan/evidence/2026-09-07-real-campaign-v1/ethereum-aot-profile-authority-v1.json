@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "profile": "ethereum_fixed_program_narrow_v1",
+  "tests": "PASS7/7 authority and profile admission; PASS1/1 generated source",
+  "generation_command": "STWO_ETHEREUM_NARROW_AOT_GENERATE=src/backends/metal/shaders python3 scripts/zig_protocol_test.py src/frontends/riscv/ethereum_narrow_aot_generator_test.zig -O ReleaseSafe -fstrip --test-filter \"Ethereum narrow AOT extension\"",
+  "authority_command": "python3 scripts/zig_protocol_test.py src/backends/metal/ethereum_aot_profile_test_root.zig -O ReleaseSafe -fstrip --test-filter AOT",
+  "core_exports": 166,
+  "core_source_sha256": "c2daaaf7dab998e6c542651dec73323973eafceee6ccf9d56fce6094ccac2786",
+  "ethereum_exports": 171,
+  "extra_source_bytes": 194141,
+  "runtime_status": "shader compiler and actual GPU parity queued; no new-profile performance claim",
+  "source_files": [
+    {
+      "path": "src/backends/metal/core_aot.zig",
+      "bytes": 26417,
+      "sha256": "58a1322006552aea1515dcd7c97a76ee6b89f251b6a3269fe21674d50e2983ae"
+    },
+    {
+      "path": "src/backends/metal/shared_runtime.zig",
+      "bytes": 8323,
+      "sha256": "8be5c360dd0b005e2f4ad80d0bdc991cebb52e20cb009c2e6a9669f9c9704c6e"
+    },
+    {
+      "path": "src/backends/metal/shaders/aot_profile.zig",
+      "bytes": 3927,
+      "sha256": "e7eba1b956d7314869eb640293d5eb411df913c62122973e418f2f62fd5ba8e0"
+    },
+    {
+      "path": "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1.metal",
+      "bytes": 194141,
+      "sha256": "048ec9780bf0b0cb757dd496e7b24999b42f2040b43a960d694edf2f534913cd"
+    },
+    {
+      "path": "src/backends/metal/shaders/ethereum_fixed_program_narrow_v1_exports.zig",
+      "bytes": 895,
+      "sha256": "7ad4b7336d0afaa48f57966a7e6228098a62a6d0d5d85c3c0c25982311dd8e6d"
+    },
+    {
+      "path": "src/frontends/riscv/ethereum_narrow_aot_generator_test.zig",
+      "bytes": 3444,
+      "sha256": "ebe1ac10b602609f04652d3418b41b2b180df96743f9fc9008c12c502c9b2f12"
+    }
+  ]
+}

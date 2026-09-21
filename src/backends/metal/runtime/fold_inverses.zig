@@ -20,6 +20,7 @@ pub fn prepare(
         return error.ShapeMismatch;
     }
 
+    try @import("../execution_policy.zig").admitHost(.fri_inverse_preparation);
     const log_len: u32 = @intCast(std.math.log2_int(usize, coordinates.len));
     var points = coset.iter();
     for (0..coordinates.len) |natural_index| {

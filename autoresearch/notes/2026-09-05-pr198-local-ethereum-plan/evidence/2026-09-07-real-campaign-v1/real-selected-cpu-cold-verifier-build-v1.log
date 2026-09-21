@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded
+build-ethereum-selected-leaf-verifier success
++- install ethereum-full-leaf-bundle-verify-v1 success
+   +- compile exe ethereum-full-leaf-bundle-verify-v1 ReleaseSafe native success 58s MaxRSS:3G
+

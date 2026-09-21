@@ -1,0 +1,91 @@
+INCREMENTAL_FULL_LEAF_PREFLIGHT_V1 retained_lde_lower_bound_bytes=20550093056 source_column_bytes=10275046528 columns=16894 blowup_log=1 budget_bytes=17179869184 excludes=merkle,fri,quotient,twiddles,witness,allocator
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=auipc index=0 rows=12445 log_size=14 columns=55 source_bytes=3604480 retained_lde_bytes=7208960
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=1 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=2 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=3 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=4 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=5 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=6 rows=65536 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_imm index=7 rows=50272 log_size=16 columns=69 source_bytes=18087936 retained_lde_bytes=36175872
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=8 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=9 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=10 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=11 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=12 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=13 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=14 rows=65536 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=base_alu_reg index=15 rows=42214 log_size=16 columns=73 source_bytes=19136512 retained_lde_bytes=38273024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=branch_eq index=16 rows=61115 log_size=16 columns=52 source_bytes=13631488 retained_lde_bytes=27262976
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=branch_lt index=17 rows=65536 log_size=16 columns=63 source_bytes=16515072 retained_lde_bytes=33030144
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=branch_lt index=18 rows=65536 log_size=16 columns=63 source_bytes=16515072 retained_lde_bytes=33030144
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=branch_lt index=19 rows=10311 log_size=14 columns=63 source_bytes=4128768 retained_lde_bytes=8257536
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=div index=20 rows=28 log_size=5 columns=141 source_bytes=18048 retained_lde_bytes=36096
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=jal index=21 rows=12725 log_size=14 columns=38 source_bytes=2490368 retained_lde_bytes=4980736
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=jalr index=22 rows=20863 log_size=15 columns=79 source_bytes=10354688 retained_lde_bytes=20709376
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=23 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=24 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=25 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=26 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=27 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=28 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=29 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=30 rows=65536 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=load_store index=31 rows=37116 log_size=16 columns=88 source_bytes=23068672 retained_lde_bytes=46137344
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=lt_imm index=32 rows=3729 log_size=12 columns=63 source_bytes=1032192 retained_lde_bytes=2064384
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=lt_reg index=33 rows=9445 log_size=14 columns=74 source_bytes=4849664 retained_lde_bytes=9699328
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=lui index=34 rows=24618 log_size=15 columns=36 source_bytes=4718592 retained_lde_bytes=9437184
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=mul index=35 rows=6753 log_size=13 columns=85 source_bytes=2785280 retained_lde_bytes=5570560
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=mulh index=36 rows=2976 log_size=12 columns=113 source_bytes=1851392 retained_lde_bytes=3702784
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=shifts_imm index=37 rows=65536 log_size=16 columns=85 source_bytes=22282240 retained_lde_bytes=44564480
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=shifts_imm index=38 rows=65536 log_size=16 columns=85 source_bytes=22282240 retained_lde_bytes=44564480
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=shifts_imm index=39 rows=65536 log_size=16 columns=85 source_bytes=22282240 retained_lde_bytes=44564480
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=shifts_imm index=40 rows=57060 log_size=16 columns=85 source_bytes=22282240 retained_lde_bytes=44564480
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=shifts_reg index=41 rows=40729 log_size=16 columns=102 source_bytes=26738688 retained_lde_bytes=53477376
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=core kind=fence index=42 rows=69 log_size=7 columns=16 source_bytes=8192 retained_lde_bytes=16384
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=program index=0 rows=729419 log_size=20 columns=28 source_bytes=117440512 retained_lde_bytes=234881024
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=memory index=1 rows=65536 log_size=16 columns=26 source_bytes=6815744 retained_lde_bytes=13631488
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=memory index=2 rows=65536 log_size=16 columns=26 source_bytes=6815744 retained_lde_bytes=13631488
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=memory index=3 rows=28874 log_size=15 columns=26 source_bytes=3407872 retained_lde_bytes=6815744
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=merkle index=4 rows=3396146 log_size=22 columns=24 source_bytes=402653184 retained_lde_bytes=805306368
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=poseidon2 index=5 rows=3396146 log_size=22 columns=455 source_bytes=7633633280 retained_lde_bytes=15267266560
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=clock_update index=6 rows=382632 log_size=19 columns=20 source_bytes=41943040 retained_lde_bytes=83886080
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=bitwise index=7 rows=262144 log_size=18 columns=10 source_bytes=10485760 retained_lde_bytes=20971520
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=range_check_20 index=8 rows=1048576 log_size=20 columns=7 source_bytes=29360128 retained_lde_bytes=58720256
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=range_check_8_11 index=9 rows=524288 log_size=19 columns=8 source_bytes=16777216 retained_lde_bytes=33554432
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=range_check_8_8_4 index=10 rows=1048576 log_size=20 columns=9 source_bytes=37748736 retained_lde_bytes=75497472
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=range_check_8_8 index=11 rows=65536 log_size=16 columns=8 source_bytes=2097152 retained_lde_bytes=4194304
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=infra kind=range_check_m31 index=12 rows=32768 log_size=15 columns=8 source_bytes=1048576 retained_lde_bytes=2097152
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=keccak_shard_v1 index=0 rows=9889 log_size=14 columns=6399 source_bytes=419364864 retained_lde_bytes=838729728
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=keccak_chi_table_v2 index=1 rows=8192 log_size=13 columns=12 source_bytes=393216 retained_lde_bytes=786432
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=keccak_xor5_table_v2 index=2 rows=1024 log_size=10 columns=12 source_bytes=49152 retained_lde_bytes=98304
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_product_base_v1 index=3 rows=68991 log_size=17 columns=893 source_bytes=468189184 retained_lde_bytes=936378368
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_product_scalar_v1 index=4 rows=396 log_size=9 columns=893 source_bytes=1828864 retained_lde_bytes=3657728
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_linear_base_v1 index=5 rows=99973 log_size=17 columns=462 source_bytes=242221056 retained_lde_bytes=484442112
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_linear_scalar_v1 index=6 rows=391 log_size=9 columns=462 source_bytes=946176 retained_lde_bytes=1892352
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_point_v1 index=7 rows=15194 log_size=14 columns=574 source_bytes=37617664 retained_lde_bytes=75235328
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_split_v1 index=8 rows=132 log_size=8 columns=242 source_bytes=247808 retained_lde_bytes=495616
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_scalar_program_v1 index=9 rows=8413 log_size=14 columns=1283 source_bytes=84082688 retained_lde_bytes=168165376
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_signed_table_v1 index=10 rows=4488 log_size=13 columns=299 source_bytes=9797632 retained_lde_bytes=19595264
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_recovery_v1 index=11 rows=66 log_size=7 columns=868 source_bytes=444416 retained_lde_bytes=888832
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_byte_table_v1 index=12 rows=256 log_size=8 columns=18 source_bytes=18432 retained_lde_bytes=36864
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=ethereum kind=secp_recovery_caller_v1 index=13 rows=66 log_size=7 columns=567 source_bytes=290304 retained_lde_bytes=580608
+INCREMENTAL_FULL_LEAF_COMPONENT_PREFLIGHT_V1 group=bridge kind=incremental index=0 rows=198181 log_size=18 columns=13 source_bytes=13631488 retained_lde_bytes=27262976
+error: PcsResidentBudgetExceeded
+       46.54 real        45.41 user         0.34 sys
+          2186969088  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+              320749  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                3601  involuntary context switches
+       1004681808621  instructions retired
+        182148936909  cycles elapsed
+          2186643736  peak memory footprint

@@ -1,0 +1,390 @@
+diff --git a/design/riscv-proving-stack/small-recursive-benchmark.md b/design/riscv-proving-stack/small-recursive-benchmark.md
+index 1ec64af28..676408e42 100644
+--- a/design/riscv-proving-stack/small-recursive-benchmark.md
++++ b/design/riscv-proving-stack/small-recursive-benchmark.md
+@@ -16,6 +16,26 @@ for gate status and measured timings.
+ 
+ ## Current four-segment CPU and Metal tree
+ 
++The from-source qualification command builds every executable into a new output
++directory, pins the reviewed key/statement inputs, and rejects source changes
++during the run. It requires Zig 0.15.2. Metal additionally requires a physical
++Mac and the full Xcode Metal toolchain; the command builds its own authenticated
++`recursive-framework-v1` bundle.
++
++```sh
++python3 scripts/riscv_recursive_product.py --backend cpu --output zig-out/recursive-cpu-1
++python3 scripts/riscv_recursive_product.py --backend metal --output zig-out/recursive-metal-1
++```
++
++Each command exits all producers before fresh verification and runs malformed
++proof and same-key, same-geometry statement-substitution controls. `product.json`
++records source hashes, build logs, executable pins and the final gate status.
++It returns failure on a failed stage; outputs remain available for diagnosis.
++The profile remains experimental and the Metal route is explicitly hybrid.
++The initial CPU qualification passed 192 cases with all 21 retained artifacts
++unchanged; see [the receipt](../../vectors/reports/recursive-product-20260917/cpu-v1/summary.json).
++The session-binary commands below are historical reproduction instructions.
++
+ Run the maintained controller from the repository root. The reviewed seed13
+ manifest is `tree-admissions/air-fusion-q193-4.json`, SHA256
+ `91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a`.
+diff --git a/src/backends/metal/README.md b/src/backends/metal/README.md
+index 8ee0f78f3..9649e348b 100644
+--- a/src/backends/metal/README.md
++++ b/src/backends/metal/README.md
+@@ -60,6 +60,12 @@ const Engine = metal.PlainMetalProverEngine;
+ | Proving | `MetalProverEngine`, `PlainMetalProverEngine`, `prover_engine`, `protocol_recipes`, `recipes` |
+ | Reliability | `recovery`, `telemetry`, `source_contract` |
+ | Generated/device assets | `shaders`, `riscv_polynomial_codegen` |
++| Admission | `core_aot`, `execution_policy` |
++
++`core_aot` authenticates a bundle against the selected AOT profile before device
++execution. `execution_policy` admits host work for hybrid requests and rejects
++unsupported host stages for strict GPU requests; it does not change the proof
++protocol. These low-level admission surfaces are part of the public backend API.
+ 
+ Prefer the typed engine or an integration package over reaching into runtime
+ submodules. Low-level runtime APIs require explicit lifecycle, ownership, and
+diff --git a/src/backends/metal/package.contract.json b/src/backends/metal/package.contract.json
+index 6aeb7c938..9e83c3ed0 100644
+--- a/src/backends/metal/package.contract.json
++++ b/src/backends/metal/package.contract.json
+@@ -24,6 +24,8 @@
+     "arena_plan",
+     "commit_backend",
+     "commit_policy",
++    "core_aot",
++    "execution_policy",
+     "hash_domain",
+     "merkle_tree",
+     "protocol_recipes",
+diff --git a/src/frontends/riscv/recursion/air/vm_public_logup_control_v2_test.zig b/src/frontends/riscv/recursion/air/vm_public_logup_control_v2_test.zig
+index b4158b271..3ec57f850 100644
+--- a/src/frontends/riscv/recursion/air/vm_public_logup_control_v2_test.zig
++++ b/src/frontends/riscv/recursion/air/vm_public_logup_control_v2_test.zig
+@@ -187,8 +187,12 @@ test "V2 row17 rejects schedule relay geometry and alias drift fail-atomically"
+ 
+     var changed_plan = try testPlan(std.testing.allocator, schedule.VM_PROGRAM_SPEC_V1);
+     defer changed_plan.deinit();
++    // Mutate an owned copy: admitted schedules expose their steps as immutable.
++    const changed_steps = try std.testing.allocator.dupe(schedule.VerifierStep, changed_plan.steps);
++    std.testing.allocator.free(changed_plan.steps);
++    changed_plan.steps = changed_steps;
+     const term_index: usize = witness.PUBLIC_PHASE_FIRST_SEQUENCE + 9;
+-    changed_plan.steps[term_index].accumulate_public_logup_term.term += 1;
++    changed_steps[term_index].accumulate_public_logup_term.term += 1;
+     var destination = prepared;
+     const before_destination = destination;
+     try std.testing.expectError(
+diff --git a/src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig b/src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig
+index 8840c7ffc..cf63d494c 100644
+--- a/src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig
++++ b/src/frontends/riscv/recursion/recursion_air_composition_capture_layout_v3.zig
+@@ -219,8 +219,7 @@ pub const CaptureLayoutV3 = struct {
+         try manifest.validate();
+         if (poseidon_roster_row >= manifest.placements.len or
+             manifest.placements[poseidon_roster_row] == null or
+-            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count],
+-                @as(u8, @intCast(poseidon_roster_row))) == null)
++            std.mem.indexOfScalar(u8, manifest.roster_rows[0..manifest.roster_count], @as(u8, @intCast(poseidon_roster_row))) == null)
+         {
+             return error.ManifestAuthorityMismatch;
+         }
+diff --git a/src/integrations/riscv_cpu/ethereum_precompile_artifact_io.zig b/src/integrations/riscv_cpu/ethereum_precompile_artifact_io.zig
+index cd2eaf617..2435de4e6 100644
+--- a/src/integrations/riscv_cpu/ethereum_precompile_artifact_io.zig
++++ b/src/integrations/riscv_cpu/ethereum_precompile_artifact_io.zig
+@@ -76,7 +76,8 @@ pub fn createDirectoryCreateOnly(path: []const u8) !void {
+ 
+ fn openDirectoryPathNoFollow(path: []const u8) !std.fs.Dir {
+     if (!std.fs.path.isAbsolute(path)) return error.AbsolutePathRequired;
+-    var current = try std.fs.openDirAbsolute("/", .{ .no_follow = true });
++    // Linux opens non-iterable directories with O_PATH, which cannot be fsynced.
++    var current = try std.fs.openDirAbsolute("/", .{ .no_follow = true, .iterate = true });
+     errdefer current.close();
+     var components = std.mem.tokenizeScalar(u8, path, std.fs.path.sep);
+     while (components.next()) |component| {
+@@ -85,7 +86,7 @@ fn openDirectoryPathNoFollow(path: []const u8) !std.fs.Dir {
+         {
+             return error.InvalidArtifactPath;
+         }
+-        const next = try current.openDir(component, .{ .no_follow = true });
++        const next = try current.openDir(component, .{ .no_follow = true, .iterate = true });
+         current.close();
+         current = next;
+     }
+@@ -124,9 +125,9 @@ pub fn publishCreateOnlyDurable(path: []const u8, bytes: []const u8) !void {
+         std.mem.eql(u8, basename, "..")) return error.InvalidOutputPath;
+     const parent_path = std.fs.path.dirname(path) orelse ".";
+     var parent = if (std.fs.path.isAbsolute(parent_path))
+-        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true })
++        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true, .iterate = true })
+     else
+-        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true });
++        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true, .iterate = true });
+     defer parent.close();
+     var file = try parent.createFile(basename, .{
+         .read = false,
+@@ -154,9 +155,9 @@ pub fn appendDurable(path: []const u8, bytes: []const u8) !void {
+     const basename = std.fs.path.basename(path);
+     const parent_path = std.fs.path.dirname(path) orelse ".";
+     var parent = if (std.fs.path.isAbsolute(parent_path))
+-        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true })
++        try std.fs.openDirAbsolute(parent_path, .{ .no_follow = true, .iterate = true })
+     else
+-        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true });
++        try std.fs.cwd().openDir(parent_path, .{ .no_follow = true, .iterate = true });
+     defer parent.close();
+     var file = try openRegularNoFollow(parent, basename, .read_write);
+     defer file.close();
+@@ -326,6 +327,23 @@ test "Ethereum artifact CLI paths resolve to absolute retained authority" {
+     try std.testing.expectEqualStrings("/retained", root_boundary);
+ }
+ 
++test "Ethereum durable publication and append use sync-capable directory handles" {
++    const allocator = std.testing.allocator;
++    var temporary = std.testing.tmpDir(.{});
++    defer temporary.cleanup();
++    const root = try temporary.dir.realpathAlloc(allocator, ".");
++    defer allocator.free(root);
++    const path = try std.fs.path.join(allocator, &.{ root, "journal" });
++    defer allocator.free(path);
++
++    try publishCreateOnlyDurable(path, "first\n");
++    try appendDurable(path, "second\n");
++    try std.testing.expectError(error.PathAlreadyExists, publishCreateOnlyDurable(path, "replacement\n"));
++    const contents = try readFileBounded(allocator, path, 64);
++    defer allocator.free(contents);
++    try std.testing.expectEqualStrings("first\nsecond\n", contents);
++}
++
+ test "Ethereum artifact directory publication is fresh and create-only" {
+     const allocator = std.testing.allocator;
+     var temporary = std.testing.tmpDir(.{});
+diff --git a/src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig b/src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig
+index ca40069b6..d6219c0a8 100644
+--- a/src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig
++++ b/src/integrations/riscv_cpu/recursive_common_canonical_empty_composition_capture_v2.zig
+@@ -547,8 +547,7 @@ fn recordProgram(
+     );
+     cursor += composition_v3.PROGRAM_KIND_COUNT;
+     var public_words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
+-    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT],
+-        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
++    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
+     cursor += composition_v3.STATEMENT_WORD_COUNT;
+     for (sampled_values) |*value|
+         value.* = composition_v3.takeSecureRecorderInput(base_inputs, &cursor);
+diff --git a/src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig b/src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig
+index 647ecca0d..8d68274a8 100644
+--- a/src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig
++++ b/src/integrations/riscv_cpu/recursive_common_fold_composition_capture_v2.zig
+@@ -689,8 +689,7 @@ pub fn recordProgram(
+     );
+     cursor += composition_v3.PROGRAM_KIND_COUNT;
+     var public_words: [node_public.AIR_WORD_COUNT]recorder.Scalar = undefined;
+-    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT],
+-        base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
++    @memcpy(public_words[node_public.HEADER_WORD_COUNT..][0..node_public.STATEMENT_WORD_COUNT], base_inputs[cursor..][0..composition_v3.STATEMENT_WORD_COUNT]);
+     cursor += composition_v3.STATEMENT_WORD_COUNT;
+     for (sampled_values) |*value|
+         value.* = composition_v3.takeSecureRecorderInput(
+diff --git a/scripts/riscv_recursive_product.py b/scripts/riscv_recursive_product.py
+new file mode 100644
+index 000000000..c43e3a349
+--- /dev/null
++++ b/scripts/riscv_recursive_product.py
+@@ -0,0 +1,192 @@
++#!/usr/bin/env python3
++"""Build and freshly verify the pinned four-segment experimental CPU/Metal tree.
++
++All executables and (for Metal) the AOT bundle are built into a new output
++directory. No retained session binary is an input. The existing tree gate owns
++producer destruction, independent statement/key admission and hostile replay.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import os
++from pathlib import Path
++import signal
++import subprocess
++import sys
++import time
++
++ROOT = Path(__file__).resolve().parents[1]
++ADMISSION = ROOT / "vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/tree-admissions/air-fusion-q193-4.json"
++ADMISSION_SHA256 = "91a52ebe8c56977c9d589284e2d03bf4bf749b9310272c2a409b14980ce78d6a"
++OTHER_ADMISSION = ADMISSION.with_name("air-fusion-q193-4-seed14.json")
++OTHER_ADMISSION_SHA256 = "c7b278867cee07a660be4e2ec16f71db78f1bb7dd51ed74cf26e2c683dea4b07"
++
++
++def sha256(path: Path) -> str:
++    with path.open("rb") as stream:
++        return hashlib.file_digest(stream, "sha256").hexdigest()
++
++
++def source_snapshot() -> dict[str, str]:
++    paths = subprocess.check_output([
++        "git", "ls-files", "-z", "--cached", "--others", "--exclude-standard",
++        "--", "build.zig", "build.zig.zon", "build_support", "src", "scripts",
++        "design", "conformance",
++    ], cwd=ROOT).decode().split("\0")
++    return {path: sha256(ROOT / path) for path in sorted(set(paths))
++            if path and (ROOT / path).is_file()}
++
++
++def main() -> None:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--backend", choices=("cpu", "metal"), required=True)
++    parser.add_argument("--output", type=Path, required=True, help="new evidence/build directory")
++    args = parser.parse_args()
++    zig_version = subprocess.check_output(["zig", "version"], text=True).strip()
++    if zig_version != "0.15.2":
++        parser.error(f"this admitted build requires Zig 0.15.2, found {zig_version}")
++    if args.backend == "metal" and sys.platform != "darwin":
++        parser.error("Metal requires a physical Mac and the full Xcode Metal toolchain")
++    if sha256(ADMISSION) != ADMISSION_SHA256:
++        parser.error("reviewed tree admission digest mismatch")
++    if sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256:
++        parser.error("reviewed substitution admission digest mismatch")
++    output = args.output.resolve()
++    if output.is_relative_to(ROOT) and not output.is_relative_to(ROOT / "zig-out"):
++        parser.error("repository outputs must be under zig-out; an external directory is also supported")
++    output.mkdir(parents=True, exist_ok=False)
++    snapshot = source_snapshot()
++    report = {
++        "schema": "stwo.recursive-product.v1", "backend": args.backend,
++        "profile": "recursive_q193_v1", "production_security_qualified": False,
++        "head": subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
++        "zig_version": zig_version,
++        "source_sha256": snapshot, "admission_sha256": ADMISSION_SHA256,
++        "substitution_admission_sha256": OTHER_ADMISSION_SHA256,
++        "steps": [], "passed": False,
++    }
++    environment = dict(os.environ)
++    # The baseline is explicitly hybrid. Strict coverage has its own admission
++    # gates and cannot be inferred from a successful hybrid complete proof.
++    environment["STWO_ZIG_METAL_REQUIRE_GPU"] = "0"
++    report["stwo_environment"] = {k: v for k, v in environment.items() if k.startswith("STWO_")}
++
++    def save() -> None:
++        (output / "product.json").write_text(json.dumps(report, indent=2) + "\n")
++
++    def run(name: str, command: list[str], timeout: int = 3600) -> None:
++        entry = {"name": name, "argv": command}
++        report["steps"].append(entry)
++        save()
++        print(f"{name}: started", flush=True)
++        started = time.monotonic_ns()
++        log = output / (name + ".log")
++        try:
++            with log.open("xb") as stream:
++                process = subprocess.Popen(command, cwd=ROOT, env=environment,
++                                           stdout=stream, stderr=subprocess.STDOUT,
++                                           start_new_session=True)
++                try:
++                    status = process.wait(timeout=timeout)
++                except BaseException:
++                    # Cancel the stage's producer/compiler descendants as well.
++                    try:
++                        os.killpg(process.pid, signal.SIGKILL)
++                    except ProcessLookupError:
++                        pass
++                    process.wait()
++                    raise
++            entry["exit_code"] = status
++            if status:
++                raise RuntimeError(f"{name} failed; inspect {log}")
++        finally:
++            entry["elapsed_ns"] = time.monotonic_ns() - started
++            if log.exists():
++                entry["log_sha256"] = sha256(log)
++            save()
++        print(f"{name}: passed in {entry['elapsed_ns'] / 1e9:.3f}s", flush=True)
++
++    def build(name: str, cwd: str, prefix: Path, targets: list[str]) -> None:
++        run(name, [sys.executable, str(ROOT / "scripts/zig_serial_build.py"),
++                   "--cwd", str(ROOT / cwd), *targets, "-Doptimize=ReleaseSafe",
++                   "--prefix", str(prefix), "--summary", "all"])
++
++    try:
++        cpu = output / "cpu"
++        cpu_targets = ["build-recursive-segment-v2-detached-verifier",
++                       "build-recursive-segment-v2-detached-parent-verifier"]
++        if args.backend == "cpu":
++            cpu_targets += ["build-recursive-segment-v2-concrete-outer-proof",
++                            "build-recursive-segment-v2-detached-parent-producer"]
++        build("build-cpu", "src/integrations/riscv_cpu", cpu, cpu_targets)
++        producer_prefix = cpu
++        aot_args: list[str] = []
++        if args.backend == "metal":
++            producer_prefix = output / "metal"
++            build("build-metal", "src/integrations/riscv_metal", producer_prefix,
++                  ["build-recursive-segment-v2-concrete-outer-proof",
++                   "build-recursive-segment-v2-detached-parent-producer"])
++            tool = output / "aot-tool"
++            build("build-aot-tool", ".", tool, ["metal-core-aot"])
++            bundle = output / "aot"
++            run("build-aot", [str(tool / "bin/metal-core-aot"), "build", "--output-dir",
++                              str(bundle), "--profile", "recursive-framework-v1"])
++            aot_args = ["--aot-bundle", str(bundle), "--aot-manifest-sha256",
++                        sha256(bundle / "stwo_zig_core.manifest.json"),
++                        "--aot-profile", "recursive-framework-v1"]
++        if source_snapshot() != snapshot:
++            raise RuntimeError("source changed during build; retain evidence and restart from frozen source")
++        binaries = {
++            "leaf-producer": producer_prefix / ("bin/recursive-segment-v2-concrete-outer-proof"
++                                                + ("-metal" if args.backend == "metal" else "")),
++            "parent-producer": producer_prefix / ("bin/recursive-segment-v2-detached-parent-prove"
++                                                  + ("-metal" if args.backend == "metal" else "")),
++            "leaf-verifier": cpu / "bin/recursive-segment-v2-detached-verify",
++            "parent-verifier": cpu / "bin/recursive-segment-v2-detached-parent-verify",
++        }
++        command = [sys.executable, str(ROOT / "scripts/riscv_segment_v2_detached_tree_gate.py"),
++                   "--backend", args.backend, "--admission", str(ADMISSION),
++                   "--admission-sha256", ADMISSION_SHA256, "--output", str(output / "tree")]
++        report["binary_sha256"] = {role: sha256(path) for role, path in binaries.items()}
++        for role, path in binaries.items():
++            command += ["--" + role, str(path), "--" + role + "-sha256", report["binary_sha256"][role]]
++        run("complete-tree", command + aot_args, timeout=1800)
++        tree = json.loads((output / "tree/report.json").read_text())
++        if tree.get("passed") is not True or source_snapshot() != snapshot:
++            raise RuntimeError("complete-tree acceptance or frozen-source check failed")
++        original = json.loads(ADMISSION.read_bytes())
++        other = json.loads(OTHER_ADMISSION.read_bytes())
++        for index, (node, substitute) in enumerate(zip(original["leaves"], other["leaves"], strict=True)):
++            expected = ADMISSION.parent / node["expected"]["path"]
++            wrong = OTHER_ADMISSION.parent / substitute["expected"]["path"]
++            if (node["key"] != substitute["key"] or sha256(expected) != node["expected"]["sha256"]
++                    or sha256(wrong) != substitute["expected"]["sha256"]
++                    or len(json.loads(expected.read_bytes())) != len(json.loads(wrong.read_bytes()))
++                    or expected.read_bytes() == wrong.read_bytes()):
++                raise RuntimeError("substitution must have the same key and geometry and a distinct pinned statement")
++            run(f"substitution-{index}", [sys.executable,
++                str(ROOT / "scripts/riscv_segment_v2_detached_gate.py"),
++                "--proof-profile", "recursive_q193_v1", "--verifier", str(binaries["leaf-verifier"]),
++                "--bundle", str(output / f"tree/leaves/child-{index}"),
++                "--key-sha256", node["key"]["sha256"], "--expected-wire", str(expected),
++                "--other-expected-wire", str(wrong),
++                "--output", str(output / f"substitution-{index}.json")], timeout=120)
++            if sha256(wrong) != substitute["expected"]["sha256"]:
++                raise RuntimeError("substitution input changed during verification")
++        if (source_snapshot() != snapshot or sha256(ADMISSION) != ADMISSION_SHA256
++                or sha256(OTHER_ADMISSION) != OTHER_ADMISSION_SHA256
++                or any(sha256(path) != report["binary_sha256"][role] for role, path in binaries.items())):
++            raise RuntimeError("source, admission or executable changed during verification")
++        report["tree_report_sha256"] = sha256(output / "tree/report.json")
++        report["passed"] = True
++    except BaseException as error:
++        report["error"] = f"{type(error).__name__}: {error}"
++        raise
++    finally:
++        save()
++
++
++if __name__ == "__main__":
++    main()

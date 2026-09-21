@@ -1,11 +1,6 @@
 //! Bounded SIMD composition for frontend-authenticated RISC-V polynomial pairs.
-//!
-//! The frontend exports semantic and lookup polynomial DAGs from the same typed
-//! builders used by its reference AIR. This module only accelerates adjacent
-//! semantic/lookup components whose exported contracts and committed-column
-//! shapes agree exactly. Everything else remains on the generic component
-//! evaluator. Eligible components accumulate directly into one secure column
-//! per evaluation log, avoiding one full-domain temporary per component.
+//! Exact adjacent semantic/lookup pairs use exported typed polynomial DAGs;
+//! all other components retain their reference evaluator.
 
 const std = @import("std");
 const core = @import("stwo_core");
@@ -14,6 +9,7 @@ const admission = @import("riscv_composition_admission.zig");
 const attribution = @import("riscv_composition_attribution.zig");
 const lanes = @import("riscv_composition_lanes.zig");
 const composition_support = @import("riscv_composition_work.zig");
+const evaluation_diagnostic = @import("composition_evaluation_diagnostic.zig");
 const composition_work = prover.air.composition_work;
 
 const qm31 = core.fields.qm31;
@@ -117,12 +113,8 @@ const Telemetry = struct {
 
 var telemetry: Telemetry = .{};
 
-/// Explicit execution contract for the bounded RISC-V composition plan.
-/// `worker_budget` includes the coordinator. Callers that require an
-/// admissible scaling result leave `serial_on_contention` false; the legacy
-/// backend wrapper enables it because it has no request-level admission API.
-/// Strict callers also leave `allow_unprepared_fallback` false so every worker
-/// path is prepared before the structured graph can launch.
+/// Explicit bounded execution contract. `worker_budget` includes the
+/// coordinator; strict callers disable contention and unprepared fallbacks.
 pub const ExecutionOptions = struct {
     worker_budget: prover.work_pool.WorkerBudget = prover.work_pool.WorkerBudget.serial(),
     pool: ?*prover.work_pool.WorkPool = null,
@@ -137,6 +129,7 @@ pub const ExecutionOptions = struct {
     /// disabled, even if a component happens to publish a V2 capability.
     lookup_v2_activation: LookupV2Activation = .disabled,
     work_capture: ?*composition_work.Capture = null,
+    evaluation_diagnostic: ?*?prover.engine.EvaluationDiagnostic = null,
 
     fn requestedWorkerCount(self: ExecutionOptions) usize {
         return if (self.requested_worker_count == 0)
@@ -327,6 +320,21 @@ fn evaluatePlan(
     trace: *const Trace,
     execution: ExecutionOptions,
 ) !?SecureColumn {
+    var timing: ?std.time.Timer = if (std.process.hasEnvVarConstant("STWO_ZIG_RISCV_CPU_COMPOSITION_TIMING"))
+        std.time.Timer.start() catch null
+    else
+        null;
+    var prepare_ns: u64 = 0;
+    var graph_ns: u64 = 0;
+    var graph_started_ns: u64 = 0;
+    var output_payload_bytes: u128 = 0;
+    var completed = false;
+    defer if (timing) |*clock| {
+        const total_ns = clock.read();
+        std.log.info("cpu composition wall: completed={} scope=plan_including_cleanup prepare_ns={} graph_ns={} finish_cleanup_ns={} total_ns={} output_payload_bytes={} payload_is_allocator_live=false", .{
+            completed, prepare_ns, graph_ns, total_ns - prepare_ns - graph_ns, total_ns, output_payload_bytes,
+        });
+    };
     _ = telemetry.attempts.fetchAdd(1, .monotonic);
 
     var base_programs = std.ArrayList(BaseProgramEntry).empty;
@@ -512,12 +520,8 @@ fn evaluatePlan(
         }
     }
 
-    // `generateSecurePowers` stores [1, alpha, ...]. The generic accumulator
-    // consumes components from the tail in declaration order, then each
-    // component folds its constraints in reverse-root order. Assign and
-    // prepare every host component on the coordinator before any task starts;
-    // eligible and host components therefore cannot perturb one another's
-    // transcript powers or allocator ownership.
+    // Assign powers in declaration order and prepare every host component
+    // before launch so eligible and host work cannot perturb ownership.
     var power_cursor = total_constraints;
     var pair_cursor: usize = 0;
     var host_cursor: usize = 0;
@@ -557,10 +561,14 @@ fn evaluatePlan(
             .component_registry_index = registry_index,
         };
         initialized_host_workers += 1;
-        if (try components[component_index].prepareConstraintQuotientsOnDomain(
-            allocator,
-            trace,
-            &host_workers[host_cursor].accumulator,
+        if (try evaluation_diagnostic.componentResult(
+            execution.evaluation_diagnostic,
+            component_index,
+            components[component_index].prepareConstraintQuotientsOnDomain(
+                allocator,
+                trace,
+                &host_workers[host_cursor].accumulator,
+            ),
         )) |prepared| {
             host_workers[host_cursor].prepared = prepared;
             host_workers[host_cursor].prepared_initialized = true;
@@ -709,10 +717,8 @@ fn evaluatePlan(
         });
     }
 
-    // Complete every fallible allocation before launching the graph. A sole
-    // accelerated bucket already on the final domain can still transfer its
-    // ownership directly; every mixed or lifted result receives caller-owned
-    // destination storage up front.
+    // Complete fallible allocation before launch; mixed/lifted results receive
+    // caller-owned destination storage up front.
     var combined = try Accumulator.initForComponent(powers, allocator, max_log_size, 0);
     defer combined.deinit();
     var needs_preallocated_output = false;
@@ -744,7 +750,6 @@ fn evaluatePlan(
     else
         null;
     defer if (prepared_output) |*output| output.deinit(allocator);
-
     // Legacy counters describe the plan; the flat profile owns worker truth.
     _ = telemetry.admissions.fetchAdd(1, .monotonic);
     _ = telemetry.eligible_pairs.fetchAdd(@intCast(pairs.items.len), .monotonic);
@@ -763,6 +768,10 @@ fn evaluatePlan(
     _ = telemetry.structured_executions.fetchAdd(1, .monotonic);
     recordMax(&telemetry.max_scratch_bytes_per_worker, @intCast(scratch_bytes));
 
+    if (timing) |*clock| {
+        prepare_ns = clock.read();
+        graph_started_ns = prepare_ns;
+    }
     const execution_report = graph.execute(.{
         .worker_budget = execution.worker_budget,
         .pool = execution.pool,
@@ -788,8 +797,13 @@ fn evaluatePlan(
                 .pool_capacity = execution.poolCapacity(),
             });
         } else return failure,
-        else => return failure,
+        else => return evaluation_diagnostic.failure(
+            execution.evaluation_diagnostic,
+            .component_evaluation,
+            failure,
+        ),
     };
+    if (timing) |*clock| graph_ns = clock.read() - graph_started_ns;
     recordMax(&telemetry.max_graph_peak_active, @intCast(execution_report.peak_active_tasks));
     for (host_workers) |worker| {
         if (worker.accumulator.next_power_index != worker.expected_next_power_index) {
@@ -828,15 +842,31 @@ fn evaluatePlan(
         }
     }
     if (prepared_output) |*output| {
-        try combined.finalizeInto(output);
+        try evaluation_diagnostic.lengthResult(
+            execution.evaluation_diagnostic,
+            .lift_accumulation,
+            output.len(),
+            @as(usize, 1) << @intCast(max_log_size),
+            combined.finalizeInto(output),
+        );
         var result = output.*;
         prepared_output = null;
         errdefer result.deinit(allocator);
         if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
+        if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
+        completed = true;
         return result;
     }
-    var result = try combined.finalize();
+    var result = try evaluation_diagnostic.lengthResult(
+        execution.evaluation_diagnostic,
+        .final_length,
+        combined.next_power_index,
+        0,
+        combined.finalize(),
+    );
     errdefer result.deinit(allocator);
     if (work_receipt) |receipt| try execution.work_capture.?.publish(receipt);
+    if (timing != null) output_payload_bytes = @as(u128, result.len()) * @sizeOf(QM31);
+    completed = true;
     return result;
 }

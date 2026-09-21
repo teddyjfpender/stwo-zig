@@ -136,6 +136,7 @@ pub const Circuit = struct {
         if (self.input_profile.claimed_sum_count != COMPOSITION_CLAIM_INPUT_COUNT or
             self.input_profile.relation_challenge_count != RELATION_CHALLENGE_COUNT or
             self.input_profile.public_wire_boundary_count != 0 or
+            self.input_profile.field_public_extra_word_count != 0 or
             self.bindings.len != self.recorded.input_count or
             self.bindings.len != try graph_mod.recursionInputCount(self.input_profile) or
             self.statistics.graph_inputs != self.recorded.input_count or
@@ -229,7 +230,7 @@ pub const Circuit = struct {
                     witness.oods_seed,
                     word_index,
                 ),
-                .public_wire_boundary => return error.InvalidInputShape,
+                .public_wire_boundary, .transcript_claimed_sum, .field_public_word => return error.InvalidInputShape,
             };
             destination[index] = QM31.fromBase(word);
         }

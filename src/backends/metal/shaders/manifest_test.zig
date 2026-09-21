@@ -20,6 +20,7 @@ const blake2s_source = manifest.testing.blake2s_source;
 const merkle_source = manifest.testing.merkle_source;
 const decommit_source = manifest.testing.decommit_source;
 const m31_source = manifest.testing.m31_source;
+const poseidon2_m31_source = manifest.testing.poseidon2_m31_source;
 const extension_fields_source = manifest.testing.extension_fields_source;
 const circle_source = manifest.testing.circle_source;
 const abi_types_source = manifest.testing.abi_types_source;
@@ -48,7 +49,7 @@ const countKernelDeclarations = manifest.testing.countKernelDeclarations;
 const kernelDeclaration = manifest.testing.kernelDeclaration;
 
 test "Native core source exactly covers its non-Cairo export ABI" {
-    try std.testing.expectEqual(@as(usize, 135), native_exports.len);
+    try std.testing.expectEqual(@as(usize, 166), native_exports.len);
     try std.testing.expectEqual(native_exports.len, std.mem.count(u8, native_amalgamated_source, "kernel void "));
     try std.testing.expect(std.mem.indexOf(u8, native_amalgamated_source, "shaders/cairo/") == null);
     for (native_support_headers) |unit| try std.testing.expect(std.mem.indexOf(u8, unit.path, "/cairo/") == null);
@@ -71,7 +72,7 @@ fn expectIsolated(source: []const u8, names: []const []const u8) !void {
 
 test "metal shader manifest exactly covers source and runtime exports" {
     const runtime_source = @embedFile("../runtime.m");
-    try std.testing.expectEqual(@as(usize, 147), exports.len);
+    try std.testing.expectEqual(@as(usize, 177), exports.len);
 
     var declaration_count: usize = 0;
     var remaining: []const u8 = amalgamated_source[0 .. amalgamated_source.len - 1];
@@ -98,24 +99,80 @@ test "metal shader manifest exactly covers source and runtime exports" {
     }
 }
 
-test "commitment shader bindings match core ABI version 12" {
-    try std.testing.expectEqual(@as(u32, 12), core_shader_abi);
+test "commitment shader bindings match core ABI version 22" {
+    try std.testing.expectEqual(@as(u32, 22), core_shader_abi);
     const bindings = [_]struct { kernel: []const u8, argument: []const u8 }{
         .{ .kernel = "stwo_zig_blake2s_leaves", .argument = "prefix_bytes [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents", .argument = "prefix_bytes [[buffer(4)]]" },
         .{ .kernel = "stwo_zig_blake2s_parents_sparse", .argument = "prefix_bytes [[buffer(5)]]" },
         .{ .kernel = "stwo_zig_blake2s_parent_tail_sparse", .argument = "transcript_config [[buffer(7)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_leaves", .argument = "unused_prefix_bytes [[buffer(7)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_leaves_wide", .argument = "device const ulong *column_offsets [[buffer(1)]]" },
+        .{ .kernel = "stwo_zig_decommit_gather_tree_values_resident_wide", .argument = "constant ulong *column_offsets [[buffer(1)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_leaf_absorb_resident", .argument = "unused_leaf_seed [[buffer(9)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_leaf_absorb_compact_resident", .argument = "unused_leaf_seed [[buffer(11)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_leaf_state_digest_resident_v1", .argument = "destination_offset [[buffer(2)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_parents", .argument = "unused_prefix_bytes [[buffer(4)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_parents_sparse", .argument = "unused_prefix_bytes [[buffer(5)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_parent_tail_sparse", .argument = "transcript_config [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_fri_packed_leaves_resident", .argument = "prefix_bytes [[buffer(7)]]" },
+        .{ .kernel = "stwo_zig_poseidon2_m31_fri_packed_leaves_resident", .argument = "unused_prefix_bytes [[buffer(7)]]" },
         .{ .kernel = "stwo_zig_qm31_to_coordinates", .argument = "prefix_bytes [[buffer(5)]]" },
         .{ .kernel = "stwo_zig_fri_fold_line", .argument = "prefix_bytes [[buffer(8)]]" },
         .{ .kernel = "stwo_zig_quotient_domain_points_resident", .argument = "mode [[buffer(6)]]" },
         .{ .kernel = "stwo_zig_quotient_partials_raw", .argument = "partials [[buffer(9)]]" },
         .{ .kernel = "stwo_zig_quotient_combine_partials_raw", .argument = "row_count [[buffer(9)]]" },
+        .{ .kernel = "stwo_zig_sampled_barycentric_domain_v1", .argument = "half_coset_step_size [[buffer(4)]]" },
+        .{ .kernel = "stwo_zig_sampled_barycentric_evaluate_many_v1", .argument = "device const ulong *column_offsets [[buffer(1)]]" },
     };
     for (bindings) |binding| {
         const declaration = try kernelDeclaration(amalgamated_source, binding.kernel);
         try std.testing.expect(std.mem.indexOf(u8, declaration, binding.argument) != null);
     }
+}
+
+test "Poseidon2 M31 commitment support has one guarded exact owner" {
+    const helpers = [_][]const u8{
+        "inline void stwo_zig_poseidon2_permute(",
+        "inline void stwo_zig_poseidon2_leaf_init(",
+        "inline void stwo_zig_poseidon2_leaf_absorb(",
+        "inline void stwo_zig_poseidon2_leaf_finish(",
+        "inline void stwo_zig_poseidon2_parent(",
+    };
+    for (helpers) |helper| {
+        try std.testing.expectEqual(
+            @as(usize, 1),
+            std.mem.count(u8, poseidon2_m31_source, helper),
+        );
+        try std.testing.expectEqual(
+            @as(usize, 1),
+            std.mem.count(u8, native_amalgamated_source, helper),
+        );
+    }
+    try std.testing.expect(std.mem.startsWith(
+        u8,
+        poseidon2_m31_source,
+        "#ifndef STWO_ZIG_POSEIDON2_M31_METAL",
+    ));
+    try std.testing.expectEqual(
+        @as(usize, 0),
+        std.mem.count(u8, poseidon2_m31_source, "kernel void stwo_zig_"),
+    );
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        poseidon2_m31_source,
+        "constant uint stwo_zig_poseidon2_external_rounds[8][16]",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        poseidon2_m31_source,
+        "constant uint stwo_zig_poseidon2_internal_rounds[14]",
+    ) != null);
+    try std.testing.expect(std.mem.indexOf(
+        u8,
+        poseidon2_m31_source,
+        "constant uint stwo_zig_poseidon2_internal_diagonal[16]",
+    ) != null);
 }
 
 test "polynomial evaluation is isolated in its owning shader unit" {
@@ -130,59 +187,69 @@ test "polynomial evaluation is isolated in its owning shader unit" {
 
 test "RISC-V polynomial kernels have an exact isolated export ABI" {
     const names = [_][]const u8{
-        "stwo_zig_base_poly_450551d90acd324ebbd24fcf112b6e2a",
-        "stwo_zig_base_poly_c14a50f654a9c7e71379b41a108194ff",
-        "stwo_zig_base_poly_f3458c84073cbe0a1a0cc8d255a028f0",
-        "stwo_zig_base_poly_a2a6593402647f120c2a259a1710c6e3",
-        "stwo_zig_base_poly_a972dafabb2bf5eee1d1cdb560f3572e",
-        "stwo_zig_base_poly_09e5f90f9696d165cc36093de2564888",
-        "stwo_zig_base_poly_a74fd0125263cc1e887ee5d726ac99a0",
-        "stwo_zig_base_poly_3b018614b76f63e7a28e127029c18704",
-        "stwo_zig_base_poly_aa55ec34af78d3f2b74d4b3d06c708a8",
-        "stwo_zig_base_poly_0ade2040c246f9cad3919da46161d2fd",
-        "stwo_zig_base_poly_6301135c98c38c29971098b60b459397",
-        "stwo_zig_base_poly_95bca92bf8e5c8c0cd1438e06c6c8963",
-        "stwo_zig_base_poly_373e28e4ebf898ce291ed734807dfa00",
-        "stwo_zig_base_poly_1d58ef609255595a37488e277d52585c",
-        "stwo_zig_base_poly_208adea2af3accc5bd53faa7807024bb",
-        "stwo_zig_base_poly_9b9a12367c3aeb8830ac01bf757fa64a",
-        "stwo_zig_base_poly_ebe47c5c0304bddea66f3a2b7c9cd55c",
-        "stwo_zig_lookup_poly_6bd1123655f7e5fc662f4e397524645b",
-        "stwo_zig_lookup_poly_60369e534e1e31666bb1684e6745500b",
-        "stwo_zig_lookup_poly_cae77cf99f2127b1108dc5c1609cc16b",
-        "stwo_zig_lookup_poly_d1b44ec0cc8a532f04e4e39fd0bb648e",
-        "stwo_zig_lookup_poly_88bafd2b2b2bb614f3a37e2e93f88f8f",
-        "stwo_zig_lookup_poly_f0435e9fbbd4a7a98c7c5162bee7d7a9",
-        "stwo_zig_lookup_poly_cc2c95d2bff4c999fee2f44e08222252",
-        "stwo_zig_lookup_poly_b52a532ad3c7e42bdece0624fb56b8aa",
-        "stwo_zig_lookup_poly_b15f9ad4a9abfc83a7cdec6c46ee4ade",
-        "stwo_zig_lookup_poly_fcc84457fa16172e164408c12324b2c2",
-        "stwo_zig_lookup_poly_ff9bf971cfa80d96e0aa0e50e4b1b89d",
-        "stwo_zig_lookup_poly_b63d26046143c546183c7769fee7803a",
-        "stwo_zig_lookup_poly_60da0a81177c1f7c118d91080a104856",
-        "stwo_zig_lookup_poly_d71f7ff4122659b75334f16e7282cd1e",
-        "stwo_zig_lookup_poly_2933fad233d8d72eaaaac264f1f08e46",
-        "stwo_zig_lookup_poly_55f49d22b3eefd58176c82e98f534eb1",
-        "stwo_zig_lookup_poly_34a73d9627a19782b2486c6dcd96f1fe",
-        "stwo_zig_lookup_poly_v2_4495e1dc5d58d71f640d011e5e267fc06fe6adfe54e6405fa20aab1ab4a4f496",
-        "stwo_zig_lookup_poly_v2_faadbe548bfa104ae056599d5e4910f9812fc7ddf9179da65d5d5e6fba234d35",
-        "stwo_zig_lookup_poly_v2_9ed05c9eac769627c64b0e915e2630d0a51bb6325410ea144d9669b85c480514",
-        "stwo_zig_lookup_poly_v2_198678cb3ba8974d902c91452544c7f63c81fc0d10de3a87f612c1e9cb9437a8",
-        "stwo_zig_lookup_poly_v2_ec1cb673e29351c380eb472b19293e7ea97ab2030393f54c7bcbb1426ae83aa2",
-        "stwo_zig_lookup_poly_v2_edade529adf1f7eb6b09313aad8cc71ff739a71d11e2b40cb6101daf378d8489",
-        "stwo_zig_lookup_poly_v2_c95e5383b34ea4ad55aaff5bc8ca9054b9fb9abe15db39e6409374e0dd3b5617",
-        "stwo_zig_lookup_poly_v2_b64e1478588595c7a3f7c71371ef1e6f1ceae3dd055c9eb56aa4081cf93e97d1",
-        "stwo_zig_lookup_poly_v2_b9e7c8afba03add7dd116b67fd791e19256bc093b6eb47e41ca9ee411608c58a",
-        "stwo_zig_lookup_poly_v2_b777199dcff0d3dbb81372f98612beda7bd12bf2d2bc7725f1dab500e07c39d9",
-        "stwo_zig_lookup_poly_v2_a0710166b8b3057556c2f5907836c0c82fe3b92fccff4633d504c0ff510b6d93",
-        "stwo_zig_lookup_poly_v2_bd8284d4f0c5a7d0cd9dd1f4879d721c70992754e1d5aadf02df9e4f86c15d2c",
-        "stwo_zig_lookup_poly_v2_099cc5bddab2ff60effcbef0d7863f6a78e0d7a9fcc78fa43d9603f6798904b3",
-        "stwo_zig_lookup_poly_v2_e622d001a5cd368b6efef022e0db61a1ab9e30842ef91e4135c0dc5cbd18eb19",
-        "stwo_zig_lookup_poly_v2_1cab02ea628504e58cb4a0dbf15dbca36cccc7cad4f36949bb10265a08cd44cc",
-        "stwo_zig_lookup_poly_v2_74e0c5ba6845f3d863a1b821d0f22ea76e38570ccd234b537ea4fb9e8f19bf77",
-        "stwo_zig_lookup_poly_v2_e9b9d5d433a734c48921694aa7185fafe3fb15e7bd89dc42261cc4290f894352",
+        "stwo_zig_base_poly_e3d97ada62a6ad9f06872ffebf334097",
+        "stwo_zig_base_poly_94bb6ee080d963f1a9b89ba8836e6cbf",
+        "stwo_zig_base_poly_43fb3f4df23ca371514fbd130360efba",
+        "stwo_zig_base_poly_c435f0a2ee25c59eec1ebd9f12b995cd",
+        "stwo_zig_base_poly_116f3173573043d8dc56aa23e5c1fac4",
+        "stwo_zig_base_poly_63ea0b65e576f67691cdb43d14a7590b",
+        "stwo_zig_base_poly_782a4d5d838c828e4ae55bb81b63e389",
+        "stwo_zig_base_poly_0b0c9beaa20a9460c6d8ecfdfe560eba",
+        "stwo_zig_base_poly_766a542bb547c7b4eaf4c8a8fb9eef52",
+        "stwo_zig_base_poly_a995060c2a616369140d09438c7dac67",
+        "stwo_zig_base_poly_9228c4a31e483b8e787375ff1354be9a",
+        "stwo_zig_base_poly_c20d068f8ff248590d22364c7c7d5649",
+        "stwo_zig_base_poly_4a95ed38e5a6795e8a84b0817ddd37e1",
+        "stwo_zig_base_poly_706ca0b14e34ec043cbf5f04e14fb315",
+        "stwo_zig_base_poly_40d34cb41f90634e26f0b2bb88a77110",
+        "stwo_zig_base_poly_5d744c2fbb612ce7e9954dfd6cc1b4b7",
+        "stwo_zig_base_poly_903175038c36e2a6aad8376003874197",
+        "stwo_zig_lookup_poly_a5980ef351d2fafc7a22e5aa40300954",
+        "stwo_zig_lookup_poly_e5715747fc906de9684a84af2d392d1e",
+        "stwo_zig_lookup_poly_8a132b1e9e82b54afcec47fe86f30324",
+        "stwo_zig_lookup_poly_bed36219333c2c4ad3c08cfdfda0e8a2",
+        "stwo_zig_lookup_poly_020adcddb227238a71dcd523f9c87a7f",
+        "stwo_zig_lookup_poly_d6611c9189072c08839d56f6496f63ed",
+        "stwo_zig_lookup_poly_94aa7ee9c1399f0ac1615227be890e54",
+        "stwo_zig_lookup_poly_ff8f5638e589be25d994070f031c73f4",
+        "stwo_zig_lookup_poly_04a5ee0118c370d4f4be88a43aa90c1b",
+        "stwo_zig_lookup_poly_71a7dea9a6d87e457404d7286bf51e2b",
+        "stwo_zig_lookup_poly_c98fc3b8440d536b2dd11e209cf33406",
+        "stwo_zig_lookup_poly_c7ef2b87fccb92355969d231b02a1d52",
+        "stwo_zig_lookup_poly_7187bd253b26502c413540ac56eccb23",
+        "stwo_zig_lookup_poly_ae8631b5be628fa89a790444be02b7b1",
+        "stwo_zig_lookup_poly_d7203c97e13213534f5bd98272130f81",
+        "stwo_zig_lookup_poly_fe8c4b8e3259f973cd85613a2dd582bc",
+        "stwo_zig_lookup_poly_43726bbe802a5a24b6c16a4bc093608b",
+        "stwo_zig_lookup_poly_v2_6e35df3dbb1bb66f7c23e82cdf0f6705509c4f08e5719edab77049660d8e632d",
+        "stwo_zig_lookup_poly_v2_253283e6dfe6bf332f2e466400c1f09394999e7935e86d6bb99a351d8d0b1f49",
+        "stwo_zig_lookup_poly_v2_28bc2d54b9a33dccb35df8513dc35a810077488a2f4be0c88b5d36a55a9e8bf8",
+        "stwo_zig_lookup_poly_v2_be13b51301211f686fd16c2f88309d8f847af74402b7d38c61ef79b645d99f79",
+        "stwo_zig_lookup_poly_v2_275d7261fb64f5cf5fc049ceac6422a7d6e64f153e09f81ddcf3311c1e2ffaa6",
+        "stwo_zig_lookup_poly_v2_c21e7087e658c83a4ea68ba0339efa466e9023c10538de1236d5e94f360cd70f",
+        "stwo_zig_lookup_poly_v2_6e0f5b41382a11695ffc997f00f28eb2a1fd365fac56419e6a58bd35fcecaebc",
+        "stwo_zig_lookup_poly_v2_330b38988296b847ce7943460949e4339ec66db537e4d03491747b2c39b920c0",
+        "stwo_zig_lookup_poly_v2_77f9c3e7ba9b17eb361ff2af6220464a5777f3a52ef415c3524ac42ab6e32f2c",
+        "stwo_zig_lookup_poly_v2_69a3e73ed85579645e6ee7eee831fcd273dc41967143d39561a8b07d44d4b8b7",
+        "stwo_zig_lookup_poly_v2_17d893819094787c341d61e34fc145d907ae4f229fc5bdf675450f9cbfc783e7",
+        "stwo_zig_lookup_poly_v2_c52d555f957bd0bb3a403a52ba9a00707ea38b95680598413ab0c999a4f2e212",
+        "stwo_zig_lookup_poly_v2_1d2cb31b377e1584858df2e1571ab50af833573e09a8e92b509736d894751ff5",
+        "stwo_zig_lookup_poly_v2_a58738eaf81c1bd3c20292b4d470433552c7c5bef4faf841e4da8e2a5a04681a",
+        "stwo_zig_lookup_poly_v2_a5c335d39317cb0ece5d0ffe5dd536cba3b9c4c84da54f5c8876a3b6cd5520f4",
+        "stwo_zig_lookup_poly_v2_23bb5dc1410c56ceab84080bd3239e6c9156f3761b93508f773dee7e448a70dc",
+        "stwo_zig_lookup_poly_v2_64c076e4946245d3c0f988997bf90b10774d23a6344d856e147c744b2df6d98c",
+        "stwo_zig_base_poly_8ae392ed1a7274608734b90ddc05e147",
+        "stwo_zig_base_poly_7be9f94a181c86f487035579b75a3c09",
+        "stwo_zig_base_poly_252a366d21097cfa39ddc55b4c8d3732",
+        "stwo_zig_base_poly_3ff26f48f99514ff96f9e6242e02689c",
+        "stwo_zig_lookup_poly_bfaf5e2aa44bc0bce57377b16d8362a7",
+        "stwo_zig_base_poly_e13d2efe7ad236638a213d15673065f1",
+        "stwo_zig_base_poly_e7e0dab59a4ca045df197c03e1cde944",
+        "stwo_zig_base_poly_b0c8b0812b31ac11d0ed355fdffceaeb",
+        "stwo_zig_base_poly_ba19de000ba4a34803e344cadd255681",
+        "stwo_zig_lookup_poly_eadeb11637b6b8b330635af67876a763",
     };
-    try std.testing.expectEqual(@as(usize, 51), names.len);
+    try std.testing.expectEqual(@as(usize, 61), names.len);
     try std.testing.expectEqual(names.len, std.mem.count(u8, riscv_polynomials_source, "kernel void "));
 
     var owned_count: usize = 0;
@@ -358,6 +425,7 @@ test "polynomial evaluation declares standalone field and ABI dependencies" {
         "#include \"stwo_zig/m31.metal\"",
         "#include \"stwo_zig/extension_fields.metal\"",
         "#include \"stwo_zig/abi_types.metal\"",
+        "#include \"stwo_zig/circle.metal\"",
     };
     for (dependencies) |dependency| {
         try std.testing.expect(std.mem.indexOf(u8, polynomial_eval_source, dependency) != null);

@@ -1,0 +1,2955 @@
+{
+  "scope": "One actual native Ethereum field4 full leaf, segment9/121. CPUworker1. Not wholeblock or root.",
+  "complete_request_wall_ns": 1190960041584,
+  "external_real_seconds": 1191.75,
+  "producer_wall_ns": 1100105547667,
+  "fresh_verifier_wall_ns": 53147983959,
+  "encode_ns": 321642459,
+  "producer_destruction_timing": "Included inproducer/request boundaries; no independent destruction-only timer. Metadata publication and retained-input admission are included in complete request.",
+  "complete_request_other_ns": 37706509958,
+  "peak_memory_footprint_bytes": 26345901712,
+  "memory_semantics": "Processlifetime peak, not independent per-phase peaks. Samples retain livephysicalfootprint.",
+  "stage101_prove_seconds": 1089.657096,
+  "depth2_aggregates": {
+    "interpolate_columns": {
+      "count": 266,
+      "seconds": 7.511854999999997,
+      "percent_of_stage101_prove": 0.6893778811311478
+    },
+    "evaluate_extended_domain": {
+      "count": 266,
+      "seconds": 18.330130999999987,
+      "percent_of_stage101_prove": 1.6821925968534224
+    },
+    "merkle_commit": {
+      "count": 3,
+      "seconds": 557.56422,
+      "percent_of_stage101_prove": 51.16877796205349
+    },
+    "riscv_opcode_trace_generation": {
+      "count": 1,
+      "seconds": 12.023644,
+      "percent_of_stage101_prove": 1.1034337356345727
+    },
+    "riscv_interaction_opcode": {
+      "count": 1,
+      "seconds": 2.892422,
+      "percent_of_stage101_prove": 0.2654433225477752
+    },
+    "riscv_interaction_program": {
+      "count": 1,
+      "seconds": 1.159517,
+      "percent_of_stage101_prove": 0.10641118240375319
+    },
+    "riscv_interaction_memory": {
+      "count": 1,
+      "seconds": 0.180548,
+      "percent_of_stage101_prove": 0.016569249231044334
+    },
+    "riscv_interaction_merkle": {
+      "count": 1,
+      "seconds": 2.287483,
+      "percent_of_stage101_prove": 0.2099268667544198
+    },
+    "riscv_interaction_poseidon": {
+      "count": 1,
+      "seconds": 1.349229,
+      "percent_of_stage101_prove": 0.12382143015016903
+    },
+    "riscv_interaction_clock": {
+      "count": 1,
+      "seconds": 0.478689,
+      "percent_of_stage101_prove": 0.043930242069473935
+    },
+    "riscv_interaction_tables": {
+      "count": 1,
+      "seconds": 0.129541,
+      "percent_of_stage101_prove": 0.011888235342616444
+    },
+    "draw_random_coeff": {
+      "count": 1,
+      "seconds": 9e-06,
+      "percent_of_stage101_prove": 8.259479090291724e-07
+    },
+    "composition_trace_extract": {
+      "count": 1,
+      "seconds": 0.000394,
+      "percent_of_stage101_prove": 3.615816401749932e-05
+    },
+    "composition_evaluation": {
+      "count": 1,
+      "seconds": 148.237316,
+      "percent_of_stage101_prove": 13.60403346558852
+    },
+    "composition_interpolate_and_split": {
+      "count": 1,
+      "seconds": 0.142701,
+      "percent_of_stage101_prove": 0.01309595472959688
+    },
+    "composition_commit": {
+      "count": 1,
+      "seconds": 17.987693,
+      "percent_of_stage101_prove": 1.6507663801787424
+    },
+    "oods_point_and_mask_points": {
+      "count": 1,
+      "seconds": 0.004839,
+      "percent_of_stage101_prove": 0.0004440846590880184
+    },
+    "sampled_value_evaluation": {
+      "count": 1,
+      "seconds": 51.016144,
+      "percent_of_stage101_prove": 4.681853051503461
+    },
+    "sampled_value_channel_mix": {
+      "count": 1,
+      "seconds": 0.014736,
+      "percent_of_stage101_prove": 0.0013523520430504315
+    },
+    "fri_quotient_build_and_commit": {
+      "count": 1,
+      "seconds": 244.896258,
+      "percent_of_stage101_prove": 22.47461691379652
+    },
+    "proof_of_work": {
+      "count": 1,
+      "seconds": 0.193409,
+      "percent_of_stage101_prove": 0.01774952879304702
+    },
+    "fri_decommit": {
+      "count": 1,
+      "seconds": 0.150332,
+      "percent_of_stage101_prove": 0.013796266784463725
+    },
+    "trace_decommit": {
+      "count": 1,
+      "seconds": 1.348193,
+      "percent_of_stage101_prove": 0.12372635436864077
+    },
+    "constraint_check_and_assembly": {
+      "count": 1,
+      "seconds": 0.005989,
+      "percent_of_stage101_prove": 0.0005496224474639682
+    }
+  },
+  "depth2_total_seconds": 1067.905292,
+  "depth2_unscoped_seconds": 21.751803999999993,
+  "hierarchy": "depth2aggregates are exclusive within stage101_prove; retain raw ordered phases; do not add depth0/1/3 to these totals.",
+  "ordered_phases": [
+    {
+      "depth": 0,
+      "id": "stage101_leaf_transaction",
+      "seconds": 1100.051054
+    },
+    {
+      "depth": 1,
+      "id": "stage101_input_admission",
+      "seconds": 2.282445
+    },
+    {
+      "depth": 1,
+      "id": "stage101_compact_replay",
+      "seconds": 0.189862
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prepared_proof_transaction",
+      "seconds": 5.864306
+    },
+    {
+      "depth": 1,
+      "id": "stage101_prove",
+      "seconds": 1089.657096
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001037
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001862
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.005115
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.011814
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.035363
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.071886
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.075471
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.168669
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 24.894598
+    },
+    {
+      "depth": 2,
+      "id": "riscv_opcode_trace_generation",
+      "seconds": 12.023644
+    },
+    {
+      "depth": 3,
+      "id": "riscv_infrastructure_trace_generation",
+      "seconds": 11.945272
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.7e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 2.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 4.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 2.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 4.5e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 2.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 4.5e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 7.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000105
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000101
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 5.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000122
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 5.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.7e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000238
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000452
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000609
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001045
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000948
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00225
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001012
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.002006
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000924
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001943
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000958
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001941
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000959
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.002036
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002107
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004456
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001995
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004103
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002065
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00422
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002139
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004259
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002041
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004347
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002121
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00454
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002108
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004407
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002039
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004099
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001997
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001938
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004024
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001993
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004048
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002017
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004301
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00197
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004026
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002018
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004095
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001988
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004111
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001937
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004049
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00202
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004126
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001932
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004001
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001964
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004055
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001957
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004021
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002102
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004394
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001957
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004057
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002085
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004385
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002069
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004245
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002033
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004232
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002044
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004459
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002204
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004124
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001966
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004113
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001986
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004165
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00214
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004304
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002033
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004153
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00208
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004387
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001998
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004024
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004007
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001983
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004139
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002071
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004103
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002002
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004105
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001889
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004086
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001897
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004134
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001946
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004086
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001988
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004068
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001962
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004072
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002024
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004147
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001971
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004044
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00193
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004042
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002193
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004128
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002002
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004022
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002248
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004079
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001956
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004056
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001983
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004066
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002037
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004167
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001984
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004063
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002139
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004157
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001947
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004043
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001928
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004049
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001934
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004059
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001955
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00404
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001953
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00405
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001993
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004033
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00197
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.003979
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001979
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004066
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002074
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004044
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.003753
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.007864
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.007712
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.01817
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008764
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.018408
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00871
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020209
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009041
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019016
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009205
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020119
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008563
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020065
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009116
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020496
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009475
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.022004
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009434
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.065799
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009312
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.206908
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009034
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019016
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009035
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.01878
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008956
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019831
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009044
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019824
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008956
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.018845
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008784
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.021358
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00892
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019789
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009009
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.018777
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008779
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.022435
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008966
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020461
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008575
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020675
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.016767
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.029756
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022281
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.041752
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.021754
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.062491
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022072
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.043784
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.0218
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.047199
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.021229
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.046363
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022125
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.042969
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.027271
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.076865
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.063155
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.132646
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.833546
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.782935
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.842591
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.834916
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.830658
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.855175
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.803674
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.92156
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.677508
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.897651
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.897163
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.286722
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.932436
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.391385
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.144262
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.243128
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 438.526985
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_opcode",
+      "seconds": 2.892422
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_program",
+      "seconds": 1.159517
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_memory",
+      "seconds": 0.180548
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_merkle",
+      "seconds": 2.287483
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_poseidon",
+      "seconds": 1.349229
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_clock",
+      "seconds": 0.478689
+    },
+    {
+      "depth": 2,
+      "id": "riscv_interaction_tables",
+      "seconds": 0.129541
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00066
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.6e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000248
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000403
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000257
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000362
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 3e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 3.6e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 2.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 2.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 3.1e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000457
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 1.7e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000241
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 5e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000107
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000105
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000101
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.4e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 3.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.000101
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 4.3e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 6e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.0001
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 6.2e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 5.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.8e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 5.9e-05
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 9.5e-05
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000554
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001331
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.000638
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.001562
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001682
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.003876
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.002638
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004572
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001787
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004158
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00181
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00435
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001746
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004103
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001899
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004222
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001786
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004495
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001788
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004122
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001824
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004141
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001733
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004006
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001749
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004461
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001809
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004191
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001794
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00443
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001762
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004058
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001777
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004263
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001732
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004159
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001823
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004385
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001798
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004217
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001784
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004447
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001726
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004157
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001751
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004146
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001748
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004337
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001826
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004246
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001834
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004425
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001756
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004267
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001817
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004332
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001732
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004147
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001889
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004337
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00192
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004303
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001873
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004541
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001734
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004175
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001863
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004267
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00186
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004562
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001848
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004483
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001777
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004079
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001716
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004201
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001784
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00422
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001789
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004165
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001863
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00425
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001795
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004284
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001748
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004136
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001738
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004345
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001789
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004232
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001868
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004406
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001828
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004268
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001857
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004488
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001745
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004295
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001835
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.0043
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001871
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004426
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001813
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004295
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001787
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004453
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001774
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00417
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001747
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00429
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001725
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004494
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001872
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004344
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001841
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00438
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001792
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004347
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001731
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004021
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001757
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004384
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001798
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004295
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001787
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004457
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001865
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004436
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001735
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004072
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001786
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004396
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001891
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.00445
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00187
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004344
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00175
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004118
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001746
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004253
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001736
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004173
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.001851
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.004184
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.003801
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.008759
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.007408
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.01613
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008401
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019068
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008561
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019029
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.009566
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.021036
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008088
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.018969
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008391
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020518
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008434
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019489
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.0086
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019864
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.00923
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020413
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008471
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.019645
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008131
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020257
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008126
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.0202
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008439
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.018904
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008592
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020442
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008426
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020466
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008174
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.020907
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.008325
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.0222
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.012985
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.027285
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.017023
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.044069
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.01698
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.041887
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.017082
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.042665
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.017069
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.042644
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.016754
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.044238
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.017098
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.040256
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.017002
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.042746
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.016958
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.043594
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.018547
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.039251
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022668
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.045828
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022493
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.039757
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.022291
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.044076
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.036815
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 0.138483
+    },
+    {
+      "depth": 2,
+      "id": "interpolate_columns",
+      "seconds": 0.323852
+    },
+    {
+      "depth": 2,
+      "id": "evaluate_extended_domain",
+      "seconds": 1.081426
+    },
+    {
+      "depth": 2,
+      "id": "merkle_commit",
+      "seconds": 94.142637
+    },
+    {
+      "depth": 2,
+      "id": "draw_random_coeff",
+      "seconds": 9e-06
+    },
+    {
+      "depth": 2,
+      "id": "composition_trace_extract",
+      "seconds": 0.000394
+    },
+    {
+      "depth": 2,
+      "id": "composition_evaluation",
+      "seconds": 148.237316
+    },
+    {
+      "depth": 2,
+      "id": "composition_interpolate_and_split",
+      "seconds": 0.142701
+    },
+    {
+      "depth": 2,
+      "id": "composition_commit",
+      "seconds": 17.987693
+    },
+    {
+      "depth": 2,
+      "id": "oods_point_and_mask_points",
+      "seconds": 0.004839
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_evaluation",
+      "seconds": 51.016144
+    },
+    {
+      "depth": 2,
+      "id": "sampled_value_channel_mix",
+      "seconds": 0.014736
+    },
+    {
+      "depth": 2,
+      "id": "fri_quotient_build_and_commit",
+      "seconds": 244.896258
+    },
+    {
+      "depth": 2,
+      "id": "proof_of_work",
+      "seconds": 0.193409
+    },
+    {
+      "depth": 2,
+      "id": "fri_decommit",
+      "seconds": 0.150332
+    },
+    {
+      "depth": 2,
+      "id": "trace_decommit",
+      "seconds": 1.348193
+    },
+    {
+      "depth": 2,
+      "id": "constraint_check_and_assembly",
+      "seconds": 0.005989
+    },
+    {
+      "depth": 1,
+      "id": "stage101_encode",
+      "seconds": 0.321642
+    }
+  ]
+}

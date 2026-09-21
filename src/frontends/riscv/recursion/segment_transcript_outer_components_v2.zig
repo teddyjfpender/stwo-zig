@@ -55,3 +55,5 @@ pub const fillInteractionInto = shard_3.fillInteractionInto;
 /// the one caller-owned row-34 ProviderCall stream. No provider component or
 /// second permutation trace is created here.
 pub const writeProviderCallsInto = shard_3.writeProviderCallsInto;
+
+pub const fillInteractionIntoWithGenerator = shard_3.fillInteractionIntoWithGenerator;

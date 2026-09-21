@@ -1,0 +1,7 @@
+Verified diagnostic Ethereum path: kind=memory, depth=30, index=715827882, leaf={ 7, 7, 7, 7, 7, 7, 7, 7, 7 }, root={ 855957865, 1171490485, 960431874, 902668677, 1874266169, 156656459, 85397066, 358844455, 225578872 }
+
+Build Summary: 3/3 steps succeeded
+run-ethereum-node-proof-v1 success
++- run exe ethereum-node-proof-v1 success 258ms MaxRSS:3M
+   +- compile exe ethereum-node-proof-v1 ReleaseSafe native success 20s MaxRSS:1G
+

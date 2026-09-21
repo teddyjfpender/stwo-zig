@@ -1,0 +1,60 @@
+SEGMENT_V2_LADDER mode=narrow_complete_proof requested_steps=64 native_backend=cpu memory_addresses=1 initial_register7=0
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=64 loads=21 stores=20 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1100
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=128 loads=21 stores=22 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1200
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=192 loads=22 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1300
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=256 loads=21 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1400
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=320 loads=21 stores=22 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1500
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=384 loads=22 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1600
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=64 cumulative_cycles=448 loads=21 stores=21 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1700
+SEGMENT_V2_MEMORY_EXECUTION address_count=1 initial_word=13 segment_cycles=34 cumulative_cycles=482 loads=11 stores=12 distinct_accessed=1 stride_bytes=128 entry_nonzero_words=1 exit_nonzero_words=1 exit_pc=1788
+info: Columns: opcode=103 infra=481 total tree1=584 interaction=152
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=0 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469062660 producer_live_bytes_after_destroy=0 canonical_proof_bytes=29059 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=0 first_cycle=0 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-0 native_backend=cpu proof_bytes=93348 native_ingress_ns=2622012667 outer_prepare_ns=392196333 outer_prove_ns=974905667 transaction_ns=3992634333 producer_peak_bytes=130765387 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=1 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28039 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=1 first_cycle=64 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-1 native_backend=cpu proof_bytes=91801 native_ingress_ns=2441057625 outer_prepare_ns=391755958 outer_prove_ns=960083917 transaction_ns=3795950583 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=2 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28052 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=2 first_cycle=128 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-2 native_backend=cpu proof_bytes=91707 native_ingress_ns=2394121333 outer_prepare_ns=383131792 outer_prove_ns=953957750 transaction_ns=3734167708 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=3 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28049 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=3 first_cycle=192 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-3 native_backend=cpu proof_bytes=93911 native_ingress_ns=2414078250 outer_prepare_ns=388687084 outer_prove_ns=962486291 transaction_ns=3769159417 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=4 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=27999 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=4 first_cycle=256 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-4 native_backend=cpu proof_bytes=90654 native_ingress_ns=2439214959 outer_prepare_ns=380506333 outer_prove_ns=960422292 transaction_ns=3784407334 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=5 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28020 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=5 first_cycle=320 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-5 native_backend=cpu proof_bytes=93493 native_ingress_ns=2421648958 outer_prepare_ns=389056708 outer_prove_ns=956020834 transaction_ns=3770942208 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=6 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=469050852 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28028 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=6 first_cycle=384 retired_cycles=64 completed=false directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-6 native_backend=cpu proof_bytes=91625 native_ingress_ns=2474509542 outer_prepare_ns=386166250 outer_prove_ns=959970625 transaction_ns=3824276458 producer_peak_bytes=130762715 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+info: Columns: opcode=85 infra=481 total tree1=566 interaction=136
+info: Poseidon2 Merkle: 2014 exact sparse-node calls, poseidon_log_size=11, merkle_log_size=11
+SEGMENT_V2_NATIVE_MEMORY path=temporal segment=7 backend=cpu scope=caller_allocator_payload excludes=size_routed_mmap_and_device producer_peak_bytes=468994660 producer_live_bytes_after_destroy=0 canonical_proof_bytes=28023 before_fresh_decode=true
+SEGMENT_V2_TWO_CHILD_CANDIDATE segment=7 first_cycle=448 retired_cycles=34 completed=true directory=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/vectors/reports/riscv-proving-stack-reset-20260908/small-detached-recursion-v1/segment-ladder-cpu-8-seed13-first/child-7 native_backend=cpu proof_bytes=92110 native_ingress_ns=2420767167 outer_prepare_ns=383011958 outer_prove_ns=959243625 transaction_ns=3766563167 producer_peak_bytes=130760923 producer_live_bytes_after_destroy=0 status=unverified_candidate parent_proof_created=false
+SEGMENT_V2_TWO_CHILD_PRODUCER status=unverified_candidates native_backend=cpu owners_destroyed=true parent_proof_created=false
+       30.44 real       174.05 user         1.97 sys
+          1092337664  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+             1249321  page reclaims
+                   0  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  15  voluntary context switches
+              113853  involuntary context switches
+       2334354810846  instructions retired
+        639254945843  cycles elapsed
+          1086017088  peak memory footprint

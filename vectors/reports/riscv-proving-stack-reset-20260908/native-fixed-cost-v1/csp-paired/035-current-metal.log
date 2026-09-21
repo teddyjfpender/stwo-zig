@@ -1,0 +1,3 @@
+[1/1] sha256/256: execute, prove, verify
+  prove=0.468s verify=0.070s proof=825.9KiB rss=1.80GiB
+report: /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-riscv-proving-stack/csp-paired-ad273a96/035-current-metal.json

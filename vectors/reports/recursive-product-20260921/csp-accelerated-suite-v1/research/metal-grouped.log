@@ -1,0 +1,8 @@
+Metal quotient shape: raw_bytes=307395600 columns=14338 views=45014 source_runs=4 resident_sources=4 resident_trees=4 batches=21 rows=2097152 path=resident-partials groups=58 partial_bytes=153697984
+Metal quotient timing: gpu_ms=8.513 wall_ms=115.795 path=resident-partials source_runs=4 resident_sources=4
+Metal quotient shape: raw_bytes=307395600 columns=14338 views=45014 source_runs=4 resident_sources=4 resident_trees=4 batches=21 rows=2097152 path=resident-partials groups=58 partial_bytes=153697984
+Metal quotient timing: gpu_ms=8.125 wall_ms=114.692 path=resident-partials source_runs=4 resident_sources=4
+Metal quotient shape: raw_bytes=307395600 columns=14338 views=45014 source_runs=4 resident_sources=4 resident_trees=4 batches=21 rows=2097152 path=resident-partials groups=58 partial_bytes=153697984
+Metal quotient timing: gpu_ms=8.091 wall_ms=115.392 path=resident-partials source_runs=4 resident_sources=4
+Metal quotient shape: raw_bytes=307395600 columns=14338 views=45014 source_runs=4 resident_sources=4 resident_trees=4 batches=21 rows=2097152 path=resident-partials groups=58 partial_bytes=153697984
+Metal quotient timing: gpu_ms=8.006 wall_ms=115.508 path=resident-partials source_runs=4 resident_sources=4

@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "scope": "integration-only producer graph, named frontend/backend interfaces treated as external",
+  "sources": [
+    "src/integrations/riscv_cpu/recursive_fri_outer.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_child_transcript.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_command.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_leaf_options.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_leaf_producer.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_leaf_runner.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_command.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_prepare.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_producer_runner.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_proof.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_parent_verifier.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_proof.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_transcript.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_detached_verifier.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_key_setup_runner.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_leaf_outer.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_memory_workload.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_native_ingress.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_outer_cohort.zig",
+    "src/integrations/riscv_cpu/recursive_segment_v2_workload.zig",
+    "src/integrations/riscv_metal/aot_bundle_admission.zig",
+    "src/integrations/riscv_metal/recursive_segment_v2_detached_leaf_runner.zig",
+    "src/integrations/riscv_metal/recursive_segment_v2_detached_parent_producer_runner.zig"
+  ],
+  "source_count": 24
+}

@@ -1,0 +1,7 @@
+
+Build Summary: 4/4 steps succeeded; 5/5 tests passed
+test-ethereum-commitment-v1 success
++- stwo_riscv_frontend test count floor success
+   +- run test 5 passed 671ms MaxRSS:1M
+      +- compile test ReleaseSafe native success 7s MaxRSS:621M
+

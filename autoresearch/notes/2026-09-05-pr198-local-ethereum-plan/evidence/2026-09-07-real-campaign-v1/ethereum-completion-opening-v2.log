@@ -1,0 +1,9 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 652s
+
+Build Summary: 4/4 steps succeeded; 6/6 tests passed
+test-ethereum-fixed-program-admission success
++- Ethereum fixed program admission guard success
+   +- run test 6 passed 570ms MaxRSS:5M
+      +- compile test ReleaseSafe native success 11s MaxRSS:762M
+

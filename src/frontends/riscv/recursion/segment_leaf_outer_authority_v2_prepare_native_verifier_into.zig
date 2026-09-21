@@ -38,6 +38,7 @@ const preflight = dependency_0.preflight;
 const public_data_v2 = dependency_0.public_data_v2;
 const publicationIdentity = dependency_2.publicationIdentity;
 const rebuildNativeVerifierStages = dependency_2.rebuildNativeVerifierStages;
+const rebuildNativeVerifierStagesWithGenerator = dependency_2.rebuildNativeVerifierStagesWithGenerator;
 const requireNativeDigest = dependency_0.requireNativeDigest;
 const source_v2 = dependency_0.source_v2;
 const statement_v1 = dependency_0.statement_v1;
@@ -67,6 +68,25 @@ pub fn prepareNativeVerifierInto(
     infra_descs: []const statement_v1.InfraComponentDesc,
     outer: *const universal.UniversalRelations,
 ) Error!void {
+    const generator = @import("air/interaction_generator.zig").Host{};
+    return prepareNativeVerifierIntoWithGenerator(destination, workspace, authority, traces, data, keys, native, native_sums, receipt, component_descs, infra_descs, outer, &generator);
+}
+
+pub fn prepareNativeVerifierIntoWithGenerator(
+    destination: *PreparedNativeVerifierOuterAuthorityV2,
+    workspace: *WorkspaceV2,
+    authority: *const AuthorityV2,
+    traces: TracesV2,
+    data: *const public_data_v2.PublicDataV2,
+    keys: *const source_v2.VerifierKeyAuthorityV2,
+    native: *const native_relations.Relations,
+    native_sums: *const statement_v2.NativePublicSums,
+    receipt: *const statement_v2.VerifiedReceipt,
+    component_descs: []const statement_v1.FamilyComponentDesc,
+    infra_descs: []const statement_v1.InfraComponentDesc,
+    outer: *const universal.UniversalRelations,
+    generator: anytype,
+) !void {
     try validateMutableBoundary(
         std.mem.asBytes(destination),
         workspace,
@@ -90,18 +110,7 @@ pub fn prepareNativeVerifierInto(
             return error.AliasedDestination;
         }
     }
-    const staged = try rebuildNativeVerifierStages(
-        workspace,
-        authority,
-        data,
-        keys,
-        native,
-        native_sums,
-        receipt,
-        component_descs,
-        infra_descs,
-        outer,
-    );
+    const staged = try rebuildNativeVerifierStagesWithGenerator(workspace, authority, data, keys, native, native_sums, receipt, component_descs, infra_descs, outer, generator);
     copyTraces(workspace, traces);
     destination.* = staged;
 }

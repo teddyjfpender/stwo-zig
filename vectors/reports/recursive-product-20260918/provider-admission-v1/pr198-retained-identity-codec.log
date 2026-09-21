@@ -1,0 +1,7 @@
+1/6 poseidon2_protocol_identity_test_root.test_0...OK
+2/6 air.lang.typed_poseidon2_identity_test.test.Poseidon program identity is source and allocation invariant with a fixed golden...OK
+3/6 air.lang.typed_poseidon2_identity_test.test.all four child identities affect the combined identity and transport rejects corruption...OK
+4/6 air.lang.typed_poseidon2_identity_test.test.proof receipt rejects a self-consistent noncanonical program identity...OK
+5/6 air.lang.typed_poseidon2_identity_codec.test.retained Poseidon codec matches canonical receipt and rejects changed digests...OK
+6/6 air.memory_commitment.poseidon2_air.test_0...OK
+All 6 tests passed.

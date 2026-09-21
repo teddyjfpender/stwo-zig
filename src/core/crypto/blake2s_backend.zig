@@ -105,6 +105,7 @@ pub const Blake2sHasher = struct {
     selection: BackendSelection,
 
     const Self = @This();
+    pub const Fixed40NoncePrefix = terminal_parallel.Fixed40NoncePrefix;
 
     pub fn init() Self {
         return initWithMode(getDefaultBackendMode());
@@ -288,6 +289,17 @@ pub const Blake2sHasher = struct {
             BLAKE2S_IV,
             BLAKE2S_SIGMA,
         );
+    }
+
+    pub fn prepareFixed40NoncePrefix(prefix: *const [32]u8) Fixed40NoncePrefix {
+        return terminal_parallel.prepareFixed40NoncePrefix(prefix, Self.init().h, BLAKE2S_IV);
+    }
+
+    pub fn hashFixed40NonceFirstWords8(
+        prepared: *const Fixed40NoncePrefix,
+        nonces: *const [8]u64,
+    ) [8]u32 {
+        return terminal_parallel.hashFixed40NonceFirstWords8(prepared, nonces, Self.init().h, BLAKE2S_SIGMA);
     }
 
     pub fn hashFixed64(data: *const [64]u8) Blake2sHash {

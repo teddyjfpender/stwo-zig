@@ -1,0 +1,25 @@
+
+Build Summary: 4/4 steps succeeded; 2/2 tests passed
+test-keccakf-row success
++- stwo_riscv_frontend test count floor success
+   +- run test 2 passed 13ms MaxRSS:3M
+      +- compile test Debug native cached 45ms MaxRSS:34M
+
+        3.21 real         2.36 user         0.18 sys
+           629424128  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               46888  page reclaims
+                 188  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  24  voluntary context switches
+                 427  involuntary context switches
+           205212917  instructions retired
+            78169872  cycles elapsed
+             8520064  peak memory footprint

@@ -22,297 +22,63 @@ const QM31 = stwo_core.fields.qm31.QM31;
 const core_utils = stwo_core.utils;
 const digest = @import("../../air/lang/digest.zig");
 const direct = @import("../../air/lang/direct_witness_executor.zig");
-const ir = @import("../../air/lang/ir.zig");
 const relation = @import("../../air/lang/relation.zig");
-const source = @import("../../air/lang/source.zig");
-const types = @import("../../air/lang/types.zig");
-const validate_mod = @import("../../air/lang/validate.zig");
 const lookup_component = @import("../../air/lookups/tables/component.zig");
 const lookup_counter = @import("../../air/lookups/tables/counter.zig");
 const lookup_interaction = @import("../../air/lookups/tables/interaction.zig");
 const lookup_relations = @import("../../air/relation_challenges.zig");
 const lookup_schema = @import("../../air/lookups/tables/schema.zig");
-const relation_effect = @import("relation_effect.zig");
 const relation_interaction = @import("relation_interaction.zig");
 
-pub const STABLE_NAME = "recursion.range_check_8_8.shared.v1";
-pub const TABLE_KIND = lookup_schema.Kind.range_check_8_8;
-pub const LOG_SIZE: u32 = 16;
-pub const TABLE_SIZE: usize = 1 << LOG_SIZE;
-pub const TUPLE_ARITY: usize = 2;
-pub const PHYSICAL_MAIN_COLUMN_COUNT: usize = 1;
-pub const PREPROCESSED_COLUMN_COUNT: usize = TUPLE_ARITY;
-pub const FRAMEWORK_PREPROCESSED_COLUMN_COUNT: usize = 1 + TUPLE_ARITY;
-pub const LOGICAL_INPUT_COUNT: usize =
-    PHYSICAL_MAIN_COLUMN_COUNT + PREPROCESSED_COLUMN_COUNT;
-pub const DIRECT_CONSTRAINT_COUNT: usize = 0;
-pub const RELATION_EVENT_COUNT: usize = 1;
-pub const LOOKUP_BATCH_SIZE: u8 = 2;
-pub const INTERACTION_BATCH_COUNT: usize = 1;
-pub const INTERACTION_COLUMN_COUNT: usize = 4;
-pub const FRAMEWORK_CONSTRAINT_COUNT: usize = 1;
-pub const MAXIMUM_CONSTRAINT_LOG_DEGREE_BOUND: u32 = LOG_SIZE + 1;
-/// Stark-V names the table-side occurrence a consume.  The frozen VM schema
-/// predates that distinction and admits the numerically equivalent negative
-/// `request` role only.  Keep the source role in the source receipt and bind
-/// the typed effect through this explicit, recursion-local ABI adapter.
-pub const SOURCE_RELATION_ROLE: relation.Role = .consume;
-pub const BASE_ABI_RELATION_ROLE: relation.Role = .request;
-
-pub const STARK_V_REVISION: [40]u8 =
-    "59172a201bd01f2f4b699bc2f7d4442d8ee81597".*;
-pub const STARK_V_SCHEMA_PATH = "crates/air/src/schema.rs";
-pub const STARK_V_TABLE_PATH =
-    "crates/air/src/preprocessed/range_check_8_8.rs";
-pub const STARK_V_COMPONENT_MACRO_PATH =
-    "crates/stwo-macros/src/components.rs";
-pub const STARK_V_SCHEMA_SHA256 = hexDigest(
-    "63db9536977b3cabe9591e0fb503c5586b99c568df6fe63d7c9a5b45f338300a",
-    "invalid pinned Stark-V schema.rs digest",
-);
-pub const STARK_V_TABLE_SHA256 = hexDigest(
-    "e247a338304623b1f3d667b4678a558c988ddcff8e05cb5f3bde6fc99170f933",
-    "invalid pinned Stark-V range_check_8_8.rs digest",
-);
-pub const STARK_V_COMPONENT_MACRO_SHA256 = hexDigest(
-    "f4e81780c1d03f3334b2132cd3685bf168aa4fe4c435924614ac3cbfd815a9ef",
-    "invalid pinned Stark-V components.rs digest",
-);
-
-pub const SOURCE_AUTHORITY_FORMAT_VERSION: u16 = 1;
-pub const SOURCE_AUTHORITY_DOMAIN =
-    "stwo-zig/typed-air/recursion-range-check-8-8-source/v1\x00";
-pub const SOURCE_AUTHORITY_DIGEST_HEX =
-    "5cd192e942722048261703f614d86edfa4bb8109726ec50d55ec4c073e1ab596";
-pub const SOURCE_AUTHORITY_DIGEST = hexDigest(
-    SOURCE_AUTHORITY_DIGEST_HEX,
-    "invalid recursion range-check source-authority digest",
-);
-
-/// Immutable source receipt for the existing shared primitive.  No source
-/// pathname or human-readable label participates at runtime; the file bytes,
-/// protocol geometry, relation id/version, and sign convention do.
-pub const SourceAuthority = struct {
-    format_version: u16,
-    revision: [40]u8,
-    schema_sha256: digest.Digest,
-    table_sha256: digest.Digest,
-    component_macro_sha256: digest.Digest,
-    kind: lookup_schema.Kind,
-    log_size: u32,
-    tuple_arity: u8,
-    main_columns: u8,
-    preprocessed_columns: u8,
-    interaction_columns: u8,
-    framework_constraints: u8,
-    relation_schema: types.RelationSchemaId,
-    relation_schema_version: u16,
-    relation_role: relation.Role,
-
-    pub fn pinned() SourceAuthority {
-        const schema = relation.get(.range_check_8_8);
-        return .{
-            .format_version = SOURCE_AUTHORITY_FORMAT_VERSION,
-            .revision = STARK_V_REVISION,
-            .schema_sha256 = STARK_V_SCHEMA_SHA256,
-            .table_sha256 = STARK_V_TABLE_SHA256,
-            .component_macro_sha256 = STARK_V_COMPONENT_MACRO_SHA256,
-            .kind = TABLE_KIND,
-            .log_size = LOG_SIZE,
-            .tuple_arity = TUPLE_ARITY,
-            .main_columns = PHYSICAL_MAIN_COLUMN_COUNT,
-            .preprocessed_columns = FRAMEWORK_PREPROCESSED_COLUMN_COUNT,
-            .interaction_columns = INTERACTION_COLUMN_COUNT,
-            .framework_constraints = FRAMEWORK_CONSTRAINT_COUNT,
-            .relation_schema = schema.id,
-            .relation_schema_version = schema.version,
-            // A typed `consume` applies the same leading minus as the Rust
-            // component's `-EF::from(multiplicity)`.
-            .relation_role = SOURCE_RELATION_ROLE,
-        };
-    }
-
-    pub fn validate(self: SourceAuthority) Error!void {
-        if (!std.meta.eql(self, pinned())) return error.AuthorityMismatch;
-        const metadata = lookup_component.ConstructionMetadata.forKind(TABLE_KIND);
-        if (lookup_schema.logSize(TABLE_KIND) != LOG_SIZE or
-            lookup_schema.size(TABLE_KIND) != TABLE_SIZE or
-            lookup_schema.arity(TABLE_KIND) != TUPLE_ARITY or
-            metadata.log_size != LOG_SIZE or
-            metadata.tuple_columns != TUPLE_ARITY or
-            metadata.preprocessed_columns != FRAMEWORK_PREPROCESSED_COLUMN_COUNT or
-            metadata.main_columns != PHYSICAL_MAIN_COLUMN_COUNT or
-            metadata.interaction_columns != INTERACTION_COLUMN_COUNT or
-            metadata.previous_masks != INTERACTION_COLUMN_COUNT or
-            metadata.constraints != FRAMEWORK_CONSTRAINT_COUNT)
-        {
-            return error.AuthorityMismatch;
-        }
-        const schema = relation.requireExactUniversalSchema(.range_check_8_8) catch
-            return error.AuthorityMismatch;
-        if (schema.id != self.relation_schema or
-            schema.version != self.relation_schema_version or
-            schema.fields.len != TUPLE_ARITY or
-            !schema.allowed_roles.allows(BASE_ABI_RELATION_ROLE) or
-            !rolesHaveSameLogupSign(self.relation_role, BASE_ABI_RELATION_ROLE))
-        {
-            return error.AuthorityMismatch;
-        }
-        const actual = self.identityDigest();
-        if (!std.mem.eql(u8, &actual, &SOURCE_AUTHORITY_DIGEST))
-            return error.AuthorityMismatch;
-    }
-
-    pub fn identityDigest(self: SourceAuthority) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(SOURCE_AUTHORITY_DOMAIN);
-        hashInt(&hash, u16, self.format_version);
-        hash.update(&self.revision);
-        hashBytes(&hash, STARK_V_SCHEMA_PATH);
-        hash.update(&self.schema_sha256);
-        hashBytes(&hash, STARK_V_TABLE_PATH);
-        hash.update(&self.table_sha256);
-        hashBytes(&hash, STARK_V_COMPONENT_MACRO_PATH);
-        hash.update(&self.component_macro_sha256);
-        hashInt(&hash, u8, @intFromEnum(self.kind));
-        hashInt(&hash, u32, self.log_size);
-        hashInt(&hash, u8, self.tuple_arity);
-        hashInt(&hash, u8, self.main_columns);
-        hashInt(&hash, u8, self.preprocessed_columns);
-        hashInt(&hash, u8, self.interaction_columns);
-        hashInt(&hash, u8, self.framework_constraints);
-        hashInt(&hash, u16, @intFromEnum(self.relation_schema));
-        hashInt(&hash, u16, self.relation_schema_version);
-        hashInt(&hash, u8, @intFromEnum(self.relation_role));
-        return hash.finalResult();
-    }
-};
-
-pub const SEMANTIC_DIGEST_HEX =
-    "ec9693fbf2631f2c3d4035106d3f9bf6f1369bc5bccaf60f87114ef561840a58";
-pub const SEMANTIC_DIGEST = hexDigest(
-    SEMANTIC_DIGEST_HEX,
-    "invalid recursion range-check semantic digest",
-);
-
-pub const MAIN_COLUMN_NAMES = [PHYSICAL_MAIN_COLUMN_COUNT][]const u8{
-    "recursion.range_check_8_8.signed_multiplicity",
-};
-pub const PREPROCESSED_COLUMN_NAMES = [PREPROCESSED_COLUMN_COUNT][]const u8{
-    "range_check_8_8_limb_0",
-    "range_check_8_8_limb_1",
-};
-
-pub const MainColumns = struct {
-    signed_multiplicity: types.ValueId,
-
-    pub fn physical(self: MainColumns) [PHYSICAL_MAIN_COLUMN_COUNT]types.ValueId {
-        return .{self.signed_multiplicity};
-    }
-};
-
-pub const PreprocessedColumns = struct {
-    limbs: [TUPLE_ARITY]types.ValueId,
-
-    pub fn physical(self: PreprocessedColumns) [PREPROCESSED_COLUMN_COUNT]types.ValueId {
-        return self.limbs;
-    }
-};
-
-pub const DefinitionError = validate_mod.Error || relation_effect.Error || error{
-    InvalidRangeCheckDefinition,
-};
-
-/// Relation-only typed program for row 35.  The framework recurrence remains
-/// owned by the existing shared table component; this program authenticates
-/// its exact tuple and signed multiplicity without transcribing that AIR.
-pub const Definition = struct {
-    arena: ir.Arena,
-    main: MainColumns,
-    preprocessed: PreprocessedColumns,
-    events: [RELATION_EVENT_COUNT]types.EffectId,
-
-    pub fn deinit(self: *Definition) void {
-        self.arena.deinit();
-        self.* = undefined;
-    }
-
-    pub fn validate(self: *const Definition) DefinitionError!void {
-        try validate_mod.validate(&self.arena);
-        const actual = try digest.computeIdentity(&self.arena);
-        if (actual.format_version != digest.typed_effect_format_version or
-            !std.mem.eql(u8, &actual.bytes, &SEMANTIC_DIGEST) or
-            self.arena.constraintsView().len != DIRECT_CONSTRAINT_COUNT or
-            self.arena.effectsView().len != RELATION_EVENT_COUNT or
-            self.arena.hints.items.len != 0 or
-            self.arena.functions.items.len != 0 or
-            self.arena.calls.items.len != 0 or
-            self.arena.range_refinements.items.len != 0 or
-            self.arena.fixed_table_requests.items.len != 0)
-        {
-            return error.InvalidRangeCheckDefinition;
-        }
-        try validateInput(
-            &self.arena,
-            self.main.signed_multiplicity,
-            0,
-            MAIN_COLUMN_NAMES[0],
-            .felt,
-        );
-        for (self.preprocessed.limbs, PREPROCESSED_COLUMN_NAMES, 0..) |
-            value,
-            name,
-            index,
-        | try validateInput(
-            &self.arena,
-            value,
-            PHYSICAL_MAIN_COLUMN_COUNT + index,
-            name,
-            .byte,
-        );
-        try validateEvent(self);
-    }
-};
-
-pub fn build(allocator: std.mem.Allocator) !Definition {
-    var result = try buildDefinition(allocator);
-    errdefer result.deinit();
-    try result.validate();
-    return result;
-}
-
-pub fn identity(allocator: std.mem.Allocator) !digest.Identity {
-    var result = try buildDefinition(allocator);
-    defer result.deinit();
-    return digest.computeIdentity(&result.arena);
-}
-
-fn buildDefinition(allocator: std.mem.Allocator) !Definition {
-    var arena = ir.Arena.init(allocator);
-    errdefer arena.deinit();
-    const span = source.SourceSpan.generated();
-    const main = MainColumns{
-        .signed_multiplicity = try arena.input(MAIN_COLUMN_NAMES[0], .felt, span),
-    };
-    var limbs: [TUPLE_ARITY]types.ValueId = undefined;
-    for (&limbs, PREPROCESSED_COLUMN_NAMES) |*value, name|
-        value.* = try arena.input(name, .byte, span);
-    const preprocessed = PreprocessedColumns{ .limbs = limbs };
-    const events = try relation_effect.appendGroup(RELATION_EVENT_COUNT, &arena, .{
-        .{
-            .domain = .range_check_8_8,
-            .role = BASE_ABI_RELATION_ROLE,
-            .values = &preprocessed.limbs,
-            .weight = main.signed_multiplicity,
-        },
-    }, span);
-    return .{
-        .arena = arena,
-        .main = main,
-        .preprocessed = preprocessed,
-        .events = events,
-    };
-}
+const contract = @import("range_check_8_8_contract.zig");
+pub const STABLE_NAME = contract.STABLE_NAME;
+pub const TABLE_KIND = contract.TABLE_KIND;
+pub const LOG_SIZE = contract.LOG_SIZE;
+pub const TABLE_SIZE = contract.TABLE_SIZE;
+pub const TUPLE_ARITY = contract.TUPLE_ARITY;
+pub const PHYSICAL_MAIN_COLUMN_COUNT = contract.PHYSICAL_MAIN_COLUMN_COUNT;
+pub const PREPROCESSED_COLUMN_COUNT = contract.PREPROCESSED_COLUMN_COUNT;
+pub const FRAMEWORK_PREPROCESSED_COLUMN_COUNT = contract.FRAMEWORK_PREPROCESSED_COLUMN_COUNT;
+pub const LOGICAL_INPUT_COUNT = contract.LOGICAL_INPUT_COUNT;
+pub const DIRECT_CONSTRAINT_COUNT = contract.DIRECT_CONSTRAINT_COUNT;
+pub const RELATION_EVENT_COUNT = contract.RELATION_EVENT_COUNT;
+pub const LOOKUP_BATCH_SIZE = contract.LOOKUP_BATCH_SIZE;
+pub const INTERACTION_BATCH_COUNT = contract.INTERACTION_BATCH_COUNT;
+pub const INTERACTION_COLUMN_COUNT = contract.INTERACTION_COLUMN_COUNT;
+pub const FRAMEWORK_CONSTRAINT_COUNT = contract.FRAMEWORK_CONSTRAINT_COUNT;
+pub const MAXIMUM_CONSTRAINT_LOG_DEGREE_BOUND = contract.MAXIMUM_CONSTRAINT_LOG_DEGREE_BOUND;
+pub const SOURCE_RELATION_ROLE = contract.SOURCE_RELATION_ROLE;
+pub const BASE_ABI_RELATION_ROLE = contract.BASE_ABI_RELATION_ROLE;
+pub const STARK_V_REVISION = contract.STARK_V_REVISION;
+pub const STARK_V_SCHEMA_PATH = contract.STARK_V_SCHEMA_PATH;
+pub const STARK_V_TABLE_PATH = contract.STARK_V_TABLE_PATH;
+pub const STARK_V_COMPONENT_MACRO_PATH = contract.STARK_V_COMPONENT_MACRO_PATH;
+pub const STARK_V_SCHEMA_SHA256 = contract.STARK_V_SCHEMA_SHA256;
+pub const STARK_V_TABLE_SHA256 = contract.STARK_V_TABLE_SHA256;
+pub const STARK_V_COMPONENT_MACRO_SHA256 = contract.STARK_V_COMPONENT_MACRO_SHA256;
+pub const SOURCE_AUTHORITY_FORMAT_VERSION = contract.SOURCE_AUTHORITY_FORMAT_VERSION;
+pub const SOURCE_AUTHORITY_DOMAIN = contract.SOURCE_AUTHORITY_DOMAIN;
+pub const SOURCE_AUTHORITY_DIGEST_HEX = contract.SOURCE_AUTHORITY_DIGEST_HEX;
+pub const SOURCE_AUTHORITY_DIGEST = contract.SOURCE_AUTHORITY_DIGEST;
+pub const SourceAuthority = contract.SourceAuthority;
+pub const SEMANTIC_DIGEST_HEX = contract.SEMANTIC_DIGEST_HEX;
+pub const SEMANTIC_DIGEST = contract.SEMANTIC_DIGEST;
+pub const MAIN_COLUMN_NAMES = contract.MAIN_COLUMN_NAMES;
+pub const PREPROCESSED_COLUMN_NAMES = contract.PREPROCESSED_COLUMN_NAMES;
+pub const MainColumns = contract.MainColumns;
+pub const PreprocessedColumns = contract.PreprocessedColumns;
+pub const DefinitionError = contract.DefinitionError;
+pub const Definition = contract.Definition;
+pub const build = contract.build;
+pub const identity = contract.identity;
+pub const MainSource = contract.MainSource;
+pub const PreprocessedSource = contract.PreprocessedSource;
+pub const Slot = contract.Slot;
+pub const BINDING_FORMAT_VERSION = contract.BINDING_FORMAT_VERSION;
+pub const BINDING_DOMAIN = contract.BINDING_DOMAIN;
+pub const BINDING_DIGEST_HEX = contract.BINDING_DIGEST_HEX;
+pub const BINDING_DIGEST = contract.BINDING_DIGEST;
+pub const Binding = contract.Binding;
 
 pub const RelationRuntime = relation_interaction.Runtime(
     LOGICAL_INPUT_COUNT,
@@ -331,77 +97,6 @@ pub fn authenticateRelation(definition: *const Definition) !RelationPlan {
         definition.events,
     );
 }
-
-pub const MainSource = enum(u8) {
-    signed_multiplicity = 0,
-};
-pub const PreprocessedSource = enum(u8) {
-    limb_0 = 0,
-    limb_1 = 1,
-};
-
-pub fn Slot(comptime Source: type) type {
-    return struct {
-        column: u8,
-        value: types.ValueId,
-        source: Source,
-    };
-}
-
-pub const BINDING_FORMAT_VERSION: u16 = 1;
-pub const BINDING_DOMAIN =
-    "stwo-zig/typed-air/recursion-range-check-8-8-witness/v1\x00";
-pub const BINDING_DIGEST_HEX =
-    "81ef06d735f1b34e56afe46740ba06c611edfce72d96d4bdd8bb35e4f25571ba";
-pub const BINDING_DIGEST = hexDigest(
-    BINDING_DIGEST_HEX,
-    "invalid recursion range-check witness-binding digest",
-);
-
-pub const Binding = struct {
-    format_version: u16,
-    semantic_format_version: u16,
-    semantic_digest: digest.Digest,
-    source_authority_digest: digest.Digest,
-    main: [PHYSICAL_MAIN_COLUMN_COUNT]Slot(MainSource),
-    preprocessed: [PREPROCESSED_COLUMN_COUNT]Slot(PreprocessedSource),
-    event: types.EffectId,
-
-    pub fn canonical(definition: *const Definition) !Binding {
-        try definition.validate();
-        const authority = SourceAuthority.pinned();
-        try authority.validate();
-        return .{
-            .format_version = BINDING_FORMAT_VERSION,
-            .semantic_format_version = digest.typed_effect_format_version,
-            .semantic_digest = SEMANTIC_DIGEST,
-            .source_authority_digest = authority.identityDigest(),
-            .main = .{.{
-                .column = 0,
-                .value = definition.main.signed_multiplicity,
-                .source = .signed_multiplicity,
-            }},
-            .preprocessed = .{
-                .{ .column = 0, .value = definition.preprocessed.limbs[0], .source = .limb_0 },
-                .{ .column = 1, .value = definition.preprocessed.limbs[1], .source = .limb_1 },
-            },
-            .event = definition.events[0],
-        };
-    }
-
-    pub fn identityDigest(self: *const Binding) digest.Digest {
-        var hash = std.crypto.hash.sha2.Sha256.init(.{});
-        hash.update(BINDING_DOMAIN);
-        hashInt(&hash, u16, self.format_version);
-        hashInt(&hash, u16, self.semantic_format_version);
-        hash.update(&self.semantic_digest);
-        hash.update(&self.source_authority_digest);
-        for (self.main) |slot| hashSlot(&hash, slot);
-        for (self.preprocessed) |slot| hashSlot(&hash, slot);
-        hashInt(&hash, u32, @intFromEnum(self.event));
-        return hash.finalResult();
-    }
-};
 
 pub const Error = direct.Error || lookup_schema.Error || std.mem.Allocator.Error || error{
     AuthorityMismatch,
@@ -650,56 +345,6 @@ pub inline fn committedRow(logical_row: usize) usize {
     );
 }
 
-fn validateInput(
-    arena: *const ir.Arena,
-    value: types.ValueId,
-    index: usize,
-    expected_name: []const u8,
-    expected_type: types.Type,
-) error{InvalidRangeCheckDefinition}!void {
-    if (types.idIndex(value) != index) return error.InvalidRangeCheckDefinition;
-    const node = arena.node(value) orelse return error.InvalidRangeCheckDefinition;
-    if (!std.meta.eql(node.key.ty, expected_type))
-        return error.InvalidRangeCheckDefinition;
-    const name_id = switch (node.key.op) {
-        .input => |name| name,
-        else => return error.InvalidRangeCheckDefinition,
-    };
-    const actual_name = arena.name(name_id) orelse
-        return error.InvalidRangeCheckDefinition;
-    if (!std.mem.eql(u8, actual_name, expected_name))
-        return error.InvalidRangeCheckDefinition;
-}
-
-fn validateEvent(
-    definition: *const Definition,
-) error{InvalidRangeCheckDefinition}!void {
-    const effect_id = definition.events[0];
-    if (types.idIndex(effect_id) != 0) return error.InvalidRangeCheckDefinition;
-    const item = definition.arena.effect(effect_id) orelse
-        return error.InvalidRangeCheckDefinition;
-    const binding = item.binding orelse return error.InvalidRangeCheckDefinition;
-    const schema = relation.get(.range_check_8_8);
-    const values = definition.arena.effectValues(effect_id) orelse
-        return error.InvalidRangeCheckDefinition;
-    if (item.kind != .component_call or
-        item.liveness != definition.main.signed_multiplicity or
-        item.access_ordinal != null or
-        binding.schema != schema.id or
-        binding.schema_version != schema.version or
-        binding.role != BASE_ABI_RELATION_ROLE or
-        !std.mem.eql(types.ValueId, values, &definition.preprocessed.limbs))
-    {
-        return error.InvalidRangeCheckDefinition;
-    }
-}
-
-fn rolesHaveSameLogupSign(lhs: relation.Role, rhs: relation.Role) bool {
-    const lhs_is_positive = lhs == .emit;
-    const rhs_is_positive = rhs == .emit;
-    return lhs_is_positive == rhs_is_positive;
-}
-
 fn validateCounter(counter: *const lookup_counter.Counter) Error!void {
     if (counter.kind != TABLE_KIND) return error.InvalidCounterKind;
     if (counter.values.len != TABLE_SIZE) return error.InvalidCounterShape;
@@ -786,27 +431,10 @@ fn objectRange(pointer: anytype) direct.Error!AddressRange {
     };
 }
 
-fn hashSlot(hash: anytype, slot: anytype) void {
-    hashInt(hash, u8, slot.column);
-    hashInt(hash, u32, @intFromEnum(slot.value));
-    hashInt(hash, u8, @intFromEnum(slot.source));
-}
-
-fn hashBytes(hash: anytype, value: []const u8) void {
-    hashInt(hash, u32, value.len);
-    hash.update(value);
-}
-
 fn hashInt(hash: anytype, comptime T: type, value: anytype) void {
     var encoded: [@sizeOf(T)]u8 = undefined;
     std.mem.writeInt(T, &encoded, @intCast(value), .little);
     hash.update(&encoded);
-}
-
-fn hexDigest(comptime value: []const u8, comptime message: []const u8) digest.Digest {
-    var result: digest.Digest = undefined;
-    _ = std.fmt.hexToBytes(&result, value) catch @compileError(message);
-    return result;
 }
 
 comptime {
@@ -827,4 +455,93 @@ comptime {
     {
         @compileError("universal range-check (8,8) geometry drifted");
     }
+}
+
+const backend_programs = @import("stwo_prover_engine").air.component_prover;
+const framework_export = @import("framework_polynomial_export_v1.zig");
+const direct_program = @import("direct_constraint_program.zig");
+
+/// Cold export from the already admitted native range component. Its typed
+/// bridge supplies the relation; the native component supplies exact committed
+/// coordinates. The selector is a framework input, outside the typed tuple.
+pub fn exportFrameworkProgram(
+    allocator: std.mem.Allocator,
+    component: *const lookup_component.LookupTableComponent,
+    tree_column_counts: []const usize,
+) !backend_programs.OwnedFrameworkPolynomialProgramV1 {
+    try validateFrameworkComponent(component);
+    var definition = try build(allocator);
+    defer definition.deinit();
+    const relations = try authenticateRelation(&definition);
+    const constraints = try direct_program.authenticate(&definition.arena, SEMANTIC_DIGEST, LOGICAL_INPUT_COUNT);
+    const inputs = [_]backend_programs.TypedPolynomialInputV1{
+        .{ .trace_column = .{ .tree_index = 1, .column_index = try frameworkColumn(component.main_col_offset) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.tuple_col_indices[0]) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.tuple_col_indices[1]) } },
+        .{ .trace_column = .{ .tree_index = 0, .column_index = try frameworkColumn(component.is_first_col_idx) } },
+    };
+    var interaction_columns: [INTERACTION_COLUMN_COUNT]backend_programs.TypedPolynomialColumnV1 = undefined;
+    for (&interaction_columns, 0..) |*column, index| column.* = .{
+        .tree_index = 2,
+        .column_index = try frameworkColumn(try std.math.add(usize, component.interaction_col_offset, index)),
+    };
+    return framework_export.exportIndependentPrepared(@This(), allocator, &constraints, &relations, &inputs, &interaction_columns, tree_column_counts);
+}
+
+pub fn exportFrameworkParameters(
+    allocator: std.mem.Allocator,
+    component: *const lookup_component.LookupTableComponent,
+) !backend_programs.OwnedFrameworkPolynomialParametersV1 {
+    try validateFrameworkComponent(component);
+    const element = component.relations.range_check_8_8;
+    try requireCanonicalFrameworkValue(element.z);
+    try requireCanonicalFrameworkValue(element.alpha);
+    for (element.alpha_powers) |power| try requireCanonicalFrameworkValue(power);
+    const expected = lookup_relations.RelationElements(TUPLE_ARITY).init(element.z, element.alpha);
+    for (element.alpha_powers, expected.alpha_powers) |actual, canonical| {
+        if (!actual.eql(canonical)) return error.AuthorityMismatch;
+    }
+    const profile_values = try allocator.alloc(M31, 0);
+    errdefer allocator.free(profile_values);
+    const relation_values = try allocator.alloc(QM31, 1 + TUPLE_ARITY);
+    errdefer allocator.free(relation_values);
+    relation_values[0] = element.z;
+    @memcpy(relation_values[1..], &element.alpha_powers);
+    const claims = try allocator.dupe(QM31, &.{component.claim});
+    errdefer allocator.free(claims);
+    for (relation_values) |value| try requireCanonicalFrameworkValue(value);
+    try requireCanonicalFrameworkValue(component.claim);
+    return .{ .allocator = allocator, .values = .{
+        .profile_values = profile_values,
+        .relation_values = relation_values,
+        .trace_log_size = LOG_SIZE,
+        .claimed_sum = QM31.zero(),
+        .batch_claims = claims,
+    } };
+}
+
+pub fn frameworkCapability() backend_programs.FrameworkPolynomialCapabilityV1 {
+    const Callbacks = struct {
+        fn program(ctx: *const anyopaque, allocator: std.mem.Allocator, counts: []const usize) !backend_programs.OwnedFrameworkPolynomialProgramV1 {
+            return exportFrameworkProgram(allocator, @ptrCast(@alignCast(ctx)), counts);
+        }
+        fn parameters(ctx: *const anyopaque, allocator: std.mem.Allocator) !backend_programs.OwnedFrameworkPolynomialParametersV1 {
+            return exportFrameworkParameters(allocator, @ptrCast(@alignCast(ctx)));
+        }
+    };
+    return .{ .trace_log_size = LOG_SIZE, .export_program = Callbacks.program, .export_parameters = Callbacks.parameters };
+}
+
+fn validateFrameworkComponent(component: *const lookup_component.LookupTableComponent) !void {
+    if (component.kind != TABLE_KIND or component.tuple_col_indices[0] != try std.math.add(usize, component.is_first_col_idx, 1) or
+        component.tuple_col_indices[1] != try std.math.add(usize, component.is_first_col_idx, 2))
+        return error.AuthorityMismatch;
+    for (component.tuple_col_indices[TUPLE_ARITY..]) |column| if (column != 0) return error.AuthorityMismatch;
+}
+fn frameworkColumn(index: usize) !u32 {
+    return std.math.cast(u32, index) orelse error.InvalidFrameworkPolynomialInput;
+}
+fn requireCanonicalFrameworkValue(value: QM31) !void {
+    for (value.toM31Array()) |coordinate| if (coordinate.toU32() >= m31.Modulus)
+        return error.InvalidFrameworkPolynomialParameters;
 }

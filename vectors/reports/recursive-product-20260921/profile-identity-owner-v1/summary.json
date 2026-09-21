@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "broad_profile_tests": 21,
+  "narrow_profile_tests": 6,
+  "ownership_checks": 44,
+  "inventory_checks": 2,
+  "source_transfer_verified": true,
+  "profile_owner_lines_before": 924,
+  "profile_owner_lines_after": 838,
+  "identity_owner_lines": 98,
+  "source_conformance_findings": 109,
+  "full_proof_rerun": false,
+  "goal_complete": false
+}

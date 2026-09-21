@@ -1,0 +1,16 @@
+test-detached-boundary
++- stwo_riscv_frontend test count floor
+   +- run test stderr
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13544 nodes=62777 outputs=8329 provider_calls=309 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+detached expected boundary: inputs=13972 nodes=65449 outputs=8662 provider_calls=316 rejected=37
+
+Build Summary: 4/4 steps succeeded; 3/3 tests passed
+test-detached-boundary success
++- stwo_riscv_frontend test count floor success
+   +- run test 3 passed 852ms MaxRSS:17M
+      +- compile test ReleaseSafe native success 5s MaxRSS:525M
+

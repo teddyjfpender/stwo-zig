@@ -1,0 +1,19 @@
+test-ethereum-native-field-producer
++- field native Ethereum proof lifecycle guard
+   +- run test stderr
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=0 bytes=8649889 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/d90b9316dcd6a0865d97daec1c8b21767ba1b87347149f97a68c86ab6a188b22.bin
+ETHEREUM_INCREMENTAL_ROLE0_STAGE101_EXPORT leaf=1 bytes=8966113 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/5720bbbcb8a925e7a7de1005c1b75751a328da2c586569ddb28ddf6877810765.bin
+ETHEREUM_BASE_BOUND_PROGRAM sha256=ecfd324f8088f9c985210b728d91851fb1144254f0bb6d52aa3d7ed0e3625f55 bytes=1048 path=/Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/.git/local-ethereum/field-bound-v4/program.elf
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=stage101_build source=darwin_proc_pid_rusage_v6 wall_ns=78201061291 process_cpu_ns=100279473625 parallelism_milli=1282 peak_footprint_bytes=1180026464 energy_nj=432326547456 instructions=1947329216818 cycles=390240958249 workers=1 host_byte_budget=8589934592
+ETHEREUM_BASE_BOUND_NATIVE producer_destroyed=true source=disk profile_schema=4
+ETHEREUM_BASE_BOUND_NATIVE leaf=0 sha256=d90b9316dcd6a0865d97daec1c8b21767ba1b87347149f97a68c86ab6a188b22 bytes=8649889 freshly_verified=true profile_schema=4 global_metadata_admitted=true
+ETHEREUM_BASE_BOUND_NATIVE leaf=1 sha256=5720bbbcb8a925e7a7de1005c1b75751a328da2c586569ddb28ddf6877810765 bytes=8966113 freshly_verified=true profile_schema=4 global_metadata_admitted=true
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=cold_open source=darwin_proc_pid_rusage_v6 wall_ns=49777631250 process_cpu_ns=50402015792 parallelism_milli=1012 peak_footprint_bytes=1180026464 energy_nj=231864457813 instructions=1101665948211 cycles=197160661471 workers=1 host_byte_budget=8589934592
+ETHEREUM_INCREMENTAL_ROLE0_PHASE phase=total source=darwin_proc_pid_rusage_v6 wall_ns=127978713334 process_cpu_ns=150681530209 parallelism_milli=1177 peak_footprint_bytes=1180026464 energy_nj=664191005269 instructions=3048995266400 cycles=587401776511 workers=1 host_byte_budget=8589934592
+
+Build Summary: 4/4 steps succeeded; 1/1 tests passed
+test-ethereum-native-field-producer success
++- field native Ethereum proof lifecycle guard success
+   +- run test 1 passed 2m MaxRSS:1G
+      +- compile test ReleaseSafe native success 1m MaxRSS:3G
+

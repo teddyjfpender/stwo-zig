@@ -225,7 +225,7 @@ pub const Plan = struct {
                 cpu.readReg(self.instruction.rs2) == self.rs2_value) and
             memory.readU32(self.alignedAddress()) ==
                 self.memory_previous_word and
-            memory.initialized_words.contains(self.alignedAddress()) ==
+            memory.alignedWordIsInitialized(self.alignedAddress()) ==
                 self.memory_word_was_initialized and
             trace.rows.items.len == self.expected_trace_len and
             trace.step_count == self.expected_trace_len and
@@ -457,7 +457,9 @@ pub inline fn stage(
         .expected_trace_len = trace.rows.items.len,
         .memory_last_was_present = memory_last != null,
         .memory_initial_was_present = memory_initial != null,
-        .memory_word_was_initialized = memory.initialized_words.contains(retirement.aligned_address),
+        .memory_word_was_initialized = memory.alignedWordIsInitialized(
+            retirement.aligned_address,
+        ),
     };
 }
 

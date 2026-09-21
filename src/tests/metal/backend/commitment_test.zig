@@ -241,6 +241,32 @@ test "metal: resident lifted Merkle root matches CPU" {
     try std.testing.expectEqualSlices(u8, &cpu_tree.root(), &compatible_tree.root());
 
     const query_positions = [_]usize{ 3, 255, 510 };
+    const gathered = (try gpu_tree.tryCopyQueriedValuesFlat(
+        allocator,
+        &gpu_columns,
+        &query_positions,
+    )) orelse return error.TestUnexpectedResult;
+    defer allocator.free(gathered);
+    for (cpu_columns, log_sizes, 0..) |column, log_size, column_index| {
+        const shift = @as(u32, 10) - log_size;
+        const shift_amt: std.math.Log2Int(usize) = @intCast(shift + 1);
+        for (query_positions, 0..) |position, query_index| {
+            const source_index = ((position >> shift_amt) << 1) + (position & 1);
+            try std.testing.expectEqual(
+                column[source_index].v,
+                gathered[column_index * query_positions.len + query_index],
+            );
+        }
+    }
+    const duplicate = try allocator.dupe(M31, cpu_columns[0]);
+    defer allocator.free(duplicate);
+    var mismatched_columns = gpu_columns;
+    mismatched_columns[0] = std.mem.bytesAsSlice(u32, std.mem.sliceAsBytes(duplicate));
+    try std.testing.expectError(
+        error.RootReadFailed,
+        gpu_tree.tryCopyQueriedValuesFlat(allocator, &mismatched_columns, &query_positions),
+    );
+
     var cpu_decommitment = try cpu_tree.decommit(allocator, &query_positions, &cpu_columns);
     defer cpu_decommitment.deinit(allocator);
     var metal_decommitment = try compatible_tree.decommit(allocator, &query_positions, &cpu_columns);

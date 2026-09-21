@@ -110,6 +110,9 @@ pub const PublicBoundariesV2 = shard_1.PublicBoundariesV2;
 /// Retained scratch for the second pass. Reinitializing these fixed arrays is
 /// cheaper and safer than allocating one accumulator per proof.
 pub const Workspace = shard_1.Workspace;
+/// Validate exact row/provider inputs without requiring relation closure.
+/// The caller supplies a prepared authority from `prepareAuthority`.
+pub const preflightInputs = shard_1.preflightInputs;
 /// Fully materialized, pointer-free V2 closure input. The inherited V1 input
 /// digest seals all 35 rows plus row 35's provider; the V2 identity additionally
 /// seals the two independently authenticated public-boundary publications.

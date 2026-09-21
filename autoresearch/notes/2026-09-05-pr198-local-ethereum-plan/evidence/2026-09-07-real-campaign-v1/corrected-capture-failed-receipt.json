@@ -1,0 +1,14 @@
+{
+  "schema": "stwo.ethereum.retained-campaign-execution-measurement.v1",
+  "exit_code": 1,
+  "monitor_elapsed_ns": 2716961367000,
+  "sampled_peak_rss_bytes": 642269184,
+  "sample_interval_seconds": 10,
+  "claim": "proof-free compact/public-wire capture and cold publication; not a proof benchmark",
+  "ended_unix_ns": 1788783328682346000,
+  "real_seconds": 2714.24,
+  "user_seconds": 2667.15,
+  "sys_seconds": 12.21,
+  "maximum_resident_set_size_bytes": 731365376,
+  "peak_memory_footprint_bytes": 770233312
+}

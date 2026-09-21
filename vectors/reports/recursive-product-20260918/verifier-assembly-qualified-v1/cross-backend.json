@@ -1,0 +1,7 @@
+{
+  "passed": true,
+  "cases_per_backend": 192,
+  "identical_artifacts": 21,
+  "identical_source_snapshots": true,
+  "identical_verifier_binaries": true
+}

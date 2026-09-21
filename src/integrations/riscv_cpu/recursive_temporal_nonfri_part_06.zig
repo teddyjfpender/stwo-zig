@@ -287,10 +287,98 @@ pub fn Namespace(comptime context: type) type {
             ) Error!PreparedRows10Through11V2 {
                 try pair.validate();
                 const authenticated = try authenticatePreparedPairForSource(pair);
+                return initFromAuthenticatedRoot(
+                    allocator,
+                    authority,
+                    workspace,
+                    try publicFromPair(pair, authenticated),
+                    &pair.prepared_root,
+                );
+            }
+
+            /// Append-only constructor for a non-Segment child authority such
+            /// as the two canonical proofless height-zero empties. The public
+            /// record is derived entirely from the reconstructed prepared root
+            /// and explicit pair/publication authorities; no proof-shaped
+            /// Segment source binding is fabricated.
+            pub fn initFromPreparedRoot(
+                allocator: std.mem.Allocator,
+                authority: *const statement_source.Authority,
+                workspace: *statement_air.Workspace,
+                pair_authority_id: Digest,
+                adjacency_id: Digest,
+                child_publication_ids: [temporal.CHILD_COUNT]Digest,
+                prepared_root: *const temporal.PreparedRootContextV2,
+            ) Error!PreparedRows10Through11V2 {
+                const reconstructed = try temporal.prepareRootContext(
+                    &prepared_root.authority_snapshot,
+                    &prepared_root.pin_snapshot,
+                );
+                if (!std.meta.eql(reconstructed, prepared_root.*))
+                    return error.PairSnapshotMismatch;
+                const root = reconstructed.result.pair;
+                var child_kinds: [temporal.CHILD_COUNT]temporal.ProofKind =
+                    undefined;
+                var child_statement_ids: [temporal.CHILD_COUNT]Digest =
+                    undefined;
+                for (
+                    &child_kinds,
+                    &child_statement_ids,
+                    &prepared_root.authority_snapshot.children,
+                ) |*kind, *statement_id, *child| {
+                    kind.* = child.kind;
+                    statement_id.* = try child.statementId();
+                }
+                var public = TemporalParentPublicV2{
+                    .parent_height = root.parent_height,
+                    .parent_node_index = root.parent_node_index,
+                    .pair_authority_id = pair_authority_id,
+                    .adjacency_id = adjacency_id,
+                    .context_id = root.context_id,
+                    .node_id = root.node_id,
+                    .record_id = root.record_id,
+                    .session_id = root.session_id,
+                    .job_id = root.job_id,
+                    .aggregator_vk_id = root.aggregator_vk_id,
+                    .child_kinds = child_kinds,
+                    .child_ids = root.child_ids,
+                    .child_publication_ids = child_publication_ids,
+                    .child_statement_ids = child_statement_ids,
+                    .parent_statement_id = root.parent_statement_id,
+                    .identity = undefined,
+                };
+                public.identity = publicIdentity(&public);
+                try public.validate();
+                return initFromAuthenticatedRoot(
+                    allocator,
+                    authority,
+                    workspace,
+                    public,
+                    prepared_root,
+                );
+            }
+
+            fn initFromAuthenticatedRoot(
+                allocator: std.mem.Allocator,
+                authority: *const statement_source.Authority,
+                workspace: *statement_air.Workspace,
+                public: TemporalParentPublicV2,
+                prepared_root: *const temporal.PreparedRootContextV2,
+            ) Error!PreparedRows10Through11V2 {
                 try authority.validateSeals();
                 try workspace.validate();
 
-                const children = pair.prepared_root.authority_snapshot.children;
+                const reconstructed = try temporal.prepareRootContext(
+                    &prepared_root.authority_snapshot,
+                    &prepared_root.pin_snapshot,
+                );
+                if (!std.meta.eql(reconstructed, prepared_root.*) or
+                    !std.meta.eql(public.parent_statement_id, reconstructed
+                        .result.pair.parent_statement_id))
+                {
+                    return error.PairSnapshotMismatch;
+                }
+                const children = prepared_root.authority_snapshot.children;
                 const left_statement = try children[0].statement();
                 const right_statement = try children[1].statement();
                 const parent_statement = try span_statement.SpanStatement.fold(
@@ -302,10 +390,13 @@ pub fn Namespace(comptime context: type) type {
                 const parent_words = try parent_statement.canonicalWords();
                 if (!m31SlicesEql(&left_words, &children[0].statement_words) or
                     !m31SlicesEql(&right_words, &children[1].statement_words) or
-                    !std.meta.eql(parent_statement, authenticated.pair.parent_statement) or
+                    !std.meta.eql(
+                        parent_statement,
+                        reconstructed.result.pair.parent_statement,
+                    ) or
                     !m31SlicesEql(
                         &parent_words,
-                        &authenticated.pair.parent_statement_words,
+                        &reconstructed.result.pair.parent_statement_words,
                     ))
                 {
                     return error.PairSnapshotMismatch;
@@ -342,7 +433,7 @@ pub fn Namespace(comptime context: type) type {
 
                 var result = PreparedRows10Through11V2{
                     .allocator = allocator,
-                    .public = try publicFromPair(pair, authenticated),
+                    .public = public,
                     .left_statement = left_statement,
                     .right_statement = right_statement,
                     .parent_statement = parent_statement,

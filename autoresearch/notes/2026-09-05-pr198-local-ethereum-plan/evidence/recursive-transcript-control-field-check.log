@@ -1,0 +1,8 @@
+[zig_serial_build] another build holds /tmp/stwo-zig-build.lock; waiting
+[zig_serial_build] acquired after 57s
+
+Build Summary: 3/3 steps succeeded; 2/2 tests passed
+test-recursive-common-fold-field-public-v2 success
++- run test 2 passed 649ms MaxRSS:1M
+   +- compile test ReleaseSafe native success 5s MaxRSS:533M
+

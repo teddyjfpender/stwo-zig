@@ -1,7 +1,6 @@
 //! Exact-type and fail-atomic gate for the CPU parent-statement adapter.
 
 const std = @import("std");
-const integration = @import("stwo_riscv_cpu_integration");
 const frontend = @import("stwo_riscv_frontend");
 
 const recursion = frontend.recursion;
@@ -11,11 +10,11 @@ const fixed_wire = recursion.fixed_wire;
 const pair_node = recursion.pair_node;
 const protocol = recursion.protocol;
 const source = recursion.outer_parent_statement_source;
-const adapter = integration.recursive_parent_statement_source;
-const air_adapter = integration.recursive_parent_statement_air_source;
+const adapter = @import("recursive_parent_statement_source.zig");
+const air_adapter = @import("recursive_parent_statement_air_source.zig");
 const air_source = recursion.outer_parent_statement_air_source;
 const segment_source = recursion.segment_statement_outer_source;
-const outer = integration.recursive_fri_outer;
+const outer = @import("recursive_fri_outer.zig");
 
 const Dimensions = fixed_wire.Dimensions{
     .commitment_count = admission.TREE_COUNT,

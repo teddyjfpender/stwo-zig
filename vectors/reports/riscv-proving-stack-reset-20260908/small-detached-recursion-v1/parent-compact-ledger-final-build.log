@@ -1,0 +1,6 @@
+
+Build Summary: 3/3 steps succeeded
+build-recursive-segment-v2-detached-parent-producer success
++- install recursive-segment-v2-detached-parent-prove success
+   +- compile exe recursive-segment-v2-detached-parent-prove ReleaseSafe native success 1m MaxRSS:3G
+

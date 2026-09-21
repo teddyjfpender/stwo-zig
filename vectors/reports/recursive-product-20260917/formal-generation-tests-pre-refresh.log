@@ -1,0 +1,515 @@
+...............EEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE......................................................................
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='add')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='sub')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='sll')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='slt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='sltu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='xor')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='srl')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='sra')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='or')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='and')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='addi')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='slti')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='sltiu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='xori')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='ori')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='andi')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='slli')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='srli')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='srai')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='beq')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='bne')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='blt')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='bge')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='bltu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='bgeu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='jal')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='jalr')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='lui')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='auipc')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='mul')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='mulh')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='mulhsu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='mulhu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='div')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='divu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='rem')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='remu')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_air_ir_v2_exactly_covers_the_opcode_manifest (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_air_ir_v2_exactly_covers_the_opcode_manifest) (mnemonic='fence')
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 339, in test_committed_air_ir_v2_exactly_covers_the_opcode_manifest
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+======================================================================
+ERROR: test_committed_lui_air_ir_v2_is_source_bound_production_program (scripts.tests.test_riscv_refinement.RefinementAirTest.test_committed_lui_air_ir_v2_is_source_bound_production_program)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/tests/test_riscv_refinement.py", line 261, in test_committed_lui_air_ir_v2_is_source_bound_production_program
+    air_program.verify_source_files(payload, ROOT)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/theodorepender/code/cryptography/stwo-zig/scripts/riscv_refinement_lib/air_program.py", line 174, in verify_source_files
+    raise RefinementError(
+        f"source_identity.files: source digest drifted for {item['path']}"
+    )
+scripts.riscv_refinement_lib.model.RefinementError: source_identity.files: source digest drifted for src/core/fields/m31.zig
+
+----------------------------------------------------------------------
+Ran 87 tests in 1.668s
+
+FAILED (errors=39)
+audited theorems pinned exactly: 4656 theorems
+repinned 4657 audited theorems in /var/folders/b6/t439mlp94rj6rzwbkbyrl5qc0000gn/T/tmpl_n04nxd/riscv_refinement.py (+1, -0); review the diff
+refinement receipt verified: 1111111111111111111111111111111111111111111111111111111111111111

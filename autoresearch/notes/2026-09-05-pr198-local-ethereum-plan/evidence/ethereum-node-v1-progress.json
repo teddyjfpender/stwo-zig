@@ -1,0 +1,19 @@
+{
+  "schema": "stwo.local-ethereum.commitment-node-progress.v1",
+  "source_path": "src/frontends/riscv/air/memory_commitment/ethereum_node_v1.zig",
+  "source_sha256": "159a4aa55533f8fdde35311850fd5c8cc8cf505819d7ef904aeb8540951676d9",
+  "rate_words": 7,
+  "capacity_words": 9,
+  "digest_words": 9,
+  "permutations_per_binary_node": 4,
+  "caller_constraints": 79,
+  "debug_tests_passed": 2,
+  "release_safe_tests_passed_before_final_compile_time_shape_assertions": 2,
+  "test_scope": "native witness, caller equations in M31 and QM31, existing full-output permutation AIR equations, mutation rejection",
+  "provider_logup_bus_connected": false,
+  "merkle_tree_connected": false,
+  "public_statement_connected": false,
+  "proof_generated": false,
+  "security_profile_admitted": false,
+  "csp_defaults_changed": false
+}

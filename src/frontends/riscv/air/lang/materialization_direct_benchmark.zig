@@ -8,8 +8,8 @@
 
 const std = @import("std");
 const M31 = @import("stwo_core").fields.m31.M31;
-const direct_program = @import("materialization_direct_program.zig");
-const fixed = @import("materialization_fixed_direct.zig");
+const direct_program = @import("direct_polynomial_program.zig");
+const fixed = @import("fixed_polynomial_program.zig");
 const types = @import("types.zig");
 
 pub const format_version: u16 = 1;

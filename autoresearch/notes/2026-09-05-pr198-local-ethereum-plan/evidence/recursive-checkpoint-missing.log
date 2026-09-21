@@ -1,0 +1,15 @@
+test-recursive-common-fold-transcript-replay-v1
++- Common-fold retained proof replay guard
+   +- run test 0/1 passed, 1 failed
+error: 'recursive_common_fold_q193_bootstrap_v2_test.test.retained common-fold proof replays through the current cold verifier' failed
+error: while executing test 'recursive_common_fold_q193_bootstrap_v2_test.test.retained common-fold proof replays through the current cold verifier', the following test command failed:
+./.zig-cache/o/d1aee43c494e918b047c0daaf0c4e5c7/test --cache-dir=./.zig-cache --seed=0x1d6668dc --listen=-
+
+Build Summary: 1/4 steps succeeded; 1 failed; 0/1 tests passed; 1 failed
+test-recursive-common-fold-transcript-replay-v1 transitive failure
++- Common-fold retained proof replay guard transitive failure
+   +- run test 0/1 passed, 1 failed
+      +- compile test ReleaseSafe native cached 51ms MaxRSS:35M
+
+error: the following build command failed with exit code 1:
+.zig-cache/o/d387839991c41f9382a65113dc74605e/build /opt/homebrew/Cellar/zig/0.15.2/bin/zig /opt/homebrew/Cellar/zig/0.15.2/lib/zig /Users/theodorepender/Coding/stark-proving-engineering/stwo-zig/src/integrations/riscv_cpu .zig-cache /Users/theodorepender/.cache/zig --seed 0x1d6668dc -Z9f27508e5ff21767 --maxrss 25769803776 -j1 test-recursive-common-fold-transcript-replay-v1 -Doptimize=ReleaseSafe --summary all

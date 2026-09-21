@@ -50,6 +50,7 @@ pub const Manifest = shard_0.Manifest;
 pub const ClaimVector = shard_1.ClaimVector;
 pub const ProofGate = shard_1.ProofGate;
 pub const build = shard_1.build;
+pub const buildWithProviderShape = shard_1.buildWithProviderShape;
 /// Strict geometry assembly for focused tests and higher-level composition.
 /// Unlike the removed generic builder, this accepts a validated typed catalog
 /// as a whole and therefore cannot smuggle V1 rows 10--17 into a V2 manifest.
@@ -63,3 +64,5 @@ pub const assemble = shard_1.assemble;
 /// the admission boundary.
 pub const programGeometryShaId = shard_1.programGeometryShaId;
 pub const requireSameProgramGeometry = shard_1.requireSameProgramGeometry;
+
+pub const validateAgainstSources = shard_0.validateAgainstSources;

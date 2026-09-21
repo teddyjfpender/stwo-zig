@@ -40,7 +40,7 @@ ALLOWED_DEPENDENCY_LAYERS = {
     "backend": {"api", "contract", "engine", "protocol"},
     "interchange": {"protocol"},
     "example": {"api", "backend", "engine", "interchange", "protocol"},
-    "service": set(),
+    "service": {"service"},
     "integration": LAYERS,
 }
 IMPORT_RE = re.compile(

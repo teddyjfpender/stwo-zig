@@ -37,7 +37,7 @@ pub const Check = pow_check.Check;
 pub const Digest = channel.Digest;
 pub const Draw = [RATE]M31;
 
-pub const Error = schedule.Error || public_data_v2.Error || statement_v2.Error ||
+pub const Error = schedule.Error || trace_mod.Error || public_data_v2.Error || statement_v2.Error ||
     std.mem.Allocator.Error || error{
     ArithmeticOverflow,
     AuthorityMismatch,
